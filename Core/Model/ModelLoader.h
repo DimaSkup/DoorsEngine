@@ -1,0 +1,69 @@
+// *********************************************************************************
+// Filename:      ModelLoader.h
+// Description:   loader for models data of the internal format .de3d
+// 
+// Created:       11.11.24
+// *********************************************************************************
+#pragma once
+
+#include "BasicModel.h"
+#include <fstream>
+#include <filesystem>
+namespace fs = std::filesystem;
+
+
+class ModelLoader
+{
+public:
+	struct M3dMaterial
+	{
+		MeshMaterial mat_;
+		bool alphaClip_;
+		int numTextures_ = 0;
+		std::string effectTypeName_;
+		std::string texTypes[22];
+		std::string texPaths[22];           // each mesh (subset) can have 22 texture types
+	};
+
+public:
+	void Load(
+		const fs::path& modelFilePath,      // full path to model .de3d file
+		BasicModel& model);
+
+	void ReadHeader(std::ifstream& fin, BasicModel& model);
+
+	void ReadMaterials(
+		std::ifstream& fin,
+		int numMaterials,
+		MeshMaterial* materials,
+		M3dMaterial* materialsParams);
+
+	void SetupSubsets(
+		BasicModel& model,
+		const M3dMaterial* m3dMats,
+		const std::string& modelDirPath);
+
+	void ReadSubsetTable(
+		std::ifstream& fin,
+		int numSubsets,
+		MeshGeometry::Subset* subsets);
+
+	void ReadModelSubsetsAABB(
+		std::ifstream& fin,
+		const int numSubsets,
+		DirectX::BoundingBox& modelAABB,
+		DirectX::BoundingBox* subsetsAABBs);
+
+	void ReadVertices(
+		std::ifstream& fin,
+		int numVertices,
+		Vertex3D* vertices);
+
+	void ReadIndices(
+		std::ifstream& fin,
+		int numTriangles,
+		UINT* indices);
+
+private:
+	void ReadAABB(std::ifstream& fin, DirectX::BoundingBox& aabb);
+};

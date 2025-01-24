@@ -1,0 +1,74 @@
+12:38:55 : 01/24/25| the Log file is created
+-------------------------------------------
+
+[00003]	DEBUG: Core\Timers\GameTimer.cpp: GameTimer() (line:9):  
+[00020]	DEBUG: Core\Render\d3dclass.cpp: D3DClass() (line:36):  
+[00021]	DEBUG_IMG_READ: ImageReader\ImageReader.cpp: SetupLogger() (line:32): logger is setup successfully
+[00021]	DEBUG: Core\Render\graphicsclass.cpp: GraphicsClass() (line:21):  
+[00021]	DEBUG: Core\Engine\Engine.cpp: Engine() (line:33):  
+[00025]	DEBUG: Core\Window\WindowContainer.cpp: WindowContainer() (line:16):  
+[00026]	DEBUG: Core\Window\RenderWindow.cpp: Initialize() (line:28):  
+[00026]	DEBUG: Core\Window\RenderWindow.cpp: RegisterWindowClass() (line:73):  
+[00026]	DEBUG: Core\Window\RenderWindow.cpp: CreateWindowExtended() (line:108):  
+[00101]	Core\Window\RenderWindow.cpp: Initialize() (line:54): the window is created successfully
+[00129]	DEBUG: Core\Render\InitializeGraphics.cpp: InitializeGraphics() (line:38):  
+[00130]	
+[00130]	 ------------------------------------------------------------
+[00130]	               INITIALIZATION: GRAPHICS SYSTEM               
+[00130]	 ------------------------------------------------------------
+[00130]	DEBUG: Core\Render\d3dclass.cpp: Initialize() (line:59):  
+[00131]	DEBUG: Core\Render\d3dclass.cpp: InitializeDirectX() (line:252):  
+[00740]	Core\Render\d3dclass.cpp: Initialize() (line:112): is initialized successfully
+[00743]	Core\Render\InitializeGraphics.cpp: InitializeScene() (line:116): is initialized
+[00743]	DEBUG_ECS: ECS\Entity\EntityMgr.cpp: SetupLogger() (line:80): logger is setup successfully
+[00743]	DEBUG_RENDER: Render\Render.cpp: SetupLogger() (line:32): logger is setup successfully
+[00743]	
+[00743]	 ---------------------------------------------------------
+[00744]	                 INITIALIZATION: SHADERS                  
+[00744]	 ---------------------------------------------------------
+[00744]	DEBUG_RENDER: Render\InitRender.cpp: InitializeShaders() (line:27): shaders initialization: start
+[00746]	DEBUG_RENDER: Render\Shaders\colorshaderclass.cpp: Initialize() (line:52): is initialized
+[00747]	DEBUG_RENDER: Render\Shaders\TextureShader.cpp: Initialize() (line:52): is initialized
+[00749]	DEBUG_RENDER: Render\Shaders\LightShaderClass.cpp: Initialize() (line:44): is initialized
+[00752]	DEBUG_RENDER: Render\Shaders\DebugShader.cpp: Initialize() (line:43): is initialized
+[00753]	DEBUG_RENDER: Render\Shaders\SkyDomeShader.cpp: Initialize() (line:41): is initialized
+[00753]	DEBUG_RENDER: Render\InitRender.cpp: InitializeShaders() (line:53): shaders initialization: finished successfully
+[00754]	
+[00755]	Core\Render\graphicsclass.cpp: Initialize() (line:150):  is successfully initialized
+[00760]	
+[00760]	 ----------------------------------------------------------
+[00761]	                    INITIALIZATION: GUI                    
+[00762]	 ----------------------------------------------------------
+[00763]	DEBUG: Core\Render\d3dclass.cpp: GetVideoCardInfo() (line:218): Video card name: NVIDIA GeForce 930MX
+[00763]	DEBUG: Core\Render\d3dclass.cpp: GetVideoCardInfo() (line:219): Video memory :   2001 MB
+[00764]	DEBUG: Core\UI\UserInterface.cpp: Initialize() (line:48):  
+[00766]	DEBUG: Core\UI\Text\fontclass.cpp: Initialize() (line:39):  
+[00776]	DEBUG: Core\UI\UserInterface.cpp: Initialize() (line:76): USER INTERFACE is initialized
+[00777]	Core\Engine\Engine.cpp: Initialize() (line:163): is initialized!
+[02994]	DEBUG: Core\Engine\Engine.cpp: EventKeyboard() (line:692): Esc is pressed
+[02998]	DEBUG: Core\Window\WindowContainer.cpp: ~WindowContainer() (line:55):  
+[02999]	
+[03002]	 -------------------------------------------------
+[03003]	             START OF THE DESTROYMENT:            
+[03004]	 -------------------------------------------------
+[03039]	Core\Window\WindowContainer.cpp: WindowProc() (line:108): the window is destroyed
+[03075]	DEBUG: Core\Engine\Engine.cpp: ~Engine() (line:70): engine desctuctor
+[03110]	Core\Engine\Engine.cpp: ~Engine() (line:75): the engine is shut down successfully
+[03115]	DEBUG: Core\Sound\SoundClass.cpp: ~SoundClass() (line:21):  
+[03117]	DEBUG: Core\Sound\SoundClass.cpp: Shutdown() (line:86):  
+[03119]	DEBUG: Core\UI\Text\TextStore.cpp: ~TextStore() (line:24):  
+[03121]	DEBUG: Core\UI\Text\fontclass.cpp: ~FontClass() (line:23):  
+[03123]	DEBUG: Core\Render\graphicsclass.cpp: ~GraphicsClass() (line:27): start of destroying
+[03126]	DEBUG: Core\Render\graphicsclass.cpp: Shutdown() (line:159):  
+[03128]	DEBUG: Core\Render\graphicsclass.cpp: ~GraphicsClass() (line:29): is destroyed
+[03129]	DEBUG_RENDER: Render\Shaders\VertexShader.cpp: Shutdown() (line:97): Shutdown
+[03130]	DEBUG_RENDER: Render\Shaders\VertexShader.cpp: Shutdown() (line:97): Shutdown
+[03131]	DEBUG_RENDER: Render\Shaders\VertexShader.cpp: Shutdown() (line:97): Shutdown
+[03133]	DEBUG_RENDER: Render\Shaders\VertexShader.cpp: Shutdown() (line:97): Shutdown
+[03134]	DEBUG_RENDER: Render\Shaders\VertexShader.cpp: Shutdown() (line:97): Shutdown
+[03144]	DEBUG_RENDER: Render\Shaders\VertexShader.cpp: Shutdown() (line:97): Shutdown
+[03160]	DEBUG_ECS: ECS\Entity\EntityMgr.cpp: ~EntityMgr() (line:70):  
+[03166]	DEBUG: Core\Timers\cpuclass.cpp: ~CpuClass() (line:17):  
+
+-------------------------------------------
+12:38:59 : 01/24/25| the end of the Log file
