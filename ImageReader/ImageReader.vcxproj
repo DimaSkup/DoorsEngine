@@ -98,17 +98,17 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(WindowsSDK_IncludePath);$(DXSDK_DIR)Include\;$(ProjectDir)external\include\DirectXTex-main;$(IncludePath)</IncludePath>
-    <ReferencePath>$(DXSDK_DIR)Lib\x64;$(WindowsSDK_LibraryPath_x64);$(ReferencePath)</ReferencePath>
+    <IncludePath>$(WindowsSDK_IncludePath);$(DXSDK_DIR)Include\;$(SolutionDir)DirectXTex\;$(IncludePath)</IncludePath>
+    <ReferencePath>$(DXSDK_DIR)Lib\x64;$(WindowsSDK_LibraryPath_x64);$(SolutionDir)Lib\$(Platform)\$(Configuration);$(ReferencePath)</ReferencePath>
     <OutDir>$(SolutionDir)Lib\$(Platform)\$(Configuration)\</OutDir>
-    <LibraryPath>$(ProjectDir)external\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
     <TargetName>$(ProjectName)_d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(WindowsSDK_IncludePath);$(DXSDK_DIR)Include\;$(ProjectDir)external\include\DirectXTex-main;$(IncludePath)</IncludePath>
+    <IncludePath>$(WindowsSDK_IncludePath);$(DXSDK_DIR)Include\;$(ProjectDir)Include\DirectXTex\;$(IncludePath)</IncludePath>
     <ReferencePath>$(DXSDK_DIR)Lib\x64;$(WindowsSDK_LibraryPath_x64);$(ReferencePath)</ReferencePath>
     <OutDir>$(SolutionDir)Lib\$(Platform)\$(Configuration)\</OutDir>
-    <LibraryPath>$(ProjectDir)external\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -160,7 +160,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalDependencies>DirectXTex_d.lib</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -183,7 +183,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalDependencies>DirectXTex.lib</AdditionalDependencies>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

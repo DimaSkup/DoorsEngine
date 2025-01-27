@@ -57,7 +57,7 @@ void MainMenuBar::RenderBar(StatesGUI& states)
 
 ///////////////////////////////////////////////////////////
 
-void MainMenuBar::RenderWndEngineOptions(bool* pOpen, StatesGUI& states)
+void MainMenuBar::RenderWndEngineOptions(bool* pOpen)
 {
 	// open a separate window with the engine options
 
@@ -67,7 +67,7 @@ void MainMenuBar::RenderWndEngineOptions(bool* pOpen, StatesGUI& states)
 		{
 			if (ImGui::BeginTabItem("GUI"))
 			{
-				ShowOptionsGui(states);
+				ShowOptionsGui();
 				ImGui::EndTabItem();
 			}
 			if (ImGui::BeginTabItem("OptionsTab2"))  // for testing
@@ -93,7 +93,7 @@ void MainMenuBar::RenderWndEngineOptions(bool* pOpen, StatesGUI& states)
 //                              private methods
 // =================================================================================
 
-void MainMenuBar::ShowOptionsGui(StatesGUI& states)
+void MainMenuBar::ShowOptionsGui()
 {
 	ImVec4* colors = ImGui::GetStyle().Colors;
 

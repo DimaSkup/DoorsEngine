@@ -75,10 +75,10 @@ bool FacadeEngineToUI::GetAllEnttsIDs(const uint32_t*& pEnttsIDsArr, int& numEnt
 
 ///////////////////////////////////////////////////////////
 
-bool FacadeEngineToUI::GetEnttIDByName(const char* name, uint32_t& id) 
+uint32_t FacadeEngineToUI::GetEnttIDByName(const char* name)
 { 
-	id = pEntityMgr_->nameSystem_.GetIdByName({ name });
-	return true; 
+	// return 0 if there is no entity by such a name
+	return pEntityMgr_->nameSystem_.GetIdByName({ name });
 }
 
 ///////////////////////////////////////////////////////////
@@ -138,6 +138,7 @@ bool FacadeEngineToUI::SetEnttUniScale(const uint32_t entityID, const float scal
 // =================================================================================
 
 bool FacadeEngineToUI::GatherSkyData(
+	const uint32_t skyEnttID,
 	ColorRGB& center,
 	ColorRGB& apex,
 	Vec3& offset)
@@ -145,7 +146,6 @@ bool FacadeEngineToUI::GatherSkyData(
 	// the sky editor model must be initialized with some reasonable data
 	// so we gather this data here
 
-	const EntityID skyEnttID = pEntityMgr_->nameSystem_.GetIdByName("sky");
 	const Render::SkyDomeShader& skyDomeShader = pRender_->GetShadersContainer().skyDomeShader_;
 
 	center = skyDomeShader.GetColorCenter();

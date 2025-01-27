@@ -1,0 +1,79 @@
+WINDOW_TITLE                  DoorsEngine
+WINDOW_TOP_POS                0
+WINDOW_LEFT_POS               0
+WINDOW_WIDTH                  1600
+WINDOW_HEIGHT                 900
+FULL_SCREEN                   false
+VSYNC_ENABLED                 false
+ENABLE_4X_MSAA                true
+
+CAMERA_SPEED                  10.0f
+CAMERA_SENSITIVITY            150.0f
+CAMERA_HEIGHT_OFFSET          0.6f
+FOV_IN_RAD                    1.2f       // 1.570796f
+NEAR_Z                        0.3f
+FAR_Z                         300.0f
+
+INTERNAL_MODEL_FILE_TYPE      .txt
+DEFAULT_MODELS_EXT            .obj
+MODEL_DIR_PATH                data/models/
+DEFAULT_MODELS_DIR_PATH       data/models/default/
+PATH_TO_TEXTURES_DIR          data/textures/
+
+EDITOR_GRID_DIMENSION         100
+EDITOR_GRID_CELL_DIMENSION    10
+
+CHUNK_DIMENSION               50
+CREATE_CHUNK_BOUNDING_BOXES   false
+
+SPHERES_NUMBER                10
+GEOSPHERES_NUMBER             10
+CYLINDERS_NUMBER              10
+CUBES_NUMBER                  1
+PLANES_NUMBER                 40
+TREES_NUMBER                  20
+
+
+WAVES_NUM_ROWS                200 
+WAVES_NUM_COLUMNS             200
+WAVES_SPATIAL_STEP            0.8f
+WAVES_TIME_STEP               0.03f
+WAVES_SPEED                   3.25f
+WAVES_DAMPING                 0.4f
+
+PYRAMID_HEIGHT                10
+PYRAMID_BASE_WIDTH            5
+PYRAMID_BASE_DEPTH            5
+
+
+IS_MINECRAFT_MODE                           false
+IS_CREATE_TERRAIN                           true
+IS_CREATE_SKY_DOME                          true
+IS_CREATE_SKY_PLANE                         true
+
+IS_CREATE_TERRAIN_FROM_FILE                 false
+TERRAIN_LOAD_RAW_HEIGHT_MAP                 false
+TERRAIN_SETUP_FILE_LOAD_BMP                 data/terrain/setup_load_bmp_height_map.txt
+TERRAIN_SETUP_FILE_LOAD_RAW                 data/terrain/setup_load_raw_height_map.txt
+
+IS_GENERATE_TERRAIN_MANUALLY                true
+TERRAIN_WIDTH                               100
+TERRAIN_DEPTH                               100
+TERRAIN_CELL_DEFAULT_DIFFUSE_TEXTURE_PATH   data/textures/dirt01d.dds
+TERRAIN_CELL_DEFAULT_NORMALS_TEXTURE_PATH   data/textures/dirt01n.dds
+
+
+CREATE_COPY_OF_DEFAULT_CUBE                 true          
+
+
+FOG_ENABLED                                 false
+FOG_START                                   50.0f
+FOG_RANGE                                   200.0f
+FOG_RED                                     0.28f 
+FOG_GREEN                                   0.35f
+FOG_BLUE                                    0.41f
+
+USE_ALPHA_CLIP                              false
+
+FONT_DATA_FILE_PATH                         ui/font01.txt
+FONT_TEXTURE_FILE_PATH                      ui/font01.dds

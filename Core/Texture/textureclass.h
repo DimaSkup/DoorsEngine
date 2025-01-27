@@ -12,8 +12,9 @@
 #include "../Common/Types.h"
 #include "../Render/Color.h"
 
-#include <d3d11.h>
 #include <assimp/material.h>
+#include <d3d11.h>
+
 
 
 enum class TexStoreType

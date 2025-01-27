@@ -34,10 +34,10 @@ public:
 	MouseEvent();
 	MouseEvent(const EventType type, const int x, const int y);
 
-	inline bool IsValid() const { return type != EventType::Invalid; }
-	inline EventType GetType() const { return type; }
-	inline MousePoint GetPos() const { return { x, y }; }
+	inline bool IsValid()           const { return type != EventType::Invalid; }
+	inline EventType GetEventType() const { return type; }
 
-	inline int GetPosX() const { return x; }
-	inline int GetPosY() const { return y; }
+	inline MousePoint GetPos()      const { return { x, y }; }
+	inline int GetPosX()            const { return x; }
+	inline int GetPosY()            const { return y; }
 };

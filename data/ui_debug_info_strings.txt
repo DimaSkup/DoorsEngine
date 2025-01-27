@@ -1,0 +1,29 @@
+const_str: Video_card 10 10
+const_str: Video_memory 10 30
+const_str: Fps 10 50
+const_str: Frame_time 10 70
+const_str: X: 10 95
+const_str: Y: 10 115
+const_str: Z: 10 135
+const_str: rX_(pitch): 10 160
+const_str: rY_(yaw): 10 180
+const_str: rZ_(roll): 10 200
+const_str: Models_drawn: 10 225
+const_str: Vertices_drawn: 10 245
+const_str: Faces_drawn: 10 265
+const_str: Cells_drawn: 10 285
+const_str: Cells_culled: 10 305
+
+dynamic_str: fps 50 50 16
+dynamic_str: frame_time 120 70 16
+dynamic_str: posX 35 95 16
+dynamic_str: posY 35 115 16
+dynamic_str: posZ 35 135 16
+dynamic_str: rotX 105 160 16
+dynamic_str: rotY 105 180 16
+dynamic_str: rotZ 105 200 16
+dynamic_str: models_drawn 165 225 16
+dynamic_str: vertices_drawn 165 245 16
+dynamic_str: faces_drawn 165 265 16
+dynamic_str: cells_drawn 165 285 16
+dynamic_str: cells_culled 165 305 16

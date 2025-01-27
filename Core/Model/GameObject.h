@@ -38,7 +38,7 @@ public:
 	//               GETTERS
 	//-----------------------------------------
 	const std::string & GetID() const;
-	const GameObjectType GetType() const;
+	const GameObjectType GetEventType() const;
 
 	const DirectX::XMMATRIX & GetWorldMatrix();
 

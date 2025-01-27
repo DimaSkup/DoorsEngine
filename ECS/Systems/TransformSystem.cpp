@@ -109,10 +109,15 @@ void TransformSystem::Deserialize(std::ifstream& fin, const u32 offset)
 
 const XMFLOAT3 TransformSystem::GetPositionByID(const EntityID id)
 {
-	const index idx = GetIdxByID(id);
-	const XMFLOAT4& pos = pTransform_->posAndUniformScale_[idx];
-
+	const XMFLOAT4& pos = pTransform_->posAndUniformScale_[GetIdxByID(id)];
 	return XMFLOAT3(pos.x, pos.y, pos.z);
+}
+
+///////////////////////////////////////////////////////////
+
+const XMVECTOR TransformSystem::GetRotationQuatByID(const EntityID id)
+{
+	return pTransform_->dirQuats_[GetIdxByID(id)];
 }
 
 ///////////////////////////////////////////////////////////
@@ -269,6 +274,16 @@ void TransformSystem::GetWorldMatricesOfEntts(
 
 ///////////////////////////////////////////////////////////
 
+const DirectX::XMMATRIX& TransformSystem::GetInverseWorldMatrixOfEntt(const EntityID id)
+{
+	// return an inverse world matrix of entt by ID;
+	// or return an Identity Matrix if there is no such entt by ID;
+	const WorldMatrix& comp = *pWorldMat_;
+	return comp.invWorlds_[Utils::GetIdxInSortedArr(comp.ids_, id)];
+}
+
+///////////////////////////////////////////////////////////
+
 void TransformSystem::GetInverseWorldMatricesOfEntts(
 	const std::vector<EntityID>& enttsIDs,
 	std::vector<DirectX::XMMATRIX>& outInvWorlds)
@@ -307,20 +322,19 @@ void TransformSystem::SetPositionByID(const EntityID id, const XMFLOAT3& pos)
 {
 	Transform& transformComp = *pTransform_;
 	WorldMatrix& worldComp = *pWorldMat_;
-	index idx = 0;                            // idx into data arrays
 
 	// if we have an entity by such ID
 	if (Utils::BinarySearch(transformComp.ids_, id))
 	{
-		idx = Utils::GetIdxInSortedArr(transformComp.ids_, id);
+		index idx = Utils::GetIdxInSortedArr(transformComp.ids_, id);
 		const float uniformScale = transformComp.posAndUniformScale_[idx].w;
 
 		transformComp.posAndUniformScale_[idx] = { pos.x, pos.y, pos.z, uniformScale };
-	}
 
-	// recompute world matrix and inverse world matrix for this entity
-	RecomputeWorldMatrixByIdx(idx);
-	RecomputeInvWorldMatrixByIdx(idx);
+		// recompute world matrix and inverse world matrix for this entity
+		RecomputeWorldMatrixByIdx(idx);
+		RecomputeInvWorldMatrixByIdx(idx);
+	}
 }
 
 ///////////////////////////////////////////////////////////
@@ -329,18 +343,17 @@ void TransformSystem::SetDirectionByID(const EntityID id, const XMVECTOR& dirQua
 {
 	Transform& transformComp = *pTransform_;
 	WorldMatrix& worldComp = *pWorldMat_;
-	index idx = 0;                            // idx into data arrays
 
 	// if we have an entity by such ID
 	if (Utils::BinarySearch(transformComp.ids_, id))
 	{
-		idx = Utils::GetIdxInSortedArr(transformComp.ids_, id);
+		index idx = Utils::GetIdxInSortedArr(transformComp.ids_, id);
 		transformComp.dirQuats_[idx] = DirectX::XMQuaternionNormalize(dirQuat);
-	}
 
-	// recompute world matrix and inverse world matrix for this entity
-	RecomputeWorldMatrixByIdx(idx);
-	RecomputeInvWorldMatrixByIdx(idx);
+		// recompute world matrix and inverse world matrix for this entity
+		RecomputeWorldMatrixByIdx(idx);
+		RecomputeInvWorldMatrixByIdx(idx);
+	}
 }
 
 ///////////////////////////////////////////////////////////
@@ -351,16 +364,38 @@ void TransformSystem::SetUniScaleByID(const EntityID id, const float uniformScal
 
 	Transform& transformComp = *pTransform_;
 	WorldMatrix& worldComp = *pWorldMat_;
-	index idx = 0;                            // idx into data arrays
 
 	// if we have an entity by such ID
 	if (Utils::BinarySearch(transformComp.ids_, id))
 	{
-		idx = Utils::GetIdxInSortedArr(transformComp.ids_, id);
+		index idx = Utils::GetIdxInSortedArr(transformComp.ids_, id);
 		const XMFLOAT4& pos = transformComp.posAndUniformScale_[idx];
 
 		transformComp.posAndUniformScale_[idx] = { pos.x, pos.y, pos.z, uniformScale };
+
+		// recompute world matrix and inverse world matrix for this entity
+		RecomputeWorldMatrixByIdx(idx);
+		RecomputeInvWorldMatrixByIdx(idx);
 	}
+}
+
+///////////////////////////////////////////////////////////
+
+void TransformSystem::SetTransformByID(
+	const EntityID id,
+	const XMVECTOR& newPosition,
+	const XMVECTOR& newRotation,
+	const float newScale)
+{
+	Transform& transformComp = *pTransform_;
+	WorldMatrix& worldComp   = *pWorldMat_;
+
+	index idx = GetIdxByID(id);
+	XMFLOAT4& posAndScale = transformComp.posAndUniformScale_[idx];
+
+	DirectX::XMStoreFloat4(&posAndScale, newPosition);  // xyz - translation
+	posAndScale.w = newScale;                           // w   - contains a uniform scale value
+	transformComp.dirQuats_[idx] = newRotation;
 
 	// recompute world matrix and inverse world matrix for this entity
 	RecomputeWorldMatrixByIdx(idx);

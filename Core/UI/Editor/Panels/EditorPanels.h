@@ -7,12 +7,10 @@
 #pragma once
 
 #include "../../../Engine/SystemState.h"
-#include "../../UICommon/StatesGUI.h"
 #include "../../UICommon/IFacadeEngineToUI.h"
 
 #include "../Debug/DebugEditor.h"
 #include "../Entity/EntityEditorController.h"
-#include "../Sky/SkyEditorController.h"
 #include "../Fog/FogEditorController.h"
 
 
@@ -25,11 +23,11 @@ public:
 
 	void Render(
 		SystemState& sysState,
-		StatesGUI& guiStates,
 		const ImGuiChildFlags childFlags,
 		const ImGuiWindowFlags wndFlags);
 
-	void Update(const SystemState& sysState);
+	inline void SetSelectedEntt(const uint32_t entityID) { enttEditorController_.SetSelectedEntt(entityID); }
+	inline uint32_t GetSelectedEntt() const              { return enttEditorController_.GetSelectedEntt(); }
 
 private:
 	void RenderEntitiesListWnd(SystemState& sysState);
@@ -45,6 +43,5 @@ private:
 
 	DebugEditor             debugEditor_;
 	EntityEditorController  enttEditorController_;
-	SkyEditorController     skyEditorController_;
 	FogEditorController     fogEditorController_;
 };

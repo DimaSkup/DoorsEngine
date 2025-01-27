@@ -96,7 +96,7 @@ bool InitializeGraphics::InitializeScene(
 	{
 		bool result = false;
 
-#if 0
+#if 1
 		// create and init scene elements
 		result = InitializeModels(
 			d3d.GetDevice(),
@@ -183,7 +183,7 @@ bool InitializeGraphics::InitializeCameras(
 		gameCamera.UpdateViewMatrix();
 
 		// initialize a base view matrix with the camera for 2D user interface rendering
-		baseViewMatrix = editorCamera.GetViewMatrix();
+		baseViewMatrix = gameCamera.GetViewMatrix();
 
 		// create and setup an editor camera entity
 		EntityID id = enttMgr.CreateEntity();

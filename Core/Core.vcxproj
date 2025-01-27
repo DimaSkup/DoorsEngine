@@ -75,9 +75,10 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(WindowsSDK_IncludePath);C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\um;$(DXSDK_DIR)Include\;$(VC_IncludePath);$(SolutionDir)Core\Includes;$(SolutionDir)Core\Common;$(SolutionDir)ECS;$(SolutionDir)ImageReader;$(SolutionDir)Render;$(SolutionDir)ImGui\;$(SolutionDir)Core\ImGuizmo;$(SolutionDir)Core\Includes\</IncludePath>
-    <LibraryPath>$(DXSDK_DIR)Lib\x64;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64;$(SolutionDir)Lib\x64\$(Configuration)</LibraryPath>
-    <ExternalIncludePath>$(ExternalIncludePath)</ExternalIncludePath>
+    <IncludePath>$(WindowsSDK_IncludePath);C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\um;$(DXSDK_DIR)Include\;$(VC_IncludePath);$(SolutionDir)ECS;$(SolutionDir)ImageReader;$(SolutionDir)Render;$(SolutionDir)ImGui\;$(SolutionDir)Core\Common;$(SolutionDir)Core\ImGuizmo\;$(SolutionDir)DirectXTex\;$(SolutionDir)Linking\include</IncludePath>
+    <LibraryPath>$(DXSDK_DIR)Lib\x64;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64;$(SolutionDir)Lib\x64\$(Configuration);$(SolutionDir)Linking\lib</LibraryPath>
+    <ExternalIncludePath>
+    </ExternalIncludePath>
     <OutDir>$(SolutionDir)Lib\$(IntDir)</OutDir>
     <TargetName>$(ProjectName)_d</TargetName>
   </PropertyGroup>
@@ -114,7 +115,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);PROJECT_DIR=R"($(ProjectDir))";SOLUTION_DIR=R"($(SolutionDir))";DATA_DIR=R"($(SolutionDir)data\)";HLSL_DIR=R"($(SolutionDir)data\hlsl\)";MODELS_DIR=R"($(SolutionDir)data\models\)"</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Lib\$(Platform)\$(Configuration);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -127,8 +128,7 @@
       <Profile>true</Profile>
     </Link>
     <PostBuildEvent>
-      <Command>if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mt.dll" xcopy /Y "$(SolutionDir)Lib\$(IntDir)assimp-vc143-mt.dll" "$(SolutionDir)build\$(IntDir)"
-
+      <Command>
 if not exist "$(SolutionDir)build\$(IntDir)data" mkdir "$(SolutionDir)build\$(IntDir)data"
 xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</Command>
     </PostBuildEvent>
@@ -136,6 +136,9 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
       <Command>
       </Command>
     </PreBuildEvent>
+    <Lib>
+      <AdditionalDependencies>ImGui.lib;</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -197,10 +200,7 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClCompile Include="Common\StringHelper.cpp" />
     <ClCompile Include="Engine\ProjectSaver.cpp" />
     <ClCompile Include="Engine\UtilsForDLL.cpp" />
-    <ClCompile Include="ImGuizmo\ImCurveEdit.cpp" />
-    <ClCompile Include="ImGuizmo\ImGradient.cpp" />
     <ClCompile Include="ImGuizmo\ImGuizmo.cpp" />
-    <ClCompile Include="ImGuizmo\ImSequencer.cpp" />
     <ClCompile Include="ImGui\ImGuiLayer.cpp" />
     <ClCompile Include="Model\GeometryGenerator.cpp" />
     <ClCompile Include="Mesh\MeshStorage.cpp" />
@@ -243,7 +243,6 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClCompile Include="UI\Editor\Fog\FogEditorController.cpp" />
     <ClCompile Include="UI\Editor\MainMenuBar\MainMenuBar.cpp" />
     <ClCompile Include="UI\Editor\Panels\EditorPanels.cpp" />
-    <ClCompile Include="UI\Editor\Sky\SkyEditorController.cpp" />
     <ClCompile Include="UI\UICommon\FacadeEngineToUI.cpp" />
     <ClCompile Include="UI\Text\fontclass.cpp" />
     <ClCompile Include="Render\frustumclass.cpp" />
@@ -289,11 +288,7 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClInclude Include="Engine\ProjectSaver.h" />
     <ClInclude Include="Engine\UtilsForDLL.h" />
     <ClInclude Include="ECS_Entity\ECS_Types.h" />
-    <ClInclude Include="ImGuizmo\ImCurveEdit.h" />
-    <ClInclude Include="ImGuizmo\ImGradient.h" />
     <ClInclude Include="ImGuizmo\ImGuizmo.h" />
-    <ClInclude Include="ImGuizmo\ImSequencer.h" />
-    <ClInclude Include="ImGuizmo\ImZoomSlider.h" />
     <ClInclude Include="ImGui\backends\imgui_impl_dx11.h" />
     <ClInclude Include="ImGui\backends\imgui_impl_win32.h" />
     <ClInclude Include="ImGui\imconfig.h" />
@@ -335,13 +330,10 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClInclude Include="UI\Editor\Panels\EditorPanels.h" />
     <ClInclude Include="UI\UICommon\Color.h" />
     <ClInclude Include="UI\UICommon\ICommand.h" />
-    <ClInclude Include="UI\UICommon\StatesGUI.h" />
     <ClInclude Include="UI\UICommon\Vectors.h" />
     <ClInclude Include="UI\UICommon\ViewListener.h" />
-    <ClInclude Include="UI\Editor\Sky\SkyEditorCommands.h" />
-    <ClInclude Include="UI\Editor\Sky\SkyEditorController.h" />
-    <ClInclude Include="UI\Editor\Sky\SkyEditorModel.h" />
-    <ClInclude Include="UI\Editor\Sky\SkyEditorView.h" />
+    <ClInclude Include="UI\Editor\Entity\SkyEditorModel.h" />
+    <ClInclude Include="UI\Editor\Entity\SkyEditorView.h" />
     <ClInclude Include="UI\UICommon\FacadeEngineToUI.h" />
     <ClInclude Include="UI\UICommon\IFacadeEngineToUI.h" />
     <ClInclude Include="Texture\TextureHelperTypes.h" />

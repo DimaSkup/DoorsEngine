@@ -1,27 +1,19 @@
-///////////////////////////////////////////////////////////////////////////////
-// Filename: engine.cpp
-// Revising: 05.10.22
-///////////////////////////////////////////////////////////////////////////////
+// =================================================================================
+// Filename:  Engine.cpp
+// Created:   05.10.22
+// =================================================================================
 #include "Engine.h"
 
 #include "../Common/FileSystemPaths.h"
 #include "ProjectSaver.h"
 
-
 #include "ImGuizmo.h"
-
 #include "../UI/UICommon/FacadeEngineToUI.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
-#include <functional>
-#include <Psapi.h>
 #include <winuser.h>
-#include <iostream>
-#include <format>
-
-
-//#include "../Tests/ECS/Unit/UnitTestMain.h"
+//#include <Psapi.h>    // This header is used by Process Status API (PSAPI)
 
 
 namespace Doors
@@ -31,16 +23,7 @@ namespace Doors
 Engine::Engine()
 {
 	Log::Debug();
-
 	timer_.Reset();       // reset the engine/game timer
-
-#if _DEBUG | DEBUG
-	// execute testing of some modules
-	//UnitTestMain ecs_Unit_Tests;
-	//ecs_Unit_Tests.Run();
-	//exit(-1);
-#endif
-
 }
 
 
@@ -112,7 +95,7 @@ bool Engine::Initialize(
 		ID3D11DeviceContext* pContext = d3d.GetDeviceContext();
 		
 
-#if 1
+#if 0
 		// create a texture which can be used as a render target
 		FrameBufferSpecification fbSpec;
 
@@ -156,9 +139,9 @@ bool Engine::Initialize(
 		InitializeGUI(d3d, settings);
 
 		// create a str with duration time of the engine initialization process
-		std::string initTimeStr = std::format("Init time: {}s", timer_.GetGameTime());
+		std::string initTimeStr = { "Init time: " + std::to_string(timer_.GetGameTime()) + " s" };
 		userInterface_.CreateConstStr(pDevice, initTimeStr, { 10, 325 });
-
+		
 
 		Log::Print("is initialized!");
 	}
@@ -240,6 +223,12 @@ void Engine::Update()
 	// this method is called every frame in order to count the frame
 	CalculateFrameStats();
 
+	// we have to call keyboard handling here because in another case we will have 
+	// a delay between pressing on some key and handling of this event; 
+	// for instance: a delay between a W key pressing and start of the moving;
+	graphics_.HandleKeyboardInput(keyboardEvent_, deltaTime_);
+
+	// update all the scene stuff
 	graphics_.Update(systemState_, deltaTime_, timer_.GetGameTime());
 
 	// update user interface for this frame
@@ -302,21 +291,16 @@ void Engine::RenderFrame()
 
 	try
 	{
+		using namespace DirectX;
+
 		D3DClass& d3d = graphics_.GetD3DClass();
 		ID3D11DeviceContext* pContext = d3d.GetDeviceContext();
 		
-		// we have to call keyboard handling here because in another case we will have 
-		// a delay between pressing on some key and handling of this event; 
-		// for instance: a delay between a W key pressing and start of the moving;
-		graphics_.HandleKeyboardInput(keyboardEvent_, deltaTime_);
-	
-
 		if (systemState_.isEditorMode)
 		{
 			// Clear all the buffers before frame rendering and render our 3D scene
 			d3d.BeginScene();
 			graphics_.Render3D();
-
 
 			// begin rendering of the editor elements
 			imGuiLayer_.Begin();
@@ -330,6 +314,7 @@ void Engine::RenderFrame()
 			static bool optPadding = false;
 			static ImGuiDockNodeFlags_ dockspaceFlags = ImGuiDockNodeFlags_None;
 			const ImGuiViewport* viewport = ImGui::GetMainViewport();
+			static ImGuiDockNode* pSceneNode = nullptr;
 
 			// We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
 			// because it would be confusing to have two docking targets within each others.
@@ -389,32 +374,86 @@ void Engine::RenderFrame()
 					ImGui::DockBuilderAddNode(dockspaceId, dockspaceFlags | ImGuiDockNodeFlags_DockSpace);
 					ImGui::DockBuilderSetNodeSize(dockspaceId, viewport->Size);
 
-				
+					// split main dockspace into separate dock windows
 					auto dockIdRight = ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Right, 0.2f, nullptr, &dockspaceId);
 					auto dockIdRightBottomHalf = ImGui::DockBuilderSplitNode(dockIdRight, ImGuiDir_Down, 0.5f, nullptr, &dockIdRight);
 					auto dockIdBottom = ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Down, 0.3f, nullptr, &dockspaceId);
 					auto dockIdLeft = ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Left, 0.25f, nullptr, &dockspaceId);
 					auto dockIdScene = ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Down, 0.89f, nullptr, &dockspaceId);
 
-
+					// register dock windows and relate them to specific window names
 					ImGui::DockBuilderDockWindow("Debug", dockIdRight);
 					ImGui::DockBuilderDockWindow("Properties", dockIdRightBottomHalf);
-
 					ImGui::DockBuilderDockWindow("Log", dockIdBottom);
 					ImGui::DockBuilderDockWindow("Entities List", dockIdLeft);
 					ImGui::DockBuilderDockWindow("Scene", dockIdScene);
 					ImGui::DockBuilderDockWindow("Run scene", dockspaceId);
 
+					pSceneNode = ImGui::DockBuilderGetNode(dockIdScene);
+					
+
 					ImGui::DockBuilderFinish(dockspaceId);
 				}
 			}
 
-		
+			// the dock window where we see the scene
 			if (ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_NoMove))
 			{
-				// WHY: just leave a screen space for the scene window
+				// set this flags to true if mouse is currently over the wnd
+				// so then we can use it to check if we clicked on the 
+				// scene screen space or clicked on some editor panel
+				isSceneWndHovered_ = ImGui::IsWindowHovered();
+
+				//
+				// Gizmos
+				//
+				EntityID selectedEntt = userInterface_.GetSelectedEntt();
+
+				if (selectedEntt && (gizmoOpType_ != -1))
+				{
+					// is any gizmo hovered by mouse
+					isGizmoHovered_ = ImGuizmo::IsOver();
+
+					// set rendering of the gizmos only in the screen window space:
+					// to make gizmo be rendered behind editor panels BUT in this case the gizmo is inactive :(
+					//ImGuizmo::SetDrawlist(ImGui::GetBackgroundDrawList());                
+
+					ImGuizmo::SetDrawlist();
+					ImGuizmo::SetRect(0, 0, d3d.GetWindowWidth(), d3d.GetWindowHeight());
+					
+					const float* cameraView = graphics_.GetEditorCamera().GetViewMatrixRawData();
+					const float* cameraProj = graphics_.GetEditorCamera().GetProjMatrixRawData();
+
+					// selected entity transform
+					ECS::TransformSystem& ts = graphics_.GetEntityMgr().transformSystem_;
+					XMMATRIX world = ts.GetWorldMatrixOfEntt(selectedEntt);
+					float* worldRawData = world.r->m128_f32;
+				
+					
+					ImGuizmo::Manipulate(
+						cameraView,
+						cameraProj,
+						ImGuizmo::OPERATION(gizmoOpType_),
+						ImGuizmo::LOCAL,
+						worldRawData);
+
+					// if we do some manipulations using guizmo
+					if (ImGuizmo::IsUsing())
+					{
+						XMVECTOR scale, rotQuat, trans;
+						XMMatrixDecompose(&scale, &rotQuat, &trans, world);
+
+						float* scaleRaw = scale.m128_f32;
+						float uniformScale = (scaleRaw[0] + scaleRaw[1] + scaleRaw[2]) * 0.333f;
+
+						// update the transformation and world matrix of selected entt
+						ts.SetTransformByID(selectedEntt, trans, rotQuat, XMVectorGetX(scale));
+					}
+				}
 			}
-			ImGui::End();
+
+			// end the scene window
+			ImGui::End();   
 
 
 			// HACK: we set background color for ImGui elements (except of scene windows)
@@ -482,6 +521,7 @@ void Engine::RenderFrame()
 	}
 }
 
+///////////////////////////////////////////////////////////
 
 void Engine::RenderUI()
 {
@@ -536,11 +576,7 @@ void Engine::EventWindowMove(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 void Engine::EventWindowResize(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	//Log::Debug("Event WM_SIZE");
-
-	SIZE newSize;
-	newSize.cx = LOWORD(lParam);
-	newSize.cy = HIWORD(lParam);
+	SIZE newSize{ LOWORD(lParam), HIWORD(lParam) };
 
 	// try to resize the window
 	if (!graphics_.GetD3DClass().ResizeSwapChain(hwnd, newSize))
@@ -551,16 +587,9 @@ void Engine::EventWindowResize(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 
 void Engine::EventWindowSizing(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	//Log::Debug("Event WM_SIZING");
-
-	RECT* pRect = (RECT*)(lParam);
-
+	
 	RECT wndRect;
-	RECT clientRect;
-
-	// get the window and client dimensions
-	GetWindowRect(hwnd, &wndRect);
-	GetClientRect(hwnd, &clientRect);
+	GetWindowRect(hwnd, &wndRect);   // get the window dimensions
 
 	switch (wParam)
 	{
@@ -570,9 +599,9 @@ void Engine::EventWindowSizing(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 		case WMSZ_BOTTOM:
 		{
 			// resize by X or by Y
-			const int posX = wndRect.left;
-			const int posY = wndRect.top;
-			const int width = wndRect.right - posX;
+			const int posX   = wndRect.left;
+			const int posY   = wndRect.top;
+			const int width  = wndRect.right - posX;
 			const int height = wndRect.bottom - posY;
 
 			// Set new dimensions
@@ -591,6 +620,180 @@ void Engine::EventWindowSizing(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 
 ///////////////////////////////////////////////////////////
 
+void Engine::HandleEditorEventKeyboard()
+{
+	static bool isKeyCtrlDown = false;
+	BYTE keyboardState[256];
+	GetKeyboardState(keyboardState);
+
+	// define if some keys (ctrl,alt,shift) are currently pressed down
+	// so it gives us more opportunities to control using the keyboard
+	isKeyCtrlDown = (1 < keyboardState[VK_CONTROL]);
+
+	const UCHAR keyCode = keyboardEvent_.GetKeyCode();
+	static UCHAR prevKeyCode = 0;
+
+	// handle pressing of some keys
+	if (keyboardEvent_.IsPress())
+	{
+		switch (keyCode)
+		{
+			case KEY_Q:
+			{
+				// guizmo: turn OFF any operation
+				if (isKeyCtrlDown)
+					gizmoOpType_ = -1;
+				break;
+			}
+			case KEY_T:
+			{
+				if (isKeyCtrlDown)
+					gizmoOpType_ = ImGuizmo::OPERATION::TRANSLATE;
+				break;
+			}
+			case KEY_R:
+			{
+				if (isKeyCtrlDown)
+					gizmoOpType_ = ImGuizmo::OPERATION::ROTATE;
+				break;
+			}
+			case KEY_S:
+			{
+				if (isKeyCtrlDown)
+					gizmoOpType_ = ImGuizmo::OPERATION::SCALE;
+				break;
+			}
+			case KEY_F1:
+			{
+				// switch to the game mode
+				graphics_.GetD3DClass().ToggleFullscreen(hwnd_, true);
+				graphics_.SwitchGameMode(true);
+
+				systemState_.isEditorMode = false;
+				isEditorMode_ = false;
+				ShowCursor(FALSE);
+
+				break;
+			}
+			case VK_ESCAPE:
+			{
+				// if we pressed the ESC button we exit from the application
+				Log::Debug("Esc is pressed");
+				isExit_ = true;
+				break;
+			}
+		} // switch
+
+		// store the values of currently pressed key for the next frame
+		prevKeyCode = keyCode;
+
+	} // if is press
+
+	// handle releasing of some keys
+	if (keyboardEvent_.IsRelease())
+	{
+		UCHAR keyCode = keyboardEvent_.GetKeyCode();
+
+		prevKeyCode = 0;
+	}
+
+	// store what type of the keyboard event we have 
+	keyboardEvent_ = keyboard_.ReadKey();
+}
+
+///////////////////////////////////////////////////////////
+
+void Engine::HandleGameEventKeyboard()
+{
+	const UCHAR keyCode = keyboardEvent_.GetKeyCode();
+	static UCHAR prevKeyCode = 0;
+
+	// handle pressing of some keys
+	if (keyboardEvent_.IsPress())
+	{
+		switch (keyCode)
+		{
+
+			case KEY_F1:
+			{
+				// switch to the editor mode
+				D3DClass& d3d = graphics_.GetD3DClass();
+				Camera& editorCamera = graphics_.GetEditorCamera();
+
+				d3d.ToggleFullscreen(hwnd_, false);
+				graphics_.SwitchGameMode(false);
+
+				// update the camera proj matrix according to new window size
+				editorCamera.SetProjectionValues(
+					editorCamera.GetFovInRad(),
+					d3d.GetAspectRatio(),
+					d3d.GetScreenNear(),
+					d3d.GetScreenDepth());
+
+				systemState_.isEditorMode = true;
+				isEditorMode_ = true;
+				ShowCursor(TRUE);
+
+				break;
+			}
+			case KEY_F3:
+			{
+				// show/hide debug info in the game mode
+				systemState_.isShowDbgInfo = !systemState_.isShowDbgInfo;
+
+				if (systemState_.isShowDbgInfo)
+					Log::Debug("F3 key is pressed: show dbg text info:");
+				else
+					Log::Debug("F3 key is pressed: hide dbg text info:");
+
+				break;
+			}
+			case KEY_L:
+			{
+				// switch the flashlight
+				static bool flashLightState = true;
+
+				if (prevKeyCode != KEY_L)
+				{
+					flashLightState = !flashLightState;
+
+					graphics_.GetRender().SwitchFlashLight(
+						graphics_.GetD3DClass().GetDeviceContext(),
+						flashLightState);
+				}
+
+				Log::Debug("key L is pressed");
+
+				break;
+			}
+			case VK_ESCAPE:
+			{
+				// if we pressed the ESC button we exit from the application
+				Log::Debug("Esc is pressed");
+				isExit_ = true;
+				break;
+			}
+		} // switch
+
+		// store the values of currently pressed key for the next frame
+		prevKeyCode = keyCode;
+
+	} // if is press
+
+	// handle releasing of some keys
+	if (keyboardEvent_.IsRelease())
+	{
+		UCHAR keyCode = keyboardEvent_.GetKeyCode();
+
+		prevKeyCode = 0;
+	}
+
+	// store what type of the keyboard event we have 
+	keyboardEvent_ = keyboard_.ReadKey();
+}
+
+///////////////////////////////////////////////////////////
+
 void Engine::EventKeyboard(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	// a handler for all the keyboard events
@@ -599,112 +802,10 @@ void Engine::EventKeyboard(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	while (!keyboard_.KeyBufferIsEmpty())
 	{
-		// store the keycode of the pressed key
-		const unsigned char keyCode = keyboardEvent_.GetKeyCode();
-		static UCHAR prevKeyCode = 0;
-
-		// handle pressing of some keys
-		if (keyboardEvent_.IsPress())
-		{
-			UCHAR keyCode = keyboardEvent_.GetKeyCode();
-
-			switch (keyCode)
-			{
-				case KEY_F1:
-				{
-					// show/hide engine GUI stuff and switch on/off the EDITOR/GAME mode					
-					if (systemState_.isEditorMode = !systemState_.isEditorMode)
-					{
-						Log::Debug("Switched to the editor mode");
-
-						D3DClass& d3d = graphics_.GetD3DClass();
-						Camera& editorCamera = graphics_.GetEditorCamera();
-
-						d3d.ToggleFullscreen(hwnd_, false);
-						graphics_.SwitchGameMode(false);
-
-						// update the camera proj matrix according to new window size
-						
-						editorCamera.SetProjectionValues(
-							editorCamera.GetFovInRad(),
-							d3d.GetAspectRatio(),
-							d3d.GetScreenNear(),
-							d3d.GetScreenDepth());
-					}
-					else
-					{
-						Log::Debug("Switched to the game mode");
-						graphics_.GetD3DClass().ToggleFullscreen(hwnd, true);
-						graphics_.SwitchGameMode(true);
-					}
-						
-					break;
-				}
-				case KEY_F2:
-				{
-					
-					Log::Debug("F2 key is pressed");
-					break;
-				}
-				case KEY_F3:
-				{
-					// show/hide debug info in the game mode
-					systemState_.isShowDbgInfo = !systemState_.isShowDbgInfo;
-					Log::Debug("F3 key is pressed: show/hide dbg text info");
-
-					break;
-				}
-				case KEY_L:
-				{
-					static bool flashLightState = true;
-
-					// turn on/off a flashlight
-					if (prevKeyCode != KEY_L)
-					{
-						flashLightState = !flashLightState;
-
-						graphics_.GetRender().SwitchFlashLight(
-							graphics_.GetD3DClass().GetDeviceContext(),
-							flashLightState);
-					}
-
-					Log::Debug("key L is pressed");
-						
-					break;
-				}
-	
-				case KEY_F4:
-				{
-					// turn on/off the editor mode
-					// (on: show editor, don't use mouse movement for camera rotation, etc.)
-
-					if (prevKeyCode != KEY_F4)
-					{
-						
-						Log::Debug("switch to editor mode");
-					}
-
-					break;
-				}
-				case VK_ESCAPE:
-				{
-					// if we pressed the ESC button we exit from the application
-					Log::Debug("Esc is pressed");
-					isExit_ = true;
-					break;
-				}
-			} // end switch/case
-
-			// store the values of currently pressed key for the next frame
-			prevKeyCode = keyCode;
-		}
-
-		// handle releasing of some keys
-		if (keyboardEvent_.IsRelease())
-			prevKeyCode = 0;
-
-		// store what type of the keyboard event we have 
-		keyboardEvent_ = keyboard_.ReadKey();
+		if (isEditorMode_)
+			HandleEditorEventKeyboard();
+		else
+			HandleGameEventKeyboard();
 	}
 }
 
@@ -719,24 +820,34 @@ void Engine::EventMouse(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	while (!mouse_.EventBufferIsEmpty())
 	{
 		mouseEvent_ = mouse_.ReadEvent();
-		const MouseEvent::EventType eventType = mouseEvent_.GetType();
 
-		switch (eventType)
+		switch (mouseEvent_.GetEventType())
 		{
 			case MouseEvent::EventType::Move:
 			{
-				const MousePoint mPoint = mouseEvent_.GetPos();
-
 				// update mouse position data because we need to print mouse position on the screen
-				systemState_.mouseX = mPoint.x;
-				systemState_.mouseY = mPoint.y;
+				systemState_.mouseX = mouseEvent_.GetPosX();
+				systemState_.mouseY = mouseEvent_.GetPosY();
+				break;
+			}
+			case MouseEvent::EventType::LPress:
+			{
+				// if we currenly hovering the scene windows with our mouse
+				// and we don't hover any gizmo we execute entity picking (selection) test
+				if (isSceneWndHovered_ && !isGizmoHovered_)
+				{
+					EntityID selectedEnttID = 0;
+					selectedEnttID = graphics_.TestEnttSelection(mouseEvent_.GetPosX(), mouseEvent_.GetPosY());
+
+					// update the UI about selection of the entity
+					if (selectedEnttID)
+						userInterface_.SetSelectedEntt(selectedEnttID);
+				}
 				break;
 			}
 			default:
 			{
-				// each time when we execute raw mouse move we update the camera's rotation
 				graphics_.HandleMouseInput(systemState_, mouseEvent_, deltaTime_);
-
 				break;
 			}
 		} // switch

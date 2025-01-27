@@ -1,15 +1,15 @@
-///////////////////////////////////////////////////////////////////////////////
-// Filename:      engine.h
+// =================================================================================
+// Filename:      Engine.h
 // Description:   this class is responsible for initialization and running
 //                all the main parts of the engine.
-// Revising:      05.10.22
-///////////////////////////////////////////////////////////////////////////////
+// 
+// Created:       05.10.22
+// =================================================================================
 #pragma once
 
 
 #include "SystemState.h"
 #include "EventListener.h"
-
 
 #include "../ImGui/ImGuiLayer.h"
 #include "../Sound/SoundClass.h"
@@ -85,6 +85,9 @@ public:
 	virtual void EventKeyboard(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 	virtual void EventMouse(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 
+	void HandleEditorEventKeyboard();
+	void HandleGameEventKeyboard();
+
 private:
 	HWND      hwnd_ = NULL;                     // main window handle
 	HINSTANCE hInstance_ = NULL;                // application instance handle
@@ -127,6 +130,12 @@ private:
 	// client's zone width/height
 	UINT clientWidth_ = 0;
 	UINT clientHeight_ = 0;
+
+	bool isEditorMode_      = true;        // we are starting in the editor mode by default
+	bool isSceneWndHovered_ = false;       // is currently scene windows is hovered by mouse
+	bool isGizmoHovered_    = false;       // is any gizmo manipulator is currenly hovered by the mouse
+	int  gizmoOpType_       = -1;          // type of the currenly chosen gizmo operation
+	
 
 }; // class Engine
 

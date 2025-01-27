@@ -38,10 +38,21 @@ public:
 		IFacadeEngineToUI* pFacadeEngineToUI,
 		const std::string & fontDataFilePath,      // a path to file with data about this type of font
 		const std::string & fontTextureFilePath,   // a path to texture file for this font
-		const UINT windowWidth,
-		const UINT windowHeight,
+		const int windowWidth,
+		const int windowHeight,
 		const UINT videoCardMemory,
-		const std::string & videoCardName);        
+		const std::string & videoCardName);   
+
+	void Update(
+		ID3D11DeviceContext* pContext, 
+		const SystemState& systemState);
+
+	// Public rendering API
+	void Render(
+		ID3D11DeviceContext* pContext,
+		Render::FontShaderClass& fontShader,
+		SystemState& systemState);
+
 
 	// Public modification API
 	SentenceID CreateConstStr(
@@ -55,20 +66,8 @@ public:
 		const POINT& drawAt,
 		const int maxStrSize);              // max possible length for this string
 
-
-	void Update(
-		ID3D11DeviceContext* pContext,
-		const SystemState & systemState);
-
-
-	// Public rendering API
-	void Render(
-		ID3D11DeviceContext* pContext, 
-		Render::FontShaderClass& fontShader,
-		SystemState& systemState);
-
-
-	void ComputeEditorPanelsPosAndSizes();
+	inline void SetSelectedEntt(const uint32_t entityID) { editorPanels_.SetSelectedEntt(entityID); }
+	inline uint32_t GetSelectedEntt() const              { return editorPanels_.GetSelectedEntt(); }
 
 private:
 	void CreateDebugInfoStrings(
@@ -76,16 +75,7 @@ private:
 		const std::string& videoCardName,
 		const int videoCardMemory);
 
-	void CreateFpsFrameTimeStrings(ID3D11Device* pDevice);
-	void CreatePositionInfoStrings(ID3D11Device* pDevice);
-	void CreateRotationInfoStrings(ID3D11Device* pDevice);
-	void CreateRenderInfoStrings(ID3D11Device* pDevice);
-
 	void RenderEditor(SystemState& systemState);
-	void RenderGameScenePanel();
-	void RenderBottomPanel(const WndParams& bottomPanel);
-	void RenderRightPanelUpperHalf(const SystemState& systemState);
-	void RenderRightPanelBottomHalf();
 
 	// debug info for the game mode
 	void RenderDebugInfo(
@@ -93,11 +83,11 @@ private:
 		Render::FontShaderClass& fontShader,
 		const SystemState& sysState);
 
-	void ComputePosOnScreen(const POINT& drawAt, DirectX::XMFLOAT2& outDrawAtPos);
+	DirectX::XMFLOAT2 ComputePosOnScreen(const POINT& drawAt);
 
 private:
-	UINT                    windowWidth_ = 800;
-	UINT                    windowHeight_ = 600;
+	int                     windowWidth_ = 800;
+	int                     windowHeight_ = 600;
 	StatesGUI               guiStates_;
 
 	FontClass               font1_;        // a font class object (represents a font style)

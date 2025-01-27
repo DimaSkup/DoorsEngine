@@ -40,8 +40,8 @@ void UserInterface::Initialize(
 	IFacadeEngineToUI* pFacadeEngineToUI,
 	const std::string & fontDataFilePath,      // a path to file with data about this type of font
 	const std::string & fontTextureFilePath,   // a path to texture file for this font
-	const UINT wndWidth,
-	const UINT wndHeight,
+	const int wndWidth,
+	const int wndHeight,
 	const UINT videoCardMemory,
 	const std::string& videoCardName) 
 {
@@ -56,7 +56,7 @@ void UserInterface::Initialize(
 		Assert::True((!fontTextureFilePath.empty()), "wrong path to font texture file");
 
 		// initialize the window dimensions members for internal using
-		windowWidth_ = wndWidth;
+		windowWidth_  = wndWidth;
 		windowHeight_ = wndHeight;
 
 		// --------------------------------------------
@@ -96,7 +96,6 @@ void UserInterface::Update(
 	try
 	{
 		textStorage_.Update(pContext, font1_, systemState);
-		editorPanels_.Update(systemState);
 	}
 	catch (EngineException & e)
 	{
@@ -126,20 +125,11 @@ void UserInterface::Render(
 
 	if (systemState.isEditorMode)
 	{
-		// render ImGui stuff onto the screen
-		bool isImGuiActive = true;
-
-		// We specify a default position/size in case there's no data in the .ini file.
-		// We only do it to make the demo applications a little more welcoming, but typically this isn't required.
-		const ImGuiViewport* viewport = ImGui::GetMainViewport();
-		//ImGui::SetNextWindowPos(viewport->WorkPos, ImGuiCond_Always);//ImGuiCond_FirstUseEver);
-		//ImGui::SetNextWindowSize(viewport->WorkSize, ImGuiCond_Always);
-
 		editorMainMenuBar_.RenderBar(guiStates_);
 
 		// show window to control engine options
 		if (guiStates_.showWndEngineOptions_)
-			editorMainMenuBar_.RenderWndEngineOptions(&guiStates_.showWndEngineOptions_, guiStates_);
+			editorMainMenuBar_.RenderWndEngineOptions(&guiStates_.showWndEngineOptions_);
 
 		// show modal window for entity creation
 		if (guiStates_.showWndForEnttCreation_)
@@ -156,7 +146,7 @@ void UserInterface::Render(
 
 SentenceID UserInterface::CreateConstStr(
 	ID3D11Device* pDevice,
-	const std::string& str,                         // content
+	const std::string& content,                         
 	const POINT& drawAt)                            // upper left position of the text in the window
 {
 	// create a new GUI string by input data;
@@ -165,16 +155,18 @@ SentenceID UserInterface::CreateConstStr(
 
 	try
 	{
-		Assert::True((!str.empty()), "wrong input data");
-		DirectX::XMFLOAT2 drawAtPos;
-		ComputePosOnScreen(drawAt, drawAtPos);
+		Assert::True(!content.empty(), "wrong input data: str is empty");
 
-		return textStorage_.CreateConstSentence(pDevice, font1_, str, drawAtPos);
+		return textStorage_.CreateConstSentence(
+			pDevice,
+			font1_,                             // a font which is used for this sentence
+			content,
+			ComputePosOnScreen(drawAt));
 	}
 	catch (EngineException& e)
 	{
 		Log::Error(e);
-		Log::Error("can't create a sentence: " + str);
+		Log::Error("can't create the sentence: " + content);
 		return 0;
 	}
 }
@@ -183,7 +175,7 @@ SentenceID UserInterface::CreateConstStr(
 
 SentenceID UserInterface::CreateDynamicStr(
 	ID3D11Device* pDevice,
-	const std::string& str,
+	const std::string& content,
 	const POINT& drawAt,
 	const int maxStrSize)                           // max possible length for this string
 {
@@ -193,25 +185,23 @@ SentenceID UserInterface::CreateDynamicStr(
 
 	try
 	{
-		Assert::True((!str.empty()) && (maxStrSize > 0), "wrong input data");
+		Assert::True((!content.empty()) && (maxStrSize > 0), "wrong input data");
 
-		int maxSize = (maxStrSize >= str.length()) ? maxStrSize : (int)std::ssize(str);
-		DirectX::XMFLOAT2 drawAtPos;
-
-		ComputePosOnScreen(drawAt, drawAtPos);
+		// max possible length for this dynamic string
+		int maxSize = (maxStrSize >= content.length()) ? maxStrSize : (int)std::ssize(content);
 
 		return textStorage_.CreateSentence(
 			pDevice,
 			font1_,
-			str,
+			content,
 			maxSize,
-			drawAtPos,
+			ComputePosOnScreen(drawAt),
 			true);
 	}
 	catch (EngineException& e)
 	{
 		Log::Error(e);
-		Log::Error("can't create a sentence: " + str);
+		Log::Error("can't create a sentence: " + content);
 		return 0;
 	}
 }
@@ -276,72 +266,6 @@ void UserInterface::CreateDebugInfoStrings(
 //                                 editor stuff
 // ====================================================================================
 
-void UserInterface::ComputeEditorPanelsPosAndSizes()
-{
-#if 0
-	// We specify a default position/size in case there's no data in the .ini file.
-		// We only do it to make the demo applications a little more welcoming, but typically this isn't required.
-
-	ImVec2 mainMenuBarSize = { 0,0 };
-	bool isActive = true;
-	ImGuiWindowFlags wndFlags = 0;
-	wndFlags |= ImGuiWindowFlags_MenuBar;
-	wndFlags |= ImGuiWindowFlags_NoScrollbar;
-
-	// We demonstrate using the full viewport area or the work area (without menu-bars, task-bars etc.)
-	// Based on your use case you may want one or the other.
-	ImGuiViewport* viewport = ImGui::GetMainViewport();
-	ImGui::SetNextWindowPos(viewport->Pos, ImGuiCond_Always);//ImGuiCond_FirstUseEver);
-	ImGui::SetNextWindowSize(viewport->Size, ImGuiCond_Always);
-
-
-	// Main body of the ImGui stuff starts here.
-	if (ImGui::Begin("Doors Engine", &isActive, wndFlags))
-	{
-		if (ImGui::BeginMainMenuBar())
-		{
-			// get height of the main menu bar: we need to know how tall our menu 
-			// bar to make the proper paddings for the rest elements of the editor
-			mainMenuBarSize = ImVec2(viewport->Size.x, ImGui::GetWindowSize().y);
-		}
-		ImGui::EndMainMenuBar();
-
-		const float offsetFromMainWndTop = mainMenuBarSize.y;
-
-		viewport->WorkPos = ImVec2(0, mainMenuBarSize.y);
-		viewport->WorkSize = ImVec2(viewport->Size.x, viewport->Size.y - offsetFromMainWndTop);
-
-
-		WndParams& left = guiStates_.leftPanelParams_;
-		WndParams& sceneSpace = guiStates_.sceneSpaceParams_;
-		WndParams& bottom = guiStates_.centerBottomPanelParams_;
-		WndParams& right = guiStates_.rightPanelParams_;
-
-		// by default right and left panels have the same width and height:
-		// (1/4 of width, and 1/2 of height)
-		const ImVec2 sizePanelSize = { 0.25f * viewport->WorkSize.x, viewport->WorkSize.y };
-
-		// setup left/right panels sizes
-		left.size_  = sizePanelSize;
-		right.size_ = sizePanelSize;
-
-		// setup center panels sizes
-		sceneSpace.size_ = { 0.5f * viewport->WorkSize.x, 0.7f * viewport->WorkSize.y };                           // 1/2 of width, 7/10 of height
-		sceneSpace.pos_ = { viewport->WorkPos.x + sizePanelSize.x, viewport->WorkPos.y + offsetFromMainWndTop };   
-
-		bottom.size_ = { 0.5f * viewport->WorkSize.x, viewport->WorkSize.y - sceneSpace.size_.y };            // 1/2 of width, and the rest of height after sceneSpace
-		bottom.pos_ = { sceneSpace.pos_.x, sceneSpace.pos_.y + sceneSpace.size_.y };
-
-		// setup left/right panels positions
-		left.pos_ = viewport->WorkPos;
-		right.pos_ = { sceneSpace.pos_.x + sceneSpace.size_.x, offsetFromMainWndTop };
-	}
-	ImGui::End();
-#endif
-}
-
-///////////////////////////////////////////////////////////
-
 void UserInterface::RenderEditor(SystemState& systemState)
 {
 	ImGuiStyle* style = &ImGui::GetStyle();
@@ -357,7 +281,7 @@ void UserInterface::RenderEditor(SystemState& systemState)
 	childFlags |= ImGuiChildFlags_ResizeX;
 	childFlags |= ImGuiChildFlags_ResizeY;
 	
-	editorPanels_.Render(systemState, guiStates_, childFlags, wndFlags);
+	editorPanels_.Render(systemState, childFlags, wndFlags);
 
 
 
@@ -425,13 +349,15 @@ void UserInterface::RenderEditor(SystemState& systemState)
 
 ///////////////////////////////////////////////////////////
 
-void UserInterface::ComputePosOnScreen(
-	const POINT& drawAt,
-	DirectX::XMFLOAT2& outDrawAtPos)
+DirectX::XMFLOAT2 UserInterface::ComputePosOnScreen(const POINT& drawAt)
 {
-	// compute the starting position on the screen
-	outDrawAtPos.x = (-0.5f * (float)windowWidth_)  + (float)drawAt.x;
-	outDrawAtPos.y = (+0.5f * (float)windowHeight_) - (float)drawAt.y;
+	// in:  top left pos relatively to the top left corner of the screen
+	// out: top left pos relatively to the screen center
+	return
+	{
+		(float)(-(windowWidth_  >> 1) + drawAt.x),   // posX
+		(float)(+(windowHeight_ >> 1) - drawAt.y),   // posY
+	};
 }
 
 ///////////////////////////////////////////////////////////

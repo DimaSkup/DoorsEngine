@@ -127,7 +127,7 @@ void Camera::HandleMouseMovement(
 	// update the value of camera angles based on input
 	static float pitch = 0.0f;
 	static float yaw = 0.0f;
-	const float speedMulDelta = this->rotationSpeed_ * deltaTime;
+	const float speedMulDelta = rotationSpeed_ * deltaTime;
 
 	// make each pixel correspond to a quarter of a degree
 	const float dx = DirectX::XMConvertToRadians(0.25f * static_cast<float>(yawDelta));
@@ -158,4 +158,7 @@ void Camera::HandleMouseMovement(
 	
 	// update the rotation angle
 	SetRotationInRad({ pitch, yaw, 0.0f });
+
+	// update view/proj matrices after changing of the rotation
+	UpdateViewMatrix();
 }

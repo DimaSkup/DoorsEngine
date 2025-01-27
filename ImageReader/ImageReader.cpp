@@ -18,11 +18,12 @@
 #include <d3dx11tex.h>
 #include <filesystem>
 
+
 namespace fs = std::filesystem;
+
 
 namespace ImgReader
 {
-
 
 void ImageReader::SetupLogger(FILE* pFile, std::list<std::string>* pMsgsList)
 {

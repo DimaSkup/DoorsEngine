@@ -12,9 +12,10 @@
 // ********************************************************************************
 #pragma once
 
-#include "external/include/DirectXTex-main/DirectXTex/DirectXTex.h"
+#include <DirectXTex.h>
 #include <filesystem>
 #include <string>
+#include <d3d11.h>
 
 
 namespace fs = std::filesystem;

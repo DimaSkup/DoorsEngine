@@ -17,22 +17,22 @@ public:
 	void OnMouseMove(int x, int y);
 	void OnMouseMoveRaw(int x, int y); // handles the relative changes of the mouse position
 
-	bool IsLeftDown() const;
-	bool IsMiddleDown() const;
-	bool IsRightDown() const;
+	inline bool IsLeftDown()         const { return leftIsDown_; };
+	inline bool IsMiddleDown()       const { return mbuttonDown_; };
+	inline bool IsRightDown()        const { return rightIsDown_; };
 
-	int GetPosX() const;
-	int GetPosY() const;
-	MousePoint GetPos();
+	inline int GetPosX()             const { return x_; };
+	inline int GetPosY()             const { return y_; };
+	inline MousePoint GetPos()       const { return { x_, y_ }; }
 
-	bool EventBufferIsEmpty();
+	inline bool EventBufferIsEmpty() const { return eventBuffer_.empty(); };
 	MouseEvent ReadEvent();
 
 private:
 	std::queue<MouseEvent> eventBuffer_;
-	bool leftIsDown_ = false;
+	bool leftIsDown_  = false;
 	bool rightIsDown_ = false;
 	bool mbuttonDown_ = false;
-	int x = 0;
-	int y = 0;
+	int x_            = 0;
+	int y_            = 0;
 };

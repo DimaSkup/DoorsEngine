@@ -4,9 +4,9 @@
 
 #include <string>
 #include <d3d11.h>
-#include <dxgitype.h>
-#include <dxgi.h>
 #include <list>
+//#include <dxgitype.h>
+//#include <dxgi.h>
 
 namespace ImgReader
 {

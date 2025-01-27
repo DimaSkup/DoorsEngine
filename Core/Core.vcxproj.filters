@@ -282,9 +282,6 @@
     <ClCompile Include="Model\SkyModel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UI\Editor\Sky\SkyEditorController.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="UI\UICommon\FacadeEngineToUI.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -303,16 +300,7 @@
     <ClCompile Include="UI\Editor\MainMenuBar\MainMenuBar.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ImGuizmo\ImCurveEdit.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ImGuizmo\ImGradient.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ImGuizmo\ImGuizmo.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ImGuizmo\ImSequencer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ImGui\ImGuiLayer.cpp">
@@ -593,13 +581,10 @@
     <ClInclude Include="Model\SkyModel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UI\Editor\Sky\SkyEditorController.h">
+    <ClInclude Include="UI\Editor\Entity\SkyEditorModel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UI\Editor\Sky\SkyEditorModel.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="UI\Editor\Sky\SkyEditorView.h">
+    <ClInclude Include="UI\Editor\Entity\SkyEditorView.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\UICommon\ICommand.h">
@@ -609,9 +594,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\UICommon\Vectors.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="UI\Editor\Sky\SkyEditorCommands.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\UICommon\ViewListener.h">
@@ -659,22 +641,7 @@
     <ClInclude Include="UI\Editor\MainMenuBar\MainMenuBar.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UI\UICommon\StatesGUI.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ImGuizmo\ImCurveEdit.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ImGuizmo\ImGradient.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="ImGuizmo\ImGuizmo.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ImGuizmo\ImSequencer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ImGuizmo\ImZoomSlider.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ImGui\ImGuiSrc\imconfig.h">

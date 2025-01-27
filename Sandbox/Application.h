@@ -38,14 +38,6 @@ public:
 			wndHeight);
 		Assert::True(result, "can't initialize the window");
 
-		//const int currWndWidth = windowContainer.renderWindow_.GetWndWidth();
-		//const int currWndHeight = windowContainer.renderWindow_.GetWndHeight();
-
-		///settings.UpdateSettingByKey("WINDOW_WIDTH", std::to_string(currWndWidth));
-		//settings.UpdateSettingByKey("WINDOW_HEIGHT", std::to_string(currWndHeight));
-
-
-
 		// explicitly init Windows Runtime and COM
 		HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 		Assert::NotFailed(hr, "ERROR: can't explicitly initialize Windows Runtime and COM");

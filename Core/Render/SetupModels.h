@@ -8,8 +8,8 @@ void SetupTerrain(BasicModel& terrain)
 	TextureMgr& texMgr = *TextureMgr::Get();
 
 	// load and set a texture for the terrain model
-	const TexID texTerrainDiff = texMgr.LoadFromFile(g_TexDirPath + "detail_grnd_grass.dds");
-	const TexID texTerrainNorm = texMgr.LoadFromFile(g_TexDirPath + "detail_grnd_grass_bump.dds");
+	const TexID texTerrainDiff = texMgr.LoadFromFile(g_TexDirPath + "terrain/detail_grnd_grass.dds");
+	const TexID texTerrainNorm = texMgr.LoadFromFile(g_TexDirPath + "terrain/detail_grnd_grass_bump.dds");
 
 	terrain.SetTexture(0, TexType::DIFFUSE, texTerrainDiff);
 	terrain.SetTexture(0, TexType::NORMALS, texTerrainNorm);

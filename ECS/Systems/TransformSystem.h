@@ -41,6 +41,7 @@ public:
 	// PUBLIC GETTERS API
 
 	const XMFLOAT3 GetPositionByID(const EntityID id);
+	const XMVECTOR GetRotationQuatByID(const EntityID id);
 
 	void GetTransformByID(
 		const EntityID id,
@@ -78,6 +79,8 @@ public:
 		const size numEntts,
 		std::vector<DirectX::XMMATRIX>& outWorlds);
 
+	const DirectX::XMMATRIX& GetInverseWorldMatrixOfEntt(const EntityID id);
+
 	void GetInverseWorldMatricesOfEntts(
 		const std::vector<EntityID>& enttsIDs,
 		std::vector<DirectX::XMMATRIX>& outInvWorlds);
@@ -99,6 +102,12 @@ public:
 	void SetPositionByID(const EntityID id, const XMFLOAT3& position);
 	void SetDirectionByID(const EntityID id, const XMVECTOR& dirQuat);
 	void SetUniScaleByID(const EntityID id, const float uniformScale);
+
+	void SetTransformByID(
+		const EntityID id,
+		const XMVECTOR& newPosition,
+		const XMVECTOR& newRotation,
+		const float newScale);
 
 	void SetTransformDataByIDs(
 		const std::vector<EntityID>& enttsIDs,
@@ -160,7 +169,8 @@ private:
 
 	inline void RecomputeInvWorldMatrixByIdx(const index idx)
 	{
-		// recompute inverse world matrix based on world by array idx
+		// recompute inverse world matrix based on world by array idx;
+		// NOTE: expects the world matrix to be computed already!!!
 		pWorldMat_->invWorlds_[idx] = DirectX::XMMatrixInverse(nullptr, pWorldMat_->worlds_[idx]);
 	}
 

@@ -25,8 +25,12 @@ public:
 
 	ImVec4 GetBackgroundColor() const { return mainBgColor_; }
 
+	ImGuiContext* GetContext() { return pImGuiContext_; }
+
 private:
 	// we use this color to set ImGui background color when rendering
 	// because after rendering we have to reset ImGui windowBgColor
 	ImVec4 mainBgColor_ = { 0,0,0,1 };  
+
+	ImGuiContext* pImGuiContext_ = nullptr;
 };

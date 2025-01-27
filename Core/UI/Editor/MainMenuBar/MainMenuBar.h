@@ -14,9 +14,9 @@ class MainMenuBar
 {
 public:
 	void RenderBar(StatesGUI& states);
-	void RenderWndEngineOptions(bool* pOpen, StatesGUI& states);
+	void RenderWndEngineOptions(bool* pOpen);
 
 private:
-	void ShowOptionsGui(StatesGUI& states);
+	void ShowOptionsGui();
 	void ShowFontSelector();
 };

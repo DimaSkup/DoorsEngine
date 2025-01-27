@@ -95,6 +95,7 @@ public:
 
 	inline D3DClass&       GetD3DClass()                      { return d3d_; }
 	inline Camera&         GetEditorCamera()                  { return editorCamera_; }
+	inline Camera&         GetGameCamera()                    { return gameCamera_; }
 	inline BasicCamera&    GetCameraForRenderToTexture()      { return cameraForRenderToTexture_; }
 	inline ECS::EntityMgr& GetEntityMgr()                     { return entityMgr_; }
 	inline Render::Render& GetRender()                        { return render_; }
@@ -111,11 +112,13 @@ public:
 	void* operator new(std::size_t count, void* ptr);                   // a non-allocating placement allocation function
 	void operator delete(void* ptr);
 
+	// check if we have any entity by these coords of the screen
+	int TestEnttSelection(const int sx, const int sy);
+
 
 private: 
 	// private updating API
 	void UpdateShadersDataPerFrame();
-
 
 	// ------------------------------------------
 	// rendering data prepararion stage API
@@ -162,7 +165,7 @@ private:
 
 	void ComputeLocalSpacesOfEntts();
 
-	void Pick(const int sx, const int sy);
+	
 
 
 private:
@@ -177,8 +180,6 @@ private:
 	std::vector<DirectX::XMMATRIX> enttsLocalSpaces_;                 // local space of each currently visible entt
 	
 	std::vector<DirectX::BoundingOrientedBox> enttsBoundBoxes_;
-	EntityID pickedEntt_ = 0;
-	int pickedTriangle_  = -1;
 
 	ID3D11Device*         pDevice_ = nullptr;
 	ID3D11DeviceContext*  pDeviceContext_ = nullptr;

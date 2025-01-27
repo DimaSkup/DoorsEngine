@@ -8,7 +8,6 @@
 
 #include "../../UICommon/Color.h"
 #include "../../UICommon/Vectors.h"
-#include "../../../Common/log.h"
 
 
 namespace Model
@@ -17,23 +16,23 @@ namespace Model
 class Entity
 {
 private:
-	uint32_t entityID_ = 0;           // an ID of the currently chosen entity
-	Vec3     position_;               // its position
-	Vec4     dirQuat_;                // direction quaternion
-	float    uniformScale_ = 0.0;     // and uniform scale
+	uint32_t selectedEnttID_ = 0;      // an ID of the currently chosen/picked entity
+	Vec3     position_ { 0,0,0 };      // its position
+	Vec4     dirQuat_ { 0,0,0,0 };     // direction quaternion
+	float    uniformScale_ = 0.0;      // and uniform scale
 
 public:
 
-	void Update(
+	inline void SetSelectedEnttData(
 		const uint32_t entityID, 
 		const Vec3& position,
 		const Vec4& dirQuat,
 		const float uniformScale)
 	{
-		entityID_     = entityID;
-		position_     = position;
-		dirQuat_      = dirQuat;
-		uniformScale_ = uniformScale;
+		selectedEnttID_ = entityID;
+		position_       = position;
+		dirQuat_        = dirQuat;
+		uniformScale_   = uniformScale;
 	}
 
 	// setters
@@ -42,7 +41,7 @@ public:
 	inline void SetUniformScale(const float scale)    { uniformScale_ = scale;}
 
 	// getters
-	inline uint32_t GetEntityID()               const { return entityID_; }
+	inline uint32_t GetSelectedEntityID()       const { return selectedEnttID_; }
 	inline void     GetPosition(Vec3& pos)      const { pos = position_; }
 	inline void     GetRotation(Vec4& dirQuat)  const { dirQuat = dirQuat_; }
 	inline float    GetScale()                  const { return uniformScale_; }
@@ -53,8 +52,6 @@ public:
 		dirQuat = dirQuat_;
 		scale   = uniformScale_;
 	}
-
-
 };
 
 }

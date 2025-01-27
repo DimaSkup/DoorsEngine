@@ -103,6 +103,8 @@ public:  // INLINE GETTERS METHODS
 	inline const DirectX::XMMATRIX& GetViewMatrix()           const { return view_; }
 	inline const DirectX::XMMATRIX& GetInverseViewMatrix()    const { return invView_; }
 	inline const DirectX::XMMATRIX& GetProjectionMatrix()     const { return projection_; }
+	inline const float*             GetViewMatrixRawData()    const { return view_.r->m128_f32; }
+	inline const float*             GetProjMatrixRawData()    const { return projection_.r->m128_f32;}
 
 	inline void     GetPositionFloat3(DirectX::XMFLOAT3& pos) const { XMStoreFloat3(&pos, posVector_); }
 	inline DirectX::XMFLOAT3 GetPositionFloat3()              const { DirectX::XMFLOAT3 pos; XMStoreFloat3(&pos, posVector_); return pos; }

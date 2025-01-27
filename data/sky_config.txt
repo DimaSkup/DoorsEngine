@@ -1,0 +1,3 @@
+texture 0 cubemaps/cubemap_1.dds
+colorCenter 0.50 0.50 0.50
+colorApex 0.38 0.45 0.51

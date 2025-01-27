@@ -5,9 +5,10 @@
 #include "EntityEditorView.h"
 
 #include "../../../Common/log.h"
-
+#include "../../../Common/Assert.h"
 #include "../../UICommon/Color.h"
 #include "../../UICommon/Vectors.h"
+#include "EntityEditorCommands.h"
 
 #include <imgui.h>
 
@@ -16,8 +17,14 @@
 namespace View
 {
 
+Entity::Entity(ViewListener* pListener) : pListener_(pListener)
+{
+	Assert::NotNullptr(pListener, "ptr to the view listener == nullptr");
+}
 
-void Entity::Draw(
+///////////////////////////////////////////////////////////
+
+void Entity::Render(
 	const Model::Entity* pData,
 	const float* cameraView,     // camera view matrix
 	const float* cameraProj)     // camera projection matrix
@@ -38,7 +45,7 @@ void Entity::Draw(
 	constexpr float PIMUL2 = DirectX::XM_2PI;
 
 	// make local copies of the current model data to use it in the fields
-	entityID = pData->GetEntityID();
+	entityID = pData->GetSelectedEntityID();
 	pData->GetTransformation(position, dirQuat, uniformScale);
 	
 	// ------------------------------------------

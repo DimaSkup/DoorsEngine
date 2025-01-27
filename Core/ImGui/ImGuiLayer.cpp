@@ -24,11 +24,11 @@ void ImGuiLayer::Initialize(
 {
 	// setup Dear ImGui context
 	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
+	pImGuiContext_ = ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 
 	io.WantCaptureMouse = true;
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // enable keyboard controls
+	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // enable keyboard controls
 	ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
 	// setup fonts
@@ -47,13 +47,14 @@ void ImGuiLayer::Initialize(
 	ImGuizmo::Enable(true);
 
 	ImGuizmo::Style& imGuizmoStyle = ImGuizmo::GetStyle();
-	imGuizmoStyle.RotationLineThickness = 6;
-	imGuizmoStyle.RotationOuterLineThickness = 6;
-	imGuizmoStyle.TranslationLineThickness = 6;
-	imGuizmoStyle.TranslationLineArrowSize = 9;
-	imGuizmoStyle.ScaleLineThickness = 6;
-	imGuizmoStyle.ScaleLineCircleSize = 9;
+	const float lineThickness = 8.0f;
 
+	imGuizmoStyle.RotationLineThickness      = lineThickness;
+	imGuizmoStyle.RotationOuterLineThickness = lineThickness;
+	imGuizmoStyle.TranslationLineThickness   = lineThickness;
+	imGuizmoStyle.TranslationLineArrowSize   = 12;
+	imGuizmoStyle.ScaleLineThickness         = lineThickness;
+	imGuizmoStyle.ScaleLineCircleSize        = lineThickness;
 	
 
 	// setup platform/renderer backeds
@@ -89,31 +90,20 @@ void ImGuiLayer::Shutdown()
 
 void ImGuiLayer::Begin()
 {
-	/*
 	// start the Dear ImGui frame
-	ImGuiIO& io = ImGui::GetIO();
-
-	io.MousePos.x = mouse_.GetPosX();
-	io.MousePos.y = mouse_.GetPosY();
-	ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
-	*/
 
 	ImGui_ImplDX11_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 	ImGuizmo::BeginFrame();
-
-
-
-
-
 }
+
+///////////////////////////////////////////////////////////
 
 void ImGuiLayer::End()
 {
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-
 }
 
 ///////////////////////////////////////////////////////////
@@ -147,6 +137,8 @@ ImVec4 operator-(const ImVec4& v1, float s)
 	return ImVec4{ v1.x - s, v1.y - s, v1.z - s, 1.0f };
 }
 
+///////////////////////////////////////////////////////////
+
 void ImGuiLayer::SetDefaultThemeColors()
 {
 	// setup GUI colors
@@ -155,22 +147,24 @@ void ImGuiLayer::SetDefaultThemeColors()
 	
 
 	// main bg colors
-	const ImVec4 black = { 0,0,0,1 };
-	const ImVec4 white = { 1,1,1,1 };
-	const ImVec4 mainColor = { 0.0f, 0.35f, 0.268f, 1.0f };
-	mainBgColor_ = mainColor;
+	const ImVec4 black          = { 0,0,0,1 };
+	const ImVec4 white          = { 1,1,1,1 };
+	const ImVec4 mainColor      = { 0.0f, 0.35f, 0.268f, 1.0f };
+
+	// we need to store this value for switching btw opaque and transparent editor background
+	mainBgColor_ = mainColor;                               
 
 	// frame colors
-	const ImVec4 frameBgColor = { 0.007f, 0.450f, 0.368f, 1.0f };
+	const ImVec4 frameBgColor   = { 0.007f, 0.450f, 0.368f, 1.0f };
 	const ImVec4 frameBgHovered = { 0.057f, 0.50f, 0.418f, 1.0f };
 
 
 	colors[ImGuiCol_Text] = white;
 
-	colors[ImGuiCol_WindowBg] = { 0,0,0,0 };
-	colors[ImGuiCol_ChildBg]  = mainColor;
-	colors[ImGuiCol_PopupBg]  = mainColor;
-	colors[ImGuiCol_FrameBg]  = frameBgColor;
+	colors[ImGuiCol_WindowBg]   = { 0,0,0,0 };
+	colors[ImGuiCol_ChildBg]    = mainColor;
+	colors[ImGuiCol_PopupBg]    = mainColor;
+	colors[ImGuiCol_FrameBg]    = frameBgColor;
 	colors[ImGuiCol_FrameBgHovered] = frameBgHovered;
 
 	colors[ImGuiCol_TitleBg] = mainColor;

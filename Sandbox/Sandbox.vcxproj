@@ -71,9 +71,9 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(SolutionDir)Core;$(SolutionDir)ImGui\;$(IncludePath)</IncludePath>
+    <IncludePath>$(WindowsSDK_IncludePath);$(DXSDK_DIR)Include\;$(VC_IncludePath);$(SolutionDir)Core;$(SolutionDir)ImGui\;$(SolutionDir)ECS;$(SolutionDir)ImageReader;$(SolutionDir)Render;$(SolutionDir)DirectXTex\;$(SolutionDir)Linking\include;$(IncludePath)</IncludePath>
     <OutDir>$(SolutionDir)build\$(Platform)\$(Configuration)\</OutDir>
-    <LibraryPath>C:\Users\Skup-PC\Documents\Visual Studio 2022\Projects\DoorsEngine\Lib\x64\Debug;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(DXSDK_DIR)Lib\x64;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64;$(SolutionDir)Lib\$(Platform)\$(Configuration);$(SolutionDir)Linking\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -114,7 +114,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>Core_d.lib;ECS_d.lib;ImageReader_d.lib;Render_d.lib;ImGui.lib;assimp-vc143-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Core_d.lib;ECS_d.lib;ImageReader_d.lib;Render_d.lib;ImGui.lib;DirectXTex_d.lib;assimp\assimp-vc143-mtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -139,6 +139,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h" />
+    <ClInclude Include="AssetsLoader.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -166,8 +166,6 @@ TexID TextureMgr::LoadFromFile(const TexPath& path)
 	// 1. if such a texture already exists we just return a ptr to it;
 	// 2. if there is no texture by such name (path) we try to create it
 	
-	
-
 	try
 	{
 		fs::path texPath = path;
@@ -175,7 +173,7 @@ TexID TextureMgr::LoadFromFile(const TexPath& path)
 		// check if such texture file exist
 		if (!fs::exists(texPath))
 		{
-			Log::Error("a path to texture is empty");
+			Log::Error("there is no texture by path: " + texPath.string());
 			return INVALID_TEXTURE_ID;
 		}
 

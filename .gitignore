@@ -1,18 +1,24 @@
 .git/
 .vs/
-./ECS/x64/*
-./Core/x64/*
-./Core/.vs/*
-./Core/*.vsxproj
-./Core/*.vsxproj.filters
-./x64/*
-./ImGui/x64/
-./Lib/x64/*
+
+x64/
+ECS/x64/
+Core/x64/
+Core/.vs/
+ImGui/x64/
+ImageRender/x64
+Render/x64
+Sandbox/x64
+Lib/
 packages/
-./ImageRender/x64
-./Render/x64
+DirectXTex/.vs/
+DirectXTex/Bin/
+
 
 Core/imgui.ini
 Core/ECS_Log.txt
+Sandbox/imgui.ini
+Sandbox/EngineCoreLog.txt
 
-Core/*.fxo
+build/
+trash/

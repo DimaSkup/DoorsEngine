@@ -45,7 +45,7 @@ public:
 	// for the entity editor
 	//
 	virtual bool GetAllEnttsIDs(const uint32_t*& pEnttsIDsArr, int& numEntts)   { return false; }
-	virtual bool GetEnttIDByName(const char* name, uint32_t& id)                { return false;}
+	virtual uint32_t GetEnttIDByName(const char* name)                          { return 0;}
 	virtual bool GetEnttNameByID(const uint32_t enttID, std::string& name)      { return false; }
 
 
@@ -65,7 +65,7 @@ public:
 	//
 	// for the sky editor
 	//
-	virtual bool GatherSkyData(ColorRGB& center, ColorRGB& apex, Vec3& offset) { return false;};
+	virtual bool GatherSkyData(const uint32_t skyEnttID, ColorRGB& center, ColorRGB& apex, Vec3& offset) { return false;};
 
 	virtual bool SetSkyColorCenter(const ColorRGB& color)                      { return false; }
 	virtual bool SetSkyColorApex(const ColorRGB& color)                        { return false; }

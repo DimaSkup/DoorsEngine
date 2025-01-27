@@ -406,25 +406,20 @@ void GraphicsClass::HandleMouseInput(
 {
 	// this function handles the input events from the mouse
 
-	switch (me.GetType())
+	static bool isMouseMiddlePressed = false;
+
+	switch (me.GetEventType())
 	{
 		case MouseEvent::EventType::Move:
 		case MouseEvent::EventType::RAW_MOVE:
 		{
 			// if we in the game mode
-			if (!state.isEditorMode)
+			if (!state.isEditorMode || isMouseMiddlePressed)
 			{
-				// get the delta values of x and y
-				const MousePoint mPoint = me.GetPos();
-
 				// update the rotation data of the camera
 				// with the current state of the input devices. The movement function will update
 				// the position of the camera to the location for this frame
-				pCurrCamera_->HandleMouseMovement(mPoint.x, mPoint.y, deltaTime);
-
-				// update view/proj matrices after changing of the rotation
-				pCurrCamera_->UpdateViewMatrix();
-
+				pCurrCamera_->HandleMouseMovement(me.GetPosX(), me.GetPosY(), deltaTime);
 
 				// update camera entity
 				const EntityID CameraID = entityMgr_.nameSystem_.GetIdByName("editor_camera");
@@ -434,17 +429,16 @@ void GraphicsClass::HandleMouseInput(
 					pCurrCamera_->GetViewMatrix(),
 					pCurrCamera_->GetProjectionMatrix());
 			}
-
 			break;
 		}
-		case MouseEvent::EventType::WheelDown:
+		case MouseEvent::EventType::MPress:
 		{
-			Log::Error("scroll is presses");
+			isMouseMiddlePressed = true;
 			break;
 		}
-		case MouseEvent::EventType::LPress:
+		case MouseEvent::EventType::MRelease:
 		{
-			Pick(me.GetPosX(), me.GetPosY());
+			isMouseMiddlePressed = false;
 			break;
 		}
 	}
@@ -875,44 +869,44 @@ void GraphicsClass::SetupLightsForFrame(
 
 ///////////////////////////////////////////////////////////
 
-void GraphicsClass::Pick(
-	const int sx,              // screen x
-	const int sy)              // screen y
+int GraphicsClass::TestEnttSelection(const int sx, const int sy)
 {
-	//XMVECTOR projDet;
+	// check if we have any entity by input screen coords;
+	// 
+	// in:   screen pixel coords
+	// out:  0  - there is no entity, we didn't select any
+	//       ID - we selected some entity so return its ID
+
+	using namespace DirectX;
+
 	const XMMATRIX P = pCurrCamera_->GetProjectionMatrix();
-	const XMMATRIX invProj = DirectX::XMMatrixInverse(nullptr, P);
+	const XMMATRIX& invView = pCurrCamera_->GetInverseViewMatrix();
 
 	const float xndc = (+2.0f * sx / d3d_.GetWindowWidth() - 1.0f);
 	const float yndc = (-2.0f * sy / d3d_.GetWindowHeight() + 1.0f);
-	const float zndc = 1.0f;
 
 	// compute picking ray in view space
 	const float vx = xndc / P.r[0].m128_f32[0];
 	const float vy = yndc / P.r[1].m128_f32[1];
 
-	// compute picking ray origin and direction in world space
-	const XMMATRIX& invView = pCurrCamera_->GetInverseViewMatrix();
-	XMVECTOR cameraWorldPos = XMVector4Transform({ 0, 0, 0, 1 }, invView);
-	XMVECTOR cameraWorldDir = XMVector3TransformNormal({ vx, vy, 1.0f, 0.0 }, invView);
+	// ray definition in view space
+	XMVECTOR rayOrigin_ = { 0,0,0,1 };
+	XMVECTOR rayDir_    = { vx, vy, 1, 0 };
 
-	// if we hit the bounding box of the model, then we might have picked
-	// a model triangle, so do the ray/triangle tests;
-	//
-	// if we didn't hit the bounding box, then it is impossible that we
-	// hit the model, so do not waste efford doing ray/triangle tests
+	// assume we have not picked anything yet, 
+	// so init the ID to 0 and triangle idx to -1
+	uint32_t selectedEnttID = 0;
+	int selectedTriangleIdx = -1;
+	float tmin = MathHelper::Infinity;  // the distance along the ray where the intersection occurs
+	float dist = 0;                     // the length of the ray from origin to the intersection point with the AABB
 
-	// assume we have not picked anything yet, so init to -1
-	pickedTriangle_ = -1;
-	float tmin = 0.0f;
-
-	const std::vector<EntityID>& visEntts = entityMgr_.renderSystem_.GetAllVisibleEntts();
-	const size numVisEntts = std::ssize(visEntts);
+	//const std::vector<EntityID>& visEntts = ;
+	//const size numVisEntts = std::ssize(visEntts);
 
 	// go through each visible entt and check if we have an intersection with it
-	for (int i = 0; i < numVisEntts; ++i)
+	for (const EntityID enttID : entityMgr_.renderSystem_.GetAllVisibleEntts())
 	{
-		const EntityID enttID = visEntts[i];
+		//const EntityID enttID = visEntts[i];
 		const ModelID modelID = entityMgr_.modelSystem_.GetModelIdRelatedToEntt(enttID);
 		const BasicModel& model = modelStorage_.GetModelByID(modelID);
 
@@ -921,23 +915,25 @@ void GraphicsClass::Pick(
 			continue;
 		}
 	
-		const XMMATRIX W = entityMgr_.transformSystem_.GetWorldMatrixOfEntt(enttID);
-		const XMMATRIX invWorld = XMMatrixInverse(nullptr, W);
+		// get an inverse world matrix of the current entt
+		const XMMATRIX invWorld = entityMgr_.transformSystem_.GetInverseWorldMatrixOfEntt(enttID);
+		const XMMATRIX toLocal = XMMatrixMultiply(invView, invWorld);
 
-		XMVECTOR rayOrigin = XMVector3TransformCoord(cameraWorldPos, invWorld);   // supposed to take a point (w == 1)
-		XMVECTOR rayDir    = XMVector3TransformNormal(cameraWorldDir, invWorld);  // supposed to take a vec (w == 0)
+		XMVECTOR rayOrigin = XMVector3TransformCoord(rayOrigin_, toLocal);   // supposed to take a point (w == 1)
+		XMVECTOR rayDir    = XMVector3TransformNormal(rayDir_, toLocal);  // supposed to take a vec (w == 0)
 
 		// make the ray direction unit length for the intersection tests
 		rayDir = DirectX::XMVector3Normalize(rayDir);
 
-		DirectX::BoundingBox aabb = model.GetModelAABB();
 
-		// check if we intersect a bounding box of the whole entity
-		if (aabb.Intersects(rayOrigin, rayDir, tmin))
+		// if we hit the bounding box of the model, then we might have picked
+		// a model triangle, so do the ray/triangle tests;
+		//
+		// if we didn't hit the bounding box, then it is impossible that we
+		// hit the model, so do not waste efford doing ray/triangle tests
+		if (model.GetModelAABB().Intersects(rayOrigin, rayDir, dist))
 		{
-			// find the nearest ray/triangle intersection
-			tmin = MathHelper::Infinity;
-
+			// execute ray/triangle tests
 			for (int i = 0; i < model.GetNumIndices() / 3; ++i)
 			{
 				// indices for this triangle
@@ -956,71 +952,27 @@ void GraphicsClass::Pick(
 
 				if (DirectX::TriangleTests::Intersects(rayOrigin, rayDir, v0, v1, v2, t))
 				{
-					if (t < tmin)
+					if (t <= tmin)
 					{
-						// this is the new nearest picked triangle
+						// this is the new nearest picked entt and its triangle
 						tmin = t;
-						pickedTriangle_ = i;
-						pickedEntt_ = enttID;
+						selectedTriangleIdx = i;
+						selectedEnttID = enttID;
 					}
 				}
 			}
-
-#if 0
-			std::vector<DirectX::BoundingOrientedBox> obbs;
-			std::vector<size> numBoxesPerEntt;
-			entityMgr_.boundingSystem_.GetOBBs({ enttID }, numBoxesPerEntt, obbs);
-
-			// check if we intersect any mesh bounding box of this entity
-			for (const BoundingOrientedBox& obb : obbs)
-			{
-				if (obb.Intersects(rayOrigin, rayDir, tmin))
-				{
-					// find the nearest ray/triangle intersection
-					tmin = MathHelper::Infinity;
-
-					for (int i = 0; i < model.GetNumIndices() / 3; ++i)
-					{
-						// indices for this triangle
-						UINT i0 = model.indices_[i * 3 + 0];
-						UINT i1 = model.indices_[i * 3 + 1];
-						UINT i2 = model.indices_[i * 3 + 2];
-
-						// vertices for this triangle
-						XMVECTOR v0 = XMLoadFloat3(&model.vertices_[i0].position);
-						XMVECTOR v1 = XMLoadFloat3(&model.vertices_[i1].position);
-						XMVECTOR v2 = XMLoadFloat3(&model.vertices_[i2].position);
-
-						// we have to iterate over all the triangle in order 
-						// to find the nearest intersection
-						float t = 0.0f;
-
-						if (DirectX::TriangleTests::Intersects(rayOrigin, rayDir, v0, v1, v2, t))
-						{
-							if (t < tmin)
-							{
-								// this is the new nearest picked triangle
-								tmin = t;
-								pickedTriangle_ = i;
-								pickedEntt = enttID;
-							}
-						}
-					}
-				}
-			}
-
-#endif
-
-			// get entt ID and its relative model
-			//pickedEntt_ = visEntts[i];
-			
 		}
 	}
 
-	if (pickedEntt_)
+	// print a msg about selection of the entity
+	if (selectedEnttID)
 	{
-		pSysState_->pickedEntt_ = pickedEntt_;
-		const EntityName& name = entityMgr_.nameSystem_.GetNameById(pickedEntt_);
-		Log::Print("picked: " + name, ConsoleColor::YELLOW);
+		const EntityName& name = entityMgr_.nameSystem_.GetNameById(selectedEnttID);
+		const std::string msg = std::format("picked entt (id, name): {} {}", selectedEnttID, name);
+
+		Log::Print(msg, ConsoleColor::YELLOW);
 	}
+
+	// return ID of the selected entt, or 0 if we didn't pick any
+	return selectedEnttID;
 }

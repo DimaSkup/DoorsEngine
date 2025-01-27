@@ -50,7 +50,7 @@ public:
 	// for the entity editor
 	//
 	virtual bool GetAllEnttsIDs(const uint32_t*& pEnttsIDsArr, int& numEntts) override;
-	virtual bool GetEnttIDByName(const char* name, uint32_t& id)              override;
+	virtual uint32_t GetEnttIDByName(const char* name)                        override;
 	virtual bool GetEnttNameByID(const uint32_t enttID, std::string& name)    override;
 
 	virtual bool GatherEnttData(
@@ -67,7 +67,11 @@ public:
 	//
 	// for the sky editor
 	//
-	virtual bool GatherSkyData(ColorRGB& center, ColorRGB& apex, Vec3& offset) override;
+	virtual bool GatherSkyData(
+		const uint32_t skyEnttID, 
+		ColorRGB& center, 
+		ColorRGB& apex, 
+		Vec3& offset) override;
 
 	virtual bool SetSkyColorCenter(const ColorRGB& color) override;
 	virtual bool SetSkyColorApex(const ColorRGB& color) override;

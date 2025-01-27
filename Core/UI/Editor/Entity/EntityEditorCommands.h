@@ -15,6 +15,9 @@ enum EntityEditorCmdType
 	CHANGE_POSITION,
 	CHANGE_ROTATION,
 	CHANGE_SCALE,
+	CHANGE_SKY_COLOR_CENTER,    // change the horizon color of the sky gradient
+	CHANGE_SKY_COLOR_APEX,      // change the top color of the sky gradient
+	CHANGE_SKY_OFFSET,          // change offset of the sky mesh
 };
 
 ///////////////////////////////////////////////////////////
@@ -54,4 +57,17 @@ public:
 	virtual float GetFloat() const { return value_; }
 
 	float value_;
+};
+
+///////////////////////////////////////////////////////////
+
+class CmdChangeColor : public ICommand
+{
+public:
+	CmdChangeColor(const EntityEditorCmdType type, const ColorRGB& color)
+		: ICommand(type), color_(color) {}
+
+	virtual ColorRGB GetColorRGB() const { return color_; }
+
+	ColorRGB color_;
 };
