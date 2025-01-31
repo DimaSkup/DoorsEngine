@@ -857,13 +857,13 @@ void GraphicsClass::SetupLightsForFrame(
 	size spotLightSize  = sizeof(ECS::SpotLight);
 
 	// copy data of directional/point/spot light sources
-	for (size idx = 0; idx < numDirLights; ++idx)
+	for (int idx = 0; idx < numDirLights; ++idx)
 		memcpy(&outData.dirLights[idx], &dirLights.data_[idx], dirLightSize);
 
-	for (size idx = 0; idx < numPointLights; ++idx)
+	for (int idx = 0; idx < numPointLights; ++idx)
 		memcpy(&outData.pointLights[idx], &pointLights.data_[idx], pointLightSize);
 
-	for (size idx = 0; idx < numSpotLights; ++idx)
+	for (int idx = 0; idx < numSpotLights; ++idx)
 		memcpy(&outData.spotLights[idx], &spotLights.data_[idx], spotLightSize);
 }
 

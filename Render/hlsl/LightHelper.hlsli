@@ -173,6 +173,10 @@ void ComputePointLight(
 		spec = specFactor * mat.specular * L.specular;
 	}
 
+	// normal falloff
+	//float distance = length(lightVec);
+	//float att = pow(saturate(1.0f - pow(distance / L.range, 4.0f)), 2.0f) / (pow(distance, 2.0f) + 1.0f);
+
 	// attenuate
 	float att = dot(L.att, float3(1.0f, distInv, pow(distInv, 2)));
 

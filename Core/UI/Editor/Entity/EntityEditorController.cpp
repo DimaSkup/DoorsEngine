@@ -11,7 +11,8 @@
 
 EntityEditorController::EntityEditorController() :
 	enttView_(this),
-	skyView_(this) 
+	skyView_(this),
+	lightView_(this)
 {
 }
 
@@ -44,8 +45,11 @@ void EntityEditorController::SetSelectedEntt(const uint32_t entityID)
 	else
 	{
 		isSelectedAnyEntt_ = true;
+		selectedEnttID_ = entityID;
 
 		std::string enttName;
+		int lightType;
+
 		pFacade_->GetEnttNameByID(entityID, enttName);
 
 		// if we selected the sky entt
@@ -54,10 +58,25 @@ void EntityEditorController::SetSelectedEntt(const uint32_t entityID)
 			selectedEnttType_ = SKY;
 			LoadSkyEnttData(entityID);
 		}
-		// we have selected some another entt: model, light, camera, etc
+		else if (pFacade_->IsEnttLightSource(entityID, lightType))
+		{
+			if (lightType == 0)
+				selectedEnttType_ = DIRECTED_LIGHT;
+			else if (lightType == 1)
+				selectedEnttType_ = POINT_LIGHT;
+			else if (lightType == 2)
+				selectedEnttType_ = SPOT_LIGHT;
+			else
+			{
+				Log::Error("unknown light type");
+				return;
+			}
+
+			LoadLightEnttData(selectedEnttID_);
+		}
 		else
 		{
-			selectedEnttType_ = USUAL;
+			selectedEnttType_ = MODEL;
 			LoadUsualEnttData(entityID);
 		}
 	}
@@ -73,23 +92,69 @@ void EntityEditorController::Render()
 	static bool isOpen = true;
 	ImGui::SetNextItemOpen(isOpen);
 
-	if (selectedEnttType_ == USUAL)   // model, camera, light src
+	switch (selectedEnttType_)
 	{
-		float cameraViewMatrix[16]{ 0 };
-		float cameraProjMatrix[16]{ 0 };
+		case MODEL:
+		{
+			// render a panel for changing properties of the chosen entity 
+			ImGui::Text("EntityID (model): %d", selectedEnttType_);
 
-		uint32_t cameraID = pFacade_->GetEnttIDByName("editor_camera");
-		pFacade_->GetCameraViewAndProj(cameraID, cameraViewMatrix, cameraProjMatrix);
+			if (isOpen = ImGui::CollapsingHeader("EntityEditor", ImGuiTreeNodeFlags_SpanFullWidth))
+				enttView_.Render(&enttModel_);
+			break;
+		}
+		case DIRECTED_LIGHT:
+		{
+			ImGui::Text("DIR LIGHT SOURCE IS CHOSEN");
+			break;
+		}
+		case POINT_LIGHT:
+		{
+			ImGui::Text("EntityID (point light): %d", selectedEnttType_);
 
-		// render a panel for changing properties of the chosen entity 
-		if (isOpen = ImGui::CollapsingHeader("EntityEditor", ImGuiTreeNodeFlags_SpanFullWidth))
-			enttView_.Render(&enttModel_, cameraViewMatrix, cameraProjMatrix);
+			if (isOpen = ImGui::CollapsingHeader("Point Light Properties", ImGuiTreeNodeFlags_SpanFullWidth))
+				lightView_.Render(&pointLightModel_);
+			break;
+		}
+		case SPOT_LIGHT:
+		{
+			ImGui::Text("SPOT LIGHT SOURCE IS CHOSEN");
+			break;
+		}
+		case SKY:
+		{
+			// render a panel for changing properties of the sky (since it is the chosen entity)
+			if (isOpen = ImGui::CollapsingHeader("SkyEditor", ImGuiTreeNodeFlags_SpanFullWidth))
+				skyView_.Render(&skyModel_);
+			break;
+		}
 	}
-	else if (selectedEnttType_ == SKY)
+}
+
+void EntityEditorController::UpdateSelectedEnttWorld(const DirectX::XMMATRIX& world)
+{
+	// when we used a gizmo to modify a world of the selected entity
+	// we call this method to actual update of the world properties
+
+	DirectX::XMVECTOR scale, rotQuat, translation;
+	XMMatrixDecompose(&scale, &rotQuat, &translation, world);
+
+	// according to the selected entity type we update its world properties
+	if (selectedEnttType_ == MODEL)
 	{
-		// render a panel for changing properties of the sky (since it is the chosen entity)
-		if (isOpen = ImGui::CollapsingHeader("SkyEditor", ImGuiTreeNodeFlags_SpanFullWidth))
-			skyView_.Render(&skyModel_);
+		pFacade_->SetEnttTransformation(selectedEnttID_, translation, rotQuat, DirectX::XMVectorGetX(scale));
+	}
+	else if (selectedEnttType_ == DIRECTED_LIGHT)
+	{
+		
+	}
+	else if (selectedEnttType_ == POINT_LIGHT)
+	{
+		Execute(new CmdEntityChangeVec3(CHANGE_POINT_LIGHT_POSITION, Vec3(translation)));
+	}
+	else if (selectedEnttType_ == SPOT_LIGHT)
+	{
+
 	}
 }
 
@@ -121,6 +186,15 @@ void EntityEditorController::Execute(ICommand* pCommand)
 		{
 			ExecuteSkyCommand(pCommand);
 		}
+		case CHANGE_POINT_LIGHT_AMBIENT:
+		case CHANGE_POINT_LIGHT_DIFFUSE:
+		case CHANGE_POINT_LIGHT_SPECULAR:
+		case CHANGE_POINT_LIGHT_POSITION:
+		case CHANGE_POINT_LIGHT_RANGE:
+		case CHANGE_POINT_LIGHT_ATTENUATION:
+		{
+			ExecutePointLightCommand(pCommand);
+		}
 	}
 }
 
@@ -131,7 +205,7 @@ void EntityEditorController::Execute(ICommand* pCommand)
 
 void EntityEditorController::LoadSkyEnttData(const uint32_t skyEnttID)
 {
-	// load data of currently selected entity by ID (which is actually the sky entt)
+	// load/reload data of currently selected entity by ID (which is actually the sky entt)
 	ColorRGB center;
 	ColorRGB apex;
 	Vec3 offset;
@@ -152,14 +226,53 @@ void EntityEditorController::LoadSkyEnttData(const uint32_t skyEnttID)
 
 void EntityEditorController::LoadUsualEnttData(const uint32_t enttID)
 {
-	// load data of currently selected entity by ID
-	Vec3 position(0, 0, 0);
-	Vec4 dirQuat(0, 0, 0, 1);
+	// load/reload data of currently selected entity by ID
+	Vec3 position;
+	Vec4 dirQuat;
 	float uniScale = 0.0f;
 
 	if (pFacade_->GatherEnttData(enttID, position, dirQuat, uniScale))
-		enttModel_.SetSelectedEnttData(enttID, position, dirQuat, uniScale);
+		enttModel_.SetData(position, dirQuat, uniScale);
 }
+
+///////////////////////////////////////////////////////////
+
+void EntityEditorController::LoadLightEnttData(const uint32_t enttID)
+{
+	// load/reload data of currently selected entity by ID (which is a light source)
+
+	switch (selectedEnttType_)
+	{
+		case DIRECTED_LIGHT:
+		{
+			break;
+		}
+		case POINT_LIGHT:
+		{
+			Model::EntityPointLight& model = pointLightModel_;
+
+			pFacade_->GetEnttPointLightData(
+				selectedEnttID_,
+				model.ambient_,
+				model.diffuse_,
+				model.specular_,
+				model.position_,
+				model.range_,
+				model.attenuation_);
+
+			break;
+		}
+		case SPOT_LIGHT:
+		{
+			break;
+		}
+		default:
+		{
+			Log::Error("Unknown entity type: " + std::to_string(selectedEnttType_));
+		}
+	}
+}
+
 
 
 // =================================================================================
@@ -171,7 +284,6 @@ void EntityEditorController::ExecuteUsualEnttCommand(ICommand* pCommand)
 	// execute the entity changes according to the input command
 
 	Model::Entity& data = enttModel_;
-	const uint32_t selectedEntt = data.GetSelectedEntityID();
 
 
 	// execute changes according to the command type
@@ -181,7 +293,7 @@ void EntityEditorController::ExecuteUsualEnttCommand(ICommand* pCommand)
 		{
 			const Vec3 newPos = pCommand->GetVec3();
 
-			if (pFacade_->SetEnttPosition(selectedEntt, newPos))
+			if (pFacade_->SetEnttPosition(selectedEnttID_, newPos))
 			{
 				data.SetPosition(newPos);
 				// TODO: store the command into the events history
@@ -192,7 +304,7 @@ void EntityEditorController::ExecuteUsualEnttCommand(ICommand* pCommand)
 		{
 			const Vec4 newRotation = pCommand->GetVec4();
 
-			if (pFacade_->SetEnttRotation(selectedEntt, newRotation))
+			if (pFacade_->SetEnttRotation(selectedEnttID_, newRotation))
 			{
 				data.SetRotation(newRotation);
 				// TODO: store the command into the events history
@@ -203,7 +315,7 @@ void EntityEditorController::ExecuteUsualEnttCommand(ICommand* pCommand)
 		{
 			const float newUniScale = pCommand->GetFloat();
 
-			if (pFacade_->SetEnttUniScale(selectedEntt, newUniScale))
+			if (pFacade_->SetEnttUniScale(selectedEnttID_, newUniScale))
 			{
 				data.SetUniformScale(newUniScale);
 				// TODO: store the command into the events history
@@ -264,4 +376,67 @@ void EntityEditorController::ExecuteSkyCommand(ICommand* pCommand)
 			Log::Error("Unknown command to execute: " + std::to_string(pCommand->type_));
 		}
 	}; // switch
+}
+
+///////////////////////////////////////////////////////////
+
+void EntityEditorController::ExecutePointLightCommand(ICommand* pCommand)
+{
+	switch (pCommand->type_)
+	{
+		case CHANGE_POINT_LIGHT_AMBIENT:
+		{
+			ColorRGBA color = pCommand->GetColorRGBA();
+			pFacade_->SetPointLightAmbient(selectedEnttID_, color);
+			pointLightModel_.ambient_ = color;
+			// TODO: save this command into events history
+			break;
+		}
+		case CHANGE_POINT_LIGHT_DIFFUSE:
+		{
+			ColorRGBA color = pCommand->GetColorRGBA();
+			pFacade_->SetPointLightDiffuse(selectedEnttID_, color);
+			pointLightModel_.diffuse_ = color;
+			// TODO: save this command into events history
+			break;
+		}
+		case CHANGE_POINT_LIGHT_SPECULAR:
+		{
+			ColorRGBA color = pCommand->GetColorRGBA();
+			pFacade_->SetPointLightSpecular(selectedEnttID_, color);
+			pointLightModel_.specular_ = color;
+			// TODO: save this command into events history
+			break;
+		}
+		case CHANGE_POINT_LIGHT_POSITION:
+		{
+			Vec3 pos = pCommand->GetVec3();
+
+			pFacade_->SetPointLightPos(selectedEnttID_, pos);
+			pFacade_->SetEnttPosition(selectedEnttID_, pos);
+			pointLightModel_.position_ = pos;
+			// TODO: save this command into events history
+			break;
+		}
+		case CHANGE_POINT_LIGHT_RANGE:
+		{
+			float range = pCommand->GetFloat();
+
+			pFacade_->SetPointLightRange(selectedEnttID_, range);
+			pointLightModel_.range_ = range;
+			// TODO: save this command into events history
+			break;
+		}
+		case CHANGE_POINT_LIGHT_ATTENUATION:
+		{
+			Vec3 att = pCommand->GetVec3();
+			
+			pFacade_->SetPointLightAttenuation(selectedEnttID_, att);
+			pointLightModel_.attenuation_ = att;
+			// TODO: save this command into events history
+			break;
+		}
+	}
+
+	
 }

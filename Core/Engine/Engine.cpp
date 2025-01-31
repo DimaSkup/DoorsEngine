@@ -93,6 +93,9 @@ bool Engine::Initialize(
 		D3DClass& d3d = graphics_.GetD3DClass();
 		ID3D11Device* pDevice = d3d.GetDevice();
 		ID3D11DeviceContext* pContext = d3d.GetDeviceContext();
+
+		systemState_.wndWidth_ = d3d.GetWindowWidth();
+		systemState_.wndHeight_ = d3d.GetWindowHeight();
 		
 
 #if 0
@@ -199,8 +202,6 @@ bool Engine::InitializeGUI(D3DClass& d3d, const Settings& settings)
 
 void Engine::Update()
 {
-	// each frame this function updates the state of the engine;
-
 	timer_.Tick();
 	
 #if 0
@@ -214,24 +215,16 @@ void Engine::Update()
 
 	// get the time which passed since the previous frame
 	deltaTime_ = timer_.GetDeltaTime();
+	deltaTime_ = (deltaTime_ > 16.6f) ? 16.6f : deltaTime_;
 
-	// later we will use the frame time speed
-	// to calculate how fast the viewer should move and rotate;
-	// also if we have less than 60 frames per second we set this value to 16.6f (1000 miliseconds / 60 = 16.6)
-	if (deltaTime_ > 16.6f) deltaTime_ = 16.6f;
-
-	// this method is called every frame in order to count the frame
+	// compute fps and frame time (ms)
 	CalculateFrameStats();
 
-	// we have to call keyboard handling here because in another case we will have 
-	// a delay between pressing on some key and handling of this event; 
-	// for instance: a delay between a W key pressing and start of the moving;
+	// maybe hack: handle also here to prevent delaying after pressing the key (for instance W)
 	graphics_.HandleKeyboardInput(keyboardEvent_, deltaTime_);
 
-	// update all the scene stuff
+	
 	graphics_.Update(systemState_, deltaTime_, timer_.GetGameTime());
-
-	// update user interface for this frame
 	userInterface_.Update(graphics_.GetD3DClass().GetDeviceContext(), systemState_);
 }
 
@@ -305,193 +298,10 @@ void Engine::RenderFrame()
 			// begin rendering of the editor elements
 			imGuiLayer_.Begin();
 
-
-			//
-			// ImGui docking
-			//
-			static bool isDockspaceOpen = true;
-			static bool optFullscreen = true;
-			static bool optPadding = false;
-			static ImGuiDockNodeFlags_ dockspaceFlags = ImGuiDockNodeFlags_None;
-			const ImGuiViewport* viewport = ImGui::GetMainViewport();
-			static ImGuiDockNode* pSceneNode = nullptr;
-
-			// We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
-			// because it would be confusing to have two docking targets within each others.
-			//ImGuiWindowFlags wndFlags = ImGuiWindowFlags_MenuBar;
-			ImGuiWindowFlags wndFlags = 0;
-
-			if (optFullscreen)
-			{
-				
-				ImGui::SetNextWindowPos(viewport->WorkPos);
-				ImGui::SetNextWindowSize(viewport->WorkSize);
-				ImGui::SetNextWindowViewport(viewport->ID);
-				ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-				ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-				wndFlags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
-				wndFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
-			}
-
-			// When using ImGuiDockNodeFlags_PassthruCentralNode, DockSpace() will render our background
-			// and handle the pass-thru hole, so we ask Begin() to not render a background.
-			if (dockspaceFlags & ImGuiDockNodeFlags_PassthruCentralNode)
-			{
-				wndFlags |= ImGuiWindowFlags_NoTitleBar;
-			}
-			
-
-			// Important: note that we proceed even if Begin() returns false (aka window is collapsed).
-			// This is because we want to keep our DockSpace() active. If a DockSpace() is inactive,
-			// all active windows docked into it will lose their parent and become undocked.
-			// We cannot preserve the docking relationship between an active window and an inactive docking, otherwise
-			// any change of dockspace/settings would lead to windows being stuck in limbo and never being visible.
-			if (!optPadding)
-				ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-
-			ImGui::Begin("Root", &isDockspaceOpen, wndFlags);
-
-			if (!optPadding)
-				ImGui::PopStyleVar();
-
-			if (optFullscreen)
-				ImGui::PopStyleVar(2);
-
-			// DockSpace
-			ImGuiIO& io = ImGui::GetIO();
-			if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
-			{
-				ImGuiID dockspaceId = ImGui::GetID("Root");
-				ImGui::DockSpace(dockspaceId, viewport->WorkSize, dockspaceFlags);
-
-				// setup docked windows positions and sizes
-				static auto firstTime = true;
-				if (firstTime)
-				{
-					firstTime = false;
-
-					ImGui::DockBuilderRemoveNode(dockspaceId);
-					ImGui::DockBuilderAddNode(dockspaceId, dockspaceFlags | ImGuiDockNodeFlags_DockSpace);
-					ImGui::DockBuilderSetNodeSize(dockspaceId, viewport->Size);
-
-					// split main dockspace into separate dock windows
-					auto dockIdRight = ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Right, 0.2f, nullptr, &dockspaceId);
-					auto dockIdRightBottomHalf = ImGui::DockBuilderSplitNode(dockIdRight, ImGuiDir_Down, 0.5f, nullptr, &dockIdRight);
-					auto dockIdBottom = ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Down, 0.3f, nullptr, &dockspaceId);
-					auto dockIdLeft = ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Left, 0.25f, nullptr, &dockspaceId);
-					auto dockIdScene = ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Down, 0.89f, nullptr, &dockspaceId);
-
-					// register dock windows and relate them to specific window names
-					ImGui::DockBuilderDockWindow("Debug", dockIdRight);
-					ImGui::DockBuilderDockWindow("Properties", dockIdRightBottomHalf);
-					ImGui::DockBuilderDockWindow("Log", dockIdBottom);
-					ImGui::DockBuilderDockWindow("Entities List", dockIdLeft);
-					ImGui::DockBuilderDockWindow("Scene", dockIdScene);
-					ImGui::DockBuilderDockWindow("Run scene", dockspaceId);
-
-					pSceneNode = ImGui::DockBuilderGetNode(dockIdScene);
-					
-
-					ImGui::DockBuilderFinish(dockspaceId);
-				}
-			}
-
-			// the dock window where we see the scene
-			if (ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_NoMove))
-			{
-				// set this flags to true if mouse is currently over the wnd
-				// so then we can use it to check if we clicked on the 
-				// scene screen space or clicked on some editor panel
-				isSceneWndHovered_ = ImGui::IsWindowHovered();
-
-				//
-				// Gizmos
-				//
-				EntityID selectedEntt = userInterface_.GetSelectedEntt();
-
-				if (selectedEntt && (gizmoOpType_ != -1))
-				{
-					// is any gizmo hovered by mouse
-					isGizmoHovered_ = ImGuizmo::IsOver();
-
-					// set rendering of the gizmos only in the screen window space:
-					// to make gizmo be rendered behind editor panels BUT in this case the gizmo is inactive :(
-					//ImGuizmo::SetDrawlist(ImGui::GetBackgroundDrawList());                
-
-					ImGuizmo::SetDrawlist();
-					ImGuizmo::SetRect(0, 0, d3d.GetWindowWidth(), d3d.GetWindowHeight());
-					
-					const float* cameraView = graphics_.GetEditorCamera().GetViewMatrixRawData();
-					const float* cameraProj = graphics_.GetEditorCamera().GetProjMatrixRawData();
-
-					// selected entity transform
-					ECS::TransformSystem& ts = graphics_.GetEntityMgr().transformSystem_;
-					XMMATRIX world = ts.GetWorldMatrixOfEntt(selectedEntt);
-					float* worldRawData = world.r->m128_f32;
-				
-					
-					ImGuizmo::Manipulate(
-						cameraView,
-						cameraProj,
-						ImGuizmo::OPERATION(gizmoOpType_),
-						ImGuizmo::LOCAL,
-						worldRawData);
-
-					// if we do some manipulations using guizmo
-					if (ImGuizmo::IsUsing())
-					{
-						XMVECTOR scale, rotQuat, trans;
-						XMMatrixDecompose(&scale, &rotQuat, &trans, world);
-
-						float* scaleRaw = scale.m128_f32;
-						float uniformScale = (scaleRaw[0] + scaleRaw[1] + scaleRaw[2]) * 0.333f;
-
-						// update the transformation and world matrix of selected entt
-						ts.SetTransformByID(selectedEntt, trans, rotQuat, XMVectorGetX(scale));
-					}
-				}
-			}
-
-			// end the scene window
-			ImGui::End();   
-
-
-			// HACK: we set background color for ImGui elements (except of scene windows)
-			//       each fucking time because if we doesn't it we will have 
-			//       scene objects which are blended mixed with ImGui bg color;
-			//       so we want to have proper scene colors;
-			ImVec4* colors = ImGui::GetStyle().Colors;
-			colors[ImGuiCol_WindowBg] = imGuiLayer_.GetBackgroundColor();
-	
-			if (ImGui::Begin("Run scene"))
-			{
-				// hide the tab bar of this window
-				if (ImGui::IsWindowDocked())
-				{
-					auto* pWnd = ImGui::FindWindowByName("Run scene");
-					if (pWnd)
-					{
-						ImGuiDockNode* pNode = pWnd->DockNode;
-						if (pNode && (!pNode->IsHiddenTabBar()))
-						{
-							pNode->WantHiddenTabBarToggle = true;
-						}
-					}
-				}
-
-				// show the button which is used to run the game mode
-				ImGui::Button("Run", { 50, 30 });
-			}
-			
-			ImGui::End();
-			
 			RenderUI();
 
 			ImGui::End();
 			imGuiLayer_.End();
-			
-			// reset: ImGui window bg color to fully invisible
-			colors[ImGuiCol_WindowBg] = { 0,0,0,0 };
 		}
 
 		// we aren't in the editor mode
@@ -500,10 +310,8 @@ void Engine::RenderFrame()
 			// Clear all the buffers before frame rendering and render our 3D scene
 			d3d.BeginScene();
 			graphics_.Render3D();
-
 			RenderUI();
 		}
-
 
 		// Show the rendered stuff on the screen
 		d3d.EndScene();
@@ -531,13 +339,36 @@ void Engine::RenderUI()
 	d3d.TurnZBufferOff();
 	d3d.TurnOnBlending(RenderStates::STATES::ALPHA_ENABLE);
 	d3d.TurnOnRSfor2Drendering();
-	
-	// render 2D stuff
-	userInterface_.Render(
-		d3d.GetDeviceContext(),
-		graphics_.GetRender().GetShadersContainer().fontShader_,
-		systemState_);
+
+	if (isEditorMode_)
+	{
+		// all render the scene view space and gizmos (if any entt is selected)
+		userInterface_.RenderSceneWnd(systemState_);
+
+		// HACK: we set background color for ImGui elements (except of scene windows)
+		//       each fucking time because if we doesn't it we will have 
+		//       scene objects which are using blending to be mixed with 
+		//       ImGui bg color; so we want to have proper scene colors;
+		ImVec4* colors = ImGui::GetStyle().Colors;
+		colors[ImGuiCol_WindowBg] = imGuiLayer_.GetBackgroundColor();
+
 		
+		userInterface_.RenderEditor(systemState_);
+
+		// reset: ImGui window bg color to fully invisible since we
+		//        want to see the scene through the window
+		colors[ImGuiCol_WindowBg] = { 0,0,0,0 };
+
+	}
+	// we're in the game mode
+	else
+	{
+		userInterface_.RenderGameUI(
+			d3d.GetDeviceContext(),
+			graphics_.GetRender().GetShadersContainer().fontShader_,
+			systemState_);
+	}
+
 	// reset after 2D rendering
 	d3d.TurnOffBlending();     
 	d3d.TurnZBufferOn(); 
@@ -545,9 +376,9 @@ void Engine::RenderUI()
 }
 
 
-// ************************************************************************************
+// =================================================================================
 //                        public API: event handlers 
-// ************************************************************************************
+// =================================================================================
 
 void Engine::EventActivate(const APP_STATE state)
 {
@@ -587,7 +418,6 @@ void Engine::EventWindowResize(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 
 void Engine::EventWindowSizing(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	
 	RECT wndRect;
 	GetWindowRect(hwnd, &wndRect);   // get the window dimensions
 
@@ -612,6 +442,9 @@ void Engine::EventWindowSizing(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 			// try to resize the window
 			if (!graphics_.GetD3DClass().ResizeSwapChain(hwnd, { width, height }))
 				PostQuitMessage(0);
+
+			systemState_.wndWidth_  = width;
+			systemState_.wndHeight_ = height;
 
 			break;
 		}
@@ -638,29 +471,35 @@ void Engine::HandleEditorEventKeyboard()
 	{
 		switch (keyCode)
 		{
+			case KEY_X:
+			{
+				int kek = 0;
+				kek++;
+				break;
+			}
 			case KEY_Q:
 			{
 				// guizmo: turn OFF any operation
 				if (isKeyCtrlDown)
-					gizmoOpType_ = -1;
+					userInterface_.SetGizmoOperation(-1);
 				break;
 			}
 			case KEY_T:
 			{
 				if (isKeyCtrlDown)
-					gizmoOpType_ = ImGuizmo::OPERATION::TRANSLATE;
+					userInterface_.SetGizmoOperation(ImGuizmo::OPERATION::TRANSLATE);
 				break;
 			}
 			case KEY_R:
 			{
 				if (isKeyCtrlDown)
-					gizmoOpType_ = ImGuizmo::OPERATION::ROTATE;
+					userInterface_.SetGizmoOperation(ImGuizmo::OPERATION::ROTATE);
 				break;
 			}
 			case KEY_S:
 			{
 				if (isKeyCtrlDown)
-					gizmoOpType_ = ImGuizmo::OPERATION::SCALE;
+					userInterface_.SetGizmoOperation(ImGuizmo::OPERATION::SCALE);
 				break;
 			}
 			case KEY_F1:
@@ -800,13 +639,13 @@ void Engine::EventKeyboard(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	inputMgr_.HandleKeyboardMessage(keyboard_, uMsg, wParam, lParam);
 
-	while (!keyboard_.KeyBufferIsEmpty())
-	{
-		if (isEditorMode_)
+	// according to the engine mode we call a respective keyboard handler
+	if (isEditorMode_)
+		while (!keyboard_.KeyBufferIsEmpty())
 			HandleEditorEventKeyboard();
-		else
-			HandleGameEventKeyboard();
-	}
+	else
+		while (!keyboard_.KeyBufferIsEmpty())
+			HandleGameEventKeyboard();		
 }
 
 ///////////////////////////////////////////////////////////
@@ -834,7 +673,7 @@ void Engine::EventMouse(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			{
 				// if we currenly hovering the scene windows with our mouse
 				// and we don't hover any gizmo we execute entity picking (selection) test
-				if (isSceneWndHovered_ && !isGizmoHovered_)
+				if (userInterface_.IsSceneWndHovered() && !userInterface_.IsGizmoHovered())
 				{
 					EntityID selectedEnttID = 0;
 					selectedEnttID = graphics_.TestEnttSelection(mouseEvent_.GetPosX(), mouseEvent_.GetPosY());

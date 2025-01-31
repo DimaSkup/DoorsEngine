@@ -13,6 +13,7 @@ Lib/
 packages/
 DirectXTex/.vs/
 DirectXTex/Bin/
+DirectXTex\Shaders\Compiled
 
 
 Core/imgui.ini

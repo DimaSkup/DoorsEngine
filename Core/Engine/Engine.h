@@ -132,9 +132,7 @@ private:
 	UINT clientHeight_ = 0;
 
 	bool isEditorMode_      = true;        // we are starting in the editor mode by default
-	bool isSceneWndHovered_ = false;       // is currently scene windows is hovered by mouse
-	bool isGizmoHovered_    = false;       // is any gizmo manipulator is currenly hovered by the mouse
-	int  gizmoOpType_       = -1;          // type of the currenly chosen gizmo operation
+	
 	
 
 }; // class Engine

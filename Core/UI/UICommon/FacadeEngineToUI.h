@@ -18,6 +18,9 @@
 
 class FacadeEngineToUI : public IFacadeEngineToUI
 {
+public:
+	using EntityID = uint32_t;
+
 private:
 	ID3D11DeviceContext* pContext_ = nullptr;
 	Render::Render* pRender_       = nullptr;
@@ -53,16 +56,37 @@ public:
 	virtual uint32_t GetEnttIDByName(const char* name)                        override;
 	virtual bool GetEnttNameByID(const uint32_t enttID, std::string& name)    override;
 
-	virtual bool GatherEnttData(
-		const uint32_t entityID,
+	virtual bool GatherEnttData(const EntityID id, Vec3& pos, Vec4& dirQuat, float& uniScale)                             override;
+	virtual void SetEnttTransformation(const EntityID id, const XMVECTOR& pos, const XMVECTOR& rot, const float uniScale) override;
+	virtual void GetEnttWorldMatrix(const EntityID id, DirectX::XMMATRIX& outMat)                                         override;
+
+
+	virtual bool SetEnttPosition(const uint32_t entityID, const Vec3& pos)    override;
+	virtual bool SetEnttRotation(const uint32_t entityID, const Vec4& dir)    override;
+	virtual bool SetEnttUniScale(const uint32_t entityID, const float scale)  override;
+
+
+	//
+	// for the LIGHT entities editor
+	//
+	virtual bool IsEnttLightSource(const EntityID id, int& lightType)                 override;
+
+	virtual void SetPointLightAmbient(const EntityID id, const ColorRGBA& color)      override;
+	virtual void SetPointLightDiffuse(const EntityID id, const ColorRGBA& color)      override;
+	virtual void SetPointLightSpecular(const EntityID id, const ColorRGBA& color)     override;
+	virtual void SetPointLightPos(const EntityID id, const Vec3& position)            override;
+	virtual void SetPointLightRange(const EntityID id, const float range)             override;
+	virtual void SetPointLightAttenuation(const EntityID id, const Vec3& attenuation) override;
+
+
+	virtual void GetEnttPointLightData(
+		const EntityID id,
+		ColorRGBA& ambient,
+		ColorRGBA& diffuse,
+		ColorRGBA& specular,
 		Vec3& position,
-		Vec4& dirQuat,
-		float& uniformScale) override;
-
-	virtual bool SetEnttPosition(const uint32_t entityID, const Vec3& pos)   override;
-	virtual bool SetEnttRotation(const uint32_t entityID, const Vec4& dir)   override;
-	virtual bool SetEnttUniScale(const uint32_t entityID, const float scale) override;
-
+		float& range,
+		Vec3& attenuation) override;
 
 	//
 	// for the sky editor

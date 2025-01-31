@@ -12,6 +12,8 @@
 #include <backends/imgui_impl_dx11.h>
 #include <ImGuizmo.h>
 
+#include <imgui.h>
+#include <imgui_internal.h>
 
 ImGuiLayer::ImGuiLayer()
 {
@@ -96,6 +98,78 @@ void ImGuiLayer::Begin()
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 	ImGuizmo::BeginFrame();
+
+
+	//
+	// ImGui docking
+	//
+	static bool isDockspaceOpen = true;
+	static bool optFullscreen = true;
+	static bool optPadding = false;
+	static ImGuiDockNodeFlags_ dockspaceFlags = ImGuiDockNodeFlags_None;
+	const ImGuiViewport* viewport = ImGui::GetMainViewport();
+	static ImGuiDockNode* pSceneNode = nullptr;
+
+	// setup the dockspace wnd style
+	ImGuiWindowFlags wndFlags = 0;
+	ImGui::SetNextWindowPos(viewport->WorkPos);
+	ImGui::SetNextWindowSize(viewport->WorkSize);
+	ImGui::SetNextWindowViewport(viewport->ID);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+	wndFlags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+	wndFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+
+
+	// When using ImGuiDockNodeFlags_PassthruCentralNode, DockSpace() will render our background
+	// and handle the pass-thru hole, so we ask Begin() to not render a background.
+	if (dockspaceFlags & ImGuiDockNodeFlags_PassthruCentralNode)
+	{
+		wndFlags |= ImGuiWindowFlags_NoTitleBar;
+	}
+
+
+	// push this style since we want to disable padding
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+	ImGui::Begin("Root", &isDockspaceOpen, wndFlags);
+	ImGui::PopStyleVar(3);
+
+	// DockSpace 
+	// NOTE: it is supposed that docking is always enalbed: (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) == true
+
+	ImGuiID dockspaceId = ImGui::GetID("Root");
+	ImGui::DockSpace(dockspaceId, viewport->WorkSize, dockspaceFlags);
+
+	// setup docked windows positions and sizes
+	static auto firstTime = true;
+	if (firstTime)
+	{
+		firstTime = false;
+
+		ImGui::DockBuilderRemoveNode(dockspaceId);
+		ImGui::DockBuilderAddNode(dockspaceId, dockspaceFlags | ImGuiDockNodeFlags_DockSpace);
+		ImGui::DockBuilderSetNodeSize(dockspaceId, viewport->Size);
+
+		// split main dockspace into separate dock windows
+		auto dockIdRight = ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Right, 0.2f, nullptr, &dockspaceId);
+		auto dockIdRightBottomHalf = ImGui::DockBuilderSplitNode(dockIdRight, ImGuiDir_Down, 0.5f, nullptr, &dockIdRight);
+		auto dockIdBottom = ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Down, 0.3f, nullptr, &dockspaceId);
+		auto dockIdLeft = ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Left, 0.25f, nullptr, &dockspaceId);
+		auto dockIdScene = ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Down, 0.89f, nullptr, &dockspaceId);
+
+		// register dock windows and relate them to specific window names
+		ImGui::DockBuilderDockWindow("Debug", dockIdRight);
+		ImGui::DockBuilderDockWindow("Properties", dockIdRightBottomHalf);
+		ImGui::DockBuilderDockWindow("Log", dockIdBottom);
+		ImGui::DockBuilderDockWindow("Entities List", dockIdLeft);
+		ImGui::DockBuilderDockWindow("Scene", dockIdScene);
+		ImGui::DockBuilderDockWindow("Run scene", dockspaceId);
+
+		pSceneNode = ImGui::DockBuilderGetNode(dockIdScene);
+
+
+		ImGui::DockBuilderFinish(dockspaceId);
+	}
 }
 
 ///////////////////////////////////////////////////////////

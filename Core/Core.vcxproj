@@ -240,6 +240,7 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClCompile Include="Engine\Engine.cpp" />
     <ClCompile Include="UI\Editor\Entity\EntityEditorController.cpp" />
     <ClCompile Include="UI\Editor\Entity\EntityEditorView.cpp" />
+    <ClCompile Include="UI\Editor\Entity\LightEditorView.cpp" />
     <ClCompile Include="UI\Editor\Fog\FogEditorController.cpp" />
     <ClCompile Include="UI\Editor\MainMenuBar\MainMenuBar.cpp" />
     <ClCompile Include="UI\Editor\Panels\EditorPanels.cpp" />
@@ -322,6 +323,8 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClInclude Include="UI\Editor\Entity\EntityEditorController.h" />
     <ClInclude Include="UI\Editor\Entity\EntityEditorModel.h" />
     <ClInclude Include="UI\Editor\Entity\EntityEditorView.h" />
+    <ClInclude Include="UI\Editor\Entity\LightEditorModel.h" />
+    <ClInclude Include="UI\Editor\Entity\LightEditorView.h" />
     <ClInclude Include="UI\Editor\Fog\FogEditorCommands.h" />
     <ClInclude Include="UI\Editor\Fog\FogEditorController.h" />
     <ClInclude Include="UI\Editor\Fog\FogEditorModel.h" />

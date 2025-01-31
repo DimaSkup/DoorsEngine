@@ -35,13 +35,15 @@ private:
 	void RenderDebugPanel(const SystemState& sysState);
 	void RenderLogPanel();
 
+
+public:
+	DebugEditor             debugEditor_;
+	EntityEditorController  enttEditorController_;
+	FogEditorController     fogEditorController_;
+
 private:
 	bool isEnttsListWndOpen_ = true;
 	bool isPropertiesWndOpen_ = true;
 
 	IFacadeEngineToUI* pFacadeEngineToUI_ = nullptr;
-
-	DebugEditor             debugEditor_;
-	EntityEditorController  enttEditorController_;
-	FogEditorController     fogEditorController_;
 };

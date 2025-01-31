@@ -24,10 +24,7 @@ private:
 public:
 	Entity(ViewListener* pListener);
 
-	void Render(
-		const Model::Entity* pData,
-		const float* cameraView,       // camera view matrix
-		const float* cameraProj);      // camera projection matrix
+	void Render(const Model::Entity* pData);
 };
 
 }

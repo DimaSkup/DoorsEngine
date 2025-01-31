@@ -733,7 +733,14 @@ void EntityMgr::AddLightComponent(
 		Assert::NotEmpty(ids.empty(), "the array of entities IDs is empty");
 		Assert::True(CheckEnttsExist(ids.data(), std::ssize(ids)), "there is no such entts in the mgr");
 
+		size numPointLights = std::ssize(ids);
+
+		// dummy data for point light sources
+		const std::vector<XMVECTOR> dirQuats(numPointLights, { 0,0,0,1 }); // no rotation
+		const std::vector<float> uniformScales(numPointLights, 1.0f);
+
 		lightSystem_.AddPointLights(ids, params);
+		transformSystem_.AddRecords(ids, params.positions, dirQuats, uniformScales);
 		SetEnttsHaveComponent(ids.data(), std::ssize(ids), LightComponent);
 	}
 	catch (const std::out_of_range& e)

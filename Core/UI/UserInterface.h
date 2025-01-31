@@ -48,10 +48,14 @@ public:
 		const SystemState& systemState);
 
 	// Public rendering API
-	void Render(
+	void RenderGameUI(
 		ID3D11DeviceContext* pContext,
 		Render::FontShaderClass& fontShader,
 		SystemState& systemState);
+
+	void RenderEditor(SystemState& systemState);
+	void RenderSceneWnd(SystemState& systemState);
+	
 
 
 	// Public modification API
@@ -67,7 +71,11 @@ public:
 		const int maxStrSize);              // max possible length for this string
 
 	inline void SetSelectedEntt(const uint32_t entityID) { editorPanels_.SetSelectedEntt(entityID); }
-	inline uint32_t GetSelectedEntt() const              { return editorPanels_.GetSelectedEntt(); }
+	inline uint32_t GetSelectedEntt()              const { return editorPanels_.GetSelectedEntt(); }
+	inline void SetGizmoOperation(const int op)          { gizmoOpType_ = op; }
+
+	inline bool IsGizmoHovered()                   const { return isGizmoHovered_; }
+	inline bool IsSceneWndHovered()                const { return isSceneWndHovered_; }
 
 private:
 	void CreateDebugInfoStrings(
@@ -75,8 +83,7 @@ private:
 		const std::string& videoCardName,
 		const int videoCardMemory);
 
-	void RenderEditor(SystemState& systemState);
-
+	
 	// debug info for the game mode
 	void RenderDebugInfo(
 		ID3D11DeviceContext* pContext,
@@ -103,4 +110,8 @@ private:
 
 	// defines if we need to recompute GUI elements positions/sizes for the next frame
 	bool                    isNeedToRecomputeGUI_ = true;
+
+	bool isSceneWndHovered_ = false;       // is currently scene windows is hovered by mouse
+	bool isGizmoHovered_ = false;          // is any gizmo manipulator is currenly hovered by the mouse
+	int  gizmoOpType_ = -1;                // type of the currenly chosen gizmo operation
 };

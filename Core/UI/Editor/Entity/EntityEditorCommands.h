@@ -12,12 +12,29 @@
 
 enum EntityEditorCmdType
 {
+	// entity: model
 	CHANGE_POSITION,
 	CHANGE_ROTATION,
 	CHANGE_SCALE,
+
+	// entity: sky
 	CHANGE_SKY_COLOR_CENTER,    // change the horizon color of the sky gradient
 	CHANGE_SKY_COLOR_APEX,      // change the top color of the sky gradient
 	CHANGE_SKY_OFFSET,          // change offset of the sky mesh
+
+	// entity: directed light
+	CHANGE_DIR_LIGHT_AMBIENT,
+	CHANGE_DIR_LIGHT_DIFFUSE,
+	CHANGE_DIR_LIGHT_SPECULAR,
+	CHANGE_DIR_LIGHT_ROTATION,
+
+	// entity: point light
+	CHANGE_POINT_LIGHT_AMBIENT,
+	CHANGE_POINT_LIGHT_DIFFUSE,
+	CHANGE_POINT_LIGHT_SPECULAR,
+	CHANGE_POINT_LIGHT_POSITION,
+	CHANGE_POINT_LIGHT_ATTENUATION,
+	CHANGE_POINT_LIGHT_RANGE
 };
 
 ///////////////////////////////////////////////////////////
@@ -65,9 +82,14 @@ class CmdChangeColor : public ICommand
 {
 public:
 	CmdChangeColor(const EntityEditorCmdType type, const ColorRGB& color)
-		: ICommand(type), color_(color) {}
+		: ICommand(type), rgb_(color) {}
 
-	virtual ColorRGB GetColorRGB() const { return color_; }
+	CmdChangeColor(const EntityEditorCmdType type, const ColorRGBA& color)
+		: ICommand(type), rgba_(color) {}
 
-	ColorRGB color_;
+	virtual ColorRGB GetColorRGB()   const { return rgb_; }
+	virtual ColorRGBA GetColorRGBA() const { return rgba_; }
+
+	ColorRGB  rgb_;
+	ColorRGBA rgba_;
 };

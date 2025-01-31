@@ -14,6 +14,7 @@
 #include <string>
 #include <imgui.h>
 #include <ImGuizmo.h>
+#include <imgui_internal.h>
 
 #pragma warning(disable : 4996)
 
@@ -82,6 +83,19 @@ void UserInterface::Initialize(
 	}
 }
 
+///////////////////////////////////////////////////////////
+
+void UserInterface::RenderGameUI(
+	ID3D11DeviceContext* pContext,
+	Render::FontShaderClass& fontShader,
+	SystemState& systemState)
+{
+
+	// print onto the screen some debug info
+	if (systemState.isShowDbgInfo)
+		RenderDebugInfo(pContext, fontShader, systemState);
+}
+
 
 // =================================================================================
 //                           PUBLIC MODIFICATION API
@@ -101,44 +115,6 @@ void UserInterface::Update(
 	{
 		Log::Error(e);
 		Log::Error("can't update the GUI");
-	}
-}
-
-///////////////////////////////////////////////////////////
-
-void UserInterface::Render(
-	ID3D11DeviceContext* pContext,
-	Render::FontShaderClass& fontShader,
-	SystemState& systemState)
-{
-	//
-	// this functions renders all the UI elements onto the screen
-	//
-	// ATTENTION: do 2D rendering only when all 3D rendering is finished;
-	// this function renders the engine/game GUI
-
-
-	// in the game mode: print onto the screen some debug info
-	if (systemState.isShowDbgInfo)
-		RenderDebugInfo(pContext, fontShader, systemState);
-
-
-	if (systemState.isEditorMode)
-	{
-		editorMainMenuBar_.RenderBar(guiStates_);
-
-		// show window to control engine options
-		if (guiStates_.showWndEngineOptions_)
-			editorMainMenuBar_.RenderWndEngineOptions(&guiStates_.showWndEngineOptions_);
-
-		// show modal window for entity creation
-		if (guiStates_.showWndForEnttCreation_)
-		{
-			static EnttCreationWnd wnd(pContext);
-			//wnd.ShowWndToCreateEntt(&guiStates_.showWndForEnttCreation_, entityMgr);
-		}
-
-		RenderEditor(systemState);
 	}
 }
 
@@ -270,8 +246,6 @@ void UserInterface::RenderEditor(SystemState& systemState)
 {
 	ImGuiStyle* style = &ImGui::GetStyle();
 
-	
-
 	static bool isEditorOpen = true;
 
 	static ImGuiChildFlags childFlags = 0;
@@ -280,71 +254,103 @@ void UserInterface::RenderEditor(SystemState& systemState)
 	childFlags |= ImGuiChildFlags_Border;
 	childFlags |= ImGuiChildFlags_ResizeX;
 	childFlags |= ImGuiChildFlags_ResizeY;
+
+
+	//
+	// "Run scene" docked window
+	//
+	if (ImGui::Begin("Run scene"))
+	{
+		// hide the tab bar of this window
+		if (ImGui::IsWindowDocked())
+		{
+			auto* pWnd = ImGui::FindWindowByName("Run scene");
+			if (pWnd)
+			{
+				ImGuiDockNode* pNode = pWnd->DockNode;
+				if (pNode && (!pNode->IsHiddenTabBar()))
+				{
+					pNode->WantHiddenTabBarToggle = true;
+				}
+			}
+		}
+
+		// show the button which is used to run the game mode
+		ImGui::Button("Run", { 50, 30 });
+	}
+	ImGui::End();
+
+
+	editorMainMenuBar_.RenderBar(guiStates_);
+
+	// show window to control engine options
+	if (guiStates_.showWndEngineOptions_)
+		editorMainMenuBar_.RenderWndEngineOptions(&guiStates_.showWndEngineOptions_);
+
+	// show modal window for entity creation
+	if (guiStates_.showWndForEnttCreation_)
+	{
+		//static EnttCreationWnd wnd(pContext);
+		//wnd.ShowWndToCreateEntt(&guiStates_.showWndForEnttCreation_, entityMgr);
+	}
 	
 	editorPanels_.Render(systemState, childFlags, wndFlags);
+}
 
+///////////////////////////////////////////////////////////
 
+void UserInterface::RenderSceneWnd(SystemState& sysState)
+{
+	// render the scene screen space window and gizmos (if we selected any entity)
 
-
-#if 0 // IMGUIZMO
-
-	static ImGuizmo::OPERATION currGizmoOp;
-	static ImGuizmo::MODE currGizmoMode = ImGuizmo::WORLD;
-
-
-	const float* cameraView = systemState.CameraView.r->m128_f32;
-	const float* cameraProj = systemState.CameraProj.r->m128_f32;
-	const float* gridWorld = DirectX::XMMatrixIdentity().r->m128_f32;
-
-	static DirectX::XMMATRIX cubeWorldMat = DirectX::XMMatrixIdentity();
-	static float* cubeWorld = cubeWorldMat.r->m128_f32;
-
-#if 0
-	ImGuizmo::DrawGrid(
-		cameraView,
-		cameraProj,
-		gridWorld,
-		100.f);
-
-	ImGuizmo::DrawCubes(
-		cameraView, cameraProj, cubeWorld, 1);
-#endif
-
-
-	if (ImGui::IsKeyPressed(ImGuiKey_T))
+	if (ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_NoMove))
 	{
-		currGizmoOp = ImGuizmo::TRANSLATE;
-		ImGui::Text("T is pressed");
+		// set this flags to true if mouse is currently over the wnd
+		// so then we can use it to check if we clicked on the 
+		// scene screen space or clicked on some editor panel
+		isSceneWndHovered_ = ImGui::IsWindowHovered();
+
+		//
+		// Gizmos
+		//
+		EntityID selectedEntt = GetSelectedEntt();
+
+		if (selectedEntt && (gizmoOpType_ != -1))
+		{
+			// is any gizmo hovered by mouse
+			isGizmoHovered_ = ImGuizmo::IsOver();
+
+			// set rendering of the gizmos only in the screen window space:
+			// to make gizmo be rendered behind editor panels BUT in this case the gizmo is inactive :(
+			//ImGuizmo::SetDrawlist(ImGui::GetBackgroundDrawList());                
+
+			ImGuizmo::SetDrawlist();
+			ImGuizmo::SetRect(0, 0, (float)sysState.wndWidth_, (float)sysState.wndHeight_);
+
+			const float* cameraView = sysState.CameraView.r->m128_f32;
+			const float* cameraProj = sysState.CameraProj.r->m128_f32;
+
+			// selected entity transform
+			XMMATRIX world;
+			pFacadeEngineToUI_->GetEnttWorldMatrix(selectedEntt, world);
+			float* worldRawData = world.r->m128_f32;
+
+
+			ImGuizmo::Manipulate(
+				cameraView,
+				cameraProj,
+				ImGuizmo::OPERATION(gizmoOpType_),
+				ImGuizmo::LOCAL,
+				worldRawData);
+
+			// if we do some manipulations using guizmo
+			if (ImGuizmo::IsUsing())
+			{
+				editorPanels_.enttEditorController_.UpdateSelectedEnttWorld(world);
+			}
+		}
 	}
-	if (ImGui::IsKeyPressed(ImGuiKey_E))
-		currGizmoOp = ImGuizmo::ROTATE;
-	if (ImGui::IsKeyPressed(ImGuiKey_R)) // r Key
-		currGizmoOp = ImGuizmo::SCALE;
-	if (ImGui::RadioButton("Translate", currGizmoOp == ImGuizmo::TRANSLATE))
-		currGizmoOp = ImGuizmo::TRANSLATE;
-	ImGui::SameLine();
-	if (ImGui::RadioButton("Rotate", currGizmoOp == ImGuizmo::ROTATE))
-		currGizmoOp = ImGuizmo::ROTATE;
-	ImGui::SameLine();
-	if (ImGui::RadioButton("Scale", currGizmoOp == ImGuizmo::SCALE))
-		currGizmoOp = ImGuizmo::SCALE;
-	//float matrixTranslation[3], matrixRotation[3], matrixScale[3];
-
-
-	ImGuizmo::PushID("Guizmo##manipulate");
-
-	ImGuizmo::Manipulate(
-		cameraView,
-		cameraProj,
-		currGizmoOp,
-		currGizmoMode,
-		cubeWorld, NULL, NULL);
-
-	ImGuizmo::PopID();
-#endif
-
-	
-
+	ImGui::End();
 }
 
 ///////////////////////////////////////////////////////////

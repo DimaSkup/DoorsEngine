@@ -24,49 +24,41 @@ Entity::Entity(ViewListener* pListener) : pListener_(pListener)
 
 ///////////////////////////////////////////////////////////
 
-void Entity::Render(
-	const Model::Entity* pData,
-	const float* cameraView,     // camera view matrix
-	const float* cameraProj)     // camera projection matrix
+void Entity::Render(const Model::Entity* pData)
 {
-	//
-	// show the entity editor fields
-	//
+	// show editor fields to control the selected entity model properties
 
 	using enum EntityEditorCmdType;
 
-	uint32_t entityID;
+
+	//Vec3     rotationStride;
+	//constexpr float PIMUL2 = DirectX::XM_2PI;
 	Vec3     position;
 	Vec4     dirQuat;
-	Vec3     rotationStride;
 	float    uniformScale;
-	//float    angles[3];
-	//DirectX::XMVECTOR axis;
-	constexpr float PIMUL2 = DirectX::XM_2PI;
-
-	// make local copies of the current model data to use it in the fields
-	entityID = pData->GetSelectedEntityID();
-	pData->GetTransformation(position, dirQuat, uniformScale);
 	
-	// ------------------------------------------
+	// make local copies of the current model data to use it in the fields
+	pData->GetData(position, dirQuat, uniformScale);
+	
 
+	//
 	// draw editor fields
-	ImGui::Text("EntityID: %d", entityID);
-
+	//
 	if (ImGui::DragFloat3("Position (x,y,z)", position.xyz_, 0.005f, -FLT_MAX, +FLT_MAX))
 	{
 		pListener_->Execute(new CmdEntityChangeVec3(CHANGE_POSITION, position));
 	}
 
+#if 0 // FIXME
 	if (ImGui::SliderFloat3("Rotation change in rad (x,y,z)", rotationStride.xyz_, -PIMUL2, +PIMUL2))
 	{
-		DirectX::XMVECTOR rotationQuat    = dirQuat.GetXMVector();
-		DirectX::XMVECTOR rotateByQuat    = DirectX::XMQuaternionRotationRollPitchYawFromVector(rotationStride.GetXMVector());
+		DirectX::XMVECTOR rotationQuat    = dirQuat.ToXMVector();
+		DirectX::XMVECTOR rotateByQuat    = DirectX::XMQuaternionRotationRollPitchYawFromVector(rotationStride.ToXMVector());
 		DirectX::XMVECTOR newRotationQuat = DirectX::XMQuaternionMultiply(rotationQuat, rotateByQuat);
-		DirectX::XMFLOAT4 q;
-		DirectX::XMStoreFloat4(&q, newRotationQuat);
-		pListener_->Execute(new CmdEntityChangeVec4(CHANGE_ROTATION, {q.x, q.y, q.z, q.w}));
+
+		pListener_->Execute(new CmdEntityChangeVec4(CHANGE_ROTATION, newRotationQuat));
 	}
+#endif
 
 	if (ImGui::SliderFloat("Scale", &uniformScale, 0.001f, 20))
 	{

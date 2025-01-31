@@ -26,6 +26,8 @@ public:
 	int mouseY = 0;                          // the mouse cursor Y position in the window
 	int fps = 0;                             // framerate
 	int cpu = 0;                             // cpu performance
+	int wndWidth_  = 800;                    // current width of the main window 
+	int wndHeight_ = 600;                    // current height of the main window
 				
 	u32 visibleVerticesCount = 0;            // the number of rendered vertices for this frame
 	u32 visibleObjectsCount = 0;             // the number of rendered models for this frame

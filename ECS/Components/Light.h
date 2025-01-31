@@ -155,7 +155,7 @@ struct PointLight
 	float range_;
 
 	// packed into 4D vector: (1/att(A0,A1,A2), pad)
-	DirectX::XMFLOAT3 att_;
+	DirectX::XMFLOAT3 att_;            // inverted attenuation
 	float pad_ = 0;                    // pad the last float so we can array of light if we wanted
 };
 
@@ -285,10 +285,11 @@ struct Light
 {
 	ComponentType type_ = ComponentType::LightComponent;
 
-	std::vector<EntityID> ids_;
-	DirLights             dirLights_;
-	PointLights           pointLights_;
-	SpotLights            spotLights_;
+	std::vector<EntityID>   ids_;
+	std::vector<LightTypes> types_;
+	DirLights               dirLights_;
+	PointLights             pointLights_;
+	SpotLights              spotLights_;
 };
 
 

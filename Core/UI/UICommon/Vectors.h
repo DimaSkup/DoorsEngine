@@ -9,25 +9,27 @@
 
 
 // =================================================================================
-//                           sequence of 3 floats
+// Vec3: sequence of 3 floats
 // =================================================================================
 class Vec3
 {
 public:
-	Vec3() {};
+	Vec3() :
+		x_(0), y_(0), z_(0) {}
+
 	Vec3(const float x, const float y, const float z) :
 		x_(x), y_(y), z_(z) {}
 
-
-	inline DirectX::XMFLOAT3 GetFloat3() const
+	Vec3(const DirectX::XMVECTOR& rhs)
 	{
-		return { x_, y_, z_ };
+		*this = rhs;
 	}
 
-	inline DirectX::XMVECTOR GetXMVector() const
-	{
-		return { x_, y_, z_, 1.0f };
-	}
+	// ---------------------------------------------
+
+	inline DirectX::XMFLOAT3 ToFloat3()   const { return { x_, y_, z_ }; }
+	inline DirectX::XMFLOAT4 ToFloat4()   const { return { x_, y_, z_, 1.0f }; }
+	inline DirectX::XMVECTOR ToXMVector() const { return { x_, y_, z_, 1.0f }; }
 
 	inline Vec3& operator=(const Vec3& vec)
 	{
@@ -70,7 +72,7 @@ public:
 };
 
 // =================================================================================
-//                           sequence of 4 floats
+// Vec4: sequence of 4 floats
 // =================================================================================
 class Vec4
 {
@@ -81,16 +83,20 @@ public:
 	Vec4(const float x, const float y, const float z, const float w) :
 		x_(x), y_(y), z_(z), w_(w) {}
 
+	Vec4(const DirectX::XMFLOAT4& rhs) :
+		x_(rhs.x), y_(rhs.y), z_(rhs.z), w_(rhs.w) {}
 
-	inline DirectX::XMFLOAT4 GetFloat4() const
+	Vec4(const DirectX::XMVECTOR& rhs)
 	{
-		return { x_, y_, z_, w_ };
+		*this = rhs;
 	}
 
-	inline DirectX::XMVECTOR GetXMVector() const
-	{
-		return { x_, y_, z_, w_ };
-	}
+	// ----------------------------------------------------
+
+	inline Vec3              ToVec3()     const { return { x_, y_, z_ }; }
+	inline DirectX::XMFLOAT4 ToFloat4()   const { return { x_, y_, z_, w_ }; }
+	inline DirectX::XMVECTOR ToXMVector() const { return { x_, y_, z_, w_ }; }
+
 
 	inline Vec4& operator=(const Vec4& vec)
 	{
