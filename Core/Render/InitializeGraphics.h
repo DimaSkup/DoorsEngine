@@ -35,7 +35,6 @@ public:
 		D3DClass& d3d,
 		Camera& gameCamera,
 		Camera& editorCamera,
-		BasicCamera& cameraForRenderToTexture,
 		DirectX::XMMATRIX& baseViewMatrix,      // is used for 2D rendering
 		ECS::EntityMgr& enttMgr,
 		const Settings& settings);

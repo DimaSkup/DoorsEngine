@@ -15,6 +15,7 @@ class MainMenuBar
 public:
 	void RenderBar(StatesGUI& states);
 	void RenderWndEngineOptions(bool* pOpen);
+	void RenderWndAssetsControl(bool* pOpen);
 
 private:
 	void ShowOptionsGui();

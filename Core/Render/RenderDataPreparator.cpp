@@ -25,6 +25,37 @@ RenderDataPreparator::RenderDataPreparator(
 
 ///////////////////////////////////////////////////////////
 
+void RenderDataPreparator::PrepareInstanceFromModel(
+	BasicModel& model,
+	Render::Instance& instance)
+{
+	const MeshGeometry& meshes = model.meshes_;
+
+	instance.name = model.name_;
+	instance.subsets.resize(model.GetNumSubsets());
+	instance.materials.resize(model.GetNumSubsets());
+
+	instance.vertexStride = meshes.vb_.GetStride();
+	instance.pVB = meshes.vb_.Get();
+	instance.pIB = meshes.ib_.Get();
+
+	instance.numInstances = 1;
+
+	// copy subsets data into instance
+	PrepareSubsetsData(meshes.subsets_, instance.subsets);
+
+	// copy materials data from model into instance
+	PrepareSubsetsMaterials(
+		model.materials_,
+		model.numMats_,
+		instance.materials.data());
+
+	// prepare textures (SRVs) for this instance
+	TextureMgr::Get()->GetSRVsByTexIDs(model.texIDs_, model.numTextures_, instance.texSRVs);
+}
+
+///////////////////////////////////////////////////////////
+
 void RenderDataPreparator::PrepareEnttsDataForRendering(
 	const std::vector<EntityID>& enttsIds,
 	Render::InstBuffData& instanceBuffData,              // prepared data for the instance buffer
@@ -105,13 +136,9 @@ void RenderDataPreparator::PrepareEnttsDataForRendering(
 	}
 }
 
-// ********************************************************************************
-// 
-//                                PRIVATE METHODS
-// 
-// ********************************************************************************
+///////////////////////////////////////////////////////////
 
-void PrepareSubsetsData(
+void RenderDataPreparator::PrepareSubsetsData(
 	const MeshGeometry::Subset* subsets,
 	std::vector<Render::Subset>& instanceSubsets)
 {
@@ -135,7 +162,7 @@ void PrepareSubsetsData(
 
 ///////////////////////////////////////////////////////////
 
-void PrepareSubsetsMaterials(
+void RenderDataPreparator::PrepareSubsetsMaterials(
 	const MeshMaterial* srcModelMats,
 	const int numMats,
 	Render::Material* instanceMats)

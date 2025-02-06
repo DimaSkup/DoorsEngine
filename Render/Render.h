@@ -99,6 +99,7 @@ public:
 
 
 
+
 	// ================================================================================
 	//                                   Getters
 	// ================================================================================
@@ -116,7 +117,7 @@ public:
 	//                                   Setters
 	// ================================================================================
 	void SwitchFogEffect(ID3D11DeviceContext* pContext, const bool state);
-	void SwitchFlashLight(ID3D11DeviceContext* pContext, const bool state);
+	void SwitchFlashLight(ID3D11DeviceContext* pContext);
 
 	void SwitchAlphaClipping(ID3D11DeviceContext* pContext, const bool state);
 	void SwitchDebugState(ID3D11DeviceContext* pContext, const DebugState state);

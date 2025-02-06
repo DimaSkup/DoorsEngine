@@ -16,6 +16,7 @@ public:
 	void OnWheelDown(int x, int y);
 	void OnMouseMove(int x, int y);
 	void OnMouseMoveRaw(int x, int y); // handles the relative changes of the mouse position
+	void OnLeftDoubleClick();
 
 	inline bool IsLeftDown()         const { return leftIsDown_; };
 	inline bool IsMiddleDown()       const { return mbuttonDown_; };

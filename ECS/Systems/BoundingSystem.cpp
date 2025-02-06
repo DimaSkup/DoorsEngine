@@ -88,6 +88,55 @@ void BoundingSystem::Add(
 
 ///////////////////////////////////////////////////////////
 
+void ComputeAABB(
+	DirectX::BoundingOrientedBox* obbs,
+	const int numOBBs,
+	DirectX::BoundingBox& outAABB)
+{
+	// compute an AABB by array of OBBs
+
+	using namespace DirectX;
+
+	XMVECTOR vMin{ FLT_MAX, FLT_MAX, FLT_MAX };
+	XMVECTOR vMax{ FLT_MIN, FLT_MIN, FLT_MIN };
+
+	// go through each subset (mesh)
+	for (int i = 0; i < numOBBs; ++i)
+	{
+		const DirectX::BoundingOrientedBox& subsetAABB = obbs[i];
+
+		// define min/max point of this mesh
+		const XMVECTOR center  = XMLoadFloat3(&subsetAABB.Center);
+		const XMVECTOR extents = XMLoadFloat3(&subsetAABB.Extents);
+		const XMVECTOR max = center + extents;
+		const XMVECTOR min = center - extents;
+
+		vMin = XMVectorMin(vMin, min);
+		vMax = XMVectorMax(vMax, max);
+	}
+
+	// compute a model's AABB
+	XMStoreFloat3(&outAABB.Center,  0.5f * (vMin + vMax));
+	XMStoreFloat3(&outAABB.Extents, 0.5f * (vMax - vMin));
+}
+
+///////////////////////////////////////////////////////////
+
+void BoundingSystem::GetEnttAABB(
+	const EntityID id,
+	DirectX::BoundingBox& aabb)
+{
+	// get an axis-aligned bounding box of entity by input ID
+	// (AABB of the whole entity)
+
+	Bounding&     comp = *pBoundingComponent_;
+	BoundingData& data = comp.data_[GetIdxByID(id)];
+
+	ComputeAABB(data.obbs_.data(), (int)data.obbs_.size(), aabb);
+}
+
+///////////////////////////////////////////////////////////
+
 void BoundingSystem::GetOBBs(
 	const std::vector<EntityID>& ids,
 	std::vector<size>& numBoxesPerEntt,
@@ -221,42 +270,4 @@ void BoundingSystem::GetBoxLocalSpaceMatrix(
 	// store local space matrix of this OBB
 	mat = boxLScaleMat * boxLTransMat;
 }
-
-#if 0
-DirectX::BoundingBox BoundingSystem::GetBoundingDataByID(const EntityID id)
-{
-	const Bounding& component = *pBoundingComponent_;
-
-	// if entt by input ID doesn't have AABB we just return the default one
-	if (!Utils::BinarySearch(component.ids_, id))
-		return DirectX::BoundingBox();
-
-	index idx = Utils::GetIdxInSortedArr(component.ids_, id);
-	return component.data_[idx];
-}
-
-///////////////////////////////////////////////////////////
-
-void BoundingSystem::GetBoundingDataByIDs(
-	const std::vector<EntityID>& ids,
-	std::vector<DirectX::BoundingBox>& outData)
-{
-	// get an arr of AABB data by input entts IDs
-
-	const Bounding& component = *pBoundingComponent_;
-	std::vector<bool> flags;
-	std::vector<index> idxs;
-
-	Utils::GetExistingFlags(component.ids_, ids, flags);
-	Utils::GetIdxsInSortedArr(component.ids_, ids, idxs);
-
-	const size enttsCount = std::ssize(ids);
-	outData.resize(enttsCount);
-
-	// if entt by i has an AABB we get it from the component or set default AABB in another case
-	for (index i = 0; i < enttsCount; ++i)
-		outData[i] = ((flags[i]) ? component.data_[idxs[i]] : DirectX::BoundingBox());
-}
-#endif
-
 } // namespace ECS

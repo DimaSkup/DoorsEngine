@@ -25,17 +25,19 @@ public:
 		Render::Render& render,
 		ECS::EntityMgr& enttMgr);
 
+	void PrepareInstanceFromModel(
+		BasicModel& model,
+		Render::Instance& instance);
+
 	void PrepareEnttsDataForRendering(
 		const std::vector<EntityID>& enttsIds,
 		Render::InstBuffData& instanceBuffData,      // data for the instance buffer
 		std::vector<Render::Instance>& instances);   // instances (models subsets) data for rendering
 		
-
 	void PrepareInstanceData(
 		const BasicModel& model,
 		Render::Instance& instance,
 		TextureMgr& texMgr);
-
 
 	void PrepareEnttsBoundingLineBox(
 		const std::vector<EntityID>& visibleEntts,
@@ -46,8 +48,6 @@ public:
 		const std::vector<EntityID>& visibleEntts,
 		Render::Instance& instance,
 		Render::InstBuffData& instanceBuffer);
-
-private:
 
 	void PrepareInstancesData(
 		const std::vector<EntityID>& ids,
@@ -62,6 +62,15 @@ private:
 		ModelStorage& storage,
 		TextureMgr& texMgr,
 		int& instanceIdx);
+
+	void PrepareSubsetsData(
+		const MeshGeometry::Subset* subsets,
+		std::vector<Render::Subset>& instanceSubsets);
+
+	void PrepareSubsetsMaterials(
+		const MeshMaterial* srcModelMats,
+		const int numMats,
+		Render::Material* instanceMats);
 
 private:
 	Render::Render* pRender_ = nullptr;

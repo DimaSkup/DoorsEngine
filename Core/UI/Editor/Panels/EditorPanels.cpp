@@ -50,6 +50,7 @@ void EditorPanels::Render(
 	RenderPropertiesControllerWnd();
 	RenderDebugPanel(sysState);
 	RenderLogPanel();
+	RenderAssetsManager();
 }
 
 
@@ -60,11 +61,35 @@ void EditorPanels::Render(
 
 void EditorPanels::RenderLogPanel()
 {
+	// show logger messages
+
 	if (ImGui::Begin("Log"))
-	{
-		// show logger messages
+	{	
 		for (std::string& logMsg : Log::GetLogMsgsList())
 			ImGui::Text(logMsg.c_str());                    // print each log msg
+	}
+	ImGui::End();
+}
+
+///////////////////////////////////////////////////////////
+
+void EditorPanels::RenderAssetsManager()
+{
+	
+	if (ImGui::Begin("Assets"))
+	{
+		int numAssets = pFacadeEngineToUI_->GetNumAssets();
+
+		// if we have any assets in assets/models manager
+		if (numAssets > 0)
+		{
+			std::vector<std::string> names(numAssets);
+			pFacadeEngineToUI_->GetAssetsNamesList(names.data(), (int)names.size());
+
+			for (const std::string& name : names)
+				ImGui::Text(name.c_str());
+		}
+		
 	}
 	ImGui::End();
 }
@@ -97,10 +122,18 @@ void EditorPanels::RenderEntitiesListWnd(SystemState& sysState)
 		{
 			bool isSelected = pEnttsIDs[i] == enttEditorController_.GetSelectedEntt();
 
-			if (ImGui::Selectable(enttsNames[i].c_str(), isSelected))
+			if (ImGui::Selectable(enttsNames[i].c_str(), isSelected, ImGuiSelectableFlags_AllowDoubleClick))
 			{
 				sysState.pickedEntt_ = pEnttsIDs[i];                 // set this ID into the system state
 				enttEditorController_.SetSelectedEntt(sysState.pickedEntt_);  // and update the editor to show data of this entt
+
+				// if we do double click on the selectable item we move our camera
+				// to this item in world and fix on in
+				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
+				{
+					pFacadeEngineToUI_->PlaceCameraNearEntt(sysState.pickedEntt_);
+					Log::Print("double click on: " + enttsNames[i], ConsoleColor::YELLOW);
+				}
 			}
 		}
 	}
@@ -123,6 +156,11 @@ void EditorPanels::RenderDebugPanel(const SystemState& systemState)
 		// show fps and frame time
 		ImGui::Text("Fps:        %d", systemState.fps);
 		ImGui::Text("Frame time: %f", systemState.frameTime);
+
+
+		const DirectX::XMFLOAT3& camPos = systemState.cameraPos;
+		const DirectX::XMFLOAT3& camDir = systemState.cameraDir;
+		ImGui::Text("Camera pos: %.2f %.2f %.2f", camPos.x, camPos.y, camPos.z);
 
 		// show debug options
 		if (ImGui::TreeNode("Show as Color:"))

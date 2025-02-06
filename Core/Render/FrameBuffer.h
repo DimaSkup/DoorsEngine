@@ -53,7 +53,6 @@ public:
 
 	void Bind(ID3D11DeviceContext* pContext);
 	void ClearBuffers(ID3D11DeviceContext* pContext, const DirectX::XMFLOAT4& rgbaColor);
-	void Unbind(ID3D11DeviceContext* pContext);
 
 
 	//

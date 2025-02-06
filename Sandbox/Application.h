@@ -13,6 +13,9 @@
 class Application
 {
 public:
+	Application() : windowContainer_(mainWnd_) {}
+
+
 	void Initialize()
 	{
 		eventHandler_.AddEventListener(&engine_);

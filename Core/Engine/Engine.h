@@ -88,6 +88,17 @@ public:
 	void HandleEditorEventKeyboard();
 	void HandleGameEventKeyboard();
 
+	void HandleEditorEventMouse();
+	void HandleGameEventMouse();
+
+	void RenderModelIntoTexture(
+		ID3D11DeviceContext* pContext,
+		FrameBuffer& frameBuffer);
+
+private:
+	void TurnOnEditorMode();
+	void TurnOnGameMode();
+
 private:
 	HWND      hwnd_ = NULL;                     // main window handle
 	HINSTANCE hInstance_ = NULL;                // application instance handle
@@ -115,11 +126,11 @@ private:
 	ImGuiLayer         imGuiLayer_;
 	UserInterface      userInterface_;       // UI/GUI: for work with the graphics user interface (GUI)
 
-	KeyboardEvent      keyboardEvent_;       // the current keyboard event
+	//KeyboardEvent      keyboardEvent_;       // the current keyboard event
 	MouseEvent         mouseEvent_;          // the current mouse event
 	SoundClass         sound_;
 
-	FrameBuffer        frameBuffer_;   // we use this obj for rendering the scene into a texture and then we pass this texture into GUI, to show it in the editor
+	FrameBuffer        frameBuffer_;         // we use this obj for rendering the scene into a texture and then we pass this texture into GUI, to show it in the editor
 
 	IFacadeEngineToUI* pFacadeEngineToUI_ = nullptr;  // a facade interface which are used by UI to contact with some engine's parts 
 
@@ -130,10 +141,6 @@ private:
 	// client's zone width/height
 	UINT clientWidth_ = 0;
 	UINT clientHeight_ = 0;
-
-	bool isEditorMode_      = true;        // we are starting in the editor mode by default
-	
-	
 
 }; // class Engine
 

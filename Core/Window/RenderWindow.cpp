@@ -169,8 +169,8 @@ bool RenderWindow::CreateWindowExtended(
 		WS_EX_APPWINDOW,                   // extended windows style
 		windowClassWide_.c_str(),          // window class name
 		windowTitleWide_.c_str(),          // window title
-		WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-		//WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU,  // windows style
+		//WS_EX_TRANSPARENT | WS_EX_TOPMOST | WS_EX_LAYERED |
+		WS_OVERLAPPEDWINDOW | WS_VISIBLE,  // window styles
 		winRect.left,                      // window left position
 		winRect.top,                       // window top position
 		clientWidth_,     
@@ -187,6 +187,8 @@ bool RenderWindow::CreateWindowExtended(
 		return false;
 	}
 
+	SetLayeredWindowAttributes(hwnd, 0, 1.0f, LWA_ALPHA);
+	SetLayeredWindowAttributes(hwnd, 0, RGB(0, 0, 0), LWA_COLORKEY);
 
 	return true;
 }
@@ -202,7 +204,8 @@ bool RenderWindow::ProcessMessages(HINSTANCE& hInstance, HWND& hwnd)
 	ZeroMemory(&msg, sizeof(MSG));  // Initialize the message structure
 
 	// Handle the windows messages
-	while (PeekMessage(&msg,    // where to store messages (if one exists)
+	while (PeekMessageA(
+		&msg,                   // where to store messages (if one exists)
 		NULL,                   // handle to window we are checking messages for
 		0,                      // minimum filter msg value - we are not filtering for specific messages
 		0,                      // maximum filter msg value
@@ -210,18 +213,20 @@ bool RenderWindow::ProcessMessages(HINSTANCE& hInstance, HWND& hwnd)
 	{
 		TranslateMessage(&msg); // translate message from virtual key messages into character messages so we can display such messages
 		DispatchMessage(&msg);  // dispatch message to our Window Proc for this window
-	}
 
-	// check if the window was closed
-	if ((msg.message == WM_NULL) || (msg.message = WM_QUIT))
-	{
-		if (!IsWindow(hwnd))
+		// check if the window was closed
+		if ((msg.message == WM_NULL) || (msg.message = WM_QUIT))
 		{
-			hwnd = NULL; // message processing look takes care of destroying this window
-			UnregisterClass(this->windowClassWide_.c_str(), hInstance);
-			return false;
+			if (!IsWindow(hwnd))
+			{
+				hwnd = NULL; // message processing look takes care of destroying this window
+				UnregisterClass(windowClassWide_.c_str(), hInstance);
+				return false;
+			}
 		}
 	}
+
+	
 
 	return true;
 } 

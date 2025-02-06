@@ -7,6 +7,7 @@
 #pragma once
 
 #include "../Components/Bounding.h"
+#include "../Common/Utils.h"
 
 namespace ECS
 {
@@ -42,6 +43,10 @@ public:
 		std::vector<BoundingData>& outData);
 #endif
 
+	void GetEnttAABB(
+		const EntityID id,
+		DirectX::BoundingBox& aabb);
+
 	void GetOBBs(
 		const std::vector<EntityID>& ids,
 		std::vector<size>& numBoxesPerEntt,
@@ -60,7 +65,13 @@ public:
 		const DirectX::BoundingBox& aabb,
 		DirectX::XMMATRIX& mat);
 
-	//inline const std::vector<BoundingData>& GetAllBoundingData() const { return pBoundingComponent_->data_; }
+private:
+	index GetIdxByID(const EntityID id)
+	{
+		// return an index into data arrays of entity by ID
+		const std::vector<EntityID>& ids = pBoundingComponent_->ids_;
+		return (Utils::BinarySearch(ids, id)) ? Utils::GetIdxInSortedArr(ids, id) : -1;
+	}
 
 private:
 	Bounding* pBoundingComponent_ = nullptr;

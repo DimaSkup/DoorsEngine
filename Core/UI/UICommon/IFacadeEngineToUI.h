@@ -36,13 +36,8 @@ public:
 	//
 	// get camera info
 	//
-	virtual bool GetCameraViewAndProj(
-		const uint32_t camEnttID,
-		float* camViewMatrix, 
-		float* camProjMatrix) 
-	{
-		return false; 
-	}
+	virtual void GetCameraViewAndProj(const EntityID camEnttID,	float* view, float* proj) { assert(0 && "TODO: implement this virtual method in children"); }
+	virtual void PlaceCameraNearEntt(const EntityID id)                                   { assert(0 && "TODO: implement this virtual method in children"); }
 
 	//
 	// for the entity editor
@@ -52,9 +47,9 @@ public:
 	virtual bool GetEnttNameByID(const EntityID id, std::string& name)            { return false; }
 
 	virtual bool GatherEnttData(const EntityID id, Vec3& pos, Vec4& dirQuat, float& uniScale)                                               { return false; }
-	virtual void SetEnttTransformation(const EntityID id, const DirectX::XMVECTOR& pos, const DirectX::XMVECTOR& rot, const float uniScale) { assert(0 && "TODO: impelemnt this virtual method in children"); }
-	virtual void GetEnttWorldMatrix(const EntityID id, DirectX::XMMATRIX& outMat)                                                           { assert(0 && "TODO: impelemnt this virtual method in children"); }
-
+	virtual void SetEnttTransformation(const EntityID id, const DirectX::XMVECTOR& pos, const DirectX::XMVECTOR& rot, const float uniScale) { assert(0 && "TODO: implement this virtual method in children"); }
+	virtual void GetEnttWorldMatrix(const EntityID id, DirectX::XMMATRIX& outMat)                                                           { assert(0 && "TODO: implement this virtual method in children"); }
+	virtual void GetEnttPosition(const EntityID id, Vec3& pos)                                                                              { assert(0 && "TODO: implement this virtual method in children"); }
 
 	virtual bool SetEnttPosition(const uint32_t entityID, const Vec3& pos)        { return false; }
 	virtual bool SetEnttRotation(const uint32_t entityID, const Vec4& dir)        { return false; }
@@ -66,12 +61,12 @@ public:
 	//
 	virtual bool IsEnttLightSource(const EntityID id, int& lightType) { return false; }
 
-	virtual void SetPointLightAmbient    (const EntityID id, const ColorRGBA& color)  { assert(0 && "TODO: impelemnt this virtual method in children"); }
-	virtual void SetPointLightDiffuse    (const EntityID id, const ColorRGBA& color)  { assert(0 && "TODO: impelemnt this virtual method in children"); }
-	virtual void SetPointLightSpecular   (const EntityID id, const ColorRGBA& color)  { assert(0 && "TODO: impelemnt this virtual method in children"); }
-	virtual void SetPointLightPos        (const EntityID id, const Vec3& pos)         { assert(0 && "TODO: impelemnt this virtual method in children"); }
-	virtual void SetPointLightRange      (const EntityID id, const float range)       { assert(0 && "TODO: impelemnt this virtual method in children"); }
-	virtual void SetPointLightAttenuation(const EntityID id, const Vec3& attenuation) { assert(0 && "TODO: impelemnt this virtual method in children"); }
+	virtual void SetPointLightAmbient    (const EntityID id, const ColorRGBA& color)  { assert(0 && "TODO: implement this virtual method in children"); }
+	virtual void SetPointLightDiffuse    (const EntityID id, const ColorRGBA& color)  { assert(0 && "TODO: implement this virtual method in children"); }
+	virtual void SetPointLightSpecular   (const EntityID id, const ColorRGBA& color)  { assert(0 && "TODO: implement this virtual method in children"); }
+	virtual void SetPointLightPos        (const EntityID id, const Vec3& pos)         { assert(0 && "TODO: implement this virtual method in children"); }
+	virtual void SetPointLightRange      (const EntityID id, const float range)       { assert(0 && "TODO: implement this virtual method in children"); }
+	virtual void SetPointLightAttenuation(const EntityID id, const Vec3& attenuation) { assert(0 && "TODO: implement this virtual method in children"); }
 
 	virtual void GetEnttPointLightData(
 		const EntityID id,
@@ -82,30 +77,35 @@ public:
 		float& range,
 		Vec3& attenuation)
 	{
-		assert(0 && "TODO: impelemnt this virtual method in children");
+		assert(0 && "TODO: implement this virtual method in children");
 	};
 		
-
-
 
 	//
 	// for the sky editor
 	//
 	virtual bool GatherSkyData(const uint32_t skyEnttID, ColorRGB& center, ColorRGB& apex, Vec3& offset) { return false;};
 
-	virtual bool SetSkyColorCenter(const ColorRGB& color)                      { return false; }
-	virtual bool SetSkyColorApex(const ColorRGB& color)                        { return false; }
-	virtual bool SetSkyOffset(const Vec3& offset)                              { return false; }
-	virtual bool SetSkyTexture(const int idx, const uint32_t textureID)        { return false; }
+	virtual bool SetSkyColorCenter(const ColorRGB& color)                                                { return false; }
+	virtual bool SetSkyColorApex(const ColorRGB& color)                                                  { return false; }
+	virtual bool SetSkyOffset(const Vec3& offset)                                                        { return false; }
+	virtual bool SetSkyTexture(const int idx, const uint32_t textureID)                                  { return false; }
 
 	//
 	// for the fog editor
 	//
-	virtual bool GatherFogData(ColorRGB& fogColor, float& fogStart, float& fogRange)       { return false; }
-	virtual bool SetFogParams(const ColorRGB& color, const float start, const float range) { return false; }
+	virtual bool GatherFogData(ColorRGB& fogColor, float& fogStart, float& fogRange)                    { return false; }
+	virtual bool SetFogParams(const ColorRGB& color, const float start, const float range)              { return false; }
 
 	//
 	// for the debug
 	//
-	virtual bool SwitchDebugState(const int debugType)                         { return false; }
+	virtual bool SwitchDebugState(const int debugType)                                                  { return false; }
+
+
+	//
+	// for assets manager
+	//
+	virtual int  GetNumAssets()                                                { return 0; }
+	virtual void GetAssetsNamesList(std::string* namesArr, const int numNames) { assert(0 && "TODO: implement this virtual method in children"); }
 };

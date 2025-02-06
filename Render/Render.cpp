@@ -440,10 +440,10 @@ void Render::SwitchFogEffect(ID3D11DeviceContext* pContext, const bool state)
 
 ///////////////////////////////////////////////////////////
 
-void Render::SwitchFlashLight(ID3D11DeviceContext* pContext, const bool state)
+void Render::SwitchFlashLight(ID3D11DeviceContext* pContext)
 {
-	// turn on/off the flashlight
-	cbpsRareChanged_.data.turnOnFlashLight = state;
+	// switch the flashlight state
+	cbpsRareChanged_.data.turnOnFlashLight = ~(bool)cbpsRareChanged_.data.turnOnFlashLight;
 	cbpsRareChanged_.ApplyChanges(pContext);
 }
 

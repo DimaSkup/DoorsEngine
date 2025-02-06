@@ -30,10 +30,8 @@
 // physics / interaction with user
 //#include "../Physics/IntersectionWithGameObjects.h"
 
-
-
 // camera
-#include "../Camera/BasicCamera.h"
+//#include "../Camera/BasicCamera.h"
 #include "../Camera/Camera.h"
 
 // render stuff
@@ -51,12 +49,15 @@
 
 
 
-//////////////////////////////////
-// Class name: GraphicsClass
-//////////////////////////////////
 class GraphicsClass final
 {
-
+public:
+	enum AABBShowMode
+	{
+		NONE,    // doesn't show any AABB line boxes
+		MODEL,   // render AABB line box around the whole model
+		MESH,    // render AABB line box around each mesh of model
+	};
 
 public:
 	GraphicsClass();
@@ -74,21 +75,19 @@ public:
 	// ------------------------------------
 	// render related methods
 
+	void ComputeFrustumCulling(SystemState& sysState);
 	void ClearRenderingDataBeforeFrame();
 	void Render3D();
+	void RenderModel(BasicModel& model, const DirectX::XMMATRIX& world);
 
 	// ----------------------------------
-
-	void ComputeFrustumCulling(SystemState& sysState);
-
-	// handle events from the keyboard and mouse
-	void HandleKeyboardInput(const KeyboardEvent& kbe, const float deltaTime);
-	void HandleMouseInput(const SystemState& state, const MouseEvent& me, const float deltaTime);
 
 	// change render states using keyboard
 	void ChangeModelFillMode();   
 	void ChangeCullMode();
 	void SwitchGameMode(bool enableGameMode);
+
+	inline void SetAABBShowMode(const AABBShowMode mode) { aabbShowMode_ = mode; }
 
 	// ---------------------------------------
 	// INLINE GETTERS
@@ -96,10 +95,10 @@ public:
 	inline D3DClass&       GetD3DClass()                      { return d3d_; }
 	inline Camera&         GetEditorCamera()                  { return editorCamera_; }
 	inline Camera&         GetGameCamera()                    { return gameCamera_; }
-	inline BasicCamera&    GetCameraForRenderToTexture()      { return cameraForRenderToTexture_; }
-	inline ECS::EntityMgr& GetEntityMgr()                     { return entityMgr_; }
+	//inline ECS::EntityMgr& GetEntityMgr()                     { return entityMgr_; }
 	inline Render::Render& GetRender()                        { return render_; }
 	inline TextureMgr&     GetTextureMgr()                    { return texMgr_; }
+	inline ModelStorage&   GetModelsStorage()                 { return modelStorage_;}
 
 	// matrices getters
 	inline const DirectX::XMMATRIX& GetWorldMatrix()    const { return worldMatrix_; }
@@ -115,6 +114,10 @@ public:
 	// check if we have any entity by these coords of the screen
 	int TestEnttSelection(const int sx, const int sy);
 
+	void UpdateCameraEntity(
+		const std::string& cameraEnttName,
+		const DirectX::XMMATRIX& view,
+		const DirectX::XMMATRIX& proj);
 
 private: 
 	// private updating API
@@ -132,23 +135,11 @@ private:
 	void RenderEnttsDefault();
 	void RenderEnttsAlphaClipCullNone();
 	void RenderEnttsBlended();
-	void RenderEnttsReflections();
-	void RenderEnttsShadows();
 
 	// ------------------------------------------
 
 	// render bounding boxes of models/meshes
 	void RenderBoundingLineBoxes();
-
-	void ComputeReflectedWorlds(
-		const DirectX::XMMATRIX& R,                         // reflection matrix
-		const std::vector<DirectX::XMMATRIX>& origWorlds,
-		std::vector<DirectX::XMMATRIX>& outReflectedWorlds);
-
-	void RenderReflectionPlaneAsStencil();
-	void ReflectLightSources(const DirectX::XMMATRIX& R);
-	void RenderReflections(const int type, const DirectX::XMMATRIX& R);
-	void RenderReflectionPlanePixels();
 	void RenderSkyDome();
 
 	void UpdateInstanceBuffAndRenderInstances(
@@ -163,12 +154,7 @@ private:
 		const ECS::LightSystem& lightSys,
 		Render::PerFrameData& perFrameData);
 
-	void ComputeLocalSpacesOfEntts();
-
-	
-
-
-private:
+public:
 	DirectX::XMMATRIX WVO_            = DirectX::XMMatrixIdentity();  // main_world * baseView * ortho
 	DirectX::XMMATRIX viewProj_       = DirectX::XMMatrixIdentity();  // view * projection
 
@@ -198,7 +184,6 @@ private:
 	Camera*               pCurrCamera_ = nullptr;                 // a currently chosen camera
 	Camera                gameCamera_;                            // for fullscreen mode
 	Camera                editorCamera_;                          // editor's main camera
-	BasicCamera           cameraForRenderToTexture_;              // this camera is used for rendering into textures
 
 	TextureMgr            texMgr_;                                // a main container/manager of all the textures
 	FrameBuffer           frameBuffer_;                           // for rendering to some texture
@@ -213,7 +198,5 @@ private:
 	bool isIntersect_ = false;                 // a flag to define if we clicked on some model or not
 	bool isGameMode_ = false;
 
-	bool showBoundBoxes_ = true;
-	bool showBoundBoxOfMeshes_ = false;
-	bool showBoundBoxOfModel_ = true;
+	AABBShowMode aabbShowMode_ = NONE;
 };

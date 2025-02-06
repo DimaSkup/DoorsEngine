@@ -212,7 +212,31 @@ BasicModel& ModelStorage::GetModelByName(const std::string& name)
 	return models_[0];   // return empty model
 }
 
+///////////////////////////////////////////////////////////
 
+void ModelStorage::GetAssetsNamesList(std::string* namesArr, const int numNames)
+{
+	// fill in the input namesArr with names of the assets from the storage
+	// NOTE: namesArr must be already allocated to size of numNames
+	//       
+
+	try
+	{
+		Assert::NotNullptr(namesArr, "ptr to the names arr == nullptr");
+		Assert::True(numNames == GetNumAssets(), "input number of names is invalid: " + std::to_string(numNames));
+
+		for (int i = 0; i < numNames; ++i)
+			namesArr[i] = models_[i].GetName();
+	}
+	catch (EngineException& e)
+	{
+		Log::Error(e);
+		Log::Error("can't get a list of assets names");
+	}
+}
+
+
+#if 0
 // *****************************************************************************
 // 
 //                           PUBLIC UPDATING API
@@ -305,3 +329,5 @@ void ModelStorage::SetAABBsForModelSubsets(
 }
 
 ///////////////////////////////////////////////////////////
+
+#endif

@@ -1,14 +1,9 @@
 #include "WindowContainer.h"
-
 #include "../Common/log.h"
 
 #include <cassert>
-
-// ImGui stuff
 #include <imgui.h>
 #include <backends/imgui_impl_win32.h>
-//#include "imgui_impl_dx11.h"
-
 
 // forward declare message handler from imgui_impl_win32.cpp
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -19,12 +14,28 @@ namespace Doors
 
 WindowContainer* WindowContainer::pWindowContainer_ = nullptr;
 
+bool RID_RegisterDevice(HWND hTarget, USHORT usage)
+{
+	// register a device (mouse/keyboard/etc.) by usage code as a raw input device
+	RAWINPUTDEVICE rid;
+	rid.usUsagePage = 1;
+	rid.usUsage = usage;
+	rid.dwFlags = 0;
+	rid.hwndTarget = hTarget;
 
-// initialize main devices handlers and setup its behaviour
-WindowContainer::WindowContainer()
+	if (RegisterRawInputDevices(&rid, 1, sizeof(RAWINPUTDEVICE)) == FALSE)
+	{
+		Log::Error("can't register raw input devices");
+		exit(-1);
+	}
+	return true;
+}
+
+///////////////////////////////////////////////////////////
+
+WindowContainer::WindowContainer(HWND hwnd)
 {
 	Log::Debug();
-
 
 	// we can have only one instance of the WindowContainer
 	if (WindowContainer::pWindowContainer_ == nullptr)
@@ -32,21 +43,11 @@ WindowContainer::WindowContainer()
 		WindowContainer::pWindowContainer_ = this;
 		static bool raw_input_initialized = false;
 
-		// try to register a mouse as a RAW INPUT device
+		// try to register a mouse and keyboard as a RAW INPUT device
 		if (raw_input_initialized == false) 
 		{
-			RAWINPUTDEVICE rid;
-
-			rid.usUsagePage = 0x01;     // mouse
-			rid.usUsage     = 0x02;
-			rid.dwFlags     = 0;        // use default flags
-			rid.hwndTarget  = NULL;
-
-			if (RegisterRawInputDevices(&rid, 1, sizeof(rid)) == FALSE)
-			{
-				Log::Error("can't register raw input devices");
-				exit(-1);
-			}
+			RID_RegisterDevice(hwnd, RID_KEYBOARD);
+			RID_RegisterDevice(hwnd, RID_MOUSE);
 
 			raw_input_initialized = true;
 		}
@@ -62,18 +63,14 @@ WindowContainer::WindowContainer()
 
 WindowContainer::~WindowContainer()
 {
+	SystemParametersInfo(SPI_SETKEYBOARDDELAY, 0, &oldKeyboardDelayTime, 0);
 	Log::Debug();
 }
-
-
 
 
 // ==================================================================================
 //                                PUBLIC METHODS
 // ==================================================================================
-
-
-///////////////////////////////////////////////////////////
 
 void WindowContainer::SetEventHandler(EventHandler* pEventHandler)
 {
@@ -95,8 +92,6 @@ LRESULT CALLBACK WindowContainer::WindowProc(
 	if (ImGui_ImplWin32_WndProcHandler(hwnd, uMsg, wParam, lParam))
 		return true;
 
-	static bool isMouseMoving = false;
-	
 	switch (uMsg)
 	{
 		case WM_ACTIVATE:             // handle activation or deactivation of the window
@@ -134,9 +129,7 @@ LRESULT CALLBACK WindowContainer::WindowProc(
 	// handle window movement, window resizing, keyboard and mouse events, etc.
 	pEventHandler_->HandleEvent(hwnd, uMsg, wParam, lParam);
 
-
 	return DefWindowProc(hwnd, uMsg, wParam, lParam);
-	
 } 
 
 } // namespace Doors

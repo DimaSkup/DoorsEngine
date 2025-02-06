@@ -133,7 +133,6 @@ bool InitializeGraphics::InitializeCameras(
 	D3DClass& d3d,
 	Camera& gameCamera,
 	Camera& editorCamera,
-	BasicCamera& cameraForRenderToTexture,
 	DirectX::XMMATRIX& baseViewMatrix,      // is used for 2D rendering
 	ECS::EntityMgr& enttMgr,
 	const Settings& settings)
@@ -146,48 +145,38 @@ bool InitializeGraphics::InitializeCameras(
 		const float speed       = settings.GetFloat("CAMERA_SPEED");       // camera movement speed
 		const float sensitivity = settings.GetFloat("CAMERA_SENSITIVITY"); // camera rotation speed
 
-		const SIZE windowedSize = d3d.GetWindowedWndSize();
+		const SIZE windowedSize   = d3d.GetWindowedWndSize();
 		const SIZE fullscreenSize = d3d.GetFullscreenWndSize();
-
+		const float windowedAspectRatio   = (float)windowedSize.cx   / (float)windowedSize.cy;
+		const float fullScreenAspectRatio = (float)fullscreenSize.cx / (float)fullscreenSize.cy;
 
 		// 1. initialize the editor camera
-		BasicCamera::CameraInitParams editorCamParams(
-			(int)windowedSize.cx,
-			(int)windowedSize.cy,
-			nearZ, farZ, fovInRad, speed, sensitivity);
-
-		// we need to have the proper aspect ratio for our editor camera
-		// to prevent scene objects distortion
-		//editorCamParams.aspectRatio_ = (float)fullscreenSize.cx / (float)fullscreenSize.cy;
-
-		editorCamera.Initialize(editorCamParams);
+		editorCamera.SetProjection(fovInRad, windowedAspectRatio, nearZ, farZ);
 		editorCamera.SetPosition(-15, 1, 5);
 
-		// --------------------------------------------
-
 		// 2. initialize the game camera
-		
-
-		BasicCamera::CameraInitParams gameCamParams(
-			(int)fullscreenSize.cx,
-			(int)fullscreenSize.cy,
-			nearZ, farZ, fovInRad, speed, sensitivity);
-
-		gameCamera.Initialize(gameCamParams);
+		gameCamera.SetProjection(fovInRad, fullScreenAspectRatio, nearZ, farZ);
 		gameCamera.SetPosition(0, 2, -3);
-
-		// --------------------------------------------
 
 		// initialize view matrices of the cameras
 		editorCamera.UpdateViewMatrix();
 		gameCamera.UpdateViewMatrix();
 
-		// initialize a base view matrix with the camera for 2D user interface rendering
-		baseViewMatrix = gameCamera.GetViewMatrix();
+		// initialize a base view matrix with the camera
+		// for 2D user interface rendering (in GAME mode)
+		baseViewMatrix = gameCamera.View();
+
+		editorCamera.SetFreeCamera(true);
+		gameCamera.SetFreeCamera(false);
+
+		editorCamera.SetWalkSpeed(10.0f);
+		editorCamera.SetRunSpeed(20.0f);
+		gameCamera.SetWalkSpeed(10.0f);
+		gameCamera.SetRunSpeed(20.0f);
 
 		// create and setup an editor camera entity
 		EntityID id = enttMgr.CreateEntity();
-		enttMgr.AddCameraComponent(id, editorCamera.GetViewMatrix(), editorCamera.GetProjectionMatrix());
+		enttMgr.AddCameraComponent(id, editorCamera.View(), editorCamera.Proj());
 		enttMgr.AddNameComponent(id, "editor_camera");
 	}
 	catch (EngineException & e)
@@ -1386,7 +1375,7 @@ bool InitializeGraphics::InitializeModels(
 		const std::string pathPillar6 = m3dDirPath + "pillar6.m3d";
 
 #endif
-		const std::string treePinePath     = g_ModelsDirPath + "trees/FBX format/tree_conifer_macedonian_pine.fbx";
+		const std::string treePinePath     = g_ModelsDirPath + "trees/FBX format/tree_pine.fbx";
 		const std::string powerHVTowerPath = g_ModelsDirPath + "power_line/Power_HV_Tower.FBX";
 		const std::string barrelPath       = g_ModelsDirPath + "Barrel1/Barrel1.obj";
 #if 0

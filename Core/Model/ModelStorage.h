@@ -29,9 +29,13 @@ public:
 	BasicModel& GetModelByID(const ModelID id);
 	BasicModel& GetModelByName(const std::string& name);
 
-	inline BasicModel& GetLastModel() { return models_.back(); }
-	inline SkyModel& GetSky() { return sky_; }
+	inline BasicModel& GetLastModel()       { return models_.back(); }
+	inline SkyModel&   GetSky()             { return sky_; }
+	inline int         GetNumAssets() const { return (int)std::ssize(ids_); }
 
+	void GetAssetsNamesList(std::string* namesArr, const int numNames);
+
+#if 0
 	// updating API
 	void SetTextureForModelSubset(
 		const ModelID modelID,
@@ -65,6 +69,7 @@ public:
 		const ModelID modelID,
 		const std::vector<int>& subsetsIDs,
 		const std::vector<DirectX::BoundingBox>& AABBs);
+#endif
 
 public:
 	static int INVALID_MODEL_ID;

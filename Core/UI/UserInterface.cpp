@@ -29,23 +29,23 @@ UserInterface::~UserInterface()
 }
 
 
-
 // =================================================================================
-//                             PUBLIC METHODS
+// Modification API
 // =================================================================================
 
-// initialize the graphics user interface (GUI)
 void UserInterface::Initialize(
 	ID3D11Device* pDevice,
 	ID3D11DeviceContext* pContext,
 	IFacadeEngineToUI* pFacadeEngineToUI,
-	const std::string & fontDataFilePath,      // a path to file with data about this type of font
-	const std::string & fontTextureFilePath,   // a path to texture file for this font
+	const std::string& fontDataFilePath,      // a path to file with data about this type of font
+	const std::string& fontTextureFilePath,   // a path to texture file for this font
 	const int wndWidth,
 	const int wndHeight,
 	const UINT videoCardMemory,
-	const std::string& videoCardName) 
+	const std::string& videoCardName)
 {
+	// initialize the graphics user interface (GUI)
+
 	Log::Debug();
 
 	try
@@ -57,26 +57,26 @@ void UserInterface::Initialize(
 		Assert::True((!fontTextureFilePath.empty()), "wrong path to font texture file");
 
 		// initialize the window dimensions members for internal using
-		windowWidth_  = wndWidth;
+		windowWidth_ = wndWidth;
 		windowHeight_ = wndHeight;
 
 		// --------------------------------------------
-		
+
 		// initialize the first font object
 		font1_.Initialize(pDevice, fontDataFilePath, fontTextureFilePath);
 
 		// initialize the editor parts and interfaces
 		pFacadeEngineToUI_ = pFacadeEngineToUI;
 		editorPanels_.Initialize(pFacadeEngineToUI_);
-		
-		
+
+
 		// create text strings to show debug info onto the screen
 		CreateDebugInfoStrings(pDevice, videoCardName, videoCardMemory);
 
-		
+
 		Log::Debug("USER INTERFACE is initialized");
 	}
-	catch (EngineException & e)
+	catch (EngineException& e)
 	{
 		Log::Error(e, false);
 		Log::Error("can't initialize the UserInterface");
@@ -84,22 +84,6 @@ void UserInterface::Initialize(
 }
 
 ///////////////////////////////////////////////////////////
-
-void UserInterface::RenderGameUI(
-	ID3D11DeviceContext* pContext,
-	Render::FontShaderClass& fontShader,
-	SystemState& systemState)
-{
-
-	// print onto the screen some debug info
-	if (systemState.isShowDbgInfo)
-		RenderDebugInfo(pContext, fontShader, systemState);
-}
-
-
-// =================================================================================
-//                           PUBLIC MODIFICATION API
-// =================================================================================
 
 void UserInterface::Update(
 	ID3D11DeviceContext* pContext, 
@@ -182,14 +166,7 @@ SentenceID UserInterface::CreateDynamicStr(
 	}
 }
 
-
-
-
-// =================================================================================
-// 
-//                              PRIVATE METHODS
-// 
-// =================================================================================
+///////////////////////////////////////////////////////////
 
 void UserInterface::CreateDebugInfoStrings(
 	ID3D11Device* pDevice,
@@ -238,9 +215,22 @@ void UserInterface::CreateDebugInfoStrings(
 }
 
 
+
 // ====================================================================================
-//                                 editor stuff
+// Rendering API
 // ====================================================================================
+void UserInterface::RenderGameUI(
+	ID3D11DeviceContext* pContext,
+	Render::FontShaderClass& fontShader,
+	SystemState& systemState)
+{
+
+	// print onto the screen some debug info
+	if (systemState.isShowDbgInfo)
+		RenderDebugInfo(pContext, fontShader, systemState);
+}
+
+///////////////////////////////////////////////////////////
 
 void UserInterface::RenderEditor(SystemState& systemState)
 {
@@ -287,11 +277,14 @@ void UserInterface::RenderEditor(SystemState& systemState)
 	if (guiStates_.showWndEngineOptions_)
 		editorMainMenuBar_.RenderWndEngineOptions(&guiStates_.showWndEngineOptions_);
 
+	// show window for assets creation/import
+	if (guiStates_.showWndAssetsControl_)
+		editorMainMenuBar_.RenderWndAssetsControl(&guiStates_.showWndAssetsControl_);
+
 	// show modal window for entity creation
-	if (guiStates_.showWndForEnttCreation_)
+	if (guiStates_.showWndEnttCreation_)
 	{
-		//static EnttCreationWnd wnd(pContext);
-		//wnd.ShowWndToCreateEntt(&guiStates_.showWndForEnttCreation_, entityMgr);
+		// TODO
 	}
 	
 	editorPanels_.Render(systemState, childFlags, wndFlags);
@@ -327,8 +320,8 @@ void UserInterface::RenderSceneWnd(SystemState& sysState)
 			ImGuizmo::SetDrawlist();
 			ImGuizmo::SetRect(0, 0, (float)sysState.wndWidth_, (float)sysState.wndHeight_);
 
-			const float* cameraView = sysState.CameraView.r->m128_f32;
-			const float* cameraProj = sysState.CameraProj.r->m128_f32;
+			const float* cameraView = sysState.cameraView.r->m128_f32;
+			const float* cameraProj = sysState.cameraProj.r->m128_f32;
 
 			// selected entity transform
 			XMMATRIX world;
@@ -355,34 +348,37 @@ void UserInterface::RenderSceneWnd(SystemState& sysState)
 
 ///////////////////////////////////////////////////////////
 
+void UserInterface::RenderDebugInfo(
+	ID3D11DeviceContext* pContext,
+	Render::FontShaderClass& fontShader,
+	const SystemState& sysState)
+{
+	// render engine/game stats as text onto the sceen
+	// (is used when we in the game mode)
+
+	std::vector<ID3D11Buffer*> vbPtrs;
+	std::vector<ID3D11Buffer*> ibPtrs;
+	std::vector<u32> indexCounts;
+
+	// receive a font texture SRV 
+	SRV* const* ppFontTexSRV = font1_.GetTextureResourceViewAddress();
+
+	textStorage_.GetRenderingData(vbPtrs, ibPtrs, indexCounts);
+
+	fontShader.Render(pContext, vbPtrs, ibPtrs, indexCounts, sizeof(VertexFont), ppFontTexSRV);
+}
+
+
+// ====================================================================================
+//                                   Helpers
+// ====================================================================================
 DirectX::XMFLOAT2 UserInterface::ComputePosOnScreen(const POINT& drawAt)
 {
 	// in:  top left pos relatively to the top left corner of the screen
 	// out: top left pos relatively to the screen center
 	return
 	{
-		(float)(-(windowWidth_  >> 1) + drawAt.x),   // posX
+		(float)(-(windowWidth_ >> 1) + drawAt.x),   // posX
 		(float)(+(windowHeight_ >> 1) - drawAt.y),   // posY
 	};
-}
-
-///////////////////////////////////////////////////////////
-
-void UserInterface::RenderDebugInfo(
-	ID3D11DeviceContext* pContext,
-	Render::FontShaderClass& fontShader,
-	const SystemState& sysState)
-{
-	TextureMgr& texMgr = *TextureMgr::Get();
-	std::vector<ID3D11Buffer*> vbPtrs;
-	std::vector<ID3D11Buffer*> ibPtrs;
-	std::vector<u32> indexCounts;
-
-	// receive a font SRV 
-	SRV* const* ppFontTexSRV = font1_.GetTextureResourceViewAddress();
-
-	textStorage_.GetRenderingData(vbPtrs, ibPtrs, indexCounts);
-
-	fontShader.UpdatePerFrame(pContext, ppFontTexSRV);
-	fontShader.Render(pContext, vbPtrs, ibPtrs, indexCounts, sizeof(VertexFont));
 }

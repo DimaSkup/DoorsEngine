@@ -210,9 +210,6 @@ void ModelImporter::ProcessMesh(
 		// load vertices/indices/subsets data
 		GetVerticesIndicesOfMesh(pMesh, model, subset, subsetIdx);
 
-		// do some math calculations with these vertices (for instance: computation of tangents/bitangents)
-		//ExecuteModelMathCalculations(model.vertices_ + subset.vertexStart_, subset.vertexCount_);
-
 		// get material data of this mesh
 		aiMaterial* pAiMat = pScene->mMaterials[pMesh->mMaterialIndex];
 		LoadMaterialColors(pAiMat, meshMat);

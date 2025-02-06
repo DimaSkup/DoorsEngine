@@ -35,7 +35,7 @@ void MainMenuBar::RenderBar(StatesGUI& states)
 		if (ImGui::BeginMenu("Create"))
 		{
 			// create a modal window for entities creation
-			ImGui::MenuItem("Entity", NULL, &states.showWndForEnttCreation_);
+			ImGui::MenuItem("Entity", NULL, &states.showWndEnttCreation_);
 			ImGui::EndMenu();
 		}
 
@@ -43,10 +43,17 @@ void MainMenuBar::RenderBar(StatesGUI& states)
 
 		// setup color for the button as like it is a usual menu bar elements
 		ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetColorU32(ImGuiCol_MenuBarBg));
+
 		if (ImGui::Button("Options"))
 		{
 			// create a window for control common engine options
 			states.showWndEngineOptions_ = !states.showWndEngineOptions_;
+		}
+
+		if (ImGui::Button("Assets"))
+		{
+			// create a window for choosing which model (asset) we want to import
+			states.showWndAssetsControl_ = !states.showWndAssetsControl_;
 		}
 		ImGui::PopStyleColor();
 
@@ -87,6 +94,44 @@ void MainMenuBar::RenderWndEngineOptions(bool* pOpen)
 	ImGui::End();
 }
 
+///////////////////////////////////////////////////////////
+
+void MainMenuBar::RenderWndAssetsControl(bool* pOpen)
+{
+	ImGuiViewport* pViewport = ImGui::GetMainViewport();
+
+	const ImVec2 wndSize  = { pViewport->Size.x * 0.5f, pViewport->Size.y * 0.5f };
+	const ImVec2 midPoint = wndSize;
+	const ImVec2 pos      = { midPoint.x - (0.5f * wndSize.x), midPoint.y - (0.5f * wndSize.y) };
+
+	ImGui::SetNextWindowSize(wndSize, ImGuiCond_Once);
+	ImGui::SetNextWindowPos(pos, ImGuiCond_Once);
+
+	if (ImGui::Begin("Engine Options", pOpen))
+	{
+		if (ImGui::BeginTabBar("##TabBarAssetsControl"))
+		{
+			if (ImGui::BeginTabItem("Load"))
+			{
+				ImGui::Text("Load a new asset from the engine internal format ");
+				ImGui::EndTabItem();
+			}
+			if (ImGui::BeginTabItem("Import")) 
+			{
+				ImGui::Text("Import a new asset from the external format");
+				ImGui::EndTabItem();
+			}
+			if (ImGui::BeginTabItem("Create")) 
+			{
+				ImGui::Text("Create (generate) a new asset");
+				ImGui::EndTabItem();
+			}
+		}
+		ImGui::EndTabBar();
+	}
+
+	ImGui::End();
+}
 
 
 // =================================================================================

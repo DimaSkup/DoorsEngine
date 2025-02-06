@@ -26,7 +26,6 @@ Engine::Engine()
 	timer_.Reset();       // reset the engine/game timer
 }
 
-
 Engine::~Engine()
 {
 	Log::Print();
@@ -97,12 +96,10 @@ bool Engine::Initialize(
 		systemState_.wndWidth_ = d3d.GetWindowWidth();
 		systemState_.wndHeight_ = d3d.GetWindowHeight();
 		
-
-#if 0
 		// create a texture which can be used as a render target
 		FrameBufferSpecification fbSpec;
 
-		fbSpec.width = 800;
+		fbSpec.width = 600;
 		fbSpec.height = 600;
 		fbSpec.format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM;
 		fbSpec.screenNear = d3d.GetScreenNear();
@@ -110,6 +107,8 @@ bool Engine::Initialize(
 
 		result = frameBuffer_.Initialize(pDevice, fbSpec);
 		Assert::True(result, "can't initialize the render to texture object");
+#if 0
+		
 		
 #endif
 #if 0
@@ -117,11 +116,6 @@ bool Engine::Initialize(
 		result = sound_.Initialize(hwnd_);
 		Assert::True(result, "can't initialize the sound system");
 #endif
-
-
-		// INPUT SYSTEM: setup keyboard input params
-		keyboard_.EnableAutoRepeatKeys();
-		keyboard_.EnableAutoRepeatChars();
 
 		// TIMERS: (game timer, CPU)
 		timer_.Tick();                 // execute tick so we will be able to receive the initialization time
@@ -132,9 +126,10 @@ bool Engine::Initialize(
 		pFacadeEngineToUI_ = new FacadeEngineToUI(
 			pContext,
 			&graphics_.GetRender(),
-			&graphics_.GetEntityMgr(),
-			&graphics_.GetTextureMgr());
-
+			&graphics_.entityMgr_,
+			&graphics_.GetTextureMgr(),
+			&graphics_.GetModelsStorage(),
+			&graphics_.GetEditorCamera());
 
 		imGuiLayer_.Initialize(hwnd_, pDevice, pContext);
 		
@@ -144,7 +139,6 @@ bool Engine::Initialize(
 		// create a str with duration time of the engine initialization process
 		std::string initTimeStr = { "Init time: " + std::to_string(timer_.GetGameTime()) + " s" };
 		userInterface_.CreateConstStr(pDevice, initTimeStr, { 10, 325 });
-		
 
 		Log::Print("is initialized!");
 	}
@@ -155,6 +149,55 @@ bool Engine::Initialize(
 	}
 
 	return true;
+}
+
+/////////////////////////////////////////////////
+
+void Engine::RenderModelIntoTexture(
+	ID3D11DeviceContext* pContext,
+	FrameBuffer& frameBuffer)
+{
+#if 0
+	using namespace DirectX;
+
+	frameBuffer.ClearBuffers(pContext, {0.5f,0.5f,0.5f,1.0f});
+	frameBuffer.Bind(pContext);
+
+	Camera& cam = graphics_.GetEditorCamera();
+	cam.SetFixedLookAt({ 0,0,0 });
+	cam.SetDistanceToFixedLookAt(2.0f);
+
+
+	BasicModel& model = graphics_.GetModelsStorage().GetModelByName("Barrel1");
+
+	const BoundingBox& aabb = model.GetModelAABB();
+	const XMVECTOR extents  = XMLoadFloat3(&aabb.Extents);
+	const XMVECTOR center   = XMLoadFloat3(&aabb.Center);
+
+	XMVECTOR length = XMVector3Length(extents);
+	float scaleFactor = 1.0f / XMVectorGetX(length);
+
+	XMVECTOR scaledCenter = center * scaleFactor;
+	XMFLOAT3 camCenter;
+	XMStoreFloat3(&camCenter, scaledCenter);
+
+	const float piDiv3 = DirectX::XM_PI / 3.0f;
+	const float piDiv6 = DirectX::XM_PI / 6.0f;
+	const float piDiv4 = DirectX::XM_PIDIV4;
+
+	XMFLOAT3 camPos;
+
+	
+	XMMATRIX world = 
+		DirectX::XMMatrixScaling(scaleFactor, scaleFactor, scaleFactor) *
+		DirectX::XMMatrixTranslation(-aabb.Center.x * scaleFactor, -aabb.Center.y * scaleFactor, -aabb.Center.z * scaleFactor);
+
+
+	graphics_.RenderModel(model, world);
+
+	graphics_.GetD3DClass().ResetBackBufferRenderTarget();
+	graphics_.GetD3DClass().ResetViewport();
+#endif
 }
 
 /////////////////////////////////////////////////
@@ -188,14 +231,14 @@ bool Engine::InitializeGUI(D3DClass& d3d, const Settings& settings)
 			settings.GetInt("WINDOW_HEIGHT"),
 			videoCardMemory,
 			videoCardName);
+
+		return true;
 	}
 	catch (EngineException& e)
 	{
 		Log::Error(e, true);
 		return false;
 	}
-
-	return true;
 }
 
 ///////////////////////////////////////////////////////////
@@ -220,9 +263,22 @@ void Engine::Update()
 	// compute fps and frame time (ms)
 	CalculateFrameStats();
 
-	// maybe hack: handle also here to prevent delaying after pressing the key (for instance W)
-	graphics_.HandleKeyboardInput(keyboardEvent_, deltaTime_);
+	if (keyboard_.IsAnyPressed())
+	{
+		// according to the engine mode we call a respective keyboard handler
+		if (systemState_.isEditorMode)
+		{
+			HandleEditorEventKeyboard();
+		}
+		else
+		{
+			HandleGameEventKeyboard();
+		}
 
+		keyboard_.Update();
+	}
+
+	
 	
 	graphics_.Update(systemState_, deltaTime_, timer_.GetGameTime());
 	userInterface_.Update(graphics_.GetD3DClass().GetDeviceContext(), systemState_);
@@ -288,6 +344,7 @@ void Engine::RenderFrame()
 
 		D3DClass& d3d = graphics_.GetD3DClass();
 		ID3D11DeviceContext* pContext = d3d.GetDeviceContext();
+
 		
 		if (systemState_.isEditorMode)
 		{
@@ -295,8 +352,18 @@ void Engine::RenderFrame()
 			d3d.BeginScene();
 			graphics_.Render3D();
 
+			//RenderModelIntoTexture(pContext, frameBuffer_);
+
 			// begin rendering of the editor elements
 			imGuiLayer_.Begin();
+
+#if 0
+			if (ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_NoMove))
+			{
+				ImGui::Image((ImTextureID)frameBuffer_.GetSRV(), { 500 * 1.777f, 500 });
+			}
+			ImGui::End();
+#endif
 
 			RenderUI();
 
@@ -340,7 +407,7 @@ void Engine::RenderUI()
 	d3d.TurnOnBlending(RenderStates::STATES::ALPHA_ENABLE);
 	d3d.TurnOnRSfor2Drendering();
 
-	if (isEditorMode_)
+	if (systemState_.isEditorMode)
 	{
 		// all render the scene view space and gizmos (if any entt is selected)
 		userInterface_.RenderSceneWnd(systemState_);
@@ -376,8 +443,9 @@ void Engine::RenderUI()
 }
 
 
+
 // =================================================================================
-//                        public API: event handlers 
+// Window events handlers 
 // =================================================================================
 
 void Engine::EventActivate(const APP_STATE state)
@@ -451,67 +519,127 @@ void Engine::EventWindowSizing(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 	}
 }
 
-///////////////////////////////////////////////////////////
+
+
+// =================================================================================
+// Keyboard events handlers
+// =================================================================================
 
 void Engine::HandleEditorEventKeyboard()
 {
-	static bool isKeyCtrlDown = false;
-	BYTE keyboardState[256];
-	GetKeyboardState(keyboardState);
+	Camera& cam = graphics_.GetEditorCamera();
 
-	// define if some keys (ctrl,alt,shift) are currently pressed down
-	// so it gives us more opportunities to control using the keyboard
-	isKeyCtrlDown = (1 < keyboardState[VK_CONTROL]);
-
-	const UCHAR keyCode = keyboardEvent_.GetKeyCode();
-	static UCHAR prevKeyCode = 0;
-
-	// handle pressing of some keys
-	if (keyboardEvent_.IsPress())
+	// go through each currently pressed key and handle related events
+	for (const eKeyCodes code : keyboard_.GetPressedKeysList())
 	{
-		switch (keyCode)
+		switch (code)
 		{
-			case KEY_X:
+			// case (keys 0-3): switch the number of directional lights
+			case KEY_0:
+			case KEY_1:
+			case KEY_2:
+			case KEY_3:
 			{
-				int kek = 0;
-				kek++;
+				ID3D11DeviceContext* pContext = graphics_.GetD3DClass().GetDeviceContext();
+				int numDirLights = code - (int)(KEY_0);
+				graphics_.GetRender().SetDirLightsCount(pContext, numDirLights);
+				break;
+			}
+			case KEY_4:   // turn off showing of bounding boxes around entts
+			case KEY_5:   // show bounding box of the whole model
+			case KEY_6:   // show bounding box of each mesh of the model
+			{
+				int mode = code - (int)(KEY_4);
+				graphics_.SetAABBShowMode(GraphicsClass::AABBShowMode(mode));
+				break;
+			}
+			case KEY_A:
+			case KEY_D:
+			{
+				if (cam.IsFixedLook())
+				{
+					// handle moving of the camera around fixed look_at point (if we set any fixed one)
+					int sign = (code == KEY_A) ? +1 : -1;
+					cam.RotateYAroundFixedLook(deltaTime_ * sign);
+				}
+				else
+				{
+					// handle moving left/right
+					int sign = (code == KEY_D) ? +1 : -1;
+					cam.Strafe(cam.GetSpeed() * deltaTime_ * sign);
+				}
+
+				graphics_.UpdateCameraEntity("editor_camera", cam.View(), cam.Proj());
+
+				break;
+			}
+			case KEY_W:
+			{
+				if (!cam.IsFixedLook())                       // handle moving forward
+				{
+					cam.Walk(cam.GetSpeed() * deltaTime_);
+				}
+				else                                          // handle moving up of the camera around fixed look_at point (if we set any fixed one)
+				{
+					cam.PitchAroundFixedLook(deltaTime_);
+				}
+
+				graphics_.UpdateCameraEntity("editor_camera", cam.View(), cam.Proj());
+				break;
+			}
+			case KEY_S:
+			{
+				if (cam.IsFixedLook())                        // handle moving down of the camera around fixed look_at point (if we set any fixed one)
+				{
+					cam.PitchAroundFixedLook(-deltaTime_);
+				}
+				else if (!keyboard_.IsPressed(KEY_CONTROL))   // handle moving backward
+				{
+					cam.Walk(-cam.GetSpeed() * deltaTime_);  
+				}
+				else if (keyboard_.IsPressed(KEY_CONTROL) && userInterface_.GetSelectedEntt())
+				{
+					// handle Ctrl+S: turn on scaling with gizmo if any entt is selected
+					userInterface_.SetGizmoOperation(ImGuizmo::OPERATION::SCALE);
+				}
+					
+				graphics_.UpdateCameraEntity("editor_camera", cam.View(), cam.Proj());
+				break;
+			}
+			case KEY_Z:
+			{
+				graphics_.editorCamera_.MoveUp(-cam.GetSpeed() * deltaTime_);
+				break;
+			}
+			case KEY_SPACE:
+			{
+				graphics_.editorCamera_.MoveUp(cam.GetSpeed() * deltaTime_);
 				break;
 			}
 			case KEY_Q:
 			{
 				// guizmo: turn OFF any operation
-				if (isKeyCtrlDown)
+				if (keyboard_.IsPressed(KEY_CONTROL))
 					userInterface_.SetGizmoOperation(-1);
 				break;
 			}
 			case KEY_T:
 			{
-				if (isKeyCtrlDown)
+				if (keyboard_.IsPressed(KEY_CONTROL))
 					userInterface_.SetGizmoOperation(ImGuizmo::OPERATION::TRANSLATE);
 				break;
 			}
 			case KEY_R:
 			{
-				if (isKeyCtrlDown)
+				if (keyboard_.IsPressed(KEY_CONTROL))
 					userInterface_.SetGizmoOperation(ImGuizmo::OPERATION::ROTATE);
-				break;
-			}
-			case KEY_S:
-			{
-				if (isKeyCtrlDown)
-					userInterface_.SetGizmoOperation(ImGuizmo::OPERATION::SCALE);
 				break;
 			}
 			case KEY_F1:
 			{
 				// switch to the game mode
-				graphics_.GetD3DClass().ToggleFullscreen(hwnd_, true);
-				graphics_.SwitchGameMode(true);
-
-				systemState_.isEditorMode = false;
-				isEditorMode_ = false;
-				ShowCursor(FALSE);
-
+				if (!keyboard_.WasPressedBefore(KEY_F1))
+					TurnOnGameMode();
 				break;
 			}
 			case VK_ESCAPE:
@@ -521,90 +649,25 @@ void Engine::HandleEditorEventKeyboard()
 				isExit_ = true;
 				break;
 			}
-		} // switch
-
-		// store the values of currently pressed key for the next frame
-		prevKeyCode = keyCode;
-
-	} // if is press
-
-	// handle releasing of some keys
-	if (keyboardEvent_.IsRelease())
-	{
-		UCHAR keyCode = keyboardEvent_.GetKeyCode();
-
-		prevKeyCode = 0;
+		}
 	}
 
-	// store what type of the keyboard event we have 
-	keyboardEvent_ = keyboard_.ReadKey();
+	// if SHIFT is pressed then camera moves faster
+	bool isRunning = keyboard_.IsPressed(KEY_SHIFT);
+	graphics_.editorCamera_.SetIsRunning(isRunning);
 }
 
 ///////////////////////////////////////////////////////////
 
 void Engine::HandleGameEventKeyboard()
 {
-	const UCHAR keyCode = keyboardEvent_.GetKeyCode();
-	static UCHAR prevKeyCode = 0;
+	Camera& cam = graphics_.gameCamera_;
 
-	// handle pressing of some keys
-	if (keyboardEvent_.IsPress())
+	// go through each currently pressed key and handle related events
+	for (const eKeyCodes code : keyboard_.GetPressedKeysList())
 	{
-		switch (keyCode)
+		switch (code)
 		{
-
-			case KEY_F1:
-			{
-				// switch to the editor mode
-				D3DClass& d3d = graphics_.GetD3DClass();
-				Camera& editorCamera = graphics_.GetEditorCamera();
-
-				d3d.ToggleFullscreen(hwnd_, false);
-				graphics_.SwitchGameMode(false);
-
-				// update the camera proj matrix according to new window size
-				editorCamera.SetProjectionValues(
-					editorCamera.GetFovInRad(),
-					d3d.GetAspectRatio(),
-					d3d.GetScreenNear(),
-					d3d.GetScreenDepth());
-
-				systemState_.isEditorMode = true;
-				isEditorMode_ = true;
-				ShowCursor(TRUE);
-
-				break;
-			}
-			case KEY_F3:
-			{
-				// show/hide debug info in the game mode
-				systemState_.isShowDbgInfo = !systemState_.isShowDbgInfo;
-
-				if (systemState_.isShowDbgInfo)
-					Log::Debug("F3 key is pressed: show dbg text info:");
-				else
-					Log::Debug("F3 key is pressed: hide dbg text info:");
-
-				break;
-			}
-			case KEY_L:
-			{
-				// switch the flashlight
-				static bool flashLightState = true;
-
-				if (prevKeyCode != KEY_L)
-				{
-					flashLightState = !flashLightState;
-
-					graphics_.GetRender().SwitchFlashLight(
-						graphics_.GetD3DClass().GetDeviceContext(),
-						flashLightState);
-				}
-
-				Log::Debug("key L is pressed");
-
-				break;
-			}
 			case VK_ESCAPE:
 			{
 				// if we pressed the ESC button we exit from the application
@@ -612,23 +675,72 @@ void Engine::HandleGameEventKeyboard()
 				isExit_ = true;
 				break;
 			}
-		} // switch
-
-		// store the values of currently pressed key for the next frame
-		prevKeyCode = keyCode;
-
-	} // if is press
-
-	// handle releasing of some keys
-	if (keyboardEvent_.IsRelease())
-	{
-		UCHAR keyCode = keyboardEvent_.GetKeyCode();
-
-		prevKeyCode = 0;
+			// (keys A/D): handle moving left/right
+			case KEY_A: 
+			{
+				graphics_.gameCamera_.Strafe(-cam.GetSpeed() * deltaTime_);
+				break;
+			}
+			case KEY_D:
+			{
+				graphics_.gameCamera_.Strafe(cam.GetSpeed() * deltaTime_);
+				break;
+			}
+			// (keys W/S): handle moving forward/backward
+			case KEY_S:
+			{
+				graphics_.gameCamera_.Walk(-cam.GetSpeed() * deltaTime_);
+				break;
+			}
+			case KEY_W:
+			{
+				graphics_.gameCamera_.Walk(cam.GetSpeed() * deltaTime_);
+				break;
+			}
+			case KEY_Z:
+			{
+				graphics_.gameCamera_.MoveUp(-cam.GetSpeed() * deltaTime_);
+				break;
+			}
+			case KEY_SPACE:
+			{
+				graphics_.gameCamera_.MoveUp(cam.GetSpeed() * deltaTime_);
+				break;
+			}
+			case KEY_L:
+			{
+				graphics_.GetRender().SwitchFlashLight(graphics_.GetD3DClass().GetDeviceContext());
+				break;
+			}
+			case KEY_F1:
+			{
+				// switch from game to the editor mode
+				if (!keyboard_.WasPressedBefore(KEY_F1))
+					TurnOnEditorMode();
+				break;
+			}
+			case KEY_F2:
+			{
+				// switch btw cameras modes (free / game)
+				if (!keyboard_.WasPressedBefore(KEY_F2))
+				{
+					cam.SetFreeCamera(!cam.IsFreeCamera());
+				}
+				break;
+			}
+			case KEY_F3:
+			{
+				// show/hide debug info in the game mode
+				if (!keyboard_.WasPressedBefore(KEY_F3))
+					systemState_.isShowDbgInfo = !systemState_.isShowDbgInfo;
+				break;
+			}
+		}
 	}
 
-	// store what type of the keyboard event we have 
-	keyboardEvent_ = keyboard_.ReadKey();
+	// if SHIFT is pressed then camera moves faster
+	bool isRunning = keyboard_.IsPressed(KEY_SHIFT);
+	graphics_.gameCamera_.SetIsRunning(isRunning);
 }
 
 ///////////////////////////////////////////////////////////
@@ -636,16 +748,179 @@ void Engine::HandleGameEventKeyboard()
 void Engine::EventKeyboard(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	// a handler for all the keyboard events
-
 	inputMgr_.HandleKeyboardMessage(keyboard_, uMsg, wParam, lParam);
+}
 
-	// according to the engine mode we call a respective keyboard handler
-	if (isEditorMode_)
-		while (!keyboard_.KeyBufferIsEmpty())
-			HandleEditorEventKeyboard();
-	else
-		while (!keyboard_.KeyBufferIsEmpty())
-			HandleGameEventKeyboard();		
+
+// =================================================================================
+// Mouse events handlers
+// =================================================================================
+
+void Engine::HandleEditorEventMouse()
+{
+	using enum MouseEvent::EventType;
+
+	static bool isMouseMiddlePressed = false;
+	mouseEvent_ = mouse_.ReadEvent();
+	MouseEvent::EventType eventType = mouseEvent_.GetEventType();
+
+	switch (eventType)
+	{
+		case Move:
+		{
+			// update mouse position data because we need to print mouse position on the screen
+			systemState_.mouseX = mouseEvent_.GetPosX();
+			systemState_.mouseY = mouseEvent_.GetPosY();
+			break;
+		}
+		case RAW_MOVE:
+		{
+			// handle moving of the camera around fixed look_at point (if we set any fixed one)
+			Camera& cam = graphics_.editorCamera_;
+
+			// if we want to rotate a camera
+			if (isMouseMiddlePressed)
+			{
+				// rotate around some particular point
+				if (cam.IsFixedLook())
+				{
+					cam.RotateYAroundFixedLook(mouseEvent_.GetPosX() * 0.01f);
+					cam.PitchAroundFixedLook  (mouseEvent_.GetPosY() * 0.01f);
+				}
+				// rotate around itself
+				else
+				{
+					cam.Pitch  (mouseEvent_.GetPosY() * deltaTime_);
+					cam.RotateY(mouseEvent_.GetPosX() * deltaTime_);
+				}
+
+				graphics_.UpdateCameraEntity("editor_camera", cam.View(), cam.Proj());
+			}
+			break;
+		}
+
+		case LPress:
+		{
+			// if we currenly hovering the scene window with our mouse
+			// and we don't hover any gizmo we execute entity picking (selection) test
+			if (userInterface_.IsSceneWndHovered() && !userInterface_.IsGizmoHovered())
+			{
+				EntityID selectedEnttID = 0;
+				selectedEnttID = graphics_.TestEnttSelection(mouseEvent_.GetPosX(), mouseEvent_.GetPosY());
+
+				// update the UI about selection of the entity
+				if (selectedEnttID)
+				{
+					userInterface_.SetSelectedEntt(selectedEnttID);
+					userInterface_.SetGizmoOperation(ImGuizmo::OPERATION::TRANSLATE);
+				}
+				else
+				{
+					graphics_.editorCamera_.SetFixedLookState(false);
+					userInterface_.SetSelectedEntt(0);
+					userInterface_.SetGizmoOperation(-1);  // turn off the gizmo
+				}
+			}
+			break;
+		}
+		case WheelUp:
+		case WheelDown:
+		{
+			Camera& cam = graphics_.GetEditorCamera();
+			
+			// using mouse wheel we move forward or backward along 
+			// the camera direction vector
+			int sign          = (eventType == WheelUp) ? 1 : -1;
+			float cameraSpeed = cam.GetSpeed();
+			int speed         = (keyboard_.IsPressed(KEY_SHIFT)) ? cameraSpeed * 5.0f : cameraSpeed;
+			float step        = speed * deltaTime_ * sign;
+
+			cam.Walk(step);
+
+			break;
+		}
+		case MPress:
+		{
+			isMouseMiddlePressed = true;
+			break;
+		}
+		case MRelease:
+		{
+			isMouseMiddlePressed = false;
+			break;
+		}
+		case LeftDoubleClick:
+		{
+			// handle double click right on selected entity
+			if (userInterface_.IsSceneWndHovered() && 	(userInterface_.GetSelectedEntt() != 0))
+			{
+				using namespace DirectX;
+
+				Camera& cam = graphics_.editorCamera_;
+				EntityID selectedEnttID = userInterface_.GetSelectedEntt();
+				XMFLOAT3 enttPos = graphics_.entityMgr_.transformSystem_.GetPositionByID(selectedEnttID);
+
+				// fix on the entt and move closer to it
+				if (keyboard_.IsPressed(KEY_CONTROL))
+				{
+					// compute new position for the camera
+					XMVECTOR lookAt = DirectX::XMLoadFloat3(&enttPos);
+					XMVECTOR camOldPos = cam.GetPositionVec();
+					XMVECTOR camDir = lookAt - camOldPos;
+
+					// p = p0 + v*t
+					XMVECTOR newPos = lookAt - (camDir * 0.1f);
+
+					// focus camera on entity
+					cam.LookAt(newPos, lookAt, { 0,1,0 });
+
+					// set fixed focus on the selected entity so we will move around it
+					// (to turn off fixed focus just click aside of the entity)
+					cam.SetFixedLookState(true);
+					cam.SetFixedLookAtPoint(lookAt);
+				}
+				else
+				{
+					// focus (but not fix) camera on entity
+					cam.LookAt(cam.GetPosition(), enttPos, { 0,1,0 });
+				}
+				
+				userInterface_.SetGizmoOperation(ImGuizmo::OPERATION::TRANSLATE);
+			}
+			break;
+		}
+	} // switch
+}
+
+///////////////////////////////////////////////////////////
+
+void Engine::HandleGameEventMouse()
+{
+	mouseEvent_ = mouse_.ReadEvent();
+
+	switch (mouseEvent_.GetEventType())
+	{
+		case MouseEvent::EventType::Move:
+		{
+			// update mouse position data because we need to print mouse position on the screen
+			systemState_.mouseX = mouseEvent_.GetPosX();
+			systemState_.mouseY = mouseEvent_.GetPosY();
+
+			break;
+		}
+		case MouseEvent::EventType::RAW_MOVE:
+		{
+			// update the rotation data of the camera
+			// with the current state of the input devices. The movement function will update
+			// the position of the camera to the location for this frame
+			Camera& cam = graphics_.GetGameCamera();
+			cam.Pitch  (mouseEvent_.GetPosY() * deltaTime_);
+			cam.RotateY(mouseEvent_.GetPosX() * deltaTime_);
+	
+
+			break;
+		}
+	}
 }
 
 ///////////////////////////////////////////////////////////
@@ -656,41 +931,58 @@ void Engine::EventMouse(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	inputMgr_.HandleMouseMessage(mouse_, uMsg, wParam, lParam);
 
-	while (!mouse_.EventBufferIsEmpty())
+	// according to the engine mode we call a respective keyboard handler
+	if (systemState_.isEditorMode)
 	{
-		mouseEvent_ = mouse_.ReadEvent();
+		while (!mouse_.EventBufferIsEmpty())
+			HandleEditorEventMouse();
+	}
+	else
+	{
+		while (!mouse_.EventBufferIsEmpty())
+			HandleGameEventMouse();
+	}
+}
 
-		switch (mouseEvent_.GetEventType())
-		{
-			case MouseEvent::EventType::Move:
-			{
-				// update mouse position data because we need to print mouse position on the screen
-				systemState_.mouseX = mouseEvent_.GetPosX();
-				systemState_.mouseY = mouseEvent_.GetPosY();
-				break;
-			}
-			case MouseEvent::EventType::LPress:
-			{
-				// if we currenly hovering the scene windows with our mouse
-				// and we don't hover any gizmo we execute entity picking (selection) test
-				if (userInterface_.IsSceneWndHovered() && !userInterface_.IsGizmoHovered())
-				{
-					EntityID selectedEnttID = 0;
-					selectedEnttID = graphics_.TestEnttSelection(mouseEvent_.GetPosX(), mouseEvent_.GetPosY());
 
-					// update the UI about selection of the entity
-					if (selectedEnttID)
-						userInterface_.SetSelectedEntt(selectedEnttID);
-				}
-				break;
-			}
-			default:
-			{
-				graphics_.HandleMouseInput(systemState_, mouseEvent_, deltaTime_);
-				break;
-			}
-		} // switch
-	} // while
+// =================================================================================
+// Private helpers
+// =================================================================================
+
+void Engine::TurnOnEditorMode()
+{
+	// switch from the game to the editor mode
+
+	D3DClass& d3d = graphics_.GetD3DClass();
+	Camera& editorCamera = graphics_.GetEditorCamera();
+
+	d3d.ToggleFullscreen(hwnd_, false);
+	graphics_.SwitchGameMode(false);
+
+	// update the camera proj matrix according to new window size
+	editorCamera.SetProjection(
+		editorCamera.GetFovY(),
+		d3d.GetAspectRatio(),
+		d3d.GetScreenNear(),
+		d3d.GetScreenDepth());
+
+	systemState_.isEditorMode = true;
+	ShowCursor(TRUE);
+}
+
+///////////////////////////////////////////////////////////
+
+void Engine::TurnOnGameMode()
+{
+	// switch from the editor to the game mode
+
+	graphics_.GetD3DClass().ToggleFullscreen(hwnd_, true);
+	graphics_.SwitchGameMode(true);
+
+	systemState_.isEditorMode = false;
+	ShowCursor(FALSE);
 }
 
 } // namespace Doors
+
+

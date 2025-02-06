@@ -140,14 +140,6 @@ void FrameBuffer::Bind(ID3D11DeviceContext* pContext)
 	pContext->RSSetViewports(1, &viewport_);
 }
 
-void FrameBuffer::Unbind(ID3D11DeviceContext* pContext)
-{
-	// reset rendering buffers to the default state
-
-	pContext->OMSetRenderTargets(1, nullptr, nullptr);
-	pContext->RSSetViewports(1, nullptr);
-}
-
 //////////////////////////////////////////////////////////
 
 void FrameBuffer::ClearBuffers(

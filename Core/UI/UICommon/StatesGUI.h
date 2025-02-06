@@ -6,5 +6,6 @@ struct StatesGUI
 {
 	// flags to show windows
 	bool showWndEngineOptions_ = false;
-	bool showWndForEnttCreation_ = false;
+	bool showWndAssetsControl_ = false;
+	bool showWndEnttCreation_ = false;
 };

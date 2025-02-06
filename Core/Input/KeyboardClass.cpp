@@ -7,23 +7,37 @@
 
 KeyboardClass::KeyboardClass()
 {
-	for (size_t i = 0; i < 256; i++)
-		keyStates_[i] = false;      // initialize all key states to off (false)
+	// initialize all key states to off (false)
+	memset(keyStates_, 0, sizeof(bool) * 256);  
 }
 
-KeyboardEvent KeyboardClass::ReadKey()
+///////////////////////////////////////////////////////////
+
+void KeyboardClass::Update()
 {
-	if (keyBuffer_.empty()) // if no keys to be read
-	{
-		return KeyboardEvent();   // return an empty keyboard event
-	}
-	else
-	{
-		KeyboardEvent e = keyBuffer_.front();  // get the first Keyboard Event from the queue
-		keyBuffer_.pop();  // remove the first item from the queue
-		return e; // return a keyboard event
-	}
+	// store the keys which a currently pressed so in the next frame 
+	// we will be able to prevent repeated handling of some events
+	keysPressedBefore_ = pressedKeys_;
 }
+
+///////////////////////////////////////////////////////////
+
+bool KeyboardClass::WasPressedBefore(const unsigned char keycode)
+{
+	// check if input key was pressed in the previous frame
+
+	for (auto it = keysPressedBefore_.begin(); it != keysPressedBefore_.end(); ++it)
+	{
+		if (*it == keycode)
+			return true;
+	}
+
+	return false;
+}
+
+///////////////////////////////////////////////////////////
+
+#if 0
 
 unsigned char KeyboardClass::ReadChar()
 {
@@ -38,19 +52,37 @@ unsigned char KeyboardClass::ReadChar()
 		return e; // return a character
 	}
 }
+#endif
 
+///////////////////////////////////////////////////////////
 
-
-// -------------------------------- EVENTS ------------------------------------- //
-
-void KeyboardClass::OnKeyPressed(const unsigned char key)
+void KeyboardClass::OnKeyPressed(const unsigned char keycode)
 {
-	keyStates_[key] = true;
-	keyBuffer_.push(KeyboardEvent(KeyboardEvent::EventType::Press, key));
+	keyStates_[keycode] = true;
+
+	// put the key into the list of pressed keys if it hasn't been pressed before
+	for (auto it = pressedKeys_.begin(); it != pressedKeys_.end(); ++it)
+	{
+		if (*it == keycode)
+			return;
+	}
+
+	pressedKeys_.push_back(eKeyCodes(keycode));
 }
+
+///////////////////////////////////////////////////////////
 
 void KeyboardClass::OnKeyReleased(const unsigned char keycode)
 {
 	keyStates_[keycode] = false;
-	keyBuffer_.push(KeyboardEvent(KeyboardEvent::EventType::Release, keycode));
+
+	// remove the input keycode from the list of pressed keys
+	for (auto it = pressedKeys_.begin(); it != pressedKeys_.end(); ++it)
+	{
+		if (*it == keycode)
+		{
+			pressedKeys_.erase(it);
+			return;
+		}
+	}
 }

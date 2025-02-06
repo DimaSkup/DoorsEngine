@@ -379,8 +379,11 @@ float4 PS_DebugMaterial(PS_IN pin) : SV_Target
 // =================================================================================
 // PIXEL SHADERS (AN ENTRY POINT)
 // =================================================================================
-float4 PS(PS_IN pin) : SV_Target
+//float4 PS(PS_IN pin) : SV_Target
+PS_OUT PS(PS_IN pin)
 {
+	PS_OUT pout;
+
 	// show normals
 	switch (gDebugType)
 	{
@@ -390,21 +393,27 @@ float4 PS(PS_IN pin) : SV_Target
 		case SHOW_BUMPED_NORMALS:
 		{
 			// show normals/tangents/binormals
-			return PS_DebugVectors(pin, gDebugType);
+			pout.color = PS_DebugVectors(pin, gDebugType);
+			break;
 		}
 		case SHOW_ONLY_LIGHTING:
 		case SHOW_ONLY_DIRECTED_LIGHTING:
 		case SHOW_ONLY_POINT_LIGHTING:
 		case SHOW_ONLY_SPOT_LIGHTING:
 		{
-			return PS_DebugLight(pin, gDebugType);
+			pout.color = PS_DebugLight(pin, gDebugType);
+			break;
 		}
 		case SHOW_ONLY_DIFFUSE_MAP:
 		case SHOW_ONLY_NORMAL_MAP:
 		{
-			return PS_DebugTextures(pin, gDebugType);
+			pout.color = PS_DebugTextures(pin, gDebugType);
+			break;
 		}
 	}
 
-	return float4(1.0f, 0.0f, 1.0f, 1.0f);
+	//pout.color = float4(pin.posH.z - 0.3f, pin.posH.z - 0.3f, pin.posH.z - 0.3f, 1.0f);
+	pout.depth = pin.posH.z;// -0.05f;
+
+	return pout;
 }

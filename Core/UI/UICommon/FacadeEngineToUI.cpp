@@ -12,12 +12,16 @@ FacadeEngineToUI::FacadeEngineToUI(
 	ID3D11DeviceContext* pContext,
 	Render::Render* pRender,
 	ECS::EntityMgr* pEntityMgr,
-	TextureMgr* pTextureMgr)
+	TextureMgr* pTextureMgr,
+	ModelStorage* pModelStorage,
+	Camera* pEditorCamera)
 	:
 	pContext_(pContext),
 	pRender_(pRender),
 	pEntityMgr_(pEntityMgr),
-	pTextureMgr_(pTextureMgr)
+	pTextureMgr_(pTextureMgr),
+	pModelStorage_(pModelStorage),
+	pEditorCamera_(pEditorCamera)
 {
 	// set pointers to the subsystems
 
@@ -25,14 +29,15 @@ FacadeEngineToUI::FacadeEngineToUI(
 	Assert::NotNullptr(pContext, "ptr to device context == nullptr");
 	Assert::NotNullptr(pEntityMgr, "ptr to the entt mgr == nullptr");
 	Assert::NotNullptr(pTextureMgr, "ptr to the texture mgr == nullptr");
+	Assert::NotNullptr(pModelStorage, "ptr to the model storage == nullptr");
+	Assert::NotNullptr(pEditorCamera, "ptr to the editor camera == nullptr");
 }
 
 
 
 // =================================================================================
-//                       for using the textures manager
+// For using the textures manager
 // =================================================================================
-
 bool FacadeEngineToUI::GetShaderResourceViewByTexID(
 	const uint32_t textureID,
 	ID3D11ShaderResourceView*& pSRV)
@@ -42,12 +47,12 @@ bool FacadeEngineToUI::GetShaderResourceViewByTexID(
 }
 
 // =================================================================================
-//                            get camera info
+// Get camera info
 // =================================================================================
-bool FacadeEngineToUI::GetCameraViewAndProj(
-	const uint32_t camEnttID,
-	float* camViewMatrix, 
-	float* camProjMatrix)
+void FacadeEngineToUI::GetCameraViewAndProj(
+	const EntityID camEnttID, 
+	float* outView, 
+	float* outProj)
 {
 	DirectX::XMMATRIX view;
 	DirectX::XMMATRIX proj;
@@ -55,16 +60,67 @@ bool FacadeEngineToUI::GetCameraViewAndProj(
 	pEntityMgr_->cameraSystem_.GetViewAndProjByID(camEnttID, view, proj);
 
 	// copy view and proj matrices into raw array of 16 floats
-	memcpy(camViewMatrix, view.r->m128_f32, sizeof(float) * 16);
-	memcpy(camProjMatrix, proj.r->m128_f32, sizeof(float) * 16);
+	memcpy(outView, view.r->m128_f32, sizeof(float) * 16);
+	memcpy(outProj, proj.r->m128_f32, sizeof(float) * 16);
+}
 
-	return true;
+///////////////////////////////////////////////////////////
+
+void FacadeEngineToUI::PlaceCameraNearEntt(const EntityID enttID)
+{
+	// set that the editor camera look at some selected entity and
+	// place the camera away a bit from this entity so we can see it properly
+
+	if (enttID == 0)
+		return;
+
+	using namespace DirectX;
+
+	Camera& cam = *pEditorCamera_;
+	ECS::EntityMgr& mgr = *pEntityMgr_;
+
+	// set where camera look at
+	//XMFLOAT3 enttPos = mgr.transformSystem_.GetPositionByID(enttID);
+	//cam.SetFixedLookAt(enttPos);
+	//cam.SetPosition(XMVECTOR{ enttPos.x, enttPos.y, enttPos.z - 3 });
+	//cam.UpdateViewMatrix();
+
+	/*
+	// compute the distance from the entity center where we place the camera
+	BoundingBox aabb;
+	mgr.boundingSystem_.GetEnttAABB(enttID, aabb);
+	XMVECTOR vecExtents = XMLoadFloat3(&aabb.Extents);
+	XMMATRIX world = mgr.transformSystem_.GetWorldMatrixOfEntt(enttID);
+	vecExtents = XMVector3Transform(vecExtents, world);
+	float enttRadius    = XMVectorGetX(XMVector3Length(vecExtents));
+	enttRadius = 10;
+
+	XMVECTOR pos       = cam.GetPosition();   // current camera position
+	XMVECTOR cameraDir = cam.GetDirection();  // normalized camera direction
+	XMVECTOR newPos    = pos - cameraDir * enttRadius;   // p = p0 + v*t (where pos=p0, v=cameraDir)
+
+	cam.SetPosition(newPos);
+	cam.UpdateViewMatrix();
+	
+	*/
+
+#if 0
+	cam.DetachFixedLookAt();
+
+	EntityID cameraID = mgr.nameSystem_.GetIdByName("editor_camera");
+	if (cameraID != 0)
+	{
+		pEntityMgr_->cameraSystem_.Update(
+			cameraID,
+			cam.GetViewMatrix(),
+			cam.GetProjectionMatrix());
+	}
+#endif
 }
 
 
-
 // =================================================================================
-//                          for the entity editor
+// For the entity editor
 // =================================================================================
 bool FacadeEngineToUI::GetAllEnttsIDs(const uint32_t*& pEnttsIDsArr, int& numEntts)
 {
@@ -236,7 +292,7 @@ void FacadeEngineToUI::GetEnttPointLightData(
 
 
 // =================================================================================
-//                             for the sky editor
+// For the sky editor
 // =================================================================================
 
 bool FacadeEngineToUI::GatherSkyData(
@@ -297,7 +353,7 @@ bool FacadeEngineToUI::SetSkyTexture(const int idx, const uint32_t textureID)
 
 
 // =================================================================================
-//                               for the fog editor
+// For the fog editor
 // =================================================================================
 
 bool FacadeEngineToUI::GatherFogData(
@@ -323,11 +379,27 @@ bool FacadeEngineToUI::SetFogParams(const ColorRGB& color, const float start, co
 
 
 // =================================================================================
-//                          for the debug editor
+// For the debug editor
 // =================================================================================
 
 bool FacadeEngineToUI::SwitchDebugState(const int debugType)
 {
 	pRender_->SwitchDebugState(pContext_, Render::DebugState(debugType));
 	return true;
+}
+
+
+// =================================================================================
+// For assets manager
+// =================================================================================
+int FacadeEngineToUI::GetNumAssets()
+{
+	// return the number of all the currently loaded assets
+	return pModelStorage_->GetNumAssets();
+}
+
+void FacadeEngineToUI::GetAssetsNamesList(std::string* namesArr, const int numNames)
+{
+	// get a name of each loaded asset
+	pModelStorage_->GetAssetsNamesList(namesArr, numNames);
 }

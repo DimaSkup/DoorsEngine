@@ -22,11 +22,11 @@
 namespace Render
 {
 
-//
-// Class name: FontShaderClass
-//
 class FontShaderClass final
 {
+public:
+	using SRV = ID3D11ShaderResourceView;
+
 public:
 	FontShaderClass();
 	~FontShaderClass();
@@ -42,22 +42,19 @@ public:
 		const DirectX::XMMATRIX& WVO);
 
 	// Public rendering API
-	void UpdatePerFrame(
-		ID3D11DeviceContext* pContext,
-		ID3D11ShaderResourceView* const* ppFontTexSRV);
-
 	void Render(
 		ID3D11DeviceContext* pContext,
 		const std::vector<ID3D11Buffer*>& textVBs,    // array of text vertex buffers
 		const std::vector<ID3D11Buffer*>& textIBs,    // array of text indices buffers
 		const std::vector<uint32_t>& indexCounts,
-		const uint32_t fontVertexSize);
+		const uint32_t fontVertexSize,
+		SRV* const* ppFontTexSRV);
 	
 	// Public modification API
 	void SetWorldViewOrtho(ID3D11DeviceContext* pContext, const DirectX::XMMATRIX& WVO);
-	void SetFontColor(ID3D11DeviceContext* pContext, const DirectX::XMFLOAT3 & textColor);
-	void SetFontTexture(ID3D11DeviceContext* pContext, ID3D11ShaderResourceView* const* ppFontTexture);
+	void SetFontColor(ID3D11DeviceContext* pContext, const DirectX::XMFLOAT3& color);
 	
+
 	// Public query API
 	inline const std::string & GetShaderName() const { return className_; }
 	inline ID3D11Buffer* GetConstBufferVS()   const { return matrixBuffer_.Get(); }

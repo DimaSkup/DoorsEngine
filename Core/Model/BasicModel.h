@@ -56,16 +56,18 @@ public:
 	void AllocateVertices(const int size);
 	void AllocateIndices(const int size);
 
+
 	// query API
-	inline ModelID GetID() const { return id_; }
-	inline const ModelName& GetName() const { return name_; }
+	inline ModelID GetID()                              const { return id_; }
+	inline const ModelName& GetName()                   const { return name_; }
 	inline const DirectX::BoundingBox& GetModelAABB()   const { return modelAABB_; }
 	inline const DirectX::BoundingBox* GetSubsetsAABB() const { return subsetsAABB_; }
-	inline MeshGeometry::Subset* GetSubsets() { return meshes_.subsets_; }
+	inline MeshGeometry::Subset* GetSubsets()                 { return meshes_.subsets_; }
 
-	inline int GetNumVertices() const { return numVertices_; }
-	inline int GetNumIndices()  const { return numIndices_; }
-	inline int GetNumSubsets()  const { return numSubsets_; }
+	inline int GetNumVertices()                         const { return numVertices_; }
+	inline int GetNumIndices()                          const { return numIndices_; }
+	inline int GetNumSubsets()                          const { return numSubsets_; }
+
 
 	// update API
 	void SetTexture(const int subsetID, const TexType type, const TexID texID);

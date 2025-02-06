@@ -39,6 +39,7 @@ void EntityEditorController::SetSelectedEntt(const uint32_t entityID)
 	{
 		isSelectedAnyEntt_ = false;
 		selectedEnttType_ = NONE;
+		selectedEnttID_ = 0;
 		return;
 	}
 	// we have chosen some entt

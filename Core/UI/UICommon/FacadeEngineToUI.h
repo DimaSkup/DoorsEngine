@@ -8,6 +8,8 @@
 #pragma once
 #include "IFacadeEngineToUI.h"
 
+#include "../../Camera/Camera.h"
+#include "../../Model/ModelStorage.h"
 #include "../../Texture/TextureMgr.h"   // texture mgr is used to get textures by its IDs
 #include "Entity/EntityMgr.h"           // from the ECS module
 #include "Render.h"                     // from the Render module
@@ -26,13 +28,17 @@ private:
 	Render::Render* pRender_       = nullptr;
 	ECS::EntityMgr* pEntityMgr_    = nullptr;
 	TextureMgr*     pTextureMgr_   = nullptr;
+	ModelStorage*   pModelStorage_ = nullptr;
+	Camera*         pEditorCamera_ = nullptr;
 
 public:
 	FacadeEngineToUI(
 		ID3D11DeviceContext* pContext,
 		Render::Render* pRender,
 		ECS::EntityMgr* pEntityMgr,
-		TextureMgr*     pTextureMgr);
+		TextureMgr* pTextureMgr,
+		ModelStorage* pModelStorage,
+		Camera* pEditorCamera);
 
 
 	// 
@@ -44,10 +50,9 @@ public:
 	//
 	// get camera info
 	//
-	virtual bool GetCameraViewAndProj(
-		const uint32_t camEnttID,
-		float* camViewMatrix, 
-		float* camProjMatrix) override;
+	virtual void GetCameraViewAndProj(const EntityID camEnttID, float* view, float* proj) override;
+	virtual void PlaceCameraNearEntt(const EntityID id)                                   override;
+
 
 	//
 	// for the entity editor
@@ -59,7 +64,7 @@ public:
 	virtual bool GatherEnttData(const EntityID id, Vec3& pos, Vec4& dirQuat, float& uniScale)                             override;
 	virtual void SetEnttTransformation(const EntityID id, const XMVECTOR& pos, const XMVECTOR& rot, const float uniScale) override;
 	virtual void GetEnttWorldMatrix(const EntityID id, DirectX::XMMATRIX& outMat)                                         override;
-
+	//virtual void GetEnttPosition(const EntityID id, Vec3& pos)                override;
 
 	virtual bool SetEnttPosition(const uint32_t entityID, const Vec3& pos)    override;
 	virtual bool SetEnttRotation(const uint32_t entityID, const Vec4& dir)    override;
@@ -112,4 +117,11 @@ public:
 	// for debugging
 	//
 	virtual bool SwitchDebugState(const int debugType) override;
+
+
+	//
+	// for assets manager
+	//
+	virtual int  GetNumAssets()                                                 override;
+	virtual void GetAssetsNamesList(std::string* namesArr, const int numNames) override;
 };

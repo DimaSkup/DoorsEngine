@@ -8,13 +8,12 @@
 #include "../Common/Log.h"
 #include "../Common/Types.h"
 
+
 namespace Render
 {
 
-
 FontShaderClass::FontShaderClass() : className_(__func__)
 {
-	//Log::Debug();
 }
 
 FontShaderClass::~FontShaderClass() 
@@ -22,12 +21,9 @@ FontShaderClass::~FontShaderClass()
 }
 
 
-// ***********************************************************************************
-//
-//                              PUBLIC FUNCTIONS
-//
-// ***********************************************************************************
-
+// =================================================================================
+//                             PUBLIC MODIFICATION API
+// =================================================================================
 
 bool FontShaderClass::Initialize(
 	ID3D11Device* pDevice, 
@@ -55,43 +51,60 @@ bool FontShaderClass::Initialize(
 	return true;
 }
 
+///////////////////////////////////////////////////////////
 
-// ************************************************************************************
-//                             PUBLIC RENDERING API
-// ************************************************************************************
-
-void FontShaderClass::UpdatePerFrame(
+void FontShaderClass::SetWorldViewOrtho(
 	ID3D11DeviceContext* pContext,
-	ID3D11ShaderResourceView* const* ppFontTexSRV)
+	const DirectX::XMMATRIX& WVO)
 {
-	// call this function before the Render()
-
-	// set vertex and pixel shaders for rendering
-	pContext->VSSetShader(vs_.GetShader(), nullptr, 0U);
-	pContext->PSSetShader(ps_.GetShader(), nullptr, 0U);
-
-	// set the primitive topology for all the sentences and the input layout
-	pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	pContext->IASetInputLayout(vs_.GetInputLayout());
-
-	// set the sampler state for the pixel shader
-	pContext->PSSetSamplers(0, 1, samplerState_.GetAddressOf());
-	pContext->PSSetShaderResources(0, 1, ppFontTexSRV);
+	// prepare matrices for using in the vertex shader
+	// (the WVO matrix must be already transposed)
+	matrixBuffer_.data.worldViewProj = WVO;
+	matrixBuffer_.ApplyChanges(pContext);
 }
 
 ///////////////////////////////////////////////////////////
+
+void FontShaderClass::SetFontColor(
+	ID3D11DeviceContext* pContext,
+	const DirectX::XMFLOAT3& color)
+{
+	// load the pixel color data into GPU
+	pixelBuffer_.data.pixelColor = color;
+	pixelBuffer_.ApplyChanges(pContext);
+}
+
+
+
+// =================================================================================
+//                             PUBLIC RENDERING API
+// =================================================================================
 
 void FontShaderClass::Render(
 	ID3D11DeviceContext* pContext,
 	const std::vector<ID3D11Buffer*>& textVBs,    // array of text vertex buffers
 	const std::vector<ID3D11Buffer*>& textIBs,    // array of text indices buffers
 	const std::vector<uint32_t>& indexCounts,
-	const uint32_t fontVertexSize)
+	const uint32_t fontVertexSize,
+	SRV* const* ppFontTexSRV)
 {
-	// THIS FUNC renders fonts on the screen using HLSL shaders
+	// renders fonts on the screen using HLSL shaders
 
 	try
 	{
+		// bind vertex and pixel shaders for rendering
+		pContext->VSSetShader(vs_.GetShader(), nullptr, 0U);
+		pContext->PSSetShader(ps_.GetShader(), nullptr, 0U);
+
+		// set the primitive topology for all the sentences and the input layout
+		pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		pContext->IASetInputLayout(vs_.GetInputLayout());
+
+		// set the sampler state for the pixel shader
+		pContext->PSSetSamplers(0, 1, samplerState_.GetAddressOf());
+		pContext->PSSetShaderResources(0, 1, ppFontTexSRV);
+
+
 		const size numTextStrs = std::ssize(textVBs);
 		Assert::True(numTextStrs == std::ssize(textIBs), "the number of vertex buffers must be equal to the number of index buffers");
 
@@ -116,49 +129,9 @@ void FontShaderClass::Render(
 }
 
 
-
-// ************************************************************************************
-//                             PUBLIC MODIFICATION API
-// ************************************************************************************
-
-void FontShaderClass::SetWorldViewOrtho(
-	ID3D11DeviceContext* pContext,
-	const DirectX::XMMATRIX& WVO)
-{
-	// prepare matrices for using in the vertex shader
-	// (the WVO matrix must be already transposed)
-	matrixBuffer_.data.worldViewProj = WVO;
-	matrixBuffer_.ApplyChanges(pContext);
-}
-
-///////////////////////////////////////////////////////////
-
-void FontShaderClass::SetFontColor(
-	ID3D11DeviceContext* pContext, 
-	const DirectX::XMFLOAT3& textColor)
-{
-	// load the pixel color data into GPU
-	pixelBuffer_.data.pixelColor = textColor;
-	pixelBuffer_.ApplyChanges(pContext);
-}
-
-///////////////////////////////////////////////////////////
-
-void FontShaderClass::SetFontTexture(
-	ID3D11DeviceContext* pContext,
-	ID3D11ShaderResourceView* const* ppFontTexture)
-{
-	pContext->PSSetShaderResources(0, 1, ppFontTexture);
-}
-
-
-
-
-// ***********************************************************************************
-//
-//                              PRIVATE FUNCTIONS
-//
-// ***********************************************************************************
+// =================================================================================
+//                              PRIVATE METHODS
+// =================================================================================
 
 void FontShaderClass::InitializeShaders(
 	ID3D11Device* pDevice,

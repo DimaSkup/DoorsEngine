@@ -12,7 +12,7 @@ CAMERA_SENSITIVITY            150.0f
 CAMERA_HEIGHT_OFFSET          0.6f
 FOV_IN_RAD                    1.2f       // 1.570796f
 NEAR_Z                        0.3f
-FAR_Z                         300.0f
+FAR_Z                         1000.0f
 
 INTERNAL_MODEL_FILE_TYPE      .txt
 DEFAULT_MODELS_EXT            .obj

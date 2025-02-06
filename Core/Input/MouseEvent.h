@@ -22,6 +22,7 @@ public:
 		WheelDown,
 		Move,
 		RAW_MOVE,
+		LeftDoubleClick,
 		Invalid
 	};
 

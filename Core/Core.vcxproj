@@ -192,7 +192,6 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="2D\SpriteClass.cpp" />
-    <ClCompile Include="Camera\BasicCamera.cpp" />
     <ClCompile Include="Camera\Camera.cpp" />
     <ClCompile Include="Common\MathHelper.cpp" />
     <ClCompile Include="Common\EngineException.cpp" />
@@ -227,7 +226,6 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClCompile Include="Render\d3dclass.cpp" />
     <ClCompile Include="Render\InitializeGraphics.cpp" />
     <ClCompile Include="Input\KeyboardClass.cpp" />
-    <ClCompile Include="Input\KeyboardEvent.cpp" />
     <ClCompile Include="Texture\textureclass.cpp" />
     <ClCompile Include="Engine\Settings.cpp" />
     <ClCompile Include="Render\RenderDataPreparator.cpp" />
@@ -261,7 +259,6 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="2D\SpriteClass.h" />
-    <ClInclude Include="Camera\BasicCamera.h" />
     <ClInclude Include="Camera\Camera.h" />
     <ClInclude Include="Common\Assert.h" />
     <ClInclude Include="Common\Convert.h" />
@@ -363,7 +360,6 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClInclude Include="Render\InitGraphicsHelperDataTypes.h" />
     <ClInclude Include="Render\InitializeGraphics.h" />
     <ClInclude Include="Input\KeyboardClass.h" />
-    <ClInclude Include="Input\KeyboardEvent.h" />
     <ClInclude Include="Texture\textureclass.h" />
     <ClInclude Include="Render\RenderDataPreparator.h" />
     <ClInclude Include="Render\RenderStates.h" />

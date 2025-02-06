@@ -226,14 +226,14 @@ void TextStore::Update(
 		values[1] = std::to_string(sysState.frameTime);
 
 		// pos info
-		values[2] = std::to_string(sysState.CameraPos.x);
-		values[3] = std::to_string(sysState.CameraPos.y);
-		values[4] = std::to_string(sysState.CameraPos.z);
+		values[2] = std::to_string(sysState.cameraPos.x);
+		values[3] = std::to_string(sysState.cameraPos.y);
+		values[4] = std::to_string(sysState.cameraPos.z);
 
 		// rotation info
-		values[5] = std::to_string(sysState.CameraDir.x);
-		values[6] = std::to_string(sysState.CameraDir.y);
-		values[7] = std::to_string(sysState.CameraDir.z);
+		values[5] = std::to_string(sysState.cameraDir.x);
+		values[6] = std::to_string(sysState.cameraDir.y);
+		values[7] = std::to_string(sysState.cameraDir.z);
 
 		// render info
 		values[8]  = std::to_string(sysState.visibleObjectsCount);

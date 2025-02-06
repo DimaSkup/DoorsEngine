@@ -49,7 +49,7 @@ void ImGuiLayer::Initialize(
 	ImGuizmo::Enable(true);
 
 	ImGuizmo::Style& imGuizmoStyle = ImGuizmo::GetStyle();
-	const float lineThickness = 8.0f;
+	const float lineThickness = 6.0f;
 
 	imGuizmoStyle.RotationLineThickness      = lineThickness;
 	imGuizmoStyle.RotationOuterLineThickness = lineThickness;
@@ -164,6 +164,7 @@ void ImGuiLayer::Begin()
 		ImGui::DockBuilderDockWindow("Entities List", dockIdLeft);
 		ImGui::DockBuilderDockWindow("Scene", dockIdScene);
 		ImGui::DockBuilderDockWindow("Run scene", dockspaceId);
+		ImGui::DockBuilderDockWindow("Assets", dockIdBottom);
 
 		pSceneNode = ImGui::DockBuilderGetNode(dockIdScene);
 

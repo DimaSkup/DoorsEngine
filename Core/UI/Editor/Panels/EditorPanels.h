@@ -34,6 +34,7 @@ private:
 	void RenderPropertiesControllerWnd();
 	void RenderDebugPanel(const SystemState& sysState);
 	void RenderLogPanel();
+	void RenderAssetsManager();
 
 
 public:

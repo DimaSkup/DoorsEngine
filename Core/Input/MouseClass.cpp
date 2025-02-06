@@ -59,6 +59,12 @@ void MouseClass::OnMouseMoveRaw(int x, int y)
 	eventBuffer_.push(MouseEvent(MouseEvent::EventType::RAW_MOVE, x, y));
 }
 
+void MouseClass::OnLeftDoubleClick()
+{
+	// handle left button double clicking
+	eventBuffer_.push(MouseEvent(MouseEvent::EventType::LeftDoubleClick, 0, 0));
+}
+
 MouseEvent MouseClass::ReadEvent()
 {
 	if (!eventBuffer_.empty())

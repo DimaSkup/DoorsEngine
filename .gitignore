@@ -13,8 +13,7 @@ Lib/
 packages/
 DirectXTex/.vs/
 DirectXTex/Bin/
-DirectXTex\Shaders\Compiled
-
+DirectXTex/Shaders/Compiled
 
 Core/imgui.ini
 Core/ECS_Log.txt

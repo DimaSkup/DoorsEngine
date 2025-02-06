@@ -1,5 +1,7 @@
 #include "EventHandler.h"
+#include "../Common/log.h"
 #include <cassert>
+#include <vector>
 
 void EventHandler::AddEventListener(EventListener* eventListener)
 {
@@ -30,6 +32,7 @@ void EventHandler::HandleEvent(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 		case WM_RBUTTONDOWN: case WM_RBUTTONUP:
 		case WM_MOUSEWHEEL:
 		case WM_INPUT:
+		case WM_LBUTTONDBLCLK:
 		{
 			pEventListener_->EventMouse(hwnd, uMsg, wParam, lParam);
 			return;

@@ -10,7 +10,7 @@ namespace Doors
 class WindowContainer
 {
 public:
-	WindowContainer();
+	WindowContainer(HWND hwnd);
 	~WindowContainer();
 
 	void SetEventHandler(EventHandler* pEventHandler);
@@ -23,6 +23,11 @@ public:
 	static WindowContainer* pWindowContainer_;
 	RenderWindow  renderWindow_;
 	EventHandler* pEventHandler_ = nullptr;
+
+private:
+	const USHORT RID_MOUSE = 2;
+	const USHORT RID_KEYBOARD = 6;
+	DWORD oldKeyboardDelayTime = 0;
 };
 
 } // namespace Doors

@@ -41,8 +41,6 @@ struct BoundingData
 		// convert each input AABB into OBB
 		for (index i = 0; i < numData; ++i)
 			DirectX::BoundingOrientedBox::CreateFromBoundingBox(obbs_[i], AABBs[i]);
-			
-
 	}
 
 	size numData_ = 0;

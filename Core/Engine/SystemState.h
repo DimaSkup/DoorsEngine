@@ -36,10 +36,10 @@ public:
 	u32 pickedEntt_ = 0;                     // currently chosen entity (its ID)
 
 	float frameTime = 0.0f;                  // the seconds per frame
-	DirectX::XMFLOAT3 CameraPos;       // the current position of the engine editor's camera
-	DirectX::XMFLOAT3 CameraDir;       // the current rotation of the engine editor's camera
-	DirectX::XMMATRIX CameraView;      // view matrix
-	DirectX::XMMATRIX CameraProj;      // projection matrix
+	DirectX::XMFLOAT3 cameraPos;       // the current position of the engine editor's camera
+	DirectX::XMFLOAT3 cameraDir;       // the current rotation of the engine editor's camera
+	DirectX::XMMATRIX cameraView;      // view matrix
+	DirectX::XMMATRIX cameraProj;      // projection matrix
 	
 
 private:

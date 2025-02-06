@@ -35,6 +35,7 @@ LRESULT InputManager::HandleKeyboardMessage(
 			keyboard.OnKeyReleased(static_cast<unsigned char>(wParam));
 			return 0;
 		}
+#if 0
 		case WM_CHAR:
 		{
 			keyboard.OnChar(static_cast<unsigned char>(wParam));
@@ -54,6 +55,7 @@ LRESULT InputManager::HandleKeyboardMessage(
 		
 			return 0;
 		}
+#endif
 	} // switch
 
 	return 0;
@@ -122,6 +124,11 @@ LRESULT InputManager::HandleMouseMessage(
 			}
 			return 0;
 		}
+		case WM_LBUTTONDBLCLK:
+		{
+			mouse.OnLeftDoubleClick();
+			return 0;
+		}
 		// --- raw input --- //
 		case WM_INPUT:
 		{
@@ -133,13 +140,16 @@ LRESULT InputManager::HandleMouseMessage(
 
 				GetRawInputData(*ptrHRawInput, RID_INPUT, NULL, &dataSize, sizeof(RAWINPUTHEADER));
 
-				if (dataSize > 0) // if we got some data about a raw input
+				// if we got some data about a raw input
+				// NOTE: it is supposed that dataSize <= 48
+				if (dataSize > 0 && dataSize < 49) 
 				{
-					std::vector<BYTE> rawdata(dataSize);
-					if (GetRawInputData(*ptrHRawInput, RID_INPUT, rawdata.data(), &dataSize, sizeof(RAWINPUTHEADER)) == dataSize)
+					BYTE rawData[48];
+					
+					if (GetRawInputData(*ptrHRawInput, RID_INPUT, rawData, &dataSize, sizeof(RAWINPUTHEADER)) == dataSize)
 					{
-						void* ptrRawDataGetToVoid = rawdata.data();
-						RAWINPUT* raw = static_cast<RAWINPUT*>(ptrRawDataGetToVoid);
+						//void* ptrRawDataGetToVoid = rawData;
+						RAWINPUT* raw = static_cast<RAWINPUT*>((void*)rawData);
 						if (raw->header.dwType == RIM_TYPEMOUSE)
 						{
 							// set how much the mouse position changed from the previous one

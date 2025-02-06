@@ -68,7 +68,6 @@ bool GraphicsClass::Initialize(
 			d3d_,
 			gameCamera_,
 			editorCamera_,
-			cameraForRenderToTexture_,
 			baseViewMatrix_,           // init the base view matrix which is used for 2D rendering
 			entityMgr_,
 			settings);
@@ -170,31 +169,32 @@ void GraphicsClass::Update(
 	// update all the graphics related stuff for this frame
 
 
+	pCurrCamera_->UpdateViewMatrix();
+
 	// DIRTY HACK: update the camera height according to the terrain height function
-	DirectX::XMFLOAT3 prevCamPos;
-	pCurrCamera_->GetPositionFloat3(prevCamPos);
+	DirectX::XMFLOAT3 prevCamPos = pCurrCamera_->GetPosition();
 
 	const float strideByY = 0.01f * (prevCamPos.z * sinf(0.1f * prevCamPos.x) +
 		                   prevCamPos.x * cosf(0.1f * prevCamPos.z)) + 1.5f;
 
-	pCurrCamera_->SetStrideByY(strideByY);
+	//pCurrCamera_->SetStrideByY(strideByY);
 
 	// ---------------------------------------------
 
           
 
-	const DirectX::XMMATRIX& viewMatrix = pCurrCamera_->GetViewMatrix();  // update the view matrix for this frame
-	const DirectX::XMMATRIX& projMatrix = pCurrCamera_->GetProjectionMatrix(); // update the projection matrix
+	const DirectX::XMMATRIX& viewMatrix = pCurrCamera_->View();  // update the view matrix for this frame
+	const DirectX::XMMATRIX& projMatrix = pCurrCamera_->Proj(); // update the projection matrix
 	viewProj_ = viewMatrix * projMatrix;
 
 	// update the cameras states
-	XMStoreFloat3(&sysState.CameraPos, pCurrCamera_->GetPosition());
-	XMStoreFloat3(&sysState.CameraDir, pCurrCamera_->GetDirectionVector());
-	sysState.CameraView = viewMatrix;
-	sysState.CameraProj = projMatrix;
+	sysState.cameraPos = pCurrCamera_->GetPosition();
+	//sysState.cameraDir = pCurrCamera_->GetDirection();
+	sysState.cameraView = viewMatrix;
+	sysState.cameraProj = projMatrix;
 
-	const XMFLOAT3& cameraPos = sysState.CameraPos;
-	const XMFLOAT3& cameraDir = sysState.CameraDir;
+	const XMFLOAT3& cameraPos = sysState.cameraPos;
+	const XMFLOAT3& cameraDir = sysState.cameraDir;
 
 	
 	// update the entities and related data
@@ -237,7 +237,6 @@ void GraphicsClass::ComputeFrustumCulling(SystemState& sysState)
 	mgr.renderSystem_.ClearVisibleEntts();
 
 	const std::vector<EntityID>& enttsRenderable = mgr.renderSystem_.GetAllEnttsIDs();
-	const XMMATRIX& invView = pCurrCamera_->GetInverseViewMatrix();
 
 	const size numRenderEntts = std::ssize(enttsRenderable);
 	size numVisEntts = 0;                                     // the number of currently visible entts
@@ -254,7 +253,7 @@ void GraphicsClass::ComputeFrustumCulling(SystemState& sysState)
 
 	// compute local space matrices for each renderable entt
 	for (index i = 0; i < numRenderEntts; ++i)
-		enttsLocal[i] = DirectX::XMMatrixMultiply(invView, invWorlds[i]);
+		enttsLocal[i] = DirectX::XMMatrixMultiply(pCurrCamera_->InverseView(), invWorlds[i]);
 
 	// clear some arrs since we don't need already
 	invWorlds.clear();
@@ -300,149 +299,6 @@ void GraphicsClass::ComputeFrustumCulling(SystemState& sysState)
 	sysState.visibleObjectsCount = (u32)numVisEntts;
 }
 
-///////////////////////////////////////////////////////////
-
-void GraphicsClass::HandleKeyboardInput(
-	const KeyboardEvent& kbe, 
-	const float deltaTime)
-{
-	// handle input from the keyboard to modify some rendering params
-
-	// update the fps camera position according to keyboard input and deltaTime
-	pCurrCamera_->HandleKeyboardEvents(deltaTime);
-
-	// update view/proj matrices after changing of the position
-	pCurrCamera_->UpdateViewMatrix();
-
-	// update camera entity
-	const EntityID CameraID = entityMgr_.nameSystem_.GetIdByName("editor_camera");
-
-	entityMgr_.cameraSystem_.Update(
-		CameraID,
-		pCurrCamera_->GetViewMatrix(),
-		pCurrCamera_->GetProjectionMatrix());
-
-	
-	
-
-
-	static UCHAR prevKeyCode = 0;
-	const UCHAR currKeyCode = kbe.GetKeyCode();
-
-	// BOUND BOX show control
-	switch (currKeyCode)
-	{
-		// case (0-3): switch the number of directional lights
-		case KEY_0:
-		{
-			render_.SetDirLightsCount(pDeviceContext_, 0);
-			break;
-		}
-		case KEY_1:
-		{
-			render_.SetDirLightsCount(pDeviceContext_, 1);
-			break;
-		}
-		case KEY_2:
-		{
-			render_.SetDirLightsCount(pDeviceContext_, 2);
-			break;
-		}
-		case KEY_3:
-		{
-			render_.SetDirLightsCount(pDeviceContext_, 3);
-			break;
-		}
-		case KEY_4:
-		{
-			// turn on/off showing of bounding boxes around entts
-			if (prevKeyCode != currKeyCode)
-			{
-				showBoundBoxes_ = !showBoundBoxes_;
-				Log::Debug("show bound boxes mode: " + std::to_string(showBoundBoxes_));
-			}
-			break;
-		}
-		case KEY_5:
-		{
-			// show bounding box of the whole model
-			if (prevKeyCode != currKeyCode)
-			{
-				Log::Debug("show models bound boxes mode");
-				showBoundBoxes_ = true;
-				showBoundBoxOfMeshes_ = false;
-				showBoundBoxOfModel_ = true;
-			}
-			break;
-		}
-		case KEY_6:
-		{
-			// show bounding box of each mesh of the model
-			if (prevKeyCode != currKeyCode)
-			{
-				Log::Debug("show meshes bound boxes mode");
-				showBoundBoxes_ = true;
-				showBoundBoxOfMeshes_ = true;
-				showBoundBoxOfModel_ = false;
-			}
-			break;
-		}
-		
-	}
-
-	// handle releasing of some keys
-	if (kbe.IsRelease())
-		prevKeyCode = 0;
-		
-	prevKeyCode = currKeyCode;
-}
-
-///////////////////////////////////////////////////////////
-
-void GraphicsClass::HandleMouseInput(
-	const SystemState& state,
-	const MouseEvent& me,
-	const float deltaTime)
-{
-	// this function handles the input events from the mouse
-
-	static bool isMouseMiddlePressed = false;
-
-	switch (me.GetEventType())
-	{
-		case MouseEvent::EventType::Move:
-		case MouseEvent::EventType::RAW_MOVE:
-		{
-			// if we in the game mode
-			if (!state.isEditorMode || isMouseMiddlePressed)
-			{
-				// update the rotation data of the camera
-				// with the current state of the input devices. The movement function will update
-				// the position of the camera to the location for this frame
-				pCurrCamera_->HandleMouseMovement(me.GetPosX(), me.GetPosY(), deltaTime);
-
-				// update camera entity
-				const EntityID CameraID = entityMgr_.nameSystem_.GetIdByName("editor_camera");
-
-				entityMgr_.cameraSystem_.Update(
-					CameraID,
-					pCurrCamera_->GetViewMatrix(),
-					pCurrCamera_->GetProjectionMatrix());
-			}
-			break;
-		}
-		case MouseEvent::EventType::MPress:
-		{
-			isMouseMiddlePressed = true;
-			break;
-		}
-		case MouseEvent::EventType::MRelease:
-		{
-			isMouseMiddlePressed = false;
-			break;
-		}
-	}
-}
 
 ///////////////////////////////////////////////////////////
 
@@ -514,7 +370,7 @@ void GraphicsClass::UpdateShadersDataPerFrame()
 	Render::PerFrameData& perFrameData = render_.perFrameData_;
 
 	perFrameData.viewProj = DirectX::XMMatrixTranspose(viewProj_);
-	pCurrCamera_->GetPositionFloat3(perFrameData.cameraPos);
+	perFrameData.cameraPos = pCurrCamera_->GetPosition();
 
 	SetupLightsForFrame(entityMgr_.lightSystem_, perFrameData);
 
@@ -620,6 +476,38 @@ void GraphicsClass::PrepBlendedInstancesForRender(
 
 ///////////////////////////////////////////////////////////
 
+void GraphicsClass::RenderModel(BasicModel& model, const DirectX::XMMATRIX& world)
+{
+	// for specific purposes:
+	// just render a single asset/model at the center of the world
+
+	Render::Instance instance;
+	Render::InstBuffData instanceBuffData;
+	int numSubsets = model.GetNumSubsets();
+
+	prep_.PrepareInstanceFromModel(model, instance);
+
+	// each subset (mesh) will have its own world/texTransform/material
+	instanceBuffData.Resize(numSubsets);
+
+	for (int i = 0; i < numSubsets; ++i)
+	{
+		instanceBuffData.worlds_[i]        = world;
+		instanceBuffData.texTransforms_[i] = DirectX::XMMatrixIdentity();
+		instanceBuffData.materials_[i]     = instance.materials[i];
+	}
+
+	render_.UpdateInstancedBuffer(pDeviceContext_, instanceBuffData);
+
+	// render prepared instances using shaders
+	render_.RenderInstances(
+		pDeviceContext_, 
+		Render::ShaderTypes::LIGHT, 
+		&instance, 1);
+}
+
+///////////////////////////////////////////////////////////
+
 void GraphicsClass::RenderEnttsDefault()
 {
 	const Render::RenderDataStorage& storage = render_.dataStorage_;
@@ -718,7 +606,7 @@ void GraphicsClass::RenderEnttsBlended()
 void GraphicsClass::RenderBoundingLineBoxes()
 {
 	// if we don't want to show bound boxes just go out
-	if (!showBoundBoxes_)
+	if (aabbShowMode_ == NONE)
 		return;
 	
 	const std::vector<EntityID>& visEntts = entityMgr_.renderSystem_.GetAllVisibleEntts();
@@ -746,9 +634,9 @@ void GraphicsClass::RenderBoundingLineBoxes()
 
 	// choose the bounding box show mode
 	// (1: box around the while model, 2: box around each model's mesh)
-	if (showBoundBoxOfModel_)
+	if (aabbShowMode_ == MODEL)
 		prep_.PrepareEnttsBoundingLineBox(visEntts, instance, instancesBuffer);
-	else 
+	else if (aabbShowMode_ == MESH)
 		prep_.PrepareEnttsMeshesBoundingLineBox(visEntts, instance, instancesBuffer);
 
 
@@ -809,7 +697,7 @@ void GraphicsClass::RenderSkyDome()
 	renderStates.SetDSS(pDeviceContext_, SKY_DOME, 1);
 
 	// compute a worldViewProj matrix for the sky instance
-	const DirectX::XMFLOAT3& eyePos = pCurrCamera_->GetPositionFloat3();
+	const DirectX::XMFLOAT3& eyePos = pCurrCamera_->GetPosition();
 	const XMMATRIX camOffset        = DirectX::XMMatrixTranslation(eyePos.x, eyePos.y, eyePos.z);
 	const XMMATRIX worldViewProj    = DirectX::XMMatrixTranspose(camOffset * skyWorld * viewProj_);
 
@@ -879,8 +767,8 @@ int GraphicsClass::TestEnttSelection(const int sx, const int sy)
 
 	using namespace DirectX;
 
-	const XMMATRIX P = pCurrCamera_->GetProjectionMatrix();
-	const XMMATRIX& invView = pCurrCamera_->GetInverseViewMatrix();
+	const XMMATRIX P = pCurrCamera_->Proj();
+	const XMMATRIX& invView = pCurrCamera_->InverseView();
 
 	const float xndc = (+2.0f * sx / d3d_.GetWindowWidth() - 1.0f);
 	const float yndc = (-2.0f * sy / d3d_.GetWindowHeight() + 1.0f);
@@ -975,4 +863,29 @@ int GraphicsClass::TestEnttSelection(const int sx, const int sy)
 
 	// return ID of the selected entt, or 0 if we didn't pick any
 	return selectedEnttID;
+}
+
+///////////////////////////////////////////////////////////
+
+void GraphicsClass::UpdateCameraEntity(
+	const std::string& cameraEnttName,
+	const DirectX::XMMATRIX& view,
+	const DirectX::XMMATRIX& proj)
+{
+	// load updated camera data into ECS
+	
+	if (cameraEnttName.empty())
+	{
+		Log::Error("input name is empty");
+		return;
+	}
+
+	const EntityID cameraID = entityMgr_.nameSystem_.GetIdByName("editor_camera");
+
+	// if we found any entt by such name
+	if (cameraID != 0)
+	{
+		entityMgr_.cameraSystem_.Update(cameraID, view, proj);
+	}
+	
 }
