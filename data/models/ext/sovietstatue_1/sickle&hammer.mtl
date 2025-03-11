@@ -1,0 +1,40 @@
+# Blender 4.0.2 MTL File: 'sickle&hammer2.blend'
+# www.blender.org
+
+newmtl Granite_2
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.8 0.8 0.8
+Ks 0.200000 0.200000 0.200000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd stone-172_diffuse.jpg
+map_Ns stone-172_roughness.jpg
+map_Bump -bm 0.500000 stone-172_normal.jpg
+
+newmtl Iron_Rusty
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.8 0.8 0.8
+Ks 0.200000 0.200000 0.200000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 1
+map_Kd stone-172_diffuse.jpg
+map_Ns stone-172_roughness.jpg
+map_refl stone-172_roughness.jpg
+map_Bump -bm 1.000000 stone-172_normal.jpg
+
+newmtl Stone
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.8 0.8 0.8
+Ks 0.200000 0.200000 0.200000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd -s 1.5 1.5 1.5 stone-6_diffuse.jpg
