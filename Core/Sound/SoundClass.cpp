@@ -5,12 +5,14 @@
 // Revised:      07.01.23
 ////////////////////////////////////////////////////////////////////
 #include "SoundClass.h"
-#include "../Common/MemHelpers.h"
-#include "../Common/Assert.h"
-#include "../Common/log.h"
+#include <CoreCommon/MemHelpers.h>
+#include <CoreCommon/Assert.h>
+#include <CoreCommon/log.h>
+#include <CoreCommon/FileSystemPaths.h>
 
-const std::string g_DirPathToAudio = "../data/audio/";
 
+namespace Core
+{
 
 SoundClass::SoundClass() 
 {
@@ -21,8 +23,6 @@ SoundClass::~SoundClass()
 	Log::Debug();
 	Shutdown();
 };
-
-
 
 
 ////////////////////////////////////////////////////////////////////
@@ -50,7 +50,7 @@ bool SoundClass::Initialize(HWND hwnd)
 		result = InitializeDirectSound(hwnd);
 		Assert::True(result, "can't initialize DirectSound");
 
-		std::string filePath = g_DirPathToAudio + "bateman.wav";
+		std::string filePath = g_RelPathAudioDir + "bateman.wav";
 
 		// load a wave audio file onto a secondary buffer
 		result = LoadWaveFile(filePath.c_str(), &pSecondaryBuffer1_);
@@ -386,6 +386,8 @@ bool SoundClass::ReadWaveData(const WaveHeaderType& waveFileHeader,
 
 
 	return true;
-} // ReadWaveData()
+}
+
+} // namespace Core
 
 

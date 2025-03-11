@@ -3,37 +3,30 @@
 // Description:  contains some common utils for the Entity-Component-System
 // *********************************************************************************
 #pragma once
+
 #include "Types.h"
-
-#include <sstream>
+#include <string>
 #include <vector>
-#include <algorithm>
 
-namespace Utils
+namespace ECS
 {
-	
+
+
+class Utils
+{
+public:
 	// ****************************************************************************
-	// different help purposes API
+// different help purposes API
 
 	static std::string GetEnttsIDsAsString(
 		const EntityID* ids,
 		const int count,
-		const std::string& glue = ", ")
-	{
-		// join all the input ids into a single str and separate it with glue
-
-		std::stringstream ss;
-
-		for (int i = 0; i < count; ++i)
-			ss << ids[i] << glue;
-
-		return ss.str();
-	}
+		const std::string& glue = ", ");
 
 	// ----------------------------------------------------
 
 	template<class T>
-	inline void AppendToArray(std::vector<T>& head, const std::vector<T>& tail)
+	static void AppendToArray(std::vector<T>& head, const std::vector<T>& tail)
 	{
 		head.insert(head.end(), tail.begin(), tail.end());
 	}
@@ -41,7 +34,7 @@ namespace Utils
 	// ----------------------------------------------------
 
 	template<class T1, class T2>
-	inline static bool CheckArrSizesEqual(
+	static bool CheckArrSizesEqual(
 		const std::vector<T1>& arr1,
 		const std::vector<T2>& arr2)
 	{
@@ -52,18 +45,9 @@ namespace Utils
 	// ****************************************************************************
 	// sorted insertion API
 
-	inline static index GetPosForID(
+	static index GetPosForID(
 		const std::vector<EntityID>& enttsIDs,
-		const EntityID& enttID)
-	{
-		// get position (index) into array for sorted INSERTION of ID
-		// 
-		// input:  1. a SORTED array of IDs
-		//         2. an ID for which we want to find an insertion pos
-		// return:    an insertion idx for ID
-
-		return std::distance(enttsIDs.begin(), std::upper_bound(enttsIDs.begin(), enttsIDs.end(), enttID));
-	}
+		const EntityID& enttID);
 
 	// ----------------------------------------------------
 
@@ -83,13 +67,13 @@ namespace Utils
 		// insert val into the arr at pos (index) 
 		arr.insert(arr.begin() + pos, val);
 	}
-	
+
 
 	// ****************************************************************************
 	// check existing API
 
 	template<typename T>
-	inline static void GetExistingFlags(
+	static void GetExistingFlags(
 		const std::vector<T>& inArr,
 		const std::vector<T>& values,
 		std::vector<bool>& flags)
@@ -101,14 +85,14 @@ namespace Utils
 
 		flags.resize(std::ssize(values));
 
-		for (int i = 0; const T& val : values)
+		for (int i = 0; const T & val : values)
 			flags[i++] = std::binary_search(beg, end, val);
 	}
 
 	// ------------------------------------------
 
 	template<typename T>
-	inline static bool BinarySearch(
+	static bool BinarySearch(
 		const std::vector<T>& arr,
 		const T& value)
 	{
@@ -123,7 +107,7 @@ namespace Utils
 	// ------------------------------------------
 
 	template<class T>
-	inline bool CheckValuesExistInSortedArr(
+	static bool CheckValuesExistInSortedArr(
 		const std::vector<T>& inOrigArr,
 		const std::vector<T>& inValuesArr)
 	{
@@ -141,7 +125,7 @@ namespace Utils
 	// ------------------------------------------
 
 	template<class T>
-	inline bool CheckValuesExistInSortedArr(
+	static bool CheckValuesExistInSortedArr(
 		const std::vector<T>& inOrigArr,
 		const T* inValuesArr,
 		const size inNumValues)
@@ -160,7 +144,7 @@ namespace Utils
 	// ------------------------------------------
 
 	template<class T>
-	inline bool CheckValuesExistInArr(
+	static bool CheckValuesExistInArr(
 		const std::vector<T>& inOrigArr,
 		const std::vector<T>& inValuesArr)
 	{
@@ -179,7 +163,7 @@ namespace Utils
 	// ----------------------------------------------------
 
 	template<typename T>
-	inline static bool ArrHasVal(
+	static bool ArrHasVal(
 		const std::vector<T>& arr,
 		const T& val)
 	{
@@ -194,11 +178,10 @@ namespace Utils
 	// search for index API
 
 	template<class T>
-	inline static index GetIdxInSortedArr(
+	static index GetIdxInSortedArr(
 		const std::vector<T>& arr,
 		const T& val)
 	{
-		
 		// NOTE:   we subtract 1 from the final result because of upper_bound which 
 		//         returns the idx right after the searched value
 		// return: pos (data idx) of searched value
@@ -209,7 +192,7 @@ namespace Utils
 	// ------------------------------------------
 
 	template<class T>
-	inline void GetIdxsInSortedArr(
+	static void GetIdxsInSortedArr(
 		const std::vector<T>& inOrigArr,
 		const std::vector<T>& inValuesArr,
 		std::vector<index>& outIdxsArr)
@@ -219,14 +202,16 @@ namespace Utils
 		auto itBeg = inOrigArr.begin();
 		auto itEnd = inOrigArr.end();
 
-		outIdxsArr.resize(inValuesArr.size());
+		const size numSearchValues = std::ssize(inValuesArr);
+		outIdxsArr.resize(numSearchValues);
 
 		for (int i = 0; const T& val : inValuesArr)
-			outIdxsArr[i++] = std::distance(itBeg, std::upper_bound(itBeg, itEnd, val)) - 1;
+			outIdxsArr[i++] = std::distance(itBeg, std::lower_bound(itBeg, itEnd, val));
 	}
 
+
 	template<class T>
-	inline void GetIdxsInSortedArr(
+	static void GetIdxsInSortedArr(
 		const std::vector<T>& inOrigArr,
 		const T* inValuesArr,
 		const size inNumValues,
@@ -240,13 +225,13 @@ namespace Utils
 		outIdxs.resize(inNumValues);
 
 		for (index i = 0; i < inNumValues; ++i)
-			outIdxs[i++] = std::distance(itBeg, std::upper_bound(itBeg, itEnd, inValuesArr[i])) - 1;
+			outIdxs[i] = std::distance(itBeg, std::lower_bound(itBeg, itEnd, inValuesArr[i]));
 	}
 
 	// ----------------------------------------------------
 
 	template<typename T>
-	inline static index FindIdxOfVal(
+	static index FindIdxOfVal(
 		const std::vector<T>& arr,
 		const T& value)
 	{
@@ -257,6 +242,7 @@ namespace Utils
 
 		return std::distance(arr.begin(), std::find(arr.begin(), arr.end(), value));
 	}
+};
 
-} // namespace Utils
 
+} // namespace ECS

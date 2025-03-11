@@ -3,10 +3,14 @@
 // Created:        20.09.23  by DimaSkup
 // ====================================================================================
 #include "FrameBuffer.h"
-#include "../Common/MemHelpers.h"
-#include "../Common/Assert.h"
-#include "../Common/Log.h"
 
+#include <CoreCommon/MemHelpers.h>
+#include <CoreCommon/Assert.h>
+#include <CoreCommon/Log.h>
+
+
+namespace Core
+{
 
 FrameBuffer::FrameBuffer()
 {
@@ -301,3 +305,5 @@ void FrameBuffer::SetupViewportAndMatrices()
 	// create an orthographic projection matrix for 2D rendering
 	orthoMatrix_ = DirectX::XMMatrixOrthographicLH(w, h, nearZ, farZ);
 }
+
+} // namespace Core

@@ -7,12 +7,15 @@
 // =================================================================================
 #pragma once
 
-#include "../Common/MemHelpers.h"
-#include "../Common/Assert.h"
-#include "../Common/log.h"
+#include <CoreCommon/MemHelpers.h>
+#include <CoreCommon/Assert.h>
+#include <CoreCommon/log.h>
 
 #include <d3d11.h>
 
+
+namespace Core
+{
 
 template <typename T>
 class IndexBuffer final
@@ -96,16 +99,8 @@ private:
 
 
 
-
-
-
-
-
-
 // =================================================================================
-// 
 //                              PUBLIC METHODS
-// 
 // =================================================================================
 
 template <typename T>
@@ -219,6 +214,7 @@ void IndexBuffer<T>::CopyBuffer(
 }
 
 
+
 // =================================================================================
 //                             PRIVATE METHODS
 // =================================================================================
@@ -244,3 +240,5 @@ void IndexBuffer<T>::InitializeHelper(
 	const HRESULT hr = pDevice->CreateBuffer(&buffDesc, &indexBufferData, &pBuffer_);
 	Assert::NotFailed(hr, "can't create an index buffer");
 }
+
+} // namespace Core

@@ -1,5 +1,5 @@
 #include "WindowContainer.h"
-#include "../Common/log.h"
+#include <CoreCommon/log.h>
 
 #include <cassert>
 #include <imgui.h>
@@ -9,7 +9,7 @@
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 
-namespace Doors
+namespace Core
 {
 
 WindowContainer* WindowContainer::pWindowContainer_ = nullptr;

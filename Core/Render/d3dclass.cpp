@@ -4,11 +4,10 @@
 // ================================================================================
 #include "d3dclass.h"
 
-#include "../Common/MemHelpers.h"
-#include "../Common/Assert.h"
-#include "../Common/Log.h"
-#include "../Common/EngineException.h"
-#include "../Common/StringHelper.h"
+#include <CoreCommon/MemHelpers.h>
+#include <CoreCommon/Assert.h>
+#include <CoreCommon/Log.h>
+#include <CoreCommon/StringHelper.h>
 
 
 // encourage the driver to select the discrete video adapter by default
@@ -18,6 +17,9 @@ extern "C"
 	__declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 }
 
+
+namespace Core
+{
 
 D3DClass* D3DClass::pInstance_ = nullptr;
 
@@ -97,7 +99,7 @@ bool D3DClass::Initialize(
 
 		vsyncEnabled_ = vsyncEnabled;        // define if VSYNC is enabled or not
 		fullScreen_   = fullScreen;          // define if window is full screen or not
-		enable4xMsaa_ = enable4xMSAA;        // use 4X MSAA?
+		enable4xMsaa_ =  enable4xMSAA;        // use 4X MSAA?
 		screenNear_   = screenNear;
 		screenDepth_  = screenDepth;
 
@@ -137,7 +139,7 @@ void D3DClass::Shutdown()
 	SafeRelease(&pDepthStencilBuffer_);
 	SafeRelease(&pRenderTargetView_);
 	SafeRelease(&pBackBuffer_);
-	SafeRelease(&pImmediateContext_);
+	SafeRelease(&pContext_);
 	SafeRelease(&pDevice_);
 	SafeRelease(&pSwapChain_);
 }
@@ -168,13 +170,13 @@ void D3DClass::BeginScene()
 {
 	// before rendering of each frame we need to reset buffers
 
-	const FLOAT bgColor[4]{ 0, 0, 0, 0 };
+	const FLOAT bgColor[4]{ 0, 1, 1, 0 };
 	
 	// clear the render target view with particular color
-	pImmediateContext_->ClearRenderTargetView(pRenderTargetView_, bgColor);
+	pContext_->ClearRenderTargetView(pRenderTargetView_, bgColor);
 
 	// clear the depth stencil view with 1.0f values
-	pImmediateContext_->ClearDepthStencilView(pDepthStencilView_, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	pContext_->ClearDepthStencilView(pDepthStencilView_, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 }
 
 ///////////////////////////////////////////////////////////
@@ -196,12 +198,15 @@ void D3DClass::GetDeviceAndDeviceContext(
 	ID3D11DeviceContext*& pContext)
 {
 	pDevice  = pDevice_;
-	pContext = pImmediateContext_;
+	pContext = pContext_;
 }
 
 ///////////////////////////////////////////////////////////
 
-void D3DClass::GetVideoCardInfo(std::string& cardName, int& memory)
+void D3DClass::GetVideoCardInfo(
+	char* cardName, 
+	const int maxCardNameSize,
+	int& memorySize)
 {
 	// get data about the video card
 
@@ -212,11 +217,12 @@ void D3DClass::GetVideoCardInfo(std::string& cardName, int& memory)
 	// store the dedicated video card memory in megabytes and store its name
 	const UINT bytesInMegabyte = 1024 * 1024;
 
-	memory = static_cast<int>(adapterDesc.DedicatedVideoMemory / bytesInMegabyte);
-	cardName = StringHelper::ToString(adapterDesc.Description);
-
-	Log::Debug("Video card name: " + cardName);
-	Log::Debug("Video memory :   " + std::to_string(memory) + " MB");
+	std::string name = StringHelper::ToString(adapterDesc.Description);
+	memcpy(cardName, name.data(), name.length());
+	memorySize = static_cast<int>(adapterDesc.DedicatedVideoMemory / bytesInMegabyte);
+	
+	Log::Debug("Video card name: " + name);
+	Log::Debug("Video memory :   " + std::to_string(memorySize) + " MB");
 }
 
 ///////////////////////////////////////////////////////////
@@ -229,7 +235,7 @@ void D3DClass::TurnOnRSfor2Drendering()
 
 	using enum RenderStates::STATES;
 	prevRasterStateHash_ = renderStates_.GetCurrentRSHash();
-	renderStates_.SetRS(pImmediateContext_, { FILL_SOLID, CULL_BACK });
+	renderStates_.SetRS(pContext_, { FILL_SOLID, CULL_BACK });
 }
 
 
@@ -296,7 +302,7 @@ void D3DClass::InitializeDevice()
 		D3D11_SDK_VERSION,
 		&pDevice_,
 		&featureLevel,
-		&pImmediateContext_);
+		&pContext_);
 
 	Assert::NotFailed(hr, "D3D11CreateDevice failed");
 	Assert::True(featureLevel == D3D_FEATURE_LEVEL_11_0, "Direct3D Feature Level 11 unsupported");
@@ -374,14 +380,14 @@ void D3DClass::InitializeSwapChain(HWND hwnd, const int width, const int height)
 	sd.BufferDesc.Width            = width;                                 // desired back buffer width
 	sd.BufferDesc.Height           = height;                                // desired back buffer height
 	sd.BufferDesc.Format           = backBufferFormat_;                     // use a simple 32-bit surface 
-	sd.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;	// a rasterizer method to render an image on a surface
+	sd.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_PROGRESSIVE;// DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;	// a rasterizer method to render an image on a surface
 	sd.BufferDesc.Scaling          = DXGI_MODE_SCALING_UNSPECIFIED;         // how to scale an image to fit it to the screen resolution
 
 	sd.BufferCount                 = 1;                                     // we have only one back buffer
 	sd.BufferUsage                 = DXGI_USAGE_RENDER_TARGET_OUTPUT;       // use the back buffer as the render target output
 	sd.OutputWindow                = hwnd;                                  // set the current window
 	sd.Windowed                    = !fullScreen_;                          // specity true to run in windowed mode or false for full-screen mode
-	sd.SwapEffect                  = DXGI_SWAP_EFFECT_DISCARD;              // discard the content of the back buffer after presenting
+	sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;              // discard the content of the back buffer after presenting
 	sd.Flags                       = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 
 
@@ -464,10 +470,10 @@ void D3DClass::InitializeDepthStencil(const UINT width, const UINT height)
 		InitializeDepthStencilView();
 
 		// Set the depth stencil state.
-		pImmediateContext_->OMSetDepthStencilState(renderStates_.GetDSS(RenderStates::STATES::DEPTH_ENABLED), 1);
+		pContext_->OMSetDepthStencilState(renderStates_.GetDSS(RenderStates::STATES::DEPTH_ENABLED), 1);
 
 		// bind together the render target view and the depth stencil view to the output merger stage
-		pImmediateContext_->OMSetRenderTargets(1, &pRenderTargetView_, pDepthStencilView_);
+		pContext_->OMSetRenderTargets(1, &pRenderTargetView_, pDepthStencilView_);
 	}
 	catch (EngineException & e)
 	{
@@ -537,7 +543,7 @@ void D3DClass::InitializeViewport(const UINT width, const UINT height)
 	SetupViewportParams((float)width, (float)height, 1, 0, 0, 0);
 	
 	// bind the viewport
-	pImmediateContext_->RSSetViewports(1, &viewport_);
+	pContext_->RSSetViewports(1, &viewport_);
 }
 
 ///////////////////////////////////////////////////////////
@@ -554,7 +560,7 @@ void D3DClass::SetupViewportParams(
 	viewport_ = { topLeftX, topLeftY, width, height, minDepth, maxDepth };
 
 	// bind the viewport
-	pImmediateContext_->RSSetViewports(1, &viewport_);
+	pContext_->RSSetViewports(1, &viewport_);
 }
 
 ///////////////////////////////////////////////////////////
@@ -600,7 +606,7 @@ bool D3DClass::ToggleFullscreen(HWND hwnd, bool isFullscreen)
 			//printf("windowed x: %d\n", windowedModeWidth_);
 			//printf("windowed y: %d\n", windowedModeHeight_);
 
-			RECT desctopArea;
+			//RECT desctopArea;
 			DXGI_MODE_DESC mode;
 			ZeroMemory(&mode, sizeof(DXGI_MODE_DESC));
 
@@ -655,3 +661,5 @@ bool D3DClass::ToggleFullscreen(HWND hwnd, bool isFullscreen)
 		return false;
 	}
 }
+
+} // namespace Core

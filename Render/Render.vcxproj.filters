@@ -63,6 +63,15 @@
     <ClCompile Include="Shaders\SkyDomeShader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Shaders\OutlineShader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Shaders\BillboardShader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Shaders\GeometryShader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Render.h">
@@ -140,6 +149,15 @@
     <ClInclude Include="Shaders\SkyDomeShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Shaders\OutlineShader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Shaders\BillboardShader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Shaders\GeometryShader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="hlsl\_README_ABOUT_SHADERS.txt" />
@@ -159,6 +177,11 @@
     <FxCompile Include="hlsl\DebugPS.hlsl" />
     <FxCompile Include="hlsl\SkyDomePS.hlsl" />
     <FxCompile Include="hlsl\SkyDomeVS.hlsl" />
+    <FxCompile Include="hlsl\OutlineVS.hlsl" />
+    <FxCompile Include="hlsl\OutlinePS.hlsl" />
+    <FxCompile Include="hlsl\billboardVS.hlsl" />
+    <FxCompile Include="hlsl\billboardPS.hlsl" />
+    <FxCompile Include="hlsl\billboardGS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="hlsl\LightHelper.hlsli" />

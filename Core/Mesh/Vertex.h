@@ -6,12 +6,15 @@
 //              as public static variable in an InputLayouts class;
 // 
 // =================================================================================
-
 #pragma once
+
 #include <d3d11.h>
 #include <DirectXMath.h>
 #include <DirectXPackedVector.h>
 
+
+namespace Core
+{
 
 struct VertexFont
 {
@@ -32,6 +35,14 @@ struct VertexFont
 	DirectX::XMFLOAT2 texture;
 };
 
+
+// =================================================================================
+
+struct TreePointSprite
+{
+	DirectX::XMFLOAT3 pos;
+	DirectX::XMFLOAT2 size;
+};
 
 // =================================================================================
 
@@ -103,3 +114,5 @@ public:
 	DirectX::PackedVector::XMCOLOR color;   // 32-bit ARGB packed color
 	//DirectX::XMFLOAT4 color;
 };
+
+} // namespace Core

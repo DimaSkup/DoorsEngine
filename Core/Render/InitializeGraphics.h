@@ -20,6 +20,9 @@
 #include "Entity/EntityMgr.h"   // from the ECS module
 
 
+namespace Core
+{
+
 class InitializeGraphics final
 {
 public:
@@ -70,3 +73,4 @@ private:  // restrict a copying of this class instance
 
 };
 
+}

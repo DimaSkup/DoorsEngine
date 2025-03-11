@@ -71,14 +71,15 @@ void ComputeDirectionalLight(
 	diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);
 	spec    = float4(0.0f, 0.0f, 0.0f, 0.0f);
 
+	
 	// the light vector aims opposite the direction the light rays travel
-	float3 lightVec = -L.direction;
+	float3 lightDir = -normalize(L.direction);
 
 	// add ambient term
 	ambient = mat.ambient * L.ambient;
 
 	// use Lambert's cosine law to define a magnitude of the light intensity
-	float diffuseFactor = dot(lightVec, normal);
+	float diffuseFactor = dot(lightDir, normal);
 
 	// flatten to avoit dynamic branching
 	[flatten]
@@ -91,7 +92,7 @@ void ComputeDirectionalLight(
 		spec = specFactor * mat.specular * L.specular;
 	}
 
-
+	
 	// toon shading
 	/*
 	if (diffuseFactor < 0.0f)
@@ -141,6 +142,38 @@ void ComputePointLight(
 	diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);
 	spec = float4(0.0f, 0.0f, 0.0f, 0.0f);
 
+	float3 lightVec = L.position - pos;
+
+	float d = length(lightVec);
+
+	if (d > L.range)
+		return;
+
+	lightVec /= d;
+
+	ambient = mat.ambient * L.ambient;
+
+	float diffuseFactor = dot(lightVec, normal);
+
+	if (diffuseFactor > 0.0f)
+	{
+		float3 v = reflect(-lightVec, normal);
+		float specFactor = pow(max(dot(v, toEye), 0.0f), mat.specular.w);
+
+		diffuse = diffuseFactor * mat.diffuse * L.diffuse;
+		spec = specFactor * mat.specular * L.specular;
+	}
+
+	float att = 1.0f / dot(L.att, float3(1.0f, d, d * d));
+
+	diffuse *= att;
+	ambient *= att;
+	spec *= att;
+
+
+	///////////////////////////////////////////
+
+	/*
 	// the vector from the surface to the light
 	float3 lightVec = L.position - pos;
 	float lightDistSqr = dot(lightVec, lightVec);
@@ -173,9 +206,6 @@ void ComputePointLight(
 		spec = specFactor * mat.specular * L.specular;
 	}
 
-	// normal falloff
-	//float distance = length(lightVec);
-	//float att = pow(saturate(1.0f - pow(distance / L.range, 4.0f)), 2.0f) / (pow(distance, 2.0f) + 1.0f);
 
 	// attenuate
 	float att = dot(L.att, float3(1.0f, distInv, pow(distInv, 2)));
@@ -183,6 +213,11 @@ void ComputePointLight(
 	diffuse *= att;
 	ambient *= att;
 	spec *= att;
+
+	// normal falloff
+	//float distance = length(lightVec);
+	//float att = pow(saturate(1.0f - pow(distance / L.range, 4.0f)), 2.0f) / (pow(distance, 2.0f) + 1.0f);
+	*/
 }
 
 

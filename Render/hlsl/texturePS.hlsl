@@ -1,6 +1,4 @@
-//////////////////////////////////
-// Filename: texture.ps
-//////////////////////////////////
+#include "LightHelper.hlsli"
 
 
 //////////////////////////////////
@@ -15,22 +13,29 @@ SamplerState gSampleType   : register(s0);
 //////////////////////////////////
 cbuffer cbPerFrame        : register(b0)
 {
-	matrix gViewProj;
-	float3 gCameraPosition;
+	// light sources data
+	DirectionalLight  gDirLights[3];
+	PointLight        gPointLights[25];
+	SpotLight         gSpotLights[25];
+	float3            gEyePosW;                // eye position in world space  
+	int               gCurrNumPointLights;
+	int               gCurrNumSpotLights;
 };
 
 cbuffer cbRarelyChanged   : register(b1)
 {
-	// allow application to change for parameters once per frame.
-	// For example, we may only use fog for certain times of day.
+	// some flags for controlling the rendering process and
+	// params which are changed very rarely
 
-	float  gFogEnabled;
-	float  gUseAlphaClip;
-	float  gFogStart;      // how far from us the fog starts
-	//float  gFogRange_inv;  // inversed value of the fog range (1 / range)
-	float  gFogRange;      // distance from the fog start position where the fog completely hides the surface point
+	float3 gFogColor;            // what is the color of fog?
+	float  gFogStart;            // how far from camera the fog starts?
+	float  gFogRange;            // how far from camera the object is fully fogged?
 
-	float4 gFogColor;      // the colour of the fog (usually it's a degree of grey)
+	int    gNumOfDirLights;      // current number of directional light sources
+
+	int   gFogEnabled;          // turn on/off the fog effect
+	int   gTurnOnFlashLight;    // turn on/off the flashlight
+	int   gAlphaClipping;       // turn on/off alpha clipping
 };
 
 
@@ -50,7 +55,6 @@ struct PS_INPUT
 float4 PS(PS_INPUT pin) : SV_TARGET
 {
 
-	
 	/////////////////////////  TEXTURE  ////////////////////////
 
 	// Sample the pixel color from the texture using the sampler
@@ -64,28 +68,23 @@ float4 PS(PS_INPUT pin) : SV_TARGET
 	// if the pixel was rejected we just return from the pixel shader since 
 	// any further computations have no sense
 
-	//if (gUseAlphaClip)
-	if (false)
-	{
-		finalColor *= lightMapColor;
+	if (gAlphaClipping)
 		clip(finalColor.a - 0.1f);
-		return finalColor;
-	}
 	
 
 	/////////////////////////   FOG   ///////////////////////////
 
-	if (gFogEnabled)
+	if (true)
 	{
 		// the toEye vector is used in lighting
-		float3 toEye = gCameraPosition - pin.posW.xyz;
+		float3 toEye = gEyePosW - pin.posW.xyz;
 		float distToEye = length(toEye);
 		float fogLerp = saturate((distToEye - gFogStart) / gFogRange);
 
 		finalColor *= lightMapColor;
 
 		// blend the fog color and the lit color
-		finalColor = lerp(finalColor, gFogColor, fogLerp);
+		finalColor = lerp(finalColor, float4(gFogColor, 1.0f), fogLerp);
 	}
 
 	/////////////////////////////////////////////////////////////

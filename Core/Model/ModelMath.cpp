@@ -3,13 +3,14 @@
 // Created:      06.02.23
 ////////////////////////////////////////////////////////////////////
 #include "ModelMath.h"
-#include "../Common/Types.h"
 
+#include <CoreCommon/Types.h>
 #include <cmath>
 
 using namespace DirectX;
 
-
+namespace Core
+{
 
 void ModelMath::CalculateModelVectors(
 	Vertex3D*& vertices,
@@ -70,29 +71,6 @@ void ModelMath::CalculateModelVectors(
 			XMStoreFloat3(&vertices[vIdx].tangent, tangent);
 			XMStoreFloat3(&vertices[vIdx].binormal, binormal);
 		}
-		/*
-		Vertex3D& v1 = vertices[dataIdx++];
-		Vertex3D& v2 = vertices[dataIdx++];
-		Vertex3D& v3 = vertices[dataIdx++];
-
-		const DirectX::XMVECTOR v1_pos = DirectX::XMLoadFloat3(&v1.position);
-		const DirectX::XMVECTOR v2_pos = DirectX::XMLoadFloat3(&v2.position);
-		const DirectX::XMVECTOR v3_pos = DirectX::XMLoadFloat3(&v3.position);
-
-		// calculate the two vectors of edges for this face
-		DirectX::XMVECTOR edge1 = DirectX::XMVectorSubtract(v2_pos, v1_pos);
-		DirectX::XMVECTOR edge2 = DirectX::XMVectorSubtract(v3_pos, v1_pos);
-
-		DirectX::XMVECTOR normal = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(edge1, edge2));
-
-		if (calculateNormals)
-		{
-			// store these normal vectors into the vertices of the face
-			XMStoreFloat3(&vertices[dataIdx - 3].normal, normal);
-			XMStoreFloat3(&vertices[dataIdx - 2].normal, normal);
-			XMStoreFloat3(&vertices[dataIdx - 1].normal, normal);
-		}
-		*/
 	}
 }
 
@@ -168,3 +146,5 @@ void ModelMath::CalculateNormal(
 
 	normal = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(tangent, binormal));
 }
+
+} // namespace Core

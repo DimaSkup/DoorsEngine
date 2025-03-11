@@ -9,7 +9,6 @@
 cbuffer cbPerFrame : register(b0)
 {
 	matrix gViewProj;
-	float3 gCameraPosition;
 };
 
 //////////////////////////////////
@@ -18,9 +17,11 @@ cbuffer cbPerFrame : register(b0)
 struct VS_INPUT
 {
 	// data per instance
-	row_major matrix world        : WORLD;
-	row_major matrix texTransform : TEXTRANSFORM;
-	uint             instanceID   : SV_InstanceID;
+	row_major matrix   world             : WORLD;
+	row_major matrix   worldInvTranspose : WORLD_INV_TRANSPOSE;
+	row_major matrix   texTransform      : TEX_TRANSFORM;
+	row_major float4x4 material          : MATERIAL;
+	uint               instanceID        : SV_InstanceID;
 
 	// data per vertex
 	float3 posL         : POSITION;      // vertex position in a local space

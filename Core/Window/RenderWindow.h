@@ -10,7 +10,7 @@
 
 #include <string>
 
-namespace Doors
+namespace Core
 {
 
 class RenderWindow

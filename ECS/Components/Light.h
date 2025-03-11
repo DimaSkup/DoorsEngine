@@ -102,7 +102,14 @@ struct DirLight
 
 struct PointLight
 {
-	PointLight() {}
+	PointLight() :
+		ambient_{ NAN, NAN, NAN, NAN },
+		diffuse_{ NAN, NAN, NAN, NAN },
+		specular_{ NAN, NAN, NAN, NAN },
+		position_{ NAN, NAN, NAN },
+		range_{ NAN },
+		att_{ NAN, NAN, NAN }
+	{}
 
 	PointLight(const PointLight& rhs)
 	{
@@ -138,11 +145,9 @@ struct PointLight
 		position_(position),
 		range_(range)
 	{
-		// invert attenuation params so we can multiply by these values 
-		// in the HLSL shader instead of dividing by them
-		att_.x = (attenuation.x) ? (1.0f / attenuation.x) : 0.0f;
-		att_.y = (attenuation.y) ? (1.0f / attenuation.y) : 0.0f;
-		att_.z = (attenuation.z) ? (1.0f / attenuation.z) : 0.0f;
+		att_.x = (attenuation.x > 0.01f) ? attenuation.x : 0.01f;
+		att_.y = (attenuation.y > 0.01f) ? attenuation.y : 0.01f;
+		att_.z = (attenuation.z > 0.01f) ? attenuation.z : 0.01f;
 	}
 
 
@@ -163,7 +168,17 @@ struct PointLight
 
 struct SpotLight
 {
-	SpotLight() {}
+	SpotLight() :
+		ambient_{ NAN, NAN, NAN, NAN },
+		diffuse_{ NAN, NAN, NAN, NAN },
+		specular_{ NAN, NAN, NAN, NAN },
+		position_{ NAN, NAN, NAN },
+		range_{ NAN },
+		direction_{ NAN, NAN, NAN },
+		spot_{ NAN },
+		att_{ NAN, NAN, NAN }
+	{}
+
 
 	SpotLight(
 		const XMFLOAT4& ambient,
@@ -183,11 +198,9 @@ struct SpotLight
 		direction_(direction),
 		spot_(spot)
 	{
-		// invert attenuation params so we can multiply by these values 
-		// in the HLSL shader instead of dividing by them
-		att_.x = (attenuation.x) ? (1.0f / attenuation.x) : 0.0f;
-		att_.y = (attenuation.y) ? (1.0f / attenuation.y) : 0.0f;
-		att_.z = (attenuation.z) ? (1.0f / attenuation.z) : 0.0f;
+		att_.x = (attenuation.x > 0.01f) ? attenuation.x : 0.01f;
+		att_.y = (attenuation.y > 0.01f) ? attenuation.y : 0.01f;
+		att_.z = (attenuation.z > 0.01f) ? attenuation.z : 0.01f;
 	}
 
 
@@ -199,11 +212,13 @@ struct SpotLight
 	DirectX::XMFLOAT3 position_;
 	float range_;
 
-	// packed into 4D vector: (direction, spot exponent)
+	// packed into 4D vector: 
+	// 1. direction, 
+	// 2. spot exponent: light intensity fallof (for control the spotlight cone)
 	DirectX::XMFLOAT3 direction_;
 	float spot_;
 
-	// packed into 4D vector: (1/att(A0,A1,A2), pad)
+	// packed into 4D vector: (att(A0,A1,A2), pad)
 	DirectX::XMFLOAT3 att_;
 	float pad = 0;                    // pad the last float so we can array of light if we wanted
 };
@@ -252,7 +267,7 @@ struct SpotLightsInitParams
 //           STRUCTURES TO REPRESENT CONTAINERS FOR LIGHT SOURCES
 // *********************************************************************************
 
-struct DirLights
+__declspec(align(16)) struct DirLights
 {
 	size GetCount() const { return std::ssize(data_); }
 
@@ -260,7 +275,7 @@ struct DirLights
 	std::vector<DirLight> data_;
 };
 
-struct PointLights
+__declspec(align(16)) struct PointLights
 {
 	size GetCount() const { return std::ssize(data_); }
 
@@ -268,12 +283,20 @@ struct PointLights
 	std::vector<PointLight> data_;
 };
 
-struct SpotLights
+__declspec(align(16)) struct SpotLights
 {
-	size GetCount() const { return std::ssize(data_); }
-
 	std::vector<EntityID> ids_;
 	std::vector<SpotLight> data_;
+
+	size GetCount() const { return std::ssize(data_); }
+};
+
+// *********************************************************************************
+
+__declspec(align(16)) struct PosAndRange
+{
+	DirectX::XMFLOAT3 position{0,0,0};
+	float range = 0.0f;
 };
 
 
@@ -283,13 +306,14 @@ struct SpotLights
 
 struct Light
 {
-	ComponentType type_ = ComponentType::LightComponent;
-
 	std::vector<EntityID>   ids_;
 	std::vector<LightTypes> types_;
+	std::vector<bool>       isActive_;
 	DirLights               dirLights_;
 	PointLights             pointLights_;
 	SpotLights              spotLights_;
+
+	ComponentType type_ = ComponentType::LightComponent;
 };
 
 

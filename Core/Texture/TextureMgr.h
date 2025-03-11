@@ -20,6 +20,9 @@
 #include <string>
 
 
+namespace Core
+{
+
 class TextureMgr
 {
 public:
@@ -44,6 +47,10 @@ public:
 	
 
 	TexID LoadFromFile(const TexPath& path);
+
+	TexID LoadFromFileTexture2DArray(
+		const std::vector<std::string>& filenames,
+		const DXGI_FORMAT format);
 
 	// TODO: FIX IT
 	//void LoadFromFile(const std::vector<TexPath>& texPaths, std::vector<TexID>& outTexIDs);
@@ -81,9 +88,12 @@ private:
 	static TextureMgr* pInstance_;
 	ID3D11Device* pDevice_ = nullptr;
 
-	std::map<TexID, SRV*> idToSRV_;
+	//std::map<TexID, SRV*> idToSRV_;
 
-	std::vector<TexID> ids_;             // SORTED array of unique IDs
-	std::vector<TexName> names_;         // name (there can be path) which is used for searching of texture
+	std::vector<TexID> ids_;                // SORTED array of unique IDs
+	std::vector<SRV*> shaderResourceViews_;
+	std::vector<TexName> names_;            // name (there can be path) which is used for searching of texture
 	std::vector<Texture> textures_;
 };
+
+} // namespace Core

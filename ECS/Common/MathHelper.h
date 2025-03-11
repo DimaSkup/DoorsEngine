@@ -65,6 +65,9 @@ public:
 
 	static float AngleFromXY(const float x, const float y);
 
+	// return pitch/yaw/roll packed into FLOAT3 decomposed from the quaternion
+	static DirectX::XMFLOAT3 QuatToEulerAngles(const DirectX::XMVECTOR quat);
+
 	static const DirectX::XMMATRIX InverseTranspose(const DirectX::CXMMATRIX& M);
 };
 

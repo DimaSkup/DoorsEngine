@@ -9,6 +9,9 @@
 #include "../Model/ModelStorage.h"
 
 
+namespace Core
+{
+
 ProjectSaver::ProjectSaver() {}
 ProjectSaver::~ProjectSaver() {}
 
@@ -25,3 +28,5 @@ void ProjectSaver::LoadModels(ID3D11Device* pDevice)
 {
 	ModelStorage::Get()->Deserialize(pDevice);
 }
+
+} // namespace Core

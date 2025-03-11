@@ -3,16 +3,21 @@
 // ************************************************************************************
 #include "fontclass.h"
 
-#include "../Common/MemHelpers.h"
-#include "../Common/Assert.h"
-#include "../Common/Log.h"
+#include <CoreCommon/MemHelpers.h>
+#include <CoreCommon/Assert.h>
+#include <CoreCommon/Log.h>
 #include "../../Texture/TextureMgr.h"
 
 #include <fstream>
 #include <filesystem>
+
 namespace fs = std::filesystem;
 
+using namespace Core;
 
+
+namespace UI
+{
 
 FontClass::FontClass()
 {
@@ -75,7 +80,7 @@ void FontClass::Initialize(
 ///////////////////////////////////////////////////////////
 
 void FontClass::BuildVertexArray(
-	VertexFont* vertices,
+	Core::VertexFont* vertices,
 	const size numVertices,
 	const std::string& sentence,
 	const DirectX::XMFLOAT2& drawAt)
@@ -260,3 +265,5 @@ void FontClass::LoadFontData(
 		throw EngineException("can't load the font data from the file");
 	}
 }
+
+} // namespace UI

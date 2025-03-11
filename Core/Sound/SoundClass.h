@@ -25,9 +25,9 @@
 #include <memory>
 
 
-//////////////////////////////////
-// Class name: SoundClass
-//////////////////////////////////
+namespace Core
+{
+
 class SoundClass
 {
 private:
@@ -62,14 +62,12 @@ public:
 
 	bool PlayWaveFile();
 
-
 private:
 	bool InitializeDirectSound(HWND hwnd);
 
 	bool LoadWaveFile(const char* filename, IDirectSoundBuffer8** ppSoundBuffer);
 	bool CreateSecondaryBuffer(const WaveHeaderType& waveFileHeader, IDirectSoundBuffer8** secondaryBuffer);
 	bool ReadWaveData(const WaveHeaderType& waveFileHeader, IDirectSoundBuffer8** secondaryBuffer, FILE* filePtr);
-
 
 	bool VerifyWaveHeaderFile(const WaveHeaderType& waveFileHeader);
 	void SetDefaultWaveFormat(WAVEFORMATEX& waveFormat);
@@ -79,3 +77,5 @@ private:
 	IDirectSoundBuffer* pPrimaryBuffer_ = nullptr;
 	IDirectSoundBuffer8* pSecondaryBuffer1_ = nullptr;  // for each sound we need a separate secondary buffer
 };
+
+} // namespace Core

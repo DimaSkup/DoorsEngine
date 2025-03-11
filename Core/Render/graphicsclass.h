@@ -10,11 +10,8 @@
 //////////////////////////////////
 
 // engine stuff
-#include "../Engine/SystemState.h"     // contains the current information about the engine
+#include <CoreCommon/SystemState.h>     // contains the current information about the engine
 #include "../Engine/Settings.h"
-
-// timers
-#include "../Timers/timer.h"
 
 // input devices events
 #include "../Input/KeyboardEvent.h"
@@ -48,6 +45,8 @@
 #include <DirectXCollision.h>
 
 
+namespace Core
+{
 
 class GraphicsClass final
 {
@@ -76,6 +75,7 @@ public:
 	// render related methods
 
 	void ComputeFrustumCulling(SystemState& sysState);
+	void ComputeFrustumCullingOfLightSources(SystemState& sysState);
 	void ClearRenderingDataBeforeFrame();
 	void Render3D();
 	void RenderModel(BasicModel& model, const DirectX::XMMATRIX& world);
@@ -135,11 +135,13 @@ private:
 	void RenderEnttsDefault();
 	void RenderEnttsAlphaClipCullNone();
 	void RenderEnttsBlended();
+	void RenderBillboards();
 
 	// ------------------------------------------
 
-	// render bounding boxes of models/meshes
+	// render bounding boxes of models/meshes/light_sources/etc.
 	void RenderBoundingLineBoxes();
+	void RenderBoundingLineSpheres();
 	void RenderSkyDome();
 
 	void UpdateInstanceBuffAndRenderInstances(
@@ -190,6 +192,12 @@ public:
 	
 	// for rendering
 	ECS::RenderStatesSystem::EnttsRenderStatesData rsDataToRender_;
+
+
+	// temp for geometry buffer testing
+	void BuildGeometryBuffers();
+	ID3D11Buffer* pGeomVB_ = nullptr;
+	ID3D11Buffer* pGeomIB_ = nullptr;
 	
 	// different boolean flags             
 	bool isWireframeMode_ = false;             // do we render everything is the WIREFRAME mode?
@@ -199,4 +207,9 @@ public:
 	bool isGameMode_ = false;
 
 	AABBShowMode aabbShowMode_ = NONE;
+
+	int fullFogDistance_    = 0;
+	int fullFogDistanceSqr_ = 0;
 };
+
+} // namespace Core

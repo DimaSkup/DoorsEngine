@@ -5,26 +5,40 @@
 // =================================================================================
 #pragma once
 
-#include "../../UICommon/ViewListener.h"
-#include "../../UICommon/ICommand.h"
-#include "../../UICommon/IFacadeEngineToUI.h"
+#include <UICommon/IEditorController.h>
+#include <UICommon/ICommand.h>
+#include <UICommon/IFacadeEngineToUI.h>
 
 #include "FogEditorView.h"
 #include "FogEditorModel.h"
 
 
-class FogEditorController : public ViewListener
+namespace UI
+{
+
+class FogEditorController : public IEditorController
 {
 private:
-	Model::Fog fogModel_;
-	View::Fog  fogView_;
+	ModelFog fogModel_;
+	ViewFog  fogView_;
 	IFacadeEngineToUI* pFacade_ = nullptr;
 
 public:
 	FogEditorController() : fogView_(this) {}
 
 	void Initialize(IFacadeEngineToUI* pFacade);
-	virtual void Execute(ICommand* pCommand) override;
 
-	inline void Draw() { fogView_.Draw(&fogModel_); }
+	// execute command and store this change into the events history
+	virtual void Execute(const ICommand* pCommand) override;
+
+	// undo/alt_undo an event from the events history
+	virtual void Undo(const ICommand* pCommand, const uint32_t entityID) override;
+
+
+	inline void Draw() 
+	{ 
+		fogView_.Draw(&fogModel_);
+	}
 };
+
+} // namespace UI

@@ -3,6 +3,10 @@
 // Revising: 01.08.22
 ////////////////////////////////////////////////////////////////////////////////////////////
 #include "GameTimer.h"
+#include <CoreCommon/Log.h>
+
+namespace Core
+{
 
 GameTimer::GameTimer()
 {
@@ -154,3 +158,5 @@ float GameTimer::GetGameTime() const
 		//static_cast<float>((stopTime_ - pausedTime_) - baseTime_) * (float)secondsPerCount_ :
 		//static_cast<float>((currTime_ - pausedTime_) - baseTime_) * (float)secondsPerCount_;
 }
+
+} // namespace Core

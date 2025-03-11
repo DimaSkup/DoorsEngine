@@ -29,6 +29,7 @@ bool InitRender::InitializeShaders(
 	try
 	{
 		bool result = false;
+		const std::string pathToDir = ShaderClass::pathToShadersDir_;
 
 		result = shadersContainer.colorShader_.Initialize(pDevice, pContext);
 		Assert::True(result, "can't initialize the color shader class");
@@ -36,7 +37,7 @@ bool InitRender::InitializeShaders(
 		result = shadersContainer.textureShader_.Initialize(pDevice, pContext);
 		Assert::True(result, "can't initialize the texture shader class");
 
-		result = shadersContainer.lightShader_.Initialize(pDevice, pContext);
+		result = shadersContainer.lightShader_.Initialize(pDevice);
 		Assert::True(result, "can't initialize the light shader class");
 
 
@@ -47,7 +48,13 @@ bool InitRender::InitializeShaders(
 		Assert::True(result, "can't initialize the debug shader");
 
 		result = shadersContainer.skyDomeShader_.Initialize(pDevice, pContext);
-		Assert::True(result, "can't initializer the sky dome shader");
+		Assert::True(result, "can't initialize the sky dome shader");
+
+		result = shadersContainer.outlineShader_.Initialize(pDevice, pathToDir);
+		Assert::True(result, "can't initialize the outline shader");
+
+		result = shadersContainer.billboardShader_.Initialize(pDevice, pathToDir);
+		Assert::True(result, "can't initialize the billboard shader");
 
 		
 		Log::Debug("shaders initialization: finished successfully");

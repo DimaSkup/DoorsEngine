@@ -4,7 +4,7 @@
 #include "RenderWindow.h"
 
 
-namespace Doors
+namespace Core
 {
 
 class WindowContainer

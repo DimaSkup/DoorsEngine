@@ -36,6 +36,7 @@ cbuffer cbPerFrame : register(b0)
 	SpotLight         gSpotLights;
 	float3            gEyePosW;             // eye position in world space
 	int               gCurrNumPointLights;
+	int               gCurrNumSpotLights;
 };
 
 cbuffer cbRareChanged : register(b1)

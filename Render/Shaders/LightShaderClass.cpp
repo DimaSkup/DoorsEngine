@@ -13,8 +13,7 @@
 namespace Render
 {
 
-LightShaderClass::LightShaderClass() 
-	: className_{ __func__ }
+LightShaderClass::LightShaderClass() : className_{ __func__ }
 {
 }
 
@@ -27,19 +26,14 @@ LightShaderClass::~LightShaderClass()
 //                             public methods                                       
 // =================================================================================
 
-bool LightShaderClass::Initialize(
-	ID3D11Device* pDevice,
-	ID3D11DeviceContext* pContext)
+bool LightShaderClass::Initialize(ID3D11Device* pDevice)
 {
-	// initialize the shader class: for rendering textured + lit objects;
-	// also create an instanced buffer;
-
 	try
 	{
 		const std::string vsFilePath = ShaderClass::pathToShadersDir_ + "LightVS.cso";
 		const std::string psFilePath = ShaderClass::pathToShadersDir_ + "LightPS.cso";
 
-		InitializeShaders(pDevice, pContext, vsFilePath, psFilePath);
+		InitializeShaders(pDevice, vsFilePath, psFilePath);
 
 		Log::Debug("is initialized");
 	}
@@ -59,8 +53,8 @@ void LightShaderClass::Render(
 	ID3D11DeviceContext* pContext,
 	ID3D11Buffer* pInstancedBuffer,
 	const Instance* instances,
-	const int numModels,
-	const UINT instancedBuffElemSize)
+	const int numInstances,
+	const UINT instancesBuffElemSize)
 {
 	// bind input layout, shaders, samplers
 	pContext->IASetInputLayout(vs_.GetInputLayout());
@@ -70,26 +64,27 @@ void LightShaderClass::Render(
 
 
 	// go through each instance and render it
-	for (int i = 0, startInstanceLocation = 0; i < numModels; ++i)
+	for (int i = 0, startInstanceLocation = 0; i < numInstances; ++i)
 	{
 		const Instance& instance = instances[i];
 
-		// prepare input assembler (IA) stage before the rendering process
+		// bind vertex/index buffers
 		ID3D11Buffer* const vbs[2] = { instance.pVB, pInstancedBuffer };
-		const UINT stride[2] = { instance.vertexStride, instancedBuffElemSize };
+		const UINT stride[2] = { instance.vertexStride, instancesBuffElemSize };
 		const UINT offset[2] = { 0,0 };
 
 		pContext->IASetVertexBuffers(0, 2, vbs, stride, offset);
 		pContext->IASetIndexBuffer(instance.pIB, DXGI_FORMAT_R32_UINT, 0);
 
 		// textures arr
-		SRV* const* texIDs = instance.texSRVs.data();
+		SRV* const* texSRVs = instance.texSRVs.data();
 
 		// go through each subset (mesh) of this model and render it
 		for (int subsetIdx = 0; subsetIdx < (int)std::ssize(instance.subsets); ++subsetIdx)
 		{
 			// update textures for the current subset
-			pContext->PSSetShaderResources(0U, 22U, texIDs + (subsetIdx * 22));
+			pContext->PSSetShaderResources(0U, 22U, texSRVs + (subsetIdx * 22));
+
 			const Subset& subset = instance.subsets[subsetIdx];
 
 			pContext->DrawIndexedInstanced(
@@ -97,7 +92,7 @@ void LightShaderClass::Render(
 				instance.numInstances,
 				subset.indexStart,
 				subset.vertexStart,
-				startInstanceLocation + subsetIdx);
+				startInstanceLocation + (subsetIdx * instance.numInstances));
 		}
 
 		startInstanceLocation += (int)std::ssize(instance.subsets) * instance.numInstances;
@@ -112,7 +107,6 @@ void LightShaderClass::Render(
 
 void LightShaderClass::InitializeShaders(
 	ID3D11Device* pDevice,
-	ID3D11DeviceContext* pContext,
 	const std::string& vsFilePath,
 	const std::string& psFilePath)
 {
@@ -126,14 +120,14 @@ void LightShaderClass::InitializeShaders(
 	const D3D11_INPUT_ELEMENT_DESC inputLayoutDesc[] =
 	{
 		// per vertex data
-		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,                            0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
 		{"NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
 		{"TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
 		{"BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
 
 		// per instance data
-		{"WORLD", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+		{"WORLD", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0,  D3D11_INPUT_PER_INSTANCE_DATA, 1},
 		{"WORLD", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 16, D3D11_INPUT_PER_INSTANCE_DATA, 1},
 		{"WORLD", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 32, D3D11_INPUT_PER_INSTANCE_DATA, 1},
 		{"WORLD", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 48, D3D11_INPUT_PER_INSTANCE_DATA, 1},

@@ -13,7 +13,7 @@
 #include <fstream>
 
 
-#if 0
+#if  0
 
 SpriteClass::SpriteClass(ID3D11Device* pDevice,	ID3D11DeviceContext* pDeviceContext)
 	: Model(pDevice, pDeviceContext)
@@ -153,7 +153,7 @@ void SpriteClass::Render(const D3D_PRIMITIVE_TOPOLOGY topologyType)
 	pDataContainer->texturesMap.insert_or_assign("diffuse", this->GetTextureResourceViewAddress());
 
 	// render this mesh using a HLSL shader
-	this->pModelToShaderMediator_->Render(this->pImmediateContext_, this);
+	this->pModelToShaderMediator_->Render(this->pContext_, this);
 
 	return;
 }
@@ -361,7 +361,7 @@ void SpriteClass::UpdateBuffers()
 	/////////////////////////////////////////////////////
 
 	// update the DYNAMIC vertex buffer
-	this->meshes_[0]->UpdateVertexBuffer(this->pImmediateContext_, verticesArr);
+	this->meshes_[0]->UpdateVertexBuffer(this->pContext_, verticesArr);
 
 	return;
 

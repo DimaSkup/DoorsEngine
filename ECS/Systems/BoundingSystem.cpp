@@ -88,6 +88,17 @@ void BoundingSystem::Add(
 
 ///////////////////////////////////////////////////////////
 
+void BoundingSystem::Add(
+	const EntityID* ids,
+	const size numEntts,
+	const DirectX::BoundingSphere* spheres)
+{
+	Assert::True((ids != nullptr) && (spheres != nullptr) && (numEntts > 0), "input data is invalid");
+
+}
+
+///////////////////////////////////////////////////////////
+
 void ComputeAABB(
 	DirectX::BoundingOrientedBox* obbs,
 	const int numOBBs,
@@ -145,16 +156,15 @@ void BoundingSystem::GetOBBs(
 	try
 	{
 		Bounding& comp = *pBoundingComponent_;
-		const bool enttsValid = Utils::CheckValuesExistInSortedArr(comp.ids_, ids);
-		Assert::True(enttsValid, "some of input entts doesn't have an AABB");
-
-		std::vector<index> idxs;
-		Utils::GetIdxsInSortedArr(comp.ids_, ids, idxs);
+		//const bool enttsValid = Utils::CheckValuesExistInSortedArr(comp.ids_, ids);
+		//Assert::True(enttsValid, "some of input entts doesn't have an AABB");
 
 		size numEntts = std::ssize(ids);
-		size numOBBs = 0;
-
+		std::vector<index> idxs(numEntts);
 		numBoxesPerEntt.resize(numEntts);
+
+		Utils::GetIdxsInSortedArr(comp.ids_, ids, idxs);
+		size numOBBs = 0;	
 
 		// get the number of bounding boxes per each entity
 		for (int i = 0; const index idx : idxs)
@@ -164,12 +174,21 @@ void BoundingSystem::GetOBBs(
 		for (index i = 0; i < numEntts; ++i)
 			numOBBs += numBoxesPerEntt[i];
 
+		outOBBs.resize(numOBBs);
+
+		for (int obbIdx = 0; const index idx : idxs)
+		{
+			for (DirectX::BoundingOrientedBox& obb : comp.data_[idx].obbs_)
+				outOBBs[obbIdx++] = obb;
+		}
+#if 0
 		// get AABBs of each input entt
 		outOBBs.reserve(numOBBs);
 
 		// go through each entity data and copy each bounding box into the output arr
 		for (int obbIdx = 0; const index idx : idxs)
 			Utils::AppendToArray(outOBBs, comp.data_[idx].obbs_);
+#endif
 	}
 	catch (LIB_Exception& e)
 	{

@@ -9,6 +9,10 @@
 #include <d3d11.h>
 #include <imgui.h>
 
+
+namespace Core
+{
+
 class ImGuiLayer
 {
 public:
@@ -34,3 +38,5 @@ private:
 
 	ImGuiContext* pImGuiContext_ = nullptr;
 };
+
+} // namespace Core

@@ -161,10 +161,10 @@ void SkyDomeShader::InitializeShaders(
 	result = samplerState_.Initialize(pDevice, &samplerDesc);
 	Assert::True(result, "can't initialize the sampler state");
 
-	hr = cbvsPerFrame_.Initialize(pDevice, pContext);
+	hr = cbvsPerFrame_.Initialize(pDevice);
 	Assert::NotFailed(hr, "can't init a const buffer (VS)");
 
-	hr = cbpsRareChanged_.Initialize(pDevice, pContext);
+	hr = cbpsRareChanged_.Initialize(pDevice);
 	Assert::NotFailed(hr, "can't init a const buffer (PS)");
 
 

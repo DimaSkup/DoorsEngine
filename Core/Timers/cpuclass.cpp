@@ -5,9 +5,12 @@
 #include "cpuclass.h"
 #include <pdhmsg.h>
 
-#include "../Common/Log.h"
-#include "../Common/StringHelper.h"
+#include <CoreCommon/Log.h>
+#include <CoreCommon/StringHelper.h>
 
+
+namespace Core
+{
 
 CpuClass::CpuClass() {}
 CpuClass::CpuClass(const CpuClass& copy) {}
@@ -128,3 +131,5 @@ int CpuClass::GetCpuPercentage()
 
 	return (m_canReadCpu) ? static_cast<int>(m_cpuUsage) : 0;
 }
+
+} // namespace Core

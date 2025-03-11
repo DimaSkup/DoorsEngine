@@ -41,9 +41,11 @@ public:
 		std::vector<ECS::RenderShaderType>& outShaderTypes);
 
 	void ClearVisibleEntts();
+	void ClearVisibleLightSources();
 
 	// for debug/unit-test purposes
-	inline const std::vector<EntityID>& GetAllEnttsIDs() const { return pRenderComponent_->ids_; }
+	inline const std::vector<EntityID>& GetAllEnttsIDs()      const { return pRenderComponent_->ids_; }
+	inline std::vector<EntityID>& GetArrVisibleLightSources() const { return pRenderComponent_->visiblePointLightsIDs_; }
 
 	inline void SetVisibleEntts(const std::vector<EntityID>& inEntts) { pRenderComponent_->visibleEnttsIDs_ = inEntts; }
 	inline const std::vector<EntityID>& GetAllVisibleEntts() const { return pRenderComponent_->visibleEnttsIDs_; }

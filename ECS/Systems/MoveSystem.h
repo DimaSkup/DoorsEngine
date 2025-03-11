@@ -23,7 +23,6 @@ class MoveSystem final
 public:
 	MoveSystem(
 		Transform* pTransformComponent,
-		WorldMatrix* pWorldMatComponent_,
 		Movement* pMoveComponent);
 	~MoveSystem() {}
 
@@ -47,7 +46,6 @@ private:
 
 private:
 	Transform*   pTransformComponent_ = nullptr;
-	WorldMatrix* pWorldMatComponent_ = nullptr;
 	Movement*    pMoveComponent_ = nullptr;
 };
 

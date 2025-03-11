@@ -4,16 +4,19 @@
 // =================================================================================
 #include "TextStore.h"
 
-#include "../../Common/Log.h"
-#include "../../Common/Utils.h"
+#include <CoreCommon/Log.h>
+#include <CoreCommon/Utils.h>
 
 #include <algorithm>
 #include <stdexcept>
 
+using namespace Core;
+
+namespace UI
+{
+
 // static
 SentenceID TextStore::staticID_ = 0;
-
-
 
 TextStore::TextStore() 
 {
@@ -289,13 +292,9 @@ void TextStore::UpdateSentenceByKey(
 }
 
 
-
-
-
 // ====================================================================================
 //                            PRIVATE MODICATION API 
 // ====================================================================================
-
 
 void TextStore::BuildTextVerticesIndices(
 	ID3D11Device* pDevice,
@@ -363,4 +362,4 @@ void TextStore::UpdateSentenceByIdx(
 		std::ssize(vertices));
 }
 
-///////////////////////////////////////////////////////////
+} // namespace UI

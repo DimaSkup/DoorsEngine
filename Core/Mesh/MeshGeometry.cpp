@@ -4,9 +4,14 @@
 // Created:     29.10.24
 // *********************************************************************************
 #include "MeshGeometry.h"
-#include "../Common/MemHelpers.h"
+#include <CoreCommon/MemHelpers.h>
 #include <cassert>
+#include <format>
 
+#pragma warning (disable : 4996)
+
+namespace Core
+{
 
 MeshGeometry::MeshGeometry() 
 {
@@ -117,10 +122,7 @@ void MeshGeometry::SetSubsets(const Subset* subsets, const int numSubsets)
 
 ///////////////////////////////////////////////////////////
 
-void MeshGeometry::InitVB(
-	ID3D11Device* pDevice,
-	const Vertex3D* pVertices,
-	int count)
+void MeshGeometry::InitVB(ID3D11Device* pDevice, const Vertex3D* pVertices,	int count)
 {
 	vb_.Initialize(pDevice, pVertices, count, false);
 	vertexStride_ = sizeof(Vertex3D);
@@ -128,12 +130,27 @@ void MeshGeometry::InitVB(
 
 ///////////////////////////////////////////////////////////
 
-void MeshGeometry::InitIB(
-	ID3D11Device* pDevice,
-	const UINT* pIndices,
-	int count)
+void MeshGeometry::InitIB(ID3D11Device* pDevice, const UINT* pIndices, int count)
 {
 	ib_.Initialize(pDevice, pIndices, count);
 }
 
 ///////////////////////////////////////////////////////////
+
+void MeshGeometry::SetSubsetName(const uint8_t subsetID, const char* name)
+{
+    size_t length = strlen(name);
+
+    if (length > SUBSET_NAME_LENGTH_LIMIT)
+        length = SUBSET_NAME_LENGTH_LIMIT;
+
+    if ((subsetID >= numSubsets_) || (name == nullptr) || (length == 0))
+    {
+        Log::Error(std::format("can't set a name for subset {}: invalid input args", subsetID));
+        return;
+    }
+
+    strncpy(subsets_[subsetID].name_, name, length);
+}
+
+} // namespace Core

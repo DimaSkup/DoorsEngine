@@ -18,17 +18,12 @@ namespace ECS
 {
  
 
-MoveSystem::MoveSystem(
-	Transform* pTransformComponent,
-	WorldMatrix* pWorldMatrixComponent,
-	Movement* pMoveComponent)
+MoveSystem::MoveSystem(Transform* pTransformComponent, Movement* pMoveComponent)
 {
 	Assert::NotNullptr(pTransformComponent, "ptr to the Transform component == nullptr");
-	Assert::NotNullptr(pWorldMatrixComponent, "ptr to the WorldMatrix component == nullptr");
 	Assert::NotNullptr(pMoveComponent, "ptr to the Movement component == nullptr");
 
 	pTransformComponent_ = pTransformComponent;
-	pWorldMatComponent_ = pWorldMatrixComponent;
 	pMoveComponent_ = pMoveComponent;
 }
 
@@ -86,6 +81,7 @@ void MoveSystem::UpdateAllMoves(
 
 	try
 	{
+#if 0
 		Transform& transform = *pTransformComponent_;
 		Movement& movement = *pMoveComponent_;
 
@@ -161,6 +157,7 @@ void MoveSystem::UpdateAllMoves(
 		transformSys.SetWorldMatricesByDataIdxs(
 			transformDataIdxs, 
 			worldMatricesToUpdate);
+#endif
 	}
 	catch (const std::out_of_range& e)
 	{
@@ -183,17 +180,16 @@ void MoveSystem::AddRecords(
 	const std::vector<XMVECTOR>& rotationQuats,
 	const std::vector<float>& uniformScaleChanges)
 {
-	using namespace Utils;
 	Assert::NotEmpty(ids.empty(), "array of entities IDs is empty");
-	Assert::True(CheckArrSizesEqual(ids, translations), "count of entities and translations must be equal");
-	Assert::True(CheckArrSizesEqual(ids, rotationQuats), "count of entities and rotationQuats must be equal");
-	Assert::True(CheckArrSizesEqual(ids, uniformScaleChanges), "count of entities and scaleFactors must be equal");
+	Assert::True(Utils::CheckArrSizesEqual(ids, translations), "count of entities and translations must be equal");
+	Assert::True(Utils::CheckArrSizesEqual(ids, rotationQuats), "count of entities and rotationQuats must be equal");
+	Assert::True(Utils::CheckArrSizesEqual(ids, uniformScaleChanges), "count of entities and scaleFactors must be equal");
 
 	Movement& comp = *pMoveComponent_;
 
 
 	// check if there is no record with such entities IDs
-	bool canAddRecords = CheckValuesExistInSortedArr(comp.ids_, ids);
+	bool canAddRecords = Utils::CheckValuesExistInSortedArr(comp.ids_, ids);
 	Assert::True(canAddRecords, "there is already some record with some input ID (key)");
 
 	const int numNewRecords = (int)std::ssize(ids);
@@ -220,9 +216,9 @@ void MoveSystem::AddRecords(
 	{	
 		const index insertAtPos = Utils::GetPosForID(comp.ids_, ids[i]);
 
-		InsertAtPos(comp.ids_, insertAtPos, ids[i]);
-		InsertAtPos(comp.translationAndUniScales_, insertAtPos, packedTrScales[i]);
-		InsertAtPos(comp.rotationQuats_, insertAtPos, normRotQuats[i]);
+		Utils::InsertAtPos(comp.ids_, insertAtPos, ids[i]);
+		Utils::InsertAtPos(comp.translationAndUniScales_, insertAtPos, packedTrScales[i]);
+		Utils::InsertAtPos(comp.rotationQuats_, insertAtPos, normRotQuats[i]);
 	}
 }
 

@@ -30,6 +30,7 @@ public:
 		EnttsAlphaClipping enttsAlphaClipping_;
 		EnttsBlended       enttsBlended_;
 		EnttsReflection    enttsReflection_;
+		EnttsFarThanFog    enttsFarThanFog_;
 		
 		void Clear()
 		{
@@ -37,6 +38,7 @@ public:
 			enttsAlphaClipping_.Clear();
 			enttsBlended_.Clear();
 			enttsReflection_.Clear();
+			enttsFarThanFog_.Clear();
 		}
 	};
 

@@ -8,7 +8,10 @@
 // =================================================================================
 #pragma once
 
-#include "../../UICommon/StatesGUI.h"
+#include <UICommon/StatesGUI.h>
+
+namespace UI
+{
 
 class MainMenuBar
 {
@@ -21,3 +24,5 @@ private:
 	void ShowOptionsGui();
 	void ShowFontSelector();
 };
+
+}

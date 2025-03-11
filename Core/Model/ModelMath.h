@@ -7,14 +7,12 @@
 ////////////////////////////////////////////////////////////////////
 #pragma once
 
-
 #include "../Mesh/Vertex.h"
 #include <DirectXMath.h>
 
+namespace Core
+{
 
-//////////////////////////////////
-// Class name: ModelMath
-//////////////////////////////////
 class ModelMath
 {
 public:
@@ -36,4 +34,6 @@ public:
 		const DirectX::XMVECTOR& binormal,
 		DirectX::XMVECTOR& normal);
 };
+
+} // namespace Core
 

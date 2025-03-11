@@ -8,7 +8,7 @@
 #pragma once
 
 
-#include "SystemState.h"
+#include <CoreCommon/SystemState.h>
 #include "EventListener.h"
 
 #include "../ImGui/ImGuiLayer.h"
@@ -40,9 +40,8 @@
 
 
 
-namespace Doors
+namespace Core
 {
-
 
 class Engine : public EventListener
 {
@@ -88,6 +87,9 @@ public:
 	void HandleEditorEventKeyboard();
 	void HandleGameEventKeyboard();
 
+	void SwitchFlashLight(const Camera& camera);
+	void UpdateFlashLightPosition(const DirectX::XMFLOAT3& position);
+	void UpdateFlashLightDirection(const DirectX::XMFLOAT3& direction);
 	void HandleEditorEventMouse();
 	void HandleGameEventMouse();
 
@@ -124,7 +126,7 @@ private:
 	GraphicsClass      graphics_;            // rendering system
 
 	ImGuiLayer         imGuiLayer_;
-	UserInterface      userInterface_;       // UI/GUI: for work with the graphics user interface (GUI)
+	UI::UserInterface  userInterface_;       // UI/GUI: for work with the graphics user interface (GUI)
 
 	//KeyboardEvent      keyboardEvent_;       // the current keyboard event
 	MouseEvent         mouseEvent_;          // the current mouse event
@@ -132,7 +134,7 @@ private:
 
 	FrameBuffer        frameBuffer_;         // we use this obj for rendering the scene into a texture and then we pass this texture into GUI, to show it in the editor
 
-	IFacadeEngineToUI* pFacadeEngineToUI_ = nullptr;  // a facade interface which are used by UI to contact with some engine's parts 
+	UI::IFacadeEngineToUI* pFacadeEngineToUI_ = nullptr;  // a facade interface which are used by UI to contact with some engine's parts 
 
 	// window's zone width/height
 	UINT windowWidth_ = 0;
@@ -144,4 +146,4 @@ private:
 
 }; // class Engine
 
-} // namespace Doors
+} // namespace Core

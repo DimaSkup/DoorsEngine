@@ -7,10 +7,10 @@
 // **********************************************************************************
 #pragma once
 
+#include "../Common/log.h"
 #include "../Common/Utils.h"
 #include "../Components/Transform.h"
 #include "../Components/WorldMatrix.h"
-
 
 #include <set>
 #include <fstream>
@@ -21,8 +21,10 @@ namespace ECS
 class TransformSystem final
 {
 public:
-	TransformSystem(Transform* pTransform, WorldMatrix* pWorld);
-	~TransformSystem() {}
+	TransformSystem();
+	~TransformSystem();
+
+	void Initialize(Transform* pTransform);
 
 	// public serialization / deserialization API
 	void Serialize(std::ofstream& fout, u32& offset);
@@ -38,10 +40,21 @@ public:
 
 
 	// -------------------------------------------------------
-	// PUBLIC GETTERS API
 
-	const XMFLOAT3 GetPositionByID(const EntityID id);
-	const XMVECTOR GetRotationQuatByID(const EntityID id);
+	// GET/SET  position/rotation/uniform_scale
+
+	void GetPositionsByIDs(const EntityID* ids, XMFLOAT3* outPositions, const size numEntts) const;
+
+	const XMFLOAT3 GetPositionByID            (const EntityID id) const;
+	const XMVECTOR GetRotationQuatByID        (const EntityID id) const;
+	const XMFLOAT3 GetRotationPitchYawRollByID(const EntityID id) const;
+	const float    GetUniformScaleByID        (const EntityID id) const;
+
+	bool SetPositionByID    (const EntityID id, const XMFLOAT3& position);
+	bool SetRotationQuatByID(const EntityID id, const XMVECTOR& dirQuat);
+	bool SetUniScaleByID    (const EntityID id, const float uniformScale);
+
+	// -------------------------------------------------------
 
 	void GetTransformByID(
 		const EntityID id,
@@ -71,37 +84,22 @@ public:
 	DirectX::XMMATRIX GetWorldMatrixOfEntt(const EntityID id);
 
 	void GetWorldMatricesOfEntts(
-		const std::vector<EntityID>& enttsIDs,
-		std::vector<DirectX::XMMATRIX>& outWorlds);
-
-	void GetWorldMatricesOfEntts(
 		const EntityID* ids,
-		const size numEntts,
-		std::vector<DirectX::XMMATRIX>& outWorlds);
+		DirectX::XMMATRIX* outWorlds,
+		const size numEntts);
 
 	const DirectX::XMMATRIX& GetInverseWorldMatrixOfEntt(const EntityID id);
 
 	void GetInverseWorldMatricesOfEntts(
-		const std::vector<EntityID>& enttsIDs,
-		std::vector<DirectX::XMMATRIX>& outInvWorlds);
+		const EntityID* enttsIDs,
+		DirectX::XMMATRIX* outInvWorlds,
+		const int numEntts);
 
 	void GetMatricesByIdxs(
-		const std::vector<index>& idxs,
-		const std::vector<XMMATRIX>& inMatrices,
-		std::vector<XMMATRIX>& outMatrices);
-
-	// inline getters
-	inline const std::vector<DirectX::XMMATRIX>& GetAllWorldMatrices() const { return pWorldMat_->worlds_; }
-	inline const std::vector<EntityID>& GetAllEnttsIDsFromTransformComponent() const { return pTransform_->ids_; }
-	inline void GetAllEnttsIDsFromWorldMatrixComponent(std::vector<EntityID>& outEnttsIDs) { outEnttsIDs = pWorldMat_->ids_; }
-
-
-	// -------------------------------------------------------
-	// PUBLIC SETTERS API
-
-	void SetPositionByID(const EntityID id, const XMFLOAT3& position);
-	void SetDirectionByID(const EntityID id, const XMVECTOR& dirQuat);
-	void SetUniScaleByID(const EntityID id, const float uniformScale);
+		const index* idxs,
+		const XMMATRIX* inMatrices,
+		XMMATRIX* outMatrices,
+		int numMatrices);
 
 	void SetTransformByID(
 		const EntityID id,
@@ -116,7 +114,7 @@ public:
 		const std::vector<float>& uniformScales);
 
 	void SetTransformDataByDataIdxs(
-		const std::vector<index>& dataIdxs,
+		const vector<index>& dataIdxs,
 		const std::vector<XMVECTOR>& newPositions,
 		const std::vector<XMVECTOR>& newDirQuats,
 		const std::vector<float>& newUniformScales);
@@ -150,18 +148,25 @@ private:
 
 	// ---------------------------------------------
 
-	inline index GetIdxByID(const EntityID id)
+	inline index GetIdxByID(const EntityID id) const
 	{
 		// return valid idx if there is an entity by such ID;
 		// or return 0 if there is no such entity;
-		const std::vector<EntityID>& ids = pTransform_->ids_;
-		return (Utils::BinarySearch(ids, id)) ? Utils::GetIdxInSortedArr(ids, id) : 0;
+		const index idx = pTransform_->ids_.get_idx(id);
+
+		if (pTransform_->ids_[idx] != id)
+		{
+			Log::Error("there is no transform data for entt by id: " + std::to_string(id));
+			return 0;
+		}
+
+		return idx;
 	}
 
 	inline void RecomputeWorldMatrixByIdx(const index idx)
 	{
 		// recompute world matrix for the entity by array idx
-		pWorldMat_->worlds_[idx] =
+		pTransform_->worlds_[idx] =
 			GetMatScaling(pTransform_->posAndUniformScale_[idx].w) *
 			GetMatRotation(pTransform_->dirQuats_[idx]) *
 			GetMatTranslation(pTransform_->posAndUniformScale_[idx]);
@@ -171,7 +176,7 @@ private:
 	{
 		// recompute inverse world matrix based on world by array idx;
 		// NOTE: expects the world matrix to be computed already!!!
-		pWorldMat_->invWorlds_[idx] = DirectX::XMMatrixInverse(nullptr, pWorldMat_->worlds_[idx]);
+		pTransform_->invWorlds_[idx] = DirectX::XMMatrixInverse(nullptr, pTransform_->worlds_[idx]);
 	}
 
 	inline XMMATRIX GetMatTranslation(const XMFLOAT4& pos)  const { return DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z); }
@@ -180,7 +185,7 @@ private:
 
 private:
 	Transform* pTransform_ = nullptr;   // a ptr to the Transform component
-	WorldMatrix* pWorldMat_ = nullptr;  // a ptr to the WorldMatrix component
+	//WorldMatrix* pWorldMat_ = nullptr;  // a ptr to the WorldMatrix component
 };
 
 }

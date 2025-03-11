@@ -5,16 +5,23 @@
 // Created:      09.09.24
 // *********************************************************************************
 #include "RenderStates.h"
-#include "../Common/MemHelpers.h"
-#include "../Common/Assert.h"
-#include "../Common/log.h"
-
+#include <CoreCommon/MemHelpers.h>
+#include <CoreCommon/Assert.h>
+#include <CoreCommon/log.h>
 #include <sstream>
 
-RenderStates::RenderStates() {}
-RenderStates::~RenderStates() { DestroyAll(); }
 
+namespace Core
+{
+	
+RenderStates::RenderStates() 
+{
+}
 
+RenderStates::~RenderStates() 
+{ 
+	DestroyAll(); 
+}
 
 // ********************************************************************************
 //                            PUBLIC METHODS
@@ -148,6 +155,7 @@ void RenderStates::SetBS(ID3D11DeviceContext* pDeviceContext, const STATES key)
 		case ADDING:
 		case SUBTRACTING:
 		case MULTIPLYING:
+		case ALPHA_TO_COVERAGE:
 		{
 			pDeviceContext->OMSetBlendState(pBS, NULL, 0xFFFFFFFF);
 			break;
@@ -509,6 +517,18 @@ void RenderStates::InitAllBlendStates(ID3D11Device* pDevice)
 
 	hr = pDevice->CreateBlendState(&blendDesc, &blendStates_[TRANSPARENCY]);
 	Assert::NotFailed(hr, "can't create a transparent blend state");
+
+	//
+	// alpha to coverage
+	//
+	D3D11_BLEND_DESC a2CDesc = { 0 };
+	a2CDesc.AlphaToCoverageEnable = true;
+	a2CDesc.IndependentBlendEnable = false;
+	a2CDesc.RenderTarget[0].BlendEnable = false;
+	a2CDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+	hr = pDevice->CreateBlendState(&a2CDesc, &blendStates_[ALPHA_TO_COVERAGE]);
+	Assert::NotFailed(hr, "can't create a blend state (alpha to coverage)");
 }
 
 ///////////////////////////////////////////////////////////
@@ -751,5 +771,4 @@ void RenderStates::PrintErrAboutRSHash(const uint8_t hash)
 	Log::Error(rsNames.str());
 }
 
-
-
+} // namespace Core

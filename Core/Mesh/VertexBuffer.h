@@ -7,14 +7,17 @@
 // *********************************************************************************
 #pragma once
 
-#include "../Common/Types.h"
-#include "../Common/log.h"
-#include "../Common/Assert.h"
-#include "../Common/MemHelpers.h"
+#include <CoreCommon/Types.h>
+#include <CoreCommon/log.h>
+#include <CoreCommon/Assert.h>
+#include <CoreCommon/MemHelpers.h>
 #include "Vertex.h"
 
 #include <d3d11.h>
 
+
+namespace Core
+{
 
 template <typename T>
 class VertexBuffer final
@@ -119,9 +122,9 @@ private:
 
 private:
 	ID3D11Buffer* pBuffer_ = nullptr;          // a pointer to the vertex buffer
-	UINT stride_           = 0;                // size of a single vertex
-	int vertexCount_       = 0;                // max num of vertices for this buffer
-	D3D11_USAGE usageType_ = D3D11_USAGE::D3D11_USAGE_DEFAULT;
+    uint32_t vertexCount_  = 0;                // max num of vertices for this buffer
+    uint8_t stride_        = 0;                // size of a single vertex
+	uint8_t usageType_     = D3D11_USAGE::D3D11_USAGE_DEFAULT;
 };
 
 
@@ -197,7 +200,7 @@ void VertexBuffer<T>::UpdateDynamic(
 	try
 	{
 		Assert::True(usageType_ == D3D11_USAGE_DYNAMIC, "not dynamic usage of the buffer");
-		Assert::True(vertices && ((int)count <= vertexCount_), "wrong input data");
+		Assert::True(vertices && ((u32)count <= vertexCount_), "wrong input data");
 
 		// map the buffer
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
@@ -336,4 +339,5 @@ void VertexBuffer<T>::InitializeHelper(
 	Assert::NotFailed(hr, "can't create a vertex buffer");
 }
 
-///////////////////////////////////////////////////////////
+
+} // namespace Core

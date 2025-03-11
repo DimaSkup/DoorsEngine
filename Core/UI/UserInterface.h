@@ -7,11 +7,10 @@
 ////////////////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
-#include "../Engine/SystemState.h"
-
-#include "UICommon/WndParams.h"
-#include "UICommon/IFacadeEngineToUI.h"
-#include "UICommon/StatesGUI.h"
+#include <CoreCommon/SystemState.h>
+#include <UICommon/EventsHistory.h>
+#include <UICommon/IFacadeEngineToUI.h>
+#include <UICommon/StatesGUI.h>
 
 #include "Editor/MainMenuBar/MainMenuBar.h"
 #include "Editor/Panels/EditorPanels.h"
@@ -20,6 +19,8 @@
 #include "Shaders/fontshaderclass.h"   // from the Render module
 
 
+namespace UI
+{
 
 class UserInterface
 {
@@ -45,18 +46,22 @@ public:
 
 	void Update(
 		ID3D11DeviceContext* pContext, 
-		const SystemState& systemState);
+		const Core::SystemState& systemState);
+
+	void UndoEditorLastEvent();
 
 	// Public rendering API
 	void RenderGameUI(
 		ID3D11DeviceContext* pContext,
 		Render::FontShaderClass& fontShader,
-		SystemState& systemState);
+		Core::SystemState& systemState);
 
-	void RenderEditor(SystemState& systemState);
-	void RenderSceneWnd(SystemState& systemState);
+	void RenderEditor(Core::SystemState& systemState);
+	void RenderSceneWnd(Core::SystemState& systemState);
+
 	
-
+	
+	inline bool IsSceneWndHovered() const { return isSceneWndHovered_; }
 
 	// Public modification API
 	SentenceID CreateConstStr(
@@ -70,15 +75,17 @@ public:
 		const POINT& drawAt,
 		const int maxStrSize);              // max possible length for this string
 
-	inline void SetSelectedEntt(const uint32_t entityID) { editorPanels_.SetSelectedEntt(entityID); }
-	inline uint32_t GetSelectedEntt()              const { return editorPanels_.GetSelectedEntt(); }
-	inline void SetGizmoOperation(const int op)          { gizmoOpType_ = op; }
+	inline void SetSelectedEntt(const uint32_t entityID)       { editorPanels_.enttEditorController_.SetSelectedEntt(entityID); }
+	inline uint32_t GetSelectedEntt()                    const { return guiStates_.selectedEnttID_; }
 
-	inline bool IsGizmoHovered()                   const { return isGizmoHovered_; }
-	inline bool IsSceneWndHovered()                const { return isSceneWndHovered_; }
+	// gizmo stuff
+	inline void SetGizmoOperation(const int op)                { guiStates_.gizmoOperation_ = op; }
+	inline void SetGizmoClicked(const bool isClicked)          { guiStates_.isGizmoClicked_ = isClicked;}
+	inline bool IsGizmoHovered()                         const { return guiStates_.isGizmoHovered_; }
+	inline void UseSnapping(const bool use)                    { guiStates_.useSnapping_ = use;}
 
 private:
-	void CreateDebugInfoStrings(
+	void LoadDebugInfoStringFromFile(
 		ID3D11Device* pDevice,
 		const std::string& videoCardName,
 		const int videoCardMemory);
@@ -88,30 +95,27 @@ private:
 	void RenderDebugInfo(
 		ID3D11DeviceContext* pContext,
 		Render::FontShaderClass& fontShader,
-		const SystemState& sysState);
+		const Core::SystemState& sysState);
 
 	DirectX::XMFLOAT2 ComputePosOnScreen(const POINT& drawAt);
 
 private:
-	int                     windowWidth_ = 800;
-	int                     windowHeight_ = 600;
-	StatesGUI               guiStates_;
+	int                windowWidth_ = 800;
+	int                windowHeight_ = 600;
+	StatesGUI          guiStates_;
 
-	FontClass               font1_;        // a font class object (represents a font style)
-	TextStore               textStorage_;  // constains strings with debug data: fps, position/rotation, etc.
+	FontClass          font1_;        // a font class object (represents a font style)
+	TextStore          textStorage_;  // constains strings with debug data: fps, position/rotation, etc.
 	
 	// editor main parts
-	MainMenuBar             editorMainMenuBar_;
-	EditorPanels            editorPanels_;
-	
+	MainMenuBar        editorMainMenuBar_;
+	EditorPanels       editorPanels_;
 
 	// a facade interface which are used by UI to contact with some engine's parts 
-	IFacadeEngineToUI*      pFacadeEngineToUI_ = nullptr;
+	IFacadeEngineToUI* pFacadeEngineToUI_ = nullptr;
 
-	// defines if we need to recompute GUI elements positions/sizes for the next frame
-	bool                    isNeedToRecomputeGUI_ = true;
-
-	bool isSceneWndHovered_ = false;       // is currently scene windows is hovered by mouse
-	bool isGizmoHovered_ = false;          // is any gizmo manipulator is currenly hovered by the mouse
-	int  gizmoOpType_ = -1;                // type of the currenly chosen gizmo operation
+	bool               isNeedToRecomputeGUI_ = true;     // defines if we need to recompute GUI elements positions/sizes for the next frame
+	bool               isSceneWndHovered_ = false;       // is currently scene windows is hovered by mouse
 };
+
+} // namespace UI

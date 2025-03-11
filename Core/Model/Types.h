@@ -6,8 +6,9 @@
 // ************************************************************************************
 #pragma once
 
+#include <cstdint>
 
-enum ModelType
+enum ModelType : uint8_t
 {
 	Invalid,
 	Cube,

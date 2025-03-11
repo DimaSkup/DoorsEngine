@@ -8,7 +8,7 @@
 
 #include "Engine/Engine.h"
 #include "Engine/Settings.h"
-#include "Common/EngineException.h"
+#include <CoreCommon/EngineException.h>
 
 class Application
 {
@@ -39,16 +39,16 @@ public:
 			wndClass,
 			wndWidth,
 			wndHeight);
-		Assert::True(result, "can't initialize the window");
+		Core::Assert::True(result, "can't initialize the window");
 
 		// explicitly init Windows Runtime and COM
 		HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-		Assert::NotFailed(hr, "ERROR: can't explicitly initialize Windows Runtime and COM");
+		Core::Assert::NotFailed(hr, "ERROR: can't explicitly initialize Windows Runtime and COM");
 
 
 		// init the engine
 		result = engine_.Initialize(hInstance_, mainWnd_, settings_, wndTitle);
-		Assert::True(result, "can't initialize the engine");
+		Core::Assert::True(result, "can't initialize the engine");
 	}
 
 	///////////////////////////////////////////////////////
@@ -83,12 +83,12 @@ public:
 
 private:
 	HINSTANCE hInstance_ = GetModuleHandle(NULL);
-	Log logger_;          // ATTENTION: put the declation of logger before all the others; this instance is necessary to create a logger text file
+	Core::Log logger_;          // ATTENTION: put the declation of logger before all the others; this instance is necessary to create a logger text file
 
-	Doors::Engine engine_;
+	Core::Engine engine_;
 	HWND mainWnd_;
 
-	Settings settings_;
+	Core::Settings settings_;
 	EventHandler eventHandler_;
-	Doors::WindowContainer  windowContainer_;
+	Core::WindowContainer  windowContainer_;
 };

@@ -72,18 +72,27 @@ bool Render::Initialize(
 
 		// ------------------------ CONSTANT BUFFERS ------------------------------ 
 
-		hr = cbvsPerFrame_.Initialize(pDevice, pContext);
+		hr = cbvsPerFrame_.Initialize(pDevice);
 		Assert::NotFailed(hr, "can't init a const buffer (VS)");
 
-		hr = cbpsPerFrame_.Initialize(pDevice, pContext);
+		hr = cbpsPerFrame_.Initialize(pDevice);
 		Assert::NotFailed(hr, "can't init a const buffer (PS)");
 
-		hr = cbpsRareChanged_.Initialize(pDevice, pContext);
+		hr = cbpsRareChanged_.Initialize(pDevice);
 		Assert::NotFailed(hr, "can't init a const buffer (PS)");
+
+		// const buffers for geometry shader
+		hr = cbgsPerFrame_.Initialize(pDevice);
+		Assert::NotFailed(hr, "can't initialize const buffer for GS");
+
+		//hr = cbgsPerObject_.Initialize(pDevice, pContext);
+		//Assert::NotFailed(hr, "can't initialize const buffer for GS");
+
+		//hr = cbgsFixed_.Initialize(pDevice, pContext);
+		//Assert::NotFailed(hr, "can't initialize const buffer for GS");
 
 
 		SetFogParams(pContext, params.fogColor, params.fogStart, params.fogRange);
-
 
 		// load rare changed data (default values if we didn't setup any) into GPU 
 		cbpsRareChanged_.ApplyChanges(pContext);
@@ -94,7 +103,7 @@ bool Render::Initialize(
 		FontShaderClass&  fontShader    = shadersContainer_.fontShader_;
 		DebugShader&      debugShader   = shadersContainer_.debugShader_;
 		
-		// const buffers for vertex shaders
+		// const buffers for vertex shaders (vsCB)
 		ID3D11Buffer* vsCBs[3] = 
 		{
 			cbvsPerFrame_.Get(),                         // slot_0: is common for color/light/debug shader
@@ -102,7 +111,15 @@ bool Render::Initialize(
 			fontShader.GetConstBufferVS(),               // slot_2: font shader
 		};	
 
-		// const buffers for pixel shaders
+		// const buffers for geometry shaders (gsCB)
+		ID3D11Buffer* gsCBs[2] =
+		{
+			cbgsPerFrame_.Get(),
+			//cbgsPerObject_.Get(),
+			//cbgsFixed_.Get(),
+		};
+
+		// const buffers for pixel shaders (psCB)
 		ID3D11Buffer* psCBs[5] = 
 		{ 
 			cbpsPerFrame_.Get(),                         // slot_0: light / debug shader
@@ -114,6 +131,7 @@ bool Render::Initialize(
 
 		// bind constant buffers 
 		pContext->VSSetConstantBuffers(0, 3, vsCBs);
+		pContext->GSSetConstantBuffers(0, 1, gsCBs);     
 		pContext->PSSetConstantBuffers(0, 5, psCBs);
 	}
 	catch (LIB_Exception& e)
@@ -142,9 +160,12 @@ void Render::UpdatePerFrame(
 	{
 		// view * proj matrix must be already transposed
 		cbvsPerFrame_.data.viewProj = data.viewProj;
+		cbgsPerFrame_.data.viewProj = data.viewProj;
 
 		// update the camera pos
 		cbpsPerFrame_.data.cameraPos = data.cameraPos;
+		cbgsPerFrame_.data.cameraPosW = data.cameraPos;
+
 
 		// ---------------------------------------------
 
@@ -159,7 +180,7 @@ void Render::UpdatePerFrame(
 		// after all we apply updates
 		cbvsPerFrame_.ApplyChanges(pContext);
 		cbpsPerFrame_.ApplyChanges(pContext);
-
+		cbgsPerFrame_.ApplyChanges(pContext);
 
 	}
 	catch (LIB_Exception& e)
@@ -188,6 +209,7 @@ void Render::UpdateInstancedBuffer(
 
 ///////////////////////////////////////////////////////////
 
+
 void Render::UpdateInstancedBuffer(
 	ID3D11DeviceContext* pContext,
 	const DirectX::XMMATRIX* worlds,
@@ -201,9 +223,7 @@ void Render::UpdateInstancedBuffer(
 
 	try
 	{
-		// check input data
-		Assert::True(worlds && texTransforms && materials, "some of input arrays == nullptr");
-		Assert::True(count > 0, "wrong number of input data elements (must be > 0)");
+		Assert::True(worlds && texTransforms && materials && (count > 0), "input data is invalid");
 
 		// map the instanced buffer to write into it
 		D3D11_MAPPED_SUBRESOURCE mappedData;
@@ -217,9 +237,13 @@ void Render::UpdateInstancedBuffer(
 		{
 			dataView[i].world = worlds[i];
 			dataView[i].worldInvTranspose = MathHelper::InverseTranspose(worlds[i]);
-			dataView[i].texTransform = texTransforms[i];
-			dataView[i].material = materials[i];
 		}
+
+		for (int i = 0; i < count; ++i)
+			dataView[i].texTransform = texTransforms[i];
+
+		for (int i = 0; i < count; ++i)
+			dataView[i].material = materials[i];
 
 		pContext->Unmap(pInstancedBuffer_, 0);
 	}
@@ -227,10 +251,6 @@ void Render::UpdateInstancedBuffer(
 	{
 		Log::Error(e);
 		Log::Error("can't update instanced buffer for rendering");
-	}
-	catch (...)
-	{
-		Log::Error("can't update instanced buffer for rendering for some unknown reason :)");
 	}
 }
 
@@ -341,7 +361,7 @@ void Render::RenderInstances(
 	ID3D11DeviceContext* pContext,
 	const ShaderTypes type,
 	const Instance* instances,
-	const int numModels)
+	const int numInstances)
 {
 	try
 	{
@@ -353,7 +373,7 @@ void Render::RenderInstances(
 				pContext,
 				pInstancedBuffer_,
 				instances,
-				numModels,
+				numInstances,
 				instancedBuffElemSize);
 
 			return;
@@ -367,18 +387,51 @@ void Render::RenderInstances(
 					pContext,
 					pInstancedBuffer_,
 					instances,
-					numModels,
+					numInstances,
 					instancedBuffElemSize);
 
 				break;
 			}
+			case TEXTURE:
+			{
+				shadersContainer_.textureShader_.Render(
+					pContext,
+					pInstancedBuffer_,
+					instances,
+					numInstances,
+					instancedBuffElemSize);
+				break;
+			}
+#if 0
+			case BILLBOARD:
+			{
+				shadersContainer_.billboardShader_.Render(
+					pContext,
+					pInstancedBuffer_,
+					instances,
+					numInstances,
+					instancedBuffElemSize);
+				break;
+			}
+#endif
 			case LIGHT:
 			{
 				shadersContainer_.lightShader_.Render(
 					pContext,
 					pInstancedBuffer_,
 					instances,
-					numModels,
+					numInstances,
+					instancedBuffElemSize);
+
+				break;
+			}
+			case OUTLINE:
+			{
+				shadersContainer_.outlineShader_.Render(
+					pContext,
+					pInstancedBuffer_,
+					instances,
+					numInstances,
 					instancedBuffElemSize);
 
 				break;
@@ -440,10 +493,10 @@ void Render::SwitchFogEffect(ID3D11DeviceContext* pContext, const bool state)
 
 ///////////////////////////////////////////////////////////
 
-void Render::SwitchFlashLight(ID3D11DeviceContext* pContext)
+void Render::SwitchFlashLight(ID3D11DeviceContext* pContext, const bool state)
 {
 	// switch the flashlight state
-	cbpsRareChanged_.data.turnOnFlashLight = ~(bool)cbpsRareChanged_.data.turnOnFlashLight;
+	cbpsRareChanged_.data.turnOnFlashLight = state;
 	cbpsRareChanged_.ApplyChanges(pContext);
 }
 
@@ -601,22 +654,26 @@ void Render::UpdateLights(
 	// load updated light sources data into const buffers
 	//
 
-	cbpsPerFrame_.data.currNumPointLights = (int)numPointLights;
-
+	
 	// update directional light sources
 	for (int i = 0; i < cbpsRareChanged_.data.numOfDirLights; ++i)
 		cbpsPerFrame_.data.dirLights[i] = dirLights[i];
 
 	// we want to copy the proper number of point lights
 	const int pointLightsCountLimit = ARRAYSIZE(cbpsPerFrame_.data.pointLights);
-	const int pointLightsCount = (numPointLights >= pointLightsCountLimit) ? pointLightsCountLimit : numPointLights;
+	const int spotLightsCountLimit = ARRAYSIZE(cbpsPerFrame_.data.spotLights);
+	const int numPointLightsToUpdate = (numPointLights >= pointLightsCountLimit) ? pointLightsCountLimit : numPointLights;
+	const int numSpotLightsToUpdate = (numSpotLights >= spotLightsCountLimit) ? spotLightsCountLimit : numSpotLights;
 
-	// update point light sources
-	// NOTICE: a size of the point lights buffer must be >= than the number of actual point light sources
-	for (int i = 0; i < pointLightsCount; ++i)
+	cbpsPerFrame_.data.currNumPointLights = numPointLightsToUpdate;
+	cbpsPerFrame_.data.currNumSpotLights = numSpotLightsToUpdate;
+
+	// update point/spot light sources
+	for (int i = 0; i < numPointLightsToUpdate; ++i)
 		cbpsPerFrame_.data.pointLights[i] = pointLights[i];
 
-	cbpsPerFrame_.data.spotLights = spotLights[0];
+	for (int i = 0; i < numSpotLightsToUpdate; ++i)
+		cbpsPerFrame_.data.spotLights[i] = spotLights[i];
 }
 
 }; // namespace Render

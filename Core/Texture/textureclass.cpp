@@ -1,28 +1,28 @@
-// *********************************************************************************
+// =================================================================================
 // Filename: textureclass.cpp
-// *********************************************************************************
+// =================================================================================
 #include "textureclass.h"
-
 
 #include "ImageReader.h"
 #include "../../ImageReader/Common/LIB_Exception.h"
 
-#include "../Common/Log.h"
-#include "../Common/MemHelpers.h"
-#include "../Common/Assert.h"
+#include <CoreCommon/Log.h>
+#include <CoreCommon/MemHelpers.h>
+#include <CoreCommon/Assert.h>
+#include <CoreCommon/StringHelper.h>
 
 #include <D3DX11tex.h>
-
+#include <vector>            // TEMPORARY
 
 #pragma warning (disable : 4996)
 
 
-
-// *********************************************************************************
-//
-//                             CONSTRUCTORS / DESTRUCTOR
-//
-// *********************************************************************************
+namespace Core
+{
+	
+// =================================================================================
+// CONSTRUCTORS / DESTRUCTOR
+// =================================================================================
 
 Texture::Texture()
 {
@@ -49,6 +49,143 @@ Texture::Texture(
 	}
 }
 
+///////////////////////////////////////////////////////////
+
+Texture::Texture(
+	ID3D11Device* pDevice,
+	const std::string& texArrLabel,
+	const std::string* filenames,
+	const int numFilenames,
+	const DXGI_FORMAT format)
+	//const UINT filter,
+	//const UINT mipFilter)
+{
+	// a constructor for loading multiple textures to create a Texture2DArray
+
+	Assert::True((pDevice != nullptr) && (filenames != nullptr) && (numFilenames > 0) && (!texArrLabel.empty()), "invalid input data");
+
+	// load the texture elements individually from file. These texture won't
+	// be used by the GPU (0 bind flags), they are just used to load the image 
+	// data from file. We use the STAGING usage so the CPU can read the resource.
+	HRESULT hr = S_OK;
+	UINT size = (UINT)numFilenames;
+	std::vector<ID3D11Texture2D*> srcTex(size, nullptr);
+
+	for (UINT i = 0; i < size; ++i)
+	{
+		D3DX11_IMAGE_LOAD_INFO loadInfo;
+		loadInfo.Width          = D3DX11_FROM_FILE;
+		loadInfo.Height         = D3DX11_FROM_FILE;
+		loadInfo.Depth          = D3DX11_FROM_FILE;
+		loadInfo.FirstMipLevel  = 0;
+		loadInfo.MipLevels      = D3DX11_FROM_FILE;
+		loadInfo.Usage          = D3D11_USAGE_STAGING;
+		loadInfo.BindFlags      = 0;
+		loadInfo.CpuAccessFlags = D3D11_CPU_ACCESS_WRITE | D3D11_CPU_ACCESS_READ;
+		loadInfo.MiscFlags      = 0;
+		loadInfo.Format         = format;
+		loadInfo.Filter         = D3DX11_DEFAULT;//filter;
+		loadInfo.MipFilter      = D3DX11_DEFAULT;//mipFilter;
+		loadInfo.pSrcInfo       = 0;
+
+		hr = D3DX11CreateTextureFromFile(
+			pDevice,
+			StringHelper::StringToWide(filenames[i]).c_str(),
+			&loadInfo,
+			nullptr,
+			(ID3D11Resource**)&srcTex[i], 
+			nullptr);
+		Assert::NotFailed(hr, "can't create a texture from file: " + filenames[i]);
+	}
+
+
+	// Create the texture array. Each element in the texture array
+	// has the same format/dimensions
+	ID3D11DeviceContext* pContext = nullptr;
+	D3D11_TEXTURE2D_DESC texElemDesc;
+	D3D11_TEXTURE2D_DESC texArrayDesc;
+	ID3D11Texture2D* texArr = nullptr;
+
+	srcTex[0]->GetDesc(&texElemDesc);
+	pDevice->GetImmediateContext(&pContext);
+		
+	texArrayDesc.Width              = texElemDesc.Width;
+	texArrayDesc.Height             = texElemDesc.Height;
+	texArrayDesc.MipLevels          = texElemDesc.MipLevels;
+	texArrayDesc.ArraySize          = size;
+	texArrayDesc.Format             = texElemDesc.Format;
+	texArrayDesc.SampleDesc.Count   = 1;
+	texArrayDesc.SampleDesc.Quality = 0;
+	texArrayDesc.Usage              = D3D11_USAGE_DEFAULT;
+	texArrayDesc.BindFlags          = D3D11_BIND_SHADER_RESOURCE;
+	texArrayDesc.CPUAccessFlags     = 0;
+	texArrayDesc.MiscFlags          = 0;
+
+	hr = pDevice->CreateTexture2D(&texArrayDesc, nullptr, &texArr);
+	Assert::NotFailed(hr, "can't create a texture array");
+
+
+	//
+	// copy individual texture element into texture array
+	//
+
+	// for each texture element...
+	for (UINT texElem = 0; texElem < size; ++texElem)
+	{
+		// for each mipmap level...
+		for (UINT mipLevel = 0; mipLevel < texElemDesc.MipLevels; ++mipLevel)
+		{
+			D3D11_MAPPED_SUBRESOURCE mappedTex2D;
+
+			hr = pContext->Map(srcTex[texElem], mipLevel, D3D11_MAP_READ, 0, &mappedTex2D);
+			Assert::NotFailed(hr, "can't map a texture by idx: " + std::to_string(texElem));
+
+			pContext->UpdateSubresource(
+				texArr,                       // dst resource
+				D3D11CalcSubresource(         // compute idx identifying the subresource we are updating in the dst resource
+					mipLevel,
+					texElem,
+					texElemDesc.MipLevels),
+				nullptr,                      // pDstBox - a ptr to a D3D11_BOX instance that specifies the volume in the destination subresource we are updating; specify null to update the entire subresource
+				mappedTex2D.pData,            // ptr to the src data
+				mappedTex2D.RowPitch,         // byte size of one row of the src data
+				mappedTex2D.DepthPitch);      // byte size of one depth slice of the src data
+
+			pContext->Unmap(srcTex[texElem], mipLevel);
+		}
+	}
+
+
+	//
+	// Create a resource view to the texture array
+	//
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc;
+	viewDesc.Format                         = texArrayDesc.Format;
+	viewDesc.ViewDimension                  = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
+	viewDesc.Texture2DArray.MostDetailedMip = 0;
+	viewDesc.Texture2DArray.MipLevels       = texArrayDesc.MipLevels;
+	viewDesc.Texture2DArray.FirstArraySlice = 0;
+	viewDesc.Texture2DArray.ArraySize       = size;
+
+	ID3D11ShaderResourceView* texArrSRV = 0;
+
+	hr = pDevice->CreateShaderResourceView(texArr, &viewDesc, &texArrSRV);
+
+	//
+	// Cleanup -- we only need the resource view
+	//
+
+	for (UINT i = 0; i < size; ++i)
+		SafeRelease(&srcTex[i]);
+
+	// assignment
+	pTexture_     = texArr;
+	pTextureView_ = texArrSRV;
+	width_        = texArrayDesc.Width;
+	height_       = texArrayDesc.Height;
+	path_         = texArrLabel;
+}
 
 ///////////////////////////////////////////////////////////
 
@@ -157,7 +294,7 @@ Texture& Texture::operator=(Texture&& rhs) noexcept
 	// move assignment
 	if (this != &rhs)
 	{
-		this->~Texture();                    // lifetime of *this ends
+		Clear();                    // lifetime of *this ends
 		std::construct_at(this, std::move(rhs));
 	}
 
@@ -172,13 +309,9 @@ Texture::~Texture()
 }
 
 
-
-
-// ***********************************************************************************
-//
-//                              PUBLIC FUNCTIONS
-//
-// ***********************************************************************************
+// =================================================================================
+// Public API
+// =================================================================================
 
 void Texture::Copy(Texture& src)
 {
@@ -306,11 +439,9 @@ POINT Texture::GetTextureSize()
 }
 
 
-// ************************************************************************************
-//
-//                            PRIVATE FUNCTIONS
-//
-// ************************************************************************************
+// =================================================================================
+// Private API
+// =================================================================================
 
 void Texture::Clear()
 {
@@ -357,9 +488,7 @@ void Texture::LoadFromFile(
 
 ///////////////////////////////////////////////////////////
 
-void Texture::Initialize1x1ColorTexture(
-	ID3D11Device* pDevice,
-	const Color & colorData)
+void Texture::Initialize1x1ColorTexture(ID3D11Device* pDevice, const Color & colorData)
 {
 	InitializeColorTexture(pDevice, &colorData, 1, 1);
 }
@@ -383,17 +512,17 @@ void Texture::InitializeColorTexture(
 	D3D11_SUBRESOURCE_DATA initialData{};
 
 	// setup description for this texture
-	textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	textureDesc.Width = width;
-	textureDesc.Height = height;
-	textureDesc.ArraySize = 1;
-	textureDesc.MipLevels = 0;
-	textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-	textureDesc.Usage = D3D11_USAGE_DEFAULT;
-	textureDesc.CPUAccessFlags = 0;
-	textureDesc.SampleDesc.Count = 1;
+	textureDesc.Format             = DXGI_FORMAT_R8G8B8A8_UNORM;
+	textureDesc.Width              = width;
+	textureDesc.Height             = height;
+	textureDesc.ArraySize          = 1;
+	textureDesc.MipLevels          = 0;
+	textureDesc.BindFlags          = D3D11_BIND_SHADER_RESOURCE;
+	textureDesc.Usage              = D3D11_USAGE_DEFAULT;
+	textureDesc.CPUAccessFlags     = 0;
+	textureDesc.SampleDesc.Count   = 1;
 	textureDesc.SampleDesc.Quality = 0;
-	textureDesc.MiscFlags = 0;
+	textureDesc.MiscFlags          = 0;
 
 	// setup initial data for this texture
 	initialData.pSysMem = pColorData;
@@ -415,4 +544,4 @@ void Texture::InitializeColorTexture(
 	Assert::NotFailed(hr, "Failed to create shader resource view from texture generated from color data");
 }
 
-///////////////////////////////////////////////////////////
+} // namespace Core

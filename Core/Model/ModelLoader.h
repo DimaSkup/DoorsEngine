@@ -9,8 +9,9 @@
 #include "BasicModel.h"
 #include <fstream>
 #include <filesystem>
-namespace fs = std::filesystem;
 
+namespace Core
+{
 
 class ModelLoader
 {
@@ -27,9 +28,10 @@ public:
 
 public:
 	void Load(
-		const fs::path& modelFilePath,      // full path to model .de3d file
+		const std::string& assetFilepath,   // path to model relatively to the "assets" folder
 		BasicModel& model);
 
+private:
 	void ReadHeader(std::ifstream& fin, BasicModel& model);
 
 	void ReadMaterials(
@@ -64,6 +66,7 @@ public:
 		int numTriangles,
 		UINT* indices);
 
-private:
 	void ReadAABB(std::ifstream& fin, DirectX::BoundingBox& aabb);
 };
+
+} // namespace Core

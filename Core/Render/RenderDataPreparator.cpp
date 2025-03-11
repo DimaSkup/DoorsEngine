@@ -5,14 +5,12 @@
 // ********************************************************************************
 #include "RenderDataPreparator.h"
 
-#include "../Common/Utils.h"
+#include <Common/Utils.h>
 #include "../Texture/TextureMgr.h"
 
 
-using RenderDataStorage = Render::RenderDataStorage;
-
-
-///////////////////////////////////////////////////////////
+namespace Core
+{
 
 RenderDataPreparator::RenderDataPreparator(
 	Render::Render& render,
@@ -47,7 +45,7 @@ void RenderDataPreparator::PrepareInstanceFromModel(
 	// copy materials data from model into instance
 	PrepareSubsetsMaterials(
 		model.materials_,
-		model.numMats_,
+		model.numSubsets_,            // each subset has one material so num materials == num subsets
 		instance.materials.data());
 
 	// prepare textures (SRVs) for this instance
@@ -67,8 +65,9 @@ void RenderDataPreparator::PrepareEnttsDataForRendering(
 	//static float t = 0.0f;
 	//t += 0.01f;
 
-	std::vector<XMMATRIX> enttsWorlds;
-	std::vector<XMMATRIX> enttsTexTransforms;
+	const size numEntts = std::ssize(enttsIds);
+	std::vector<XMMATRIX> enttsWorlds(numEntts);
+	std::vector<XMMATRIX> enttsTexTransforms(numEntts);
 	int numElems = 0;
 
 
@@ -85,8 +84,9 @@ void RenderDataPreparator::PrepareEnttsDataForRendering(
 
 	// get world matrix and texture transforma matrix for each entity
 	pEnttMgr_->transformSystem_.GetWorldMatricesOfEntts(
-		enttsSortedByModels, 
-		enttsWorlds);
+		enttsSortedByModels.data(),
+		enttsWorlds.data(),
+		numEntts);
 
 	pEnttMgr_->texTransformSystem_.GetTexTransformsForEntts(
 		enttsSortedByModels, 
@@ -123,17 +123,41 @@ void RenderDataPreparator::PrepareEnttsDataForRendering(
 	}
 
 
+	//
 	// setup materials
+	//
+
+	// for each instance...
 	for (int i = 0; const Render::Instance& instance : instances)
 	{
+		// for each submesh (subset) of instance
 		for (int subsetIdx = 0; subsetIdx < instance.subsets.size(); ++subsetIdx)
 		{
+			// we prepare a consistent array of materials in size of instances number
 			for (int j = 0; j < instance.numInstances; ++j)
 			{
 				instanceBuffData.materials_[i++] = instance.materials[subsetIdx];
 			}
 		}
 	}
+
+	if (numElems == 6)
+	{
+		int i = 0;
+		++i;
+	}
+
+	// bark
+	DirectX::XMFLOAT4 ambient0 = instanceBuffData.materials_[0].ambient_;
+	DirectX::XMFLOAT4 ambient1 = instanceBuffData.materials_[1].ambient_;
+
+	// cap
+	DirectX::XMFLOAT4 ambient2 = instanceBuffData.materials_[2].ambient_;
+	DirectX::XMFLOAT4 ambient3 = instanceBuffData.materials_[3].ambient_;
+
+	// leaves
+	DirectX::XMFLOAT4 ambient4 = instanceBuffData.materials_[4].ambient_;
+	DirectX::XMFLOAT4 ambient5 = instanceBuffData.materials_[5].ambient_;
 }
 
 ///////////////////////////////////////////////////////////
@@ -212,7 +236,7 @@ void RenderDataPreparator::PrepareInstanceData(
 	// copy materials data from model into instance
 	PrepareSubsetsMaterials(
 		model.materials_,
-		model.numMats_,
+		model.numSubsets_,             // each subset has one material so num materials == num subsets
 		instance.materials.data());
 
 	// prepare textures (SRVs) for this instance
@@ -365,13 +389,14 @@ void RenderDataPreparator::PrepareEnttsBoundingLineBox(
 	// prepare data to render bounding box of each visible entity
 	// (BB of the whole model)
 
+	const size numEntts = std::ssize(visibleEntts);
 	ModelStorage&   modelStorage = *ModelStorage::Get();
 	ECS::EntityMgr&       mgr = *pEnttMgr_;
 	std::vector<ModelID>  modelsIDs;
-	std::vector<EntityID> enttsSortByModels;
+	std::vector<EntityID> enttsSortByModels(numEntts);
 	std::vector<int>      numInstancesPerModel;
 	std::vector<DirectX::XMMATRIX> boxLocals;         // local space matrix of the AABB of the whole model
-	std::vector<DirectX::XMMATRIX> worlds;            // world matrix of each visible entity
+	std::vector<DirectX::XMMATRIX> worlds(numEntts);            // world matrix of each visible entity
 
 
 	mgr.modelSystem_.GetModelsIdsRelatedToEntts(
@@ -387,7 +412,7 @@ void RenderDataPreparator::PrepareEnttsBoundingLineBox(
 		modelsAABBs[i++] = modelStorage.GetModelByID(id).GetModelAABB();
 
 	// get world matrix for each entts and local space matrix by each model's AABB
-	mgr.transformSystem_.GetWorldMatricesOfEntts(enttsSortByModels, worlds);
+	mgr.transformSystem_.GetWorldMatricesOfEntts(enttsSortByModels.data(), worlds.data(), numEntts);
 	mgr.boundingSystem_.GetBoxesLocalSpaceMatrices(modelsAABBs, boxLocals);
 
 	// prepare instances buffer data
@@ -411,13 +436,14 @@ void RenderDataPreparator::PrepareEnttsMeshesBoundingLineBox(
 {
 	// prepare data to render bounding box of each mesh of each visible entity
 
+	const size numEntts = std::ssize(visibleEntts);
 	ECS::EntityMgr& mgr = *pEnttMgr_;
 	std::vector<size> numBoxesPerEntt;                     // how many boxes each entt has
 	std::vector<DirectX::XMMATRIX> locals;                 // local space of each OBB of each entity
-	std::vector<DirectX::XMMATRIX> worlds;                 // world matrix of each visible entity
+	std::vector<DirectX::XMMATRIX> worlds(numEntts);                 // world matrix of each visible entity
 
 	mgr.boundingSystem_.GetBoxLocalSpaceMatrices(visibleEntts, numBoxesPerEntt, locals);
-	mgr.transformSystem_.GetWorldMatricesOfEntts(visibleEntts, worlds);
+	mgr.transformSystem_.GetWorldMatricesOfEntts(visibleEntts.data(), worlds.data(), numEntts);
 
 	// prepare instances buffer data
 	instance.numInstances = (int)std::ssize(locals);
@@ -430,3 +456,5 @@ void RenderDataPreparator::PrepareEnttsMeshesBoundingLineBox(
 		++i;
 	}
 }
+
+} // namespace Core

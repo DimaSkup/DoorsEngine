@@ -1,5 +1,5 @@
 #include "EventHandler.h"
-#include "../Common/log.h"
+#include <Common/log.h>
 #include <cassert>
 #include <vector>
 

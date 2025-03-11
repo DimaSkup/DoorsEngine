@@ -8,16 +8,12 @@
 ////////////////////////////////////////////////////////////////////
 #pragma once
 
-//////////////////////////////////
-// INCLUDES 
-//////////////////////////////////
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#include "../Common/Log.h"
+namespace Core
+{
 
-//////////////////////////////////
-// Class name: TimerClass
-//////////////////////////////////
 class GameTimer
 {
 public:
@@ -44,3 +40,5 @@ private:
 	double secondsPerCount_ = 0.0f;  // 1.0 / counts_per_sec
 	double deltaTime_ = -1.0f;
 };
+
+}

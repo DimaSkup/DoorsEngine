@@ -5,8 +5,7 @@
 // =================================================================================
 #include "UserInterface.h"
 
-#include "../Common/FileSystemPaths.h"
-#include "UI_Windows/EnttCreationWnd.h"
+#include <CoreCommon/FileSystemPaths.h>
 #include "../Texture/TextureMgr.h"
 #include "Render.h"                     // from the Render module
 
@@ -18,8 +17,14 @@
 
 #pragma warning(disable : 4996)
 
+using namespace Core;
 
-UserInterface::UserInterface()
+namespace UI
+{
+
+EventsHistory gEventsHistory;
+
+UserInterface::UserInterface() : editorPanels_(&guiStates_)
 {
 }
 
@@ -71,7 +76,7 @@ void UserInterface::Initialize(
 
 
 		// create text strings to show debug info onto the screen
-		CreateDebugInfoStrings(pDevice, videoCardName, videoCardMemory);
+		LoadDebugInfoStringFromFile(pDevice, videoCardName, videoCardMemory);
 
 
 		Log::Debug("USER INTERFACE is initialized");
@@ -99,6 +104,26 @@ void UserInterface::Update(
 	{
 		Log::Error(e);
 		Log::Error("can't update the GUI");
+	}
+}
+
+///////////////////////////////////////////////////////////
+
+void UserInterface::UndoEditorLastEvent()
+{
+	// move to the previous step in the events history;
+	// 
+	// for instance: if we moved some model at the new position then we
+	//               can undo this event and place the model at the beginning position
+
+
+	if (gEventsHistory.HasHistory())
+	{
+		HistoryItem historyItem = gEventsHistory.Undo();
+
+		editorPanels_.enttEditorController_.Undo(
+			&historyItem.cmd_,
+			historyItem.entityID_);
 	}
 }
 
@@ -168,7 +193,7 @@ SentenceID UserInterface::CreateDynamicStr(
 
 ///////////////////////////////////////////////////////////
 
-void UserInterface::CreateDebugInfoStrings(
+void UserInterface::LoadDebugInfoStringFromFile(
 	ID3D11Device* pDevice,
 	const std::string& videoCardName,
 	const int videoCardMemory)
@@ -176,7 +201,8 @@ void UserInterface::CreateDebugInfoStrings(
 	// load debug info string params from the file and create these strings;
 	// and create some strings manually
 
-	const std::string filepath = g_DataDir + "ui_debug_info_strings.txt";
+	const std::string filepath = g_RelPathUIDataDir + "ui_debug_info_strings.txt";
+
 
 	FILE* pFile = fopen(filepath.c_str(), "r");
 	if (!pFile)
@@ -190,20 +216,33 @@ void UserInterface::CreateDebugInfoStrings(
 	const int bufsize = 64;
 	int posX, posY, maxStrSize;
 
+
 	while (fgets(buffer, bufsize, pFile))
 	{
 		// we read and create a const string (won't be changed during the runtime)
 		if (strncmp(buffer, "const_str", 9) == 0)
 		{
-			sscanf(buffer, "%*s %s %d %d", str, &posX, &posY);
-			CreateConstStr(pDevice, std::string(str), { posX, posY });
+			if (EOF != sscanf(buffer, "%*s %s %d %d", str, &posX, &posY))
+			{
+				CreateConstStr(pDevice, std::string(str), { posX, posY });
+			}
+			else
+			{
+				Log::Error("the input doen't match the format string");
+			}
 		}
 		// we read and create a dynamic string (will be changed during the runtime)
 		else if (strncmp(buffer, "dynamic_str", 11) == 0)
 		{
-			sscanf(buffer, "%*s %s %d %d %d", str, &posX, &posY, &maxStrSize);
-			SentenceID id = CreateDynamicStr(pDevice, "0", { posX, posY }, maxStrSize);
-			textStorage_.SetKeyByID(str, id);
+			if (EOF != sscanf(buffer, "%*s %s %d %d %d", str, &posX, &posY, &maxStrSize))
+			{
+				SentenceID id = CreateDynamicStr(pDevice, "0", { posX, posY }, maxStrSize);
+				textStorage_.SetKeyByID(str, id);
+			}
+			else
+			{
+				Log::Error("the input doen't match the format string");
+			}
 		}
 	}
 
@@ -222,7 +261,7 @@ void UserInterface::CreateDebugInfoStrings(
 void UserInterface::RenderGameUI(
 	ID3D11DeviceContext* pContext,
 	Render::FontShaderClass& fontShader,
-	SystemState& systemState)
+	Core::SystemState& systemState)
 {
 
 	// print onto the screen some debug info
@@ -234,21 +273,11 @@ void UserInterface::RenderGameUI(
 
 void UserInterface::RenderEditor(SystemState& systemState)
 {
-	ImGuiStyle* style = &ImGui::GetStyle();
-
-	static bool isEditorOpen = true;
-
-	static ImGuiChildFlags childFlags = 0;
-	static ImGuiWindowFlags wndFlags = 0;
-
-	childFlags |= ImGuiChildFlags_Border;
-	childFlags |= ImGuiChildFlags_ResizeX;
-	childFlags |= ImGuiChildFlags_ResizeY;
-
-
 	//
+	// Render the editor's panels and related stuff
+	//
+
 	// "Run scene" docked window
-	//
 	if (ImGui::Begin("Run scene"))
 	{
 		// hide the tab bar of this window
@@ -287,7 +316,7 @@ void UserInterface::RenderEditor(SystemState& systemState)
 		// TODO
 	}
 	
-	editorPanels_.Render(systemState, childFlags, wndFlags);
+	editorPanels_.Render(systemState);
 }
 
 ///////////////////////////////////////////////////////////
@@ -303,15 +332,18 @@ void UserInterface::RenderSceneWnd(SystemState& sysState)
 		// scene screen space or clicked on some editor panel
 		isSceneWndHovered_ = ImGui::IsWindowHovered();
 
+
 		//
 		// Gizmos
 		//
-		EntityID selectedEntt = GetSelectedEntt();
-
-		if (selectedEntt && (gizmoOpType_ != -1))
+		EditorController& controller = editorPanels_.enttEditorController_;
+		uint32_t selectedEntt = GetSelectedEntt();
+		
+		// if any entt is selected and any gizmo operation is chosen
+		if (selectedEntt && (guiStates_.gizmoOperation_ != -1))    
 		{
-			// is any gizmo hovered by mouse
-			isGizmoHovered_ = ImGuizmo::IsOver();
+			// is any gizmo manipulator hovered by a mouse
+			guiStates_.isGizmoHovered_ = ImGuizmo::IsOver();
 
 			// set rendering of the gizmos only in the screen window space:
 			// to make gizmo be rendered behind editor panels BUT in this case the gizmo is inactive :(
@@ -323,23 +355,59 @@ void UserInterface::RenderSceneWnd(SystemState& sysState)
 			const float* cameraView = sysState.cameraView.r->m128_f32;
 			const float* cameraProj = sysState.cameraProj.r->m128_f32;
 
-			// selected entity transform
-			XMMATRIX world;
+			// selected entity transformation using the gizmo
+			DirectX::XMMATRIX world;
 			pFacadeEngineToUI_->GetEnttWorldMatrix(selectedEntt, world);
-			float* worldRawData = world.r->m128_f32;
+			float* rawWorld = world.r->m128_f32;
 
+	
+			if (guiStates_.useSnapping_)
+			{
+				switch (guiStates_.gizmoOperation_)
+				{
+					case ImGuizmo::TRANSLATE:
+					{
+						guiStates_.snap_ = guiStates_.snapTranslation_;
+						ImGui::InputFloat3("Translation Snap", &guiStates_.snap_.x);
+						break;
+					}
+					case ImGuizmo::ROTATE:
+					{
+						guiStates_.snap_ = guiStates_.snapRotation_;
+						ImGui::InputFloat("Angle Snap", &guiStates_.snap_.x);
+						break;
+					}
+					case ImGuizmo::SCALE:
+					{
+						guiStates_.snap_ = guiStates_.snapScale_;
+						ImGui::InputFloat("Scale Snap", &guiStates_.snap_.x);
+						break;
+					}
+				}
+			}
+
+			//ImGuizmo::MODE gizmoMode = (guiStates_.gizmoOperation_ == ImGuizmo::OPERATION::ROTATE) ? ImGuizmo::MODE::LOCAL : ImGuizmo::MODE::WORLD;
+			
 
 			ImGuizmo::Manipulate(
 				cameraView,
 				cameraProj,
-				ImGuizmo::OPERATION(gizmoOpType_),
-				ImGuizmo::LOCAL,
-				worldRawData);
+				ImGuizmo::OPERATION(guiStates_.gizmoOperation_),
+				ImGuizmo::MODE::WORLD,
+				rawWorld,
+				NULL,
+				(guiStates_.useSnapping_) ? &guiStates_.snap_.x : NULL);
 
 			// if we do some manipulations using guizmo
-			if (ImGuizmo::IsUsing())
+			if (ImGuizmo::IsUsingAny())
 			{
-				editorPanels_.enttEditorController_.UpdateSelectedEnttWorld(world);
+				//float translation[3];
+				//float rotation[3];          // angles in degrees
+				//float scale[3];
+
+				//ImGuizmo::DecomposeMatrixToComponents(rawWorld, translation, rotation, scale);
+
+				controller.UpdateSelectedEnttWorld(world);
 			}
 		}
 	}
@@ -351,7 +419,7 @@ void UserInterface::RenderSceneWnd(SystemState& sysState)
 void UserInterface::RenderDebugInfo(
 	ID3D11DeviceContext* pContext,
 	Render::FontShaderClass& fontShader,
-	const SystemState& sysState)
+	const Core::SystemState& sysState)
 {
 	// render engine/game stats as text onto the sceen
 	// (is used when we in the game mode)
@@ -365,7 +433,7 @@ void UserInterface::RenderDebugInfo(
 
 	textStorage_.GetRenderingData(vbPtrs, ibPtrs, indexCounts);
 
-	fontShader.Render(pContext, vbPtrs, ibPtrs, indexCounts, sizeof(VertexFont), ppFontTexSRV);
+	fontShader.Render(pContext, vbPtrs, ibPtrs, indexCounts, sizeof(Core::VertexFont), ppFontTexSRV);
 }
 
 
@@ -378,7 +446,9 @@ DirectX::XMFLOAT2 UserInterface::ComputePosOnScreen(const POINT& drawAt)
 	// out: top left pos relatively to the screen center
 	return
 	{
-		(float)(-(windowWidth_ >> 1) + drawAt.x),   // posX
+		(float)(-(windowWidth_  >> 1) + drawAt.x),   // posX
 		(float)(+(windowHeight_ >> 1) - drawAt.y),   // posY
 	};
 }
+
+} // namespace UI

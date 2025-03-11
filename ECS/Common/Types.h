@@ -35,6 +35,8 @@ using EntityName     = std::string;
 using ComponentID    = std::string;
 using SystemID       = std::string;
 
+
+
 const EntityID   INVALID_ENTITY_ID{ 0 };
 const EntityName INVALID_ENTITY_NAME{ "invalid" };
 
@@ -80,6 +82,8 @@ enum ComponentType
 
 struct TransformRawData
 {
+	TransformRawData() : pos{ 0,0,0 }, dir{ 0,0,0 }, uniScale{ 1.0f } {}
+
 	XMFLOAT3 pos;     // position
 	XMFLOAT3 dir;     // direction (roll pitch yaw)
 	float uniScale;   // uniform scale
@@ -87,6 +91,8 @@ struct TransformRawData
 
 struct MovementRawData
 {
+	MovementRawData() : trans{ 0,0,0 }, rot{ 0,0,0 }, uniScale{ 1.0f } {}
+
 	XMFLOAT3 trans;   // translation
 	XMFLOAT3 rot;     // rotation (roll pitch yaw)
 	float uniScale;   // uniform scale factor

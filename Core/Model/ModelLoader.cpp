@@ -1,25 +1,36 @@
-// *********************************************************************************
+// =================================================================================
 // Filename:      ModelLoader.cpp
 // 
 // Created:       11.11.24
-// *********************************************************************************
-
+// =================================================================================
 #include "ModelLoader.h"
-#include "../Common/FileSystemPaths.h"
-#include "../Common/log.h"
+
+#include <CoreCommon/FileSystemPaths.h>
+#include <CoreCommon/log.h>
 #include "../Texture/TextureMgr.h"
 
+namespace fs = std::filesystem;
 
+
+namespace Core
+{
+
+// =================================================================================
+// Public API
+// =================================================================================
 
 void ModelLoader::Load(
-	const fs::path& modelFilePath, // full path to model file
+	const std::string& assetFilepath,  // path to model relatively to the "assets" folder
 	BasicModel& model)
 {
 	// read in all data from the .de3d file and
 	// fill in the input model with this data
 
-	std::ifstream fin(modelFilePath, std::ios::in | std::ios::binary);
-	Assert::True(fin.is_open(), "can't open .de3d file: " + modelFilePath.string());
+	const fs::path path     = g_RelPathAssetsDir + assetFilepath;
+	const fs::path modelDir = path.parent_path();
+
+	std::ifstream fin(path, std::ios::in | std::ios::binary);
+	Assert::True(fin.is_open(), "can't open .de3d file: " + path.string());
 
 	// ---------------------------------------------
 
@@ -30,23 +41,18 @@ void ModelLoader::Load(
 		ReadHeader(fin, model);
 
 		// allocate memory for the model and some temp data
-		model.AllocateMemory(model.numVertices_, model.numIndices_, model.numMats_);
-		matParams = new M3dMaterial[model.numMats_];
+		model.AllocateMemory(model.numVertices_, model.numIndices_, model.numSubsets_);
 
-		ReadMaterials(fin, model.numMats_, model.materials_, matParams);
+		matParams = new M3dMaterial[model.numSubsets_];
+
+		ReadMaterials(fin, model.numSubsets_, model.materials_, matParams);
 		ReadSubsetTable(fin, model.numSubsets_, model.GetSubsets());
-
-		ReadModelSubsetsAABB(
-			fin,
-			model.numSubsets_,
-			model.modelAABB_, 
-			model.subsetsAABB_);
+		ReadModelSubsetsAABB(fin, model.numSubsets_, model.modelAABB_, model.subsetsAABB_);
 
 		ReadVertices(fin, model.numVertices_, model.vertices_);
 		ReadIndices(fin, model.numIndices_, model.indices_);
 
 		// bind textures to the model, etc.
-		const fs::path modelDir = fs::path(modelFilePath).parent_path();
 		SetupSubsets(model, matParams, modelDir.string());
 
 		SafeDeleteArr(matParams);
@@ -60,7 +66,10 @@ void ModelLoader::Load(
 	}
 }
 
-///////////////////////////////////////////////////////////
+
+// =================================================================================
+// Private API
+// =================================================================================
 
 void ModelLoader::ReadHeader(std::ifstream& fin, BasicModel& model)
 {
@@ -72,7 +81,7 @@ void ModelLoader::ReadHeader(std::ifstream& fin, BasicModel& model)
 	fin >> ignore >> model.name_;
 	fin >> ignore >> modelType;
 
-	fin >> ignore >> model.numMats_;        // the same as the numSubsets
+	fin >> ignore >> model.numSubsets_;
 	fin >> ignore >> model.numVertices_;
 	fin >> ignore >> model.numIndices_;
 	fin >> ignore >> model.numBones_;
@@ -262,6 +271,8 @@ void ModelLoader::ReadAABB(std::ifstream& fin, DirectX::BoundingBox& aabb)
 {
 	// read in data of bounding box
 
-	fin >> aabb.Center.x >> aabb.Center.y >> aabb.Center.z;
+	fin >> aabb.Center.x  >> aabb.Center.y  >> aabb.Center.z;
 	fin >> aabb.Extents.x >> aabb.Extents.y >> aabb.Extents.z;
 }
+
+} // namespace Core

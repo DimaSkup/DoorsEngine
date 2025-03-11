@@ -6,14 +6,14 @@
 // Created:         12.02.24
 ////////////////////////////////////////////////////////////////////////////////////////////
 #pragma once
-   
 
-#include "../Common/Types.h"
+#include <CoreCommon/Types.h>
 #include "../Model/BasicModel.h"
 #include "../Mesh/MeshHelperTypes.h"
-
 #include "../Texture/TextureMgr.h"
 
+namespace Core
+{
 
 class ModelsCreator
 {
@@ -64,5 +64,4 @@ private:
 #endif
 };
 
-
-
+} // namespace Core

@@ -25,9 +25,9 @@ void NameSysSerDeser::Serialize(
 	offset = static_cast<u32>(fout.tellp());
 
 	// write the data block marker, data count, and the IDs values
-	Utils::FileWrite(fout, &dataBlockMarker);
-	Utils::FileWrite(fout, (u32)std::ssize(ids)); 
-	Utils::FileWrite(fout, ids);
+	FileUtils::FileWrite(fout, &dataBlockMarker);
+	FileUtils::FileWrite(fout, (u32)std::ssize(ids)); 
+	FileUtils::FileWrite(fout, ids);
 
 	for (const EntityName& name : names)
 	{
@@ -37,8 +37,8 @@ void NameSysSerDeser::Serialize(
 		// 2. write name
 
 		u32 strSize = (u32)name.size();
-		Utils::FileWrite(fout, strSize);
-		Utils::FileWrite(fout, name.data(), strSize);
+		FileUtils::FileWrite(fout, strSize);
+		FileUtils::FileWrite(fout, name.data(), strSize);
 	}
 }
 
@@ -57,7 +57,7 @@ void NameSysSerDeser::Deserialize(
 
 	// check if we read the proper data block
 	u32 dataBlockMarker = 0;
-	Utils::FileRead(fin, &dataBlockMarker);
+	FileUtils::FileRead(fin, &dataBlockMarker);
 	
 	const bool isProperDataBlock = (dataBlockMarker == static_cast<u32>(ComponentType::NameComponent));
 	if (!isProperDataBlock)
@@ -70,21 +70,21 @@ void NameSysSerDeser::Deserialize(
 
 	// get how many data elements we will have
 	u32 dataCount = 0;
-	Utils::FileRead(fin, &dataCount);
+	FileUtils::FileRead(fin, &dataCount);
 
 	// prepare enough amount of memory for data
 	outIds.resize(dataCount);
 	outNames.resize(dataCount);
 
 	// read in entities ids
-	Utils::FileRead(fin, outIds);
+	FileUtils::FileRead(fin, outIds);
 
 	// read in entities names
 	for (u32 idx = 0, strSize = 0; idx < dataCount; ++idx)
 	{
-		Utils::FileRead(fin, &strSize);                        // read in chars count
+		FileUtils::FileRead(fin, &strSize);                        // read in chars count
 		outNames[idx].resize(strSize);                         // prepare memory for a string
-		Utils::FileRead(fin, outNames[idx].data(), strSize);   // read in a string
+		FileUtils::FileRead(fin, outNames[idx].data(), strSize);   // read in a string
 	}
 }
 

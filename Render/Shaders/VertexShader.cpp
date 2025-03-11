@@ -19,9 +19,6 @@ VertexShader::~VertexShader()
 	Shutdown();
 }
 
-
-
-
 ///////////////////////////////////////////////////////////
 
 bool VertexShader::Initialize(

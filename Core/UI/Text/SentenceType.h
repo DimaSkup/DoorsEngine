@@ -10,7 +10,8 @@
 #pragma once
 
 
-
+namespace UI
+{
 
 class SentenceType final
 {
@@ -87,3 +88,5 @@ private:
 	POINT pos_{ 0, 0 };                                   // the left upper position of the whole sentence on the screen
 	DirectX::XMFLOAT3 color_{ 1.0f, 1.0f, 1.0f };         // colour of the sentence
 };
+
+} // namespace UI

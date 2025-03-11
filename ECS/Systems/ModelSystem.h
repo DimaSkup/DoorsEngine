@@ -46,6 +46,8 @@ public:
 		std::vector<EntityID>& outEnttsSortByModels,
 		std::vector<int>& outNumInstancesPerModel);
 
+    std::vector<EntityID> GetAllEntts();
+
 private:
 	Model* pModelComponent_ = nullptr;
 };

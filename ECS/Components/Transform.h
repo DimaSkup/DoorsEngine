@@ -8,29 +8,31 @@
 
 
 #include "../Common/Types.h"
-#include <vector>
+#include "../Common/vector.h"
 
 namespace ECS
 {
 
-struct Transform
+__declspec(align(16)) struct Transform
 {
 	Transform()
 	{
 		// reserve ahead some memory
-		const u32 newCapacity = 128;
+		//const u32 newCapacity = 128;
 
-		ids_.reserve(newCapacity);
-		posAndUniformScale_.reserve(newCapacity);
-		dirQuats_.reserve(newCapacity);
+		//ids_.reserve(newCapacity);
+		//posAndUniformScale_.reserve(newCapacity);
+		//dirQuats_.reserve(newCapacity);
 	}
 
+	vector<XMMATRIX> worlds_;
+	vector<XMMATRIX> invWorlds_;           // inverse world matrices
+	vector<XMFLOAT4> posAndUniformScale_;  // pos (x,y,z); uniform scale (w)
+	vector<XMVECTOR> dirQuats_;            // normalized direction quaternion
+	vector<EntityID> ids_;
+	
+
 	ComponentType type_ = ComponentType::TransformComponent;
-
-	std::vector<EntityID> ids_; 
-	std::vector<XMFLOAT4> posAndUniformScale_;  // pos (x,y,z); uniform scale (w)
-	std::vector<XMVECTOR> dirQuats_;            // normalized direction quaternion
-
 };
 
 }

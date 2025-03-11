@@ -2,10 +2,9 @@
 // Filename:      LightSystem.h
 // Description:   an ECS system to handle light sources
 //
-// Created:       16.04.22 (moved into ECS at 22.08.24)
+// Created:       22.08.24
 ////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma once
-
 
 #include "../Components/Light.h"
 #include "../Common/Utils.h"
@@ -18,7 +17,6 @@
 
 namespace ECS 
 {
-
 
 class LightSystem
 {
@@ -41,23 +39,31 @@ public:
 	//
 	// Public update API
 	//
-	void Update(const float deltaTime, const float totalGameTime);
-	void UpdateDirLights(const float deltaTime, const float totalGameTime);
+	void Update           (const float deltaTime, const float totalGameTime);
+	void UpdateDirLights  (const float deltaTime, const float totalGameTime);
 	void UpdatePointLights(const float deltaTime, const float totalGameTime);
-	void UpdateSpotLights(const XMFLOAT3& pos, const XMFLOAT3& dir);
+	void UpdateFlashlight (const XMFLOAT3& pos, const XMFLOAT3& dir);
+
+	// get/set light active state
+	bool SetLightIsActive(const EntityID id, const bool state);
+	bool IsLightActive   (const EntityID id);
 	
 	//
-	// Public modificators API
+	// get/set light properties
 	//
-	void SetDirLightProp  (const EntityID id, const LightProps prop, const XMFLOAT4& val);
-	void SetDirLightProp  (const EntityID id, const LightProps prop, const XMFLOAT3& val);
+	XMFLOAT4 GetDirLightProp  (const EntityID id, const LightProps prop);
+	XMFLOAT4 GetPointLightProp(const EntityID id, const LightProps prop);
+	XMFLOAT4 GetSpotLightProp (const EntityID id, const LightProps prop);
 
-	void SetPointLightProp(const EntityID id, const LightProps prop, const XMFLOAT4& val);
-	void SetPointLightProp(const EntityID id, const LightProps prop, const float val);
+	void SetDirLightProp      (const EntityID id, const LightProps prop, const XMFLOAT4& val);
+	void SetDirLightProp      (const EntityID id, const LightProps prop, const XMFLOAT3& val);
 
-	void SetSpotLightProp (const EntityID id, const LightProps prop, const XMFLOAT4& val);
-	void SetSpotLightProp (const EntityID id, const LightProps prop, const XMFLOAT3& val);
-	void SetSpotLightProp (const EntityID id, const LightProps prop, const float val);
+	bool SetPointLightProp    (const EntityID id, const LightProps prop, const XMFLOAT4& val);
+	bool SetPointLightProp    (const EntityID id, const LightProps prop, const float val);
+
+	bool SetSpotLightProp     (const EntityID id, const LightProps prop, const XMFLOAT4& val);
+	bool SetSpotLightProp     (const EntityID id, const LightProps prop, const float val);
+
 
 	//
 	// Public query API 
@@ -87,23 +93,27 @@ public:
 	inline SpotLights&  GetSpotLights()                 const { return pLightComponent_->spotLights_; }
 	inline LightTypes   GetLightType(const EntityID id) const { return pLightComponent_->types_[GetIdxByID(id)]; }
 
-	bool GetPointLightData(
-		const EntityID id,
-		XMFLOAT4& ambient,
-		XMFLOAT4& diffuse,
-		XMFLOAT4& specular,
-		XMFLOAT3& position,
-		float& range,
-		XMFLOAT3& attenuation);
 
+	bool GetPointLightData(const EntityID* ids,	ECS::PointLight* outData, const int numEntts) const;
 
-	const size GetLightsNum(const LightTypes type) const;
+	bool GetPointLightData(const EntityID id, ECS::PointLight& outPointLight) const;
+	bool GetSpotLightData (const EntityID id, ECS::SpotLight& outSpotlight) const;
+
+	bool GetPointLightsPositionAndRange(
+		const EntityID* ids,
+		ECS::PosAndRange* outData, 
+		const int numEntts) const;
+
+	const size GetNumDirLights()   const { return std::ssize(pLightComponent_->dirLights_.ids_); }
+	const size GetNumPointLights() const { return std::ssize(pLightComponent_->pointLights_.ids_); }
+	const size GetNumSpotLights()  const { return std::ssize(pLightComponent_->spotLights_.ids_); }
 
 	// memory allocation
 	void* operator new(size_t i);
 	void operator delete(void* p);
 
 private:
+	XMFLOAT4 GetLightPropInvalidData();
 	bool CheckCanAddRecords(const std::vector<EntityID>& ids);
 	void CheckInputParams(const std::vector<EntityID>& ids, DirLightsInitParams& params);
 	void CheckIdExist(const EntityID id, const std::string& errorMsg);

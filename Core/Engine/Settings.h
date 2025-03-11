@@ -6,16 +6,22 @@
 // =================================================================================
 #pragma once
 
-#include "../Common/log.h"
+#include <CoreCommon/log.h>
 #include <string>
 #include <map>
-#include <stdexcept>
+
+
+namespace Core
+{
 
 class Settings
 {
 public:
 	Settings();
 	~Settings();
+
+	Settings(Settings& other) = delete;        // should not be cloneable
+	void operator=(const Settings&) = delete;  // should not be assignable
 
 
 	// get a setting value in a particular type
@@ -32,10 +38,6 @@ public:
 	template<typename T>
 	void UpdateSettingByKey(const char* key, T src);
 
-private:
-	Settings(Settings & other) = delete;        // should not be cloneable
-	void operator=(const Settings &) = delete;  // should not be assignable
-
 	void LoadSettingsFromFile();
 
 private:
@@ -44,34 +46,32 @@ private:
 
 ///////////////////////////////////////////////////////////
 
-
 template<typename T>
 void Settings::UpdateSettingByKey(const char* key, T val)
 {
 	// update a setting parameter with new value by a particular key
 
-	try
+	if (!settingsList_.contains(key))
 	{
-		std::string& param = settingsList_.at(key);
-
-		// check if the src type is allowed
-		if ((typeid(val) == typeid(float)) ||
-			(typeid(val) == typeid(bool)) ||
-			(typeid(val) == typeid(int)))
-		{
-			param = std::to_string(val);
-		}
-		// we have wrong type
-		else
-		{
-			std::string typeName{ typeid(T).name() };
-			Log::Error("wrong source type: " + typeName);
-		}
+		Log::Error("there is no such a key in settings: " + std::string(key));
+		return;
 	}
-	catch (std::out_of_range& e)
+
+	int valType = typeid(val);
+
+	// check if the src type is allowed
+	if ((valType == typeid(float)) ||
+		(valType == typeid(bool)) ||
+		(valType == typeid(int)))
 	{
-		Log::Error(e.what());
-		throw EngineException("can't find a param by key: " + std::string(key));
+		settingsList_[key] = std::to_string(val);
+	}
+	// we have wrong type
+	else
+	{
+		std::string typeName{ typeid(T).name() };
+		Log::Error("failed to set key (" + std::string(key) + "wrong source type : " + typeName);
 	}
 }
 
+} // namespace Core

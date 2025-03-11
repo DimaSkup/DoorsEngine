@@ -15,6 +15,9 @@
 #include <DirectXCollision.h>
 
 
+namespace Core
+{
+
 class SkyModel
 {
 	using XMFLOAT3 = DirectX::XMFLOAT3;
@@ -81,3 +84,5 @@ private:
 	XMFLOAT3 colorCenter_{1,1,1};   // sky horizon color
 	XMFLOAT3 colorApex_{1,1,1};     // sky top color
 };
+
+} // namespace Core

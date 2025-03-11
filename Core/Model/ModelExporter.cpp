@@ -1,9 +1,10 @@
-// *********************************************************************************
+// =================================================================================
 // Filename:     ModelExporter.cpp
 // Created:      11.11.24
-// *********************************************************************************
+// =================================================================================
 #include "ModelExporter.h"
-#include "../Common/FileSystemPaths.h"
+
+#include <CoreCommon/FileSystemPaths.h>
 #include "../Texture/TextureHelperTypes.h"
 #include "ImgConverter.h"
 #include "../Texture/TextureMgr.h"
@@ -14,18 +15,26 @@
 
 namespace fs = std::filesystem;
 
-std::map<fs::path, fs::path> texPathSrcToDst;
+namespace Core
+{
 
+ModelExporter::ModelExporter()
+{
+	// create a directory for this exported model (if not exist)
+	if (!fs::exists(g_RelPathAssetsDir))
+		fs::create_directory(g_RelPathAssetsDir);
+}
 
+///////////////////////////////////////////////////////////
 
 void ModelExporter::ExportIntoDE3D(
 	ID3D11Device* pDevice,
 	const BasicModel& model,
-	const std::string& dstRelativePath)      // relative to "data/models/imported/"
+	const std::string& dstRelativePath)
 {
 	// store model's data into a .de3d file by path
 
-	const fs::path fullPath = g_ImportedModelsDirPath + dstRelativePath;
+	const fs::path fullPath = g_RelPathAssetsDir + dstRelativePath;
 	const fs::path targetDir = fullPath.parent_path().string();
 
 	// create a directory for this exported model (if not exist)
@@ -51,20 +60,17 @@ void ModelExporter::ExportIntoDE3D(
 }
 
 
-
-
-
-// *********************************************************************************
+// =================================================================================
 //                               PRIVATE METHODS
-// *********************************************************************************
+// =================================================================================
 
 void ModelExporter::WriteHeader(std::ofstream& fout, const BasicModel& model)
 {
 	fout << "***************Header***************\n";
 	fout << "#ModelID "   << model.id_ << '\n';
 	fout << "#ModelName " << model.name_ << '\n';
-	fout << "#ModelType " << model.type_ << '\n';
-	fout << "#Materials " << model.numMats_ << '\n';
+	fout << "#ModelType " << (int)model.type_ << '\n';
+	fout << "#Meshes "    << model.numSubsets_ << '\n';
 	fout << "#Vertices "  << model.numVertices_ << '\n';
 	fout << "#Indices "   << model.numIndices_ << '\n';
 	fout << "#Bones "     << model.numBones_ << '\n';
@@ -88,7 +94,8 @@ void WriteTextureIntoFile(
 	// 4. write a texture into the .dds file
 
 	// target image params
-	DXGI_FORMAT targetFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+	//DXGI_FORMAT targetFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+	DXGI_FORMAT targetFormat = DXGI_FORMAT_BC3_UNORM;
 	const DirectX::TEX_FILTER_FLAGS filter = DirectX::TEX_FILTER_DEFAULT;
 
 
@@ -236,7 +243,7 @@ void ModelExporter::WriteMaterials(
 	fout << "***************Materials*********************\n";
 
 	// write materials/textures data of each model's mesh (subset)
-	for (int i = 0; i < model.numMats_; ++i)
+	for (int i = 0; i < model.numSubsets_; ++i)
 	{
 		WriteMaterialProps(fout, model.materials_[i]);
 
@@ -381,3 +388,5 @@ void ModelExporter::WriteAABB(
 		<< aabb.Extents.y << ' '
 		<< aabb.Extents.z << '\n';
 }
+
+} // namespace Core

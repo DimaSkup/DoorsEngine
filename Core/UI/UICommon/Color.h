@@ -9,41 +9,45 @@
 #include <DirectXMath.h>
 
 
+namespace UI
+{
+
 class ColorRGB
 {
 public:
-	ColorRGB() {}
+	ColorRGB() :
+		r(0), g(0), b(0) {}
 
-	ColorRGB(const float r, const float g, const float b) :
-		r_(r), g_(g), b_(b) {}
+	ColorRGB(const float r_, const float g_, const float b_) :
+		r(r_), g(g_), b(b_) {}
 
 	ColorRGB(const ColorRGB& color) :
-		r_(color.r_), g_(color.g_), b_(color.b_) {}
+		r(color.r), g(color.g), b(color.b) {}
 
 	ColorRGB(const DirectX::XMFLOAT3& color) :
-		r_(color.x), g_(color.y), b_(color.z) {}
+		r(color.x), g(color.y), b(color.z) {}
 
 
 	// ------------------------------------------
 
-	inline DirectX::XMFLOAT3 ToFloat3() const { return { r_, g_, b_ };	}
+	inline DirectX::XMFLOAT3 ToFloat3() const { return { r, g, b };	}
 
 	inline ColorRGB& operator=(const ColorRGB& color)
 	{
 		if (this == &color) return *this;
 
-		r_ = color.r_;
-		g_ = color.g_;
-		b_ = color.b_;
+		r = color.r;
+		g = color.g;
+		b = color.b;
 
 		return *this;
 	}
 
 	inline ColorRGB& operator=(ColorRGB&& color) noexcept
 	{
-		r_ = color.r_;
-		g_ = color.g_;
-		b_ = color.b_;
+		r = color.r;
+		g = color.g;
+		b = color.b;
 
 		return *this;
 	}
@@ -52,10 +56,10 @@ public:
 	// data: can get as an array (rgb), or can get values separately (r, g, b)
 	union
 	{
-		float rgb_[3]{ 0.0f };
+		float rgb[3]{ 0.0f };
 
 		struct {
-			float r_, g_, b_;
+			float r, g, b;
 		};
 	};
 };
@@ -65,40 +69,41 @@ public:
 class ColorRGBA
 {
 public:
-	ColorRGBA() {}
+	ColorRGBA() :
+		r(0), g(0), b(0), a(1) {}
 
-	ColorRGBA(const float r, const float g, const float b, const float a) :
-		r_(r), g_(g), b_(b), a_(a) {}
+	ColorRGBA(const float r_, const float g_, const float b_, const float a_) :
+		r(r_), g(g_), b(b_), a(a_) {}
 
 	ColorRGBA(const ColorRGBA& color) :
-		r_(color.r_), g_(color.g_), b_(color.b_), a_(color.a_) {}
+		r(color.r), g(color.g), b(color.b), a(color.a) {}
 
 	ColorRGBA(const DirectX::XMFLOAT4& color) :
-		r_(color.x), g_(color.y), b_(color.z), a_(color.w) {}
+		r(color.x), g(color.y), b(color.z), a(color.w) {}
 
 	// ------------------------------------------
 
-	inline DirectX::XMFLOAT4 ToFloat4() const { return { r_, g_, b_, a_ }; }
-	inline ColorRGB          ToRGB()    const { return { r_, g_, b_ }; }
+	inline DirectX::XMFLOAT4 ToFloat4() const { return { r, g, b, a }; }
+	inline ColorRGB          ToRGB()    const { return { r, g, b }; }
 
 	inline ColorRGBA& operator=(const ColorRGBA& color)
 	{
 		if (this == &color) return *this;
 
-		r_ = color.r_;
-		g_ = color.g_;
-		b_ = color.b_;
-		a_ = color.a_;
+		r = color.r;
+		g = color.g;
+		b = color.b;
+		a = color.a;
 
 		return *this;
 	}
 
 	inline ColorRGBA& operator=(ColorRGBA&& color) noexcept
 	{
-		r_ = color.r_;
-		g_ = color.g_;
-		b_ = color.b_;
-		a_ = color.a_;
+		r = color.r;
+		g = color.g;
+		b = color.b;
+		a = color.a;
 
 		return *this;
 	}
@@ -107,10 +112,12 @@ public:
 	// data: can get as an array (rgba), or can get values separately (r, g, b, a)
 	union
 	{
-		float rgba_[4]{ 0, 0, 0, 1 };
+		float rgba[4]{ 0, 0, 0, 1 };
 
 		struct {
-			float r_, g_, b_, a_;
+			float r, g, b, a;
 		};
 	};
 };
+
+} // namespace UI

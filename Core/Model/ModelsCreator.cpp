@@ -6,10 +6,10 @@
 // ************************************************************************************
 #include "ModelsCreator.h"
 
-#include "../Common/FileSystemPaths.h"
+#include <CoreCommon/FileSystemPaths.h>
+#include <CoreCommon/MathHelper.h>
 #include "ModelMath.h"
 #include "../Engine/Settings.h"
-#include "../Common/MathHelper.h"
 
 #include "GeometryGenerator.h"
 #include "../Model/ModelLoader.h"
@@ -23,9 +23,11 @@
 #include <filesystem>
 
 namespace fs = std::filesystem;
-
-
 using namespace DirectX;
+
+
+namespace Core
+{
 
 ModelsCreator::ModelsCreator()
 {
@@ -41,20 +43,18 @@ ModelID ModelsCreator::CreateFromDE3D(
 
 	try
 	{
-		const fs::path fullPathToModel = path;
-		Assert::True(fs::exists(fullPathToModel), "there is no model file by path: " + path);
+		const fs::path relativePath = g_RelPathAssetsDir + path;
+		Assert::True(fs::exists(relativePath), "there is no model file by path: " + path);
 
-		ModelID id = 0;
-		ModelStorage& storage = *ModelStorage::Get();
 		ModelLoader loader;
 		BasicModel model;
 
 		// load a model from file and init its vb/ib
-		loader.Load(fullPathToModel, model);
+		loader.Load(path, model);
 		model.InitializeBuffers(pDevice);
 
-		id = model.id_;
-		storage.AddModel(std::move(model));
+		ModelID id = id = model.id_;
+		ModelStorage::Get()->AddModel(std::move(model));
 
 		return id;
 	}
@@ -89,13 +89,13 @@ ModelID ModelsCreator::ImportFromFile(
 
 		ModelImporter importer;
 		BasicModel& model = storage.AddEmptyModel();
+
+        model.name_ = pathToModel.stem().string();
+        model.type_ = ModelType::Imported;
 		
 		// import model from a file by path
 		importer.LoadFromFile(pDevice, model, path);
 
-		model.name_ = pathToModel.stem().string();
-		model.type_ = ModelType::Imported;
-		
 		// initialize vb/ib
 		model.InitializeBuffers(pDevice);
 		
@@ -424,7 +424,7 @@ ModelID ModelsCreator::CreateSkull(ID3D11Device* pDevice)
 {
 	BasicModel& model = ModelStorage::Get()->AddEmptyModel();
 
-	const std::string filepath = g_ModelsDirPath + "/default/skull.txt";
+	const std::string filepath = "models/skull/skull.txt";
 	ReadSkullMeshFromFile(model, filepath);
 
 	//ModelMath modelMath;
@@ -478,7 +478,7 @@ void ModelsCreator::ReadSkullMeshFromFile(
 		// allocate memory for the vertices and indices data
 		model.AllocateMemory(numVertices, numTriangles * 3, numSubsets);
 
-		for (int i = 0; i < model.numVertices_; ++i)
+		for (u32 i = 0; i < model.numVertices_; ++i)
 		{
 			Vertex3D& v = model.vertices_[i];
 
@@ -490,7 +490,7 @@ void ModelsCreator::ReadSkullMeshFromFile(
 		fin >> ignore >> ignore >> ignore;
 
 		// read in indices
-		for (int i = 0; i < model.numIndices_; ++i)
+		for (u32 i = 0; i < model.numIndices_; ++i)
 			fin >> model.indices_[i];
 
 		fin.close();
@@ -620,7 +620,7 @@ void GenerateHeightsForTerrainGrid(BasicModel& grid)
 	Vertex3D* vertices = grid.vertices_;
 
 #if 1
-	for (int i = 0; i < grid.numVertices_; ++i)
+	for (u32 i = 0; i < grid.numVertices_; ++i)
 	{
 		DirectX::XMFLOAT3& pos = vertices[i].position;
 
@@ -677,8 +677,10 @@ ModelID ModelsCreator::CreateGeneratedTerrain(
 	//
 	// CREATE TERRAIN GRID
 	//
+	ModelStorage& storage = *ModelStorage::Get();
+	BasicModel& model = storage.AddEmptyModel();
+
 	GeometryGenerator geoGen;
-	BasicModel& model = ModelStorage::Get()->AddEmptyModel();
 
 	// generate terrain grid's vertices and indices by input params
 	geoGen.GenerateFlatGrid(
@@ -697,7 +699,7 @@ ModelID ModelsCreator::CreateGeneratedTerrain(
 	const UINT* indices = model.indices_;
 
 	// for each triangle in the mesh
-	for (int i = 0; i < model.numIndices_ / 3; ++i)
+	for (u32 i = 0; i < model.numIndices_ / 3; ++i)
 	{
 		// indices of the ith triangle 
 		int baseIdx = i * 3;
@@ -726,7 +728,7 @@ ModelID ModelsCreator::CreateGeneratedTerrain(
 
 	// for each vertex v, we have summed the face normals of all
 	// the triangles that share v, so now we just need to normalize
-	for (int i = 0; i < model.numVertices_; ++i)
+	for (u32 i = 0; i < model.numVertices_; ++i)
 		vertices[i].normal = DirectX::XMFloat3Normalize(vertices[i].normal);
 	
 	// setup a material for the single mesh (subset) of the model
@@ -1027,3 +1029,4 @@ void ModelsCreator::PaintGridWithRainbow(GeometryGenerator::MeshData& grid,
 
 #endif
 
+} // namespace Core

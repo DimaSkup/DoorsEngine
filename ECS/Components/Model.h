@@ -8,6 +8,7 @@
 #pragma once
 
 #include "../Common/Types.h"
+#include "../Common/vector.h"
 #include <map>
 #include <set>
 
@@ -16,13 +17,19 @@ namespace ECS
 
 struct Model
 {
-	ComponentType type_ = ComponentType::ModelComponent;
+#if 0
+    vector<EntityID> enttsIDs_;   // primary keys (can have only unique values)
+    vector<ModelID>  modelIDs_;   // there can be multiple the same values
 
+#else
 	// each entity can be related to only one model
 	std::map<EntityID, ModelID> enttToModel_; 
 
 	// each model can be related to multiple entities
 	std::map<ModelID, std::set<EntityID>> modelToEntt_;
+#endif
+
+    ComponentType type_ = ComponentType::ModelComponent;
 };
 
 }

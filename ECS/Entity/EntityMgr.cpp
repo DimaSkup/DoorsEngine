@@ -1,11 +1,5 @@
 #include "EntityMgr.h"
 
-#include "../Common/vector.h"
-#include "../Common/Utils.h"
-#include "../Common/Assert.h"
-#include "../Common/Log.h"
-
-
 #include "EntityMgrSerializer.h"
 #include "EntityMgrDeserializer.h"
 
@@ -17,8 +11,6 @@
 #include <cctype>
 #include <random>
 
-using namespace Utils;
-
 namespace ECS
 {
 
@@ -27,22 +19,22 @@ int EntityMgr::lastEntityID_ = 1;
 
 
 EntityMgr::EntityMgr() :
-	nameSystem_ {&names_},
-	transformSystem_{ &transform_, &world_ },
-	moveSystem_{ &transform_, &world_, &movement_ },
-	modelSystem_{ &modelComponent_ },
-	renderSystem_{ &renderComponent_ },
-	texturesSystem_{ &textureComponent_ },
+	nameSystem_         { &names_ },
+	moveSystem_         { &transform_, &movement_ },
+	modelSystem_        { &modelComponent_ },
+	renderSystem_       { &renderComponent_ },
+	texturesSystem_     { &textureComponent_ },
 	texTransformSystem_ { &texTransform_ },
-	lightSystem_{ &light_ },
-	renderStatesSystem_{ &renderStates_ },
-	boundingSystem_ { &bounding_ },
-	cameraSystem_{ &camera_ }
+	lightSystem_        { &light_ },
+	renderStatesSystem_ { &renderStates_ },
+	boundingSystem_     { &bounding_ },
+	cameraSystem_       { &camera_ }
 {
 	Log::Debug("start of entity mgr init");
 
-
 	const u32 reserveMemForEnttsCount = 100;
+
+	transformSystem_.Initialize(&transform_);
 
 	ids_.reserve(reserveMemForEnttsCount);
 	componentHashes_.reserve(reserveMemForEnttsCount);
@@ -68,6 +60,13 @@ EntityMgr::EntityMgr() :
 EntityMgr::~EntityMgr()
 {
 	Log::Debug();
+}
+
+///////////////////////////////////////////////////////////
+
+std::string GetErrMsg(const std::string& prefix, const EntityID* ids, const size numEntts)
+{
+	return prefix + Utils::GetEnttsIDsAsString(ids, (int)numEntts);
 }
 
 ///////////////////////////////////////////////////////////
@@ -267,7 +266,7 @@ void EntityMgr::DestroyEntities(const std::vector<EntityID>& enttsIDs)
 
 void EntityMgr::Update(const float totalGameTime, const float deltaTime)
 {
-	moveSystem_.UpdateAllMoves(deltaTime, transformSystem_);
+	//moveSystem_.UpdateAllMoves(deltaTime, transformSystem_);
 	texTransformSystem_.UpdateAllTextrureAnimations(totalGameTime, deltaTime);
 	lightSystem_.Update(deltaTime, totalGameTime);
 }
@@ -377,7 +376,7 @@ void EntityMgr::AddNameComponent(
 	{
 
 		Assert::NotEmpty(ids.empty(), "array of entities IDs is empty");
-		Assert::True(CheckArrSizesEqual(ids , names), "count of entities IDs and names must be equal");
+		Assert::True(Utils::CheckArrSizesEqual(ids , names), "count of entities IDs and names must be equal");
 
 		nameSystem_.AddRecords(ids, names);
 		SetEnttsHaveComponent(ids.data(), std::ssize(ids), NameComponent);
@@ -425,10 +424,8 @@ void EntityMgr::AddTransformComponent(
 
 	try
 	{
-		using enum ComponentType;
-	
 		transformSystem_.AddRecords(ids, positions, dirQuats, uniformScales);
-		SetEnttsHaveComponents(ids, { TransformComponent, WorldMatrixComponent });
+		SetEnttsHaveComponents(ids, { TransformComponent });
 	}
 	catch (const std::out_of_range& e)
 	{
@@ -733,14 +730,7 @@ void EntityMgr::AddLightComponent(
 		Assert::NotEmpty(ids.empty(), "the array of entities IDs is empty");
 		Assert::True(CheckEnttsExist(ids.data(), std::ssize(ids)), "there is no such entts in the mgr");
 
-		size numPointLights = std::ssize(ids);
-
-		// dummy data for point light sources
-		const std::vector<XMVECTOR> dirQuats(numPointLights, { 0,0,0,1 }); // no rotation
-		const std::vector<float> uniformScales(numPointLights, 1.0f);
-
 		lightSystem_.AddPointLights(ids, params);
-		transformSystem_.AddRecords(ids, params.positions, dirQuats, uniformScales);
 		SetEnttsHaveComponent(ids.data(), std::ssize(ids), LightComponent);
 	}
 	catch (const std::out_of_range& e)
@@ -764,6 +754,8 @@ void EntityMgr::AddLightComponent(
 	const std::vector<EntityID>& ids,
 	SpotLightsInitParams& params)
 {
+	// add light component to each input entity by ID;
+	// 
 	try
 	{
 		Assert::NotEmpty(ids.empty(), "the array of entities IDs is empty");
@@ -810,18 +802,10 @@ void EntityMgr::AddRenderStatesComponent(const std::vector<EntityID>& ids)
 		renderStatesSystem_.AddWithDefaultStates(ids);
 		SetEnttsHaveComponent(ids.data(), std::ssize(ids), RenderStatesComponent);
 	}
-	catch (const std::out_of_range& e)
-	{
-		throw LIB_Exception(e.what());
-	}
 	catch (LIB_Exception& e)
 	{
-		std::string errMsg;
-		errMsg += "can't add render states component to entts: ";
-		errMsg += Utils::GetEnttsIDsAsString(ids.data(), (int)ids.size());
-
 		Log::Error(e);
-		Log::Error(errMsg);
+		Log::Error(GetErrMsg("can't add render states component to entts: ", ids.data(), std::ssize(ids)));
 	}
 }
 
@@ -857,28 +841,35 @@ void EntityMgr::AddBoundingComponent(
 {
 	// apply the same set of AABBs to each input entity
 	// (for instance: we have 100 the same trees so each will have the same set of AABBs)
-
 	try
 	{
 		boundingSystem_.Add(ids, numEntts, numSubsets, types, AABBs);
 		SetEnttsHaveComponent(ids, numEntts, BoundingComponent);
-
-		//std::vector<DirectX::XMMATRIX> worlds;
-		//transformSystem_.GetWorldMatricesOfEntts(ids, numEntts, worlds);
-		//boundingSystem_.Update(ids, worlds.data(), numEntts, std::ssize(worlds));
-	}
-	catch (const std::out_of_range& e)
-	{
-		throw LIB_Exception(e.what());
 	}
 	catch (LIB_Exception& e)
 	{
-		std::string errMsg;
-		errMsg += "can't add bounding component to entts: ";
-		errMsg += Utils::GetEnttsIDsAsString(ids, (int)numEntts);
-
 		Log::Error(e);
-		Log::Error(errMsg);
+		Log::Error(GetErrMsg("can't add bounding component to entts: ", ids, numEntts));
+	}
+}
+
+///////////////////////////////////////////////////////////
+
+void EntityMgr::AddBoundingComponent(
+	const EntityID* ids,
+	const DirectX::BoundingSphere* spheres,
+	const size numEntts)
+{
+	// add bounding spheres to each input entity by ID (input arrays are supposed to be equal)
+	try
+	{
+		boundingSystem_.Add(ids, numEntts, spheres);
+		SetEnttsHaveComponent(ids, numEntts, BoundingComponent);
+	}
+	catch (LIB_Exception& e)
+	{
+		Log::Error(e);
+		Log::Error(GetErrMsg("can't add bounding component to entts: ", ids, numEntts));
 	}
 }
 
@@ -890,15 +881,10 @@ void EntityMgr::AddCameraComponent(
 	const DirectX::XMMATRIX& proj)
 {
 	// add a camera component to the entity by input ID
-
 	try
 	{
 		cameraSystem_.AddRecord(id, view, proj);
 		SetEnttHasComponent(id, CameraComponent);
-	}
-	catch (const std::out_of_range& e)
-	{
-		throw LIB_Exception(e.what());
 	}
 	catch (LIB_Exception& e)
 	{
@@ -908,8 +894,6 @@ void EntityMgr::AddCameraComponent(
 }
 
 #pragma endregion
-
-
 
 
 // ====================================================================================
@@ -997,12 +981,7 @@ void EntityMgr::GetEnttsByComponent(
 	{
 		case ComponentType::TransformComponent:
 		{
-			outIDs = transform_.ids_;
-			return;
-		}
-		case ComponentType::WorldMatrixComponent:
-		{
-			transformSystem_.GetAllEnttsIDsFromWorldMatrixComponent(outIDs);
+			//outIDs = transform_.ids_;
 			return;
 		}
 		case ComponentType::MoveComponent:
@@ -1038,14 +1017,11 @@ void EntityMgr::GetEnttsByComponent(
 #pragma endregion
 
 
-
-
 // ************************************************************************************
 // 
 //                               PRIVATE HELPERS
 // 
 // ************************************************************************************
-
 
 void EntityMgr::GetDataIdxsByIDs(
 	const EntityID* ids,

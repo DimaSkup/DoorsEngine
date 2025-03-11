@@ -14,52 +14,21 @@
 //////////////////////////////////
 #include "fontclass.h"              // text font
 
-#include "../../Common/Types.h"
+#include <CoreCommon/Types.h>
+#include <CoreCommon/SystemState.h>
 
 #include "../../Mesh/Vertex.h"
 #include "../../Mesh/VertexBuffer.h"
 #include "../../Mesh/IndexBuffer.h"
-
-#include "../../Engine/SystemState.h"
-
-
 
 #include <map>
 #include <vector>
 #include <DirectXMath.h>
 
 
-// Forward declaration
-//
-// Stores one frame transient data. This is intermediate data used by the update
-// pipeline every frame and discarded at the end of the frame.
-// Note that this struct is defined in the .cpp file because only
-// the store needs to see it.
-/*
-namespace TextDetails
+namespace UI
 {
-	struct VerticesArr
-	{
-		std::vector<VertexFont> vertices_;
-	};
 
-	struct TextStoreTransientData 
-	{
-		std::vector<UINT> stringsToUpdate_;
-		std::vector<POINT> positionsToUpdate_;
-		std::vector<VerticesArr> verticesToUpdate_;
-
-		void Clear()
-		{
-			stringsToUpdate_.clear();
-			positionsToUpdate_.clear();
-			verticesToUpdate_.clear();
-		}
-	};
-}
-*/
-
-// Stores all text related data
 class TextStore final
 {
 public:
@@ -97,7 +66,7 @@ public:
 	void Update(
 		ID3D11DeviceContext* pContext,
 		FontClass& font,
-		const SystemState& systemState);
+		const Core::SystemState& systemState);
 
 	void UpdateSentenceByKey(
 		ID3D11DeviceContext* pContext,
@@ -113,7 +82,7 @@ private:
 		const std::string& textContent,               
 		const DirectX::XMFLOAT2& drawAt,                   // upper left position of the str
 		FontClass & font,                                  // font for the text
-		std::vector<VertexFont>& vertices,
+		std::vector<Core::VertexFont>& vertices,
 		std::vector<UINT>& indices);
 
 	void UpdateSentenceByIdx(
@@ -136,8 +105,10 @@ private:
 	std::vector<size>                     maxStrSize_;     // maximal number of vertices per each string
 	std::vector<bool>                     isDynamic_;      // is this str modifiable?
 
-	std::vector<VertexBuffer<VertexFont>> vertexBuffers_;
-	std::vector<IndexBuffer<UINT>>        indexBuffers_;
+	std::vector<Core::VertexBuffer<Core::VertexFont>> vertexBuffers_;
+	std::vector<Core::IndexBuffer<UINT>>              indexBuffers_;
 
 	//std::unique_ptr<TextDetails::TextStoreTransientData> pDataToUpdate_;
 };
+
+} // namespace UI

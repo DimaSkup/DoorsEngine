@@ -6,7 +6,7 @@
 
 #include <fstream>
 
-namespace Utils
+namespace FileUtils
 {
 
 	// ****************************************************************************

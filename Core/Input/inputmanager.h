@@ -6,7 +6,7 @@
 ////////////////////////////////////////////////////////////////////
 #pragma once
 
-#include "../Common/Log.h"
+#include <CoreCommon/Log.h>
 #include "MouseClass.h"
 #include "KeyboardClass.h"
 

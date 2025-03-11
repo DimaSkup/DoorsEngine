@@ -5,16 +5,23 @@
 // =================================================================================
 #include "EditorPanels.h"
 
-#include "../../../Common/Assert.h"
-#include "../../../Common/log.h"
+#include <CoreCommon/Assert.h>
+#include <CoreCommon/log.h>
+#include <UICommon/EventsHistory.h>
 
 #include <vector>
 #include <string>
 #include <imgui.h>
 
 
-EditorPanels::EditorPanels()
+namespace UI
 {
+
+EditorPanels::EditorPanels(StatesGUI* pStatesGUI) :
+	enttEditorController_(pStatesGUI),
+	pStatesGUI_(pStatesGUI)
+{
+	Core::Assert::NotNullptr(pStatesGUI, "input ptr to the GUI states container == nullptr");
 }
 
 
@@ -24,7 +31,7 @@ EditorPanels::EditorPanels()
 
 void EditorPanels::Initialize(IFacadeEngineToUI* pFacade)
 {
-	Assert::NotNullptr(pFacade, "ptr to the facade interface == nullptr");
+	Core::Assert::NotNullptr(pFacade, "ptr to the facade interface == nullptr");
 	pFacadeEngineToUI_ = pFacade;
 
 	enttEditorController_.Initialize(pFacadeEngineToUI_);
@@ -35,14 +42,11 @@ void EditorPanels::Initialize(IFacadeEngineToUI* pFacade)
 
 ///////////////////////////////////////////////////////////
 
-void EditorPanels::Render(
-	SystemState& sysState,
-	const ImGuiChildFlags childFlags,
-	const ImGuiWindowFlags wndFlags)
+void EditorPanels::Render(Core::SystemState& sysState)
 {
 	if (pFacadeEngineToUI_ == nullptr)
 	{
-		Log::Error("you have to initialize a ptr to the facade interface!");
+		Core::Log::Error("you have to initialize a ptr to the facade interface!");
 		return;
 	}
 
@@ -51,8 +55,8 @@ void EditorPanels::Render(
 	RenderDebugPanel(sysState);
 	RenderLogPanel();
 	RenderAssetsManager();
+	RenderEditorEventHistory();
 }
-
 
 
 // =================================================================================
@@ -65,7 +69,7 @@ void EditorPanels::RenderLogPanel()
 
 	if (ImGui::Begin("Log"))
 	{	
-		for (std::string& logMsg : Log::GetLogMsgsList())
+		for (std::string& logMsg : Core::Log::GetLogMsgsList())
 			ImGui::Text(logMsg.c_str());                    // print each log msg
 	}
 	ImGui::End();
@@ -75,7 +79,6 @@ void EditorPanels::RenderLogPanel()
 
 void EditorPanels::RenderAssetsManager()
 {
-	
 	if (ImGui::Begin("Assets"))
 	{
 		int numAssets = pFacadeEngineToUI_->GetNumAssets();
@@ -96,7 +99,25 @@ void EditorPanels::RenderAssetsManager()
 
 ///////////////////////////////////////////////////////////
 
-void EditorPanels::RenderEntitiesListWnd(SystemState& sysState)
+void EditorPanels::RenderEditorEventHistory()
+{
+	if (ImGui::Begin("Events history"))
+	{
+		const std::deque<HistoryItem>& eventsHistory = gEventsHistory.history_;
+		int idx = 0;
+
+		for (auto it = eventsHistory.begin(); it != eventsHistory.end(); ++it)
+		{
+			ImGui::Text("Event[%d]: %s", idx, it->msg_.c_str());
+			++idx;
+		}
+	}
+	ImGui::End();
+}
+
+///////////////////////////////////////////////////////////
+
+void EditorPanels::RenderEntitiesListWnd(Core::SystemState& sysState)
 {
 	// render editor elements which are responsible for rendering 
 	// the scene hierarchy list, etc.
@@ -117,10 +138,19 @@ void EditorPanels::RenderEntitiesListWnd(SystemState& sysState)
 		for (int i = 0; std::string& name : enttsNames)
 			pFacadeEngineToUI_->GetEnttNameByID(pEnttsIDs[i++], name);
 
+        /*
+        for (int i = 0; i < numEnttsTypes; ++i)
+        {
+
+        }
+        if (isOpen = ImGui::CollapsingHeader("Spotlight Properties", ImGuiTreeNodeFlags_SpanFullWidth))
+            viewLight_.Render(spotLightController_.GetModel());
+            */
+
 		// render selectable menu with entts names
 		for (int i = 0; i < numEntts; ++i)
 		{
-			bool isSelected = pEnttsIDs[i] == enttEditorController_.GetSelectedEntt();
+			bool isSelected = pEnttsIDs[i] == pStatesGUI_->selectedEnttID_;
 
 			if (ImGui::Selectable(enttsNames[i].c_str(), isSelected, ImGuiSelectableFlags_AllowDoubleClick))
 			{
@@ -131,8 +161,9 @@ void EditorPanels::RenderEntitiesListWnd(SystemState& sysState)
 				// to this item in world and fix on in
 				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
 				{
-					pFacadeEngineToUI_->PlaceCameraNearEntt(sysState.pickedEntt_);
-					Log::Print("double click on: " + enttsNames[i], ConsoleColor::YELLOW);
+					pFacadeEngineToUI_->FocusCameraOnEntity(sysState.pickedEntt_);
+					pStatesGUI_->gizmoOperation_ = 7;   // ImGizmo::OPERATION::TRANSLATE
+					//Log::Print("double click on: " + enttsNames[i], ConsoleColor::YELLOW);
 				}
 			}
 		}
@@ -142,7 +173,7 @@ void EditorPanels::RenderEntitiesListWnd(SystemState& sysState)
 
 ///////////////////////////////////////////////////////////
 
-void EditorPanels::RenderDebugPanel(const SystemState& systemState)
+void EditorPanels::RenderDebugPanel(const Core::SystemState& systemState)
 {
 	if (ImGui::Begin("Debug"))
 	{
@@ -161,6 +192,8 @@ void EditorPanels::RenderDebugPanel(const SystemState& systemState)
 		const DirectX::XMFLOAT3& camPos = systemState.cameraPos;
 		const DirectX::XMFLOAT3& camDir = systemState.cameraDir;
 		ImGui::Text("Camera pos: %.2f %.2f %.2f", camPos.x, camPos.y, camPos.z);
+
+		ImGui::Text("Visible point lights: %d", systemState.numVisiblePointLights);
 
 		// show debug options
 		if (ImGui::TreeNode("Show as Color:"))
@@ -181,7 +214,7 @@ void EditorPanels::RenderPropertiesControllerWnd()
 
 	if (ImGui::Begin("Properties"), &isPropertiesWndOpen_)
 	{
-		if (enttEditorController_.IsSelectedAnyEntt())
+		if (pStatesGUI_->IsSelectedAnyEntt())
 			enttEditorController_.Render();
 		
 
@@ -195,4 +228,4 @@ void EditorPanels::RenderPropertiesControllerWnd()
 	ImGui::End();
 }
 
-///////////////////////////////////////////////////////////
+} // namespace UI

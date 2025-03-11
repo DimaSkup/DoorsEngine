@@ -6,14 +6,11 @@
 // **********************************************************************************
 
 #pragma once
-
-
-#include "../Common/Types.h"
-#include "../Common/log.h"
+#include <Common/pch.h>
 
 // components (ECS)
 #include "../Components/Transform.h"
-#include "../Components/WorldMatrix.h"
+//#include "../Components/WorldMatrix.h"
 #include "../Components/Movement.h"
 #include "../Components/Model.h"
 #include "../Components/Rendered.h"
@@ -204,6 +201,11 @@ public:
 		const BoundingType* types,           // AABB type per mesh
 		const DirectX::BoundingBox* AABBs);  // AABB per mesh
 
+	void AddBoundingComponent(
+		const EntityID* ids,
+		const DirectX::BoundingSphere* boundingSpheres,
+		const size numEntts);
+
 	// ------------------------------------
 	// add CAMERA component
 
@@ -234,7 +236,7 @@ public:
 
 	inline const Transform& GetComponentTransform() const { return transform_; }
 	inline const Movement& GetComponentMovement()   const { return movement_; }
-	inline const WorldMatrix& GetComponentWorld()   const { return world_; }
+	//inline const WorldMatrix& GetComponentWorld()   const { return world_; }
 	inline const Model& GetComponentModel()         const { return modelComponent_; }
 	inline const Name& GetComponentName()           const { return names_; }
 	inline const Rendered& GetComponentRendered()   const { return renderComponent_; }
@@ -268,7 +270,7 @@ public:
 	bool CheckEnttExist(const EntityID id);
 	bool CheckEnttsExist(const EntityID* ids, const size numEntts);
 
-	inline WorldMatrix& GetWorldComponent() { return world_; }
+	//inline WorldMatrix& GetWorldComponent() { return world_; }
 
 	ComponentsHash GetHashByComponent(const ComponentType component);
 	ComponentsHash GetHashByComponents(const std::vector<ComponentType>& components);
@@ -320,7 +322,7 @@ private:
 	Transform        transform_;
 	Movement         movement_;
 	Model            modelComponent_;
-	WorldMatrix      world_;
+	//WorldMatrix      world_;
 	Rendered         renderComponent_;
 	Textured         textureComponent_;
 	Name             names_;

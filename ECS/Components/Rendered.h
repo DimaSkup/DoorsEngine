@@ -22,7 +22,8 @@ struct Rendered
 	std::vector<ECS::RenderShaderType> shaderTypes_;
 	std::vector<D3D11_PRIMITIVE_TOPOLOGY> primTopologies_;
 
-	std::vector<EntityID> visibleEnttsIDs_;   // currently visible entts for this frame
+	std::vector<EntityID> visibleEnttsIDs_;   // currently visible entts (models) for this frame
+	std::vector<EntityID> visiblePointLightsIDs_;  // currently visible point light sources
 };
 
 }

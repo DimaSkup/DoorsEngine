@@ -12,6 +12,8 @@
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
+namespace Core
+{
 
 TexStoreType DetermineTextureStorageType(const aiScene* pScene,
 	const aiMaterial* pMaterial,
@@ -87,3 +89,5 @@ UINT GetIndexOfEmbeddedCompressedTexture(aiString* pStr)
 	assert(pStr->length >= 2);             // assert that path is "*0", "*1", or something like that
 	return (UINT)atoi(&pStr->C_Str()[1]);  // return an index
 }
+
+} // namespace Core

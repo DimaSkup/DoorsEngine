@@ -14,6 +14,9 @@
 #include "../Model/BasicModel.h"
 
 
+namespace Core
+{
+
 class GeometryGenerator final
 {
 private:
@@ -133,3 +136,5 @@ private:
 
 	void SetDefaultMaterial(MeshMaterial& mat);
 };
+
+} // namespace Core

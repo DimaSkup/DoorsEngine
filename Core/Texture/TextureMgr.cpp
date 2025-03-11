@@ -6,11 +6,14 @@
 ////////////////////////////////////////////////////////////////////
 #include "TextureMgr.h"
 
-#include "../Common/FileSystemPaths.h"
-#include "../Common/StringHelper.h"
-#include "../Common/log.h"
-#include "../Common/Utils.h"
-#include "../Common/Assert.h"
+#include <CoreCommon/FileSystemPaths.h>
+#include <CoreCommon/MemHelpers.h>
+#include <CoreCommon/log.h>
+#include <CoreCommon/Assert.h>
+#include <CoreCommon/StringHelper.h>
+#include <CoreCommon/Utils.h>
+
+
 
 #include "ImageReader.h"
 
@@ -22,13 +25,15 @@
 #include <filesystem>
 
 // for ID generator
-#include <cctype>
-#include <random>
+//#include <cctype>
+//#include <random>
 
-
-
-namespace fs = std::filesystem;
 using namespace CoreUtils;
+namespace fs = std::filesystem;
+
+namespace Core
+{
+
 
 // initialize a static pointer to this class instance
 TextureMgr* TextureMgr::pInstance_ = nullptr;
@@ -44,10 +49,11 @@ TextureMgr::TextureMgr()
 		pInstance_ = this;	
 
 		// reserve some memory ahead
-		const u32 reserveForTexCount = 30;
+		const u32 reserveForTexCount = 64;
 		ids_.reserve(reserveForTexCount);
 		names_.reserve(reserveForTexCount);
 		textures_.reserve(reserveForTexCount);
+		shaderResourceViews_.reserve(reserveForTexCount);
 
 		// setup the static logger in the image reader module
 		ImgReader::ImageReader imgReader;
@@ -64,7 +70,8 @@ TextureMgr::~TextureMgr()
 	ids_.clear();
 	names_.clear();
 	textures_.clear();   
-	idToSRV_.clear();
+	shaderResourceViews_.clear();
+	//idToSRV_.clear();
 	
 	pInstance_ = nullptr;
 }
@@ -106,8 +113,9 @@ TexID TextureMgr::Add(const TexName& name, Texture& tex)
 		ids_.push_back(id);
 		names_.push_back(name);
 		textures_.push_back(std::move(tex));
+		shaderResourceViews_.push_back(textures_.back().GetTextureResourceView());
 
-		UpdateMapIdToSRV();
+		//UpdateMapIdToSRV();
 
 		// return an id of the added texture
 		return id;
@@ -142,8 +150,9 @@ TexID TextureMgr::Add(const TexName& name, Texture&& tex)
 		ids_.push_back(id);
 		names_.push_back(name);
 		textures_.push_back(std::move(tex));
+		shaderResourceViews_.push_back(textures_.back().GetTextureResourceView());
 
-		UpdateMapIdToSRV();
+		//UpdateMapIdToSRV();
 
 		// return an ID of the added texture
 		return id;
@@ -170,7 +179,7 @@ TexID TextureMgr::LoadFromFile(const TexPath& path)
 	{
 		fs::path texPath = path;
 
-		// check if such texture file exist
+		// check if such texture file exists
 		if (!fs::exists(texPath))
 		{
 			Log::Error("there is no texture by path: " + texPath.string());
@@ -187,8 +196,9 @@ TexID TextureMgr::LoadFromFile(const TexPath& path)
 		ids_.push_back(id);
 		names_.push_back(path);
 		textures_.push_back(std::move(Texture(pDevice_, path)));
+		shaderResourceViews_.push_back(textures_.back().GetTextureResourceView());
 
-		UpdateMapIdToSRV();
+		//UpdateMapIdToSRV();
 
 		// check if we successfully created this texture
 		bool isSuccess = (textures_.back().GetTextureResourceView() != nullptr);
@@ -199,6 +209,75 @@ TexID TextureMgr::LoadFromFile(const TexPath& path)
 	{
 		Log::Error(e);
 		throw EngineException("can't create a texture from file: " + path);
+	}
+}
+
+///////////////////////////////////////////////////////////
+
+TexID TextureMgr::LoadFromFileTexture2DArray(
+	const std::vector<std::string>& filenames,
+	const DXGI_FORMAT format)
+{
+	try
+	{
+		std::vector<TexID> textureIDs(std::ssize(filenames), INVALID_TEXTURE_ID);
+		
+		for (const std::string& filename : filenames)
+		{
+			// if such texture file doesn't exist we return an array of invalid texture ids (0)
+			if (!fs::exists(fs::path(filename)))
+			{
+				Log::Error("there is no texture by path: " + filename);
+				return INVALID_TEXTURE_ID;  
+			}
+		}
+
+		// else we create a new texture from file
+		const TexID id = GenID();
+
+		ids_.push_back(id);
+		names_.push_back("texture_array");
+		textures_.push_back(std::move(Texture(
+			pDevice_, 
+			"texture_array",
+			filenames.data(), 
+			(int)filenames.size(),
+			format)));
+
+		shaderResourceViews_.push_back(textures_.back().GetTextureResourceView());
+
+		//UpdateMapIdToSRV();
+
+		return id;
+
+#if 0
+		for (int i = 0; const std::string& filename : filenames)
+		{
+			// check if we load the texture which has already been loaded we just get its ID and store it
+			if (ArrHasVal(names_, filename))
+			{
+				textureIDs[i++] = GetIDByName(filename);
+			}
+			// else we create a new texture from a file
+			else
+			{
+				
+				const TexID id = GenID();
+
+				ids_.push_back(id);
+				names_.push_back(filename);
+				textures_.push_back(std::move(Texture(pDevice_, filename)));
+
+				textureIDs[i++] = id;
+				UpdateMapIdToSRV();
+			}
+		}
+#endif
+	}
+	catch (EngineException& e)
+	{
+		Log::Error(e, true);
+		throw EngineException("can't create texture 2D array");
 	}
 }
 
@@ -288,7 +367,9 @@ void TextureMgr::GetSRVByTexID(
 	const TexID texID,
 	SRV*& outTexSRV)
 {
-	outTexSRV = (idToSRV_.contains(texID)) ? idToSRV_[texID] : idToSRV_[INVALID_TEXTURE_ID];
+	const index idx = CoreUtils::GetIdxInSortedArr(ids_, texID);
+	outTexSRV = shaderResourceViews_[idx];
+	//outTexSRV = (idToSRV_.contains(texID)) ? idToSRV_[texID] : idToSRV_[INVALID_TEXTURE_ID];
 }
 
 
@@ -301,8 +382,7 @@ void TextureMgr::GetSRVsByTexIDs(
 {
 	// here get SRV (shader resource view) of each input texture by its ID
 
-	std::vector<int> idxsToNotZero;
-	idxsToNotZero.resize(numTex);
+	std::vector<int> idxsToNotZero(numTex);
 	int pos = 0;
 
 	for (int idx = 0; idx < numTex; ++idx)
@@ -316,43 +396,33 @@ void TextureMgr::GetSRVsByTexIDs(
 	// ---------------------------------------------
 
 	// get SRVs
-	ID3D11ShaderResourceView* unloadedTexSRV = idToSRV_[0];
+	ID3D11ShaderResourceView* unloadedTexSRV = shaderResourceViews_[0];
 	outSRVs.resize(numTex, unloadedTexSRV);
 
-	for (const int idx : idxsToNotZero)
-		outSRVs[idx] = idToSRV_[texIDs[idx]];
-}
+	const size numPreparedTextures = std::ssize(idxsToNotZero);
+	std::vector<TexID> ids(numPreparedTextures);
+	std::vector<index> idxs(numPreparedTextures);
+	std::vector<SRV*>  preparedSRVs(numPreparedTextures);
+	
+	for (index i = 0; const index idx : idxsToNotZero)
+		ids[i++] = texIDs[idx];
 
-///////////////////////////////////////////////////////////
+	// get idxs of searched textures ids
+	auto itBeg = ids_.begin();
+	auto itEnd = ids_.end();
 
-void TextureMgr::GetSRVsByTexIDs(
-	const std::vector<TexID>& texIDs,
-	std::vector<SRV*>& outSRVs)
-{
-	// here get SRV (shader resource view) of each input texture by its ID
-
-	const size inIDsCount = std::ssize(texIDs);
-	std::vector<ptrdiff_t> idxsToNotZero;
-	idxsToNotZero.resize(inIDsCount);
-
-	size pos = 0;
-
-	for (index idx = 0; idx < inIDsCount; ++idx)
+	for (u32 i = 0; const TexID id : ids)
 	{
-		idxsToNotZero[pos] = idx;
-		pos += bool(texIDs[idx]);
+		idxs[i++] = std::distance(itBeg, std::lower_bound(itBeg, itEnd, id));
 	}
 
-	idxsToNotZero.resize(pos+1);
+	//CoreUtils::GetIdxsInSortedArr(ids_, ids, idxs);
 
-	// ---------------------------------------------
+	for (int i = 0; const index idx : idxs)
+		preparedSRVs[i++] = shaderResourceViews_[idx];
 
-	// get SRVs
-	ID3D11ShaderResourceView* unloadedTexSRV = idToSRV_[0];
-	outSRVs.resize(texIDs.size(), unloadedTexSRV);
-
-	for (const index idx : idxsToNotZero)
-		outSRVs[idx] = idToSRV_[texIDs[idx]];
+	for (index i = 0; const index idx : idxsToNotZero)
+		outSRVs[idx] = preparedSRVs[i++];
 }
 
 ///////////////////////////////////////////////////////////
@@ -408,8 +478,9 @@ void TextureMgr::AddDefaultTex(const TexName& name, Texture&& tex)
 		ids_.push_back(id);
 		names_.push_back(name);
 		textures_.push_back(std::move(tex));
+		shaderResourceViews_.push_back(textures_.back().GetTextureResourceView());
 
-		UpdateMapIdToSRV();
+		//UpdateMapIdToSRV();
 	}
 	catch (EngineException& e)
 	{
@@ -422,6 +493,7 @@ void TextureMgr::AddDefaultTex(const TexName& name, Texture&& tex)
 
 void TextureMgr::UpdateMapIdToSRV()
 {
+#if 0
 	// update all pairs ['texture_id' => 'ptr_to_srv']
 	idToSRV_.clear();
 
@@ -432,4 +504,7 @@ void TextureMgr::UpdateMapIdToSRV()
 	// set values 
 	for (index idx = 0; auto& it : idToSRV_)
 		it.second = textures_[idx++].GetTextureResourceView();
+#endif
 }
+
+} // namespace Core

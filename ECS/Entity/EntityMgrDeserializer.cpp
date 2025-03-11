@@ -27,8 +27,8 @@ void EntityMgrDeserializer::ReadDataHeader(
 	for (int i = 0; i < (int)header.recordsCount_; ++i)
 	{
 		DataHeaderRecord& record = header.records_[i];
-		Utils::FileRead(fin, &(record.dataBlockMarker));
-		Utils::FileRead(fin, &(record.dataBlockPos));
+		FileUtils::FileRead(fin, &(record.dataBlockMarker));
+		FileUtils::FileRead(fin, &(record.dataBlockPos));
 	}
 }
 
@@ -45,7 +45,7 @@ void EntityMgrDeserializer::DeserializeEnttMgrData(
 	// and related components flags (not components data itself or something else)
 
 	u32 dataBlockMarker = 0;
-	Utils::FileRead(fin, &dataBlockMarker);
+	FileUtils::FileRead(fin, &dataBlockMarker);
 
 	// if we read wrong data block
 	if (dataBlockMarker != enttMgrDataBlockMarker)
@@ -61,14 +61,14 @@ void EntityMgrDeserializer::DeserializeEnttMgrData(
 	// --------------------------------
 
 	// read in how many data elems we have
-	Utils::FileRead(fin, &count);
+	FileUtils::FileRead(fin, &count);
 
 	// prepare enough amount of memory for data
 	*ids = new EntityID[count]{ 0 };
 	*hashes = new ComponentsHash[count]{ 0 };
 
-	Utils::FileRead(fin, ids, count);
-	Utils::FileRead(fin, hashes, count);
+	FileUtils::FileRead(fin, ids, count);
+	FileUtils::FileRead(fin, hashes, count);
 }
 
 ///////////////////////////////////////////////////////////

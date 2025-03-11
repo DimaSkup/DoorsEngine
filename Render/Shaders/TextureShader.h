@@ -24,11 +24,13 @@ class TextureShader final
 {
 	using SRV = ID3D11ShaderResourceView;
 
+	/*
 	struct InstancedData
 	{
 		DirectX::XMMATRIX world;
 		DirectX::XMMATRIX texTransform;
 	};
+	*/
 
 public:
 	TextureShader();
@@ -49,11 +51,6 @@ public:
 		const int numModels,
 		const UINT instancedBuffElemSize);
 
-	// Public API for controlling of shader rendering state
-	void SwitchFog(ID3D11DeviceContext* pContext);
-	void SwitchAlphaClipping(ID3D11DeviceContext* pContext);
-	void SetFogParams(ID3D11DeviceContext* pContext, const DirectX::XMFLOAT3 & fogColor, const float fogStart, const float fogRange);
-	
 	// Public query API
 	inline const std::string& GetShaderName() const { return className_; }	
 

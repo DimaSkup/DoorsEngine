@@ -123,7 +123,7 @@
     <ClCompile Include="Input\inputmanager.cpp">
       <Filter>Source Files\Input</Filter>
     </ClCompile>
-    <ClCompile Include="Common\log.cpp">
+    <ClCompile Include="CoreCommon\log.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Engine.cpp">
@@ -135,23 +135,14 @@
     <ClCompile Include="UI\Text\fontclass.cpp">
       <Filter>Source Files\Text</Filter>
     </ClCompile>
-    <ClCompile Include="Render\frustumclass.cpp">
-      <Filter>Source Files\Render</Filter>
-    </ClCompile>
     <ClCompile Include="Render\graphicsclass.cpp">
       <Filter>Source Files\Render</Filter>
     </ClCompile>
     <ClCompile Include="Input\KeyboardClass.cpp">
       <Filter>Source Files\Keyboard</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\SystemState.cpp">
-      <Filter>Source Files\Engine</Filter>
-    </ClCompile>
     <ClCompile Include="Render\InitializeGraphics.cpp">
       <Filter>Source Files\Render</Filter>
-    </ClCompile>
-    <ClCompile Include="Timers\timer.cpp">
-      <Filter>Source Files\Timers</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Settings.cpp">
       <Filter>Source Files\Engine</Filter>
@@ -192,7 +183,7 @@
     <ClCompile Include="Render\Color.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Common\StringHelper.cpp">
+    <ClCompile Include="CoreCommon\StringHelper.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
     <ClCompile Include="Texture\textureclass.cpp">
@@ -216,22 +207,19 @@
     <ClCompile Include="Timers\GameTimer.cpp">
       <Filter>Source Files\Timers</Filter>
     </ClCompile>
-    <ClCompile Include="Common\EngineException.cpp">
+    <ClCompile Include="CoreCommon\EngineException.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Model\GeometryGenerator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Common\MathHelper.cpp">
+    <ClCompile Include="CoreCommon\MathHelper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Mesh\Vertex.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Mesh\MeshStorage.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="UI\UI_Windows\EnttCreationWnd.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Render\d3dclass.cpp">
@@ -279,10 +267,10 @@
     <ClCompile Include="UI\Editor\Fog\FogEditorController.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UI\Editor\Entity\EntityEditorController.cpp">
+    <ClCompile Include="UI\Editor\Entity\Controller\EditorController.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UI\Editor\Entity\EntityEditorView.cpp">
+    <ClCompile Include="UI\Editor\Entity\View\EntityEditorView.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="UI\Editor\Panels\EditorPanels.cpp">
@@ -297,10 +285,40 @@
     <ClCompile Include="ImGui\ImGuiLayer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UI\Editor\Entity\LightEditorView.cpp">
+    <ClCompile Include="UI\Editor\Entity\View\LightEditorView.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Camera\Camera.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Input\KeyboardEvent.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\UICommon\EventsHistory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Editor\Entity\Controller\ModelController.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Editor\Entity\Controller\SpotLightController.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Editor\Entity\Controller\PointLightController.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Editor\Entity\Controller\SkyController.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Editor\Entity\View\SkyEditorView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Editor\Entity\Model\SkyEditorModel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Model\ModelStorageSerializer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Tests\ECS\ECS_Tester.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -329,7 +347,7 @@
     <ClInclude Include="Engine\Engine.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
-    <ClInclude Include="Common\log.h">
+    <ClInclude Include="CoreCommon\log.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
     <ClInclude Include="Timers\cpuclass.h">
@@ -338,16 +356,13 @@
     <ClInclude Include="UI\Text\fontclass.h">
       <Filter>Header Files\Text</Filter>
     </ClInclude>
-    <ClInclude Include="Render\frustumclass.h">
-      <Filter>Header Files\Render</Filter>
-    </ClInclude>
     <ClInclude Include="Render\graphicsclass.h">
       <Filter>Header Files\Render</Filter>
     </ClInclude>
     <ClInclude Include="Input\KeyboardClass.h">
       <Filter>Header Files\Keyboard</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\SystemState.h">
+    <ClInclude Include="CoreCommon\SystemState.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Settings.h">
@@ -356,13 +371,10 @@
     <ClInclude Include="Render\InitializeGraphics.h">
       <Filter>Header Files\Render</Filter>
     </ClInclude>
-    <ClInclude Include="Timers\timer.h">
-      <Filter>Header Files\Timers</Filter>
-    </ClInclude>
     <ClInclude Include="Sound\SoundClass.h">
       <Filter>Header Files\Sound</Filter>
     </ClInclude>
-    <ClInclude Include="Common\EngineException.h">
+    <ClInclude Include="CoreCommon\EngineException.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
     <ClInclude Include="Model\TerrainClass.h">
@@ -401,7 +413,7 @@
     <ClInclude Include="Render\Color.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Common\StringHelper.h">
+    <ClInclude Include="CoreCommon\StringHelper.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
     <ClInclude Include="Mesh\Vertex.h">
@@ -446,10 +458,10 @@
     <ClInclude Include="Model\GeometryGenerator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Common\MathHelper.h">
+    <ClInclude Include="CoreCommon\MathHelper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Common\Convert.h">
+    <ClInclude Include="CoreCommon\Convert.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ECS_Components\Transform.h">
@@ -494,9 +506,6 @@
     <ClInclude Include="Render\InitGraphicsHelperDataTypes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UI\UI_Windows\EnttCreationWnd.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Texture\TextureHelperTypes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -506,16 +515,16 @@
     <ClInclude Include="ECS_Entity\Utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Common\Types.h">
+    <ClInclude Include="CoreCommon\Types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Common\Utils.h">
+    <ClInclude Include="CoreCommon\Utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Common\Assert.h">
+    <ClInclude Include="CoreCommon\Assert.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Common\MemHelpers.h">
+    <ClInclude Include="CoreCommon\MemHelpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Render\d3dclass.h">
@@ -542,7 +551,7 @@
     <ClInclude Include="Model\Types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Common\UtilsFilesystem.h">
+    <ClInclude Include="CoreCommon\UtilsFilesystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Model\BasicModel.h">
@@ -557,7 +566,7 @@
     <ClInclude Include="Model\ModelLoader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Common\FileSystemPaths.h">
+    <ClInclude Include="CoreCommon\FileSystemPaths.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Engine\ProjectSaver.h">
@@ -569,10 +578,10 @@
     <ClInclude Include="Model\SkyModel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UI\Editor\Entity\SkyEditorModel.h">
+    <ClInclude Include="UI\Editor\Entity\Model\SkyEditorModel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UI\Editor\Entity\SkyEditorView.h">
+    <ClInclude Include="UI\Editor\Entity\View\SkyEditorView.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\UICommon\ICommand.h">
@@ -584,16 +593,13 @@
     <ClInclude Include="UI\UICommon\Vectors.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UI\UICommon\ViewListener.h">
+    <ClInclude Include="UI\UICommon\IEditorController.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\UICommon\IFacadeEngineToUI.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\UICommon\FacadeEngineToUI.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="UI\Editor\Fog\FogEditorCommands.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\Editor\Fog\FogEditorController.h">
@@ -608,22 +614,16 @@
     <ClInclude Include="UI\Editor\Debug\DebugEditor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UI\Editor\Entity\EntityEditorController.h">
+    <ClInclude Include="UI\Editor\Entity\Controller\EditorController.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UI\Editor\Entity\EntityEditorModel.h">
+    <ClInclude Include="UI\Editor\Entity\Model\EntityEditorModel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UI\Editor\Entity\EntityEditorView.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="UI\Editor\Entity\EntityEditorCommands.h">
+    <ClInclude Include="UI\Editor\Entity\View\EntityEditorView.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\Editor\Panels\EditorPanels.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="UI\UICommon\WndParams.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\Editor\MainMenuBar\MainMenuBar.h">
@@ -686,13 +686,52 @@
     <ClInclude Include="ImGui\backends\imgui_impl_win32.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UI\Editor\Entity\LightEditorView.h">
+    <ClInclude Include="UI\Editor\Entity\View\LightEditorView.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UI\Editor\Entity\LightEditorModel.h">
+    <ClInclude Include="UI\Editor\Entity\Model\LightEditorModel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Camera\Camera.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\UICommon\StatesGUI.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Input\KeyboardEvent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\UICommon\EventsHistory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\UICommon\EditorCommands.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\DumpGenerator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Editor\Entity\Controller\ModelController.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Editor\Entity\Controller\PointLightController.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Editor\Entity\Controller\SpotLightController.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Editor\Entity\Controller\SkyController.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Model\ModelStorageSerializer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Tests\ECS\ECS_Tester.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Tests\ECS\TestUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Tests\ECS\HelperTypes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

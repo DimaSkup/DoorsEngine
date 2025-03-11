@@ -189,11 +189,11 @@ void FontShaderClass::InitializeShaders(
 	// ---------------------------  CONSTANT BUFFERS  ---------------------------------
 
 	// initialize the matrix buffer
-	hr = matrixBuffer_.Initialize(pDevice, pContext);
+	hr = matrixBuffer_.Initialize(pDevice);
 	Assert::NotFailed(hr, "can't initialize the matrix buffer");
 	
 	// initialize the pixel buffer
-	hr = pixelBuffer_.Initialize(pDevice, pContext);
+	hr = pixelBuffer_.Initialize(pDevice);
 	Assert::NotFailed(hr, "can't initialize the pixel buffer");
 	
 

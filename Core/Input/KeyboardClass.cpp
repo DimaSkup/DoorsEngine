@@ -82,7 +82,28 @@ void KeyboardClass::OnKeyReleased(const unsigned char keycode)
 		if (*it == keycode)
 		{
 			pressedKeys_.erase(it);
+			eventsReleased_.push_back(KeyboardEvent(KeyboardEvent::EventType::Release, keycode));
 			return;
 		}
 	}
+}
+
+///////////////////////////////////////////////////////////
+
+int KeyboardClass::ReadReleasedKey()
+{
+	// return a code of released key from the list;
+	// and remove this first item from the list;
+	// if we haven't any released event we just return 0;
+
+	if (eventsReleased_.empty())
+	{
+		return 0;
+	}
+	else
+	{
+		int code = eventsReleased_.begin()->GetKeyCode();
+		eventsReleased_.pop_front();
+		return code;
+	}	
 }

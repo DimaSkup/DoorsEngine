@@ -6,12 +6,13 @@
 // ************************************************************************************
 #pragma once
 
-#include "../Common/Types.h"
+#include <CoreCommon/Types.h>
 #include "SkyModel.h"
 #include "BasicModel.h"
-
-
 #include <vector>
+
+namespace Core
+{
 
 class ModelStorage
 {
@@ -35,44 +36,16 @@ public:
 
 	void GetAssetsNamesList(std::string* namesArr, const int numNames);
 
-#if 0
-	// updating API
-	void SetTextureForModelSubset(
-		const ModelID modelID,
-		const int subsetID,
-		const TexType type,
-		const TexID texID);
-
-	void SetTexturesForModelSubset(
-		const ModelID modelID,
-		const int subsetID,
-		std::vector<TexType>& types,
-		std::vector<TexID>& texIDs);
-
-	void SetMaterialForModelSubset(
-		const ModelID modelID,
-		const int subsetID,
-		const MeshMaterial& material);
-
-	void SetMaterialsForModelSubsets(
-		const ModelID modelID,
-		const std::vector<int>& subsetsIDs,
-		const std::vector<MeshMaterial>& materials);
-
-
-	void SetAABBForModelSubset(
-		const ModelID modelID,
-		const int subsetID,
-		const DirectX::BoundingBox& aabb); 
-
-	void SetAABBsForModelSubsets(
-		const ModelID modelID,
-		const std::vector<int>& subsetsIDs,
-		const std::vector<DirectX::BoundingBox>& AABBs);
-#endif
-
 public:
 	static int INVALID_MODEL_ID;
+
+private:
+   
+	
+	void SerializeWriteAssetsInfo(
+		std::ofstream& fout,
+		const std::vector<ModelID>& ids,
+		const std::vector<std::string>& names);
 
 private:
 	std::vector<ModelID>    ids_;
@@ -83,3 +56,5 @@ private:
 	static ModelStorage*    pInstance_;
 	static int              lastModelID_;
 };
+
+}

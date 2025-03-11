@@ -140,7 +140,7 @@ void ModelSystem::GetModelsIdsRelatedToEntts(
 
 	// compute the num of instances per each model
 	for (int i = 0; const auto& it : modelToEntts)
-		outNumInstancesPerModel[i++] = static_cast<int>(std::ssize(it.second));
+		outNumInstancesPerModel[i++] = (int)(std::ssize(it.second));
 
 	// sort entts by models: copy sorted entts IDs by model into output array
 	for (int i = 0, offset = 0; const auto & it : modelToEntts)
@@ -151,6 +151,17 @@ void ModelSystem::GetModelsIdsRelatedToEntts(
 }
 
 ///////////////////////////////////////////////////////////
+
+std::vector<EntityID> ModelSystem::GetAllEntts()
+{
+    const std::map<EntityID, ModelID>& map = pModelComponent_->enttToModel_;
+    std::vector<EntityID> ids(map.size(), INVALID_ENTITY_ID);
+
+    for (int i = 0; const auto& it : map)
+        ids[i++] = it.first;
+
+    return ids;
+}
 
 
 } // namespace ECS

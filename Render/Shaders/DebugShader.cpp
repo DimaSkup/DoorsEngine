@@ -178,7 +178,7 @@ void DebugShader::InitializeShaders(
 	// ------------------------ CONSTANT BUFFERS ------------------------------ 
 
 	// rare changed const buffer (for debug)
-	hr = cbpsRareChangedDebug_.Initialize(pDevice, pContext);
+	hr = cbpsRareChangedDebug_.Initialize(pDevice);
 	Assert::NotFailed(hr, "can't init a const buffer for debug (PS)");
 
 

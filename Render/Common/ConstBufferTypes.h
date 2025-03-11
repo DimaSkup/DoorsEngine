@@ -21,12 +21,25 @@ namespace BuffTypes
 		Material           material;
 	};
 
+	__declspec(align(16)) struct InstancedDataBillboards
+	{
+		Material material;
+		DirectX::XMFLOAT3 posW;        // billboard position in world
+		DirectX::XMFLOAT2 size;        // billboard size
+	};
+
 	// ----------------------------------------------------
 
 	struct cbvsPerFrame
 	{
 		// a structure for vertex shader data which is changed each frame
 		DirectX::XMMATRIX  viewProj;
+	};
+
+	// TEMP: for billboard shader
+	struct cbvsPerObject
+	{
+		DirectX::XMFLOAT3 posW;
 	};
 
 	// ----------------------------------------------------
@@ -37,9 +50,10 @@ namespace BuffTypes
 
 		DirLight           dirLights[3];
 		PointLight         pointLights[25];
-		SpotLight          spotLights;
+		SpotLight          spotLights[25];
 		DirectX::XMFLOAT3  cameraPos;
 		int                currNumPointLights = 0;
+		int                currNumSpotLights = 0;
 	};
 
 	// ----------------------------------------------------
@@ -94,6 +108,28 @@ namespace BuffTypes
 		float padding;
 	};
 
+
+	// =======================================================
+	// const buffers for GEOMETRY shader
+	// =======================================================
+	struct GeometryShaderConstBuf_PerFrame
+	{
+		DirectX::XMMATRIX viewProj;
+		DirectX::XMFLOAT3 cameraPosW;
+	};
+
+	struct GeomertyShaderConstBuf_PerObject
+	{
+		Material          material;
+	};
+
+	struct GeometryShaderConstBuf_Fixed
+	{
+		DirectX::XMFLOAT2 topLeft;       // 0 1
+		DirectX::XMFLOAT2 bottomLeft;    // 0 0
+		DirectX::XMFLOAT2 topRight;      // 1 1
+		DirectX::XMFLOAT2 bottomRight;   // 1 0
+	};
 };
 
 

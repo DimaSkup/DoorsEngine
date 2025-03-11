@@ -23,8 +23,6 @@ namespace Render
 
 class LightShaderClass final
 {
-	//using SRV = ID3D11ShaderResourceView;
-
 public:
 	LightShaderClass();
 	~LightShaderClass();
@@ -35,15 +33,13 @@ public:
 
 	// ----------------------------------------------------
 
-	bool Initialize(
-		ID3D11Device* pDevice, 
-		ID3D11DeviceContext* pContext);
+	bool Initialize(ID3D11Device* pDevice);
 
 	void Render(
 		ID3D11DeviceContext* pContext,
 		ID3D11Buffer* pInstancedBuffer,
 		const Instance* instances,
-		const int numModels,
+		const int numInstances,
 		const UINT instancesBuffElemSize);
 
 	inline const std::string& GetShaderName() const { return className_; }
@@ -51,7 +47,6 @@ public:
 private:
 	void InitializeShaders(
 		ID3D11Device* pDevice,
-		ID3D11DeviceContext* pContext,
 		const std::string& vsFilePath,
 		const std::string& psFilePath);
 

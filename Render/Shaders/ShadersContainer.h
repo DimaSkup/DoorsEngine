@@ -19,6 +19,9 @@
 #include "TextureShader.h"              // for texturing models
 #include "fontshaderclass.h"            // for rendering text onto the screen
 #include "SkyDomeShader.h"              // for rendering the sky
+#include "OutlineShader.h"              // for rendering an outline around model
+#include "BillboardShader.h"
+
 
 namespace Render
 {
@@ -29,7 +32,9 @@ namespace Render
 		LIGHT,
 		FONT,
 		DEBUG,
-		SKY_DOME
+		SKY_DOME,
+		OUTLINE,
+		BILLBOARD,
 	};
 
 	struct ShadersContainer
@@ -41,5 +46,7 @@ namespace Render
 
 		DebugShader        debugShader_;
 		SkyDomeShader      skyDomeShader_;
+		OutlineShader      outlineShader_;
+		BillboardShader    billboardShader_;
 	};
 }

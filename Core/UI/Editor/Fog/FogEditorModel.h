@@ -6,13 +6,12 @@
 // =================================================================================
 #pragma once
 
-#include "../../UICommon/Color.h"
+#include <UICommon/Color.h>
 
-
-namespace Model
+namespace UI
 {
 
-class Fog
+class ModelFog
 {
 private:
 	ColorRGB fogColor_{ 0.5f, 0.5f, 0.5f };
@@ -47,4 +46,4 @@ public:
 
 };
 
-}
+} // namespace UI

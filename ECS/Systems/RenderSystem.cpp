@@ -14,8 +14,6 @@
 #include <stdexcept>
 #include <fstream>
 
-using namespace Utils;
-
 namespace ECS
 {
 
@@ -44,12 +42,12 @@ void RenderSystem::Serialize(std::ofstream& fout, u32& offset)
 	const u32 dataCount = (u32)std::ssize(component.ids_);
 
 	// write serialized data into the file
-	Utils::FileWrite(fout, &dataBlockMarker);
-	Utils::FileWrite(fout, &dataCount);
+	FileUtils::FileWrite(fout, &dataBlockMarker);
+	FileUtils::FileWrite(fout, &dataCount);
 
-	Utils::FileWrite(fout, component.ids_);
-	Utils::FileWrite(fout, component.shaderTypes_);
-	Utils::FileWrite(fout, component.primTopologies_);
+	FileUtils::FileWrite(fout, component.ids_);
+	FileUtils::FileWrite(fout, component.shaderTypes_);
+	FileUtils::FileWrite(fout, component.primTopologies_);
 }
 
 /////////////////////////////////////////////////
@@ -63,7 +61,7 @@ void RenderSystem::Deserialize(std::ifstream& fin, const u32 offset)
 
 	// check if we read the proper data block
 	u32 dataBlockMarker = 0;
-	Utils::FileRead(fin, &dataBlockMarker);
+	FileUtils::FileRead(fin, &dataBlockMarker);
 
 	const bool isProperDataBlock = (dataBlockMarker == static_cast<u32>(ComponentType::RenderedComponent));
 	Assert::True(isProperDataBlock, "read wrong data block during deserialization of the Rendered component data from a file");
@@ -72,7 +70,7 @@ void RenderSystem::Deserialize(std::ifstream& fin, const u32 offset)
 
 	// read in how much data will we have
 	u32 dataCount = 0;
-	Utils::FileRead(fin, &dataCount);
+	FileUtils::FileRead(fin, &dataCount);
 
 	std::vector<EntityID>& ids = pRenderComponent_->ids_;
 	std::vector<RenderShaderType>& shaderTypes = pRenderComponent_->shaderTypes_;
@@ -83,9 +81,9 @@ void RenderSystem::Deserialize(std::ifstream& fin, const u32 offset)
 	shaderTypes.resize(dataCount);
 	topologies.resize(dataCount);
 
-	Utils::FileRead(fin, ids);
-	Utils::FileRead(fin, shaderTypes);
-	Utils::FileRead(fin, topologies);
+	FileUtils::FileRead(fin, ids);
+	FileUtils::FileRead(fin, shaderTypes);
+	FileUtils::FileRead(fin, topologies);
 }
 
 /////////////////////////////////////////////////
@@ -99,8 +97,8 @@ void RenderSystem::AddRecords(
 	// also setup rendering params for each input entity;
 
 	Assert::NotEmpty(ids.empty(), "the array of entities IDs is empty");
-	Assert::True(CheckArrSizesEqual(ids, shaderTypes), "entities count != count of the input shaders types");
-	Assert::True(CheckArrSizesEqual(ids, topologyTypes), "entities count != count of the input primitive topoECS::Logy types");
+	Assert::True(Utils::CheckArrSizesEqual(ids, shaderTypes), "entities count != count of the input shaders types");
+	Assert::True(Utils::CheckArrSizesEqual(ids, topologyTypes), "entities count != count of the input primitive topoECS::Logy types");
 
 	Rendered& comp = *pRenderComponent_;
 
@@ -148,6 +146,15 @@ void RenderSystem::ClearVisibleEntts()
 	// clear an arr of entities that were visible in the previous frame;
 	// so we will be able to use it again for the current frame;
 	pRenderComponent_->visibleEnttsIDs_.clear();
+}
+
+/////////////////////////////////////////////////
+
+void RenderSystem::ClearVisibleLightSources()
+{
+	// clear the array of visible light sources (were visible in the prev frame);
+	// so we will be able to use it again for the current frame;
+	pRenderComponent_->visiblePointLightsIDs_.clear();
 }
 
 

@@ -137,5 +137,16 @@ struct EnttsReflection
 	void Clear() { ids_.clear(); }
 };
 
+// ------------------------------------------------
+
+struct EnttsFarThanFog
+{
+	// container for IDs of entities that are farther than the fog range
+	// so we render them as simply colored model without any additional computations
+	std::vector<EntityID> ids_;
+
+	void Clear() { ids_.clear(); }
+};
+
 
 };  // namespace ECS

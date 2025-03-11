@@ -5,9 +5,12 @@
 // 
 // Created:     13.04.24
 // *********************************************************************************
-
 #include "Vertex.h"
 #include <xutility>
+
+
+namespace Core
+{
 
 #pragma region VERTEX_Constructors
 
@@ -129,7 +132,6 @@ Vertex3D::Vertex3D(
 
 }
 
-///////////////////////////////////////////////////////////
-
-
 #pragma endregion
+
+} // namespace Core

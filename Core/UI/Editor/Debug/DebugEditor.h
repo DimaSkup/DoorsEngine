@@ -8,14 +8,15 @@
 // =================================================================================
 #pragma once
 
-#include "../../../Common/Assert.h"
-#include "../../../Common/log.h"
-
-#include "../../UICommon/IFacadeEngineToUI.h"
-
+#include <CoreCommon/Assert.h>
+#include <CoreCommon/log.h>
+#include <UICommon/IFacadeEngineToUI.h>
 #include <imgui.h>
 
 
+namespace UI
+{
+	
 class DebugEditor
 {
 private:
@@ -27,7 +28,7 @@ public:
 	void Initialize(IFacadeEngineToUI* pFacade)
 	{
 		// the facade interface is used to contact with the rest of the engine
-		Assert::NotNullptr(pFacade, "ptr to the IFacadeEngineToUI interface == nullptr");
+		Core::Assert::NotNullptr(pFacade, "ptr to the IFacadeEngineToUI interface == nullptr");
 		pFacade_ = pFacade;
 	}
 
@@ -35,7 +36,7 @@ public:
 	{
 		if (pFacade_ == nullptr)
 		{
-			Log::Error("ptr to the facade interface == nullptr");
+			Core::Log::Error("ptr to the facade interface == nullptr");
 			return;
 		}
 
@@ -74,3 +75,5 @@ public:
 
 	}
 };
+
+} // namespace UI

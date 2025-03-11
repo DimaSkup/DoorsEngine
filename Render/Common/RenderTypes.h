@@ -90,28 +90,29 @@ struct PerFrameData
 		const int nSpotLights)
 	{
 		// do we need a reallocation for dir lights?
-		if (nDirLights != numDirLights)
+		if (nDirLights > numDirLights)
 		{
 			SafeDeleteArr(dirLights);
 			dirLights = new DirLight[nDirLights];
-			numDirLights = nDirLights;
 		}
+		numDirLights = nDirLights;
+
 
 		// do we need a reallocation for point lights?
-		if (nPointLights != numPointLights)
+		if (nPointLights > numPointLights)
 		{
 			SafeDeleteArr(pointLights);
 			pointLights = new PointLight[nPointLights];
-			numPointLights = nPointLights;
 		}
+		numPointLights = nPointLights;
 
 		// do we need a reallocation for spot lights?
-		if (nSpotLights != numSpotLights)
+		if (nSpotLights > numSpotLights)
 		{
 			SafeDeleteArr(spotLights);
 			spotLights = new SpotLight[nSpotLights];
-			numSpotLights = nSpotLights;
 		}
+		numSpotLights = nSpotLights;
 	}
 };
 

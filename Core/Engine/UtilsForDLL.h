@@ -7,22 +7,15 @@
 ////////////////////////////////////////////////////////////////////
 #pragma once
 
-
-#include "../Common/log.h"
-#include "../Common/StringHelper.h"
 #include <windows.h>
 
-
-//////////////////////////////////
-// TYPEDEFS
-//////////////////////////////////
+namespace Core
+{
 
 // is needed for calling DLL ModelConverter's import function; here we store a pointer to the DLL's process;
 typedef VOID(*DLLPROC) (const char* inputDataFile, const char* outputDataFile);
 
-//////////////////////////////////
-// Class name: UtilsForDLL
-//////////////////////////////////
+
 class UtilsForDLL
 {
 public:
@@ -35,3 +28,5 @@ private:
 	HINSTANCE hinstDLL = NULL;
 	DLLPROC procAddr = nullptr;
 };
+
+}

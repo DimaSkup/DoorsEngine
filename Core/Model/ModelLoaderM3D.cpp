@@ -4,11 +4,13 @@
 // Created:       24.10.24
 // *********************************************************************************
 #include "ModelLoaderM3D.h"
-#include "../Common/FileSystemPaths.h"
-#include "../Common/log.h"
+#include <CoreCommon/FileSystemPaths.h>
+#include <CoreCommon/log.h>
 #include "../Texture/TextureMgr.h"
 
 
+namespace Core
+{
 
 void ModelLoaderM3D::LoadM3d(const std::string& filename, BasicModel& model)
 {
@@ -122,7 +124,7 @@ void ModelLoaderM3D::SetupMaterials(
 	const M3dMaterial* matParams)
 {
 	TextureMgr& texMgr = *TextureMgr::Get();
-	const std::string texDirPath = g_TexDirPath + "TexturesM3D/";
+	const std::string texDirPath = g_RelPathTexDir + "TexturesM3D/";
 
 	// setup alpha clipping for each subset
 	for (int i = 0; i < model.numSubsets_; ++i)
@@ -232,3 +234,5 @@ void ModelLoaderM3D::ReadTriangles(
 			>> indices[i * 3 + 2];
 	}
 }
+
+} // namespace Core

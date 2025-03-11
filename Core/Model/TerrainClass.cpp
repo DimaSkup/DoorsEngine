@@ -72,7 +72,7 @@ bool TerrainClass::Initialize(const std::string & filePath)
 	std::unique_ptr<TerrainInitializerInterface> pTerrainInitializer = std::make_unique<TerrainInitializer>();
 
 	// make an initializer object which will be used for initialization of this model from file
-	std::unique_ptr<ModelInitializerInterface> pModelInitializer = std::make_unique<ModelImporter>(pDevice_, pImmediateContext_);
+	std::unique_ptr<ModelInitializerInterface> pModelInitializer = std::make_unique<ModelImporter>(pDevice_, pContext_);
 
 	
 	////////////////////////////////////////////////////////
@@ -84,7 +84,7 @@ bool TerrainClass::Initialize(const std::string & filePath)
 		result = pTerrainInitializer->Initialize(pSettings, 
 			pTerrainSetupData_,     // during initialization we define terrain params and later set them as data-members of this class
 			this->pDevice_,
-			this->pImmediateContext_,
+			this->pContext_,
 			terrainCellsArr_,
 			pModelInitializer.get(),
 			pModelToShaderMediator_);

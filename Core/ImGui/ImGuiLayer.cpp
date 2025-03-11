@@ -6,7 +6,8 @@
 // =================================================================================
 #include "ImGuiLayer.h"
 
-#include "../Common/FileSystemPaths.h"
+#include <CoreCommon/FileSystemPaths.h>
+#include <CoreCommon/Assert.h>
 
 #include <backends/imgui_impl_win32.h>
 #include <backends/imgui_impl_dx11.h>
@@ -14,6 +15,13 @@
 
 #include <imgui.h>
 #include <imgui_internal.h>
+#include <filesystem>
+
+namespace fs = std::filesystem;
+
+
+namespace Core
+{
 
 ImGuiLayer::ImGuiLayer()
 {
@@ -34,7 +42,12 @@ void ImGuiLayer::Initialize(
 	ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
 	// setup fonts
-	const std::string defaultFont = g_DataDir + "ui/arial.ttf";
+	const std::string defaultFont = g_RelPathUIDataDir + "arial.ttf";
+
+	// check if such font file exists
+	const bool exist = fs::exists(defaultFont);
+	Assert::True(exist, "there is no such font file: " + defaultFont);
+
 	io.Fonts->AddFontFromFileTTF(defaultFont.c_str(), 16.0f);
 	io.FontDefault = io.Fonts->AddFontFromFileTTF(defaultFont.c_str(), 16.0f);
 
@@ -47,6 +60,7 @@ void ImGuiLayer::Initialize(
 	// setup ImGuizmo
 	ImGuizmo::SetOrthographic(false);
 	ImGuizmo::Enable(true);
+	ImGuizmo::AllowAxisFlip(false);
 
 	ImGuizmo::Style& imGuizmoStyle = ImGuizmo::GetStyle();
 	const float lineThickness = 6.0f;
@@ -165,6 +179,7 @@ void ImGuiLayer::Begin()
 		ImGui::DockBuilderDockWindow("Scene", dockIdScene);
 		ImGui::DockBuilderDockWindow("Run scene", dockspaceId);
 		ImGui::DockBuilderDockWindow("Assets", dockIdBottom);
+		ImGui::DockBuilderDockWindow("Events history", dockIdBottom);
 
 		pSceneNode = ImGui::DockBuilderGetNode(dockIdScene);
 
@@ -257,4 +272,4 @@ void ImGuiLayer::SetDefaultThemeColors()
 	colors[ImGuiCol_TabDimmedSelected] = { 0.16f, 0.45f, 0.39f, 1.0f };
 }
 
-///////////////////////////////////////////////////////////
+} // namespace Core

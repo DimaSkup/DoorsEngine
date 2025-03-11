@@ -6,7 +6,11 @@
 // Created:      01.08.23
 ////////////////////////////////////////////////////////////////////
 #include "UtilsForDLL.h"
+#include <CoreCommon/log.h>
+#include <CoreCommon/StringHelper.h>
 
+namespace Core
+{
 
 // using a DLL's name we try to load this library
 UtilsForDLL::UtilsForDLL(const wchar_t* dllName)
@@ -51,3 +55,4 @@ DLLPROC UtilsForDLL::GetProcAddrFromDLL(const char* funcName)
 	return procAddr;
 }
 
+} // namespace Core

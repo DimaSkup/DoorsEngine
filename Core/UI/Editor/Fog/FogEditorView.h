@@ -8,42 +8,39 @@
 // ====================================================================================
 #pragma once
 
-// engine common
-#include "../../../Common/log.h"
-#include "../../../Common/Assert.h"
+#include <CoreCommon/log.h>
+#include <CoreCommon/Assert.h>
 
-// UI common
-#include "../../UICommon/ViewListener.h"
-#include "../../UICommon/Color.h"
-#include "../../UICommon/Vectors.h"
+#include <UICommon/IEditorController.h>
+#include <UICommon/Color.h>
+#include <UICommon/Vectors.h>
+#include <UICommon/EditorCommands.h>
 
-#include "FogEditorCommands.h"
 #include "FogEditorModel.h"
-
 #include <imgui.h>
 
 
-namespace View
+namespace UI
 {
 
-class Fog
+class ViewFog
 {
 private:
-	ViewListener* pListener_ = nullptr;
+	IEditorController* pController_ = nullptr;
 
 public:
-	Fog(ViewListener* pListener) : pListener_(pListener)
+	ViewFog(IEditorController* pController) : pController_(pController)
 	{
-		Assert::NotNullptr(pListener, "ptr to the view listener == nullptr");
+		Core::Assert::NotNullptr(pController, "ptr to the view listener == nullptr");
 	}
 
-	void Draw(const Model::Fog* pData)
+	void Draw(const ModelFog* pData)
 	{
 		//
 		// show the fog editor fields
 		//
 
-		using enum FogEditorCmdType;
+		using enum EditorCmdType;
 
 		ColorRGB fogColor;
 		float    fogStart;
@@ -53,21 +50,21 @@ public:
 		pData->GetData(fogColor, fogStart, fogRange);
 
 		// draw editor fields
-		if (ImGui::ColorEdit3("Fog color", fogColor.rgb_))
+		if (ImGui::ColorEdit3("Fog color", fogColor.rgb))
 		{
-			pListener_->Execute(new CmdFogChangeColor(CHANGE_FOG_COLOR, fogColor));
+			pController_->Execute(new CmdChangeColor(CHANGE_FOG_COLOR, fogColor));
 		}
 
 		if (ImGui::DragFloat("Fog start", &fogStart))
 		{
-			pListener_->Execute(new CmdFogChangeFloat(CHANGE_FOG_START, fogStart));
+			pController_->Execute(new CmdChangeFloat(CHANGE_FOG_START, fogStart));
 		}
 
 		if (ImGui::DragFloat("Fog range", &fogRange))
 		{
-			pListener_->Execute(new CmdFogChangeFloat(CHANGE_FOG_RANGE, fogRange));
+			pController_->Execute(new CmdChangeFloat(CHANGE_FOG_RANGE, fogRange));
 		}
 	}
 };
 
-}
+} // namespace UI

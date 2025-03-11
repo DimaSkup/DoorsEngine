@@ -138,7 +138,17 @@ index NameSystem::GetIdxByID(const EntityID id) const
 	// return valid idx if there is an entity by such ID;
 	// or return 0 if there is no such entity;
 	const std::vector<EntityID>& ids = pNameComponent_->ids_;
-	return (Utils::BinarySearch(ids, id)) ? Utils::GetIdxInSortedArr(ids, id) : 0;
+	//return (Utils::BinarySearch(ids, id)) ? Utils::GetIdxInSortedArr(ids, id) : 0;
+
+	const index idx = Utils::GetIdxInSortedArr(ids, id);
+
+	if (ids[idx] != id)
+	{
+		Log::Error("there is no name for entity by ID: " + std::to_string(id));
+		return 0;
+	}
+
+	return idx;
 }
 
 

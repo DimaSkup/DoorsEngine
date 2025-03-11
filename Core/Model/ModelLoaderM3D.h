@@ -7,11 +7,12 @@
 #pragma once
 
 #include "BasicModel.h"
-
 #include <string>
 #include <fstream>
 
 
+namespace Core
+{
 
 class ModelLoaderM3D
 {
@@ -54,3 +55,5 @@ public:
 		int numTriangles,
 		UINT* indices);
 };
+
+} // namespace Core

@@ -10,13 +10,15 @@
 #include "../Model/BasicModel.h"
 #include "../Model/ModelStorage.h"
 
-#include "Common/Types.h"    // ECS types
+#include <CoreCommon/Types.h>    // ECS types
 #include "Render.h"
 #include "Entity/EntityMgr.h"
 #include "../Texture/TextureMgr.h"
 
-
 #include <vector>
+
+namespace Core
+{
 
 class RenderDataPreparator
 {
@@ -76,3 +78,5 @@ private:
 	Render::Render* pRender_ = nullptr;
 	ECS::EntityMgr* pEnttMgr_ = nullptr;
 };
+
+} // namespace Core

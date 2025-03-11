@@ -2,12 +2,14 @@
 // Filename:      AdapterReader.cpp
 // =================================================================================
 #include "AdapterReader.h"
-#include "../Common/log.h"
-#include "../Common/Assert.h"
-#include "../Common/MemHelpers.h"
+#include <CoreCommon/log.h>
+#include <CoreCommon/Assert.h>
+#include <CoreCommon/MemHelpers.h>
 #include <stdexcept>
 
 
+namespace Core
+{
 
 AdapterReader::AdapterReader()
 {
@@ -106,3 +108,5 @@ void AdapterReader::Shutdown()
 		SafeRelease(&data.pOutput_);
 	}
 }
+
+} // namespace Core

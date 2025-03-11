@@ -1,7 +1,9 @@
 #include "MainMenuBar.h"
-
 #include <imgui.h>
 
+
+namespace UI
+{
 
 // =================================================================================
 //                              public methods
@@ -241,3 +243,5 @@ void MainMenuBar::ShowFontSelector()
 		ImGui::EndCombo();
 	}
 }
+
+} // namespace UI

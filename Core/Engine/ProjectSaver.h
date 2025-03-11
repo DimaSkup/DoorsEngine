@@ -8,6 +8,9 @@
 
 #include <d3d11.h>
 
+namespace Core
+{
+
 class ProjectSaver
 {
 public:
@@ -17,3 +20,5 @@ public:
 	void StoreModels(ID3D11Device* pDevice);
 	void LoadModels(ID3D11Device* pDevice);
 };
+
+}

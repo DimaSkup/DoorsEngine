@@ -8,6 +8,10 @@
 
 #include <DirectXMath.h>
 
+
+namespace Core
+{
+
 class Camera
 {
 public:
@@ -27,6 +31,7 @@ public:
 	DirectX::XMFLOAT3 GetRight()                                         const;
 	DirectX::XMFLOAT3 GetUp()                                            const;
 	DirectX::XMFLOAT3 GetLook()                                          const;
+	DirectX::XMFLOAT4 GetLookFloat4()                                    const;
 	
 	// switch btw free camera (for editor) and game mode
 	inline void SetFreeCamera(const bool state)                                { isFreeCamera_ = state;}
@@ -39,8 +44,6 @@ public:
 
 	void PitchAroundFixedLook(const float angle);
 	void RotateYAroundFixedLook(const float angle);
-	
-
 
 
 	// get frustum properties
@@ -85,9 +88,12 @@ public:
 	void SetIsRunning(const bool state)                                        { isRunning_ = state;}
 	void SetWalkSpeed(const float speed)                                       { if (speed > 0) walkSpeed_ = speed; }
 	void SetRunSpeed(const float speed)                                        { if (speed > 0) runSpeed_  = speed; }
+	void SetSensitiviry(const float sensitivity)                               { if (sensitivity > 0) sensitivity_ = sensitivity; }
 	float GetSpeed()                                                     const { return (isRunning_) ? runSpeed_ : walkSpeed_; }
 	float GetWalkSpeed()                                                 const { return walkSpeed_; }
 	float GetRunSpeed()                                                  const { return runSpeed_; }
+	float GetSensitivity()                                               const { return sensitivity_; }
+	
 
 	// rotate the camera
 	void Pitch(const float angle);
@@ -121,6 +127,7 @@ private:
 
 	float walkSpeed_     = 10.0f;
 	float runSpeed_      = 20.0f;
+	float sensitivity_   = 1.0f;              // rotation speed factor
 
 	// defines if camera is fixed at some particular look_at point
 	bool isFixedLook_    = false;
@@ -128,3 +135,5 @@ private:
 	bool isFreeCamera_   = true;
 	bool isRunning_      = false;
 };
+
+} // namespace Core

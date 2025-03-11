@@ -33,7 +33,7 @@ public:
 	ConstantBuffer& operator=(const ConstantBuffer& obj) = delete;
 
 	// initialize a constant buffer
-	HRESULT Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext); 
+	HRESULT Initialize(ID3D11Device* pDevice); 
 
 	void ApplyChanges(ID3D11DeviceContext* pContext);  // update the constant buffer data
 
@@ -50,9 +50,7 @@ private:
 
 
 template<class T>
-HRESULT ConstantBuffer<T>::Initialize(
-	ID3D11Device* pDevice, 
-	ID3D11DeviceContext* pContext)
+HRESULT ConstantBuffer<T>::Initialize(ID3D11Device* pDevice)
 {
 	//
 	// initialize a constant buffer

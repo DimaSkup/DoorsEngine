@@ -52,4 +52,61 @@ const DirectX::XMMATRIX MathHelper::InverseTranspose(const DirectX::CXMMATRIX& M
 	return DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(&det, A));
 }
 
+///////////////////////////////////////////////////////////
+
+struct Quaternion
+{
+	Quaternion(const DirectX::XMVECTOR& quat)
+	{
+		// real part 
+		w = quat.m128_f32[3];
+
+		// imaginary part
+		x = quat.m128_f32[0];
+		y = quat.m128_f32[1];
+		z = quat.m128_f32[2];
+	}
+
+	float w, x, y, z;
+};
+
+struct EulerAngles {
+	double roll, pitch, yaw;
+};
+
+///////////////////////////////////////////////////////////
+
+// return pitch/yaw/roll packed into FLOAT3 decomposed from the quaternion
+DirectX::XMFLOAT3 MathHelper::QuatToEulerAngles(const DirectX::XMVECTOR quat)
+{
+	// this implementation assumes normalized quaternion
+	// converts to Euler angles in 3-2-1 sequence
+
+	Quaternion q(quat);
+
+	float xAxisAngle = 0.0f;
+	float yAxisAngle = 0.0f;
+	float zAxisAngle = 0.0f;
+
+	// x-axis rotation (forward-backward axis)
+	float sinr_cosp = 2 * (q.w * q.x + q.y * q.z);
+	float cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y);
+	xAxisAngle = std::atan2(sinr_cosp, cosr_cosp);
+
+	// y-axis rotation (left-right axis)
+	float temp = 2 * (q.w * q.y - q.x * q.z);
+	float sinp = std::sqrtf(1 + temp);
+	float cosp = std::sqrtf(1 - temp);
+	yAxisAngle = 2 * std::atan2(sinp, cosp) - DirectX::XM_PIDIV2;
+
+	// z-axis rotation (up-down axis)
+	float siny_cosp = 2 * (q.w * q.z + q.x * q.y);
+	float cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
+	zAxisAngle = std::atan2(siny_cosp, cosy_cosp);
+
+	// return in order for engine's purposes
+	//return {yAxisAngle, zAxisAngle, xAxisAngle};
+	return { xAxisAngle, yAxisAngle, zAxisAngle };
+}
+
 };  // namespace ECS

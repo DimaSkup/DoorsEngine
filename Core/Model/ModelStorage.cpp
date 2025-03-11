@@ -4,24 +4,30 @@
 // ************************************************************************************
 #include "ModelStorage.h"
 
-#include "../Common/FileSystemPaths.h"
-#include "../Common/log.h"
-#include "../Common/Utils.h"
-#include "../Model/ModelExporter.h"
-#include "../Model/ModelsCreator.h"
-
+#include <CoreCommon/FileSystemPaths.h>
+#include <CoreCommon/log.h>
+#include <CoreCommon/Assert.h>
+#include <CoreCommon/Utils.h>
+#include "ModelExporter.h"
+#include "ModelsCreator.h"
+#include "ModelStorageSerializer.h"
 
 #include <algorithm>
 #include <fstream>
 #include <filesystem>
+#include <thread>
+//#include <format>
 
 namespace fs = std::filesystem;
 
 
+namespace Core
+{
+
 // when we add some new model into a storage its ID == lastModelID
 // and then we increase the lastModelID_ by 1, so the next model will have as ID
 // this increased value, and so on
-int ModelStorage::lastModelID_ = 1;
+int ModelStorage::lastModelID_ = 0;
 
 int ModelStorage::INVALID_MODEL_ID = 0;
 ModelStorage* ModelStorage::pInstance_ = nullptr;
@@ -30,304 +36,288 @@ ModelStorage* ModelStorage::pInstance_ = nullptr;
 
 ModelStorage::ModelStorage()
 {
-	if (pInstance_ == nullptr)
-	{
-		pInstance_ = this;
+    if (pInstance_ == nullptr)
+    {
+        pInstance_ = this;
 
-		// invalid model
-		ids_.push_back(0);
-		models_.push_back(BasicModel());
-	}
-	else
-	{
-		Log::Error("there is already an instance of the ModelStorage");
-		return;
-	}
+        // invalid model
+        //ids_.push_back(0);
+        //models_.push_back(BasicModel());
+    }
+    else
+    {
+        Log::Error("there is already an instance of the ModelStorage");
+        return;
+    }
+}
+
+///////////////////////////////////////////////////////////
+
+void SerializeModels(
+    ID3D11Device* pDevice,
+    const BasicModel* models,
+    const std::string* relativePathsToAssets,
+    const size numModels,
+    const index startIdx,
+    const index endIdx)
+{
+    ModelExporter exporter;
+
+    for (index i = startIdx; i < endIdx; ++i)
+    {
+        // if there is no such model in internal format we store it as asset
+        if (!fs::exists(g_RelPathAssetsDir + relativePathsToAssets[i]))
+        {
+            Log::Debug("\tExport of model (thread 2nd): " + relativePathsToAssets[i]);
+            exporter.ExportIntoDE3D(pDevice, models[i], relativePathsToAssets[i]);
+        }
+    }
 }
 
 ///////////////////////////////////////////////////////////
 
 void ModelStorage::Serialize(ID3D11Device* pDevice)
 {
-	// 1. write model storage's data into the file
-	// 2. export model into the internal model format if it hadn't been done before
-	return;
-	Log::Debug("serialization: start");
+    // 1. write model storage's data into the file
+    // 2. export model into the internal model format if it hadn't been done before
 
-	ModelExporter exporter;
-	const std::string pathToDataFile = g_DataDir + "model_storage_data.txt";
+    Log::Debug("serialization: start");
 
-	std::ofstream fout(pathToDataFile, std::ios::out);
-	Assert::True(fout.is_open(), "can't open a file for serialization of models storage");
+    auto start = std::chrono::steady_clock::now();
 
 
-	// -1 because model_ID == 0 is for the invalid model so we skip it
-	const size numModels = std::ssize(ids_) - 1;   
 
-	fout << "*****************Model_Storage_Data*****************\n";
-	fout << "#LastID: " << lastModelID_ << '\n';
-	fout << "#ModelsCount: " << numModels << "\n\n";
-	fout << "#ModelsList(model_id,imported_model_path):\n";
-	
-	for (index i = 1; i < std::ssize(ids_); ++i)
-	{
-		// check if such a model is already stored in the internal model format 
-		const std::string relativePathToInternal = models_[i].name_ + "/" + models_[i].name_ + ".de3d";
-		const fs::path pathToInternal = g_ImportedModelsDirPath + relativePathToInternal;
-		
-		// if we need to store as internal
-		if (!fs::exists(pathToInternal))
-			exporter.ExportIntoDE3D(pDevice, models_[i], relativePathToInternal);
+    const char* pathToDataFile = "data/model_storage_data.txt";
 
-		// write info about this model into the data file
-		fout << ids_[i] << ' ' << relativePathToInternal << '\n';
-	}
+    std::ofstream fout(pathToDataFile, std::ios::out);
+    Assert::True(fout.is_open(), "can't open a file for serialization of models storage");
 
-	fout.close();
 
-	Log::Debug("serialization: finished");
+    ModelStorageSerializer serializer;
+    const size numModels = GetNumAssets();
+    std::vector<std::string> relativePathsToAssets(numModels);
+
+    serializer.WriteHeader(fout, numModels, lastModelID_);
+
+    // generate relative paths based on models names
+    for (index i = 2; i < numModels; ++i)
+    {
+        const std::string& name = models_[i].name_;
+        relativePathsToAssets[i] = std::string(name + "/" + name + ".de3d");
+    }
+
+    serializer.WriteModelsInfo(fout, ids_.data(), relativePathsToAssets.data(), numModels);
+
+
+    // export assets from memory into the internal .de3d format
+    ModelExporter exporter;
+
+#if 0
+    for (index i = 2; i < numModels; ++i)
+    {
+        // if there is no such model in internal format we store it as asset
+        if (!fs::exists(g_RelPathAssetsDir + relativePathsToAssets[i]))
+        {
+            exporter.ExportIntoDE3D(pDevice, models_[i], relativePathsToAssets[i]);
+        }
+    }
+#endif
+
+    size numModelsToExport = (numModels - 2);
+    const index firstHalfRangeStart = 2;
+    const index firstHalfRangeEnd = numModels / 2;
+    const index secondHalfRangeStart = numModels / 2;
+    const index secondHalfRangeEnd = numModelsToExport + 2;
+
+    SerializeModels(
+        pDevice,
+        models_.data(),
+        relativePathsToAssets.data(),
+        models_.size(),
+        firstHalfRangeStart,
+        firstHalfRangeEnd);
+
+    SerializeModels(
+        pDevice,
+        models_.data(),
+        relativePathsToAssets.data(),
+        models_.size(),
+        secondHalfRangeStart,
+        secondHalfRangeEnd);
+
+#if 0
+    std::thread th(
+        SerializeModels,
+        pDevice,
+        models_.data(),
+        relativePathsToAssets.data(),
+        models_.size(),
+        firstHalfRangeStart,
+        firstHalfRangeEnd);
+
+    SerializeModels(
+        pDevice,
+        models_.data(),
+        relativePathsToAssets.data(),
+        models_.size(),
+        secondHalfRangeStart,
+        secondHalfRangeEnd);
+
+   th.join();
+#endif
+
+    auto end = std::chrono::steady_clock::now();
+    std::chrono::duration<double, std::milli> elapsed = end - start;
+    Log::Print("Export duration: " + std::to_string(elapsed.count()) + "ms");
+
+    fout.close();
+
+    Log::Debug("serialization: finished");
 }
 
 ///////////////////////////////////////////////////////////
 
 void ModelStorage::Deserialize(ID3D11Device* pDevice)
 {
-	Log::Debug("deserialization: start");
+    Log::Debug("deserialization: start");
 
-	std::string ignore;
-	ModelsCreator creator;
-	int numModelsToLoad = 0;
-	const std::string pathToDataFile = g_DataDir + "model_storage_data.txt";
+    std::string ignore;
+    ModelsCreator creator;
+    int numModelsToLoad = 0;
+    const std::string pathToDataFile = "data/model_storage_data.txt";
 
-	std::ifstream fin(pathToDataFile, std::ios::in);
-	Assert::True(fin.is_open(), "can't open a file for deserialization of models storage");
+    std::ifstream fin(pathToDataFile, std::ios::in);
+    Assert::True(fin.is_open(), "can't open a file for deserialization of models storage");
 
 
-	// skip header
-	fin >> ignore;
 
-	fin >> ignore >> lastModelID_;
-	fin >> ignore >> numModelsToLoad;
-	fin >> ignore;
+    // skip header
+    fin >> ignore;
 
-	// prepare memory
-	size curSize = std::ssize(ids_);
-	ids_.reserve(curSize + numModelsToLoad);
-	models_.reserve(curSize + numModelsToLoad);
+    fin >> ignore >> lastModelID_;
+    fin >> ignore >> numModelsToLoad;
+    fin >> ignore;
 
-	
-	for (int i = 0; i < numModelsToLoad; ++i)
-	{
-		ModelID id;
-		std::string path;
+    // prepare memory
+    size curSize = std::ssize(ids_);
+    ids_.reserve(curSize + numModelsToLoad);
+    models_.reserve(curSize + numModelsToLoad);
 
-		fin >> id >> path;
+    std::vector<ModelID>     modelsIDs(numModelsToLoad, INVALID_MODEL_ID);
+    std::vector<std::string> pathsToAssets(numModelsToLoad, "invalid");
 
-		// load a model from the internal format
-		ModelID loadedModelID = creator.CreateFromDE3D(pDevice, g_ImportedModelsDirPath + path);
+    // read in all pairs [id => path] from the file
+    for (int i = 0; i < numModelsToLoad; ++i)
+    {
+        fin >> modelsIDs[i] >> pathsToAssets[i];
+    }
 
-		// check if we loaded the proper model
-		Assert::True(id == loadedModelID, std::format("loaded wrong model (expected_id: {}, loaded_id: {}", id, loadedModelID));
-	}
+    for (int i = 0; i < numModelsToLoad; ++i)
+    {
+        // load a model from the internal format
+        ModelID loadedModelID = creator.CreateFromDE3D(pDevice, pathsToAssets[i]);
+    }
 
-	Log::Debug("deserialization: finished");
+    Log::Debug("deserialization: finished");
 }
 
 ///////////////////////////////////////////////////////////
 
 ModelID ModelStorage::AddModel(BasicModel&& model)
 {
-	// check if there is no such model id yet
-	if (CoreUtils::ArrHasVal(ids_, model.id_))
-	{
-		Log::Error("there is already a model id: " + std::to_string(model.id_));
-		Log::Error("can't add this model");
-		return INVALID_MODEL_ID;
-	}
+    // check if there is no such model id yet
+    if (CoreUtils::ArrHasVal(ids_, model.id_))
+    {
+        Log::Error("there is already a model id: " + std::to_string(model.id_));
+        Log::Error("can't add this model");
+        return INVALID_MODEL_ID;
+    }
 
-	const index insertAt = CoreUtils::GetPosForVal(ids_, model.id_);
+    const index insertAt = CoreUtils::GetPosForVal(ids_, model.id_);
 
-	CoreUtils::InsertAtPos(ids_, insertAt, model.id_);
-	CoreUtils::InsertAtPos(models_, insertAt, std::move(model));
+    CoreUtils::InsertAtPos(ids_, insertAt, model.id_);
+    CoreUtils::InsertAtPos(models_, insertAt, std::move(model));
 
-	return model.id_;
+    return model.id_;
 }
 
 ///////////////////////////////////////////////////////////
 
 BasicModel& ModelStorage::AddEmptyModel()
 {
-	// push new empty model into the storage;
-	// return: a ref to this new model
+    // push new empty model into the storage;
+    // return: a ref to this new model
 
-	ModelID id = lastModelID_;
-	++lastModelID_;
+    ModelID id = lastModelID_;
+    ++lastModelID_;
 
-	ids_.push_back(id);
-	models_.push_back(BasicModel());
+    ids_.push_back(id);
+    models_.push_back(BasicModel());
 
-	BasicModel& model = models_.back();
-	model.id_ = id;
+    BasicModel& model = models_.back();
+    model.id_ = id;
 
-	return model;
+    return model;
 }
 
 ///////////////////////////////////////////////////////////
 
 BasicModel& ModelStorage::GetModelByID(const ModelID id)
 {
-	// check if such a model exist
-	const auto beg = ids_.begin();
-	const auto end = ids_.end();
+    // check if such a model exist
+    const auto beg = ids_.begin();
+    const auto end = ids_.end();
+    const bool exist = std::binary_search(beg, end, id);
 
-	bool exist = std::binary_search(beg, end, id);
+    index idx = std::distance(beg, std::lower_bound(beg, end, id));
+    idx *= exist;
 
-	// find an index of this ID
-	index idx = std::distance(beg, std::upper_bound(beg, end, id)) - 1;
-	idx *= exist;
-
-	if (idx == 0)
-	{
-		// return an empty model
-		Log::Error("attempt to access to an empty model");
-		return models_[INVALID_MODEL_ID];
-	}
-
-	// if such model exist we return it
-	return models_[idx];
+    // idx > 0  -- we return a valid model
+    // idx == 0 -- we return an invalid model (cube)
+    return models_[idx];
 }
 
 ///////////////////////////////////////////////////////////
 
 BasicModel& ModelStorage::GetModelByName(const std::string& name)
 {
-	// get a model by its input name
+    // get a model by its input name
 
-	for (index i = 0; i < std::ssize(models_); ++i)
-	{
-		if (models_[i].name_ == name)
-			return models_[i];
-	}
+    if (name.empty())
+    {
+        Log::Error("input name is empty");
+        return models_[0];                  // return empty model
+    }
 
-	return models_[0];   // return empty model
+    for (index i = 0; i < std::ssize(models_); ++i)
+    {
+        if (models_[i].name_ == name)
+            return models_[i];
+    }
+
+    return models_[0];                  // return empty model
 }
 
 ///////////////////////////////////////////////////////////
 
 void ModelStorage::GetAssetsNamesList(std::string* namesArr, const int numNames)
 {
-	// fill in the input namesArr with names of the assets from the storage
-	// NOTE: namesArr must be already allocated to size of numNames
-	//       
+    // fill in the input namesArr with names of the assets from the storage
+    // NOTE: namesArr must be already allocated to size of numNames
 
-	try
-	{
-		Assert::NotNullptr(namesArr, "ptr to the names arr == nullptr");
-		Assert::True(numNames == GetNumAssets(), "input number of names is invalid: " + std::to_string(numNames));
+    try
+    {
+        Assert::NotNullptr(namesArr, "ptr to the names arr == nullptr");
+        Assert::True(numNames == GetNumAssets(), "input number of names is invalid: " + std::to_string(numNames));
 
-		for (int i = 0; i < numNames; ++i)
-			namesArr[i] = models_[i].GetName();
-	}
-	catch (EngineException& e)
-	{
-		Log::Error(e);
-		Log::Error("can't get a list of assets names");
-	}
+        for (int i = 0; i < numNames; ++i)
+            namesArr[i] = models_[i].GetName();
+    }
+    catch (EngineException& e)
+    {
+        Log::Error(e);
+        Log::Error("can't get a list of assets names");
+    }
 }
 
-
-#if 0
-// *****************************************************************************
-// 
-//                           PUBLIC UPDATING API
-// 
-// *****************************************************************************
-
-void ModelStorage::SetTextureForModelSubset(
-	const ModelID modelID,
-	const int subsetID,
-	const TexType type,
-	const TexID texID)
-{
-	// set a texture for particular subset (mesh) of the model
-	BasicModel& model = GetModelByID(modelID);
-	model.SetTexture(subsetID, type, texID);
-}
-
-///////////////////////////////////////////////////////////
-
-void ModelStorage::SetTexturesForModelSubset(
-	const ModelID modelID,
-	const int subsetID,
-	std::vector<TexType>& types,
-	std::vector<TexID>& texIDs)
-{
-	
-	Assert::True(types.size() == texIDs.size(), "input data arrs must be equal");
-
-	// setup multiple textures for particular subset (mesh) of the model
-	BasicModel& model = GetModelByID(modelID);
-	const int elemsCount = static_cast<int>(texIDs.size());
-
-	model.SetTextures(subsetID, types.data(), texIDs.data(), elemsCount);
-}
-
-///////////////////////////////////////////////////////////
-
-void ModelStorage::SetMaterialForModelSubset(
-	const ModelID modelID,
-	const int subsetID,
-	const MeshMaterial& material)
-{
-	// set a material for particular subset (mesh) of the model
-	BasicModel& model = GetModelByID(modelID);
-	model.SetMaterialForSubset(subsetID, material);
-}
-
-///////////////////////////////////////////////////////////
-
-void ModelStorage::SetMaterialsForModelSubsets(
-	const ModelID modelID,
-	const std::vector<int>& subsetsIDs,
-	const std::vector<MeshMaterial>& materials)
-{
-	Assert::True(subsetsIDs.size() == materials.size(), "input data arrs must be equal");
-
-	// setup material for each input subset (mesh) of the model
-	BasicModel& model = GetModelByID(modelID);
-	const int elemsCount = static_cast<int>(materials.size());
-
-	model.SetMaterialsForSubsets(subsetsIDs.data(), materials.data(), elemsCount);
-}
-
-///////////////////////////////////////////////////////////
-
-void ModelStorage::SetAABBForModelSubset(
-	const ModelID modelID,
-	const int subsetID,
-	const DirectX::BoundingBox& aabb)
-{
-	// set a AABB for particular subset (mesh) of the model
-	BasicModel& model = GetModelByID(modelID);
-	model.SetSubsetAABB(subsetID, aabb);
-}
-
-///////////////////////////////////////////////////////////
-
-void ModelStorage::SetAABBsForModelSubsets(
-	const ModelID modelID,
-	const std::vector<int>& subsetsIDs,
-	const std::vector<DirectX::BoundingBox>& AABBs)
-{
-	Assert::True(subsetsIDs.size() == AABBs.size(), "input data arrs must be equal");
-
-	// setup bounding box for each input subset (mesh) of the model
-	BasicModel& model = GetModelByID(modelID);
-	const int elemsCount = static_cast<int>(AABBs.size());
-
-	model.SetSubsetAABBs(subsetsIDs.data(), AABBs.data(), elemsCount);
-}
-
-///////////////////////////////////////////////////////////
-
-#endif
+} // namespace Core

@@ -13,15 +13,19 @@
 #pragma once
 
 
+
 #include "../Model/Types.h"
 #include "../Mesh/Vertex.h"
 #include "../Mesh/MeshGeometry.h"
-#include "../Common/MemHelpers.h"
 
 #include "../Texture/TextureHelperTypes.h"
 
 #include <string>
 #include <d3d11.h>
+
+
+namespace Core
+{
 
 class BasicModel
 {
@@ -70,6 +74,8 @@ public:
 
 
 	// update API
+	inline void SetName(const std::string& name)              { if (!name.empty()) name_ = name; }
+
 	void SetTexture(const int subsetID, const TexType type, const TexID texID);
 	void SetTextures(
 		const int subsetID,
@@ -94,25 +100,27 @@ public:
 	void ComputeSubsetsAABB();
 
 public:
+    ModelName             name_ = "inv";
+    //char                  name_[32];
 	ModelID               id_ = 0;
-	ModelName             name_ = "inv";
-	ModelType             type_ = ModelType::Invalid;
+    uint32_t numVertices_ = 0;
+    uint32_t numIndices_  = 0;
+    uint16_t numSubsets_ = 0;
+    uint16_t numTextures_ = 0;                              // numSubsets * 22
+    uint16_t numBones_ = 0;
+    uint16_t numAnimClips_ = 0;                             // animation clips
+    ModelType             type_ = ModelType::Invalid;
+	
 	MeshGeometry          meshes_;                     // contains all the meshes data
 	DirectX::BoundingBox  modelAABB_;                  // AABB of the whole model
 
 	TexID*                texIDs_ = nullptr;           // each subset (mesh) has 22 textures
-	MeshMaterial*         materials_ = nullptr;
+	MeshMaterial*         materials_ = nullptr;        // material per each subset (mesh)
 	DirectX::BoundingBox* subsetsAABB_ = nullptr;      // AABB of each subset (mesh)
 
 	// keep CPU copies of the meshes data to read from
 	Vertex3D*             vertices_ = nullptr;
 	UINT*                 indices_ = nullptr;
-
-	int numVertices_ = 0;
-	int numIndices_ = 0;
-	int numMats_ = 0;
-	int numSubsets_ = 0;
-	int numTextures_ = 0;                              // numSubsets * 22
-	int numBones_ = 0;
-	int numAnimClips_ = 0;                             // animation clips              
 };
+
+} // namespace Core

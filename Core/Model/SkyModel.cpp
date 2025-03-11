@@ -7,14 +7,15 @@
 #include "SkyModel.h"
 
 
+namespace Core
+{
+
 SkyModel::SkyModel()
 {
-	//std::fill_n(texIDs_, maxTexNum_, 0);
 }
 
 SkyModel::~SkyModel()
 {
-	
 }
 
 ///////////////////////////////////////////////////////////
@@ -50,3 +51,5 @@ void SkyModel::SetTexture(const int idx, const TexID texID)
 	Assert::True((idx > -1) && (idx < maxTexNum_), "wrong data to set texture");
 	texIDs_[idx] = texID;
 }
+
+} // namespace Core

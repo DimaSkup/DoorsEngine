@@ -22,6 +22,9 @@
 #include <dxgi.h>	// a DirectX graphic interface header
 
 
+namespace Core
+{
+
 class AdapterData
 {
 public:
@@ -59,3 +62,5 @@ private:
 
 	//AdapterData*  adaptersData_ = nullptr;   // array of adapters and related data
 };
+
+} // namespace Core

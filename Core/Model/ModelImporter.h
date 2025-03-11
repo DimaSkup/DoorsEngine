@@ -7,10 +7,6 @@
 ////////////////////////////////////////////////////////////////////
 #pragma once
 
-//////////////////////////////////
-// INCLUDES
-//////////////////////////////////
-
 #include "../Model/BasicModel.h"
 
 #include <assimp/Importer.hpp>
@@ -22,11 +18,9 @@
 #include <d3d11.h>
 
 
+namespace Core
+{
 
-
-//////////////////////////////////
-// Class name: ModelImporter
-//////////////////////////////////
 class ModelImporter final
 {
 public:
@@ -37,6 +31,13 @@ public:
 		ID3D11Device* pDevice,
 		BasicModel& model,
 		const std::string & filePath);
+
+
+    static double s_ImportDuration_;
+    static double s_TexLoadingDuration_;
+    static double s_VerticesLoading_;
+    static double s_NodesLoading_;
+    static double s_SceneLoading_;
 
 private:
 	void ComputeNumOfData(
@@ -81,4 +82,7 @@ private:
 		const int subsetIdx);
 
 	void ExecuteModelMathCalculations(Vertex3D* vertices, const int numVertices);
+
 };
+
+} // namespace Core

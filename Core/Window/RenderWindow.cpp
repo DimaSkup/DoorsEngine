@@ -5,13 +5,12 @@
 ////////////////////////////////////////////////////////////////////
 #include "WindowContainer.h"
 
-#include "../Common/Log.h"
-#include "../Common/StringHelper.h"
+#include <CoreCommon/Log.h>
+#include <CoreCommon/StringHelper.h>
 
 
-namespace Doors
+namespace Core
 {
-
 
 RenderWindow::~RenderWindow()
 {
@@ -187,7 +186,7 @@ bool RenderWindow::CreateWindowExtended(
 		return false;
 	}
 
-	SetLayeredWindowAttributes(hwnd, 0, 1.0f, LWA_ALPHA);
+	SetLayeredWindowAttributes(hwnd, 0, 1, LWA_ALPHA);
 	SetLayeredWindowAttributes(hwnd, 0, RGB(0, 0, 0), LWA_COLORKEY);
 
 	return true;

@@ -10,13 +10,14 @@
 // ====================================================================================
 #pragma once
 
-#include "../Common/Types.h"
-
+#include <CoreCommon/Types.h>
 #include <d3d11.h>
 #include <DirectXMath.h>
 
 
-
+namespace Core
+{
+	
 struct FrameBufferSpecification
 {
 	UINT width = 0;
@@ -67,8 +68,6 @@ public:
 	inline UINT GetTexWidth()                                 const { return specification_.width; }
 	inline UINT GetTexHeight()                                const { return specification_.height; }
 
-
-
 private:
 	void CreateRenderTargetTexture(ID3D11Device* pDevice);
 	void CreateRenderTargetView(ID3D11Device* pDevice);
@@ -89,3 +88,5 @@ private:
 	DirectX::XMMATRIX         orthoMatrix_          = DirectX::XMMatrixIdentity();
 
 };
+
+} // namespace Core

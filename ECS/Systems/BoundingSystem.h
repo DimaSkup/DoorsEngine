@@ -35,6 +35,12 @@ public:
 		const size numSubsets,                  // it is supposed that each input entt has the same number of meshes (for instance: the same trees)
 		const BoundingType* types,              // AABB type per mesh
 		const DirectX::BoundingBox* AABBs);     // AABB per mesh
+
+	void Add(
+		const EntityID* ids,
+		const size numEntts,
+		const DirectX::BoundingSphere* spheres);
+
 #if 0
 	const BoundingData& GetBoundingDataByID(const EntityID id);
 

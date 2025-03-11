@@ -12,13 +12,16 @@
 #pragma once
 
 #include "../../Mesh/Vertex.h"
-#include "../../Common/Types.h"
 
+#include <CoreCommon/Types.h>
 #include <d3d11.h>
 #include <DirectXMath.h>
 
 
-class FontClass final
+namespace UI
+{
+
+class FontClass
 {
 private:
 	// contains data about character on the font texture
@@ -44,7 +47,7 @@ public:
 	// builds a vertices array by font texture data which is based on 
 	// input sentence and upper-left position
 	void BuildVertexArray(
-		VertexFont* vertices,
+		Core::VertexFont* vertices,
 		const size numVertices,
 		const std::string& sentence,
 		const DirectX::XMFLOAT2& drawAt);
@@ -86,3 +89,5 @@ private:
 	FontType fontDataArr_[95];           // font raw data (position/width of each symbol in the texture, etc.)
 	TexID fontTexID_ = 0;                // use this ID to get a font tex from the texture manager
 };
+
+} // namespace UI

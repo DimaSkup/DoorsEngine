@@ -10,9 +10,15 @@
 #include "BasicModel.h"
 #include <fstream>
 
+
+namespace Core
+{
+
 class ModelExporter
 {
 public:
+	ModelExporter();
+
 	void ExportIntoDE3D(
 		ID3D11Device* pDevice,
 		const BasicModel& model, 
@@ -52,3 +58,5 @@ private:
 	void WriteFLOAT3(std::ofstream& fout, const DirectX::XMFLOAT3& data);
 	void WriteMaterialProps(std::ofstream& fout, const MeshMaterial& mat);
 };
+
+} // namespace Core

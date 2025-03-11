@@ -12,8 +12,6 @@
 
 namespace ECS
 {
-
-using namespace Utils;
 	
 RenderStatesSystem::RenderStatesSystem(RenderStates* pRenderStatesComponent)
 {
@@ -90,10 +88,10 @@ void RenderStatesSystem::AddWithDefaultStates(const std::vector<EntityID>& ids)
 	// add records: id => default_rs_hash
 	for (const EntityID id : ids)
 	{
-		const ptrdiff_t pos = GetPosForID(comp.ids_, id);
+		const ptrdiff_t pos = Utils::GetPosForID(comp.ids_, id);
 
-		InsertAtPos(comp.ids_, pos, id);
-		InsertAtPos(comp.statesHashes_, pos, hash);
+		Utils::InsertAtPos(comp.ids_, pos, id);
+		Utils::InsertAtPos(comp.statesHashes_, pos, hash);
 	}
 }
 
@@ -152,7 +150,7 @@ void RenderStatesSystem::SeparateEnttsByRenderStates(
 	std::vector<u32> hashes(idsCount);
 	std::vector<ptrdiff_t> idxs;
 	
-	GetIdxsInSortedArr(comp.ids_, ids, idxs);
+	Utils::GetIdxsInSortedArr(comp.ids_, ids, idxs);
 
 	// get render states hashes by idxs
 	for (int i = 0; const ptrdiff_t idx : idxs)

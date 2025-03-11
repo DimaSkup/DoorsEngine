@@ -12,7 +12,6 @@
 
 #include <fstream>    // for serialization / deserialization of data
 
-using namespace Utils;
 using namespace DirectX;
 
 namespace ECS
@@ -75,12 +74,12 @@ void TextureTransformSystem::GetTexTransformsForEntts(
 	std::vector<ptrdiff_t> idxs;
 
 	// get arr of flags which will be used to define if entt has texture transformation
-	GetExistingFlags(comp.ids_, ids, flags);
+	Utils::GetExistingFlags(comp.ids_, ids, flags);
 
 	// fill in the output arr with default values
 	outTexTransforms.resize(std::ssize(ids), DirectX::XMMatrixIdentity());
 
-	GetIdxsInSortedArr(comp.ids_, ids, idxs);
+	Utils::GetIdxsInSortedArr(comp.ids_, ids, idxs);
 
 	for (u32 idx = 0; idx < std::ssize(ids); ++idx)
 		outTexTransforms[idx] = (flags[idx]) ? comp.texTransforms_[idxs[idx]] : DirectX::XMMatrixIdentity();
@@ -112,7 +111,7 @@ bool TextureTransformSystem::CheckCanAddRecords(const std::vector<EntityID>& ids
 	bool canAddRecords = true;
 	std::vector<bool> flags;
 
-	GetExistingFlags(pTexTransformComponent_->ids_, ids, flags);
+	Utils::GetExistingFlags(pTexTransformComponent_->ids_, ids, flags);
 
 	for (bool exist : flags)
 		canAddRecords &= (!exist);
@@ -137,17 +136,17 @@ void TextureTransformSystem::AddStaticTexTransform(
 	// execute sorted insertion of new records into the data arrays
 	for (u32 idx = 0; const EntityID& id : ids)
 	{
-		const ptrdiff_t pos = GetPosForID(comp.ids_, id);
+		const ptrdiff_t pos = Utils::GetPosForID(comp.ids_, id);
 
-		InsertAtPos(comp.ids_, pos, id);
-		InsertAtPos(comp.transformTypes_, pos, TexTransformType::STATIC);
-		InsertAtPos(comp.texTransforms_, pos, params.initTransform_[idx]);
+		Utils::InsertAtPos(comp.ids_, pos, id);
+		Utils::InsertAtPos(comp.transformTypes_, pos, TexTransformType::STATIC);
+		Utils::InsertAtPos(comp.texTransforms_, pos, params.initTransform_[idx]);
 	
 		// setup specific data for this kind of texture transformation
-		const ptrdiff_t data_idx = GetPosForID(staticTransf.ids_, id);
+		const ptrdiff_t data_idx = Utils::GetPosForID(staticTransf.ids_, id);
 
-		InsertAtPos(staticTransf.ids_, data_idx, id);
-		InsertAtPos(staticTransf.transformations_, data_idx, params.texTransforms_[idx]);
+		Utils::InsertAtPos(staticTransf.ids_, data_idx, id);
+		Utils::InsertAtPos(staticTransf.transformations_, data_idx, params.texTransforms_[idx]);
 
 		++idx;
 	}
@@ -173,11 +172,11 @@ void TextureTransformSystem::AddAtlasTextureAnimation(
 	// execute sorted insertion into the data arrays
 	for (u32 idx = 0; const EntityID & id : ids)
 	{
-		const ptrdiff_t pos = GetPosForID(comp.ids_, id);
+		const ptrdiff_t pos = Utils::GetPosForID(comp.ids_, id);
 
 		// add common data
-		InsertAtPos(comp.ids_, pos, id);
-		InsertAtPos(comp.transformTypes_, pos, TexTransformType::ATLAS_ANIMATION);
+		Utils::InsertAtPos(comp.ids_, pos, id);
+		Utils::InsertAtPos(comp.transformTypes_, pos, TexTransformType::ATLAS_ANIMATION);
 
 		// add specific data according to this texture transformation type
 		const ptrdiff_t animIdx = AddAtlasAnimationData(
@@ -190,7 +189,7 @@ void TextureTransformSystem::AddAtlasTextureAnimation(
 		// (we just scale a texture and setup position to the top left corner)
 		TexAtlasAnimationData& animData = comp.texAtlasAnim_.data_[animIdx];
 
-		InsertAtPos(comp.texTransforms_, pos, XMMatrixTranspose(
+		Utils::InsertAtPos(comp.texTransforms_, pos, XMMatrixTranspose(
 			XMMatrixScaling(animData.texCellWidth_, animData.texCellHeight_, 0)));
 
 		++idx;
@@ -220,18 +219,18 @@ void TextureTransformSystem::AddRotationAroundTexCoord(
 	{
 		// execute sorted insertion into the common data arrays
 		
-		const ptrdiff_t comp_idx = GetPosForID(comp.ids_, id);
+		const ptrdiff_t comp_idx = Utils::GetPosForID(comp.ids_, id);
 
-		InsertAtPos(comp.ids_, comp_idx, id);
-		InsertAtPos(comp.transformTypes_, comp_idx, TexTransformType::ROTATION_AROUND_TEX_COORD);
-		InsertAtPos(comp.texTransforms_, comp_idx, DirectX::XMMatrixIdentity());  // current texture transformation
+		Utils::InsertAtPos(comp.ids_, comp_idx, id);
+		Utils::InsertAtPos(comp.transformTypes_, comp_idx, TexTransformType::ROTATION_AROUND_TEX_COORD);
+		Utils::InsertAtPos(comp.texTransforms_, comp_idx, DirectX::XMMatrixIdentity());  // current texture transformation
 
 		// setup specific data
-		const ptrdiff_t data_idx = GetPosForID(rotations.ids_, id);
+		const ptrdiff_t data_idx = Utils::GetPosForID(rotations.ids_, id);
 
-		InsertAtPos(rotations.ids_, data_idx, id);
-		InsertAtPos(rotations.texCoords_, data_idx, params.rotationsCenter_[idx]);
-		InsertAtPos(rotations.rotationsSpeed_, data_idx, params.rotationsSpeed_[idx]);
+		Utils::InsertAtPos(rotations.ids_, data_idx, id);
+		Utils::InsertAtPos(rotations.texCoords_, data_idx, params.rotationsCenter_[idx]);
+		Utils::InsertAtPos(rotations.rotationsSpeed_, data_idx, params.rotationsSpeed_[idx]);
 
 		++idx;
 	}
@@ -255,15 +254,15 @@ const ptrdiff_t TextureTransformSystem::AddAtlasAnimationData(
 
 	TexAtlasAnimations& anim = pTexTransformComponent_->texAtlasAnim_;
 
-	const ptrdiff_t animIdx = GetPosForID(anim.ids_, id);
-	InsertAtPos(anim.ids_, animIdx, id);
+	const ptrdiff_t animIdx = Utils::GetPosForID(anim.ids_, id);
+	Utils::InsertAtPos(anim.ids_, animIdx, id);
 
 	// frame_duration = full_anim_duration / frames_count
-	InsertAtPos(anim.timeSteps_, animIdx, animDuration / (texRows * texColumns));
-	InsertAtPos(anim.currAnimTime_, animIdx, 0.0f);
+	Utils::InsertAtPos(anim.timeSteps_, animIdx, animDuration / (texRows * texColumns));
+	Utils::InsertAtPos(anim.currAnimTime_, animIdx, 0.0f);
 
 	// compute and store animation frames data
-	InsertAtPos(anim.data_, animIdx, TexAtlasAnimationData(texRows, texColumns, animDuration));
+	Utils::InsertAtPos(anim.data_, animIdx, TexAtlasAnimationData(texRows, texColumns, animDuration));
 
 	return animIdx;
 }
@@ -404,7 +403,7 @@ void TextureTransformSystem::GetDataIdxsOfIDs(
 	outDataIdxs.reserve(searchedEnttsIDs.size());
 
 	for (const EntityID id : searchedEnttsIDs)
-		outDataIdxs.push_back(GetIdxInSortedArr(allEnttsIDs, id));
+		outDataIdxs.push_back(Utils::GetIdxInSortedArr(allEnttsIDs, id));
 }
 
 // --------------------------------------------------------

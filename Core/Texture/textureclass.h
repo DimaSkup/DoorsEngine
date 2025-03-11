@@ -8,14 +8,15 @@
 // *********************************************************************************
 #pragma once
 
-
-#include "../Common/Types.h"
+#include <CoreCommon/Types.h>
 #include "../Render/Color.h"
 
 #include <assimp/material.h>
 #include <d3d11.h>
 
 
+namespace Core
+{
 
 enum class TexStoreType
 {
@@ -58,6 +59,16 @@ public:
 		ID3D11Device* pDevice,
 		const std::string & filePath);	
 
+	// a constructor for loading multiple textures to create a Texture2DArray
+	Texture(
+		ID3D11Device* pDevice,
+		const std::string& texArrLabel,
+		const std::string* arrFilenames,
+		const int numFilenames,
+		const DXGI_FORMAT format);
+		//const UINT filter,
+		//const UINT mipFilter);
+
 	// make 1x1 texture with single color
 	Texture(
 		ID3D11Device* pDevice, 
@@ -85,13 +96,14 @@ public:
 	void Copy(Texture& src);
 	void Copy(ID3D11Resource* const pSrcTexResource);
 
-	inline ID3D11Resource*           GetResource() { return pTexture_; }
-	inline ID3D11ShaderResourceView* GetTextureResourceView() const { return pTextureView_; }
+
+	inline ID3D11Resource*           GetResource()                                { return pTexture_; }
+	inline ID3D11ShaderResourceView* GetTextureResourceView()               const { return pTextureView_; }
 	inline ID3D11ShaderResourceView* const* GetTextureResourceViewAddress() const { return &pTextureView_; }
 
 	inline const std::string& GetPath() const { return path_; }
-	inline UINT GetWidth()  const { return width_; }
-	inline UINT GetHeight() const { return height_; }
+	inline UINT GetWidth()              const { return width_; }
+	inline UINT GetHeight()             const { return height_; }
 
 	POINT GetTextureSize();
 
@@ -126,3 +138,5 @@ private:
 	UINT width_ = 30;                                   
 	UINT height_ = 30;
 };
+
+} // namespace Core

@@ -8,6 +8,8 @@
 
 using namespace DirectX;
 
+namespace Core
+{
 
 Camera::Camera()
 {
@@ -53,6 +55,15 @@ DirectX::XMFLOAT3 Camera::GetLook() const
 { 
 	DirectX::XMFLOAT3 look;
 	DirectX::XMStoreFloat3(&look, look_);
+	return look;
+}
+
+///////////////////////////////////////////////////////////
+
+DirectX::XMFLOAT4 Camera::GetLookFloat4() const
+{
+	DirectX::XMFLOAT4 look;
+	DirectX::XMStoreFloat4(&look, look_);
 	return look;
 }
 
@@ -148,7 +159,7 @@ void Camera::Pitch(const float angle)
 {
 	// rotate up and look vector about the view space right vector
 
-	XMMATRIX R = XMMatrixRotationAxis(right_, angle);
+	XMMATRIX R = XMMatrixRotationAxis(right_, angle * sensitivity_);
 
 	up_   = XMVector3TransformNormal(up_, R);
 	look_ = XMVector3TransformNormal(look_, R);
@@ -160,7 +171,7 @@ void Camera::RotateY(const float angle)
 {
 	// rotate the basis vectors about the world y-axis
 
-	XMMATRIX R = XMMatrixRotationY(angle);
+	XMMATRIX R = XMMatrixRotationY(angle * sensitivity_);
 
 	right_ = XMVector3TransformNormal(right_, R);
 	up_    = XMVector3TransformNormal(up_, R);
@@ -246,3 +257,5 @@ void Camera::UpdateViewMatrix()
 	// compute inverse view matrix
 	invView_ = XMMatrixInverse(nullptr, view_);
 }
+
+} // namespace Core

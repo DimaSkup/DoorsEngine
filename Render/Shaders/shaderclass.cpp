@@ -14,7 +14,7 @@ namespace Render
 {
 
 
-std::string ShaderClass::pathToShadersDir_ = SHADER_DIR;
+std::string ShaderClass::pathToShadersDir_ = "shaders/";
 
 
 // Compiles effect's or shader's bytecode from a .fx or .hlsl files respectively

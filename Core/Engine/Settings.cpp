@@ -5,13 +5,15 @@
 // Revising:    27.11.22
 ////////////////////////////////////////////////////////////////////
 #include "Settings.h"
-#include "../Common/Assert.h"
-#include "../Common/FileSystemPaths.h"
-
+#include <CoreCommon/Assert.h>
+#include <CoreCommon/FileSystemPaths.h>
 #include <fstream>
 #include <filesystem>
 
 namespace fs = std::filesystem;
+
+namespace Core
+{
 
 Settings::Settings()
 {
@@ -39,7 +41,7 @@ void Settings::LoadSettingsFromFile()
 {
 	// load engine settings from the "settings.txt" file
 
-	const std::string pathToSettingsFile = g_DataDir + "settings.txt";
+	const std::string pathToSettingsFile = "data/settings.txt";
 
 	// check if we have such a file
 	fs::path settingsPath = pathToSettingsFile;
@@ -170,3 +172,5 @@ void Settings::UpdateSettingByKey(const char* key, const std::string& val)
 		throw EngineException("can't update a setting by key: " + std::string(key));
 	}
 }
+
+} // namespace Core

@@ -10,10 +10,14 @@
 #include <map>
 #include <vector>
 
+
+namespace Core
+{
+
 class RenderStates
 {
 public:
-	enum STATES
+	enum STATES : byte
 	{
 		// rasterizer params
 		FILL_SOLID,
@@ -33,6 +37,7 @@ public:
 		SUBTRACTING,
 		MULTIPLYING,
 		TRANSPARENCY,
+		ALPHA_TO_COVERAGE,
 
 		// depth stencil states
 		DEPTH_ENABLED,
@@ -95,3 +100,5 @@ private:
 	uint8_t turnOffFillModesHash_{ 0b1111'1111 };              // using this hash we turn off ALL the FILL modes at the same time
 
 };
+
+}

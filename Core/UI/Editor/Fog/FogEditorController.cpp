@@ -4,14 +4,17 @@
 // =================================================================================
 #include "FogEditorController.h"
 
-#include "../../../Common/Assert.h"
-#include "../../../Common/log.h"
+#include <CoreCommon/Assert.h>
+#include <CoreCommon/log.h>
 
+
+namespace UI
+{
 
 void FogEditorController::Initialize(IFacadeEngineToUI* pFacade)
 {
 	// the facade interface is used to contact with the rest of the engine
-	Assert::NotNullptr(pFacade, "ptr to the IFacadeEngineToUI interface == nullptr");
+	Core::Assert::NotNullptr(pFacade, "ptr to the IFacadeEngineToUI interface == nullptr");
 	pFacade_ = pFacade;
 
 
@@ -20,25 +23,24 @@ void FogEditorController::Initialize(IFacadeEngineToUI* pFacade)
 	float    fogStart;
 	float    fogRange;
 
-	if (pFacade_->GatherFogData(fogColor, fogStart, fogRange))
+	if (pFacade_->GetFogData(fogColor, fogStart, fogRange))
 		fogModel_.Update(fogColor, fogStart, fogRange);
 	else
-		Log::Error("can't gather data for the fog editor :(");
+		Core::Log::Error("can't gather data for the fog editor :(");
 }
 
 ///////////////////////////////////////////////////////////
 
-void FogEditorController::Execute(ICommand* pCommand)
+void FogEditorController::Execute(const ICommand* pCommand)
 {
 	if ((pCommand == nullptr) || (pFacade_ == nullptr))
 	{
-		Log::Error("ptr to command or facade interface == nullptr");
+		Core::Log::Error("ptr to command or facade interface == nullptr");
 		return;
 	}
-
 	
-	using enum FogEditorCmdType;   // for not writing "FogEditorCmdType::" before each case
-	Model::Fog& data = fogModel_;
+	//using enum EditorCmdType;   // for not writing "FogEditorCmdType::" before each case
+	ModelFog& data = fogModel_;
 
 	// execute changes according to the command type
 	switch (pCommand->type_)
@@ -82,3 +84,12 @@ void FogEditorController::Execute(ICommand* pCommand)
 		}
 	}
 }
+
+///////////////////////////////////////////////////////////
+
+void FogEditorController::Undo(const ICommand* pCommand, const uint32_t entityID)
+{
+	assert(0 && "TODO: implement it!");
+}
+
+} // namespace UI

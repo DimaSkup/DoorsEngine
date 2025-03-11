@@ -4,7 +4,10 @@
 // Created:       30.10.24
 // *********************************************************************************
 #include "BasicModel.h"
+#include <CoreCommon/MemHelpers.h>
 
+namespace Core
+{
 
 BasicModel::BasicModel()
 {
@@ -32,7 +35,7 @@ BasicModel::BasicModel(BasicModel&& rhs) noexcept :
 
 	numVertices_(rhs.numVertices_),
 	numIndices_(rhs.numIndices_),
-	numMats_(rhs.numMats_),
+	//numMats_(rhs.numMats_),
 	numSubsets_(rhs.numSubsets_),
 	numTextures_(rhs.numTextures_),
 	numBones_(rhs.numBones_),
@@ -116,7 +119,7 @@ void BasicModel::Clear()
 
 	numVertices_  = 0;
 	numIndices_   = 0;
-	numMats_      = 0;
+	//numMats_      = 0;
 	numSubsets_   = 0;
 	numTextures_  = 0;
 	numBones_     = 0;
@@ -153,7 +156,7 @@ void BasicModel::AllocateMemory()
 		assert(numSubsets_ > 0);
 
 		// each subset (mesh) has only one material
-		numMats_ = numSubsets_;
+		//numMats_ = numSubsets_;
 
 		//
 		// prepare memory
@@ -167,7 +170,7 @@ void BasicModel::AllocateMemory()
 
 		// each subset (mesh) has its own material 
 		// so the num of subsets == num of materials
-		materials_ = new MeshMaterial[numMats_];
+		materials_ = new MeshMaterial[numSubsets_];
 
 		// each subset (mesh) has 22 kinds of textures (diffuse, normal, etc)
 		numTextures_ = numSubsets_ * 22;
@@ -215,7 +218,7 @@ void BasicModel::AllocateMemory(
 
 		numVertices_ = numVertices;
 		numIndices_ = numIndices;
-		numMats_ = numSubsets;
+		//numMats_ = numSubsets;
 		numSubsets_ = numSubsets;
 
 		vertices_    = new Vertex3D[numVertices_]{};
@@ -224,7 +227,7 @@ void BasicModel::AllocateMemory(
 
 		// each subset (mesh) has its own material 
 		// so the num of subsets == num of materials
-		materials_ = new MeshMaterial[numMats_];
+		materials_ = new MeshMaterial[numSubsets_];
 
 		// each subset (mesh) has 22 kinds of textures (diffuse, normal, etc)
 		numTextures_ = numSubsets_ * 22;
@@ -278,7 +281,7 @@ void BasicModel::CopyVertices(const Vertex3D* vertices, const int numVertices)
 {
 	// check input data and check if we have enough allocated memory
 	assert((vertices != nullptr) && (numVertices > 0));
-	assert((vertices_ != nullptr) && (numVertices_ >= numVertices));
+	assert((vertices_ != nullptr) && (numVertices_ >= (u32)numVertices));
 
 	std::copy(vertices, vertices + numVertices, vertices_);
 }
@@ -289,11 +292,10 @@ void BasicModel::CopyIndices(const UINT* indices, const int numIndices)
 {
 	// check input data and check if we have enough allocated memory
 	assert((indices != nullptr) && (numIndices > 0));
-	assert((indices_ != nullptr) && (numIndices_ >= numIndices));
+	assert((indices_ != nullptr) && (numIndices_ >= (u32)numIndices));
 
 	std::copy(indices, indices + numIndices, indices_);
 }
-
 
 
 // *****************************************************************************
@@ -351,7 +353,7 @@ void BasicModel::SetMaterialsForSubsets(
 	Assert::NotNullptr(materials, "arr of materials == nullptr");
 	Assert::NotNullptr(materials_, "you didn't allocate memory for data");
 	Assert::True(count > 0, "wrong num of input data elements");
-	Assert::True(count <= numMats_, "you haven't enought memory for input data");
+	//Assert::True(count <= numMats_, "you haven't enought memory for input data");
 
 	// subset (mesh) ID is the same as its idx in the BasicModel class;
 	// so we can access material by the same idx as well
@@ -389,7 +391,7 @@ void BasicModel::SetSubsetAABBs(
 	Assert::NotNullptr(AABBs, "ptr to AABBs == nullptr");
 	Assert::NotNullptr(materials_, "you didn't allocate memory for data");
 	Assert::True(count > 0, "wrong num of input elems");
-	Assert::True(count <= numMats_, "you haven't enought memory for input data");
+	//Assert::True(count <= numMats_, "you haven't enought memory for input data");
 
 	// subset (mesh) ID is the same as its idx in the BasicModel class;
 	// so we can access AABB by the same idx as well
@@ -465,9 +467,4 @@ void BasicModel::ComputeSubsetsAABB()
 	}
 }
 
-
-// ********************************************************************************
-// 
-//                               PRIVATE METHODS
-// 
-// ********************************************************************************
+} // namespace Core

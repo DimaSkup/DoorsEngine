@@ -7,14 +7,14 @@
 // ================================================================================
 #pragma once
 
-#include <d3dcommon.h>
-#include <DirectXMath.h>
-
 #include "AdapterReader.h"
 #include "RenderStates.h"
 
-#include <string>
+#include <d3dcommon.h>
+#include <DirectXMath.h>
 
+namespace Core
+{
 
 class D3DClass
 {
@@ -51,14 +51,14 @@ public:
 	
 
 	void GetDeviceAndDeviceContext(ID3D11Device*& pDevice, ID3D11DeviceContext*& pContext);
-	void GetVideoCardInfo(std::string& cardName, int& memorySize);
+	void GetVideoCardInfo(char* cardName, const int maxCardNameSize, int& memorySize);
 
 	//
 	// inline getters
 	//
 	inline static D3DClass*          Get()                       { return pInstance_; }
 	inline ID3D11Device*             GetDevice()           const { return pDevice_; }
-	inline ID3D11DeviceContext*      GetDeviceContext()    const { return pImmediateContext_; }
+	inline ID3D11DeviceContext*      GetDeviceContext()    const { return pContext_; }
 	inline ID3D11DepthStencilView*   GetDepthStencilView() const { return pDepthStencilView_;}
 	inline ID3D11Texture2D*          GetBackBufferTex()    const { return pBackBuffer_;}
 	inline ID3D11RenderTargetView*   GetRenderTargetView() const { return pRenderTargetView_; }
@@ -70,36 +70,35 @@ public:
 	inline float                     GetScreenDepth()      const { return screenDepth_; }
 
 	// get world/ortho matrix
-	inline const DirectX::XMMATRIX& GetWorldMatrix() const { return worldMatrix_; }
-	inline const DirectX::XMMATRIX& GetOrthoMatrix() const { return orthoMatrix_; }
-	inline void GetWorldMatrix(DirectX::XMMATRIX& worldMatrix) { worldMatrix = worldMatrix_; }
-	inline void GetOrthoMatrix(DirectX::XMMATRIX& orthoMatrix) { orthoMatrix = orthoMatrix_; }
+	inline const DirectX::XMMATRIX& GetWorldMatrix()       const { return worldMatrix_; }
+	inline const DirectX::XMMATRIX& GetOrthoMatrix()       const { return orthoMatrix_; }
+	inline void GetWorldMatrix(DirectX::XMMATRIX& worldMatrix)   { worldMatrix = worldMatrix_; }
+	inline void GetOrthoMatrix(DirectX::XMMATRIX& orthoMatrix)   { orthoMatrix = orthoMatrix_; }
 
-	inline RenderStates& GetRenderStates() { return renderStates_; }
+	inline RenderStates& GetRenderStates()                       { return renderStates_; }
 
 	// set rasterizer states (RS)
-	inline void SetRS(const RenderStates::STATES state) { renderStates_.SetRS(pImmediateContext_, state); }
-	inline void SetRS(const std::vector<RenderStates::STATES>& states) { renderStates_.SetRS(pImmediateContext_, states); }
+	inline void SetRS(const RenderStates::STATES state)                { renderStates_.SetRS(pContext_, state); }
+	inline void SetRS(const std::vector<RenderStates::STATES>& states) { renderStates_.SetRS(pContext_, states); }
 
-	// turn on/off 2D rendering
-	// functions for turning the Z buffer on and off when rendering 2D images
-	inline void TurnZBufferOn()                                  { pImmediateContext_->OMSetDepthStencilState(renderStates_.GetDSS(RenderStates::STATES::DEPTH_ENABLED), 1); }
-	inline void TurnZBufferOff()                                 { pImmediateContext_->OMSetDepthStencilState(renderStates_.GetDSS(RenderStates::STATES::DEPTH_DISABLED), 1); }
+	// turning the Z buffer on and off when rendering 2D images
+	inline void TurnZBufferOn()                                  { pContext_->OMSetDepthStencilState(renderStates_.GetDSS(RenderStates::STATES::DEPTH_ENABLED), 1); }
+	inline void TurnZBufferOff()                                 { pContext_->OMSetDepthStencilState(renderStates_.GetDSS(RenderStates::STATES::DEPTH_DISABLED), 1); }
 
-	inline void TurnOnBlending(const RenderStates::STATES state) { renderStates_.SetBS(pImmediateContext_, state); }
-	inline void TurnOffBlending()                                { renderStates_.SetBS(pImmediateContext_, RenderStates::STATES::ALPHA_DISABLE); }
+	inline void TurnOnBlending(const RenderStates::STATES state) { renderStates_.SetBS(pContext_, state); }
+	inline void TurnOffBlending()                                { renderStates_.SetBS(pContext_, RenderStates::STATES::ALPHA_DISABLE); }
 
 	// set default render target/viewport
-	inline void ResetBackBufferRenderTarget()                    { pImmediateContext_->OMSetRenderTargets(1, &pRenderTargetView_, pDepthStencilView_); }
-	inline void ResetViewport()                                  { pImmediateContext_->RSSetViewports(1, &viewport_); }
+	inline void ResetBackBufferRenderTarget()                    { pContext_->OMSetRenderTargets(1, &pRenderTargetView_, pDepthStencilView_); }
+	inline void ResetViewport()                                  { pContext_->RSSetViewports(1, &viewport_); }
 
 	void TurnOnRSfor2Drendering();
-	inline void TurnOffRSfor2Drendering()                        { renderStates_.SetRSByHash(pImmediateContext_, prevRasterStateHash_); }
+	inline void TurnOffRSfor2Drendering()                        { renderStates_.SetRSByHash(pContext_, prevRasterStateHash_); }
 
 	// fullscreen/windowed stuff
 	bool ToggleFullscreen(HWND hwnd, bool isFullscreen);
-	inline SIZE GetWindowedWndSize()   const { return { windowedModeWidth_, windowedModeHeight_ }; }
-	inline SIZE GetFullscreenWndSize() const { return { fullScreenWndWidth_, fullScreenWndHeight_ }; }
+	inline SIZE GetWindowedWndSize()                       const { return { windowedModeWidth_, windowedModeHeight_ }; }
+	inline SIZE GetFullscreenWndSize()                     const { return { fullScreenWndWidth_, fullScreenWndHeight_ }; }
 
 	// handler for the window resizing
 	bool ResizeSwapChain(HWND hwnd, SIZE newSize);
@@ -139,7 +138,7 @@ private:
 
 	IDXGISwapChain*			  pSwapChain_        = nullptr;    
 	ID3D11Device*			  pDevice_           = nullptr;    // for creation of buffers, etc.
-	ID3D11DeviceContext*	  pImmediateContext_ = nullptr;    // set different resource for rendering
+	ID3D11DeviceContext*	  pContext_ = nullptr;    // set different resource for rendering
 	ID3D11Texture2D*          pBackBuffer_       = nullptr;    // the render target texture resource
 	ID3D11RenderTargetView*   pRenderTargetView_ = nullptr;    // where we are going to render our buffers
 	D3D11_VIEWPORT            viewport_{0};
@@ -147,9 +146,6 @@ private:
 	// depth stencil stuff
 	ID3D11Texture2D*		  pDepthStencilBuffer_ = nullptr;
 	ID3D11DepthStencilView*	  pDepthStencilView_ = nullptr;
-	//ID3D11DepthStencilState*  prevDepthStencilState_ = nullptr;  // previous depth stencil state
-	//UINT stencilRef_ = 0;                                       // previous stencil reference
-
 
 	AdapterReader             adaptersReader_;
 	RenderStates              renderStates_;
@@ -172,3 +168,5 @@ private:
 	UINT m4xMsaaQuality_        = 0;       // 4X MSAA quality level
 	UINT displayAdapterIndex_   = 0;       // set adapter idx (if there is any discrete graphics adapter we use this discrete adapter as primary)
 };
+
+} // namespace Core

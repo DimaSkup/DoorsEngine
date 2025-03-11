@@ -117,7 +117,7 @@ public:
 	//                                   Setters
 	// ================================================================================
 	void SwitchFogEffect(ID3D11DeviceContext* pContext, const bool state);
-	void SwitchFlashLight(ID3D11DeviceContext* pContext);
+	void SwitchFlashLight(ID3D11DeviceContext* pContext, const bool state);
 
 	void SwitchAlphaClipping(ID3D11DeviceContext* pContext, const bool state);
 	void SwitchDebugState(ID3D11DeviceContext* pContext, const DebugState state);
@@ -152,9 +152,19 @@ public:
 	ID3D11Buffer*                              pInstancedBuffer_ = nullptr;
 	std::vector<BuffTypes::InstancedData>      instancedData_;    // instances common buffer
 
-	ConstantBuffer<BuffTypes::cbvsPerFrame>    cbvsPerFrame_;     // for vertex shader 
-	ConstantBuffer<BuffTypes::cbpsPerFrame>    cbpsPerFrame_;     // for pixel shader
-	ConstantBuffer<BuffTypes::cbpsRareChanged> cbpsRareChanged_;  // for pixel shader
+	// const buffers for vertex shaders
+	ConstantBuffer<BuffTypes::cbvsPerFrame>    cbvsPerFrame_;     
+	ConstantBuffer<BuffTypes::cbpsPerFrame>    cbpsPerFrame_;    
+
+	// const buffers for pixel shaders
+	ConstantBuffer<BuffTypes::cbpsRareChanged> cbpsRareChanged_; 
+
+	// const buffers for geometry shaders
+	//ConstantBuffer<BuffTypes::GeomertyShaderConstBuf_PerObject> cbgsPerObject_;
+	//ConstantBuffer<BuffTypes::GeometryShaderConstBuf_Fixed>     cbgsFixed_;
+	ConstantBuffer<BuffTypes::GeometryShaderConstBuf_PerFrame>  cbgsPerFrame_;
+
+
 
 	RenderDataStorage dataStorage_;
 	PerFrameData      perFrameData_;                              // we need to keep this data because we use it multiple times during the frame

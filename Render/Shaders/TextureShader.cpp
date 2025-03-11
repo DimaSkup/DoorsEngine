@@ -69,36 +69,34 @@ void TextureShader::Render(
 	const int numModels,
 	const UINT instancedBuffElemSize)
 {
-	int startInstanceLocation = 0;
-
+	// bind input layout, shaders, samplers
 	pContext->IASetInputLayout(vs_.GetInputLayout());
-
 	pContext->VSSetShader(vs_.GetShader(), nullptr, 0);
 	pContext->PSSetShader(ps_.GetShader(), nullptr, 0);
 	pContext->PSSetSamplers(0, 1, samplerState_.GetAddressOf());
 		
 	
 	// go through each instance and render it
-	for (int i = 0; i < numModels; ++i)
+	for (int i = 0, startInstanceLocation = 0; i < numModels; ++i)
 	{
 		const Instance& instance = instances[i];
 
+		// bind vertex/index buffers
+		ID3D11Buffer* const vbs[2] = { instance.pVB, pInstancedBuffer };
 		const UINT stride[2] = { instance.vertexStride, instancedBuffElemSize };
 		const UINT offset[2] = { 0,0 };
-
-		// prepare input assembler (IA) stage before the rendering process
-		ID3D11Buffer* const vbs[2] = { instance.pVB, pInstancedBuffer };
 
 		pContext->IASetVertexBuffers(0, 2, vbs, stride, offset);
 		pContext->IASetIndexBuffer(instance.pIB, DXGI_FORMAT_R32_UINT, 0);
 
-		SRV* const* texIDs = instance.texSRVs.data();
+		// textures arr
+		SRV* const* texSRVs = instance.texSRVs.data();
 
 		// go through each subset (mesh) of this model and render it
 		for (int subsetIdx = 0; subsetIdx < (int)std::ssize(instance.subsets); ++subsetIdx)
 		{
 			// update textures for the current subset
-			pContext->PSSetShaderResources(0U, 22U, texIDs + (subsetIdx * 22));
+			pContext->PSSetShaderResources(0U, 22U, texSRVs + (subsetIdx * 22));
 
 			const Subset& subset = instance.subsets[subsetIdx];
 
@@ -131,19 +129,33 @@ void TextureShader::InitializeShaders(
 
 	bool result = false;
 
-	const UINT layoutElemNum = 10;
+	const UINT layoutElemNum = 18;
 	const D3D11_INPUT_ELEMENT_DESC inputLayoutDesc[] =
 	{
+		// per vertex data
 		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0},
-		{"WORLD", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+
+		// per instance data
+		{"WORLD", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0,  D3D11_INPUT_PER_INSTANCE_DATA, 1},
 		{"WORLD", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 16, D3D11_INPUT_PER_INSTANCE_DATA, 1},
 		{"WORLD", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 32, D3D11_INPUT_PER_INSTANCE_DATA, 1},
 		{"WORLD", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 48, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-		{"TEXTRANSFORM", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 64, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-		{"TEXTRANSFORM", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 80, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-		{"TEXTRANSFORM", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 96, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-		{"TEXTRANSFORM", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 112, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+
+		{"WORLD_INV_TRANSPOSE", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 64, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+		{"WORLD_INV_TRANSPOSE", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 80, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+		{"WORLD_INV_TRANSPOSE", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 96, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+		{"WORLD_INV_TRANSPOSE", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 112, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+
+		{"TEX_TRANSFORM", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 128, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+		{"TEX_TRANSFORM", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 144, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+		{"TEX_TRANSFORM", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 160, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+		{"TEX_TRANSFORM", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 176, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+
+		{"MATERIAL", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+		{"MATERIAL", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+		{"MATERIAL", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+		{"MATERIAL", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
 	};
 
 
