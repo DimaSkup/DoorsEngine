@@ -8,18 +8,18 @@
 #pragma once
 
 #include "../Common/Types.h"
-#include "../Common/vector.h"
-#include <map>
-#include <set>
+#include "../Common/cvector.h"
+//#include <map>
+//#include <set>
 
 namespace ECS
 {
 
 struct Model
 {
-#if 0
-    vector<EntityID> enttsIDs_;   // primary keys (can have only unique values)
-    vector<ModelID>  modelIDs_;   // there can be multiple the same values
+#if 1
+    cvector<EntityID> enttsIDs_;   // primary keys (can have only unique values)
+    cvector<ModelID>  modelIDs_;   // there can be multiple the same values
 
 #else
 	// each entity can be related to only one model

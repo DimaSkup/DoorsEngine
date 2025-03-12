@@ -157,6 +157,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Common\Assert.h" />
+    <ClInclude Include="Common\cvector.h" />
     <ClInclude Include="Common\LIB_Exception.h" />
     <ClInclude Include="Common\log.h" />
     <ClInclude Include="Common\MathHelper.h" />

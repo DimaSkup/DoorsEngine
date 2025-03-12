@@ -8,8 +8,9 @@
 #include <vector>
 #include <unordered_map>
 
-#include <cctype>
-#include <random>
+//#include <cctype>
+//#include <random>
+#include <format>
 
 namespace ECS
 {
@@ -329,6 +330,12 @@ void EntityMgr::SetEnttsHaveComponent(
 	
 	std::vector<index> idxs;
 	GetDataIdxsByIDs(ids, numEntts, idxs);
+
+    // generate hash mask by input component type
+    ComponentsHash hashMask = 1 << compType;
+
+    for (const index idx : idxs)
+        componentHashes_[idx] |= hashMask;
 }
 
 ///////////////////////////////////////////////////////////
@@ -501,30 +508,44 @@ void EntityMgr::AddModelComponent(
 	const EntityID enttID,
 	const ModelID modelID)
 {
-	// add the Model component to a single entity by ID in terms of arrays;
-
-	AddModelComponent(
-		std::vector<EntityID>{enttID},
-		std::vector<ModelID>{modelID});
+	// add the Model component: relate a single entity ID to a single modelID
+    AddModelComponent(&enttID, modelID, 1);
 }
 
 ///////////////////////////////////////////////////////////
 
 void EntityMgr::AddModelComponent(
-	const std::vector<EntityID> enttsIDs,
-	const ModelID modelID)
+    const EntityID* enttsIDs,
+    const ModelID modelID,
+    const size numEntts)
 {
 	// add the Model component to each input entity by ID in terms of arrays;
-	// here we add the same model to each input entt
+	// here we relate the same model to each input entt
 
-	AddModelComponent(enttsIDs, std::vector<ModelID>(enttsIDs.size(), modelID));
+    try
+    {
+        modelSystem_.AddRecords(enttsIDs, modelID, numEntts);
+        SetEnttsHaveComponent(enttsIDs, numEntts, ModelComponent);
+    }
+    catch (LIB_Exception& e)
+    {
+        std::string errMsg;
+        errMsg += "can't add model component to entts: ";
+        errMsg += Utils::GetEnttsIDsAsString(enttsIDs, (int)numEntts);
+        errMsg += "\nmodel_id: " + std::to_string(modelID);
+
+        Log::Error(e);
+        Log::Error(errMsg);
+    }
 }
 
 ///////////////////////////////////////////////////////////
 
+#if 0
 void EntityMgr::AddModelComponent(
-	const std::vector<EntityID>& enttsIDs,
-	const std::vector<ModelID>& modelsIDs)
+    const EntityID* enttsIDs,
+    const ModelID* modelsIDs,
+    const size numEntts)
 {
 	// add ModelComponent to each entity by its ID; 
 	// and bind to each input entity a model by respective idx (one to one)
@@ -537,10 +558,6 @@ void EntityMgr::AddModelComponent(
 		modelSystem_.AddRecords(enttsIDs, modelsIDs);
 		SetEnttsHaveComponent(enttsIDs.data(), std::ssize(enttsIDs), ModelComponent);
 	}
-	catch (const std::out_of_range& e)
-	{
-		throw LIB_Exception(e.what());
-	}
 	catch (LIB_Exception& e)
 	{
 		std::string errMsg;
@@ -551,6 +568,8 @@ void EntityMgr::AddModelComponent(
 		Log::Error(errMsg);
 	}
 }
+
+#endif
 
 ///////////////////////////////////////////////////////////
 
@@ -991,14 +1010,7 @@ void EntityMgr::GetEnttsByComponent(
 		}
 		case ComponentType::ModelComponent:
 		{
-			const size enttsCount = std::ssize(modelComponent_.enttToModel_);
-			outIDs.resize(enttsCount);
-
-			for (int i = 0; const auto& it : modelComponent_.enttToModel_)
-			{
-				const EntityID id = it.first;
-				outIDs[i++] = id;
-			}
+            //outIDs = modelSystem_.GetAllEntts();
 			return;
 		}
 		case ComponentType::RenderedComponent:

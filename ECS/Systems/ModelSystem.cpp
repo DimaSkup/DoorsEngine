@@ -1,18 +1,17 @@
 #include "ModelSystem.h"
 
 #include "../Common/Assert.h"
-#include "../Common/Utils.h"
 #include "../Common/log.h"
-#include "SaveLoad/ModelSysSerDeser.h"
+//#include "SaveLoad/ModelSysSerDeser.h"
+#include <map>
 
-#include <stdexcept>
 
 namespace ECS
 {
 
 ModelSystem::ModelSystem(Model* pModelComponent) : pModelComponent_(pModelComponent)
 {
-	Assert::NotNullptr(pModelComponent, "ptr to the Model component == nullptr");
+    Assert::NotNullptr(pModelComponent, "ptr to the Model component == nullptr");
 }
 
 ///////////////////////////////////////////////////////////
@@ -20,11 +19,11 @@ ModelSystem::ModelSystem(Model* pModelComponent) : pModelComponent_(pModelCompon
 void ModelSystem::Serialize(std::ofstream& fout, u32& offset)
 {
 #if 0
-	MeshSysSerDeser::Serialize(
-		fout,
-		offset,
-		static_cast<u32>(ComponentType::ModelComponent),  // data block marker
-		pModelComponent_->enttToModel_);
+    MeshSysSerDeser::Serialize(
+        fout,
+        offset,
+        static_cast<u32>(ComponentType::ModelComponent),  // data block marker
+        pModelComponent_->enttToModel_);
 #endif
 }
 
@@ -33,134 +32,126 @@ void ModelSystem::Serialize(std::ofstream& fout, u32& offset)
 void ModelSystem::Deserialize(std::ifstream& fin, const u32 offset)
 {
 #if 0
-	MeshSysSerDeser::Deserialize(
-		fin,
-		offset,
-		pModelComponent_->enttToModel_,
-		pModelComponent_->modelToEntt_);
+    MeshSysSerDeser::Deserialize(
+        fin,
+        offset,
+        pModelComponent_->enttToModel_,
+        pModelComponent_->modelToEntt_);
 #endif
 }
 
 ///////////////////////////////////////////////////////////
 
 void ModelSystem::AddRecords(
-	const std::vector<EntityID>& enttsIDs,
-	const ModelID modelID)
+    const EntityID* enttsIDs,
+    const ModelID modelID,
+    const size numEntts)
 {
-	// add the same model to each input entt
+    // make relations one to one: 'entity_id' => 'model_id'
+    // NOTE: enttsIDs are supposed to be SORTED!
 
-	Model& comp = *pModelComponent_;
+    Assert::True((enttsIDs != nullptr) && (numEntts > 0), "invalid input args");
 
-	// make relations one to one: 'entity_id' => 'model_id'
-	for (int i = 0; const EntityID & enttID : enttsIDs)
-		comp.enttToModel_[enttID] = modelID;
+    Model& comp = *pModelComponent_;
+    cvector<index> idxs;
+    const vsize newCapacity = comp.enttsIDs_.size() + numEntts;
 
-	// make relations one to many: 'model_id' => 'arr_of_entts_ids'
-	for (int i = 0; const EntityID& enttID : enttsIDs)
-		comp.modelToEntt_[modelID].insert(enttID);
-}
+    comp.enttsIDs_.get_insert_idxs(enttsIDs, numEntts, idxs);
+    comp.enttsIDs_.reserve(newCapacity);
 
-///////////////////////////////////////////////////////////
+    // sort insert of entities IDs (primary keys)
+    for (index i = 0; i < numEntts; ++i)
+        comp.enttsIDs_.insert_before(idxs[i] + i, enttsIDs[i]);
 
-void ModelSystem::AddRecords(
-	const std::vector<EntityID>& enttsIDs,
-	const std::vector<ModelID>& modelsIDs)
-{
-	Model& comp = *pModelComponent_;
-
-	// make relations one to one: 'entity_id' => 'model_id'
-	for (int i = 0; const EntityID& enttID : enttsIDs)
-		comp.enttToModel_[enttID] = modelsIDs[i++];
-
-	// make relations one to many: 'model_id' => 'arr_of_entts_ids'
-	for (int i = 0; const ModelID& modelID : modelsIDs)
-		comp.modelToEntt_[modelID].insert(enttsIDs[i++]);
+    // insert of model ID
+    for (index i = 0; i < numEntts; ++i)
+        comp.modelIDs_.insert_before(idxs[i] + i, modelID);
 }
 
 ///////////////////////////////////////////////////////////
 
 void ModelSystem::RemoveRecords(const std::vector<EntityID>& enttsIDs)
 {
-	Assert::True(false, "TODO: IMPLEMENT IT!");
+    Assert::True(false, "TODO: IMPLEMENT IT!");
 }
 
 ///////////////////////////////////////////////////////////
 
 ModelID ModelSystem::GetModelIdRelatedToEntt(const EntityID enttID)
 {
-	// return a model ID by related input entt ID
-	try
-	{
-		return pModelComponent_->enttToModel_.at(enttID);
-	}
-	catch (const std::out_of_range& e)
-	{
-		Log::Error(e.what());
-		Log::Error("no such entity: " + std::to_string(enttID));
+    // return a model ID by related input entt ID
 
-		return 0;  // ID of invalid model
-	}
+    Model& comp = *pModelComponent_;
+
+    // 1. check if we have such entity ID;
+    // 2. get idx by value (or get 0 if there is no such)
+    const bool has = comp.enttsIDs_.binary_search(enttID);
+    const index idx = comp.enttsIDs_.get_idx(enttID) * has;
+
+    return comp.modelIDs_[idx];
 }
 
 ///////////////////////////////////////////////////////////
 
 void ModelSystem::GetModelsIdsRelatedToEntts(
-	const std::vector<EntityID>& enttsIDs,         // by these entts we will get models
-	std::vector<ModelID>& outModelsIDs,            // models by these IDs will be rendered for this frame
-	std::vector<EntityID>& outEnttsSortByModels,
-	std::vector<int>& outNumInstancesPerModel)
+    const std::vector<EntityID>& enttsIDs,         // by these entts we will get models
+    std::vector<ModelID>& outModelsIDs,            // models by these IDs will be rendered for this frame
+    std::vector<EntityID>& outEnttsSortByModels,
+    std::vector<size>& outNumInstancesPerModel)
 {
-	// in: array of entts IDs
-	// 
-	// out: 1) arr of models which are related to the input entities
-	//      2) arr of entts sorted by its models
-	//      3) arr of entts number per model
-	
-	const Model& comp = *pModelComponent_;
-	std::map<ModelID, std::set<EntityID>> modelToEntts;
-	
-	// make a map of: 'model_id' => 'arr_entts_ids'
-	for (const EntityID enttID : enttsIDs)
-	{
-		const ModelID modelID = comp.enttToModel_.at(enttID);
-		modelToEntts[modelID].insert(enttID);
-	}
+    // in: array of entts IDs
+    // 
+    // out: 1) arr of models which are related to the input entities
+    //      2) arr of entts sorted by its models
+    //      3) arr of entts number per model
+    
+    cvector<index> idxs;
+    const Model& comp = *pModelComponent_;
+    const size numEntts = std::ssize(enttsIDs);
+    std::map<ModelID, cvector<EntityID>> modelToEntts;
 
-	// prepare memory
-	const size numEntts  = std::ssize(enttsIDs);
-	const size numModels = std::ssize(modelToEntts);
+    comp.enttsIDs_.get_idxs(enttsIDs.data(), std::ssize(enttsIDs), idxs);
 
-	outModelsIDs.resize(numModels);
-	outNumInstancesPerModel.resize(numModels);
-	outEnttsSortByModels.resize(numEntts);
-	
-	// get models IDs
-	for (int i = 0; const auto& it : modelToEntts)
-		outModelsIDs[i++] = it.first;
+    // get related models IDs and use them as keys
+    // and group entities by these models IDs
+    for (int i = 0; i < numEntts; ++i)
+    {
+        const ModelID modelID = comp.modelIDs_[idxs[i]];
+        const EntityID enttID = comp.enttsIDs_[idxs[i]];
+        modelToEntts[modelID].push_back(enttID);
+    }
 
-	// compute the num of instances per each model
-	for (int i = 0; const auto& it : modelToEntts)
-		outNumInstancesPerModel[i++] = (int)(std::ssize(it.second));
+    // prepare memory
+    const size numModels = std::ssize(modelToEntts);
 
-	// sort entts by models: copy sorted entts IDs by model into output array
-	for (int i = 0, offset = 0; const auto & it : modelToEntts)
-	{
-		std::copy(it.second.begin(), it.second.end(), outEnttsSortByModels.begin() + offset);
-		offset += outNumInstancesPerModel[i++];
-	}
+    outModelsIDs.resize(numModels);
+    outNumInstancesPerModel.resize(numModels);
+    outEnttsSortByModels.resize(numEntts);
+
+    // get models IDs
+    for (int i = 0; const auto & it : modelToEntts)
+        outModelsIDs[i++] = it.first;
+
+    // compute the num of instances per each model
+    for (int i = 0; const auto & it : modelToEntts)
+        outNumInstancesPerModel[i++] = std::ssize(it.second);
+
+    // sort entts by models: copy sorted entts IDs by model into output array
+    for (index i = 0, offset = 0; const auto & it : modelToEntts)
+    {
+        std::copy(it.second.begin(), it.second.end(), outEnttsSortByModels.begin() + offset);
+        offset += outNumInstancesPerModel[i++];
+    }
 }
 
 ///////////////////////////////////////////////////////////
 
-std::vector<EntityID> ModelSystem::GetAllEntts()
+void ModelSystem::GetAllEntts(const EntityID*& ids, size& numEntts)
 {
-    const std::map<EntityID, ModelID>& map = pModelComponent_->enttToModel_;
-    std::vector<EntityID> ids(map.size(), INVALID_ENTITY_ID);
+    Model& comp = *pModelComponent_;
 
-    for (int i = 0; const auto& it : map)
-        ids[i++] = it.first;
-
-    return ids;
+    ids      = comp.enttsIDs_.data();
+    numEntts = comp.enttsIDs_.size();
 }
 
 

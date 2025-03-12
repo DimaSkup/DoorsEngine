@@ -243,7 +243,7 @@ void CreateLightPoles(ECS::EntityMgr& mgr, const BasicModel& lightPole)
 
     mgr.AddTransformComponent(lightPoleEnttIDs, positions, dirQuats, uniformScales);
     mgr.AddNameComponent(lightPoleEnttIDs, names);
-    mgr.AddModelComponent(lightPoleEnttIDs, lightPole.GetID());
+    mgr.AddModelComponent(lightPoleEnttIDs.data(), lightPole.GetID(), numlightPoles);
     mgr.AddRenderingComponent(lightPoleEnttIDs);
 
     const size numEntts = std::ssize(lightPoleEnttIDs);
@@ -268,20 +268,20 @@ void CreateSpheres(ECS::EntityMgr& mgr, const BasicModel& model)
     //
     Log::Debug();
 
-    const u32 spheresCount = 10;
-    const std::vector<EntityID> enttsIDs = mgr.CreateEntities(spheresCount);
+    const u32 numSpheres = 10;
+    const std::vector<EntityID> enttsIDs = mgr.CreateEntities(numSpheres);
 
     // ---------------------------------------------------------
     // setup transform data for entities
 
     TransformData transform;
 
-    transform.positions.reserve(spheresCount);
-    transform.dirQuats.resize(spheresCount, {0,0,0,1});   // no rotation
-    transform.uniformScales.resize(spheresCount, 1.0f);
+    transform.positions.reserve(numSpheres);
+    transform.dirQuats.resize(numSpheres, {0,0,0,1});   // no rotation
+    transform.uniformScales.resize(numSpheres, 1.0f);
 
     // make two rows of the spheres
-    for (u32 idx = 0; idx < spheresCount/2; ++idx)
+    for (u32 idx = 0; idx < numSpheres/2; ++idx)
     {
         transform.positions.emplace_back(-5.0f, 5.0f, 10.0f * idx);
         transform.positions.emplace_back(+5.0f, 5.0f, 10.0f * idx);
@@ -299,9 +299,9 @@ void CreateSpheres(ECS::EntityMgr& mgr, const BasicModel& model)
 
     MovementData movement;
 
-    movement.translations.resize(spheresCount, { 0,0,0 });
-    movement.rotQuats.resize(spheresCount, { 0,0,0,1 });  // XMQuaternionRotationRollPitchYaw(0, 0.001f, 0));
-    movement.uniformScales.resize(spheresCount, 1.0f);
+    movement.translations.resize(numSpheres, { 0,0,0 });
+    movement.rotQuats.resize(numSpheres, { 0,0,0,1 });  // XMQuaternionRotationRollPitchYaw(0, 0.001f, 0));
+    movement.uniformScales.resize(numSpheres, 1.0f);
     movement.uniformScales[0] = 1.0f;
 
     mgr.AddMoveComponent(
@@ -316,7 +316,7 @@ void CreateSpheres(ECS::EntityMgr& mgr, const BasicModel& model)
     // ---------------------------------------------
     
     // generate a name for each sphere entity
-    std::vector<EntityName> enttsNames(spheresCount, "sphere_");
+    std::vector<EntityName> enttsNames(numSpheres, "sphere_");
 
     for (int i = 0; const EntityID& id : enttsIDs)
         enttsNames[i++] += std::to_string(id);
@@ -336,7 +336,7 @@ void CreateSpheres(ECS::EntityMgr& mgr, const BasicModel& model)
 
     // ---------------------------------------------
 
-    mgr.AddModelComponent(enttsIDs, model.GetID());
+    mgr.AddModelComponent(enttsIDs.data(), model.GetID(), numSpheres);
     mgr.AddNameComponent(enttsIDs, enttsNames);
     mgr.AddRenderingComponent(enttsIDs);
 
@@ -424,20 +424,20 @@ void CreateCylinders(ECS::EntityMgr& mgr, const BasicModel& model)
     //
     Log::Debug();
 
-    const int cylindersCount = 10;
-    const std::vector<EntityID> enttsIDs = mgr.CreateEntities(cylindersCount);
+    const int numCylinders = 10;
+    const std::vector<EntityID> enttsIDs = mgr.CreateEntities(numCylinders);
 
     // ---------------------------------------------------------
     // setup transform data for entities
 
     TransformData transform;
 
-    transform.positions.reserve(cylindersCount);
-    transform.dirQuats.resize(cylindersCount, { 0,0,0,1 });  // no rotation
-    transform.uniformScales.resize(cylindersCount, 1.0f);
+    transform.positions.reserve(numCylinders);
+    transform.dirQuats.resize(numCylinders, { 0,0,0,1 });  // no rotation
+    transform.uniformScales.resize(numCylinders, 1.0f);
 
     // make two rows of the cylinders
-    for (int idx = 0; idx < cylindersCount / 2; ++idx)
+    for (int idx = 0; idx < numCylinders / 2; ++idx)
     {
         transform.positions.emplace_back(-5.0f, 2.0f, 10.0f * idx);
         transform.positions.emplace_back(+5.0f, 2.0f, 10.0f * idx);
@@ -454,7 +454,7 @@ void CreateCylinders(ECS::EntityMgr& mgr, const BasicModel& model)
     // ---------------------------------------------------------
     // generate and set names for the entities
 
-    std::vector<std::string> names(cylindersCount, "cylinder_");
+    std::vector<std::string> names(numCylinders, "cylinder_");
 
     for (int i = 0; const EntityID id : enttsIDs)
         names[i++] += std::to_string(id);
@@ -473,7 +473,7 @@ void CreateCylinders(ECS::EntityMgr& mgr, const BasicModel& model)
 
     // ---------------------------------------------------------
 
-    mgr.AddModelComponent(enttsIDs, model.GetID());
+    mgr.AddModelComponent(enttsIDs.data(), model.GetID(), numCylinders);
     mgr.AddRenderingComponent(enttsIDs);
 
     TexID textures[22]{ 0 };
@@ -593,7 +593,7 @@ void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
 
         mgr.AddTransformComponent(enttsIDs, positions, dirQuats, uniformScales);
         mgr.AddNameComponent(enttsIDs, enttsNames);
-        mgr.AddModelComponent(enttsIDs, model.GetID());
+        mgr.AddModelComponent(enttsIDs.data(), model.GetID(), numCubes);
 
         // the cube has only one submesh
         int subsetID = 0;
@@ -847,17 +847,17 @@ void CreatePlanes(ECS::EntityMgr& mgr, const BasicModel& model)
     try 
     {
 
-    const UINT planesCount = 2;
-    const std::vector<EntityID> enttsIDs = mgr.CreateEntities(planesCount);
+    const UINT numPlanes = 2;
+    const std::vector<EntityID> enttsIDs = mgr.CreateEntities(numPlanes);
 
     // ---------------------------------------------------------
     // setup transform data for entities
 
     TransformData transform;
 
-    transform.positions.resize(planesCount, { 0,0,0 });
-    transform.dirQuats.resize(planesCount, { 0,0,0,1 });  // no rotation
-    transform.uniformScales.resize(planesCount, 1.0f);
+    transform.positions.resize(numPlanes, { 0,0,0 });
+    transform.dirQuats.resize(numPlanes, { 0,0,0,1 });  // no rotation
+    transform.uniformScales.resize(numPlanes, 1.0f);
 
     transform.positions[0] = { 4, 1.5f, 6 };
     transform.positions[1] = { 2, 1.5f, 6 };
@@ -871,7 +871,7 @@ void CreatePlanes(ECS::EntityMgr& mgr, const BasicModel& model)
     // ---------------------------------------------------------
     // setup names for the entities
 
-    std::vector<std::string> names(planesCount, "plane_");
+    std::vector<std::string> names(numPlanes, "plane_");
 
     for (int i = 0; const EntityID id : enttsIDs)
         names[i++] += std::to_string(id);
@@ -901,7 +901,7 @@ void CreatePlanes(ECS::EntityMgr& mgr, const BasicModel& model)
     //	pMeshStorage->SetTextureForMeshByID(meshID, aiTextureType_DIFFUSE, texIDs[idx++]);
     
 
-    mgr.AddModelComponent(enttsIDs, model.GetID());
+    mgr.AddModelComponent(enttsIDs.data(), model.GetID(), numPlanes);
     mgr.AddNameComponent(enttsIDs, names);
     mgr.AddRenderingComponent(enttsIDs);
 
@@ -928,20 +928,20 @@ void CreatePlanes(ECS::EntityMgr& mgr, const BasicModel& model)
 
 ///////////////////////////////////////////////////////////
 
-void CreateTrees(ECS::EntityMgr& mgr, const BasicModel& model)
+void CreateTreesPine(ECS::EntityMgr& mgr, const BasicModel& model)
 {
     Log::Debug();
 
     using enum ECS::RSTypes;
-    const int treesCount = 50;
-    const std::vector<EntityID> enttsIDs = mgr.CreateEntities(treesCount);
+    const int numTrees = 50;
+    const std::vector<EntityID> enttsIDs = mgr.CreateEntities(numTrees);
 
     // ---------------------------------------------
 
-    std::vector<EntityName> names(treesCount, "tree_");
-    std::vector<XMFLOAT3> positions(treesCount);
-    std::vector<XMVECTOR> quats(treesCount);
-    std::vector<float> uniScales(treesCount, 1.0f);
+    std::vector<EntityName> names(numTrees, "tree_pine_");
+    std::vector<XMFLOAT3>   positions(numTrees);
+    std::vector<XMVECTOR>   quats(numTrees);
+    std::vector<float>      uniScales(numTrees, 1.0f);
 
 
     // generate a name for each tree
@@ -961,14 +961,14 @@ void CreateTrees(ECS::EntityMgr& mgr, const BasicModel& model)
     positions[0] = {0,0,0};
 
     // generate direction quats
-    for (int i = 0; i < treesCount; ++i)
+    for (int i = 0; i < numTrees; ++i)
     {
         float angleY = MathHelper::RandF(0, 314) * 0.01f;
         quats[i] = XMQuaternionRotationRollPitchYaw(DirectX::XM_PIDIV2, angleY, 0);
     }
 
     // generate a scale value for each tree
-    for (int i = 0; i < treesCount; ++i)
+    for (int i = 0; i < numTrees; ++i)
     {
         //uniScales[i] += MathHelper::RandF(0.0f, 50.0f) * 0.01f;
         uniScales[i] = 0.01f;
@@ -978,7 +978,7 @@ void CreateTrees(ECS::EntityMgr& mgr, const BasicModel& model)
     // add components to each tree entity
     mgr.AddTransformComponent(enttsIDs, positions, quats, uniScales);   
     mgr.AddNameComponent(enttsIDs, names);
-    mgr.AddModelComponent(enttsIDs, model.GetID());
+    mgr.AddModelComponent(enttsIDs.data(), model.GetID(), numTrees);
     mgr.AddRenderingComponent(enttsIDs);
 
     // apply alpha_clipping and cull_none to each tree entt
@@ -991,7 +991,77 @@ void CreateTrees(ECS::EntityMgr& mgr, const BasicModel& model)
     // add bounding component to each entity
     mgr.AddBoundingComponent(
         enttsIDs.data(),
-        treesCount,
+        numTrees,
+        numSubsets,
+        boundTypes.data(),
+        model.GetSubsetsAABB());      // AABB data (center, extents)
+}
+
+///////////////////////////////////////////////////////////
+
+void CreateTreesSpruce(ECS::EntityMgr& mgr, const BasicModel& model)
+{
+    Log::Debug();
+
+    using enum ECS::RSTypes;
+    const int numTrees = 50;
+    const std::vector<EntityID> enttsIDs = mgr.CreateEntities(numTrees);
+
+    // ---------------------------------------------
+
+    std::vector<EntityName> names(numTrees, "tree_spruce_");
+    std::vector<XMFLOAT3>   positions(numTrees);
+    std::vector<XMVECTOR>   quats(numTrees);
+    std::vector<float>      uniScales(numTrees, 3.5f);
+
+
+    // generate a name for each tree
+    for (int i = 0; EntityName & name : names)
+    {
+        name += std::to_string(enttsIDs[i++]);
+    }
+
+    // generate positions
+    for (XMFLOAT3& pos : positions)
+    {
+        pos.x = MathHelper::RandF(-150, 150);
+        pos.z = MathHelper::RandF(-150, 150);
+        pos.y = GetHeightOfGeneratedTerrainAtPoint(pos.x, pos.z);
+    }
+
+    positions[0] = { 0,0,0 };
+
+    // generate direction quats
+    for (int i = 0; i < numTrees; ++i)
+    {
+        float angleY = MathHelper::RandF(0, 314) * 0.01f;
+        quats[i] = XMQuaternionRotationAxis({ 0,1,0 }, DirectX::XM_PIDIV2);
+        //quats[i] *= XMQuaternionRotationRollPitchYaw(DirectX::XM_PIDIV2, angleY, 0);
+    }
+
+    // generate a scale value for each tree
+    for (int i = 0; i < numTrees; ++i)
+    {
+        uniScales[i] += MathHelper::RandF(0.0f, 50.0f) * 0.01f;
+    }
+
+    // add components to each tree entity
+    mgr.AddTransformComponent(enttsIDs, positions, quats, uniScales);
+    mgr.AddNameComponent(enttsIDs, names);
+    mgr.AddModelComponent(enttsIDs.data(), model.GetID(), numTrees);
+    mgr.AddRenderingComponent(enttsIDs);
+
+    // apply alpha_clipping and cull_none to each tree entt
+    mgr.renderStatesSystem_.UpdateStates(enttsIDs, { ALPHA_CLIPPING, CULL_NONE });
+
+    //const DirectX::XMMATRIX world = mgr.transformSystem_.GetWorldMatrixOfEntt(enttI)
+    const size numSubsets = model.GetNumSubsets();
+    const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
+
+    // add bounding component to each entity
+    mgr.AddBoundingComponent(
+        enttsIDs.data(),
+        numTrees,
         numSubsets,
         boundTypes.data(),
         model.GetSubsetsAABB());      // AABB data (center, extents)
@@ -1035,7 +1105,7 @@ void CreatePowerLine(ECS::EntityMgr& mgr, const BasicModel& model)
 
     mgr.AddTransformComponent(enttsIDs, positions, quats, scales);
     mgr.AddNameComponent(enttsIDs, names);
-    mgr.AddModelComponent(enttsIDs, model.GetID());
+    mgr.AddModelComponent(enttsIDs.data(), model.GetID(), numPWTowers);
     mgr.AddRenderingComponent(enttsIDs);
 
     // add bounding component to each subset of this entity
@@ -1087,11 +1157,11 @@ void CreateStalkerFreedom(ECS::EntityMgr& mgr, const BasicModel& model)
 
     const EntityID enttID = mgr.CreateEntity();
 
-    float posY = GetHeightOfGeneratedTerrainAtPoint(20, 8);
-    DirectX::XMFLOAT3 pos = { 20, posY, 8 };
-    //DirectX::XMVECTOR rotQuat = DirectX::XMQuaternionRotationRollPitchYaw(0, DirectX::XM_PIDIV2, 0);
+    float posY = GetHeightOfGeneratedTerrainAtPoint(7, 3);
+    DirectX::XMFLOAT3 pos = { 7, posY, 3 };
+    DirectX::XMVECTOR rotQuat = DirectX::XMQuaternionRotationRollPitchYaw(XM_PIDIV2, XM_PIDIV2, 0);
 
-    mgr.AddTransformComponent(enttID, pos, { 0,0,0,1 }, 5.0f);
+    mgr.AddTransformComponent(enttID, pos, rotQuat, 5.0f);
     mgr.AddNameComponent(enttID, "stalker_freedom");
     mgr.AddModelComponent(enttID, model.GetID());
     mgr.AddRenderingComponent(enttID);
@@ -1341,7 +1411,7 @@ void CreateRocks(ECS::EntityMgr& mgr, const BasicModel& model)
 
     mgr.AddTransformComponent(enttsIDs, positions, quats, scales);
     mgr.AddNameComponent(enttsIDs, names);
-    mgr.AddModelComponent(enttsIDs, model.GetID());
+    mgr.AddModelComponent(enttsIDs.data(), model.GetID(), numRocks);
 
     mgr.AddRenderingComponent(enttsIDs);
 
@@ -1417,35 +1487,39 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
 
     // paths to external models
     //const std::string lightPolePath             = g_RelPathExtModelsDir + "light_pole/light_pole.obj";
-    //const std::string treePinePath              = g_RelPathExtModelsDir + "trees/FBX format/tree_pine.fbx";
+    const std::string treeSprucePath            = g_RelPathExtModelsDir + "trees/tree_spruce/tree_spruce.obj";
+    const std::string treePinePath              = g_RelPathExtModelsDir + "trees/FBX format/tree_pine.fbx";
     //const std::string treeDubPath             = g_RelPathExtModelsDir + "trees/dub/dub.obj";
-    //const std::string powerHVTowerPath          = g_RelPathExtModelsDir + "power_line/Power_HV_Tower.FBX";
+    const std::string powerHVTowerPath          = g_RelPathExtModelsDir + "power_line/Power_HV_Tower.FBX";
     const std::string barrelPath                = g_RelPathExtModelsDir + "Barrel1/Barrel1.obj";
     const std::string nanosuitPath              = g_RelPathExtModelsDir + "nanosuit/nanosuit.obj";
     const std::string stalkerFreedom1Path       = g_RelPathExtModelsDir + "stalker_freedom_1/stalker_freedom_1.fbx";
    // const std::string stalkerHouseSmallPath     = g_RelPathExtModelsDir + "stalker/stalker-house/source/SmallHouse.fbx";
    // const std::string stalkerHouseAbandonedPath = g_RelPathExtModelsDir + "stalker/abandoned-house-20/source/StalkerAbandonedHouse.fbx";
     //const std::string ak47Path                  = g_RelPathExtModelsDir + "aks-74_game_ready/scene.gltf";
-    //const std::string ak74uPath = g_RelPathExtModelsDir + "ak_74u/ak_74u.fbx";
+    const std::string ak74uPath = g_RelPathExtModelsDir + "ak_74u/ak_74u.fbx";
 
     const std::string building9Path             = g_RelPathExtModelsDir + "building9/building9.obj";
-    //const std::string apartmentPath             = g_RelPathExtModelsDir + "Apartment/Apartment.obj";
+    const std::string apartmentPath             = g_RelPathExtModelsDir + "Apartment/Apartment.obj";
     const std::string sovientStatuePath         = g_RelPathExtModelsDir + "sovietstatue_1/sickle&hammer.obj";
           
     // import a model from file by path
     Log::Debug("Start of models importing");
 
     //const ModelID lightPoleID      = creator.ImportFromFile(pDevice, lightPolePath);
+    const ModelID treeSpruceID = creator.ImportFromFile(pDevice, treeSprucePath);
+    const ModelID treePineID = creator.ImportFromFile(pDevice, treePinePath);
     const ModelID nanosuitID       = creator.ImportFromFile(pDevice, nanosuitPath);
     const ModelID stalkerFreedomID = creator.ImportFromFile(pDevice, stalkerFreedom1Path);
     //const ModelID stalkerHouse1ID  = creator.ImportFromFile(pDevice, stalkerHouseSmallPath);
     //const ModelID stalkerHouse2ID  = creator.ImportFromFile(pDevice, stalkerHouseAbandonedPath);
-    //const ModelID ak47ID           = creator.ImportFromFile(pDevice, ak74uPath);
+    const ModelID ak74ID           = creator.ImportFromFile(pDevice, ak74uPath);
     const ModelID barrelID         = creator.ImportFromFile(pDevice, barrelPath);
-    //const ModelID powerHVTowerID   = creator.ImportFromFile(pDevice, powerHVTowerPath);
-    //const ModelID treePineID       = creator.ImportFromFile(pDevice, treePinePath);
+    const ModelID powerHVTowerID   = creator.ImportFromFile(pDevice, powerHVTowerPath);
+    
+   
     const ModelID buildingID       = creator.ImportFromFile(pDevice, building9Path);
-    //const ModelID apartmentID      = creator.ImportFromFile(pDevice, apartmentPath);
+    const ModelID apartmentID      = creator.ImportFromFile(pDevice, apartmentPath);
     const ModelID sovietStatueID   = creator.ImportFromFile(pDevice, sovientStatuePath);
 
 
@@ -1455,55 +1529,41 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
 
     // get models by its ids
     BasicModel& building        = storage.GetModelByID(buildingID);
-    //BasicModel& apartment       = storage.GetModelByID(apartmentID);
+    BasicModel& apartment       = storage.GetModelByID(apartmentID);
     BasicModel& sovietStatue    = storage.GetModelByID(sovietStatueID);
-    //BasicModel& tree            = storage.GetModelByID(treePineID);
-    //BasicModel& powerHVTower    = storage.GetModelByID(powerHVTowerID);
+    BasicModel& treeSpruce      = storage.GetModelByID(treeSpruceID);
+    BasicModel& treePine        = storage.GetModelByID(treePineID);
+    BasicModel& powerHVTower    = storage.GetModelByID(powerHVTowerID);
     BasicModel& nanosuit        = storage.GetModelByID(nanosuitID);
     BasicModel& stalkerFreedom  = storage.GetModelByID(stalkerFreedomID);
     //BasicModel& lightPole       = storage.GetModelByID(lightPoleID);
     BasicModel& barrel          = storage.GetModelByID(barrelID);
     //BasicModel& stalkerHouse1   = storage.GetModelByID(stalkerHouse1ID);
     //BasicModel& stalkerHouse2   = storage.GetModelByID(stalkerHouse2ID);
-    //BasicModel& ak47            = storage.GetModelByID(ak47ID);
+    BasicModel& ak74 = storage.GetModelByID(ak74ID);
 
     // setup some models (set textures, setup materials)
     //SetupStalkerSmallHouse(stalkerHouse1);
     //SetupStalkerAbandonedHouse(stalkerHouse2);
-    //SetupTree(tree);
-    //SetupPowerLine(powerHVTower);
+    SetupTree(treePine);
+    SetupPowerLine(powerHVTower);
     SetupBuilding9(building);
    // SetupAk47(ak47);
 
-    //CreateTrees(mgr, tree);
-    //CreatePowerLine(mgr, powerHVTower);
+    CreateTreesPine(mgr, treePine);
+    CreateTreesSpruce(mgr, treeSpruce);
+    CreatePowerLine(mgr, powerHVTower);
     //CreateLightPoles(mgr, lightPole);
     //CreateHouse(mgr, stalkerHouse1);
     //CreateHouse2(mgr, stalkerHouse2);
 
-    //CreateAK(mgr, ak47);
+    CreateAK(mgr, ak74);
     CreateBarrel(mgr, barrel);
     CreateNanoSuit(mgr, nanosuit);
     CreateStalkerFreedom(mgr, stalkerFreedom);
     CreateBuilding(mgr, building);
-    //CreateApartment(mgr, apartment);
+    CreateApartment(mgr, apartment);
     CreateSovietStatue(mgr, sovietStatue);
-
-    // export the imported models into the internal .de3d format so they become "assets"
-    //ModelExporter exporter;
-   
-    //exporter.ExportIntoDE3D(pDevice, tree, "tree_pine/tree_pine");
-    //exporter.ExportIntoDE3D(pDevice, powerHVTower, "power_hw_tower/power_hw_tower");
-    //exporter.ExportIntoDE3D(pDevice, lightPole, "light_pole/light_pole");
-    //exporter.ExportIntoDE3D(pDevice, stalkerHouse1, "stalker_house_1/stalker_house_1");
-    //exporter.ExportIntoDE3D(pDevice, stalkerHouse2, "stalker_house_2/stalker_house_2");
-    //exporter.ExportIntoDE3D(pDevice, ak47, "ak_47/ak_47");
-   
-    //exporter.ExportIntoDE3D(pDevice, barrel, "barrel/barrel");
-    //exporter.ExportIntoDE3D(pDevice, nanosuit, "nanosuit/nanosuit");
-    //exporter.ExportIntoDE3D(pDevice, building, "soviet_building/building");
-    //exporter.ExportIntoDE3D(pDevice, apartment, "soviet_building/apartment");
-    //exporter.ExportIntoDE3D(pDevice, sovietStatue, "soviet_statue/soviet_statue");
 }
 
 ///////////////////////////////////////////////////////////
@@ -1567,7 +1627,8 @@ void LoadAssets(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     storage.Deserialize(pDevice);
 
     // create and setup entities with models
-    CreateTrees       (mgr, storage.GetModelByName("tree_pine"));
+    CreateTreesPine   (mgr, storage.GetModelByName("tree_pine"));
+    CreateTreesSpruce (mgr, storage.GetModelByName("tree_spruce"));
     CreatePowerLine   (mgr, storage.GetModelByName("Power_HV_Tower"));
     CreateLightPoles  (mgr, storage.GetModelByName("light_pole"));
     CreateHouse       (mgr, storage.GetModelByName("SmallHouse"));

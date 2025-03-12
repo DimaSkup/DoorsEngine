@@ -117,12 +117,14 @@ public:
 		const ModelID modelID);
 
 	void AddModelComponent(
-		const std::vector<EntityID> enttsIDs,
-		const ModelID modelID);
+		const EntityID* enttsIDs,
+		const ModelID modelID,
+        const size numEntts);
 
-	void AddModelComponent(
-		const std::vector<EntityID>& enttID,
-		const std::vector<ModelID>& modelsIDs);
+    void AddModelComponent(
+        const EntityID* enttsIDs,
+        const ModelID* modelsIDs,
+        const size numEntts);
 
 	// ------------------------------------
 	// add RENDERED component API

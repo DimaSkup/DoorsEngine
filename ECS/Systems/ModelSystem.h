@@ -8,9 +8,7 @@
 #pragma once
 
 #include "../Components/Model.h"
-#include <vector>
 #include <fstream>
-
 
 namespace ECS
 {
@@ -25,16 +23,10 @@ public:
 	void Serialize(std::ofstream& fout, u32& offset);
 	void Deserialize(std::ifstream& fin, const u32 offset);
 
-
-	// many to one: entts => model
-	void AddRecords(
-		const std::vector<EntityID>& enttsIDs,
-		const ModelID modelID);
-
-	// one to one: entt => model
-	void AddRecords(
-		const std::vector<EntityID>& enttsIDs,
-		const std::vector<ModelID>& modelsIDs);
+    void AddRecords(
+        const EntityID* enttsIDs,
+        const ModelID modelID,
+        const size numEntts);
 
 	void RemoveRecords(const std::vector<EntityID>& enttsIDs);
 
@@ -44,9 +36,9 @@ public:
 		const std::vector<EntityID>& enttsIDs,
 		std::vector<ModelID>& outModelsIDs,
 		std::vector<EntityID>& outEnttsSortByModels,
-		std::vector<int>& outNumInstancesPerModel);
+		std::vector<size>& outNumInstancesPerModel);
 
-    std::vector<EntityID> GetAllEntts();
+    void GetAllEntts(const EntityID*& ids, size& numEntts);
 
 private:
 	Model* pModelComponent_ = nullptr;

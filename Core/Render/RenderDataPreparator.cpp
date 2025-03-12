@@ -99,10 +99,17 @@ void RenderDataPreparator::PrepareEnttsDataForRendering(
 	{
 		for (int subsetIdx = 0; subsetIdx < instance.subsets.size(); ++subsetIdx)
 		{
+            // copy world matrices numInstances times (so we apply matrices to different instances of the same geometry)
+            memcpy(&(instanceBuffData.worlds_[i]), &(enttsWorlds[worldIdx]), sizeof(DirectX::XMMATRIX) * instance.numInstances);
+            i += instance.numInstances;
+
+#if 0
 			for (int j = 0; j < instance.numInstances; ++j)
 			{
 				instanceBuffData.worlds_[i++] = enttsWorlds[worldIdx + j];
 			}
+#endif
+
 		}
 		
 		worldIdx += instance.numInstances;
@@ -140,24 +147,6 @@ void RenderDataPreparator::PrepareEnttsDataForRendering(
 			}
 		}
 	}
-
-	if (numElems == 6)
-	{
-		int i = 0;
-		++i;
-	}
-
-	// bark
-	DirectX::XMFLOAT4 ambient0 = instanceBuffData.materials_[0].ambient_;
-	DirectX::XMFLOAT4 ambient1 = instanceBuffData.materials_[1].ambient_;
-
-	// cap
-	DirectX::XMFLOAT4 ambient2 = instanceBuffData.materials_[2].ambient_;
-	DirectX::XMFLOAT4 ambient3 = instanceBuffData.materials_[3].ambient_;
-
-	// leaves
-	DirectX::XMFLOAT4 ambient4 = instanceBuffData.materials_[4].ambient_;
-	DirectX::XMFLOAT4 ambient5 = instanceBuffData.materials_[5].ambient_;
 }
 
 ///////////////////////////////////////////////////////////
@@ -322,7 +311,7 @@ void RenderDataPreparator::PrepareInstancesData(
 	ModelStorage& storage = *ModelStorage::Get();
 
 	std::vector<ModelID> modelsIDs;
-	std::vector<int> numEnttsPerModel;
+	std::vector<size> numEnttsPerModel;
 	std::vector<EntityID> enttsWithOwnTex;
 	std::vector<EntityID> enttsWithMeshTex;
 
@@ -357,7 +346,7 @@ void RenderDataPreparator::PrepareInstancesData(
 		Render::Instance& instance = instances[instanceIdx];
 
 		modelIdToInstance.insert({ id, &instance });            // make pair ['model_id' => 'ptr_instance']
-		instance.numInstances = numEnttsPerModel[instanceIdx];  // how many instances of this model will be rendered
+		instance.numInstances = (int)numEnttsPerModel[instanceIdx];  // how many instances of this model will be rendered
 		++instanceIdx;
 
 		PrepareInstanceData(storage.GetModelByID(id), instance, texMgr);
@@ -394,7 +383,7 @@ void RenderDataPreparator::PrepareEnttsBoundingLineBox(
 	ECS::EntityMgr&       mgr = *pEnttMgr_;
 	std::vector<ModelID>  modelsIDs;
 	std::vector<EntityID> enttsSortByModels(numEntts);
-	std::vector<int>      numInstancesPerModel;
+	std::vector<size>     numInstancesPerModel;
 	std::vector<DirectX::XMMATRIX> boxLocals;         // local space matrix of the AABB of the whole model
 	std::vector<DirectX::XMMATRIX> worlds(numEntts);            // world matrix of each visible entity
 

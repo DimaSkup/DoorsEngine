@@ -118,7 +118,7 @@ bool FacadeEngineToUI::GetEnttNameByID(const uint32_t enttID, std::string& name)
 
 bool FacadeEngineToUI::GetEnttsIDsOfTypeModel(const EntityID*& enttsIDs, int& numEntts)
 {
-    pEntityMgr_->modelSystem_.GetAllEntts();
+    pEntityMgr_->modelSystem_.GetAllEntts(enttsIDs, (size&)numEntts);
     return true;
 }
 

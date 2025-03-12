@@ -114,7 +114,7 @@ public:
 		const std::vector<float>& uniformScales);
 
 	void SetTransformDataByDataIdxs(
-		const vector<index>& dataIdxs,
+		const cvector<index>& dataIdxs,
 		const std::vector<XMVECTOR>& newPositions,
 		const std::vector<XMVECTOR>& newDirQuats,
 		const std::vector<float>& newUniformScales);

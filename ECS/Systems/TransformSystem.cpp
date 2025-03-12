@@ -122,7 +122,7 @@ void TransformSystem::GetPositionsByIDs(
 	assert((ids != nullptr) && (outPositions != nullptr) && (numEntts > 0) && "invalid input arguments");
 
 	Transform& comp = *pTransform_;
-	vector<index> idxs;
+    cvector<index> idxs;
 
 	comp.ids_.get_idxs(ids, numEntts, idxs);
 
@@ -322,8 +322,8 @@ void TransformSystem::GetWorldMatricesOfEntts(
 	Assert::True((ids != nullptr) && (outWorlds != nullptr) && (numEntts > 0), "invalid input arguments");
 
 	const Transform& comp = *pTransform_;
-	vector<index> idxs(numEntts);
-	vector<DirectX::XMMATRIX> worlds(numEntts);
+    cvector<index> idxs(numEntts);
+    cvector<DirectX::XMMATRIX> worlds(numEntts);
 
 	// get data idx by each ID and then get world matrices by these idxs
 	comp.ids_.get_idxs(ids, numEntts, idxs);
@@ -342,8 +342,8 @@ void TransformSystem::GetInverseWorldMatricesOfEntts(
 	Assert::True((ids != nullptr) && (outInvWorlds != nullptr) && (numEntts > 0), "invalid input data");
 
 	const Transform& comp = *pTransform_;
-	vector<index> idxs(numEntts);
-	vector<XMMATRIX> invWorlds(numEntts);
+    cvector<index> idxs(numEntts);
+    cvector<XMMATRIX> invWorlds(numEntts);
 
 	// get data idx by each ID and then get inverse world matrices by these idxs
 	comp.ids_.get_idxs(ids, numEntts, idxs);
@@ -413,7 +413,7 @@ void TransformSystem::SetTransformDataByIDs(
 	Assert::True(enttsCount == newUniformScales.size(), "arr size of entts IDs and scales are not equal");
 
 	// get enttities data indices into arrays inside the Transform component
-	vector<index> idxs;
+    cvector<index> idxs;
 	comp.ids_.get_idxs(enttsIDs.data(), enttsIDs.size(), idxs);
 	SetTransformDataByDataIdxs(idxs, newPositions, newDirQuats, newUniformScales);
 }
@@ -421,7 +421,7 @@ void TransformSystem::SetTransformDataByIDs(
 ///////////////////////////////////////////////////////////
 
 void TransformSystem::SetTransformDataByDataIdxs(
-	const vector<index>& idxs,
+	const cvector<index>& idxs,
 	const std::vector<XMVECTOR>& newPositions,
 	const std::vector<XMVECTOR>& newDirQuats,
 	const std::vector<float>& newUniformScales)
@@ -455,7 +455,7 @@ void TransformSystem::SetWorldMatricesByDataIdxs(
 {
 	// store world matrices by input data idxs
 
-	Assert::True(std::ssize(pTransform_->worlds_) >= newWorldMatrices.size(), "count of new matrices can't be bigger than the number of matrices in the component");
+	Assert::True(pTransform_->worlds_.size() >= std::ssize(newWorldMatrices), "count of new matrices can't be bigger than the number of matrices in the component");
 
 	for (index newMatIdx = 0; const index idx : dataIdxs)
 		pTransform_->worlds_[idx] = newWorldMatrices[newMatIdx++];
