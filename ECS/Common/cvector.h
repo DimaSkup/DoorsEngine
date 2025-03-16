@@ -625,11 +625,13 @@ inline void cvector<T>::get_idxs(
             return;
         }
     }
-   
+
+    const T* b = begin();
+    const T* e = end();
     outIdxs.resize(numElems);
 
     for (int i = 0; i < numElems; ++i)
-        outIdxs[i] = std::distance(begin(), std::lower_bound(begin(), end(), values[i]));
+        outIdxs[i] = std::distance(begin(), std::lower_bound(b, e, values[i]));
 }
 
 // ----------------------------------------------------

@@ -55,8 +55,8 @@ public:
 	XMFLOAT4 GetPointLightProp(const EntityID id, const LightProps prop);
 	XMFLOAT4 GetSpotLightProp (const EntityID id, const LightProps prop);
 
-	void SetDirLightProp      (const EntityID id, const LightProps prop, const XMFLOAT4& val);
-	void SetDirLightProp      (const EntityID id, const LightProps prop, const XMFLOAT3& val);
+	bool SetDirLightProp      (const EntityID id, const LightProps prop, const XMFLOAT4& val);
+	bool SetDirLightProp      (const EntityID id, const LightProps prop, const XMFLOAT3& val);
 
 	bool SetPointLightProp    (const EntityID id, const LightProps prop, const XMFLOAT4& val);
 	bool SetPointLightProp    (const EntityID id, const LightProps prop, const float val);
@@ -96,6 +96,7 @@ public:
 
 	bool GetPointLightData(const EntityID* ids,	ECS::PointLight* outData, const int numEntts) const;
 
+    bool GetDirectedLightData(const EntityID id, ECS::DirLight& outDirLight) const;
 	bool GetPointLightData(const EntityID id, ECS::PointLight& outPointLight) const;
 	bool GetSpotLightData (const EntityID id, ECS::SpotLight& outSpotlight) const;
 
@@ -113,7 +114,7 @@ public:
 	void operator delete(void* p);
 
 private:
-	XMFLOAT4 GetLightPropInvalidData();
+	//XMFLOAT4 GetLightPropInvalidData();
 	bool CheckCanAddRecords(const std::vector<EntityID>& ids);
 	void CheckInputParams(const std::vector<EntityID>& ids, DirLightsInitParams& params);
 	void CheckIdExist(const EntityID id, const std::string& errorMsg);

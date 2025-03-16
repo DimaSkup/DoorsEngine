@@ -10,7 +10,6 @@
 // components
 #include "../Components/Movement.h"
 #include "../Components/Transform.h"
-#include "../Components/WorldMatrix.h"
 
 // systems
 #include "TransformSystem.h"
@@ -40,9 +39,6 @@ public:
 	void RemoveRecords(const std::vector<EntityID>& enttsIDs);
 
 	inline void GetEnttsIDsFromMoveComponent(std::vector<EntityID>& outEnttsIDs) { outEnttsIDs = pMoveComponent_->ids_; }
-
-private:
-	void CheckCanAddRecords(const std::vector<EntityID>& ids);
 
 private:
 	Transform*   pTransformComponent_ = nullptr;

@@ -41,6 +41,7 @@ void EditorController::Initialize(IFacadeEngineToUI* pFacade)
 
 	modelController_.Initialize(pFacade);
 	skyController_.Initialize(pFacade);
+    directedLightController_.Initialize(pFacade);
 	pointLightController_.Initialize(pFacade);
 	spotLightController_.Initialize(pFacade);
 }
@@ -83,7 +84,7 @@ void EditorController::SetSelectedEntt(const uint32_t enttID)
 			if (lightType == 0)
 			{
 				states.selectedEnttType_ = DIRECTED_LIGHT;
-				// directedLightController_.LoadEnttData(enttID);
+				directedLightController_.LoadEnttData(enttID);
 			}
 			else if (lightType == 1)
 			{
@@ -141,7 +142,12 @@ void EditorController::Render()
 		}
 		case DIRECTED_LIGHT:
 		{
-			ImGui::Text("DIR LIGHT SOURCE IS CHOSEN");
+            ImGui::Text("Entity ID (directed light): %d", enttID);
+            ImGui::Text("Entity Name: %s", enttName.c_str());
+
+            if (ImGui::CollapsingHeader("Directed light properties", ImGuiTreeNodeFlags_SpanFullWidth))
+                viewLight_.Render(directedLightController_.GetModel());
+
 			break;
 		}
 		case POINT_LIGHT:
@@ -277,7 +283,7 @@ void EditorController::RotateSelectedEntt(const DirectX::XMVECTOR& quat)
 	{
 		case DIRECTED_LIGHT:
 		{
-			cmdType = CHANGE_DIR_LIGHT_ROTATION;
+			cmdType = CHANGE_DIR_LIGHT_DIRECTION;
 			break;
 		}
 		case SPOT_LIGHT:
@@ -370,6 +376,14 @@ void EditorController::Execute(const ICommand* pCmd)
 			skyController_.ExecuteCommand(pCmd, enttID);
 			break;
 		}
+        case CHANGE_DIR_LIGHT_AMBIENT:
+        case CHANGE_DIR_LIGHT_DIFFUSE:
+        case CHANGE_DIR_LIGHT_SPECULAR:
+        case CHANGE_DIR_LIGHT_DIRECTION:
+        {
+            directedLightController_.ExecuteCommand(pCmd, enttID);
+            break;
+        }
 		case CHANGE_POINT_LIGHT_AMBIENT:
 		case CHANGE_POINT_LIGHT_DIFFUSE:
 		case CHANGE_POINT_LIGHT_SPECULAR:
@@ -426,7 +440,16 @@ void EditorController::Undo(const ICommand* pCmd, const uint32_t enttID)
 		case CHANGE_SKY_OFFSET:
 		{
 			skyController_.UndoCommand(pCmd, enttID);
+            break;
 		}
+        case CHANGE_DIR_LIGHT_AMBIENT:
+        case CHANGE_DIR_LIGHT_DIFFUSE:
+        case CHANGE_DIR_LIGHT_SPECULAR:
+        case CHANGE_DIR_LIGHT_DIRECTION:
+        {
+            directedLightController_.UndoCommand(pCmd, enttID);
+            break;
+        }
 		case CHANGE_POINT_LIGHT_AMBIENT:
 		case CHANGE_POINT_LIGHT_DIFFUSE:
 		case CHANGE_POINT_LIGHT_SPECULAR:
@@ -435,7 +458,21 @@ void EditorController::Undo(const ICommand* pCmd, const uint32_t enttID)
 		case CHANGE_POINT_LIGHT_ATTENUATION:
 		{
 			pointLightController_.UndoCommand(pCmd, enttID);
+            break;
 		}
+        case CHANGE_SPOT_LIGHT_AMBIENT:
+        case CHANGE_SPOT_LIGHT_DIFFUSE:
+        case CHANGE_SPOT_LIGHT_SPECULAR:
+        case CHANGE_SPOT_LIGHT_POSITION:
+        case CHANGE_SPOT_LIGHT_DIRECTION:
+        case CHANGE_SPOT_LIGHT_RANGE:           // how far spotlight can lit
+        case CHANGE_SPOT_LIGHT_ATTENUATION:
+        case CHANGE_SPOT_LIGHT_SPOT_EXPONENT:   // light intensity fallof (for control the spotlight cone)
+        {
+            spotLightController_.UndoCommand(pCmd, enttID);
+            break;
+        }
+
 	}
 }
 

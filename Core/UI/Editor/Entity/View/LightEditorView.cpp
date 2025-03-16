@@ -20,9 +20,40 @@ ViewLight::ViewLight(IEditorController* pController) : pController_(pController)
 
 ///////////////////////////////////////////////////////////
 
-void ViewLight::Render(const ModelEntityDirLight& data)
+void ViewLight::Render(const ModelEntityDirLight& model)
 {
-	assert(0 && "TODO");
+    // show editor fields to control the selected directed light source
+
+    using enum EditorCmdType;
+    DirectedLightData data;
+
+    // make local copies of the current model's data to use it in the fields
+    model.GetData(data);
+
+    // draw editor fields
+    if (ImGui::ColorEdit4("Ambient", data.ambient.rgba))
+    {
+        CmdChangeColor cmd(CHANGE_DIR_LIGHT_AMBIENT, data.ambient);
+        pController_->Execute(&cmd);
+    }
+
+    if (ImGui::ColorEdit4("Diffuse", data.diffuse.rgba))
+    {
+        CmdChangeColor cmd(CHANGE_DIR_LIGHT_DIFFUSE, data.diffuse);
+        pController_->Execute(&cmd);
+    }
+
+    if (ImGui::ColorEdit4("Specular", data.specular.rgba))
+    {
+        CmdChangeColor cmd(CHANGE_DIR_LIGHT_SPECULAR, data.specular);
+        pController_->Execute(&cmd);
+    }
+
+    if (ImGui::DragFloat3("Direction", data.direction.xyz, 0.05f))
+    {
+        CmdChangeVec3 cmd(CHANGE_DIR_LIGHT_DIRECTION, data.direction);
+        pController_->Execute(&cmd);
+    }
 }
 
 ///////////////////////////////////////////////////////////

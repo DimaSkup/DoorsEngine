@@ -428,15 +428,10 @@ void EntityMgr::AddTransformComponent(
 	const std::vector<float>& uniformScales)
 {
 	// add transform component to all the input entities
-
 	try
 	{
-		transformSystem_.AddRecords(ids, positions, dirQuats, uniformScales);
+		transformSystem_.AddRecords(ids.data(), positions.data(), dirQuats.data(), uniformScales.data(), std::ssize(ids));
 		SetEnttsHaveComponents(ids, { TransformComponent });
-	}
-	catch (const std::out_of_range& e)
-	{
-		throw LIB_Exception(e.what());
 	}
 	catch (LIB_Exception& e)
 	{

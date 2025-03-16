@@ -18,6 +18,7 @@
 
 #include "ModelController.h"
 #include "SkyController.h"
+#include "DirectedLightController.h"
 #include "PointLightController.h"
 #include "SpotLightController.h"
 
@@ -58,8 +59,10 @@ private:
 	// entities MVC controllers
 	ModelController      modelController_;
 	SkyController        skyController_;
-	PointLightController pointLightController_;
-	SpotLightController  spotLightController_;
+
+    DirectedLightController directedLightController_;
+	PointLightController    pointLightController_;
+	SpotLightController     spotLightController_;
 
 	IFacadeEngineToUI* pFacade_ = nullptr;          // facade interface btw GUI and engine        
 	StatesGUI* pStatesGUI_ = nullptr;

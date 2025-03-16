@@ -245,6 +245,7 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClCompile Include="Sound\SoundClass.cpp" />
     <ClCompile Include="Timers\cpuclass.cpp" />
     <ClCompile Include="Engine\Engine.cpp" />
+    <ClCompile Include="UI\Editor\Entity\Controller\DirectedLightController.cpp" />
     <ClCompile Include="UI\Editor\Entity\Controller\EditorController.cpp" />
     <ClCompile Include="UI\Editor\Entity\Controller\ModelController.cpp" />
     <ClCompile Include="UI\Editor\Entity\Controller\PointLightController.cpp" />
@@ -336,6 +337,7 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClInclude Include="Tests\ECS\HelperTypes.h" />
     <ClInclude Include="Tests\ECS\TestUtils.h" />
     <ClInclude Include="UI\Editor\Debug\DebugEditor.h" />
+    <ClInclude Include="UI\Editor\Entity\Controller\DirectedLightController.h" />
     <ClInclude Include="UI\Editor\Entity\Controller\EditorController.h" />
     <ClInclude Include="UI\Editor\Entity\Controller\ModelController.h" />
     <ClInclude Include="UI\Editor\Entity\Controller\PointLightController.h" />

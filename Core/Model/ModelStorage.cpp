@@ -94,7 +94,7 @@ void ModelStorage::Serialize(ID3D11Device* pDevice)
 
 
     ModelStorageSerializer serializer;
-    const size numModels = GetNumAssets();
+    const size numModels = GetNumAssets() - 2;
     std::vector<std::string> relativePathsToAssets(numModels);
 
     serializer.WriteHeader(fout, numModels, lastModelID_);
@@ -168,7 +168,7 @@ void ModelStorage::Serialize(ID3D11Device* pDevice)
 
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double, std::milli> elapsed = end - start;
-    Log::Print("Export duration: " + std::to_string(elapsed.count()) + "ms");
+    Log::Print("Serialization duration: " + std::to_string(elapsed.count() * 0.001) + " sec");
 
     fout.close();
 
@@ -216,6 +216,8 @@ void ModelStorage::Deserialize(ID3D11Device* pDevice)
     {
         // load a model from the internal format
         ModelID loadedModelID = creator.CreateFromDE3D(pDevice, pathsToAssets[i]);
+
+        Assert::True(modelsIDs[i] == loadedModelID, std::format("ID ({}) of loaded model is not equal to the expected ({}) one", loadedModelID, modelsIDs[i]));
     }
 
     Log::Debug("deserialization: finished");
@@ -295,7 +297,9 @@ BasicModel& ModelStorage::GetModelByName(const std::string& name)
             return models_[i];
     }
 
-    return models_[0];                  // return empty model
+    // return empty model
+    Log::Error("there is no model by name: " + name);
+    return models_[0];                  
 }
 
 ///////////////////////////////////////////////////////////

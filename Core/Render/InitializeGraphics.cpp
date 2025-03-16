@@ -1290,7 +1290,37 @@ void CreateApartment(ECS::EntityMgr& mgr, const BasicModel& model)
 
 ///////////////////////////////////////////////////////////
 
-void CreateAK(ECS::EntityMgr& mgr, const BasicModel& model)
+void CreateAk47(ECS::EntityMgr& mgr, const BasicModel& model)
+{
+    Log::Debug();
+
+    const EntityID enttID = mgr.CreateEntity();
+
+    const XMFLOAT3 position  = { 10, 2, 10 };
+    const XMVECTOR dirQuat   = { 0, 0, 0, 1 };
+    const float uniformScale = 5.0f;
+
+    mgr.AddTransformComponent(enttID, position, dirQuat, uniformScale);
+    mgr.AddNameComponent(enttID, "ak_47");
+    mgr.AddModelComponent(enttID, model.GetID());
+    mgr.AddRenderingComponent(enttID);
+
+    // add bounding component to each subset of this entity
+    const size numEntts = 1;
+    const size numSubsets = model.GetNumSubsets();
+    const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
+
+    mgr.AddBoundingComponent(
+        &enttID,
+        1,
+        numSubsets,
+        boundTypes.data(),
+        model.GetSubsetsAABB());      // AABB data (center, extents)
+}
+
+///////////////////////////////////////////////////////////
+
+void CreateAk74(ECS::EntityMgr& mgr, const BasicModel& model)
 {
     Log::Debug();
 
@@ -1301,7 +1331,7 @@ void CreateAK(ECS::EntityMgr& mgr, const BasicModel& model)
     const float uniformScale = 5.0f;
 
     mgr.AddTransformComponent(enttID, position, dirQuat, uniformScale);
-    mgr.AddNameComponent(enttID, "ak");
+    mgr.AddNameComponent(enttID, "ak_74");
     mgr.AddModelComponent(enttID, model.GetID());
     mgr.AddRenderingComponent(enttID);
 
@@ -1486,7 +1516,7 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     ModelStorage& storage = *ModelStorage::Get();
 
     // paths to external models
-    //const std::string lightPolePath             = g_RelPathExtModelsDir + "light_pole/light_pole.obj";
+    const std::string lightPolePath             = g_RelPathExtModelsDir + "light_pole/light_pole.obj";
     const std::string treeSprucePath            = g_RelPathExtModelsDir + "trees/tree_spruce/tree_spruce.obj";
     const std::string treePinePath              = g_RelPathExtModelsDir + "trees/FBX format/tree_pine.fbx";
     //const std::string treeDubPath             = g_RelPathExtModelsDir + "trees/dub/dub.obj";
@@ -1494,10 +1524,10 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     const std::string barrelPath                = g_RelPathExtModelsDir + "Barrel1/Barrel1.obj";
     const std::string nanosuitPath              = g_RelPathExtModelsDir + "nanosuit/nanosuit.obj";
     const std::string stalkerFreedom1Path       = g_RelPathExtModelsDir + "stalker_freedom_1/stalker_freedom_1.fbx";
-   // const std::string stalkerHouseSmallPath     = g_RelPathExtModelsDir + "stalker/stalker-house/source/SmallHouse.fbx";
-   // const std::string stalkerHouseAbandonedPath = g_RelPathExtModelsDir + "stalker/abandoned-house-20/source/StalkerAbandonedHouse.fbx";
-    //const std::string ak47Path                  = g_RelPathExtModelsDir + "aks-74_game_ready/scene.gltf";
-    const std::string ak74uPath = g_RelPathExtModelsDir + "ak_74u/ak_74u.fbx";
+    const std::string stalkerHouseSmallPath     = g_RelPathExtModelsDir + "stalker/stalker-house/source/SmallHouse.fbx";
+    const std::string stalkerHouseAbandonedPath = g_RelPathExtModelsDir + "stalker/abandoned-house-20/source/StalkerAbandonedHouse.fbx";
+    const std::string ak47Path                  = g_RelPathExtModelsDir + "aks-74_game_ready/scene.gltf";
+    const std::string ak74uPath                 = g_RelPathExtModelsDir + "ak_74u/ak_74u.fbx";
 
     const std::string building9Path             = g_RelPathExtModelsDir + "building9/building9.obj";
     const std::string apartmentPath             = g_RelPathExtModelsDir + "Apartment/Apartment.obj";
@@ -1506,13 +1536,14 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     // import a model from file by path
     Log::Debug("Start of models importing");
 
-    //const ModelID lightPoleID      = creator.ImportFromFile(pDevice, lightPolePath);
-    const ModelID treeSpruceID = creator.ImportFromFile(pDevice, treeSprucePath);
-    const ModelID treePineID = creator.ImportFromFile(pDevice, treePinePath);
+    const ModelID lightPoleID      = creator.ImportFromFile(pDevice, lightPolePath);
+    const ModelID treeSpruceID     = creator.ImportFromFile(pDevice, treeSprucePath);
+    const ModelID treePineID       = creator.ImportFromFile(pDevice, treePinePath);
     const ModelID nanosuitID       = creator.ImportFromFile(pDevice, nanosuitPath);
     const ModelID stalkerFreedomID = creator.ImportFromFile(pDevice, stalkerFreedom1Path);
-    //const ModelID stalkerHouse1ID  = creator.ImportFromFile(pDevice, stalkerHouseSmallPath);
-    //const ModelID stalkerHouse2ID  = creator.ImportFromFile(pDevice, stalkerHouseAbandonedPath);
+    const ModelID stalkerHouse1ID  = creator.ImportFromFile(pDevice, stalkerHouseSmallPath);
+    const ModelID stalkerHouse2ID  = creator.ImportFromFile(pDevice, stalkerHouseAbandonedPath);
+    const ModelID ak47ID           = creator.ImportFromFile(pDevice, ak47Path);
     const ModelID ak74ID           = creator.ImportFromFile(pDevice, ak74uPath);
     const ModelID barrelID         = creator.ImportFromFile(pDevice, barrelPath);
     const ModelID powerHVTowerID   = creator.ImportFromFile(pDevice, powerHVTowerPath);
@@ -1536,19 +1567,20 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     BasicModel& powerHVTower    = storage.GetModelByID(powerHVTowerID);
     BasicModel& nanosuit        = storage.GetModelByID(nanosuitID);
     BasicModel& stalkerFreedom  = storage.GetModelByID(stalkerFreedomID);
-    //BasicModel& lightPole       = storage.GetModelByID(lightPoleID);
+    BasicModel& lightPole       = storage.GetModelByID(lightPoleID);
     BasicModel& barrel          = storage.GetModelByID(barrelID);
-    //BasicModel& stalkerHouse1   = storage.GetModelByID(stalkerHouse1ID);
-    //BasicModel& stalkerHouse2   = storage.GetModelByID(stalkerHouse2ID);
-    BasicModel& ak74 = storage.GetModelByID(ak74ID);
+    BasicModel& stalkerHouse1   = storage.GetModelByID(stalkerHouse1ID);
+    BasicModel& stalkerHouse2   = storage.GetModelByID(stalkerHouse2ID);
+    BasicModel& ak47            = storage.GetModelByID(ak47ID);
+    BasicModel& ak74            = storage.GetModelByID(ak74ID);
 
     // setup some models (set textures, setup materials)
-    //SetupStalkerSmallHouse(stalkerHouse1);
-    //SetupStalkerAbandonedHouse(stalkerHouse2);
+    SetupStalkerSmallHouse(stalkerHouse1);
+    SetupStalkerAbandonedHouse(stalkerHouse2);
     SetupTree(treePine);
     SetupPowerLine(powerHVTower);
     SetupBuilding9(building);
-   // SetupAk47(ak47);
+    SetupAk47(ak47);
 
     CreateTreesPine(mgr, treePine);
     CreateTreesSpruce(mgr, treeSpruce);
@@ -1557,7 +1589,8 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     //CreateHouse(mgr, stalkerHouse1);
     //CreateHouse2(mgr, stalkerHouse2);
 
-    CreateAK(mgr, ak74);
+    CreateAk47(mgr, ak47);
+    CreateAk74(mgr, ak74);
     CreateBarrel(mgr, barrel);
     CreateNanoSuit(mgr, nanosuit);
     CreateStalkerFreedom(mgr, stalkerFreedom);
@@ -1627,19 +1660,20 @@ void LoadAssets(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     storage.Deserialize(pDevice);
 
     // create and setup entities with models
-    CreateTreesPine   (mgr, storage.GetModelByName("tree_pine"));
-    CreateTreesSpruce (mgr, storage.GetModelByName("tree_spruce"));
-    CreatePowerLine   (mgr, storage.GetModelByName("Power_HV_Tower"));
-    CreateLightPoles  (mgr, storage.GetModelByName("light_pole"));
-    CreateHouse       (mgr, storage.GetModelByName("SmallHouse"));
-    CreateHouse2      (mgr, storage.GetModelByName("StalkerAbandonedHouse"));
-    CreateAK          (mgr, storage.GetModelByName("ak_47"));
+    //CreateTreesPine   (mgr, storage.GetModelByName("tree_pine"));
+    //CreateTreesSpruce (mgr, storage.GetModelByName("tree_spruce"));
+    //CreatePowerLine   (mgr, storage.GetModelByName("Power_HV_Tower"));
+    //CreateLightPoles  (mgr, storage.GetModelByName("light_pole"));
+    //CreateHouse       (mgr, storage.GetModelByName("SmallHouse"));
+    //CreateHouse2      (mgr, storage.GetModelByName("StalkerAbandonedHouse"));
+    //CreateAk47        (mgr, storage.GetModelByName("ak_47"));
+    //CreateAk74        (mgr, storage.GetModelByName("ak_74u"));
 
-    CreateBarrel      (mgr, storage.GetModelByName("Barrel1"));
-    CreateNanoSuit    (mgr, storage.GetModelByName("nanosuit"));
-    CreateBuilding    (mgr, storage.GetModelByName("building9"));
-    CreateApartment   (mgr, storage.GetModelByName("Apartment"));
-    CreateSovietStatue(mgr, storage.GetModelByName("sickle&hammer"));
+    //CreateBarrel      (mgr, storage.GetModelByName("Barrel1"));
+    //CreateNanoSuit    (mgr, storage.GetModelByName("nanosuit"));
+    //CreateBuilding    (mgr, storage.GetModelByName("building9"));
+    //CreateApartment   (mgr, storage.GetModelByName("Apartment"));
+    //CreateSovietStatue(mgr, storage.GetModelByName("sickle&hammer"));
 
     CreateStalkerFreedom(mgr, storage.GetModelByName("stalker_freedom_1"));
     
@@ -1839,44 +1873,6 @@ bool InitializeGraphics::InitializeModels(
 
 /////////////////////////////////////////////////
 
-bool InitializeGraphics::InitializeSprites(const UINT screenWidth,
-    const UINT screenHeight)
-{
-    Log::Debug();
-
-    const UINT crosshairWidth = 25;
-    const UINT crosshairHeight = crosshairWidth;
-    const char* animatedSpriteSetupFilename{ "data/models/sprite_data_01.txt" };
-    const char* crosshairSpriteSetupFilename{ "data/models/sprite_crosshair.txt" };
-
-    ////////////////////////////////////////////////
-
-#if 0
-
-    // initialize an animated sprite
-    pGameObj = pRenderableGameObjCreator_->Create2DSprite(animatedSpriteSetupFilename,
-        "animated_sprite",
-        { 0, 500 },
-        screenWidth, screenHeight);
-
-
-    ////////////////////////////////////////////////
-    // compute a crosshair's center location
-    POINT renderCrossAt{ screenWidth / 2 - crosshairWidth, screenHeight / 2 - crosshairHeight };
-
-    // initialize a crosshair
-    pGameObj = pRenderableGameObjCreator_->Create2DSprite(crosshairSpriteSetupFilename,
-        "sprite_crosshair",
-        renderCrossAt,
-        screenWidth, screenHeight);
-#endif
-
-    return true;
-
-}
-
-/////////////////////////////////////////////////
-
 bool InitializeGraphics::InitializeLightSources(
     ECS::EntityMgr& mgr,
     const Settings& settings)
@@ -1929,11 +1925,20 @@ bool InitializeGraphics::InitializeLightSources(
 
         // create directional light entities and add a light component to them
         std::vector<EntityID> dirLightsIds = mgr.CreateEntities(numDirLights);
+
         mgr.AddLightComponent(dirLightsIds, dirLightsParams);
         mgr.AddNameComponent(dirLightsIds, { "dir_light_1", "dir_light_2", "dir_light_3" });
+
+        // add transform component to each directed light because we may need to manipulate directed lights icons (in editor we can change icons positions in the scene) or manipulate light direction
+        for (index i = 0; i < std::ssize(dirLightsIds); ++i)
+        {
+            const XMFLOAT3 pos = { 3, 3, (float)i };
+            const XMFLOAT3 dir = dirLightsParams.directions[i];
+            const XMVECTOR dirQuat = { dir.x, dir.y, dir.z };
+            mgr.AddTransformComponent(dirLightsIds[i], pos, dirQuat, 1.0f);
+        }
     }
 
-    
 
     // -----------------------------------------------------------------------------
     //                    POINT LIGHTS: SETUP AND CREATE

@@ -19,24 +19,24 @@ namespace UI
 class PointLightController
 {
 public:
-	PointLightController();
+    PointLightController() {};
 
 	void Initialize(IFacadeEngineToUI* pFacade);
-	void LoadEnttData(const uint32_t enttID);
+	void LoadEnttData(const EntityID id);
 
-	void ExecuteCommand(const ICommand* pCmd, const uint32_t enttID);
-	void UndoCommand   (const ICommand* pCmd, const uint32_t enttID);
+	void ExecuteCommand(const ICommand* pCmd, const EntityID id);
+	void UndoCommand   (const ICommand* pCmd, const EntityID id);
 
 	inline const ModelEntityPointLight& GetModel() const { return pointLightModel_; }
 
 private:
 	// change entt point light props
-	void ExecChangeAmbient    (const uint32_t enttID, const ColorRGBA& ambient);
-	void ExecChangeDiffuse    (const uint32_t enttID, const ColorRGBA& diffuse);
-	void ExecChangeSpecular   (const uint32_t enttID, const ColorRGBA& specular);
-	void ExecChangePos        (const uint32_t enttID, const Vec3& pos);
-	void ExecChangeRange      (const uint32_t enttID, const float range);
-	void ExecChangeAttenuation(const uint32_t enttID, const Vec3& att);
+	void ExecChangeAmbient    (const EntityID id, const ColorRGBA& ambient);
+	void ExecChangeDiffuse    (const EntityID id, const ColorRGBA& diffuse);
+	void ExecChangeSpecular   (const EntityID id, const ColorRGBA& specular);
+	void ExecChangePos        (const EntityID id, const Vec3& pos);
+	void ExecChangeRange      (const EntityID id, const float range);
+	void ExecChangeAttenuation(const EntityID id, const Vec3& att);
 
 private:
 	ModelEntityPointLight pointLightModel_;

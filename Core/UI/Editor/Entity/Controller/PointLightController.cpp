@@ -15,12 +15,6 @@
 namespace UI
 {
 
-PointLightController::PointLightController()
-{
-}
-
-///////////////////////////////////////////////////////////
-
 void PointLightController::Initialize(IFacadeEngineToUI* pFacade)
 {
 	// the facade interface is used to contact with the rest of the engine
@@ -30,110 +24,114 @@ void PointLightController::Initialize(IFacadeEngineToUI* pFacade)
 
 ///////////////////////////////////////////////////////////
 	
-void PointLightController::LoadEnttData(const uint32_t enttID)
+void PointLightController::LoadEnttData(const EntityID id)
 {
 	// load/reload data of currently selected entity by ID (which is a point light source)
 	ModelEntityPointLight& model = pointLightModel_;
 
-	pFacade_->GetEnttPointLightData(
-		enttID,
+	if (!pFacade_ || !pFacade_->GetEnttPointLightData(
+		id,
 		model.data_.ambient,
 		model.data_.diffuse,
 		model.data_.specular,
 		model.data_.position,
 		model.data_.range,
-		model.data_.attenuation);
+		model.data_.attenuation))
+    {
+        Core::Log::Error("can't load data of the point light entity by ID: " + std::to_string(id));
+    }
 }
 
 ///////////////////////////////////////////////////////////
 
-void PointLightController::ExecuteCommand(const ICommand* pCmd,	const uint32_t enttID)
+void PointLightController::ExecuteCommand(const ICommand* pCmd,	const EntityID id)
 {
 	switch (pCmd->type_)
 	{
 		case CHANGE_POINT_LIGHT_AMBIENT:
 		{
-			ExecChangeAmbient(enttID, pCmd->GetColorRGBA());
+			ExecChangeAmbient(id, pCmd->GetColorRGBA());
 			break;
 		}
 		case CHANGE_POINT_LIGHT_DIFFUSE:
 		{
-			ExecChangeDiffuse(enttID, pCmd->GetColorRGBA());
+			ExecChangeDiffuse(id, pCmd->GetColorRGBA());
 			break;
 		}
 		case CHANGE_POINT_LIGHT_SPECULAR:
 		{
-			ExecChangeSpecular(enttID, pCmd->GetColorRGBA());
+			ExecChangeSpecular(id, pCmd->GetColorRGBA());
 			break;
 		}
 		case CHANGE_POINT_LIGHT_POSITION:
 		{
-			ExecChangePos(enttID, pCmd->GetVec3());
+			ExecChangePos(id, pCmd->GetVec3());
 			break;
 		}
 		case CHANGE_POINT_LIGHT_RANGE:
 		{
-			ExecChangeRange(enttID, pCmd->GetFloat());
+			ExecChangeRange(id, pCmd->GetFloat());
 			break;
 		}
 		case CHANGE_POINT_LIGHT_ATTENUATION:
 		{
-			ExecChangeAttenuation(enttID, pCmd->GetVec3());
+			ExecChangeAttenuation(id, pCmd->GetVec3());
 			break;
 		}
+        default:
+        {
+            Core::Log::Error("unknown type of command: " + pCmd->type_);
+        }
 	}
 }
 
 ///////////////////////////////////////////////////////////
 
-void PointLightController::UndoCommand(const ICommand* pCmd, const uint32_t enttID)
+void PointLightController::UndoCommand(const ICommand* pCmd, const EntityID id)
 {
 	// "undo" the change of point light entity by ID according to the input command;
-	// we simple do the reverse command 
-	// (for instance: we changed pos from <0,0,0> to <10, 10, 10> so when undo we
-	// execute command to change pos by <-10,-10,-10>)
 
 	switch (pCmd->type_)
 	{
 		case CHANGE_POINT_LIGHT_AMBIENT:
 		{
-			if (pFacade_->SetPointLightAmbient(enttID, pCmd->GetColorRGBA()))  // update entity
-				pointLightModel_.data_.ambient = pCmd->GetColorRGBA();              // update editor fields
+			if (pFacade_->SetPointLightAmbient(id, pCmd->GetColorRGBA()))  // update entity
+				pointLightModel_.data_.ambient = pCmd->GetColorRGBA();         // update editor fields
 			break;
 		}
 		case CHANGE_POINT_LIGHT_DIFFUSE:
 		{
-			if (pFacade_->SetPointLightDiffuse(enttID, pCmd->GetColorRGBA()))  // update entity
-				pointLightModel_.data_.diffuse = pCmd->GetColorRGBA();              // update editor fields
+			if (pFacade_->SetPointLightDiffuse(id, pCmd->GetColorRGBA()))  // update entity
+				pointLightModel_.data_.diffuse = pCmd->GetColorRGBA();         // update editor fields
 			break;
 		}
 		case CHANGE_POINT_LIGHT_SPECULAR:
 		{
-			if (pFacade_->SetPointLightSpecular(enttID, pCmd->GetColorRGBA())) // update entity
-				pointLightModel_.data_.specular = pCmd->GetColorRGBA();             // update editor fields
+			if (pFacade_->SetPointLightSpecular(id, pCmd->GetColorRGBA())) // update entity
+				pointLightModel_.data_.specular = pCmd->GetColorRGBA();        // update editor fields
 			break;
 		}
 		case CHANGE_POINT_LIGHT_POSITION:
 		{
-			if (pFacade_->SetPointLightPos(enttID, pCmd->GetVec3()))           // update entity
-				pointLightModel_.data_.position = pCmd->GetVec3();                  // update editor fields
+			if (pFacade_->SetPointLightPos(id, pCmd->GetVec3()))           // update entity
+				pointLightModel_.data_.position = pCmd->GetVec3();             // update editor fields
 			break;
 		}
 		case CHANGE_POINT_LIGHT_RANGE:
 		{
-			if (pFacade_->SetPointLightRange(enttID, pCmd->GetFloat()))        // update entity
-				pointLightModel_.data_.range = pCmd->GetFloat();                    // update editor fields
+			if (pFacade_->SetPointLightRange(id, pCmd->GetFloat()))        // update entity
+				pointLightModel_.data_.range = pCmd->GetFloat();               // update editor fields
 			break;
 		}
 		case CHANGE_POINT_LIGHT_ATTENUATION:
 		{
-			if (pFacade_->SetPointLightAttenuation(enttID, pCmd->GetVec3()))   // update entity
-				pointLightModel_.data_.attenuation = pCmd->GetVec3();               // update editor fields
+			if (pFacade_->SetPointLightAttenuation(id, pCmd->GetVec3()))   // update entity
+				pointLightModel_.data_.attenuation = pCmd->GetVec3();          // update editor fields
 			break;
 		}
 		default:
 		{
-			Core::Log::Error("unknown undo command for entity (point light): " + std::to_string(enttID));
+			Core::Log::Error("unknown undo command for entity (point light): " + std::to_string(id));
 			return;
 		}
 	}
@@ -145,11 +143,25 @@ void PointLightController::UndoCommand(const ICommand* pCmd, const uint32_t entt
 // (execute some change of point light source and store this event into history)
 // =================================================================================
 
-void PointLightController::ExecChangeAmbient(const uint32_t enttID, const ColorRGBA& ambient)
+static std::string GenerateMsgForHistory(const EntityID id, const std::string& propertyName)
 {
-	const ColorRGBA& oldAmbient = pFacade_->GetPointLightAmbient(enttID);
+    return "changed " + propertyName + " of entt (type: point light; id: " + std::to_string(id) + ")";
+}
 
-	if (pFacade_->SetPointLightAmbient(enttID, ambient))
+///////////////////////////////////////////////////////////
+
+static std::string GenerateErrMsg(const EntityID id, const std::string& propertyName)
+{
+    return "can't change " + propertyName + " of entt (type: point light; id: " + std::to_string(id) + ")";
+}
+
+///////////////////////////////////////////////////////////
+
+void PointLightController::ExecChangeAmbient(const EntityID id, const ColorRGBA& ambient)
+{
+	const ColorRGBA& oldAmbient = pFacade_->GetPointLightAmbient(id);
+
+	if (pFacade_->SetPointLightAmbient(id, ambient))
 	{
 		// update editor fields
 		pointLightModel_.data_.ambient = ambient;
@@ -157,22 +169,22 @@ void PointLightController::ExecChangeAmbient(const uint32_t enttID, const ColorR
 		// generate an "undo" command and store it into the history
 		gEventsHistory.Push(
 			CmdChangeColor(CHANGE_POINT_LIGHT_AMBIENT, oldAmbient),
-			std::format("changed ambient of entt (type: point light; id: {})", enttID),
-			enttID);
+            GenerateMsgForHistory(id, "ambient"),
+			id);
 	}
 	else
 	{
-		Core::Log::Error(std::format("can't change ambient of entt (type: point light; id: {})", enttID));
+        Core::Log::Error(GenerateErrMsg(id, "ambient"));
 	}
 }
 
 ///////////////////////////////////////////////////////////
 
-void PointLightController::ExecChangeDiffuse(const uint32_t enttID, const ColorRGBA& diffuse)
+void PointLightController::ExecChangeDiffuse(const EntityID id, const ColorRGBA& diffuse)
 {
-	const ColorRGBA& oldDiffuse = pFacade_->GetPointLightDiffuse(enttID);
+	const ColorRGBA& oldDiffuse = pFacade_->GetPointLightDiffuse(id);
 
-	if (pFacade_->SetPointLightDiffuse(enttID, diffuse))
+	if (pFacade_->SetPointLightDiffuse(id, diffuse))
 	{
 		// update editor fields
 		pointLightModel_.data_.diffuse = diffuse;
@@ -180,22 +192,22 @@ void PointLightController::ExecChangeDiffuse(const uint32_t enttID, const ColorR
 		// generate an "undo" command and store it into the history
 		gEventsHistory.Push(
 			CmdChangeColor(CHANGE_POINT_LIGHT_DIFFUSE, oldDiffuse),
-			std::format("changed diffuse of entt (type: point light; id: {})", enttID),
-			enttID);
+            GenerateMsgForHistory(id, "diffuse"),
+			id);
 	}
 	else
 	{
-		Core::Log::Error(std::format("can't change diffuse of entt (type: point light; id: {})", enttID));
+        Core::Log::Error(GenerateErrMsg(id, "diffuse"));
 	}
 }
 
 ///////////////////////////////////////////////////////////
 
-void PointLightController::ExecChangeSpecular(const uint32_t enttID, const ColorRGBA& specular)
+void PointLightController::ExecChangeSpecular(const EntityID id, const ColorRGBA& specular)
 {
-	const ColorRGBA& oldSpecular = pFacade_->GetPointLightSpecular(enttID);
+	const ColorRGBA& oldSpecular = pFacade_->GetPointLightSpecular(id);
 
-	if (pFacade_->SetPointLightSpecular(enttID, specular))
+	if (pFacade_->SetPointLightSpecular(id, specular))
 	{
 		// update editor fields
 		pointLightModel_.data_.specular = specular;
@@ -203,22 +215,22 @@ void PointLightController::ExecChangeSpecular(const uint32_t enttID, const Color
 		// generate an "undo" command and store it into the history
 		gEventsHistory.Push(
 			CmdChangeColor(CHANGE_POINT_LIGHT_SPECULAR, oldSpecular),
-			std::format("changed specular of entt (type: point light; id: {})", enttID),
-			enttID);
+            GenerateMsgForHistory(id, "specular"),
+			id);
 	}
 	else
 	{
-		Core::Log::Error(std::format("can't change specular of entt (type: point light; id: {})", enttID));
+        Core::Log::Error(GenerateErrMsg(id, "specular"));
 	}
 }
 
 ///////////////////////////////////////////////////////////
 
-void PointLightController::ExecChangePos(const uint32_t enttID, const Vec3& pos)
+void PointLightController::ExecChangePos(const EntityID id, const Vec3& pos)
 {
-	const Vec3 oldPos = pFacade_->GetPointLightPos(enttID);
+	const Vec3 oldPos = pFacade_->GetPointLightPos(id);
 
-	if (pFacade_->SetPointLightPos(enttID, pos))
+	if (pFacade_->SetPointLightPos(id, pos))
 	{
 		// update editor fields	
 		pointLightModel_.data_.position = pos;
@@ -226,22 +238,22 @@ void PointLightController::ExecChangePos(const uint32_t enttID, const Vec3& pos)
 		// generate an "undo" command and store it into the history
 		gEventsHistory.Push(
 			CmdChangeVec3(CHANGE_POINT_LIGHT_POSITION, oldPos),
-			std::format("changed position of entt (type: point light; id: {})", enttID),
-			enttID);
+            GenerateMsgForHistory(id, "position"),
+			id);
 	}
 	else
 	{
-		Core::Log::Error(std::format("can't change position of entt (type: point light; id: {})", enttID));
+        Core::Log::Error(GenerateErrMsg(id, "position"));
 	}
 }
 
 ///////////////////////////////////////////////////////////
 
-void PointLightController::ExecChangeRange(const uint32_t enttID, const float range)
+void PointLightController::ExecChangeRange(const EntityID id, const float range)
 {
-	const float oldRange = pFacade_->GetPointLightRange(enttID);
+	const float oldRange = pFacade_->GetPointLightRange(id);
 
-	if (pFacade_->SetPointLightRange(enttID, range))
+	if (pFacade_->SetPointLightRange(id, range))
 	{
 		// update editor fields
 		pointLightModel_.data_.range = range;
@@ -249,22 +261,22 @@ void PointLightController::ExecChangeRange(const uint32_t enttID, const float ra
 		// generate an "undo" command and store it into the history
 		gEventsHistory.Push(
 			CmdChangeFloat(CHANGE_POINT_LIGHT_RANGE, oldRange),
-			std::format("changed range of entt (type: point light; id: {})", enttID),
-			enttID);
+            GenerateMsgForHistory(id, "range"),
+			id);
 	}
 	else
 	{
-		Core::Log::Error(std::format("can't change range of entt (type: point light; id: {})", enttID));
+        Core::Log::Error(GenerateErrMsg(id, "range"));
 	}
 }
 
 ///////////////////////////////////////////////////////////
 
-void PointLightController::ExecChangeAttenuation(const uint32_t enttID, const Vec3& att)
+void PointLightController::ExecChangeAttenuation(const EntityID id, const Vec3& att)
 {
-	const Vec3 oldAttenuation = pFacade_->GetPointLightAttenuation(enttID);
+	const Vec3 oldAttenuation = pFacade_->GetPointLightAttenuation(id);
 
-	if (pFacade_->SetPointLightAttenuation(enttID, att))
+	if (pFacade_->SetPointLightAttenuation(id, att))
 	{
 		// update editor fields
 		pointLightModel_.data_.attenuation = att;
@@ -272,12 +284,12 @@ void PointLightController::ExecChangeAttenuation(const uint32_t enttID, const Ve
 		// generate an "undo" command and store it into the history
 		gEventsHistory.Push(
 			CmdChangeVec3(CHANGE_POINT_LIGHT_ATTENUATION, oldAttenuation),
-			std::format("changed attenuation of entt (type: point light; id: {})", enttID),
-			enttID);
+            GenerateMsgForHistory(id, "attenuation"),
+			id);
 	}
 	else
 	{
-		Core::Log::Error(std::format("can't change attenuation of entt (type: point light; id: {})", enttID));
+        Core::Log::Error(GenerateErrMsg(id, "attenuation"));
 	}
 }
 

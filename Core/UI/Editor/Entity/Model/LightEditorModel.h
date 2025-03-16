@@ -16,15 +16,48 @@ namespace UI
 {
 
 // =================================================================================
-// Directed light (sun)
+// Directed light data (for instance: sun)
 // =================================================================================
+
+struct DirectedLightData
+{
+    ColorRGBA ambient;
+    ColorRGBA diffuse;
+    ColorRGBA specular;
+    Vec3      direction;
+};
+
+///////////////////////////////////////////////////////////
 
 class ModelEntityDirLight 
 {
+public:
+    DirectedLightData data_;
+
+public:
+    inline void SetData(
+        const ColorRGBA& ambient,
+        const ColorRGBA& diffuse,
+        const ColorRGBA& specular,
+        const Vec3& direction)
+    {
+        data_.ambient   = ambient;
+        data_.diffuse   = diffuse;
+        data_.specular  = specular;
+        data_.direction = direction;
+    }
+
+    // ----------------------------------------------------
+
+    inline void GetData(DirectedLightData& outData) const
+    {
+        outData = data_;
+    }
 };
 
+
 // =================================================================================
-// Point light (light bulb, candle)
+// Point light data (for instance: light bulb, candle)
 // =================================================================================
 
 struct PointLightData
@@ -69,8 +102,9 @@ public:
 	}
 };
 
+
 // =================================================================================
-// Spotlight
+// Spotlight data (for instance: flashlight)
 // =================================================================================
 
 struct SpotLightData
@@ -101,7 +135,7 @@ public:
 		const ColorRGBA& diffuse,
 		const ColorRGBA& specular,
 		const Vec3& pos,
-		const Vec4& directionQuat,
+		const Vec3& direction,
 		const Vec3& attenuation,
 		const float range,
 		const float spotExp)
@@ -110,11 +144,13 @@ public:
 		data_.diffuse     = diffuse;
 		data_.specular    = specular;
 		data_.position    = pos;
+        data_.direction   = direction;
 		data_.attenuation = attenuation;
 		data_.range       = range;
 		data_.spotExp     = spotExp;
+        
 
-		SetRotation(directionQuat);
+		//SetRotation(directionQuat);
 	}
 
 	// ----------------------------------------------------
@@ -134,7 +170,6 @@ public:
 	inline void GetData(SpotLightData& outData) const
 	{
 		outData = data_;
-		outData.direction = Vec3(0, 0, 0);
 	}
 };
 

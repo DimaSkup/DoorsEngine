@@ -41,7 +41,8 @@ void ViewEntityModel::Render(const ModelEntity& data)
 	//
 	if (ImGui::DragFloat3("Position", position.xyz, 0.005f, -FLT_MAX, +FLT_MAX))
 	{
-		pController_->Execute(new CmdChangeVec3(CHANGE_MODEL_POSITION, position));
+        CmdChangeVec3 cmd(CHANGE_MODEL_POSITION, position);
+		pController_->Execute(&cmd);
 	}
 
 	std::string pitchInfo = std::to_string(data.GetPitchInDeg());
@@ -55,7 +56,8 @@ void ViewEntityModel::Render(const ModelEntity& data)
 
 	if (ImGui::SliderFloat("Uniform scale", &uniformScale, 0.1f, 20))
 	{
-		pController_->Execute(new CmdChangeFloat(CHANGE_MODEL_SCALE, uniformScale));
+        CmdChangeFloat cmd(CHANGE_MODEL_SCALE, uniformScale);
+		pController_->Execute(&cmd);
 	}
 }
 

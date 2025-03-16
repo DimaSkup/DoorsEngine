@@ -8,11 +8,8 @@
 #pragma once
 
 #include "../Common/log.h"
-#include "../Common/Utils.h"
 #include "../Components/Transform.h"
-#include "../Components/WorldMatrix.h"
 
-#include <set>
 #include <fstream>
 
 namespace ECS
@@ -30,11 +27,12 @@ public:
 	void Serialize(std::ofstream& fout, u32& offset);
 	void Deserialize(std::ifstream& fin, const u32 offset);
 
-	void AddRecords(
-		const std::vector<EntityID>& enttsIDs, 
-		const std::vector<XMFLOAT3>& positions,
-		const std::vector<XMVECTOR>& dirQuats,      // direction quaternions
-		const std::vector<float>& uniformScales);
+    void AddRecords(
+        const EntityID* ids,
+        const XMFLOAT3* positions,
+        const XMVECTOR* dirQuats,      // direction quaternions
+        const float* uniformScales,
+        const size numElems);
 
 	void RemoveRecords(const std::vector<EntityID>& enttsIDs);
 
@@ -62,25 +60,6 @@ public:
 		XMVECTOR& dirQuat,
 		float& uniformScale);
 
-	void GetPositionsAndRotations(
-		const std::vector<EntityID>& ids,
-		std::vector<XMFLOAT3>& positions,
-		std::vector<XMVECTOR>& dirQuats);
-	
-	void GetTransformDataOfEntts(
-		const std::vector<EntityID>& enttsIDs,
-		std::vector<index>& outDataIdxs,
-		std::vector<XMFLOAT3>& outPositions,
-		std::vector<XMVECTOR>& outDirQuats,      // direction quaternions
-		std::vector<float>& outUniformScales);
-
-	void GetTransformDataByDataIdxs(
-		std::vector<index>& dataIdxs,
-		std::vector<XMFLOAT3>& outPositions,
-		std::vector<XMVECTOR>& outDirQuats,      // direction quaternions
-		std::vector<float>& outUniformScales);
-
-	
 	DirectX::XMMATRIX GetWorldMatrixOfEntt(const EntityID id);
 
 	void GetWorldMatricesOfEntts(
@@ -107,21 +86,11 @@ public:
 		const XMVECTOR& newRotation,
 		const float newScale);
 
-	void SetTransformDataByIDs(
-		const std::vector<EntityID>& enttsIDs,
-		const std::vector<XMVECTOR>& positions,
-		const std::vector<XMVECTOR>& dirQuats,      // direction quaternions
-		const std::vector<float>& uniformScales);
-
-	void SetTransformDataByDataIdxs(
-		const cvector<index>& dataIdxs,
-		const std::vector<XMVECTOR>& newPositions,
-		const std::vector<XMVECTOR>& newDirQuats,
-		const std::vector<float>& newUniformScales);
-
-	void SetWorldMatricesByIDs(
-		const std::vector<EntityID>& enttsIDs,
-		const std::vector<XMMATRIX>& newWorldMatrices);
+    void SetTransformDataByDataIdxs(
+        const cvector<index>& idxs,
+        const cvector<XMVECTOR>& newPositions,
+        const cvector<XMVECTOR>& newDirQuats,
+        const cvector<float>& newUniformScales);
 
 	void SetWorldMatricesByDataIdxs(
 		const std::vector<index>& dataIdxs,
@@ -129,22 +98,12 @@ public:
 
 
 private:
-	void AddRecordsToTransformComponent(
-		const std::vector<EntityID>& enttsIDs,
-		const std::vector<XMFLOAT3>& positions,
-		const std::vector<XMVECTOR>& dirQuats,      // direction quaternions
-		const std::vector<float>& uniformScales);
-
-	void AddRecordsToWorldMatrixComponent(
-		const std::vector<EntityID>& enttsIDs,
-		const std::vector<XMFLOAT3>& positions,
-		const std::vector<XMVECTOR>& dirQuats,      // direction quaternions
-		const std::vector<float>& uniformScales);
-
-	void AddRecordsToWorldMatrixComponent(
-		const std::vector<EntityID>& enttsIDs,
-		const std::vector<XMFLOAT4>& posAndUniformScales,
-		const std::vector<XMVECTOR>& dirQuats);     // direction quaternions
+    void AddRecordsToTransformComponent(
+        const EntityID* ids,
+        const XMFLOAT3* positions,
+        const XMVECTOR* dirQuats,      // direction quaternions
+        const float* uniformScales,
+        const size numElems);
 
 	// ---------------------------------------------
 

@@ -8,7 +8,7 @@
 #include "../Common/Assert.h"
 #include "../Common/Utils.h"
 #include "../Common/MathHelper.h"
-#include <format>
+//#include <format>
 
 using namespace DirectX;
 
@@ -25,6 +25,38 @@ LightSystem::~LightSystem()
 {
 }
 
+
+// =================================================================================
+// private API: common helpers
+// =================================================================================
+std::string GenerateMsgNoEntity(const EntityID id, const std::string& lightTypename)
+{
+    return { "there is no " + lightTypename + " light entity by ID: " + std::to_string(id) };
+}
+
+///////////////////////////////////////////////////////////
+
+std::string GenerateMsgUnknownProperty(
+    const EntityID id,
+    const int propertyCode,
+    const std::string& lightTypename)
+{
+    return {
+        "unknown type of " + lightTypename +
+        " light property (entt id: " + std::to_string(id) +
+        ", type: " + std::to_string(propertyCode) + ")" };
+}
+
+///////////////////////////////////////////////////////////
+
+XMFLOAT4 GetLightPropInvalidData()
+{
+    // if we ask for wrong light entity of wrong property we just return this data
+    return { FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX };
+}
+
+
+
 // =================================================================================
 // public API: creation
 // =================================================================================
@@ -35,7 +67,7 @@ void LightSystem::AddDirLights(
 {
 	// add new directional light sources
 
-	CheckInputParams(ids, params);
+	//CheckInputParams(ids, params);
 	
 	Light& comp = *pLightComponent_;
 	DirLights& lights = GetDirLights();
@@ -158,18 +190,43 @@ void LightSystem::AddSpotLights(
 // =================================================================================
 // public API: get/set directed light properties
 // =================================================================================
+bool LightSystem::GetDirectedLightData(EntityID id, ECS::DirLight& outDirLight) const
+{
+    // out:    data of a point light source entity by ID
+    // return: true - if there is such an entity by ID; false - in another case;
 
-void LightSystem::SetDirLightProp(
+    DirLights& lights = GetDirLights();
+    const index idx = GetIdxByID(lights.ids_, id);
+
+    // if we didn't find any entt by input ID
+    if (idx == -1)
+    {
+        Log::Error(GenerateMsgNoEntity(id, "directed"));
+        return false;
+    }
+
+    outDirLight = lights.data_[idx];
+    return true;
+}
+
+///////////////////////////////////////////////////////////
+
+bool LightSystem::SetDirLightProp(
 	const EntityID id,
 	const LightProps prop,
 	const XMFLOAT4& value)
 {
-	CheckIdExist(id, "there is no light source by id: " + std::to_string(id));
-
 	DirLights& lights = GetDirLights();
 	const index idx   = Utils::GetIdxInSortedArr(lights.ids_, id);
-	DirLight& light   = lights.data_[idx];
 
+    // if there is no entity by such ID we cannot update any data so return false
+    if (id == -1)
+    {
+        Log::Error(GenerateMsgNoEntity(id, "directed"));
+        return false;
+    }
+
+	DirLight& light = lights.data_[idx];
 
 	switch (prop)
 	{
@@ -190,22 +247,30 @@ void LightSystem::SetDirLightProp(
 		}
 		default:
 		{
-			throw LIB_Exception("unknown type of directed light property: " + std::to_string(prop));
+            Log::Error(GenerateMsgUnknownProperty(id, prop, "directed"));
+            return false;
 		}
 	}
+
+    return true;
 }
 
 ///////////////////////////////////////////////////////////
 
-void LightSystem::SetDirLightProp(
+bool LightSystem::SetDirLightProp(
 	const EntityID id,
 	const LightProps prop,
 	const XMFLOAT3& value)
 {
-	CheckIdExist(id, "there is no light source by id: " + std::to_string(id));
-
 	DirLights& lights = GetDirLights();
 	const ptrdiff_t idx = Utils::GetIdxInSortedArr(lights.ids_, id);
+
+    // if there is no entity by such ID we cannot update any data so return false
+    if (id == -1)
+    {
+        Log::Error(GenerateMsgNoEntity(id, "directed"));
+        return false;
+    }
 
 	// maybe there will be more props of XMFLOAT3 type so...
 	switch (prop)
@@ -217,24 +282,63 @@ void LightSystem::SetDirLightProp(
 		}
 		default:
 		{
-			throw LIB_Exception("unknown type of directed light property: " + std::to_string(prop));
+            Log::Error(GenerateMsgUnknownProperty(id, prop, "directed"));
+            return false;
 		}
 	}
+
+    return true;
 }
 
 ///////////////////////////////////////////////////////////
 
 XMFLOAT4 LightSystem::GetDirLightProp(const EntityID id, const LightProps prop)
 {
-	assert(0 && "TODO");
-	return GetLightPropInvalidData();
+	// get a property of the directed light entity by ID
+
+    DirLights& lights = GetDirLights();
+    const index idx = GetIdxByID(lights.ids_, id);
+
+    if (idx == -1)
+    {
+        // return invalid data since we didn't find any entity by input ID
+        Log::Error(GenerateMsgNoEntity(id, "directed"));
+        return GetLightPropInvalidData();
+    }
+
+    DirLight& light = lights.data_[idx];
+
+    switch (prop)
+    {
+        case AMBIENT:
+        {
+            return light.ambient_;
+        }
+        case DIFFUSE:
+        {
+            return light.diffuse_;
+        }
+        case SPECULAR:
+        {
+            return light.specular_;
+        }
+        case DIRECTION:
+        {
+            const XMFLOAT3& dir = light.direction_;
+            return { dir.x, dir.y, dir.z, 0.0f };
+        }
+        default:
+        {
+            Log::Error(GenerateMsgUnknownProperty(id, prop, "directed"));
+            return GetLightPropInvalidData();
+        }
+    }
 }
 
 
 // =================================================================================
 // public API: get/set point light properties
 // =================================================================================
-
 bool LightSystem::GetPointLightData(
 	const EntityID* ids,
 	ECS::PointLight* outData,
@@ -267,7 +371,7 @@ bool LightSystem::GetPointLightData(const EntityID id, ECS::PointLight& outPoint
 	// if we didn't find any entt by input ID
 	if (idx == -1)
 	{
-		Log::Error("there is no point light entity by ID: " + std::to_string(id));
+        Log::Error(GenerateMsgNoEntity(id, "point"));
 		return false;
 	}
 
@@ -287,7 +391,7 @@ XMFLOAT4 LightSystem::GetPointLightProp(const EntityID id, const LightProps prop
 	if (idx == -1)
 	{
 		// return invalid data since we didn't find any entity by input ID
-		Log::Error("there is no point light entity by id: " + std::to_string(id));
+        Log::Error(GenerateMsgNoEntity(id, "point"));
 		return GetLightPropInvalidData();
 	}
 
@@ -325,8 +429,8 @@ XMFLOAT4 LightSystem::GetPointLightProp(const EntityID id, const LightProps prop
 		}
 		default:
 		{
-			Log::Error(std::format("unknown type of point light property (entt id: {}, type: {})", id, (int)prop));
-			return GetLightPropInvalidData();
+            Log::Error(GenerateMsgUnknownProperty(id, prop, "point"));
+            return GetLightPropInvalidData();
 		}
 	}
 }
@@ -343,7 +447,7 @@ bool LightSystem::SetPointLightProp(
 	// if there is no entity by such ID we cannot update any data so return false
 	if (id == -1)
 	{
-		Log::Error("there is no point light entity by ID: " + std::to_string(id));
+        Log::Error(GenerateMsgNoEntity(id, "point"));
 		return false;
 	}
 		
@@ -378,8 +482,8 @@ bool LightSystem::SetPointLightProp(
 		}
 		default:
 		{
-			Log::Error(std::format("unknown type of point light property (entt id: {}, type: {})", id, (int)prop));
-			return false;
+            Log::Error(GenerateMsgUnknownProperty(id, prop, "point"));
+            return false;
 		}
 	}
 
@@ -400,7 +504,7 @@ bool LightSystem::SetPointLightProp(
 	// if there is no entity by such ID we cannot update any data so return false
 	if (id == -1)
 	{
-		Log::Error("there is no point light entity by ID: " + std::to_string(id));
+        Log::Error(GenerateMsgNoEntity(id, "point"));
 		return false;
 	}
 
@@ -416,7 +520,7 @@ bool LightSystem::SetPointLightProp(
 		}
 		default:
 		{
-			Log::Error(std::format("unknown type of point light property (entt id: {}, type: {})", id, (int)prop));
+            Log::Error(GenerateMsgUnknownProperty(id, prop, "point"));
 			return false;
 		}
 	}
@@ -429,7 +533,6 @@ bool LightSystem::SetPointLightProp(
 // =================================================================================
 // public API: get/set spotlight properties
 // =================================================================================
-
 bool LightSystem::GetSpotLightData(const EntityID id, ECS::SpotLight& outSpotlight) const
 {
 	// out:    spotlight data of entity by ID
@@ -441,7 +544,7 @@ bool LightSystem::GetSpotLightData(const EntityID id, ECS::SpotLight& outSpotlig
 	// if we didn't find any entt by input ID
 	if (idx == -1)
 	{
-		Log::Error("there is no spotlight entity by ID: " + std::to_string(id));
+        Log::Error(GenerateMsgNoEntity(id, "spot"));
 		return false;
 	}
 
@@ -461,7 +564,7 @@ XMFLOAT4 LightSystem::GetSpotLightProp(const EntityID id, const LightProps prop)
 	if (idx == -1)
 	{
 		// return invalid data since we didn't find any entity by input ID
-		Log::Error("there is no spot light entity by id: " + std::to_string(id));
+        Log::Error(GenerateMsgNoEntity(id, "spot"));
 		return GetLightPropInvalidData();
 	}
 
@@ -510,8 +613,8 @@ XMFLOAT4 LightSystem::GetSpotLightProp(const EntityID id, const LightProps prop)
 		}
 		default:
 		{
-			Log::Error(std::format("unknown type of point light property (entt id: {}, type: {})", id, (int)prop));
-			return GetLightPropInvalidData();
+            Log::Error(GenerateMsgUnknownProperty(id, prop, "spot"));
+            return GetLightPropInvalidData();
 		}
 	}
 }
@@ -529,7 +632,7 @@ bool LightSystem::SetSpotLightProp(
 	// if there is no entity by such ID we cannot update any data so return false
 	if (id == -1)
 	{
-		Log::Error("there is no spot light entity by ID: " + std::to_string(id));
+        Log::Error(GenerateMsgNoEntity(id, "spot"));
 		return false;
 	}
 
@@ -561,7 +664,8 @@ bool LightSystem::SetSpotLightProp(
 		{
 			// normalize and store the direction 
 			// (input: x,y,z - roll pitch yaw; BUT we need to store it as yaw pitch roll)
-			DirectX::XMStoreFloat3(&light.direction_, DirectX::XMVector3Normalize({ value.x, value.y, value.z }));
+            light.direction_ = DirectX::XMFloat3Normalize({ value.x, value.y, value.z });
+			//DirectX::XMStoreFloat3(&light.direction_, DirectX::XMVector3Normalize({ value.x, value.y, value.z }));
 			break;
 		}
 		case LightProps::ATTENUATION:
@@ -571,8 +675,8 @@ bool LightSystem::SetSpotLightProp(
 		}
 		default:
 		{
-			Log::Error(std::format("unknown type of spotlight property (entt id: {}, type: {})", id, (int)prop));
-			return false;
+            Log::Error(GenerateMsgUnknownProperty(id, prop, "spot"));
+            return false;
 		}
 	}
 
@@ -593,7 +697,7 @@ bool LightSystem::SetSpotLightProp(
 	// if there is no entity by such ID we cannot update any data so return false
 	if (id == -1)
 	{
-		Log::Error("there is no spot light entity by ID: " + std::to_string(id));
+        Log::Error(GenerateMsgNoEntity(id, "spot"));
 		return false;
 	}
 
@@ -613,8 +717,8 @@ bool LightSystem::SetSpotLightProp(
 		}
 		default:
 		{
-			Log::Error(std::format("unknown type of spotlight property (entt id: {}, type: {})", id, (int)prop));
-			return false;
+            Log::Error(GenerateMsgUnknownProperty(id, prop, "spot"));
+            return false;
 		}
 	}
 
@@ -632,8 +736,8 @@ void LightSystem::Update(
 	const float deltaTime,
 	const float totalGameTime)
 {
-	if (GetNumDirLights() > 0)
-		UpdateDirLights(deltaTime, totalGameTime);
+	//if (GetNumDirLights() > 0)
+	//	UpdateDirLights(deltaTime, totalGameTime);
 
 	//if (GetNumPointLights() > 0)
 		//UpdatePointLights(deltaTime, totalGameTime);
@@ -698,7 +802,7 @@ bool LightSystem::SetLightIsActive(const EntityID id, const bool state)
 
 	if (idx == -1)
 	{
-		Log::Error("there is no light source entity by ID: " + std::to_string(id));
+        Log::Error(GenerateMsgNoEntity(id, "directed/point/spot"));
 		return false;
 	}
 
@@ -716,7 +820,7 @@ bool LightSystem::IsLightActive(const EntityID id)
 
 	if (idx == -1)
 	{
-		Log::Error("there is no light source entity by ID: " + std::to_string(id));
+        Log::Error(GenerateMsgNoEntity(id, "directed/point/spot"));
 		return false;
 	}
 
@@ -775,15 +879,6 @@ void LightSystem::operator delete(void* p)
 // =================================================================================
 // private helpers
 // =================================================================================
-
-XMFLOAT4 LightSystem::GetLightPropInvalidData()
-{
-	// if we ask for wrong light entity of wrong property we just return this data
-	return { FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX };
-}
-
-///////////////////////////////////////////////////////////
-
 bool LightSystem::CheckCanAddRecords(const std::vector<EntityID>& ids)
 {
 	// check if we can add records by IDs
