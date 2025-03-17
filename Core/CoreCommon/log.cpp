@@ -8,6 +8,7 @@
 #include <ctime>
 #include <sstream>
 #include <format>
+#include <cstdarg>
 
 #include "StringHelper.h"
 
@@ -72,7 +73,7 @@ void Log::Print(const std::string& msg, ConsoleColor attr)
 
 	SetConsoleTextAttribute(Log::handle_, attr);
 	PrintHelper(" ", msg);
-	SetConsoleTextAttribute(Log::handle_, ConsoleColor::WHITE);  // reset
+	SetConsoleTextAttribute(Log::handle_, WHITE);  // reset
 }
 
 ///////////////////////////////////////////////////////////
@@ -88,9 +89,9 @@ void Log::Print()
 void Log::Print(const std::string& msg, const std::source_location& location)
 {
 	// prints a usual message and the source location params as well
-	SetConsoleTextAttribute(Log::handle_, ConsoleColor::GREEN);
+	SetConsoleTextAttribute(Log::handle_, GREEN);
 	PrintHelper("", GenerateLogMsg(msg, location));
-	SetConsoleTextAttribute(Log::handle_, ConsoleColor::WHITE);
+	SetConsoleTextAttribute(Log::handle_, WHITE);
 }
 
 
@@ -139,9 +140,29 @@ void Log::Error(EngineException& e, bool showMsgBox)
 
 void Log::Error(const std::string& msg, const std::source_location& location)
 {
-	SetConsoleTextAttribute(Log::handle_, ConsoleColor::RED);
+	SetConsoleTextAttribute(Log::handle_, RED);
 	PrintHelper("ERROR: ", GenerateLogMsg(msg, location));
-	SetConsoleTextAttribute(Log::handle_, ConsoleColor::WHITE);
+	SetConsoleTextAttribute(Log::handle_, WHITE);
+}
+
+///////////////////////////////////////////////////////////
+
+void Log::Error(const std::source_location& location, const char* format, ...)
+{
+
+    va_list args;
+    va_start(args, format);
+
+    char buffer[512]{ '\0' };
+    int len = _vscprintf(format, args) + 1;
+
+    vsprintf_s(buffer, len, format, args);
+
+    SetConsoleTextAttribute(Log::handle_, RED);
+    PrintHelper("ERROR: ", GenerateLogMsg(buffer, location));
+    SetConsoleTextAttribute(Log::handle_, WHITE);
+
+    va_end(args);
 }
 
 
@@ -158,9 +179,9 @@ void Log::PrintExceptionErrHelper(EngineException& e, bool showMsgBox)
 		MessageBoxW(NULL, e.GetWideStr().c_str(), L"Error", MB_ICONERROR);
 
 	// print an error msg into the console and log file
-	SetConsoleTextAttribute(Log::handle_, ConsoleColor::RED);
+	SetConsoleTextAttribute(Log::handle_, RED);
 	PrintHelper("ERROR: ", e.GetStr());
-	SetConsoleTextAttribute(Log::handle_, ConsoleColor::WHITE);
+	SetConsoleTextAttribute(Log::handle_, WHITE);
 }
 
 ///////////////////////////////////////////////////////////

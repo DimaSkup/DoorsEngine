@@ -35,6 +35,7 @@ private:
 	void ExecChangeSpecular       (const EntityID id, const ColorRGBA& specular);
 	void ExecChangePosition       (const EntityID id, const Vec3& pos);
 	void ExecChangeDirection      (const EntityID id, const Vec3& direction);
+    void ExecChangeDirectionByQuat(const EntityID id, const Vec4& dirQuat);
 	void ExecChangeRange          (const EntityID id, const float range);
 	void ExecChangeAttenuation    (const EntityID id, const Vec3& attenuation);
 	void ExecChangeSpotExponent   (const EntityID id, const float spotExponent);

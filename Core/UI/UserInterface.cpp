@@ -356,9 +356,27 @@ void UserInterface::RenderSceneWnd(SystemState& sysState)
 			const float* cameraProj = sysState.cameraProj.r->m128_f32;
 
 			// selected entity transformation using the gizmo
-			DirectX::XMMATRIX world;
-			pFacadeEngineToUI_->GetEnttWorldMatrix(selectedEntt, world);
-			float* rawWorld = world.r->m128_f32;
+            DirectX::XMMATRIX world;
+            float* rawWorld = nullptr;
+            DirectX::XMMATRIX I;
+
+            using enum StatesGUI::SelectedEnttType;
+
+            if (guiStates_.selectedEnttType_ == DIRECTED_LIGHT ||
+                guiStates_.selectedEnttType_ == SPOT_LIGHT)
+            {
+                DirectX::XMMATRIX W;
+                pFacadeEngineToUI_->GetEnttWorldMatrix(selectedEntt, W);
+                world = DirectX::XMMatrixIdentity();
+
+                world.r[3] = W.r[3];
+                rawWorld = world.r->m128_f32;
+            }
+            else
+            {
+                pFacadeEngineToUI_->GetEnttWorldMatrix(selectedEntt, world);
+                rawWorld = world.r->m128_f32;
+            }
 
 	
 			if (guiStates_.useSnapping_)
@@ -401,12 +419,6 @@ void UserInterface::RenderSceneWnd(SystemState& sysState)
 			// if we do some manipulations using guizmo
 			if (ImGuizmo::IsUsingAny())
 			{
-				//float translation[3];
-				//float rotation[3];          // angles in degrees
-				//float scale[3];
-
-				//ImGuizmo::DecomposeMatrixToComponents(rawWorld, translation, rotation, scale);
-
 				controller.UpdateSelectedEnttWorld(world);
 			}
 		}

@@ -47,11 +47,14 @@ public:
         data_.direction = direction;
     }
 
-    // ----------------------------------------------------
+    inline void GetData(DirectedLightData& outData) const { outData = data_; }
 
-    inline void GetData(DirectedLightData& outData) const
+    inline void SetDirection(const Vec3& direction)
     {
-        outData = data_;
+        DirectX::XMFLOAT3 dir = DirectX::XMFloat3Normalize(direction.ToFloat3());
+        data_.direction.x = (isfinite(dir.x)) ? dir.x : 0;
+        data_.direction.y = (isfinite(dir.y)) ? dir.y : 0;
+        data_.direction.z = (isfinite(dir.z)) ? dir.z : 0;
     }
 };
 
@@ -93,8 +96,6 @@ public:
 		data_.range       = range;
 		data_.attenuation = attenuation;
 	}
-
-	// ----------------------------------------------------
 
 	inline void GetData(PointLightData& outData) const 
 	{ 
@@ -147,30 +148,17 @@ public:
         data_.direction   = direction;
 		data_.attenuation = attenuation;
 		data_.range       = range;
-		data_.spotExp     = spotExp;
-        
-
-		//SetRotation(directionQuat);
 	}
 
-	// ----------------------------------------------------
+	inline void GetData(SpotLightData& outData) const {	outData = data_; }
 
-	void SetRotation(const Vec4& directionQuat)
-	{
-		// convert input quaternion into roll/pitch/yaw in degrees
-		DirectX::XMFLOAT3 pitchYawRoll = MathHelper::QuatToRollPitchYaw(directionQuat.ToXMVector());
-	
-		data_.direction.x = DirectX::XMConvertToDegrees(pitchYawRoll.x);
-		data_.direction.y = DirectX::XMConvertToDegrees(pitchYawRoll.y);
-		data_.direction.z = DirectX::XMConvertToDegrees(pitchYawRoll.z);
-	}
-
-	// ----------------------------------------------------
-
-	inline void GetData(SpotLightData& outData) const
-	{
-		outData = data_;
-	}
+    inline void SetDirection(const Vec3& direction)
+    {
+        DirectX::XMFLOAT3 dir = DirectX::XMFloat3Normalize(direction.ToFloat3());
+        data_.direction.x = (isfinite(dir.x)) ? dir.x : 0;
+        data_.direction.y = (isfinite(dir.y)) ? dir.y : 0;
+        data_.direction.z = (isfinite(dir.z)) ? dir.z : 0;
+    }
 };
 
 } // namespace UI

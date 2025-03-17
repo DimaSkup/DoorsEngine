@@ -45,6 +45,7 @@ public:
 	static void Debug(const std::string& msg, const std::source_location& location = std::source_location::current());
 
 	static void Error(const std::string& msg, const std::source_location& location = std::source_location::current());
+    static void Error(const std::source_location& location, const char* format, ...);
 	static void Error(EngineException* pException, bool showMsgBox = false);
 	static void Error(EngineException& exception, bool showMsgBox = false);
 

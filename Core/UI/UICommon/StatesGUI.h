@@ -50,7 +50,7 @@ public:
 	DirectX::XMFLOAT3 snapScale_ = { 0.1f, 0.1f, 0.1f };
 	DirectX::XMFLOAT3 snap_ = {0,0,0};
 
-    EntityID selectedEnttID_ = 0;
+    EntityID         selectedEnttID_   = 0;
 	SelectedEnttType selectedEnttType_ = SelectedEnttType::NONE;
 
 	int gizmoOperation_ = -1;       // none gizmo operation is chosen

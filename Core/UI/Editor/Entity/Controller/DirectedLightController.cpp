@@ -62,8 +62,14 @@ void DirectedLightController::ExecuteCommand(const ICommand* pCmd, const EntityI
         }
         case CHANGE_DIR_LIGHT_DIRECTION:
         {
+            // is used when we change direction using editor fields
             ExecChangeDirection(id, pCmd->GetVec3());
             break;
+        }
+        case CHANGE_DIR_LIGHT_DIRECTION_BY_QUAT:
+        {
+            // is used when we change direction using gizmo
+            ExecChangeDirectionByQuat(id, pCmd->GetVec4());
         }
         default:
         {
@@ -208,7 +214,8 @@ void DirectedLightController::ExecChangeDirection(const EntityID id, const Vec3&
     if (pFacade_->SetDirectedLightDirection(id, direction))
     {
         // update editor fields
-        dirLightModel_.data_.direction = direction;
+        dirLightModel_.SetDirection(direction);
+        //dirLightModel_.data_.direction = direction;
 
         // generate an "undo" command and store it into the history
         gEventsHistory.Push(
@@ -222,6 +229,38 @@ void DirectedLightController::ExecChangeDirection(const EntityID id, const Vec3&
     }
 }
 
+///////////////////////////////////////////////////////////
+
+void DirectedLightController::ExecChangeDirectionByQuat(const EntityID id, const Vec4& dirQuat)
+{
+    // rotate current direction vector of directed light source by input quaternion
+    using namespace DirectX;
+
+    const Vec3 origDirection = pFacade_->GetDirectedLightDirection(id);
+    const XMVECTOR vec       = origDirection.ToXMVector();
+    const XMVECTOR quat      = dirQuat.ToXMVector();
+    const XMVECTOR invQuat   = XMQuaternionInverse(quat);
+
+    // rotated_vec = inv_quat * vec * quat
+    XMVECTOR newVec = XMQuaternionMultiply(invQuat, vec);
+    newVec = XMQuaternionMultiply(newVec, quat);
+
+    if (pFacade_->SetDirectedLightDirection(id, newVec))
+    {
+        // update editor fields
+        dirLightModel_.SetDirection(newVec);
+
+        // generate an "undo" command and store it into the history
+        gEventsHistory.Push(
+            CmdChangeVec3(CHANGE_DIR_LIGHT_DIRECTION, origDirection),
+            GenerateMsgForHistory(id, "direction"),
+            id);
+    }
+    else
+    {
+        Core::Log::Error(GenerateErrMsg(id, "direction"));
+    }
+}
 
 } // namespace UI
 

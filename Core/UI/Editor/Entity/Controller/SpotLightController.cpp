@@ -72,6 +72,11 @@ void SpotLightController::ExecuteCommand(const ICommand* pCmd, const EntityID id
             ExecChangeDirection(id, pCmd->GetVec3());
             break;
         }
+        case CHANGE_SPOT_LIGHT_DIRECTION_BY_QUAT:
+        {
+            ExecChangeDirectionByQuat(id, pCmd->GetVec4());
+            break;
+        }
         case CHANGE_SPOT_LIGHT_RANGE:           // how far spotlight can lit
         {
             ExecChangeRange(id, pCmd->GetFloat());
@@ -124,7 +129,8 @@ void SpotLightController::UndoCommand(const ICommand* pCmd, const EntityID id)
         }
         case CHANGE_SPOT_LIGHT_DIRECTION:
         {
-            Core::Log::Error("IMPLEMENT ME!");
+            if (pFacade_->SetSpotLightDirection(id, pCmd->GetVec3()))
+                spotLightModel_.data_.direction = pCmd->GetVec3();
             break;
         }
         case CHANGE_SPOT_LIGHT_RANGE:
@@ -149,16 +155,20 @@ void SpotLightController::UndoCommand(const ICommand* pCmd, const EntityID id)
 }
 
 
-
 // =================================================================================
 // Private API: change spotlight properties
 // =================================================================================
 
 static std::string GenerateMsgForHistory(const EntityID id, const std::string& propertyName)
 {
-    return std::string(
-        "changed " + propertyName +
-        " of entt (type: spotlight; id: " + std::to_string(id) + ")");
+    return "changed " + propertyName + " of entt (type: spotlight; id: " + std::to_string(id) + ")";
+}
+
+///////////////////////////////////////////////////////////
+
+static std::string GenerateErrMsg(const EntityID id, const std::string& propertyName)
+{
+    return "can't change " + propertyName + " of entt (type: spotlight; id: " + std::to_string(id) + ")";
 }
 
 ///////////////////////////////////////////////////////////
@@ -177,6 +187,10 @@ void SpotLightController::ExecChangeAmbient(const EntityID id, const ColorRGBA& 
             CmdChangeColor(CHANGE_SPOT_LIGHT_AMBIENT, oldAmbient),
             GenerateMsgForHistory(id, "ambient"),
             id);
+    }
+    else
+    {
+        Core::Log::Error(GenerateErrMsg(id, "ambient"));
     }
 }
 
@@ -197,6 +211,10 @@ void SpotLightController::ExecChangeDiffuse(const EntityID id, const ColorRGBA& 
             GenerateMsgForHistory(id, "diffuse"),
             id);
     }
+    else
+    {
+        Core::Log::Error(GenerateErrMsg(id, "diffuse"));
+    }
 }
 
 ///////////////////////////////////////////////////////////
@@ -215,6 +233,10 @@ void SpotLightController::ExecChangeSpecular(const EntityID id, const ColorRGBA&
             CmdChangeColor(CHANGE_SPOT_LIGHT_SPECULAR, oldSpecular),
             GenerateMsgForHistory(id, "specular"),
             id);
+    }
+    else
+    {
+        Core::Log::Error(GenerateErrMsg(id, "specular"));
     }
 }
 
@@ -235,6 +257,10 @@ void SpotLightController::ExecChangePosition(const EntityID id, const Vec3& pos)
             GenerateMsgForHistory(id, "position"),
             id);
     }
+    else
+    {
+        Core::Log::Error(GenerateErrMsg(id, "position"));
+    }
 }
 
 ///////////////////////////////////////////////////////////
@@ -246,13 +272,50 @@ void SpotLightController::ExecChangeDirection(const EntityID id, const Vec3& dir
     if (pFacade_->SetSpotLightDirection(id, direction))
     {
         // update editor fields
-        spotLightModel_.data_.direction = direction;
+        spotLightModel_.SetDirection(direction);
 
         // generate an "undo" command and store it into the history
         gEventsHistory.Push(
             CmdChangeVec3(CHANGE_SPOT_LIGHT_DIRECTION, oldDirection),
             GenerateMsgForHistory(id, "direction"),
             id);
+    }
+    else
+    {
+        Core::Log::Error(GenerateErrMsg(id, "direction"));
+    }
+}
+
+///////////////////////////////////////////////////////////
+
+void SpotLightController::ExecChangeDirectionByQuat(const EntityID id, const Vec4& dirQuat)
+{
+    // rotate current direction vector of directed light source by input quaternion
+    using namespace DirectX;
+
+    const Vec3 origDirection = pFacade_->GetSpotLightDirection(id);
+    const XMVECTOR vec       = origDirection.ToXMVector();
+    const XMVECTOR quat      = dirQuat.ToXMVector();
+    const XMVECTOR invQuat   = XMQuaternionInverse(quat);
+
+    // rotated_vec = inv_quat * vec * quat;
+    XMVECTOR newVec = DirectX::XMQuaternionMultiply(invQuat, vec);
+    newVec = DirectX::XMQuaternionMultiply(newVec, quat);
+
+    if (pFacade_->SetSpotLightDirection(id, newVec))
+    {
+        // update editor fields
+        spotLightModel_.SetDirection(newVec);
+
+        // generate an "undo" command and store it into the history
+        gEventsHistory.Push(
+            CmdChangeVec3(CHANGE_SPOT_LIGHT_DIRECTION, origDirection),
+            GenerateMsgForHistory(id, "direction"),
+            id);
+    }
+    else
+    {
+        Core::Log::Error(GenerateErrMsg(id, "direction"));
     }
 }
 
@@ -275,12 +338,18 @@ void SpotLightController::ExecChangeRange(const EntityID id, const float range)
             GenerateMsgForHistory(id, "range"),
             id);
     }
+    else
+    {
+        Core::Log::Error(GenerateErrMsg(id, "range"));
+    }
 }
 
 ///////////////////////////////////////////////////////////
 
 void SpotLightController::ExecChangeAttenuation(const EntityID id, const Vec3& att)
 {
+    // change params for control the spotlight lit distance
+
     const Vec3 oldAttenuation = pFacade_->GetSpotLightAttenuation(id);
 
     if (pFacade_->SetSpotLightAttenuation(id, att))
@@ -314,6 +383,10 @@ void SpotLightController::ExecChangeSpotExponent(const EntityID id, const float 
             CmdChangeFloat(CHANGE_SPOT_LIGHT_SPOT_EXPONENT, oldSpotExponent),
             GenerateMsgForHistory(id, "spot exponent"),
             id);
+    }
+    else
+    {
+        Core::Log::Error(GenerateErrMsg(id, "spot exponent"));
     }
 }
 

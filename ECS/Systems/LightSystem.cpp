@@ -220,7 +220,7 @@ bool LightSystem::SetDirLightProp(
 	const index idx   = Utils::GetIdxInSortedArr(lights.ids_, id);
 
     // if there is no entity by such ID we cannot update any data so return false
-    if (id == -1)
+    if (idx == -1)
     {
         Log::Error(GenerateMsgNoEntity(id, "directed"));
         return false;
@@ -266,7 +266,7 @@ bool LightSystem::SetDirLightProp(
 	const ptrdiff_t idx = Utils::GetIdxInSortedArr(lights.ids_, id);
 
     // if there is no entity by such ID we cannot update any data so return false
-    if (id == -1)
+    if (idx == -1)
     {
         Log::Error(GenerateMsgNoEntity(id, "directed"));
         return false;
@@ -445,7 +445,7 @@ bool LightSystem::SetPointLightProp(
 	const index idx = GetIdxByID(lights.ids_, id);
 
 	// if there is no entity by such ID we cannot update any data so return false
-	if (id == -1)
+	if (idx == -1)
 	{
         Log::Error(GenerateMsgNoEntity(id, "point"));
 		return false;
@@ -502,7 +502,7 @@ bool LightSystem::SetPointLightProp(
 	const index idx = GetIdxByID(lights.ids_, id);
 
 	// if there is no entity by such ID we cannot update any data so return false
-	if (id == -1)
+	if (idx == -1)
 	{
         Log::Error(GenerateMsgNoEntity(id, "point"));
 		return false;
@@ -630,7 +630,7 @@ bool LightSystem::SetSpotLightProp(
 	const index idx = GetIdxByID(lights.ids_, id);
 
 	// if there is no entity by such ID we cannot update any data so return false
-	if (id == -1)
+	if (idx == -1)
 	{
         Log::Error(GenerateMsgNoEntity(id, "spot"));
 		return false;
@@ -695,7 +695,7 @@ bool LightSystem::SetSpotLightProp(
 	const index idx = GetIdxByID(lights.ids_, id);
 	
 	// if there is no entity by such ID we cannot update any data so return false
-	if (id == -1)
+	if (idx == -1)
 	{
         Log::Error(GenerateMsgNoEntity(id, "spot"));
 		return false;

@@ -22,18 +22,19 @@ public:
     DirectedLightController() {};
 
     void Initialize(IFacadeEngineToUI* pFacade);
-    void LoadEnttData(const EntityID enttID);
+    void LoadEnttData(const EntityID id);
 
-    void ExecuteCommand(const ICommand* pCmd, const EntityID enttID);
-    void UndoCommand   (const ICommand* pCmd, const EntityID enttID);
+    void ExecuteCommand(const ICommand* pCmd, const EntityID id);
+    void UndoCommand   (const ICommand* pCmd, const EntityID id);
 
     inline const ModelEntityDirLight& GetModel() const { return dirLightModel_; }
 
 private:
-    void ExecChangeAmbient  (const EntityID enttID, const ColorRGBA& ambient);
-    void ExecChangeDiffuse  (const EntityID enttID, const ColorRGBA& diffuse);
-    void ExecChangeSpecular (const EntityID enttID, const ColorRGBA& specular);
-    void ExecChangeDirection(const EntityID enttID, const Vec3& direction);
+    void ExecChangeAmbient        (const EntityID id, const ColorRGBA& ambient);
+    void ExecChangeDiffuse        (const EntityID id, const ColorRGBA& diffuse);
+    void ExecChangeSpecular       (const EntityID id, const ColorRGBA& specular);
+    void ExecChangeDirection      (const EntityID id, const Vec3& direction);
+    void ExecChangeDirectionByQuat(const EntityID id, const Vec4& dirQuat);
 
 private:
     ModelEntityDirLight dirLightModel_;
