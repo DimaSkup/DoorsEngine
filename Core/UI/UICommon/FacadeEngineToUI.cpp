@@ -338,6 +338,8 @@ bool FacadeEngineToUI::SetDirectedLightDirection(const EntityID id, const Vec3& 
     {
         return true;
     }
+
+    return false;
 }
 
 

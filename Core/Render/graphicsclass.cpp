@@ -60,9 +60,9 @@ bool GraphicsClass::Initialize(
         bool result = false;
 
         Log::Print();
-        Log::Print("------------------------------------------------------------", ConsoleColor::YELLOW);
-        Log::Print("              INITIALIZATION: GRAPHICS SYSTEM               ", ConsoleColor::YELLOW);
-        Log::Print("------------------------------------------------------------", ConsoleColor::YELLOW);
+        Log::Print("------------------------------------------------------------", eConsoleColor::YELLOW);
+        Log::Print("              INITIALIZATION: GRAPHICS SYSTEM               ", eConsoleColor::YELLOW);
+        Log::Print("------------------------------------------------------------", eConsoleColor::YELLOW);
 
         pSysState_ = &systemState;
 
@@ -1098,7 +1098,7 @@ int GraphicsClass::TestEnttSelection(const int sx, const int sy)
         const EntityName& name = entityMgr_.nameSystem_.GetNameById(selectedEnttID);
         const std::string msg = std::format("picked entt (id, name): {} {}", selectedEnttID, name);
 
-        Log::Print(msg, ConsoleColor::YELLOW);
+        Log::Print(msg, eConsoleColor::YELLOW);
     }
 
     // return ID of the selected entt, or 0 if we didn't pick any

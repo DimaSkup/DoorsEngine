@@ -313,7 +313,7 @@ void UserInterface::RenderEditor(SystemState& systemState)
 	// show modal window for entity creation
 	if (guiStates_.showWndEnttCreation_)
 	{
-		// TODO
+        editorMainMenuBar_.RenderWndEntityCreation(&guiStates_.showWndEnttCreation_, pFacadeEngineToUI_);
 	}
 	
 	editorPanels_.Render(systemState);
@@ -358,19 +358,18 @@ void UserInterface::RenderSceneWnd(SystemState& sysState)
 			// selected entity transformation using the gizmo
             DirectX::XMMATRIX world;
             float* rawWorld = nullptr;
-            DirectX::XMMATRIX I;
+      
 
-            using enum StatesGUI::SelectedEnttType;
-
-            if (guiStates_.selectedEnttType_ == DIRECTED_LIGHT ||
-                guiStates_.selectedEnttType_ == SPOT_LIGHT)
+            // handle directed and spot lights in a separate way for correct change
+            // of its direction using gizmo
+            if (guiStates_.selectedEnttType_ == StatesGUI::SelectedEnttType::DIRECTED_LIGHT ||
+                guiStates_.selectedEnttType_ == StatesGUI::SelectedEnttType::SPOT_LIGHT)
             {
-                DirectX::XMMATRIX W;
-                pFacadeEngineToUI_->GetEnttWorldMatrix(selectedEntt, W);
-                world = DirectX::XMMatrixIdentity();
+                const Vec3 pos = pFacadeEngineToUI_->GetEnttPosition(selectedEntt);
 
-                world.r[3] = W.r[3];
-                rawWorld = world.r->m128_f32;
+                world       = DirectX::XMMatrixIdentity();
+                world.r[3]  = {pos.x, pos.y, pos.z, 1.0f};
+                rawWorld    = world.r->m128_f32;
             }
             else
             {
@@ -378,7 +377,8 @@ void UserInterface::RenderSceneWnd(SystemState& sysState)
                 rawWorld = world.r->m128_f32;
             }
 
-	
+
+
 			if (guiStates_.useSnapping_)
 			{
 				switch (guiStates_.gizmoOperation_)

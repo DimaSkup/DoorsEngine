@@ -36,9 +36,9 @@ Engine::Engine()
 Engine::~Engine()
 {
     Log::Print();
-    Log::Print("-------------------------------------------------", ConsoleColor::YELLOW);
-    Log::Print("            START OF THE DESTROYMENT:            ", ConsoleColor::YELLOW);
-    Log::Print("-------------------------------------------------", ConsoleColor::YELLOW);
+    Log::Print("-------------------------------------------------", eConsoleColor::YELLOW);
+    Log::Print("            START OF THE DESTROYMENT:            ", eConsoleColor::YELLOW);
+    Log::Print("-------------------------------------------------", eConsoleColor::YELLOW);
 
     //ProjectSaver projSaver;
 
@@ -219,9 +219,9 @@ bool Engine::InitializeGUI(D3DClass& d3d, const Settings& settings)
     // this function initializes the GUI of the game/engine (interface elements, text, etc.);
 
     Log::Print();
-    Log::Print("----------------------------------------------------------", ConsoleColor::YELLOW);
-    Log::Print("                   INITIALIZATION: GUI                    ", ConsoleColor::YELLOW);
-    Log::Print("----------------------------------------------------------", ConsoleColor::YELLOW);
+    Log::Print("----------------------------------------------------------", eConsoleColor::YELLOW);
+    Log::Print("                   INITIALIZATION: GUI                    ", eConsoleColor::YELLOW);
+    Log::Print("----------------------------------------------------------", eConsoleColor::YELLOW);
 
     try
     {

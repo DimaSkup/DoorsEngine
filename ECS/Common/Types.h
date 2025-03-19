@@ -29,13 +29,10 @@ using ModelID        = uint32_t;
 using TexID          = uint32_t;
 using TexPath        = std::string;
 
-
 using EntityID       = uint32_t;
 using EntityName     = std::string;
 using ComponentID    = std::string;
 using SystemID       = std::string;
-
-
 
 const EntityID   INVALID_ENTITY_ID{ 0 };
 const EntityName INVALID_ENTITY_NAME{ "invalid" };
@@ -48,62 +45,41 @@ namespace ECS
 
 enum ComponentType
 {
-	TransformComponent,
-	MoveComponent,
-	RenderedComponent,
-	ModelComponent,
+    NameComponent,                 // REQUIRED: attach some name for the entity
+    TransformComponent,            // REQUIRED: set that entity has properties: position (x,y,z), direction (quaternion), and scale (uniform)
+    MoveComponent,                 // set that this entity must be transformed over the time using some transformation matrix (for instance rotate around itself and go into some particular direction)
+    RenderedComponent,             // set that this entity is renderable (preferably it is a model), set that this entity must be rendered with particular kind of shader, maybe with specific primitive topology
+    ModelComponent,                // attach to entity a 2D/3D model by ID
 
-	WorldMatrixComponent,
-	NameComponent,
-	AIComponent,
-	HealthComponent,
-
-	DamageComponent,
-	EnemyComponent,
-	EditorTransformComponent,
-	ColliderComponent,
-
-	PhysicsTypeComponent,
-	VelocityComponent,
-	GroundedComponent,
-	CollisionComponent,
-
-	CameraComponent,
-	TexturedComponent,
-	TextureTransformComponent,
-	LightComponent,
-	RenderStatesComponent,         // for using different render states: blending, alpha clipping, fill mode, cull mode, etc.
-
-	BoundingComponent,             // for using AABB, OBB, bounding spheres
-
-	LAST_COMPONENT_TYPE
-};
+    CameraComponent,               // attach to entity a camera
+    TexturedComponent,             // entity has its own set of textures for its particular mesh (if it is a complex model) so we don't use textures by default (which goes together with mesh) but use own textures (for instance: default cube has some wood texture but we use different other)
+    TextureTransformComponent,     // set that texture has some kind of transformation (maybe it is a translation over some atlas texture so we create an animation, or rotation around texture center -- creates a rotating fireball)
+    LightComponent,                // attach to entity some type of light source (directed, point, spotlight, etc.)
+    RenderStatesComponent,         // for using different render states: blending, alpha clipping, fill mode, cull mode, etc.
+    BoundingComponent,             // for using AABB, OBB, bounding spheres
 
 
-struct TransformRawData
-{
-	TransformRawData() : pos{ 0,0,0 }, dir{ 0,0,0 }, uniScale{ 1.0f } {}
+    // NOT IMPLEMENTED YET
+    AIComponent,
+    HealthComponent,
+    DamageComponent,
+    EnemyComponent,
+    ColliderComponent,
 
-	XMFLOAT3 pos;     // position
-	XMFLOAT3 dir;     // direction (roll pitch yaw)
-	float uniScale;   // uniform scale
-};
+    PhysicsTypeComponent,
+    VelocityComponent,
+    GroundedComponent,
+    CollisionComponent,
 
-struct MovementRawData
-{
-	MovementRawData() : trans{ 0,0,0 }, rot{ 0,0,0 }, uniScale{ 1.0f } {}
-
-	XMFLOAT3 trans;   // translation
-	XMFLOAT3 rot;     // rotation (roll pitch yaw)
-	float uniScale;   // uniform scale factor
+    LAST_COMPONENT_TYPE
 };
 
 enum RenderShaderType
 {
-	COLOR_SHADER,
-	TEXTURE_SHADER,
-	LIGHT_SHADER,
-	SKYDOME_SHADER
+    COLOR_SHADER,
+    TEXTURE_SHADER,
+    LIGHT_SHADER,
+    SKYDOME_SHADER
 };
 
 

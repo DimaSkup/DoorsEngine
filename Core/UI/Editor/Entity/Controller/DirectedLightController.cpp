@@ -70,6 +70,7 @@ void DirectedLightController::ExecuteCommand(const ICommand* pCmd, const EntityI
         {
             // is used when we change direction using gizmo
             ExecChangeDirectionByQuat(id, pCmd->GetVec4());
+            break;
         }
         default:
         {

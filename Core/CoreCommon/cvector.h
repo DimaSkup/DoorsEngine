@@ -11,19 +11,17 @@
 #include <stdarg.h>
 
 
-namespace ECS
+namespace Core
 {
 
 // this macro is used for the vassert() method
 #define CALLER_INFO "  FILE: \t%s\n  CLASS:\t%s\n  FUNC: \t%s()\n  LINE: \t%d\n  MSG: \t\t%s\n", __FILE__, typeid(this).name(), __func__, __LINE__
-
 
 constexpr bool ENABLE_CHECK = true;
 
 // some typedefs
 using index = ptrdiff_t;
 using vsize = ptrdiff_t;
-
 
 // =================================================================================
 // CVECTOR
@@ -162,7 +160,7 @@ private:
 //                          constructor, destructor
 // =================================================================================
 template <typename T>
-inline cvector<T>::cvector() :
+cvector<T>::cvector() :
     size_(0),
     capacity_(0),
     data_(nullptr)
@@ -172,7 +170,7 @@ inline cvector<T>::cvector() :
 // ----------------------------------------------------
 
 template <typename T>
-inline cvector<T>::cvector(const vsize count, const T& value) :
+cvector<T>::cvector(const vsize count, const T& value) :
     size_(count),
     capacity_(count)
 {
@@ -185,7 +183,7 @@ inline cvector<T>::cvector(const vsize count, const T& value) :
 // ----------------------------------------------------
 
 template <typename T>
-inline cvector<T>::cvector(const cvector<T>& other) :
+cvector<T>::cvector(const cvector<T>& other) :
     size_(other.size_),
     capacity_(other.capacity_)
 {
@@ -198,7 +196,7 @@ inline cvector<T>::cvector(const cvector<T>& other) :
 // ----------------------------------------------------
 
 template <typename T>
-inline cvector<T>::cvector(cvector<T>&& other) noexcept :
+cvector<T>::cvector(cvector<T>&& other) noexcept :
     data_(std::exchange(other.data_, nullptr)),
     size_(std::exchange(other.size_, 0)),
     capacity_(std::exchange(other.capacity_, 0))
@@ -208,7 +206,7 @@ inline cvector<T>::cvector(cvector<T>&& other) noexcept :
 // ----------------------------------------------------
 
 template <typename T>
-inline cvector<T>::cvector(std::initializer_list<T> il) : cvector()
+cvector<T>::cvector(std::initializer_list<T> il) : cvector()
 {
     assign(il.begin(), il.end());
 }
@@ -245,7 +243,7 @@ bool cvector<T>::operator==(const cvector<T>& rhs) const
 //                  assignment: copy, move, initializer_list
 // =================================================================================
 template <typename T>
-inline cvector<T>& cvector<T>::operator=(const cvector<T>& rhs)
+cvector<T>& cvector<T>::operator=(const cvector<T>& rhs)
 {
     // copy assignment operator
 
@@ -269,7 +267,7 @@ inline cvector<T>& cvector<T>::operator=(const cvector<T>& rhs)
 // ----------------------------------------------------
 
 template <typename T>
-inline cvector<T>& cvector<T>::operator=(cvector<T>&& rhs) noexcept
+cvector<T>& cvector<T>::operator=(cvector<T>&& rhs) noexcept
 {
     if (this == &rhs) return *this;
 
@@ -309,7 +307,7 @@ cvector<T>& cvector<T>::operator=(std::initializer_list<T> list)
 //                               shift elements
 // =================================================================================
 template <typename T>
-inline void cvector<T>::get_data_by_idxs(
+void cvector<T>::get_data_by_idxs(
     const cvector<index>& idxs,
     cvector<T>& outData) const
 {
@@ -380,7 +378,7 @@ void cvector<T>::shift_right(const index idx, const int num)
 // ----------------------------------------------------
 
 template <typename T>
-inline void cvector<T>::shift_left(const index idx, const int num)
+void cvector<T>::shift_left(const index idx, const int num)
 {
     // shift left all the elements of range [idx, end) by the num positions;
     // idx - start index of the original range
@@ -403,7 +401,7 @@ inline void cvector<T>::shift_left(const index idx, const int num)
 //                               public setters
 // =================================================================================
 template <typename T>
-inline void cvector<T>::push_back(const T& value)
+void cvector<T>::push_back(const T& value)
 {
     if (size_ == capacity_)
     {
@@ -419,7 +417,7 @@ inline void cvector<T>::push_back(const T& value)
 // ----------------------------------------------------
 
 template <typename T>
-inline void cvector<T>::erase(const vsize index)
+void cvector<T>::erase(const vsize index)
 {
     if constexpr (ENABLE_CHECK)
     {
@@ -573,7 +571,7 @@ void cvector<T>::append_vector(U&& src)
 
 template <typename T>
 template <typename Iter>
-inline void cvector<T>::assign(Iter first, Iter last)
+void cvector<T>::assign(Iter first, Iter last)
 {
     vsize const sz = vsize(last - first);
     if (size_ < sz) resize(sz);
@@ -587,7 +585,7 @@ inline void cvector<T>::assign(Iter first, Iter last)
 //                                  search
 // =================================================================================
 template <typename T>
-inline index cvector<T>::find(const T& val) const
+index cvector<T>::find(const T& val) const
 {
     // NOTE:  is used for a cvector of RANDOMLY placed values;
     // DESC:  find first matching val and return its index;
@@ -601,7 +599,7 @@ inline index cvector<T>::find(const T& val) const
 // ----------------------------------------------------
 
 template <typename T>
-inline index cvector<T>::get_idx(const T& val) const
+index cvector<T>::get_idx(const T& val) const
 {
     // NOTE:  your (*this) cvector must be SORTED!
     // DESC:  get current position (index) into (*this) array for the input value
@@ -612,7 +610,7 @@ inline index cvector<T>::get_idx(const T& val) const
 // ----------------------------------------------------
 
 template <typename T>
-inline void cvector<T>::get_idxs(
+void cvector<T>::get_idxs(
     const T* values,
     const vsize numElems,
     cvector<index>& outIdxs) const
@@ -640,7 +638,7 @@ inline void cvector<T>::get_idxs(
 // ----------------------------------------------------
 
 template <typename T>
-inline void cvector<T>::get_idxs(
+void cvector<T>::get_idxs(
     const cvector<T>& values,
     cvector<index>& outIdxs) const
 {
@@ -656,7 +654,7 @@ inline void cvector<T>::get_idxs(
 // ----------------------------------------------------
 
 template <typename T>
-inline bool cvector<T>::has_value(const T& val) const
+bool cvector<T>::has_value(const T& val) const
 {
     // NOTE:  for a cvector of RANDOMLY placed values:
     // DESC:  check if (*this) cvector has such a value
@@ -667,7 +665,7 @@ inline bool cvector<T>::has_value(const T& val) const
 // ----------------------------------------------------
 
 template <typename T>
-inline bool cvector<T>::binary_search(const T& val) const
+bool cvector<T>::binary_search(const T& val) const
 {
     // NOTE: your (*this) cvector must be SORTED!
     return std::binary_search(begin(), end(), val);
@@ -723,7 +721,7 @@ bool cvector<T>::binary_search(const T* values, const vsize numElems) const
 //                          change size / capacity
 // =================================================================================
 template <typename T>
-inline void cvector<T>::reserve(const vsize newCapacity)
+void cvector<T>::reserve(const vsize newCapacity)
 {
    // printf("reserve for :%s of size %d\n", typeid(T).name(), newCapacity);
     if (capacity_ < newCapacity)
@@ -733,7 +731,7 @@ inline void cvector<T>::reserve(const vsize newCapacity)
 // ----------------------------------------------------
 
 template <typename T>
-inline void cvector<T>::resize(const vsize newSize)
+void cvector<T>::resize(const vsize newSize)
 {
     if (capacity_ < newSize)
         realloc_buffer(newSize);
@@ -827,7 +825,7 @@ void cvector<T>::error_msg(
 // ----------------------------------------------------
 
 template <typename T>
-inline void cvector<T>::realloc_buffer_discard(const vsize newCapacity)
+void cvector<T>::realloc_buffer_discard(const vsize newCapacity)
 {
     // reallocate memory for a new buffer of capacity == newCapacity
     // without saving an old data;
@@ -854,7 +852,7 @@ inline void cvector<T>::realloc_buffer_discard(const vsize newCapacity)
 // ----------------------------------------------------
 
 template <typename T>
-inline void cvector<T>::realloc_buffer(const vsize newCapacity)
+void cvector<T>::realloc_buffer(const vsize newCapacity)
 {
     // If reallocation occurs, all iterators(including the end() iterator) 
     // and all references to the elements are invalidated.
@@ -891,10 +889,10 @@ inline void cvector<T>::realloc_buffer(const vsize newCapacity)
     }
     catch (const std::bad_alloc& e)
     {
-        error_msg(e.what(), CALLER_INFO);
-        error_msg("can't allocate memory for buffer", CALLER_INFO);
+
+        //error_msg(e.what(), CALLER_INFO);
+        //error_msg("can't allocate memory for buffer", CALLER_INFO);
     }
 }
 
-
-} // namespace ECS
+} // namespace Core

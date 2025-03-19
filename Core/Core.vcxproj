@@ -251,6 +251,7 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClCompile Include="UI\Editor\Entity\Controller\PointLightController.cpp" />
     <ClCompile Include="UI\Editor\Entity\Controller\SkyController.cpp" />
     <ClCompile Include="UI\Editor\Entity\Controller\SpotLightController.cpp" />
+    <ClCompile Include="UI\Editor\Entity\Creator\EntityCreatorWnd.cpp" />
     <ClCompile Include="UI\Editor\Entity\Model\SkyEditorModel.cpp" />
     <ClCompile Include="UI\Editor\Entity\View\EntityEditorView.cpp" />
     <ClCompile Include="UI\Editor\Entity\View\LightEditorView.cpp" />
@@ -277,6 +278,7 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClInclude Include="Camera\Camera.h" />
     <ClInclude Include="CoreCommon\Assert.h" />
     <ClInclude Include="CoreCommon\Convert.h" />
+    <ClInclude Include="CoreCommon\cvector.h" />
     <ClInclude Include="CoreCommon\FileSystemPaths.h" />
     <ClInclude Include="CoreCommon\MathHelper.h" />
     <ClInclude Include="CoreCommon\MemHelpers.h" />
@@ -343,6 +345,7 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClInclude Include="UI\Editor\Entity\Controller\PointLightController.h" />
     <ClInclude Include="UI\Editor\Entity\Controller\SkyController.h" />
     <ClInclude Include="UI\Editor\Entity\Controller\SpotLightController.h" />
+    <ClInclude Include="UI\Editor\Entity\Creator\EntityCreatorWnd.h" />
     <ClInclude Include="UI\Editor\Entity\Model\EntityEditorModel.h" />
     <ClInclude Include="UI\Editor\Entity\View\EntityEditorView.h" />
     <ClInclude Include="UI\Editor\Entity\Model\LightEditorModel.h" />

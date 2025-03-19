@@ -163,7 +163,7 @@ void EditorPanels::RenderEntitiesListWnd(Core::SystemState& sysState)
 				{
 					pFacadeEngineToUI_->FocusCameraOnEntity(sysState.pickedEntt_);
 					pStatesGUI_->gizmoOperation_ = 7;   // ImGizmo::OPERATION::TRANSLATE
-					//Log::Print("double click on: " + enttsNames[i], ConsoleColor::YELLOW);
+					//Log::Print("double click on: " + enttsNames[i], eConsoleColor::YELLOW);
 				}
 			}
 		}

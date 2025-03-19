@@ -26,6 +26,7 @@
 //#include "../Model/SkyModel.h"
 #include "SetupModels.h"
 #include <filesystem>
+#include <shellapi.h>
 
 #define IMPORT_MODELS_MODE true
 
@@ -108,6 +109,8 @@ bool InitializeGraphics::InitializeScene(
         // init all the light source on the scene
         result = InitializeLightSources(entityMgr, settings);
         Assert::True(result, "can't initialize light sources");
+
+        //ShellExecuteA(NULL, "open", "C:\\", NULL, NULL, SW_SHOWDEFAULT);
 
         Log::Print("is initialized");
     }
@@ -1495,7 +1498,7 @@ void PrintImportTimingInfo()
     const double factor = (1.0 / ModelImporter::s_ImportDuration_) * 100.0;
 
     Log::Print();
-    Log::Print("Summary about import process:", ConsoleColor::YELLOW);
+    Log::Print("Summary about import process:", eConsoleColor::YELLOW);
     Log::Print(std::format("time spent to import:        {}", ModelImporter::s_ImportDuration_));
     Log::Print(std::format("time spent to load scene:    {} ({:.2} percent)", ModelImporter::s_SceneLoading_, ModelImporter::s_SceneLoading_ * factor));
     Log::Print(std::format("time spent to load nodes:    {} ({:.2} percent)", ModelImporter::s_NodesLoading_, ModelImporter::s_NodesLoading_ * factor));
@@ -1735,9 +1738,9 @@ bool InitializeGraphics::InitializeModels(
     // initialize all the models on the scene
 
     Log::Print();
-    Log::Print("------------------------------------------------------------", ConsoleColor::YELLOW);
-    Log::Print("                 INITIALIZATION: MODELS                     ", ConsoleColor::YELLOW);
-    Log::Print("------------------------------------------------------------", ConsoleColor::YELLOW);
+    Log::Print("------------------------------------------------------------", eConsoleColor::YELLOW);
+    Log::Print("                 INITIALIZATION: MODELS                     ", eConsoleColor::YELLOW);
+    Log::Print("------------------------------------------------------------", eConsoleColor::YELLOW);
     Log::Debug();
 
     try
