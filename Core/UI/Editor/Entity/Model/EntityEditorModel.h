@@ -8,8 +8,9 @@
 #pragma once
 
 #include <CoreCommon/MathHelper.h>
-#include <UICommon/Vectors.h>
-
+#include <CoreCommon/cvector.h>          // container
+#include <UICommon/Vectors.h>            // math vectors
+#include <string>
 
 namespace UI
 {
@@ -17,6 +18,8 @@ namespace UI
 class ModelEntity
 {
 private:
+    Core::cvector<std::string> addedComponentsNames_;   // the list of components names which are attached to the entity
+
 	Vec3  position_     = { 0,0,0 };
 	float pitchInDeg_   = 0.0f;        // in degrees
 	float yawInDeg_     = 0.0f;

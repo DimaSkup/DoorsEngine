@@ -10,19 +10,20 @@
 #include <algorithm>
 #include <stdarg.h>
 
-
 namespace ECS
 {
 
 // this macro is used for the vassert() method
-#define CALLER_INFO "  FILE: \t%s\n  CLASS:\t%s\n  FUNC: \t%s()\n  LINE: \t%d\n  MSG: \t\t%s\n", __FILE__, typeid(this).name(), __func__, __LINE__
-
+//#define CALL_INFO "  FILE: \t%s\n  CLASS:\t%s\n  FUNC: \t%s()\n  LINE: \t%d\n  MSG: \t\t%s\n", __FILE__, typeid(this).name(), __func__, __LINE__
+#define CALL_INFO "  FILE: \t%s\n  FUNC: \t%s()\n  LINE: \t%d\n  MSG: \t\t%s\n", __FILE__, __func__, __LINE__
 
 constexpr bool ENABLE_CHECK = true;
 
-// some typedefs
+
+// some typedefas
 using index = ptrdiff_t;
 using vsize = ptrdiff_t;
+static float growFactor_ = 1.5f;
 
 
 // =================================================================================
@@ -55,21 +56,21 @@ public:
     inline       T& operator[](index i) { return data_[i]; }    // v[i] = x
     inline const T& operator[](index i) const { return data_[i]; }    // x = v[i]
 
-    bool            operator==(const cvector<T>& rhs) const;
+    bool        operator==(const cvector<T>& rhs) const;
     cvector<T>& operator=(const cvector<T>& rhs);
     cvector<T>& operator=(cvector<T>&& rhs) noexcept;
     cvector<T>& operator=(std::initializer_list<T> list);
 
 
     // iterators
-    inline T* begin() { return data_; }
+    inline T*       begin()                       { return data_; }
     inline const T* begin()                 const { return data_; }
-    inline T* end() { return data_ + size_; }
+    inline T*       end()                         { return data_ + size_; }
     inline const T* end()                   const { return data_ + size_; }
 
 
     // getters
-    inline T*       data()                  const { return data_; }
+    inline       T* data()                  const { return data_; }
     inline bool     empty()                 const { return size_ == 0; }
     inline vsize    size()                  const { return size_; }
     inline vsize    capacity()              const { return capacity_; }
@@ -116,6 +117,7 @@ public:
     bool binary_search(const T& value) const;
     bool binary_search(const cvector<T>& vSrc) const;
     bool binary_search(const T* values, const vsize numElems) const;
+    void binary_search(const T* values, vsize numElems, cvector<bool>& flags) const;
 
 
     // allocators
@@ -137,7 +139,6 @@ private:
         const char* msg,
         const char* format,
         const char* fileName,
-        const char* className,
         const char* funcName,
         const int line) const;
 
@@ -150,13 +151,28 @@ private:
     inline vsize GetGrownCapacity(const vsize capacity)
     {
         // compute grown capacity: newCapacity = growFactor * capacity;
-        // growFactor == 1.5f
-        return (vsize)(ceil(1.5f * capacity));
+        return (vsize)(ceil(growFactor_ * capacity));
     }
 };
 
 
+// ----------------------------------------------------
 
+template <typename T>
+void cvector<T>::error_msg(
+    const char* msg,
+    const char* format,
+    const char* fileName,
+    const char* funcName,
+    const int line) const
+{
+    const char* consoleRed = "\x1B[31m";
+    const char* consoleNorm = "\x1B[0m";
+
+    printf("%s\nERROR:\n", consoleRed);
+    printf(format, fileName, funcName, line, msg);
+    printf("%s", consoleNorm);
+}
 
 // =================================================================================
 //                          constructor, destructor
@@ -306,7 +322,7 @@ cvector<T>& cvector<T>::operator=(std::initializer_list<T> list)
 
 
 // =================================================================================
-//                               shift elements
+//                           get data by indices
 // =================================================================================
 template <typename T>
 inline void cvector<T>::get_data_by_idxs(
@@ -333,7 +349,7 @@ void cvector<T>::get_data_by_idxs(const cvector<index>& idxs, T* outData) const
     {
         if (outData == nullptr)
         {
-            error_msg("invalid input args", CALLER_INFO);
+            error_msg("invalid input args", CALL_INFO);
             return;
         }
     }
@@ -357,7 +373,7 @@ void cvector<T>::shift_right(const index idx, const int num)
     {
         if (!is_valid_index(idx) | (num <= 0))
         {
-            error_msg("can't exec shift left", CALLER_INFO);
+            error_msg("can't exec shift left", CALL_INFO);
             return;
         }
     }
@@ -390,7 +406,7 @@ inline void cvector<T>::shift_left(const index idx, const int num)
     {
         if (!is_valid_index(idx) | (num <= 0))
         {
-            error_msg("can't exec shift left", CALLER_INFO);
+            error_msg("can't exec shift left", CALL_INFO);
             return;
         }
     }
@@ -425,7 +441,7 @@ inline void cvector<T>::erase(const vsize index)
     {
         if ((index < 0) | (index >= size_))
         {
-            error_msg("invalid input args", CALLER_INFO);
+            error_msg("invalid input args", CALL_INFO);
             return;
         }
     }
@@ -480,7 +496,7 @@ void cvector<T>::get_insert_idxs(
     {
         if ((values == nullptr) | (numValues < 0))
         {
-            error_msg("invalid input args", CALLER_INFO);
+            error_msg("invalid input args", CALL_INFO);
             return;
         }
     }
@@ -507,7 +523,7 @@ void cvector<T>::insert_before(const vsize idx, const T& value)
     {
         if ((idx < 0) | (idx > size_))
         {
-            error_msg("invalid input args", CALLER_INFO);
+            error_msg("invalid input args", CALL_INFO);
             return;
         }
     }
@@ -624,17 +640,15 @@ inline void cvector<T>::get_idxs(
     {
         if ((values == nullptr) | (numElems < 0))
         {
-            error_msg("invalid input args", CALLER_INFO);
+            error_msg("invalid input args", CALL_INFO);
             return;
         }
     }
-
-    const T* b = begin();
-    const T* e = end();
+   
     outIdxs.resize(numElems);
 
     for (int i = 0; i < numElems; ++i)
-        outIdxs[i] = std::distance(begin(), std::lower_bound(b, e, values[i]));
+        outIdxs[i] = std::distance(begin(), std::lower_bound(begin(), end(), values[i]));
 }
 
 // ----------------------------------------------------
@@ -685,8 +699,8 @@ bool cvector<T>::binary_search(const cvector<T>& values) const
     const T* b = begin();
     const T* e = end();
 
-    for (const T& val : values)
-        isExist &= std::binary_search(b, e, val);
+    for (index i = 0; i < values.size(); ++i)
+        isExist &= std::binary_search(b + i, e, values[i]);
 
     return isExist;
 }
@@ -697,13 +711,13 @@ template <typename T>
 bool cvector<T>::binary_search(const T* values, const vsize numElems) const
 {
     // NOTE: your (*this) cvector must be SORTED!
-    // check if each value from the input raw arrays exists in the current cvector
+    // check if each value from the input raw array exists in the current cvector
 
     if constexpr (ENABLE_CHECK)
     {
         if ((values == nullptr) | (numElems < 0))
         {
-            error_msg("invalid input args", CALLER_INFO);
+            error_msg("invalid input args", CALL_INFO);
             return false;
         }
     }
@@ -712,10 +726,38 @@ bool cvector<T>::binary_search(const T* values, const vsize numElems) const
     const T* b = begin();
     const T* e = end();
 
-    for (int i = 0; i < numElems; ++i)
+    for (index i = 0; i < numElems; ++i)
         isExist &= std::binary_search(b, e, values[i]);
 
     return isExist;
+}
+
+// ----------------------------------------------------
+
+template <typename T>
+void cvector<T>::binary_search(const T* values, vsize numElems, cvector<bool>& flags) const
+{
+    // NOTE: your (*this) cvector must be SORTED!
+    // check if each value from the input raw array exists and put responsible boolean-flag into output array
+    //
+    // out: flags -- array of existing flags
+
+    if constexpr (ENABLE_CHECK)
+    {
+        if ((values == nullptr) | (numElems < 0))
+        {
+            error_msg("invalid input args", CALL_INFO);
+            return;
+        }
+    }
+
+    const T* b = begin();
+    const T* e = end();
+
+    flags.resize(numElems);
+
+    for (index i = 0; i < numElems; ++i)
+        flags[i] = std::binary_search(b, e, values[i]);
 }
 
 
@@ -808,25 +850,6 @@ void cvector<T>::vassert(
 // ----------------------------------------------------
 
 template <typename T>
-void cvector<T>::error_msg(
-    const char* msg,
-    const char* format,
-    const char* fileName,
-    const char* className,
-    const char* funcName,
-    const int line) const
-{
-    const char* consoleRed = "\x1B[31m";
-    const char* consoleNorm = "\x1B[0m";
-
-    printf("%s\nERROR:\n", consoleRed);
-    printf(format, fileName, className, funcName, line, msg);
-    printf("%s", consoleNorm);
-}
-
-// ----------------------------------------------------
-
-template <typename T>
 inline void cvector<T>::realloc_buffer_discard(const vsize newCapacity)
 {
     // reallocate memory for a new buffer of capacity == newCapacity
@@ -846,8 +869,8 @@ inline void cvector<T>::realloc_buffer_discard(const vsize newCapacity)
     }
     catch (const std::bad_alloc& e)
     {
-        error_msg(e.what(), CALLER_INFO);
-        error_msg("can't allocate memory for buffer", CALLER_INFO);
+        error_msg(e.what(), CALL_INFO);
+        error_msg("can't allocate memory for buffer", CALL_INFO);
     }
 }
 
@@ -891,10 +914,9 @@ inline void cvector<T>::realloc_buffer(const vsize newCapacity)
     }
     catch (const std::bad_alloc& e)
     {
-        error_msg(e.what(), CALLER_INFO);
-        error_msg("can't allocate memory for buffer", CALLER_INFO);
+        error_msg(e.what(), CALL_INFO);
+        error_msg("can't allocate memory for buffer", CALL_INFO);
     }
 }
-
 
 } // namespace ECS

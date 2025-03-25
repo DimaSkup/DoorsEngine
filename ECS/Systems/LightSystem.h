@@ -7,13 +7,6 @@
 #pragma once
 
 #include "../Components/Light.h"
-#include "../Common/Utils.h"
-
-#include <DirectXMath.h>
-#include <vector>
-#include <type_traits>
-
-
 
 namespace ECS 
 {
@@ -32,9 +25,9 @@ public:
 	//
 	// Public creation API
 	//
-	void AddDirLights  (const std::vector<EntityID>& ids, DirLightsInitParams& params);
-	void AddPointLights(const std::vector<EntityID>& ids, PointLightsInitParams& params);
-	void AddSpotLights (const std::vector<EntityID>& ids, SpotLightsInitParams& params);
+	void AddDirLights  (const EntityID* ids, const size numEntts, DirLightsInitParams& params);
+	void AddPointLights(const EntityID* ids, const size numEntts, PointLightsInitParams& params);
+	void AddSpotLights (const EntityID* ids, const size numEntts, SpotLightsInitParams& params);
 		
 	//
 	// Public update API
@@ -51,18 +44,18 @@ public:
 	//
 	// get/set light properties
 	//
-	XMFLOAT4 GetDirLightProp  (const EntityID id, const LightProps prop);
-	XMFLOAT4 GetPointLightProp(const EntityID id, const LightProps prop);
-	XMFLOAT4 GetSpotLightProp (const EntityID id, const LightProps prop);
+	XMFLOAT4 GetDirLightProp  (const EntityID id, const LightProp prop);
+	XMFLOAT4 GetPointLightProp(const EntityID id, const LightProp prop);
+	XMFLOAT4 GetSpotLightProp (const EntityID id, const LightProp prop);
 
-	bool SetDirLightProp      (const EntityID id, const LightProps prop, const XMFLOAT4& val);
-	bool SetDirLightProp      (const EntityID id, const LightProps prop, const XMFLOAT3& val);
+	bool SetDirLightProp      (const EntityID id, const LightProp prop, const XMFLOAT4& val);
+	bool SetDirLightProp      (const EntityID id, const LightProp prop, const XMFLOAT3& val);
 
-	bool SetPointLightProp    (const EntityID id, const LightProps prop, const XMFLOAT4& val);
-	bool SetPointLightProp    (const EntityID id, const LightProps prop, const float val);
+	bool SetPointLightProp    (const EntityID id, const LightProp prop, const XMFLOAT4& val);
+	bool SetPointLightProp    (const EntityID id, const LightProp prop, const float val);
 
-	bool SetSpotLightProp     (const EntityID id, const LightProps prop, const XMFLOAT4& val);
-	bool SetSpotLightProp     (const EntityID id, const LightProps prop, const float val);
+	bool SetSpotLightProp     (const EntityID id, const LightProp prop, const XMFLOAT4& val);
+	bool SetSpotLightProp     (const EntityID id, const LightProp prop, const float val);
 
 
 	//
@@ -72,26 +65,26 @@ public:
 	{
 		// return valid idx if there is an entity by such ID;
 		// or return -1 if there is no such entity;
-		const std::vector<EntityID>& ids = pLightComponent_->ids_;
-		return (Utils::BinarySearch(ids, id)) ? Utils::GetIdxInSortedArr(ids, id) : -1;
+        const Light& comp = *pLightComponent_;
+		return (comp.ids.binary_search(id)) ? comp.ids.get_idx(id) : -1;
 	}
 
-	inline index GetIdxByID(const std::vector<EntityID>& ids, const EntityID id) const
-	{
-		// return valid idx if there is an entity by such ID;
-		// or return -1 if there is no such entity;
-		return (Utils::BinarySearch(ids, id)) ? Utils::GetIdxInSortedArr(ids, id) : -1;
-	}
+    inline index GetIdxByID(const cvector<EntityID>& ids, const EntityID id) const
+    {
+        // return valid idx if there is an entity by such ID;
+        // or return -1 if there is no such entity;
+        return ids.binary_search(id) ? ids.get_idx(id) : -1;
+    }
 
-	inline bool IsLightSource(const EntityID id)        const { return Utils::BinarySearch(pLightComponent_->ids_, id); }
-	inline bool IsDirLight(const EntityID id)           const { return Utils::BinarySearch(pLightComponent_->dirLights_.ids_, id); }
-	inline bool IsPointLight(const EntityID id)         const { return Utils::BinarySearch(pLightComponent_->pointLights_.ids_, id); }
-	inline bool IsSpotLight(const EntityID id)          const { return Utils::BinarySearch(pLightComponent_->spotLights_.ids_, id); }
+	inline bool IsLightSource(const EntityID id)        const { return pLightComponent_->ids.binary_search(id); }
+	inline bool IsDirLight(const EntityID id)           const { return pLightComponent_->dirLights.ids.binary_search(id); }
+	inline bool IsPointLight(const EntityID id)         const { return pLightComponent_->pointLights.ids.binary_search(id); }
+	inline bool IsSpotLight(const EntityID id)          const { return pLightComponent_->spotLights.ids.binary_search(id); }
 
-	inline DirLights&   GetDirLights()                  const { return pLightComponent_->dirLights_; }
-	inline PointLights& GetPointLights()                const { return pLightComponent_->pointLights_; }
-	inline SpotLights&  GetSpotLights()                 const { return pLightComponent_->spotLights_; }
-	inline LightTypes   GetLightType(const EntityID id) const { return pLightComponent_->types_[GetIdxByID(id)]; }
+	inline DirLights&   GetDirLights()                  const { return pLightComponent_->dirLights; }
+	inline PointLights& GetPointLights()                const { return pLightComponent_->pointLights; }
+	inline SpotLights&  GetSpotLights()                 const { return pLightComponent_->spotLights; }
+	inline LightType    GetLightType(const EntityID id) const { return pLightComponent_->types[GetIdxByID(id)]; }
 
 
 	bool GetPointLightData(const EntityID* ids,	ECS::PointLight* outData, const int numEntts) const;
@@ -105,20 +98,15 @@ public:
 		ECS::PosAndRange* outData, 
 		const int numEntts) const;
 
-	const size GetNumDirLights()   const { return std::ssize(pLightComponent_->dirLights_.ids_); }
-	const size GetNumPointLights() const { return std::ssize(pLightComponent_->pointLights_.ids_); }
-	const size GetNumSpotLights()  const { return std::ssize(pLightComponent_->spotLights_.ids_); }
+	const size GetNumDirLights()   const { return pLightComponent_->dirLights.ids.size(); }
+	const size GetNumPointLights() const { return pLightComponent_->pointLights.ids.size(); }
+	const size GetNumSpotLights()  const { return pLightComponent_->spotLights.ids.size(); }
 
 	// memory allocation
 	void* operator new(size_t i);
 	void operator delete(void* p);
 
 private:
-	//XMFLOAT4 GetLightPropInvalidData();
-	bool CheckCanAddRecords(const std::vector<EntityID>& ids);
-	void CheckInputParams(const std::vector<EntityID>& ids, DirLightsInitParams& params);
-	void CheckIdExist(const EntityID id, const std::string& errorMsg);
-
 	Light* pLightComponent_ = nullptr;
 };
 

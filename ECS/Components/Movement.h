@@ -8,7 +8,7 @@
 
 
 #include "../Common/Types.h"
-#include <vector>
+#include "../Common/cvector.h"
 
 
 namespace ECS
@@ -16,11 +16,11 @@ namespace ECS
 
 struct Movement
 {
-	ComponentType type_ = ComponentType::MoveComponent;
-	
-	std::vector<EntityID> ids_;                     // entities IDs
-	std::vector<XMFLOAT4> translationAndUniScales_; // translation (x,y,z); uniform scale (w)
-	std::vector<XMVECTOR> rotationQuats_;           // rotation quatertion {0, pitch, yaw, roll}
+	cvector<EntityID> ids_;                     // entities IDs
+	cvector<XMFLOAT4> translationAndUniScales_; // translation (x,y,z); uniform scale (w)
+	cvector<XMVECTOR> rotationQuats_;           // rotation quatertion {0, pitch, yaw, roll}
+
+    ComponentType type_ = ComponentType::MoveComponent;
 };
 
 }

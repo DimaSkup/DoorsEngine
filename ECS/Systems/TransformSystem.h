@@ -34,8 +34,7 @@ public:
         const float* uniformScales,
         const size numElems);
 
-	void RemoveRecords(const std::vector<EntityID>& enttsIDs);
-
+	void RemoveRecords(const cvector<EntityID>& enttsIDs);
 
 	// -------------------------------------------------------
 
@@ -93,8 +92,8 @@ public:
         const cvector<float>& newUniformScales);
 
 	void SetWorldMatricesByDataIdxs(
-		const std::vector<index>& dataIdxs,
-		const std::vector<XMMATRIX>& newWorldMatrices);
+		const cvector<index>& dataIdxs,
+		const cvector<XMMATRIX>& newWorldMatrices);
 
 
 private:
@@ -144,7 +143,6 @@ private:
 
 private:
 	Transform* pTransform_ = nullptr;   // a ptr to the Transform component
-	//WorldMatrix* pWorldMat_ = nullptr;  // a ptr to the WorldMatrix component
 };
 
 }

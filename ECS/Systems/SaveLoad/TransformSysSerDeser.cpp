@@ -9,22 +9,21 @@
 
 namespace ECS
 {
-	
 
 void TransformSysSerDeser::Serialize(
 	std::ofstream& fout, 
 	u32& offset,
 	const u32 dataBlockMarker,
-	const std::vector<EntityID>& ids,
-	const std::vector<XMFLOAT4>& posAndUniScales,
-	const std::vector<XMVECTOR>& dirQuats)
+	const cvector<EntityID>& ids,
+	const cvector<XMFLOAT4>& posAndUniScales,
+	const cvector<XMVECTOR>& dirQuats)
 {
 	// serialize all the data from the Transform component into the data file
 
 	// store offset of this data block so we will use it later for deserialization
 	offset = static_cast<u32>(fout.tellp());
 
-	const size dataCount = std::ssize(ids);
+	const size dataCount = ids.size();
 
 	FileUtils::FileWrite(fout, &dataBlockMarker);
 	FileUtils::FileWrite(fout, &dataCount);
@@ -39,9 +38,9 @@ void TransformSysSerDeser::Serialize(
 void TransformSysSerDeser::Deserialize(
 	std::ifstream& fin, 
 	const u32 offset,
-	std::vector<EntityID>& ids,
-	std::vector<XMFLOAT4>& posAndUniScales,
-	std::vector<XMVECTOR>& dirQuats)
+	cvector<EntityID>& ids,
+	cvector<XMFLOAT4>& posAndUniScales,
+	cvector<XMVECTOR>& dirQuats)
 {
 	// deserialize all the data from the data file into the Transform component
 

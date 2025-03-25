@@ -15,9 +15,9 @@ void MoveSysSerDeser::Serialize(
 	std::ofstream& fout,
 	u32& offset,
 	const u32 dataBlockMarker,
-	const std::vector<EntityID>& ids,
-	const std::vector<XMFLOAT4>& translationAndUniScales,
-	const std::vector<XMVECTOR>& rotationQuats)
+	const cvector<EntityID>& ids,
+	const cvector<XMFLOAT4>& translationAndUniScales,
+	const cvector<XMVECTOR>& rotationQuats)
 {
 	// serialize all the data from the Movement component into the data file
 
@@ -40,9 +40,9 @@ void MoveSysSerDeser::Serialize(
 void MoveSysSerDeser::Deserialize(
 	std::ifstream& fin, 
 	const u32 offset,
-	std::vector<EntityID>& ids,
-	std::vector<XMFLOAT4>& translationAndUniScales,
-	std::vector<XMVECTOR>& rotationQuats)
+	cvector<EntityID>& ids,
+	cvector<XMFLOAT4>& translationAndUniScales,
+	cvector<XMVECTOR>& rotationQuats)
 {
 	// deserialize the data from the data file into the Movement component
 

@@ -32,32 +32,42 @@ public:
 		Render::Instance& instance);
 
 	void PrepareEnttsDataForRendering(
-		const std::vector<EntityID>& enttsIds,
+        const EntityID* enttsIds,
+        const size numEntts,
 		Render::InstBuffData& instanceBuffData,      // data for the instance buffer
 		std::vector<Render::Instance>& instances);   // instances (models subsets) data for rendering
-		
+
+    // ----------------------------------------------------
+
 	void PrepareInstanceData(
 		const BasicModel& model,
 		Render::Instance& instance,
 		TextureMgr& texMgr);
 
+    void PrepareInstancesData(
+        const EntityID* ids,
+        const size numEntts,
+        std::vector<Render::Instance>& instances,
+        std::vector<EntityID>& enttsSortedByModels);            
+
+    // ----------------------------------------------------
+
 	void PrepareEnttsBoundingLineBox(
-		const std::vector<EntityID>& visibleEntts,
+        const EntityID* visibleEntts,
+        const size numEntts,
 		Render::Instance& instance,
 		Render::InstBuffData& instanceBuffer);
 
 	void PrepareEnttsMeshesBoundingLineBox(
-		const std::vector<EntityID>& visibleEntts,
+        const EntityID* visibleEntts,
+        const size numEntts,
 		Render::Instance& instance,
 		Render::InstBuffData& instanceBuffer);
 
-	void PrepareInstancesData(
-		const std::vector<EntityID>& ids,
-		std::vector<Render::Instance>& instances,
-		std::vector<EntityID>& enttsSortedByModels);            // alpha clipping flags for each instance);
 
 	void PrepareInstancesOfEnttWithOwnTex(
-		const std::vector<EntityID>& enttsWithOwnTex,
+        const EntityID* enttsIDs,
+        const size numEntts,
 		ECS::EntityMgr& mgr,
 		std::vector<Render::Instance>& instances,
 		std::map<ModelID, Render::Instance*>& modelIdToInstance,

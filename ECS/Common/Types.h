@@ -22,7 +22,7 @@ using u32            = uint32_t;
 using size           = ptrdiff_t;  // used for indexing, or for storing the result from std::ssize()
 using index          = ptrdiff_t;
 
-using ComponentsHash = uint32_t;
+using ComponentHash  = uint32_t;
 using ModelID        = uint32_t;
 
 // textures related typedefs
@@ -31,14 +31,14 @@ using TexPath        = std::string;
 
 using EntityID       = uint32_t;
 using EntityName     = std::string;
-using ComponentID    = std::string;
+using ComponentName  = std::string;
 using SystemID       = std::string;
 
-const EntityID   INVALID_ENTITY_ID{ 0 };
-const EntityName INVALID_ENTITY_NAME{ "invalid" };
+constexpr EntityID   INVALID_ENTITY_ID{ 0 };
+const EntityName     INVALID_ENTITY_NAME{ "invalid" };
 
-const TexID      INVALID_TEXTURE_ID{ 0 };
-const TexPath    INVALID_TEXTURE_PATH{ "invalid" };
+constexpr TexID      INVALID_TEXTURE_ID{ 0 };
+const TexPath        INVALID_TEXTURE_PATH{ "invalid" };
 
 namespace ECS
 {
@@ -71,7 +71,7 @@ enum ComponentType
     GroundedComponent,
     CollisionComponent,
 
-    LAST_COMPONENT_TYPE
+    NUM_COMPONENTS
 };
 
 enum RenderShaderType

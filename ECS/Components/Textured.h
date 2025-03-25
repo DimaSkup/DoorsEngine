@@ -8,37 +8,40 @@
 
 #include "../Common/Types.h"
 #include "../Common/Assert.h"
-#include <vector>
+#include "../Common/cvector.h"
 
 namespace ECS
 {
 
+constexpr size TEXTURES_TYPES_COUNT = 22;
+
+
 struct TexturedData
 {
-	TexturedData() {}
+    TexturedData() {}
 
-	TexturedData(const TexID* texIDs, int submeshID) :
-		submeshID_(submeshID)
-	{
-		Assert::NotNullptr(texIDs, "a ptr to tex arr == nullptr");
-		Assert::True(submeshID > -1, "wrong submesh ID value");
+    TexturedData(const TexID* inTexIDs, const int inSubmeshID) :
+        submeshID(inSubmeshID)
+    {
+        Assert::NotNullptr(texIDs, "a ptr to tex arr == nullptr");
+        Assert::True(submeshID >= 0, "wrong submesh ID value");
 
-		// copy 22 textures IDs
-		std::copy(texIDs, texIDs + 22, texIDs_);
-	}
+        // copy 22 textures IDs
+        std::copy(inTexIDs, inTexIDs + TEXTURES_TYPES_COUNT, texIDs);
+    }
 
-
-	TexID texIDs_[22]{ 0 };   // each submesh can have 22 texture types
-	int submeshID_ = -1;      // ID of entt's model submesh
+    TexID    texIDs[22]{ 0 };    // each submesh can have 22 texture types
+    uint32_t submeshID = -1;     // ID of entt's model submesh
 };
+
+// --------------------------------------------------------
 
 struct Textured
 {
-	ComponentType type_ = ComponentType::TexturedComponent;
-	static const ptrdiff_t TEXTURES_TYPES_COUNT = 22;  // AI_TEXTURE_TYPE_MAX + 1
+    cvector<EntityID>     ids;
+    cvector<TexturedData> data;
 
-	std::vector<EntityID>     ids_;
-	std::vector<TexturedData> data_;
+    ComponentType         type = ComponentType::TexturedComponent;
 };
 
 }

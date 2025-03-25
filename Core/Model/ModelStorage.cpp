@@ -297,31 +297,45 @@ BasicModel& ModelStorage::GetModelByName(const std::string& name)
             return models_[i];
     }
 
-    // return empty model
+    // return an empty model if we didn't find any
     Log::Error("there is no model by name: " + name);
     return models_[0];                  
 }
 
 ///////////////////////////////////////////////////////////
 
-void ModelStorage::GetAssetsNamesList(std::string* namesArr, const int numNames)
+ModelID ModelStorage::GetModelIdByName(const std::string& name)
 {
-    // fill in the input namesArr with names of the assets from the storage
-    // NOTE: namesArr must be already allocated to size of numNames
+    // get a model ID by its input name
 
-    try
+    if (name.empty())
     {
-        Assert::NotNullptr(namesArr, "ptr to the names arr == nullptr");
-        Assert::True(numNames == GetNumAssets(), "input number of names is invalid: " + std::to_string(numNames));
+        Log::Error("input name is empty");
+        return ids_[0];                  // return empty model
+    }
 
-        for (int i = 0; i < numNames; ++i)
-            namesArr[i] = models_[i].GetName();
-    }
-    catch (EngineException& e)
+    for (index i = 0; i < std::ssize(models_); ++i)
     {
-        Log::Error(e);
-        Log::Error("can't get a list of assets names");
+        if (models_[i].name_ == name)
+            return ids_[i];
     }
+
+    // return an empty model ID if we didn't find any
+    Log::Error("there is no model by name: " + name);
+    return ids_[0];
+}
+
+///////////////////////////////////////////////////////////
+
+void ModelStorage::GetAssetsNamesList(cvector<std::string>& names)
+{
+    // fill in the input array with names of the assets from the storage
+
+    const int numNames = GetNumAssets();
+    names.resize(numNames);
+
+    for (int i = 0; i < numNames; ++i)
+        names[i] = models_[i].GetName();
 }
 
 } // namespace Core

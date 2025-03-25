@@ -126,9 +126,9 @@ private:
 	// ------------------------------------------
 	// rendering data prepararion stage API
 
-	void PrepBasicInstancesForRender(const std::vector<EntityID>& enttsIds);
-	void PrepAlphaClippedInstancesForRender(const std::vector<EntityID>& enttsIds);
-	void PrepBlendedInstancesForRender(const std::vector<EntityID>& enttsIds);
+	void PrepBasicInstancesForRender(const EntityID* ids, const size numEntts);
+	void PrepAlphaClippedInstancesForRender(const EntityID* ids, const size numEntts);
+	void PrepBlendedInstancesForRender(const EntityID* ids, const size numEntts);
 
 	// ------------------------------------------
 

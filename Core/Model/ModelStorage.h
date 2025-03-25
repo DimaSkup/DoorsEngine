@@ -7,6 +7,7 @@
 #pragma once
 
 #include <CoreCommon/Types.h>
+#include <CoreCommon/cvector.h>
 #include "SkyModel.h"
 #include "BasicModel.h"
 #include <vector>
@@ -29,12 +30,13 @@ public:
 
 	BasicModel& GetModelByID(const ModelID id);
 	BasicModel& GetModelByName(const std::string& name);
+    ModelID     GetModelIdByName(const std::string& name);
 
 	inline BasicModel& GetLastModel()       { return models_.back(); }
 	inline SkyModel&   GetSky()             { return sky_; }
 	inline int         GetNumAssets() const { return (int)std::ssize(ids_); }
 
-	void GetAssetsNamesList(std::string* namesArr, const int numNames);
+	void GetAssetsNamesList(cvector<std::string>& names);
 
 public:
 	static int INVALID_MODEL_ID;

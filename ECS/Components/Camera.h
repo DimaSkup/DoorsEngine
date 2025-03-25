@@ -7,29 +7,31 @@
 #pragma once
 
 #include "../Common/Types.h"
-#include <vector>
+#include "../Common/cvector.h"
+
 
 namespace ECS
 {
 
 struct Camera
 {
-	Camera()
-	{
-		// push empty invalid data
-		ids_.push_back(INVALID_ENTITY_ID);
-		views_.push_back(DirectX::XMMatrixIdentity());
-		projs_.push_back(DirectX::XMMatrixIdentity());
-		invViews_.push_back(DirectX::XMMatrixIdentity());
-	}
+    Camera()
+    {
+        // push empty invalid data
+        ids.push_back(INVALID_ENTITY_ID);
+        views.push_back(DirectX::XMMatrixIdentity());
+        projs.push_back(DirectX::XMMatrixIdentity());
+        invViews.push_back(DirectX::XMMatrixIdentity());
+    }
 
-	ComponentType type_ = ComponentType::CameraComponent;
 
-	std::vector<EntityID> ids_;          // id of entt which has a camera
-	std::vector<XMMATRIX> views_;         // view matrix of the camera
-	std::vector<XMMATRIX> projs_;         // projection matrix of the camera
+    cvector<EntityID> ids;           // id of entt which has a camera
+    cvector<XMMATRIX> views;         // view matrix of the camera
+    cvector<XMMATRIX> projs;         // projection matrix of the camera
+    cvector<XMMATRIX> invViews;      // current inverse view matrix
 
-	std::vector<XMMATRIX> invViews_;      // current inverse view matrix
+    ComponentType type = ComponentType::CameraComponent;
+
 };
 
 }

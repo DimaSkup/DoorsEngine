@@ -11,24 +11,29 @@
 // =================================================================================
 #pragma once
 
+#include <CoreCommon/cvector.h>
 #include "Color.h"
 #include "Vectors.h"
 
 #include <d3d11.h>
 #include <cstdint>
 #include <string>
+#include <DirectXCollision.h>
 
 
 namespace UI
 {
 
 using EntityID = uint32_t;
-
+using ModelID = uint32_t;
 
 class IFacadeEngineToUI
 {
 public:
     virtual ~IFacadeEngineToUI() {};
+
+
+    virtual ModelID GetModelIdByName(const std::string& name) { return 0; }
 
     // 
     // for using the textures manager
@@ -46,6 +51,15 @@ public:
     // =============================================================================
     // common methods for entity editor
     // =============================================================================
+    virtual EntityID CreateEntity() { return 0; }
+
+    virtual bool AddNameComponent     (const EntityID id, const std::string& name)                                          { return false; }
+    virtual bool AddTransformComponent(const EntityID id, const Vec3& pos, const Vec3& direction, const float uniformScale) { return false; }
+    virtual bool AddModelComponent    (const EntityID enttID, const uint32_t modelID)                                       { return false; }
+    virtual bool AddRenderedComponent (const EntityID enttID)                                                               { return false; }
+    virtual bool AddBoundingComponent (const EntityID id, const int boundType, const DirectX::BoundingBox& aabb)            { return false; }
+
+
     virtual bool GetAllEnttsIDs(const uint32_t*& pEnttsIDsArr, int& numEntts) { return false; }
     virtual uint32_t GetEnttIDByName(const char* name) { return 0; }
     virtual bool GetEnttNameByID(const EntityID id, std::string& name) { return false; }
@@ -190,8 +204,7 @@ public:
     // =============================================================================
     // for assets manager
     // =============================================================================
-    virtual int  GetNumAssets() { return 0; }
-    virtual void GetAssetsNamesList(std::string* namesArr, const int numNames) { assert(0 && "TODO: implement this virtual method in children"); }
+    virtual bool GetAssetsNamesList(Core::cvector<std::string>& names) { return false; }
 
 
 private:

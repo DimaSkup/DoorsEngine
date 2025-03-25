@@ -7,20 +7,19 @@
 #pragma once
 
 #include "../Common/Types.h"
-#include <vector>
+#include "../Common/cvector.h"
 
 namespace ECS
 {
 
-// ECS component
 struct Name
 {
-	ComponentType type_ = ComponentType::NameComponent;
-
 	// both vectors have the same length because 
 	// there is one to one records ['entity_id' => 'entity_name']
-	std::vector<EntityID> ids_;
-	std::vector<EntityName> names_;
+	cvector<EntityID> ids_;
+	cvector<EntityName> names_;
+
+    ComponentType type_ = ComponentType::NameComponent;
 };
 
 }

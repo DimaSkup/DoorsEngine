@@ -6,24 +6,31 @@
 // *********************************************************************************
 #pragma once
 
-//#include <vector>
 #include "../Common/Types.h"
-#include <unordered_map>
+#include "../Common/cvector.h"
 #include <d3d11.h>
 
 namespace ECS
 {
 
+struct RenderInitParams
+{
+    ECS::RenderShaderType    shaderType;
+    D3D11_PRIMITIVE_TOPOLOGY topologyType;
+};
+
+///////////////////////////////////////////////////////////
+
 struct Rendered
 {
-	ComponentType type_ = ComponentType::RenderedComponent;
+    cvector<EntityID>                   ids;
+    cvector<ECS::RenderShaderType>      shaderTypes;
+    cvector<D3D11_PRIMITIVE_TOPOLOGY>   primTopologies;
 
-	std::vector<EntityID> ids_;
-	std::vector<ECS::RenderShaderType> shaderTypes_;
-	std::vector<D3D11_PRIMITIVE_TOPOLOGY> primTopologies_;
+    cvector<EntityID>                   visibleEnttsIDs;        // currently visible entts (models) for this frame
+    cvector<EntityID>                   visiblePointLightsIDs;  // currently visible point light sources
 
-	std::vector<EntityID> visibleEnttsIDs_;   // currently visible entts (models) for this frame
-	std::vector<EntityID> visiblePointLightsIDs_;  // currently visible point light sources
+    ComponentType                       type = ComponentType::RenderedComponent;
 };
 
 }

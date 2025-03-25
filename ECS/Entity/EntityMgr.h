@@ -6,11 +6,9 @@
 // **********************************************************************************
 
 #pragma once
-#include <Common/pch.h>
 
 // components (ECS)
 #include "../Components/Transform.h"
-//#include "../Components/WorldMatrix.h"
 #include "../Components/Movement.h"
 #include "../Components/Model.h"
 #include "../Components/Rendered.h"
@@ -59,8 +57,8 @@ public:
     bool Deserialize(const std::string& dataFilepath);
 
     // public creation/destroyment API
-    std::vector<EntityID> CreateEntities(const int newEnttsCount);
-    void DestroyEntities(const std::vector<EntityID>& enttsIDs);
+    cvector<EntityID> CreateEntities(const int newEnttsCount);
+    void DestroyEntities(const EntityID* ids, const size numEntts);
 
     EntityID CreateEntity();
     //void DestroyEntity(const EntityName& enttName);
@@ -68,9 +66,11 @@ public:
     void Update(const float totalGameTime, const float deltaTime);
 
 
-    // ------------------------------------------------------------------------
-    // add TRANSFORM component API
+    // =============================================================================
+    // PUBLIC METHODS: ADD COMPONENTS 
+    // =============================================================================
 
+    // add TRANSFORM component API
     void AddTransformComponent(
         const EntityID& enttID,
         const XMFLOAT3& position = { 0,0,0 },
@@ -78,14 +78,14 @@ public:
         const float uniformScale = 1.0f);
 
     void AddTransformComponent(
-        const std::vector<EntityID>& enttsIDs,
-        const std::vector<XMFLOAT3>& positions,
-        const std::vector<XMVECTOR>& dirQuats,
-        const std::vector<float>& uniformScales);
+        const EntityID* ids,
+        const size numEntts,
+        const XMFLOAT3* positions,
+        const XMVECTOR* dirQuats,
+        const float* uniformScales);
 
-    // ------------------------------------
+
     // add RENDERED component API
-
     void AddMoveComponent(
         const EntityID& enttID,
         const XMFLOAT3& translation,
@@ -93,25 +93,25 @@ public:
         const float uniformScaleFactor);
 
     void AddMoveComponent(
-        const std::vector<EntityID>& enttsIDs,
-        const std::vector<XMFLOAT3>& translations,
-        const std::vector<XMVECTOR>& rotationQuats,
-        const std::vector<float>& uniformScaleFactors);
+        const EntityID* ids,
+        const XMFLOAT3* translations,
+        const XMVECTOR* rotationQuats,
+        const float* uniformScaleFactors,
+        const size numEntts);
 
-    // ------------------------------------
+  
     // add NAME component API
+    void AddNameComponent(
+        const EntityID& id,
+        const EntityName& name);
 
     void AddNameComponent(
-        const EntityID& enttID,
-        const EntityName& enttName);
+        const EntityID* ids,
+        const EntityName* names,
+        const size numEntts);
 
-    void AddNameComponent(
-        const std::vector<EntityID>& enttsIDs,
-        const std::vector<EntityName>& enttsNames);
-
-    // ------------------------------------
+    
     // add MODEL component API
-
     void AddModelComponent(
         const EntityID enttID,
         const ModelID modelID);
@@ -126,62 +126,54 @@ public:
         const ModelID* modelsIDs,
         const size numEntts);
 
-    // ------------------------------------
+
     // add RENDERED component API
+    void AddRenderingComponent(const EntityID id, const RenderInitParams& params);
 
     void AddRenderingComponent(
-        const EntityID id,
-        const ECS::RenderShaderType shaderType = RenderShaderType::LIGHT_SHADER,
-        const D3D11_PRIMITIVE_TOPOLOGY topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        const EntityID* ids,
+        const size numEntts,
+        const RenderInitParams& params);
 
     void AddRenderingComponent(
-        const std::vector<EntityID>& enttsIDs,
-        const RenderShaderType renderShaderType = RenderShaderType::LIGHT_SHADER,
-        const D3D11_PRIMITIVE_TOPOLOGY topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        const EntityID* ids,
+        const size numEntts,
+        const RenderInitParams* params);
 
-    void AddRenderingComponent(
-        const std::vector<EntityID>& enttsIDs,
-        const std::vector<RenderShaderType>& renderShadersTypes,
-        const std::vector<D3D11_PRIMITIVE_TOPOLOGY>& topologyTypes);
-
-    // ------------------------------------
+  
     // add TEXTURED component API
-
     void AddTexturedComponent(
         const EntityID enttID,
         const TexID* texIDs,
         const size numTextures,
         const int submeshID);
 
-    // ------------------------------------
+
     // add TEXTURE TRANSFORM component API
-    
     void AddTextureTransformComponent(
-        const TexTransformType type,
         const EntityID enttID,
+        const TexTransformType type,
         const TexTransformInitParams& params);
 
     void AddTextureTransformComponent(
+        const EntityID* ids,
+        const size numEntts,
         const TexTransformType type,
-        const std::vector<EntityID>& ids,
         const TexTransformInitParams& params);
 
-    // ------------------------------------
+
     // add LIGHT component API
+    void AddLightComponent(const EntityID* ids, const size numEntts, DirLightsInitParams& params);
+    void AddLightComponent(const EntityID* ids, const size numEntts, PointLightsInitParams& params);
+    void AddLightComponent(const EntityID* ids, const size numEntts, SpotLightsInitParams& params);
 
-    void AddLightComponent(const std::vector<EntityID>& ids, DirLightsInitParams& params);
-    void AddLightComponent(const std::vector<EntityID>& ids, PointLightsInitParams& params);
-    void AddLightComponent(const std::vector<EntityID>& ids, SpotLightsInitParams& params);
 
-    // ------------------------------------
     // add RENDER STATES component API
-
     void AddRenderStatesComponent(const EntityID id);
-    void AddRenderStatesComponent(const std::vector<EntityID>& ids);
+    void AddRenderStatesComponent(const EntityID* ids, const size numEntts);
 
-    // ------------------------------------
+
     // add BOUNDING component API
-
     void AddBoundingComponent(               // takes only one entt with only one subset (mesh)
         const EntityID id,
         const BoundingType type,
@@ -208,18 +200,43 @@ public:
         const DirectX::BoundingSphere* boundingSpheres,
         const size numEntts);
 
-    // ------------------------------------
-    // add CAMERA component
 
+    // add CAMERA component
     void AddCameraComponent(
         const EntityID id,
         const DirectX::XMMATRIX& view,
         const DirectX::XMMATRIX& proj);
 
 
-    // ------------------------------------
-    // components SETTERS API
 
+
+
+    // =============================================================================
+    // public API: QUERY
+    // =============================================================================
+    inline const Transform&         GetComponentTransform()     const { return transform_; }
+    inline const Movement&          GetComponentMovement()      const { return movement_; }
+    inline const Model&             GetComponentModel()         const { return modelComponent_; }
+    inline const Name&              GetComponentName()          const { return names_; }
+    inline const Rendered&          GetComponentRendered()      const { return renderComponent_; }
+    inline const Textured&          GetComponentTextured()      const { return textureComponent_; }
+    inline const TextureTransform&  GetComponentTexTransform()  const { return texTransform_; }
+    inline const Light&             GetComponentLight()         const { return light_; }
+    inline const Bounding&          GetComponentBounding()      const { return bounding_; }
+
+    inline const std::map<ComponentType, ComponentName>& GetMapCompTypeToName() {	return componentTypeToName_; }
+    inline const cvector<EntityID>& GetAllEnttsIDs() const { return ids_; }
+
+    void GetComponentNamesByEntity(const EntityID id, cvector<std::string>& names);
+
+    inline bool CheckEnttExist(const EntityID id)                         const { return ids_.binary_search(id); }
+    inline bool CheckEnttsExist(const EntityID* ids, const size numEntts) const { return ids_.binary_search(ids, numEntts); }
+
+
+private:
+    ComponentHash GetHashByComponent(const ComponentType component);
+ 
+    // common setters: components
     void SetEnttHasComponent(
         const EntityID id,
         const ComponentType compType);
@@ -230,65 +247,12 @@ public:
         const ComponentType compType);
 
     void SetEnttsHaveComponents(
-        const std::vector<EntityID>& ids,
-        const std::vector<ComponentType> compTypes);
-
-    // ---------------------------------------------------------------------------
-    // public QUERY API
-
-    inline const Transform& GetComponentTransform()           const { return transform_; }
-    inline const Movement& GetComponentMovement()             const { return movement_; }
-    inline const Model& GetComponentModel()                   const { return modelComponent_; }
-    inline const Name& GetComponentName()                     const { return names_; }
-    inline const Rendered& GetComponentRendered()             const { return renderComponent_; }
-    inline const Textured& GetComponentTextured()             const { return textureComponent_; }
-    inline const TextureTransform& GetComponentTexTransform() const { return texTransform_; }
-    inline const Light& GetComponentLight()                   const { return light_; }
-    inline const Bounding& GetComponentBounding()             const { return bounding_; }
-
-    inline const std::map<ComponentType, ComponentID>& GetMapCompTypeToName() {	return componentTypeToName_; }
-    inline const std::vector<EntityID>& GetAllEnttsIDs() const { return ids_; }
-
-    void CheckEnttsHaveComponents(
         const EntityID* ids,
-        const size numEntts,
-        const std::vector<ComponentType>& componentsTypes,
-        std::vector<bool>& outHasComponent);
-
-    void GetComponentHashesByIDs(
-        const std::vector<EntityID>& ids,
-        std::vector<ComponentsHash>& componentFlags);
-
-    void GetEnttsByComponents(
-        const std::vector<EntityID>& enttsIDs,
-        const std::vector<ComponentType> compTypes,
-        std::vector<EntityID>& outFilteredEntts);
-
-    void GetEnttsByComponent(
-        const ComponentType componentType,
-        std::vector<EntityID>& outIDs);
-
-    bool CheckEnttExist(const EntityID id);
-    bool CheckEnttsExist(const EntityID* ids, const size numEntts);
-
-    ComponentsHash GetHashByComponent(const ComponentType component);
-    ComponentsHash GetHashByComponents(const std::vector<ComponentType>& components);
-
-private:
-
-    void GetDataIdxsByIDs(
-        const EntityID* ids,
-        const size numEntts,
-        std::vector<index>& outDataIdxs);
-
-    bool CheckEnttsByDataIdxsHaveComponent(
-        const std::vector<index>& enttsDataIdxs,
-        const ComponentType componentType);
-
+        const cvector<ComponentType>& compTypes,
+        const size numEntts);
 
 public:
     static const u32 ENTT_MGR_SERIALIZE_DATA_BLOCK_MARKER = 1000;
-
 
     // SYSTEMS
     LightSystem            lightSystem_;
@@ -305,12 +269,13 @@ public:
     
 
     // "ID" of an entity is just a numeral index
-    std::vector<EntityID> ids_;
+    cvector<EntityID> ids_;
 
     // bit flags for every component, indicating whether this object "has it"
-    std::vector<ComponentsHash> componentHashes_;
+    cvector<ComponentHash> componentHashes_;
 
-    std::map<ComponentType, ComponentID> componentTypeToName_;  
+    std::map<ComponentType, ComponentName> componentTypeToName_;  
+
 
 private:
 

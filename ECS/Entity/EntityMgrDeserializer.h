@@ -27,7 +27,7 @@ public:
 	void DeserializeEnttMgrData(
 		std::ifstream& fin,
 		EntityID** ids,
-		ComponentsHash** hashes,
+		ComponentHash** hashes,
 		u32& count,
 		const u32 enttMgrDataBlockMarker);
 };

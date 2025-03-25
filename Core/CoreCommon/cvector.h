@@ -10,18 +10,21 @@
 #include <algorithm>
 #include <stdarg.h>
 
-
 namespace Core
 {
 
 // this macro is used for the vassert() method
 #define CALLER_INFO "  FILE: \t%s\n  CLASS:\t%s\n  FUNC: \t%s()\n  LINE: \t%d\n  MSG: \t\t%s\n", __FILE__, typeid(this).name(), __func__, __LINE__
 
+
 constexpr bool ENABLE_CHECK = true;
 
-// some typedefs
+
+// some typedefas
 using index = ptrdiff_t;
 using vsize = ptrdiff_t;
+static float growFactor_ = 1.5f;
+
 
 // =================================================================================
 // CVECTOR
@@ -53,16 +56,16 @@ public:
     inline       T& operator[](index i) { return data_[i]; }    // v[i] = x
     inline const T& operator[](index i) const { return data_[i]; }    // x = v[i]
 
-    bool            operator==(const cvector<T>& rhs) const;
+    bool        operator==(const cvector<T>& rhs) const;
     cvector<T>& operator=(const cvector<T>& rhs);
     cvector<T>& operator=(cvector<T>&& rhs) noexcept;
     cvector<T>& operator=(std::initializer_list<T> list);
 
 
     // iterators
-    inline T* begin() { return data_; }
+    inline T*       begin()                       { return data_; }
     inline const T* begin()                 const { return data_; }
-    inline T* end() { return data_ + size_; }
+    inline T*       end()                         { return data_ + size_; }
     inline const T* end()                   const { return data_ + size_; }
 
 
@@ -114,6 +117,7 @@ public:
     bool binary_search(const T& value) const;
     bool binary_search(const cvector<T>& vSrc) const;
     bool binary_search(const T* values, const vsize numElems) const;
+    void binary_search(const T* values, vsize numElems, cvector<bool>& flags) const;
 
 
     // allocators
@@ -148,8 +152,7 @@ private:
     inline vsize GetGrownCapacity(const vsize capacity)
     {
         // compute grown capacity: newCapacity = growFactor * capacity;
-        // growFactor == 1.5f
-        return (vsize)(ceil(1.5f * capacity));
+        return (vsize)(ceil(growFactor_ * capacity));
     }
 };
 
@@ -160,7 +163,7 @@ private:
 //                          constructor, destructor
 // =================================================================================
 template <typename T>
-cvector<T>::cvector() :
+inline cvector<T>::cvector() :
     size_(0),
     capacity_(0),
     data_(nullptr)
@@ -170,7 +173,7 @@ cvector<T>::cvector() :
 // ----------------------------------------------------
 
 template <typename T>
-cvector<T>::cvector(const vsize count, const T& value) :
+inline cvector<T>::cvector(const vsize count, const T& value) :
     size_(count),
     capacity_(count)
 {
@@ -183,7 +186,7 @@ cvector<T>::cvector(const vsize count, const T& value) :
 // ----------------------------------------------------
 
 template <typename T>
-cvector<T>::cvector(const cvector<T>& other) :
+inline cvector<T>::cvector(const cvector<T>& other) :
     size_(other.size_),
     capacity_(other.capacity_)
 {
@@ -196,7 +199,7 @@ cvector<T>::cvector(const cvector<T>& other) :
 // ----------------------------------------------------
 
 template <typename T>
-cvector<T>::cvector(cvector<T>&& other) noexcept :
+inline cvector<T>::cvector(cvector<T>&& other) noexcept :
     data_(std::exchange(other.data_, nullptr)),
     size_(std::exchange(other.size_, 0)),
     capacity_(std::exchange(other.capacity_, 0))
@@ -206,7 +209,7 @@ cvector<T>::cvector(cvector<T>&& other) noexcept :
 // ----------------------------------------------------
 
 template <typename T>
-cvector<T>::cvector(std::initializer_list<T> il) : cvector()
+inline cvector<T>::cvector(std::initializer_list<T> il) : cvector()
 {
     assign(il.begin(), il.end());
 }
@@ -243,7 +246,7 @@ bool cvector<T>::operator==(const cvector<T>& rhs) const
 //                  assignment: copy, move, initializer_list
 // =================================================================================
 template <typename T>
-cvector<T>& cvector<T>::operator=(const cvector<T>& rhs)
+inline cvector<T>& cvector<T>::operator=(const cvector<T>& rhs)
 {
     // copy assignment operator
 
@@ -267,7 +270,7 @@ cvector<T>& cvector<T>::operator=(const cvector<T>& rhs)
 // ----------------------------------------------------
 
 template <typename T>
-cvector<T>& cvector<T>::operator=(cvector<T>&& rhs) noexcept
+inline cvector<T>& cvector<T>::operator=(cvector<T>&& rhs) noexcept
 {
     if (this == &rhs) return *this;
 
@@ -304,10 +307,10 @@ cvector<T>& cvector<T>::operator=(std::initializer_list<T> list)
 
 
 // =================================================================================
-//                               shift elements
+//                           get data by indices
 // =================================================================================
 template <typename T>
-void cvector<T>::get_data_by_idxs(
+inline void cvector<T>::get_data_by_idxs(
     const cvector<index>& idxs,
     cvector<T>& outData) const
 {
@@ -378,7 +381,7 @@ void cvector<T>::shift_right(const index idx, const int num)
 // ----------------------------------------------------
 
 template <typename T>
-void cvector<T>::shift_left(const index idx, const int num)
+inline void cvector<T>::shift_left(const index idx, const int num)
 {
     // shift left all the elements of range [idx, end) by the num positions;
     // idx - start index of the original range
@@ -401,7 +404,7 @@ void cvector<T>::shift_left(const index idx, const int num)
 //                               public setters
 // =================================================================================
 template <typename T>
-void cvector<T>::push_back(const T& value)
+inline void cvector<T>::push_back(const T& value)
 {
     if (size_ == capacity_)
     {
@@ -417,7 +420,7 @@ void cvector<T>::push_back(const T& value)
 // ----------------------------------------------------
 
 template <typename T>
-void cvector<T>::erase(const vsize index)
+inline void cvector<T>::erase(const vsize index)
 {
     if constexpr (ENABLE_CHECK)
     {
@@ -571,7 +574,7 @@ void cvector<T>::append_vector(U&& src)
 
 template <typename T>
 template <typename Iter>
-void cvector<T>::assign(Iter first, Iter last)
+inline void cvector<T>::assign(Iter first, Iter last)
 {
     vsize const sz = vsize(last - first);
     if (size_ < sz) resize(sz);
@@ -585,7 +588,7 @@ void cvector<T>::assign(Iter first, Iter last)
 //                                  search
 // =================================================================================
 template <typename T>
-index cvector<T>::find(const T& val) const
+inline index cvector<T>::find(const T& val) const
 {
     // NOTE:  is used for a cvector of RANDOMLY placed values;
     // DESC:  find first matching val and return its index;
@@ -599,7 +602,7 @@ index cvector<T>::find(const T& val) const
 // ----------------------------------------------------
 
 template <typename T>
-index cvector<T>::get_idx(const T& val) const
+inline index cvector<T>::get_idx(const T& val) const
 {
     // NOTE:  your (*this) cvector must be SORTED!
     // DESC:  get current position (index) into (*this) array for the input value
@@ -610,7 +613,7 @@ index cvector<T>::get_idx(const T& val) const
 // ----------------------------------------------------
 
 template <typename T>
-void cvector<T>::get_idxs(
+inline void cvector<T>::get_idxs(
     const T* values,
     const vsize numElems,
     cvector<index>& outIdxs) const
@@ -626,19 +629,17 @@ void cvector<T>::get_idxs(
             return;
         }
     }
-
-    const T* b = begin();
-    const T* e = end();
+   
     outIdxs.resize(numElems);
 
     for (int i = 0; i < numElems; ++i)
-        outIdxs[i] = std::distance(begin(), std::lower_bound(b, e, values[i]));
+        outIdxs[i] = std::distance(begin(), std::lower_bound(begin(), end(), values[i]));
 }
 
 // ----------------------------------------------------
 
 template <typename T>
-void cvector<T>::get_idxs(
+inline void cvector<T>::get_idxs(
     const cvector<T>& values,
     cvector<index>& outIdxs) const
 {
@@ -654,7 +655,7 @@ void cvector<T>::get_idxs(
 // ----------------------------------------------------
 
 template <typename T>
-bool cvector<T>::has_value(const T& val) const
+inline bool cvector<T>::has_value(const T& val) const
 {
     // NOTE:  for a cvector of RANDOMLY placed values:
     // DESC:  check if (*this) cvector has such a value
@@ -665,7 +666,7 @@ bool cvector<T>::has_value(const T& val) const
 // ----------------------------------------------------
 
 template <typename T>
-bool cvector<T>::binary_search(const T& val) const
+inline bool cvector<T>::binary_search(const T& val) const
 {
     // NOTE: your (*this) cvector must be SORTED!
     return std::binary_search(begin(), end(), val);
@@ -683,8 +684,8 @@ bool cvector<T>::binary_search(const cvector<T>& values) const
     const T* b = begin();
     const T* e = end();
 
-    for (const T& val : values)
-        isExist &= std::binary_search(b, e, val);
+    for (index i = 0; i < values.size(); ++i)
+        isExist &= std::binary_search(b + i, e, values[i]);
 
     return isExist;
 }
@@ -695,7 +696,7 @@ template <typename T>
 bool cvector<T>::binary_search(const T* values, const vsize numElems) const
 {
     // NOTE: your (*this) cvector must be SORTED!
-    // check if each value from the input raw arrays exists in the current cvector
+    // check if each value from the input raw array exists in the current cvector
 
     if constexpr (ENABLE_CHECK)
     {
@@ -710,10 +711,38 @@ bool cvector<T>::binary_search(const T* values, const vsize numElems) const
     const T* b = begin();
     const T* e = end();
 
-    for (int i = 0; i < numElems; ++i)
-        isExist &= std::binary_search(b, e, values[i]);
+    for (index i = 0; i < numElems; ++i)
+        isExist &= std::binary_search(b + i, e, values[i]);
 
     return isExist;
+}
+
+// ----------------------------------------------------
+
+template <typename T>
+void cvector<T>::binary_search(const T* values, vsize numElems, cvector<bool>& flags) const
+{
+    // NOTE: your (*this) cvector must be SORTED!
+    // check if each value from the input raw array exists and put responsible boolean-flag into output array
+    //
+    // out: flags -- array of existing flags
+
+    if constexpr (ENABLE_CHECK)
+    {
+        if ((values == nullptr) | (numElems < 0))
+        {
+            error_msg("invalid input args", CALLER_INFO);
+            return;
+        }
+    }
+
+    const T* b = begin();
+    const T* e = end();
+
+    flags.resize(numElems);
+
+    for (index i = 0; i < numElems; ++i)
+        flags[i] = std::binary_search(b + i, e, values[i]);
 }
 
 
@@ -721,7 +750,7 @@ bool cvector<T>::binary_search(const T* values, const vsize numElems) const
 //                          change size / capacity
 // =================================================================================
 template <typename T>
-void cvector<T>::reserve(const vsize newCapacity)
+inline void cvector<T>::reserve(const vsize newCapacity)
 {
    // printf("reserve for :%s of size %d\n", typeid(T).name(), newCapacity);
     if (capacity_ < newCapacity)
@@ -731,7 +760,7 @@ void cvector<T>::reserve(const vsize newCapacity)
 // ----------------------------------------------------
 
 template <typename T>
-void cvector<T>::resize(const vsize newSize)
+inline void cvector<T>::resize(const vsize newSize)
 {
     if (capacity_ < newSize)
         realloc_buffer(newSize);
@@ -825,7 +854,7 @@ void cvector<T>::error_msg(
 // ----------------------------------------------------
 
 template <typename T>
-void cvector<T>::realloc_buffer_discard(const vsize newCapacity)
+inline void cvector<T>::realloc_buffer_discard(const vsize newCapacity)
 {
     // reallocate memory for a new buffer of capacity == newCapacity
     // without saving an old data;
@@ -852,7 +881,7 @@ void cvector<T>::realloc_buffer_discard(const vsize newCapacity)
 // ----------------------------------------------------
 
 template <typename T>
-void cvector<T>::realloc_buffer(const vsize newCapacity)
+inline void cvector<T>::realloc_buffer(const vsize newCapacity)
 {
     // If reallocation occurs, all iterators(including the end() iterator) 
     // and all references to the elements are invalidated.
@@ -889,9 +918,8 @@ void cvector<T>::realloc_buffer(const vsize newCapacity)
     }
     catch (const std::bad_alloc& e)
     {
-
-        //error_msg(e.what(), CALLER_INFO);
-        //error_msg("can't allocate memory for buffer", CALLER_INFO);
+        error_msg(e.what(), CALLER_INFO);
+        error_msg("can't allocate memory for buffer", CALLER_INFO);
     }
 }
 

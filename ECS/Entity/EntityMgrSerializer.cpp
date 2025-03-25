@@ -43,7 +43,7 @@ void EntityMgrSerializer::WriteDataHeader(
 void EntityMgrSerializer::SerializeEnttMgrData(
 	std::ofstream& fout,
 	const EntityID* ids,
-	const ComponentsHash* hashes,
+	const ComponentHash* hashes,
 	const u32 count,
 	const u32 enttMgrDataBlockMarker)
 {

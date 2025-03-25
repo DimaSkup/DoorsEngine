@@ -8,7 +8,7 @@
 #pragma once
 
 #include "../Common/Types.h"
-#include <vector>
+#include "../Common/cvector.h"
 
 namespace ECS
 {
@@ -16,71 +16,73 @@ namespace ECS
 // render states types
 enum RSTypes
 {
-	// rasterizer params
-	FILL_SOLID,
-	FILL_WIREFRAME,
-	CULL_BACK,
-	CULL_FRONT,
-	CULL_NONE,
-	FRONT_COUNTER_CLOCKWISE,  // CCW
-	FRONT_CLOCKWISE,
+    // rasterizer params
+    FILL_SOLID,
+    FILL_WIREFRAME,
+    CULL_BACK,
+    CULL_FRONT,
+    CULL_NONE,
+    FRONT_COUNTER_CLOCKWISE,  // CCW
+    FRONT_CLOCKWISE,
 
-	// blending states
-	NO_RENDER_TARGET_WRITES,
-	NO_BLENDING,
-	ALPHA_ENABLE,
-	ADDING,
-	SUBTRACTING,
-	MULTIPLYING,
-	TRANSPARENCY,
+    // blending states
+    NO_RENDER_TARGET_WRITES,
+    NO_BLENDING,
+    ALPHA_ENABLE,
+    ADDING,
+    SUBTRACTING,
+    MULTIPLYING,
+    TRANSPARENCY,
 
-	// is used to render textures which is either completely opaque or completely 
-	// transparent (for instance: wire fence, foliage, tree leaves); so if pixels
-	// have alpha values close to 0 we can reject a src pixel from being futher processed
-	NO_ALPHA_CLIPPING,
-	ALPHA_CLIPPING,  
-	
-	// defines if the current entity reflects the other entities or not
-	REFLECTION_PLANE,
-	NOT_REFLECTION_PLANE,
+    // is used to render textures which is either completely opaque or completely 
+    // transparent (for instance: wire fence, foliage, tree leaves); so if pixels
+    // have alpha values close to 0 we can reject a src pixel from being futher processed
+    NO_ALPHA_CLIPPING,
+    ALPHA_CLIPPING,  
+    
+    // defines if the current entity reflects the other entities or not
+    REFLECTION_PLANE,
+    NOT_REFLECTION_PLANE,
 
-	// to make possible iteration over the enum
-	LAST_RS_TYPE   
+    // to make possible iteration over the enum
+    LAST_RS_TYPE   
 };
 
 
 struct EnttToStates
 {
-	EntityID id_;
-	std::vector<RSTypes> states_;
+    EntityID id_;
+    cvector<RSTypes> states_;
 };
 
-static const std::vector<RSTypes> g_DefaultStates =
+static const cvector<RSTypes> g_DefaultStates =
 {
-	FILL_SOLID,
-	CULL_BACK,
-	FRONT_COUNTER_CLOCKWISE,
-	NO_BLENDING,
-	NO_ALPHA_CLIPPING,
-	NOT_REFLECTION_PLANE
+    FILL_SOLID,
+    CULL_BACK,
+    FRONT_COUNTER_CLOCKWISE,
+    NO_BLENDING,
+    NO_ALPHA_CLIPPING,
+    NOT_REFLECTION_PLANE
 };
 
-static const std::vector<RSTypes> g_AlphaClipCullNoneStates =
+static const cvector<RSTypes> g_AlphaClipCullNoneStates =
 {
-	FILL_SOLID,
-	CULL_NONE,
-	FRONT_COUNTER_CLOCKWISE,
-	NO_BLENDING,
-	ALPHA_CLIPPING,
-	NOT_REFLECTION_PLANE
+    FILL_SOLID,
+    CULL_NONE,
+    FRONT_COUNTER_CLOCKWISE,
+    NO_BLENDING,
+    ALPHA_CLIPPING,
+    NOT_REFLECTION_PLANE
 };
+
+///////////////////////////////////////////////////////////
 
 struct RenderStates
 {
-	ComponentType type_ = ComponentType::RenderStatesComponent;
+    ComponentType type_ = ComponentType::RenderStatesComponent;
 
-	std::vector<EntityID> ids_;
-	std::vector<u32> statesHashes_;    // hash where each bit responds for a specific render state
+    cvector<EntityID> ids_;
+    cvector<u32> statesHashes_;    // hash where each bit responds for a specific render state
 };
 
 
@@ -88,64 +90,64 @@ struct RenderStates
 
 struct EnttsDefaultState
 {
-	std::vector<EntityID> ids_;                              // default: fill solid, cull back, no blending, no alpha clipping
+    cvector<EntityID> ids_;                              // default: fill solid, cull back, no blending, no alpha clipping
 
-	void Clear() { ids_.clear(); }
+    void Clear() { ids_.clear(); }
 };
 
 // ------------------------------------------------
 
 struct EnttsAlphaClipping
 {
-	std::vector<EntityID> ids_;                              // for instance: fooliage, bushes, tree leaves (but no blending)
+    cvector<EntityID> ids_;                              // for instance: fooliage, bushes, tree leaves (but no blending)
 
-	void Clear() { ids_.clear(); }
+    void Clear() { ids_.clear(); }
 };
 
 // ------------------------------------------------
 
 struct EnttsBlended
 {
-	std::vector<EntityID>      ids_;
-	std::vector<u32>           instanceCountPerBS_;
-	std::vector<RSTypes> states_;                   // each instances set has its own blending state
+    cvector<EntityID>   ids_;
+    cvector<size>       instanceCountPerBS_;
+    cvector<RSTypes>    states_;                   // each instances set has its own blending state
 
-	void Clear()
-	{
-		ids_.clear();
-		instanceCountPerBS_.clear();
-		states_.clear();
-	}
+    void Clear()
+    {
+        ids_.clear();
+        instanceCountPerBS_.clear();
+        states_.clear();
+    }
 };
 
 // ------------------------------------------------
 
 struct EnttsReflection
 {
-	std::vector<EntityID> ids_;                              // reflection planes
-	RSTypes     states_[6] =
-	{
-		FILL_SOLID,
-		CULL_NONE,
-		FRONT_COUNTER_CLOCKWISE,
-		TRANSPARENCY,                // we need to see through reflection planes
-		ALPHA_CLIPPING,
-		REFLECTION_PLANE
-	};  
-	u32 hash_ = 0;
+    cvector<EntityID> ids_;                              // reflection planes
+    RSTypes     states_[6] =
+    {
+        FILL_SOLID,
+        CULL_NONE,
+        FRONT_COUNTER_CLOCKWISE,
+        TRANSPARENCY,                // we need to see through reflection planes
+        ALPHA_CLIPPING,
+        REFLECTION_PLANE
+    };  
+    u32 hash_ = 0;
 
-	void Clear() { ids_.clear(); }
+    void Clear() { ids_.clear(); }
 };
 
 // ------------------------------------------------
 
 struct EnttsFarThanFog
 {
-	// container for IDs of entities that are farther than the fog range
-	// so we render them as simply colored model without any additional computations
-	std::vector<EntityID> ids_;
+    // container for IDs of entities that are farther than the fog range
+    // so we render them as simply colored model without any additional computations
+    cvector<EntityID> ids_;
 
-	void Clear() { ids_.clear(); }
+    void Clear() { ids_.clear(); }
 };
 
 

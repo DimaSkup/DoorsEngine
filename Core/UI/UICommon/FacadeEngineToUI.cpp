@@ -38,6 +38,12 @@ FacadeEngineToUI::FacadeEngineToUI(
     Assert::NotNullptr(pEditorCamera, "ptr to the editor camera == nullptr");
 }
 
+///////////////////////////////////////////////////////////
+
+ModelID FacadeEngineToUI::GetModelIdByName(const std::string& name)
+{
+    return pModelStorage_->GetModelIdByName(name);
+}
 
 
 // =================================================================================
@@ -59,6 +65,8 @@ void FacadeEngineToUI::GetCameraViewAndProj(
     float* outView,
     float* outProj)
 {
+    assert(outView && outProj && "some of input ptrs == NULL");
+
     DirectX::XMMATRIX view;
     DirectX::XMMATRIX proj;
 
@@ -90,6 +98,46 @@ void FacadeEngineToUI::FocusCameraOnEntity(const EntityID enttID)
 // =================================================================================
 // For the entity editor
 // =================================================================================
+EntityID FacadeEngineToUI::CreateEntity()
+{
+    return pEntityMgr_->CreateEntity();
+}
+
+bool FacadeEngineToUI::AddNameComponent(const EntityID id, const std::string& name)
+{
+    pEntityMgr_->AddNameComponent(id, name);
+    return true;
+}
+
+bool FacadeEngineToUI::AddTransformComponent(const EntityID id, const Vec3& pos, const Vec3& direction, const float uniformScale)
+{
+    pEntityMgr_->AddTransformComponent(id, pos.ToFloat3(), direction.ToXMVector(), uniformScale);
+    return true;
+}
+
+bool FacadeEngineToUI::AddModelComponent(const EntityID enttID, const uint32_t modelID)
+{
+    pEntityMgr_->AddModelComponent(enttID, modelID);
+    return true;
+}
+
+bool FacadeEngineToUI::AddRenderedComponent(const EntityID enttID)
+{
+    ECS::RenderInitParams renderParams;
+    renderParams.shaderType = ECS::LIGHT_SHADER;
+    renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+    pEntityMgr_->AddRenderingComponent(enttID, renderParams);
+    return true;
+}
+
+bool FacadeEngineToUI::AddBoundingComponent(const EntityID id, const int boundType, const DirectX::BoundingBox& aabb)
+{
+    pEntityMgr_->AddBoundingComponent(id, ECS::BoundingType(1), aabb);
+    return true;
+}
+
+///////////////////////////////////////////////////////////
 
 bool FacadeEngineToUI::GetAllEnttsIDs(const uint32_t*& pEnttsIDsArr, int& numEntts)
 {
@@ -230,10 +278,10 @@ bool FacadeEngineToUI::GetEnttDirectedLightData(
 
     if (pEntityMgr_->lightSystem_.GetDirectedLightData(id, data))
     {
-        ambient   = data.ambient_;
-        diffuse   = data.diffuse_;
-        specular  = data.specular_;
-        direction = data.direction_;
+        ambient   = data.ambient;
+        diffuse   = data.diffuse;
+        specular  = data.specular;
+        direction = data.direction;
 
         return true;
     }
@@ -261,12 +309,12 @@ bool FacadeEngineToUI::GetEnttPointLightData(
 
     if (pEntityMgr_->lightSystem_.GetPointLightData(id, data))
     {
-        ambient     = data.ambient_;
-        diffuse     = data.diffuse_;
-        specular    = data.specular_;
-        position    = data.position_;
-        range       = data.range_;
-        attenuation = data.att_;
+        ambient     = data.ambient;
+        diffuse     = data.diffuse;
+        specular    = data.specular;
+        position    = data.position;
+        range       = data.range;
+        attenuation = data.att;
 
         return true;
     }
@@ -295,14 +343,14 @@ bool FacadeEngineToUI::GetEnttSpotLightData(
 
     if (pEntityMgr_->lightSystem_.GetSpotLightData(id, spotlight))
     {
-        ambient      = spotlight.ambient_;
-        diffuse      = spotlight.diffuse_;
-        specular     = spotlight.specular_;
-        position     = spotlight.position_;
-        range        = spotlight.range_;
-        direction    = spotlight.direction_;
-        spotExponent = spotlight.spot_;
-        attenuation  = spotlight.att_;
+        ambient      = spotlight.ambient;
+        diffuse      = spotlight.diffuse;
+        specular     = spotlight.specular;
+        position     = spotlight.position;
+        range        = spotlight.range;
+        direction    = spotlight.direction;
+        spotExponent = spotlight.spot;
+        attenuation  = spotlight.att;
 
         return true;
     }
@@ -319,22 +367,22 @@ bool FacadeEngineToUI::GetEnttSpotLightData(
 // =============================================================================
 bool FacadeEngineToUI::SetDirectedLightAmbient(const EntityID id, const ColorRGBA& rgba)
 {
-    return pEntityMgr_->lightSystem_.SetDirLightProp(id, ECS::LightProps::AMBIENT, rgba.ToFloat4());
+    return pEntityMgr_->lightSystem_.SetDirLightProp(id, ECS::LightProp::AMBIENT, rgba.ToFloat4());
 }
 
 bool FacadeEngineToUI::SetDirectedLightDiffuse(const EntityID id, const ColorRGBA& rgba)
 {
-    return pEntityMgr_->lightSystem_.SetDirLightProp(id, ECS::LightProps::DIFFUSE, rgba.ToFloat4());
+    return pEntityMgr_->lightSystem_.SetDirLightProp(id, ECS::LightProp::DIFFUSE, rgba.ToFloat4());
 }
 
 bool FacadeEngineToUI::SetDirectedLightSpecular(const EntityID id, const ColorRGBA& rgba)
 {
-    return pEntityMgr_->lightSystem_.SetDirLightProp(id, ECS::LightProps::SPECULAR, rgba.ToFloat4());
+    return pEntityMgr_->lightSystem_.SetDirLightProp(id, ECS::LightProp::SPECULAR, rgba.ToFloat4());
 }
 
 bool FacadeEngineToUI::SetDirectedLightDirection(const EntityID id, const Vec3& dir)
 {
-    if (pEntityMgr_->lightSystem_.SetDirLightProp(id, ECS::LightProps::DIRECTION, dir.ToFloat3()))
+    if (pEntityMgr_->lightSystem_.SetDirLightProp(id, ECS::LightProp::DIRECTION, dir.ToFloat3()))
     {
         return true;
     }
@@ -348,22 +396,22 @@ bool FacadeEngineToUI::SetDirectedLightDirection(const EntityID id, const Vec3& 
 // =============================================================================
 ColorRGBA FacadeEngineToUI::GetDirectedLightAmbient(const EntityID id) const
 {
-    return pEntityMgr_->lightSystem_.GetDirLightProp(id, ECS::LightProps::AMBIENT);
+    return pEntityMgr_->lightSystem_.GetDirLightProp(id, ECS::LightProp::AMBIENT);
 }
 
 ColorRGBA FacadeEngineToUI::GetDirectedLightDiffuse(const EntityID id) const
 {
-    return pEntityMgr_->lightSystem_.GetDirLightProp(id, ECS::LightProps::DIFFUSE);
+    return pEntityMgr_->lightSystem_.GetDirLightProp(id, ECS::LightProp::DIFFUSE);
 }
 
 ColorRGBA FacadeEngineToUI::GetDirectedLightSpecular(const EntityID id) const
 {
-    return pEntityMgr_->lightSystem_.GetDirLightProp(id, ECS::LightProps::SPECULAR);
+    return pEntityMgr_->lightSystem_.GetDirLightProp(id, ECS::LightProp::SPECULAR);
 }
 
 Vec3 FacadeEngineToUI::GetDirectedLightDirection(const EntityID id) const
 {
-    XMFLOAT4 dir = pEntityMgr_->lightSystem_.GetDirLightProp(id, ECS::LightProps::DIRECTION);
+    XMFLOAT4 dir = pEntityMgr_->lightSystem_.GetDirLightProp(id, ECS::LightProp::DIRECTION);
     return Vec3(dir.x, dir.y, dir.z);
 }
 
@@ -374,24 +422,24 @@ Vec3 FacadeEngineToUI::GetDirectedLightDirection(const EntityID id) const
 
 bool FacadeEngineToUI::SetPointLightAmbient(const EntityID id, const ColorRGBA& color)
 {
-    return pEntityMgr_->lightSystem_.SetPointLightProp(id, ECS::LightProps::AMBIENT, color.ToFloat4());
+    return pEntityMgr_->lightSystem_.SetPointLightProp(id, ECS::LightProp::AMBIENT, color.ToFloat4());
 }
 
 bool FacadeEngineToUI::SetPointLightDiffuse(const EntityID id, const ColorRGBA& color)
 {
-    return pEntityMgr_->lightSystem_.SetPointLightProp(id, ECS::LightProps::DIFFUSE, color.ToFloat4());
+    return pEntityMgr_->lightSystem_.SetPointLightProp(id, ECS::LightProp::DIFFUSE, color.ToFloat4());
 }
 
 bool FacadeEngineToUI::SetPointLightSpecular(const EntityID id, const ColorRGBA& color)
 {
-    return pEntityMgr_->lightSystem_.SetPointLightProp(id, ECS::LightProps::SPECULAR, color.ToFloat4());
+    return pEntityMgr_->lightSystem_.SetPointLightProp(id, ECS::LightProp::SPECULAR, color.ToFloat4());
 }
 
 ///////////////////////////////////////////////////////////
 
 bool FacadeEngineToUI::SetPointLightPos(const EntityID id, const Vec3& pos)
 {
-    if (pEntityMgr_->lightSystem_.SetPointLightProp(id, ECS::LightProps::POSITION, pos.ToFloat4()))
+    if (pEntityMgr_->lightSystem_.SetPointLightProp(id, ECS::LightProp::POSITION, pos.ToFloat4()))
     {
         return SetEnttPosition(id, pos);
     }
@@ -403,14 +451,14 @@ bool FacadeEngineToUI::SetPointLightPos(const EntityID id, const Vec3& pos)
 
 bool FacadeEngineToUI::SetPointLightRange(const EntityID id, const float range)
 {
-    return pEntityMgr_->lightSystem_.SetPointLightProp(id, ECS::LightProps::RANGE, range);
+    return pEntityMgr_->lightSystem_.SetPointLightProp(id, ECS::LightProp::RANGE, range);
 }
 
 ///////////////////////////////////////////////////////////
 
 bool FacadeEngineToUI::SetPointLightAttenuation(const EntityID id, const Vec3& att)
 {
-    return pEntityMgr_->lightSystem_.SetPointLightProp(id, ECS::LightProps::ATTENUATION, att.ToFloat4());
+    return pEntityMgr_->lightSystem_.SetPointLightProp(id, ECS::LightProp::ATTENUATION, att.ToFloat4());
 }
 
 
@@ -420,17 +468,17 @@ bool FacadeEngineToUI::SetPointLightAttenuation(const EntityID id, const Vec3& a
 
 ColorRGBA FacadeEngineToUI::GetPointLightAmbient(const EntityID id) const
 {
-    return pEntityMgr_->lightSystem_.GetPointLightProp(id, ECS::LightProps::AMBIENT);
+    return pEntityMgr_->lightSystem_.GetPointLightProp(id, ECS::LightProp::AMBIENT);
 }
 
 ColorRGBA FacadeEngineToUI::GetPointLightDiffuse(const EntityID id) const
 {
-    return pEntityMgr_->lightSystem_.GetPointLightProp(id, ECS::LightProps::DIFFUSE);
+    return pEntityMgr_->lightSystem_.GetPointLightProp(id, ECS::LightProp::DIFFUSE);
 }
 
 ColorRGBA FacadeEngineToUI::GetPointLightSpecular(const EntityID id) const
 {
-    return pEntityMgr_->lightSystem_.GetPointLightProp(id, ECS::LightProps::SPECULAR);
+    return pEntityMgr_->lightSystem_.GetPointLightProp(id, ECS::LightProp::SPECULAR);
 }
 
 ///////////////////////////////////////////////////////////
@@ -438,14 +486,14 @@ ColorRGBA FacadeEngineToUI::GetPointLightSpecular(const EntityID id) const
 Vec3 FacadeEngineToUI::GetPointLightPos(const EntityID id) const
 {
     // position values are stored in x,y,z
-    Vec4 pos = pEntityMgr_->lightSystem_.GetPointLightProp(id, ECS::LightProps::POSITION);
+    Vec4 pos = pEntityMgr_->lightSystem_.GetPointLightProp(id, ECS::LightProp::POSITION);
     return Vec3(pos.x, pos.y, pos.z);
 }
 
 Vec3 FacadeEngineToUI::GetPointLightAttenuation(const EntityID id) const
 {
     // attenuation values are stored in x,y,z
-    Vec4 att = pEntityMgr_->lightSystem_.GetPointLightProp(id, ECS::LightProps::ATTENUATION);
+    Vec4 att = pEntityMgr_->lightSystem_.GetPointLightProp(id, ECS::LightProp::ATTENUATION);
     return Vec3(att.x, att.y, att.z);
 }
 
@@ -454,7 +502,7 @@ Vec3 FacadeEngineToUI::GetPointLightAttenuation(const EntityID id) const
 float FacadeEngineToUI::GetPointLightRange(const EntityID id) const
 {
     // the same value of range is stored in each component of Vec4
-    Vec4 range = pEntityMgr_->lightSystem_.GetPointLightProp(id, ECS::LightProps::RANGE);
+    Vec4 range = pEntityMgr_->lightSystem_.GetPointLightProp(id, ECS::LightProp::RANGE);
     return range.x;
 }
 
@@ -465,24 +513,24 @@ float FacadeEngineToUI::GetPointLightRange(const EntityID id) const
 
 bool FacadeEngineToUI::SetSpotLightAmbient(const EntityID id, const ColorRGBA& color)
 {
-    return pEntityMgr_->lightSystem_.SetSpotLightProp(id, ECS::LightProps::AMBIENT, color.ToFloat4());
+    return pEntityMgr_->lightSystem_.SetSpotLightProp(id, ECS::LightProp::AMBIENT, color.ToFloat4());
 }
 
 bool FacadeEngineToUI::SetSpotLightDiffuse(const EntityID id, const ColorRGBA& color)
 {
-    return pEntityMgr_->lightSystem_.SetSpotLightProp(id, ECS::LightProps::DIFFUSE, color.ToFloat4());
+    return pEntityMgr_->lightSystem_.SetSpotLightProp(id, ECS::LightProp::DIFFUSE, color.ToFloat4());
 }
 
 bool FacadeEngineToUI::SetSpotLightSpecular(const EntityID id, const ColorRGBA& color)
 {
-    return pEntityMgr_->lightSystem_.SetSpotLightProp(id, ECS::LightProps::SPECULAR, color.ToFloat4());
+    return pEntityMgr_->lightSystem_.SetSpotLightProp(id, ECS::LightProp::SPECULAR, color.ToFloat4());
 }
 
 ///////////////////////////////////////////////////////////
 
 bool FacadeEngineToUI::SetSpotLightPos(const EntityID id, const Vec3& pos)
 {
-    if (pEntityMgr_->lightSystem_.SetSpotLightProp(id, ECS::LightProps::POSITION, pos.ToFloat4()))
+    if (pEntityMgr_->lightSystem_.SetSpotLightProp(id, ECS::LightProp::POSITION, pos.ToFloat4()))
     {
         return SetEnttPosition(id, pos);
     }
@@ -492,7 +540,7 @@ bool FacadeEngineToUI::SetSpotLightPos(const EntityID id, const Vec3& pos)
 
 bool FacadeEngineToUI::SetSpotLightDirection(const EntityID id, const Vec3& dir)
 {
-    if (pEntityMgr_->lightSystem_.SetSpotLightProp(id, ECS::LightProps::DIRECTION, { dir.x, dir.y, dir.z, 0.0f }))
+    if (pEntityMgr_->lightSystem_.SetSpotLightProp(id, ECS::LightProp::DIRECTION, { dir.x, dir.y, dir.z, 0.0f }))
     {
         return true;
         //return SetEnttRotationQuat(id, dirQuat);
@@ -502,19 +550,19 @@ bool FacadeEngineToUI::SetSpotLightDirection(const EntityID id, const Vec3& dir)
 
 bool FacadeEngineToUI::SetSpotLightAttenuation(const EntityID id, const Vec3& att)
 {
-    return pEntityMgr_->lightSystem_.SetSpotLightProp(id, ECS::LightProps::ATTENUATION, att.ToFloat4());
+    return pEntityMgr_->lightSystem_.SetSpotLightProp(id, ECS::LightProp::ATTENUATION, att.ToFloat4());
 }
 
 ///////////////////////////////////////////////////////////
 
 bool FacadeEngineToUI::SetSpotLightRange(const EntityID id, const float range)
 {
-    return pEntityMgr_->lightSystem_.SetSpotLightProp(id, ECS::LightProps::RANGE, range);
+    return pEntityMgr_->lightSystem_.SetSpotLightProp(id, ECS::LightProp::RANGE, range);
 }
 
 bool FacadeEngineToUI::SetSpotLightSpotExponent(const EntityID id, const float spotExp)
 {
-    return pEntityMgr_->lightSystem_.SetSpotLightProp(id, ECS::LightProps::SPOT_EXP, spotExp);
+    return pEntityMgr_->lightSystem_.SetSpotLightProp(id, ECS::LightProp::SPOT_EXP, spotExp);
 }
 
 
@@ -524,17 +572,17 @@ bool FacadeEngineToUI::SetSpotLightSpotExponent(const EntityID id, const float s
 
 ColorRGBA FacadeEngineToUI::GetSpotLightAmbient(const EntityID id) const
 {
-    return pEntityMgr_->lightSystem_.GetSpotLightProp(id, ECS::LightProps::AMBIENT);
+    return pEntityMgr_->lightSystem_.GetSpotLightProp(id, ECS::LightProp::AMBIENT);
 }
 
 ColorRGBA FacadeEngineToUI::GetSpotLightDiffuse(const EntityID id) const
 {
-    return pEntityMgr_->lightSystem_.GetSpotLightProp(id, ECS::LightProps::DIFFUSE);
+    return pEntityMgr_->lightSystem_.GetSpotLightProp(id, ECS::LightProp::DIFFUSE);
 }
 
 ColorRGBA FacadeEngineToUI::GetSpotLightSpecular(const EntityID id) const
 {
-    return pEntityMgr_->lightSystem_.GetSpotLightProp(id, ECS::LightProps::SPECULAR);
+    return pEntityMgr_->lightSystem_.GetSpotLightProp(id, ECS::LightProp::SPECULAR);
 }
 
 ///////////////////////////////////////////////////////////
@@ -542,13 +590,13 @@ ColorRGBA FacadeEngineToUI::GetSpotLightSpecular(const EntityID id) const
 Vec3 FacadeEngineToUI::GetSpotLightPos(const EntityID id) const
 {
     // position values are stored in x,y,z
-    Vec4 pos = pEntityMgr_->lightSystem_.GetSpotLightProp(id, ECS::LightProps::POSITION);
+    Vec4 pos = pEntityMgr_->lightSystem_.GetSpotLightProp(id, ECS::LightProp::POSITION);
     return pos.ToVec3();
 }
 
 Vec3 FacadeEngineToUI::GetSpotLightDirection(const EntityID id) const
 {
-    const XMFLOAT4 dir = pEntityMgr_->lightSystem_.GetSpotLightProp(id, ECS::LightProps::DIRECTION);
+    const XMFLOAT4 dir = pEntityMgr_->lightSystem_.GetSpotLightProp(id, ECS::LightProp::DIRECTION);
     //const XMVECTOR q   = DirectX::XMQuaternionRotationRollPitchYaw(dir.y, dir.x, dir.w);
     //const XMVECTOR q = pEntityMgr_->transformSystem_.GetRotationQuatByID(id);
 
@@ -558,7 +606,7 @@ Vec3 FacadeEngineToUI::GetSpotLightDirection(const EntityID id) const
 Vec3 FacadeEngineToUI::GetSpotLightAttenuation(const EntityID id) const
 {
     // attenuation values are stored in x,y,z
-    Vec4 v = pEntityMgr_->lightSystem_.GetSpotLightProp(id, ECS::LightProps::ATTENUATION);
+    Vec4 v = pEntityMgr_->lightSystem_.GetSpotLightProp(id, ECS::LightProp::ATTENUATION);
     return v.ToVec3();
 }
 
@@ -567,14 +615,14 @@ Vec3 FacadeEngineToUI::GetSpotLightAttenuation(const EntityID id) const
 float FacadeEngineToUI::GetSpotLightRange(const EntityID id) const
 {
     // the same value of range is stored in each component of Vec4
-    Vec4 range = pEntityMgr_->lightSystem_.GetSpotLightProp(id, ECS::LightProps::RANGE);
+    Vec4 range = pEntityMgr_->lightSystem_.GetSpotLightProp(id, ECS::LightProp::RANGE);
     return range.x;
 }
 
 float FacadeEngineToUI::GetSpotLightSpotExponent(const EntityID id) const
 {
     // the same value of exponent is stored in each component of Vec4
-    Vec4 spotExp = pEntityMgr_->lightSystem_.GetSpotLightProp(id, ECS::LightProps::SPOT_EXP);
+    Vec4 spotExp = pEntityMgr_->lightSystem_.GetSpotLightProp(id, ECS::LightProp::SPOT_EXP);
     return spotExp.x;
 }
 
@@ -680,16 +728,11 @@ bool FacadeEngineToUI::SwitchDebugState(const int debugType)
 // =================================================================================
 // For assets manager
 // =================================================================================
-int FacadeEngineToUI::GetNumAssets()
-{
-    // return the number of all the currently loaded assets
-    return pModelStorage_->GetNumAssets();
-}
-
-void FacadeEngineToUI::GetAssetsNamesList(std::string* namesArr, const int numNames)
+bool FacadeEngineToUI::GetAssetsNamesList(Core::cvector<std::string>& names)
 {
     // get a name of each loaded asset
-    pModelStorage_->GetAssetsNamesList(namesArr, numNames);
+    pModelStorage_->GetAssetsNamesList(names);
+    return true;
 }
 
 } // namespace Core

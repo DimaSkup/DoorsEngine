@@ -7,9 +7,10 @@
 // ********************************************************************************
 #pragma once
 
-#include <fstream>
-#include <vector>
 #include "../../Common/Types.h"
+#include "../../Common/cvector.h"
+#include <fstream>
+
 
 namespace ECS
 {
@@ -17,19 +18,20 @@ namespace ECS
 class TransformSysSerDeser
 {
 public:
-	static void Serialize(std::ofstream& fout,
+	static void Serialize(
+        std::ofstream& fout,
 		u32& offset,
 		const u32 dataBlockMarker,
-		const std::vector<EntityID>& ids,
-		const std::vector<XMFLOAT4>& posAndUniScales,
-		const std::vector<XMVECTOR>& dirQuats);
+		const cvector<EntityID>& ids,
+		const cvector<XMFLOAT4>& posAndUniScales,
+		const cvector<XMVECTOR>& dirQuats);
 
 	static void Deserialize(
 		std::ifstream& fin,
 		const u32 offset,
-		std::vector<EntityID>& ids,
-		std::vector<XMFLOAT4>& posAndUniScales,
-		std::vector<XMVECTOR>& dirQuats);
+		cvector<EntityID>& ids,
+		cvector<XMFLOAT4>& posAndUniScales,
+		cvector<XMVECTOR>& dirQuats);
 };
 
 } // namespace ECS

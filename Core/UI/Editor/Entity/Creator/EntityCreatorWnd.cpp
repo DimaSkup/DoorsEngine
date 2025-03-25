@@ -29,10 +29,11 @@ void EntityCreatorWnd::ShowAddComponentCheckboxes()
 
 void EntityCreatorWnd::ShowTransformComponentFields()
 {
-
+    ImGui::Text("Transform component:");
     ImGui::DragFloat3("position",  transformData_.position.xyz);
     ImGui::DragFloat3("direction", transformData_.direction.xyz);
-    ImGui::DragFloat("uni_scale", &transformData_.uniformScale);
+    ImGui::DragFloat("uniform scale", &transformData_.uniformScale);
+    ImGui::Separator();
 }
 
 ///////////////////////////////////////////////////////////
@@ -43,30 +44,12 @@ void EntityCreatorWnd::ShowModelComponentFields(IFacadeEngineToUI* pFacade)
     {
         ImGui::Text("Select Assets:");
 
-        // load models names
-        if (modelData_.modelsNames.empty())
-        {
-            int numAssets = pFacade->GetNumAssets();
-
-            modelData_.modelsNames.resize(numAssets);
-
-            pFacade->GetAssetsNamesList(
-                modelData_.modelsNames.data(),
-                (int)modelData_.modelsNames.size());
-
-            Core::Log::Print("models names list is loaded", Core::eConsoleColor::YELLOW);
-        }
-
-        std::string& selectedName = modelData_.selectedModelName;
-
-        // print a selectable list of models names
-        for (const std::string& name : modelData_.modelsNames)
-        {
-            if (ImGui::Selectable(name.c_str(), selectedName == name, ImGuiSelectableFlags_DontClosePopups))
-                selectedName = name;
-        }  
+        modelsList_.LoadModelsNamesList(pFacade);
+        modelsList_.PrintModelsNamesList();
     }
 }
+
+///////////////////////////////////////////////////////////
 
 void EntityCreatorWnd::ShowRenderedComponentFields()
 {
@@ -100,7 +83,7 @@ void EntityCreatorWnd::RenderCreationWindow(bool* pOpen, IFacadeEngineToUI* pFac
         ImGui::Separator();
 
         // name + checkboxes
-        ImGui::InputText("Name", enttName_, maxNameLength_);
+        ImGui::InputText("Name", nameData_.enttName, nameData_.maxNameLength);
         ShowAddComponentCheckboxes();
         ImGui::Separator();
 
@@ -113,6 +96,7 @@ void EntityCreatorWnd::RenderCreationWindow(bool* pOpen, IFacadeEngineToUI* pFac
         if (addedComponents_.isAddedRendered)
             ShowRenderedComponentFields();
 
+        ImGui::Separator();
 
         // OK, Cancel, Reset buttons
         if (ImGui::Button("OK", ImVec2(0.1f * wndSize.x, 0)))
@@ -143,26 +127,37 @@ void EntityCreatorWnd::RenderCreationWindow(bool* pOpen, IFacadeEngineToUI* pFac
         Core::Log::Print();
         Core::Log::Print();
         Core::Log::Print("Created Entity");
-        Core::Log::Printf("Name: %s", enttName_);
+        Core::Log::Printf("Name: %s", nameData_.enttName);
 
         // debug: print transformation component info
         const Vec3& pos = transformData_.position;
         const Vec3& dir = transformData_.direction;
+        const float uniScale = transformData_.uniformScale;
         Core::Log::Print("Transform:");
         Core::Log::Printf("pos: %f %f %f", pos.x, pos.y, pos.z);
         Core::Log::Printf("pos: %f %f %f", dir.x, dir.y, dir.z);
-        Core::Log::Errorf("uniform scale: %d", transformData_.uniformScale);
+        Core::Log::Printf("uniform scale: %d", uniScale);
 
         // debug: print model component info
         if (addedComponents_.isAddedModel)
-            Core::Log::Print("with model: " + modelData_.selectedModelName);
+            Core::Log::Printf("with model: %s", modelData_.selectedModelName.c_str());
 
         // debug: print rendered component info
         if (addedComponents_.isAddedRendered)
-            Core::Log::Print("with rendered");
+            Core::Log::Printf("with rendered");
 
         Core::Log::Print();
         Core::Log::Print();
+
+        EntityID enttID = pFacade->CreateEntity();
+        ModelID modelID = pFacade->GetModelIdByName(modelData_.selectedModelName);
+
+        pFacade->AddTransformComponent(enttID, pos, dir, uniScale);
+        pFacade->AddNameComponent(enttID, nameData_.enttName);
+        pFacade->AddModelComponent(enttID, modelID);
+        pFacade->AddRenderedComponent(enttID);
+        pFacade->AddBoundingComponent(enttID, 1, DirectX::BoundingBox({ 0,0,0 }, { 1,1,1 }));
+
     }
 #endif
 }

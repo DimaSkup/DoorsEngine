@@ -2,7 +2,6 @@
 
 #include "../Common/Assert.h"
 #include "../Common/log.h"
-#include "../Common/Utils.h"
 
 #include <algorithm>
 
@@ -11,282 +10,277 @@ namespace ECS
 
 
 BoundingSystem::BoundingSystem(Bounding* pBoundingComponent) :
-	pBoundingComponent_(pBoundingComponent)
+    pBoundingComponent_(pBoundingComponent)
 {
-	Assert::NotNullptr(pBoundingComponent, "ptr to the bounding component == nullptr");
+    Assert::NotNullptr(pBoundingComponent, "ptr to the bounding component == nullptr");
 }
 
 ///////////////////////////////////////////////////////////
 
 void BoundingSystem::Update(
-	const EntityID* ids,
-	const XMMATRIX* transforms,
-	const size numEntts,
-	const size numMatrices)
+    const EntityID* ids,
+    const XMMATRIX* transforms,
+    const size numEntts,
+    const size numMatrices)
 {
-	// apply a transform matrix by idx to all the bounding boxes 
-	// of entity by the same idx;
+    // apply a transform matrix by idx to all the bounding boxes 
+    // of entity by the same idx;
 
-	Assert::True(ids && transforms && (numEntts > 0) && (numEntts == numMatrices), "wrong input data");
+    Assert::True(ids && transforms && (numEntts > 0) && (numEntts == numMatrices), "wrong input data");
 
-	Bounding& comp = *pBoundingComponent_;
-	std::vector<index> idxs;
-	Utils::GetIdxsInSortedArr(comp.ids_, ids, numEntts, idxs);
+    Bounding& comp = *pBoundingComponent_;
+    cvector<index> idxs;
 
-	for (index i = 0; i < numEntts; ++i)
-	{
-		BoundingData& data = comp.data_[idxs[i]];
-		
-		for (index boxIdx = 0; boxIdx < data.numData_; ++boxIdx)
-		{
-			data.obbs_[boxIdx].Transform(data.obbs_[boxIdx], transforms[i]);
-		}
-	}
+    comp.ids.get_idxs(ids, numEntts, idxs);
+
+    for (index i = 0; i < numEntts; ++i)
+    {
+        BoundingData& data = comp.data[idxs[i]];
+        
+        for (index boxIdx = 0; boxIdx < data.numData; ++boxIdx)
+        {
+            data.obbs[boxIdx].Transform(data.obbs[boxIdx], transforms[i]);
+        }
+    }
 }
 
 ///////////////////////////////////////////////////////////
 
 void BoundingSystem::Add(
-	const EntityID id,
-	const BoundingType type,
-	const DirectX::BoundingBox& aabb)
+    const EntityID id,
+    const BoundingType type,
+    const DirectX::BoundingBox& aabb)
 {
-	// add only one entt with only one subset (mesh)
-	Add(&id, 1, 1, &type, &aabb);
+    // add only one entt with only one subset (mesh)
+    Add(&id, 1, 1, &type, &aabb);
 }
 
 ///////////////////////////////////////////////////////////
 
 void BoundingSystem::Add(
-	const EntityID* ids,
-	const size numEntts,
-	const size numSubsets,               // the number of entt's meshes (the num of AABBs)
-	const BoundingType* types,           // AABB type per mesh
-	const DirectX::BoundingBox* AABBs)   // AABB per mesh
+    const EntityID* ids,
+    const size numEntts,
+    const size numSubsets,               // the number of entt's meshes (the num of AABBs)
+    const BoundingType* types,           // AABB type per mesh
+    const DirectX::BoundingBox* AABBs)   // AABB per mesh
 {
-	// add BOUNDING BOX for each mesh (subset) of the input entity;
+    // add BOUNDING BOX for each mesh (subset) of the input entity;
 
-	Assert::True((numEntts > 0) && (numSubsets > 0), "num of entts/subsets must be > 0");
-	Assert::True(ids && types && AABBs, "wrong data arrays");
+    Assert::True((numEntts > 0) && (numSubsets > 0), "num of entts/subsets must be > 0");
+    Assert::True(ids && types && AABBs, "wrong data arrays");
 
-	// check if we already have a record with such ID
-	Bounding& comp = *pBoundingComponent_;
-	bool canAddComponent = !Utils::CheckValuesExistInSortedArr(comp.ids_, ids, numEntts);
-	Assert::True(canAddComponent, "can't add component: there is already a record with some entity id");
+    // check if we already have a record with such ID
+    Bounding& comp = *pBoundingComponent_;
+    bool canAddComponent = !comp.ids.binary_search(ids, numEntts);
+    Assert::True(canAddComponent, "can't add component: there is already a record with some entity id");
 
-	// ---------------------------------------------
+    // ---------------------------------------------
 
-	for (index i = 0; i < numEntts; ++i)
-	{
-		// execute sorted insertion of the data
-		const index insertAt = Utils::GetPosForID(comp.ids_, ids[i]);
+    cvector<index> idxs;
+    comp.ids.get_insert_idxs(ids, numEntts, idxs);
 
-		Utils::InsertAtPos(comp.ids_, insertAt, ids[i]);
-		Utils::InsertAtPos(comp.data_, insertAt, BoundingData(numSubsets, types, AABBs));
-	}
+    // exec indices correction
+    for (index i = 0; i < numEntts; ++i)
+        idxs[i] += i;
+
+    // execute sorted insertion of input values
+    for (index i = 0; i < numEntts; ++i)
+        comp.ids.insert_before(idxs[i], ids[i]);
+
+    for (index i = 0; i < numEntts; ++i)
+        comp.data.insert_before(idxs[i], BoundingData(numSubsets, types, AABBs));
 }
 
 ///////////////////////////////////////////////////////////
 
 void BoundingSystem::Add(
-	const EntityID* ids,
-	const size numEntts,
-	const DirectX::BoundingSphere* spheres)
+    const EntityID* ids,
+    const size numEntts,
+    const DirectX::BoundingSphere* spheres)
 {
-	Assert::True((ids != nullptr) && (spheres != nullptr) && (numEntts > 0), "input data is invalid");
-
+    assert(0 && "IMPLEMENT IT FOR SPHERES");
+    Assert::True((ids != nullptr) && (spheres != nullptr) && (numEntts > 0), "input data is invalid");
 }
 
 ///////////////////////////////////////////////////////////
 
 void ComputeAABB(
-	DirectX::BoundingOrientedBox* obbs,
-	const int numOBBs,
-	DirectX::BoundingBox& outAABB)
+    const DirectX::BoundingOrientedBox* obbs,
+    const size numOBBs,
+    DirectX::BoundingBox& outAABB)
 {
-	// compute an AABB by array of OBBs
+    // compute an AABB by array of OBBs
 
-	using namespace DirectX;
+    using namespace DirectX;
 
-	XMVECTOR vMin{ FLT_MAX, FLT_MAX, FLT_MAX };
-	XMVECTOR vMax{ FLT_MIN, FLT_MIN, FLT_MIN };
+    XMVECTOR vMin{ FLT_MAX, FLT_MAX, FLT_MAX };
+    XMVECTOR vMax{ FLT_MIN, FLT_MIN, FLT_MIN };
 
-	// go through each subset (mesh)
-	for (int i = 0; i < numOBBs; ++i)
-	{
-		const DirectX::BoundingOrientedBox& subsetAABB = obbs[i];
+    // go through each subset (mesh)
+    for (int i = 0; i < numOBBs; ++i)
+    {
+        const DirectX::BoundingOrientedBox& subsetAABB = obbs[i];
 
-		// define min/max point of this mesh
-		const XMVECTOR center  = XMLoadFloat3(&subsetAABB.Center);
-		const XMVECTOR extents = XMLoadFloat3(&subsetAABB.Extents);
-		const XMVECTOR max = center + extents;
-		const XMVECTOR min = center - extents;
+        // define min/max point of this mesh
+        const XMVECTOR center  = XMLoadFloat3(&subsetAABB.Center);
+        const XMVECTOR extents = XMLoadFloat3(&subsetAABB.Extents);
+        const XMVECTOR max     = center + extents;
+        const XMVECTOR min     = center - extents;
 
-		vMin = XMVectorMin(vMin, min);
-		vMax = XMVectorMax(vMax, max);
-	}
+        vMin = XMVectorMin(vMin, min);
+        vMax = XMVectorMax(vMax, max);
+    }
 
-	// compute a model's AABB
-	XMStoreFloat3(&outAABB.Center,  0.5f * (vMin + vMax));
-	XMStoreFloat3(&outAABB.Extents, 0.5f * (vMax - vMin));
+    // compute a model's AABB
+    XMStoreFloat3(&outAABB.Center,  0.5f * (vMin + vMax));
+    XMStoreFloat3(&outAABB.Extents, 0.5f * (vMax - vMin));
 }
 
 ///////////////////////////////////////////////////////////
 
-void BoundingSystem::GetEnttAABB(
-	const EntityID id,
-	DirectX::BoundingBox& aabb)
+void BoundingSystem::GetEnttAABB(const EntityID id, DirectX::BoundingBox& outAABB)
 {
-	// get an axis-aligned bounding box of entity by input ID
-	// (AABB of the whole entity)
+    // get an axis-aligned bounding box of entity by input ID
+    // (AABB of the whole entity)
 
-	Bounding&     comp = *pBoundingComponent_;
-	BoundingData& data = comp.data_[GetIdxByID(id)];
+    Bounding&     comp = *pBoundingComponent_;
+    BoundingData& data = comp.data[GetIdxByID(id)];
 
-	ComputeAABB(data.obbs_.data(), (int)data.obbs_.size(), aabb);
+    ComputeAABB(data.obbs.data(), data.obbs.size(), outAABB);
 }
 
 ///////////////////////////////////////////////////////////
 
 void BoundingSystem::GetOBBs(
-	const std::vector<EntityID>& ids,
-	std::vector<size>& numBoxesPerEntt,
-	std::vector<DirectX::BoundingOrientedBox>& outOBBs)
+    const EntityID* ids,
+    const size numEntts,
+    cvector<size>& outNumBoxesPerEntt,
+    cvector<DirectX::BoundingOrientedBox>& outOBBs)
 {
-	try
-	{
-		Bounding& comp = *pBoundingComponent_;
-		//const bool enttsValid = Utils::CheckValuesExistInSortedArr(comp.ids_, ids);
-		//Assert::True(enttsValid, "some of input entts doesn't have an AABB");
+    Assert::True((ids != nullptr) && (numEntts > 0), "can't get OBBs: invalid input args");
 
-		size numEntts = std::ssize(ids);
-		std::vector<index> idxs(numEntts);
-		numBoxesPerEntt.resize(numEntts);
+    Bounding& comp = *pBoundingComponent_;
+    size numOBBs = 0;
+    cvector<index> idxs;
 
-		Utils::GetIdxsInSortedArr(comp.ids_, ids, idxs);
-		size numOBBs = 0;	
 
-		// get the number of bounding boxes per each entity
-		for (int i = 0; const index idx : idxs)
-			numBoxesPerEntt[i++] = comp.data_[idx].numData_;
+    // get indices to responsible data by IDs
+    comp.ids.get_idxs(ids, numEntts, idxs);
 
-		// compute the number of all bounding boxes which we will get
-		for (index i = 0; i < numEntts; ++i)
-			numOBBs += numBoxesPerEntt[i];
+    // get the number of bounding boxes per each entity
+    outNumBoxesPerEntt.resize(numEntts);
 
-		outOBBs.resize(numOBBs);
+    for (int i = 0; const index idx : idxs)
+        outNumBoxesPerEntt[i++] = comp.data[idx].numData;
 
-		for (int obbIdx = 0; const index idx : idxs)
-		{
-			for (DirectX::BoundingOrientedBox& obb : comp.data_[idx].obbs_)
-				outOBBs[obbIdx++] = obb;
-		}
-#if 0
-		// get AABBs of each input entt
-		outOBBs.reserve(numOBBs);
+    // compute the number of all bounding boxes which we will get
+    for (index i = 0; i < numEntts; ++i)
+        numOBBs += outNumBoxesPerEntt[i];
 
-		// go through each entity data and copy each bounding box into the output arr
-		for (int obbIdx = 0; const index idx : idxs)
-			Utils::AppendToArray(outOBBs, comp.data_[idx].obbs_);
-#endif
-	}
-	catch (LIB_Exception& e)
-	{
-		Log::Error(e);
-		Log::Error("can't get bounding oriented boxes");
-	}
+
+    // get oriented bounding boxes for each mesh of each entity
+    outOBBs.resize(numOBBs);
+
+    for (int obbIdx = 0; const index idx : idxs)
+    {
+        for (DirectX::BoundingOrientedBox& obb : comp.data[idx].obbs)
+            outOBBs[obbIdx++] = obb;
+    }
 }
 
 ///////////////////////////////////////////////////////////
 
-void BoundingSystem::GetBoxLocalSpaceMatrices(
-	const std::vector<EntityID>& ids,
-	std::vector<size>& numBoxesPerEntt,
-	std::vector<DirectX::XMMATRIX>& local)
+void BoundingSystem::GetBoxLocalSpaceMatricesByIDs(
+    const EntityID* ids,
+    const size numEntts,
+    cvector<size>& outNumBoxesPerEntt,
+    cvector<DirectX::XMMATRIX>& outLocalMatrices)
 {
-	// in:   entity ID which will be used to get bounding boxes
-	// out:  1. how many bounding boxes this entt has
-	//       2. local space matrix of each bounding box
+    // in:   entity ID which will be used to get bounding boxes
+    // out:  1. how many bounding boxes this entt has
+    //       2. local space matrix of each bounding box
 
-	Bounding& comp = *pBoundingComponent_;
-	size numEntts = std::ssize(ids);
-	size numOBBs = 0;
-	std::vector<index> idxs;
+    Assert::True((ids != nullptr) && (numEntts > 0), "can't get local space matrices: invalid input args");
 
-	Utils::GetIdxsInSortedArr(comp.ids_, ids, idxs);
-	numBoxesPerEntt.resize(numEntts);
+    Bounding& comp = *pBoundingComponent_;
+    size numOBBs = 0;
+    cvector<index> idxs;
 
-	// get the number of bounding boxes per each entity
-	for (int i = 0; const index idx : idxs)
-		numBoxesPerEntt[i++] = comp.data_[idx].numData_;
 
-	// compute the number of all bounding boxes which we will get
-	for (index i = 0; i < numEntts; ++i)
-		numOBBs += numBoxesPerEntt[i];
-		
+    comp.ids.get_idxs(ids, numEntts, idxs);
 
-	// compute local world matrix for each bounding box
-	local.resize(numOBBs);
+    // get the number of bounding boxes per each entity
+    outNumBoxesPerEntt.resize(numEntts);
 
-	// go through each entt by idx and its each OBB
-	for (int enttIdx = 0, obbIdx = 0; const index idx : idxs)
-	{
-		for (const DirectX::BoundingOrientedBox& obb : comp.data_[idx].obbs_)
-		{
-			XMVECTOR boxLScale    = XMLoadFloat3(&obb.Extents);
-			XMVECTOR boxLRotQuat  = XMLoadFloat4(&obb.Orientation);
-			XMVECTOR boxLPos      = XMLoadFloat3(&obb.Center);
-			
-			XMMATRIX boxLScaleMat = DirectX::XMMatrixScalingFromVector(boxLScale);
-			XMMATRIX boxLRotMat   = DirectX::XMMatrixRotationQuaternion(boxLRotQuat);
-			XMMATRIX boxLTransMat = DirectX::XMMatrixTranslationFromVector(boxLPos);
+    for (int i = 0; const index idx : idxs)
+        outNumBoxesPerEntt[i++] = comp.data[idx].numData;
 
-			// store local space matrix of this OBB
-			local[obbIdx++] = boxLScaleMat * boxLRotMat * boxLTransMat;
-		}
-	}
+    // compute the number of all bounding boxes which we will get
+    for (index i = 0; i < numEntts; ++i)
+        numOBBs += outNumBoxesPerEntt[i];
+
+
+    // compute local world matrix for each bounding box
+    outLocalMatrices.resize(numOBBs);
+
+    for (int enttIdx = 0, obbIdx = 0; const index idx : idxs)
+    {
+        for (const DirectX::BoundingOrientedBox& obb : comp.data[idx].obbs)
+        {
+            const XMVECTOR boxLScale    = XMLoadFloat3(&obb.Extents);
+            const XMVECTOR boxLRotQuat  = XMLoadFloat4(&obb.Orientation);
+            const XMVECTOR boxLPos      = XMLoadFloat3(&obb.Center);
+            
+            const XMMATRIX boxLScaleMat = DirectX::XMMatrixScalingFromVector(boxLScale);
+            const XMMATRIX boxLRotMat   = DirectX::XMMatrixRotationQuaternion(boxLRotQuat);
+            const XMMATRIX boxLTransMat = DirectX::XMMatrixTranslationFromVector(boxLPos);
+
+            // store local space matrix of this OBB
+            outLocalMatrices[obbIdx++] = boxLScaleMat * boxLRotMat * boxLTransMat;
+        }
+    }
 }
 
 ///////////////////////////////////////////////////////////
 
 void BoundingSystem::GetBoxesLocalSpaceMatrices(
-	const std::vector<DirectX::BoundingBox>& boundingBoxes,
-	std::vector<DirectX::XMMATRIX>& outMatrices)
+    const DirectX::BoundingBox* boundingBoxes,
+    const size numBoundingBoxes,
+    cvector<DirectX::XMMATRIX>& outMatrices)
 {
-	// make a local space matrix by bounding box params
+    // make a local space matrices by input bounding boxes params
 
-	outMatrices.resize(std::ssize(boundingBoxes));
+    Assert::True((boundingBoxes != nullptr) && (numBoundingBoxes > 0), "invalid input args");
 
-	for (int i = 0; const DirectX::BoundingBox& aabb : boundingBoxes)
-	{
-		XMVECTOR boxLScale = XMLoadFloat3(&aabb.Extents);
-		XMVECTOR boxLPos   = XMLoadFloat3(&aabb.Center);
+    outMatrices.resize(numBoundingBoxes);
 
-		XMMATRIX boxLScaleMat = DirectX::XMMatrixScalingFromVector(boxLScale);
-		XMMATRIX boxLTransMat = DirectX::XMMatrixTranslationFromVector(boxLPos);
+    for (index i = 0; i < numBoundingBoxes; ++i)
+    {
+        const DirectX::BoundingBox& aabb = boundingBoxes[i];
+        const XMVECTOR boxLScale    = XMLoadFloat3(&aabb.Extents);
+        const XMVECTOR boxLPos      = XMLoadFloat3(&aabb.Center);
 
-		// store local space matrix of this OBB
-		outMatrices[i++] = boxLScaleMat * boxLTransMat;
-	}
+        const XMMATRIX boxLScaleMat = DirectX::XMMatrixScalingFromVector(boxLScale);
+        const XMMATRIX boxLTransMat = DirectX::XMMatrixTranslationFromVector(boxLPos);
+
+        // store local space matrix of this OBB
+        outMatrices[i++] = boxLScaleMat * boxLTransMat;
+    }
 }
 
 ///////////////////////////////////////////////////////////
 
 void BoundingSystem::GetBoxLocalSpaceMatrix(
-	const DirectX::BoundingBox& aabb,
-	DirectX::XMMATRIX& mat)
+    const DirectX::BoundingBox& aabb,
+    DirectX::XMMATRIX& mat)
 {
-	// make a local space matrix by bounding box params
+    // make a local space matrix by input bounding box params
 
-	XMVECTOR boxLScale = XMLoadFloat3(&aabb.Extents);
-	//XMVECTOR boxLRotQuat = XMLoadFloat4(&obb.Orientation);
-	XMVECTOR boxLPos = XMLoadFloat3(&aabb.Center);
+    const XMVECTOR boxLScale = XMLoadFloat3(&aabb.Extents);
+    const XMVECTOR boxLPos   = XMLoadFloat3(&aabb.Center);
 
-	XMMATRIX boxLScaleMat = DirectX::XMMatrixScalingFromVector(boxLScale);
-	//XMMATRIX boxLRotMat = DirectX::XMMatrixRotationQuaternion(boxLRotQuat);
-	XMMATRIX boxLTransMat = DirectX::XMMatrixTranslationFromVector(boxLPos);
-
-	// store local space matrix of this OBB
-	mat = boxLScaleMat * boxLTransMat;
+    // Local_space = Scale * Transform
+    mat = DirectX::XMMatrixScalingFromVector(boxLScale) * DirectX::XMMatrixTranslationFromVector(boxLPos);
 }
+
 } // namespace ECS

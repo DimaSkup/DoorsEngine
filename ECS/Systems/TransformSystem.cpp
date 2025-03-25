@@ -41,7 +41,7 @@ void TransformSystem::Initialize(Transform* pTransform)
     pTransform_->posAndUniformScale_.push_back(XMFLOAT4{ NAN, NAN, NAN, NAN });
     pTransform_->dirQuats_.push_back(XMVECTOR{ NAN, NAN, NAN, NAN });
 
-    const std::vector<float> nanArray(16, NAN);
+    const cvector<float> nanArray(16, NAN);
     XMMATRIX nanMatrix(nanArray.data());
 
     pTransform_->worlds_.push_back(nanMatrix);
@@ -64,7 +64,7 @@ void TransformSystem::AddRecords(
 
 ///////////////////////////////////////////////////////////
 
-void TransformSystem::RemoveRecords(const std::vector<EntityID>& enttsIDs)
+void TransformSystem::RemoveRecords(const cvector<EntityID>& enttsIDs)
 {
     assert("TODO: IMPLEMENT IT!" && 0);
 }
@@ -73,36 +73,12 @@ void TransformSystem::RemoveRecords(const std::vector<EntityID>& enttsIDs)
 
 void TransformSystem::Serialize(std::ofstream& fout, u32& offset)
 {
-#if 0
-    Transform& t = *pTransform_;
-
-    TransformSysSerDeser::Serialize(
-        fout,
-        offset,
-        static_cast<u32>(ComponentType::TransformComponent),    // data block marker
-        t.ids_,
-        t.posAndUniformScale_,
-        t.dirQuats_);
-#endif
 }
 
 ///////////////////////////////////////////////////////////
 
 void TransformSystem::Deserialize(std::ifstream& fin, const u32 offset)
 {
-#if 0
-    Transform& t = *pTransform_;
-
-    TransformSysSerDeser::Deserialize(
-        fin,
-        offset,
-        t.ids_,
-        t.posAndUniformScale_,
-        t.dirQuats_);
-
-    pTransform_->worlds_.clear();
-    pTransform_->invWorlds_.clear();
-#endif
 }
 
 
@@ -389,8 +365,8 @@ void TransformSystem::SetTransformDataByDataIdxs(
 ///////////////////////////////////////////////////////////
 
 void TransformSystem::SetWorldMatricesByDataIdxs(
-    const std::vector<index>& dataIdxs,
-    const std::vector<XMMATRIX>& newWorldMatrices)
+    const cvector<index>& dataIdxs,
+    const cvector<XMMATRIX>& newWorldMatrices)
 {
     // store world matrices by input data idxs
 
@@ -404,7 +380,6 @@ void TransformSystem::SetWorldMatricesByDataIdxs(
 // =================================================================================
 //                            PRIVATE HELPERS
 // =================================================================================
-
 void TransformSystem::AddRecordsToTransformComponent(
     const EntityID* ids,
     const XMFLOAT3* positions,
@@ -419,7 +394,7 @@ void TransformSystem::AddRecordsToTransformComponent(
     bool canAddComponent = !comp.ids_.binary_search(ids, numElems);
     Assert::True(canAddComponent, "can't add component: there is already a record with some entity id");
 
-    cvector<index> idxs(numElems);
+    cvector<index> idxs;
     comp.ids_.get_insert_idxs(ids, numElems, idxs);
 
 

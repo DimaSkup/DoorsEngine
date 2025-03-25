@@ -228,7 +228,7 @@ void GraphicsClass::Update(
     UpdateShadersDataPerFrame();
 
     // prepare all the visible entities data for rendering
-    const std::vector<EntityID>& visibleEntts = entityMgr_.renderSystem_.GetAllVisibleEntts();
+    const ECS::cvector<EntityID>& visibleEntts = entityMgr_.renderSystem_.GetAllVisibleEntts();
 
     // separate entts into opaque, entts with alpha clipping, blended, etc.
     entityMgr_.renderStatesSystem_.SeparateEnttsByRenderStates(visibleEntts, rsDataToRender_);
@@ -241,8 +241,9 @@ void GraphicsClass::Update(
     //
 
     // render as lit entts only that entts which are closer than some distance
-    std::vector<EntityID>& alphaClippedEntts = rsDataToRender_.enttsAlphaClipping_.ids_;
-    const size numVisEntts = std::ssize(alphaClippedEntts);
+    // all entts that are farther will be rendered as fully fogged with a single fog color
+    ECS::cvector<EntityID>& alphaClippedEntts = rsDataToRender_.enttsAlphaClipping_.ids_;
+    const size numVisEntts = alphaClippedEntts.size();
 
     using namespace DirectX;
 
@@ -257,11 +258,11 @@ void GraphicsClass::Update(
         const XMVECTOR camPos = pCurrCamera_->GetPositionVec();
 
         // check if entity by idx is farther than fog range if so we store its idx
-        for (index i = 0; i < std::ssize(alphaClippedEntts); ++i)
+        for (index i = 0; i < numVisEntts; ++i)
         {
             const XMVECTOR enttPos      = XMLoadFloat3(&positions[i]);
             const XMVECTOR camToEnttVec = XMVectorSubtract(enttPos, camPos);
-            const int distSqr           = (int)XMVector3Dot(camToEnttVec, camToEnttVec).m128_f32[0];
+            const int distSqr           = XMVectorGetX(XMVector3Dot(camToEnttVec, camToEnttVec));
 
             if (distSqr > fullFogDistanceSqr_)
             {
@@ -271,7 +272,7 @@ void GraphicsClass::Update(
         }
 
         idxs.resize(count);
-        std::vector<EntityID>& foggedEntts = rsDataToRender_.enttsFarThanFog_.ids_;
+        ECS::cvector<EntityID>& foggedEntts = rsDataToRender_.enttsFogged_.ids_;
         foggedEntts.resize(count);
 
         // store IDs of entts which are farther than fog range
@@ -283,32 +284,51 @@ void GraphicsClass::Update(
         // erase IDs of entts which are farther than fog range from the origin IDs array
         for (index i = 0; const index idx : idxs)
         {
-            alphaClippedEntts.erase(alphaClippedEntts.begin() + (idx - i));
+            alphaClippedEntts.erase(idx - i);
             i++;
         }
 
         idxs.clear();
     }
 
+
+    // ----------------------------------------------------
     // prepare data for each entts set
-    PrepBasicInstancesForRender(rsDataToRender_.enttsDefault_.ids_);
-    PrepAlphaClippedInstancesForRender(rsDataToRender_.enttsAlphaClipping_.ids_);
-    PrepBlendedInstancesForRender(rsDataToRender_.enttsBlended_.ids_);
+
+    
+    const EntityID* basicEntts = rsDataToRender_.enttsDefault_.ids_.data();
+    const size numBasicEntts = rsDataToRender_.enttsDefault_.ids_.size();
+    PrepBasicInstancesForRender(basicEntts, numBasicEntts);
+    /*
+    const EntityID* alphaClippedEnttsIDs = rsDataToRender_.enttsAlphaClipping_.ids_.data();
+    const size numAlphaClippedEntts = rsDataToRender_.enttsAlphaClipping_.ids_.size();
+    PrepAlphaClippedInstancesForRender(alphaClippedEnttsIDs, numAlphaClippedEntts);
+
+    const EntityID* blendedEntts = rsDataToRender_.enttsBlended_.ids_.data();
+    const size numBlendedEntts = rsDataToRender_.enttsBlended_.ids_.size();
+    PrepBlendedInstancesForRender(blendedEntts, numBlendedEntts);
+    */
 }
 
 ///////////////////////////////////////////////////////////
 
-void GraphicsClass::PrepBasicInstancesForRender(const std::vector<EntityID>& ids)
+void GraphicsClass::PrepBasicInstancesForRender(
+    const EntityID* ids,
+    const size numEntts)
 
 {
     // prepare rendering data of entts which have default render states
 
-    if (ids.empty()) return;
+    if (numEntts == 0)
+        return;
+
+    Assert::True(ids != nullptr, "input ptr to entts IDs arr == nullptr");
 
     Render::RenderDataStorage& storage = render_.dataStorage_;
 
     prep_.PrepareEnttsDataForRendering(
         ids,
+        numEntts,
         storage.modelInstBuffer_,
         storage.modelInstances_);
 
@@ -319,16 +339,23 @@ void GraphicsClass::PrepBasicInstancesForRender(const std::vector<EntityID>& ids
 
 ///////////////////////////////////////////////////////////
 
-void GraphicsClass::PrepAlphaClippedInstancesForRender(const std::vector<EntityID>& ids)
+void GraphicsClass::PrepAlphaClippedInstancesForRender(
+    const EntityID* ids,
+    const size numEntts)
 {
     // prepare rendering data of entts which have alpha clip + cull none
 
-    if (ids.empty()) return;
+    if (numEntts == 0)
+        return;
+
+    Assert::True(ids != nullptr, "input ptr to entts IDs arr == nullptr");
+
 
     Render::RenderDataStorage& storage = render_.dataStorage_;
 
     prep_.PrepareEnttsDataForRendering(
         ids,
+        numEntts,
         storage.alphaClippedModelInstBuffer_,
         storage.alphaClippedModelInstances_);
 
@@ -339,16 +366,25 @@ void GraphicsClass::PrepAlphaClippedInstancesForRender(const std::vector<EntityI
 
 ///////////////////////////////////////////////////////////
 
-void GraphicsClass::PrepBlendedInstancesForRender(const std::vector<EntityID>& ids)
+void GraphicsClass::PrepBlendedInstancesForRender(
+    const EntityID* ids,
+    const size numEntts)
 {
     // prepare rendering data of entts which have alpha clip + cull none
 
-    if (ids.empty()) return;
+    if (numEntts == 0)
+        return;
+
+    Assert::True(ids != nullptr, "input ptr to entts IDs arr == nullptr");
+
+
+    Render::RenderDataStorage& storage = render_.dataStorage_;
 
     prep_.PrepareEnttsDataForRendering(
         ids,
-        render_.dataStorage_.blendedModelInstBuffer_,
-        render_.dataStorage_.blendedModelInstances_);
+        numEntts,
+        storage.blendedModelInstBuffer_,
+        storage.blendedModelInstances_);
 }
 
 ///////////////////////////////////////////////////////////
@@ -362,22 +398,24 @@ void GraphicsClass::ComputeFrustumCulling(SystemState& sysState)
     ECS::RenderSystem& renderSys = entityMgr_.renderSystem_;
     renderSys.ClearVisibleEntts();
 
-    const std::vector<EntityID>& enttsRenderable = renderSys.GetAllEnttsIDs();
-
-    const size numRenderEntts = std::ssize(enttsRenderable);
+    const ECS::cvector<EntityID>& enttsRenderable = renderSys.GetAllEnttsIDs();
+    const size numRenderableEntts = enttsRenderable.size();
     size numVisEntts = 0;                                     // the number of currently visible entts
 
-    std::vector<size>     numBoxesPerEntt;
-    std::vector<DirectX::BoundingOrientedBox> OBBs;       // bounding box of each mesh of each renderable entt
-    std::vector<XMMATRIX> invWorlds(numRenderEntts);      // inverse world matrix of each renderable entt
-    std::vector<XMMATRIX> enttsLocal(numRenderEntts);     // local space of each renderable entt
-    std::vector<index>    idxsToVisEntts(numRenderEntts);
+    ECS::cvector<size>     numBoxesPerEntt;
+    ECS::cvector<DirectX::BoundingOrientedBox> OBBs;       // bounding box of each mesh of each renderable entt
+    cvector<XMMATRIX> invWorlds(numRenderableEntts);      // inverse world matrix of each renderable entt
+    cvector<XMMATRIX> enttsLocal(numRenderableEntts);     // local space of each renderable entt
+    cvector<index>    idxsToVisEntts(numRenderableEntts);
 
     // get inverse world matrix of each renderable entt
-    mgr.transformSystem_.GetInverseWorldMatricesOfEntts(enttsRenderable.data(), invWorlds.data(), (int)numRenderEntts);
+    mgr.transformSystem_.GetInverseWorldMatricesOfEntts(
+        enttsRenderable.data(),
+        invWorlds.data(),
+        (int)numRenderableEntts);
 
     // compute local space matrices for frustum transformations
-    for (index i = 0; i < numRenderEntts; ++i)
+    for (index i = 0; i < numRenderableEntts; ++i)
     {
         enttsLocal[i] = DirectX::XMMatrixMultiply(pCurrCamera_->InverseView(), invWorlds[i]);
     }
@@ -386,10 +424,14 @@ void GraphicsClass::ComputeFrustumCulling(SystemState& sysState)
     invWorlds.clear();
 
     // get arr of AABB / bounding spheres for each renderable entt
-    mgr.boundingSystem_.GetOBBs(enttsRenderable, numBoxesPerEntt, OBBs);
+    mgr.boundingSystem_.GetOBBs(
+        enttsRenderable.data(),
+        numRenderableEntts,
+        numBoxesPerEntt,
+        OBBs);
 
     // go through each entity and define if it is visible
-    for (index idx = 0, obbIdx = 0; idx < numRenderEntts; ++idx)
+    for (index idx = 0, obbIdx = 0; idx < numRenderableEntts; ++idx)
     {
         // decompose the matrix into its individual parts
         XMVECTOR scale;
@@ -417,7 +459,7 @@ void GraphicsClass::ComputeFrustumCulling(SystemState& sysState)
     // ------------------------------------------
 
     // store ids of visible entts
-    std::vector<EntityID> visibleEntts(numVisEntts);
+    ECS::cvector<EntityID> visibleEntts(numVisEntts);
 
     for (index i = 0; i < numVisEntts; ++i)
         visibleEntts[i] = enttsRenderable[idxsToVisEntts[i]];
@@ -436,11 +478,11 @@ void GraphicsClass::ComputeFrustumCullingOfLightSources(SystemState& sysState)
     ECS::EntityMgr& mgr = entityMgr_;
 
     mgr.renderSystem_.ClearVisibleLightSources();
-    std::vector<EntityID>& visPointLights = mgr.renderSystem_.GetArrVisibleLightSources();
+    ECS::cvector<EntityID>& visPointLights = mgr.renderSystem_.GetArrVisibleLightSources();
 
     // get all the point light sources which are in the visibility range
     const int numPointLights = (int)mgr.lightSystem_.GetNumPointLights();
-    const EntityID* pointLightsIDs = mgr.lightSystem_.GetPointLights().ids_.data();
+    const EntityID* pointLightsIDs = mgr.lightSystem_.GetPointLights().ids.data();
 
     std::vector<XMMATRIX> invWorlds(numPointLights);
     std::vector<XMMATRIX> localSpaces(numPointLights);
@@ -699,8 +741,9 @@ void GraphicsClass::RenderEnttsBlended()
         return;
 
     const ECS::EnttsBlended& blendData = rsDataToRender_.enttsBlended_;
-    const std::vector<ECS::RSTypes>& blendStates = blendData.states_;
-    const std::vector<u32>& instPerBS = blendData.instanceCountPerBS_;
+    const ECS::RSTypes* blendStates = blendData.states_.data();
+    const size numBlendStates = blendData.states_.size();
+    const size* numInstancesPerBlendState = blendData.instanceCountPerBS_.data();
     const Render::InstBuffData& instBuffer = storage.blendedModelInstBuffer_;
 
     // push data into the instanced buffer
@@ -709,11 +752,11 @@ void GraphicsClass::RenderEnttsBlended()
     int instanceOffset = 0;
 
     // go through each blending state, turn it on and render blended entts with this state
-    for (int bsIdx = 0; bsIdx < (int)std::ssize(blendStates); ++bsIdx)
+    for (index bsIdx = 0; bsIdx < numBlendStates; ++bsIdx)
     {
         d3d_.TurnOnBlending(RenderStates::STATES(blendStates[bsIdx]));
 
-        for (u32 instCount = 0; instCount < instPerBS[bsIdx]; ++instCount)
+        for (u32 instCount = 0; instCount < numInstancesPerBlendState[bsIdx]; ++instCount)
         {
             const Render::Instance* instance = &(storage.blendedModelInstances_[instanceOffset]);
             render_.RenderInstances(pDeviceContext_, Render::ShaderTypes::LIGHT, instance, 1);
@@ -734,10 +777,11 @@ void GraphicsClass::RenderBoundingLineBoxes()
         return;
     
 
-    const std::vector<EntityID>& visEntts = entityMgr_.renderSystem_.GetAllVisibleEntts();
+    const EntityID* visEntts = entityMgr_.renderSystem_.GetAllVisibleEntts().data();
+    const size numVisEntts = entityMgr_.renderSystem_.GetVisibleEnttsCount();
 
     // check if we have any visible entts
-    if (visEntts.empty())
+    if (numVisEntts == 0)
         return;                          
 
     Render::RenderDataStorage& storage       = render_.dataStorage_;
@@ -759,9 +803,9 @@ void GraphicsClass::RenderBoundingLineBoxes()
     // choose the bounding box show mode
     // (1: box around the while model, 2: box around each model's mesh)
     if (aabbShowMode_ == MODEL)
-        prep_.PrepareEnttsBoundingLineBox(visEntts, instance, instancesBuffer);
+        prep_.PrepareEnttsBoundingLineBox(visEntts, numVisEntts, instance, instancesBuffer);
     else if (aabbShowMode_ == MESH)
-        prep_.PrepareEnttsMeshesBoundingLineBox(visEntts, instance, instancesBuffer);
+        prep_.PrepareEnttsMeshesBoundingLineBox(visEntts, numVisEntts, instance, instancesBuffer);
 
 
     pDeviceContext_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
@@ -822,8 +866,8 @@ void GraphicsClass::RenderBoundingLineSpheres()
 
 void GraphicsClass::RenderBillboards()
 {
-    std::vector<EntityID>& foggedEntts = rsDataToRender_.enttsFarThanFog_.ids_;
-    const size numFoggedEntts = std::ssize(foggedEntts);
+    const EntityID* foggedEntts = rsDataToRender_.enttsFogged_.ids_.data();
+    const size numFoggedEntts = rsDataToRender_.enttsFogged_.ids_.size();
 
     if (numFoggedEntts > 0)
     {
@@ -839,7 +883,7 @@ void GraphicsClass::RenderBillboards()
         std::vector<DirectX::XMFLOAT3> foggedPositions(numFoggedEntts);
         std::vector<DirectX::XMFLOAT2> sizes(numFoggedEntts, { 30, 30 });
 
-        entityMgr_.transformSystem_.GetPositionsByIDs(foggedEntts.data(), foggedPositions.data(), numFoggedEntts);
+        entityMgr_.transformSystem_.GetPositionsByIDs(foggedEntts, foggedPositions.data(), numFoggedEntts);
 
         render_.shadersContainer_.billboardShader_.UpdateInstancedBuffer(
             pDeviceContext_,
@@ -946,14 +990,14 @@ void GraphicsClass::SetupLightsForFrame(
     const ECS::DirLights& dirLights   = lightSys.GetDirLights();
     const ECS::SpotLights& spotLights = lightSys.GetSpotLights();
 
-    const int numDirLights   = static_cast<int>(dirLights.GetCount());
-    const int numSpotLights  = static_cast<int>(spotLights.GetCount());
+    const int numDirLights   = static_cast<int>(dirLights.data.size());
+    const int numSpotLights  = static_cast<int>(spotLights.data.size());
 
     
 #if 1	// new
 
-    const std::vector<EntityID>& visPointLights = entityMgr_.renderSystem_.GetArrVisibleLightSources();
-    const int numVisLightSources = (int)std::ssize(visPointLights);
+    const EntityID* visPointLights = entityMgr_.renderSystem_.GetArrVisibleLightSources().data();
+    const size numVisLightSources = entityMgr_.renderSystem_.GetArrVisibleLightSources().size();
 
 
     outData.ResizeLightData(numDirLights, numVisLightSources, numSpotLights);
@@ -962,7 +1006,7 @@ void GraphicsClass::SetupLightsForFrame(
     {
         std::vector<ECS::PointLight> pointLightData(numVisLightSources);
         lightSys.GetPointLightData(
-            visPointLights.data(),
+            visPointLights,
             pointLightData.data(),
             numVisLightSources);
 
@@ -991,10 +1035,10 @@ void GraphicsClass::SetupLightsForFrame(
 
     // copy data of directional/point/spot light sources
     for (int idx = 0; idx < numDirLights; ++idx)
-        memcpy(&outData.dirLights[idx], &dirLights.data_[idx], dirLightSize);
+        memcpy(&outData.dirLights[idx], &dirLights.data[idx], dirLightSize);
 
     for (int idx = 0; idx < numSpotLights; ++idx)
-        memcpy(&outData.spotLights[idx], &spotLights.data_[idx], spotLightSize);
+        memcpy(&outData.spotLights[idx], &spotLights.data[idx], spotLightSize);
 }
 
 ///////////////////////////////////////////////////////////

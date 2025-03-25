@@ -120,11 +120,14 @@
       <PreprocessorDefinitions>_DEBUG;ECS_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>$(SolutionDir)ECS\Common\pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
-      <ForcedIncludeFiles>$(SolutionDir)ECS\Common\pch.h;</ForcedIncludeFiles>
+      <PrecompiledHeaderOutputFile>
+      </PrecompiledHeaderOutputFile>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
@@ -162,7 +165,6 @@
     <ClInclude Include="Common\log.h" />
     <ClInclude Include="Common\MathHelper.h" />
     <ClInclude Include="Common\MemHelpers.h" />
-    <ClInclude Include="Common\pch.h" />
     <ClInclude Include="Common\StringHelper.h" />
     <ClInclude Include="Common\UtilsFilesystem.h" />
     <ClInclude Include="Common\vector.h" />
@@ -185,9 +187,7 @@
     <ClInclude Include="Entity\SerializationHelperTypes.h" />
     <ClInclude Include="Systems\BoundingSystem.h" />
     <ClInclude Include="Systems\CameraSystem.h" />
-    <ClInclude Include="Systems\Helpers\TexturesSysAddHelpers.h" />
     <ClInclude Include="Systems\RenderStatesSystem.h" />
-    <ClInclude Include="Systems\Helpers\MoveSystemUpdateHelpers.h" />
     <ClInclude Include="Systems\LightSystem.h" />
     <ClInclude Include="Systems\ModelSystem.h" />
     <ClInclude Include="Systems\MoveSystem.h" />
@@ -208,19 +208,7 @@
     <ClCompile Include="Common\LIB_Exception.cpp" />
     <ClCompile Include="Common\log.cpp" />
     <ClCompile Include="Common\MathHelper.cpp" />
-    <ClCompile Include="Common\pch.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </PrecompiledHeaderFile>
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </ForcedIncludeFiles>
-      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </ForcedIncludeFiles>
-      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
-    </ClCompile>
     <ClCompile Include="Common\StringHelper.cpp" />
-    <ClCompile Include="Common\Utils.cpp" />
-    <ClCompile Include="Common\Utils.h" />
     <ClCompile Include="Entity\EntityMgr.cpp" />
     <ClCompile Include="Entity\EntityMgrDeserializer.cpp" />
     <ClCompile Include="Entity\EntityMgrSerializer.cpp" />

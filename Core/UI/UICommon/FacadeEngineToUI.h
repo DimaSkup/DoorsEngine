@@ -24,14 +24,15 @@ class FacadeEngineToUI : public IFacadeEngineToUI
 {
 public:
     using EntityID = uint32_t;
+    
 
 private:
-    ID3D11DeviceContext* pContext_ = nullptr;
-    Render::Render* pRender_ = nullptr;
-    ECS::EntityMgr* pEntityMgr_ = nullptr;
-    Core::TextureMgr* pTextureMgr_ = nullptr;
-    Core::ModelStorage* pModelStorage_ = nullptr;
-    Core::Camera* pEditorCamera_ = nullptr;
+    ID3D11DeviceContext* pContext_      = nullptr;
+    Render::Render*      pRender_       = nullptr;
+    ECS::EntityMgr*      pEntityMgr_    = nullptr;
+    Core::TextureMgr*    pTextureMgr_   = nullptr;
+    Core::ModelStorage*  pModelStorage_ = nullptr;
+    Core::Camera*        pEditorCamera_ = nullptr;
 
 public:
     FacadeEngineToUI(
@@ -42,6 +43,8 @@ public:
         Core::ModelStorage* pModelStorage,
         Core::Camera* pEditorCamera);
 
+
+    virtual ModelID GetModelIdByName(const std::string& name) override;
 
     // 
     // for using the textures manager
@@ -59,6 +62,15 @@ public:
     // =============================================================================
     // for the entity editor
     // =============================================================================
+    virtual EntityID CreateEntity() override;
+
+    virtual bool AddNameComponent     (const EntityID id, const std::string& name)                                          override;
+    virtual bool AddTransformComponent(const EntityID id, const Vec3& pos, const Vec3& direction, const float uniformScale) override;
+    virtual bool AddModelComponent    (const EntityID enttID, const uint32_t modelID)                                       override;
+    virtual bool AddRenderedComponent (const EntityID enttID)                                                               override;
+    virtual bool AddBoundingComponent (const EntityID id, const int boundType, const DirectX::BoundingBox& aabb)            override;
+
+
     virtual bool GetAllEnttsIDs(const uint32_t*& pEnttsIDsArr, int& numEntts) override;
     virtual uint32_t GetEnttIDByName(const char* name)                        override;
     virtual bool GetEnttNameByID(const uint32_t enttID, std::string& name)    override;
@@ -194,8 +206,7 @@ public:
     // =============================================================================
     // for assets manager
     // =============================================================================
-    virtual int  GetNumAssets()                                                 override;
-    virtual void GetAssetsNamesList(std::string* namesArr, const int numNames) override;
+    virtual bool GetAssetsNamesList(Core::cvector<std::string>& names) override;
 };
 
 } // namespace UI

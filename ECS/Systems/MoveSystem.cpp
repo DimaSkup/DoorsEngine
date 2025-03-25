@@ -1,18 +1,14 @@
-// **********************************************************************************
+// ================================================================================**
 // Filename:      MoveSystem.h
 // Description:   implementation of the MoveSystem's functional
 // 
 // Created:       23.05.24
-// **********************************************************************************
+// ================================================================================**
 #include "MoveSystem.h"
 
-#include "../Common/LIB_Exception.h"
+#include "../Common/Assert.h"
 #include "../Common/log.h"
-#include "../Common/Utils.h"
-#include "./Helpers/MoveSystemUpdateHelpers.h"
 #include "SaveLoad/MoveSysSerDeser.h"
-
-#include <stdexcept>
 
 namespace ECS
 {
@@ -20,213 +16,187 @@ namespace ECS
 
 MoveSystem::MoveSystem(Transform* pTransformComponent, Movement* pMoveComponent)
 {
-	Assert::NotNullptr(pTransformComponent, "ptr to the Transform component == nullptr");
-	Assert::NotNullptr(pMoveComponent, "ptr to the Movement component == nullptr");
+    Assert::NotNullptr(pTransformComponent, "ptr to the Transform component == nullptr");
+    Assert::NotNullptr(pMoveComponent, "ptr to the Movement component == nullptr");
 
-	pTransformComponent_ = pTransformComponent;
-	pMoveComponent_ = pMoveComponent;
+    pTransformComponent_ = pTransformComponent;
+    pMoveComponent_ = pMoveComponent;
 }
 
 
-// ********************************************************************************
-// 
+// ================================================================================
 //                PUBLIC SERIALIZATION / DESERIALIZATION API
-// 
-// ********************************************************************************
-
+// ================================================================================
 void MoveSystem::Serialize(std::ofstream& fout, u32& offset)
 {
-	const Movement& move = *pMoveComponent_;
-
-	MoveSysSerDeser::Serialize(
-		fout,
-		offset,
-		static_cast<u32>(move.type_),   // data block marker
-		move.ids_,
-		move.translationAndUniScales_,
-		move.rotationQuats_);
 }
 
 ///////////////////////////////////////////////////////////
 
 void MoveSystem::Deserialize(std::ifstream& fin, const u32 offset)
 {
-	Movement& move = *pMoveComponent_;
-
-	MoveSysSerDeser::Deserialize(
-		fin,
-		offset,
-		move.ids_,
-		move.translationAndUniScales_,
-		move.rotationQuats_);
 }
 
 
-
-// ********************************************************************************
-// 
+// ================================================================================
 //                              PUBLIC UPDATING API
-// 
-// ********************************************************************************
-
+// ================================================================================
 void MoveSystem::UpdateAllMoves(
-	const float deltaTime,
-	TransformSystem& transformSys)
+    const float deltaTime,
+    TransformSystem& transformSys)
 {
-	const std::vector<EntityID>& enttsToMove = pMoveComponent_->ids_;
+    const cvector<EntityID>& enttsToMove = pMoveComponent_->ids_;
 
-	// if we don't have any entities to move we just go out
-	if (enttsToMove.size() == 0)
-		return;
+    // if we don't have any entities to move we just go out
+    if (enttsToMove.size() == 0)
+        return;
 
-	try
-	{
+    try
+    {
 #if 0
-		Transform& transform = *pTransformComponent_;
-		Movement& movement = *pMoveComponent_;
+        Transform& transform = *pTransformComponent_;
+        Movement& movement = *pMoveComponent_;
 
-		std::vector<XMFLOAT3> positions;
-		std::vector<XMVECTOR> dirQuats;
-		std::vector<float> uniformScales;
+        cvector<XMFLOAT3> positions;
+        cvector<XMVECTOR> dirQuats;
+        cvector<float> uniformScales;
 
-		std::vector<XMMATRIX> worldMatricesToUpdate;
-		std::vector<ptrdiff_t> transformDataIdxs;
+        cvector<XMMATRIX> worldMatricesToUpdate;
+        cvector<ptrdiff_t> transformDataIdxs;
 
-		// current transform data of entities as XMVECTORs
-		std::vector<XMVECTOR> positionsVec;
-		std::vector<XMVECTOR> scalesVec;
+        // current transform data of entities as XMVECTORs
+        cvector<XMVECTOR> positionsVec;
+        cvector<XMVECTOR> scalesVec;
 
-		// current movement data (scaled according to the deltaTime)
-		std::vector<XMVECTOR> translationsVec;
-		std::vector<XMVECTOR> rotQuatsVec;        
-		std::vector<float> uniformScaleFactors;
+        // current movement data (scaled according to the deltaTime)
+        cvector<XMVECTOR> translationsVec;
+        cvector<XMVECTOR> rotQuatsVec;        
+        cvector<float> uniformScaleFactors;
 
-		// get entities transform data to update for this frame
-		transformSys.GetTransformDataOfEntts(
-			enttsToMove,
-			transformDataIdxs,
-			positions, 
-			dirQuats, 
-			uniformScales);
+        // get entities transform data to update for this frame
+        transformSys.GetTransformDataOfEntts(
+            enttsToMove,
+            transformDataIdxs,
+            positions, 
+            dirQuats, 
+            uniformScales);
 
-		PrepareTransformData(
-			positions,
-			positionsVec);
+        PrepareTransformData(
+            positions,
+            positionsVec);
 
-		PrepareMovementData( 
-			deltaTime,
-			movement.translationAndUniScales_,  // (x: trans_x, y: trans_y, z: trans_z, w: uniform_scale)
-			movement.rotationQuats_,
-			translationsVec,
-			rotQuatsVec,
-			uniformScaleFactors);
+        PrepareMovementData( 
+            deltaTime,
+            movement.translationAndUniScales_,  // (x: trans_x, y: trans_y, z: trans_z, w: uniform_scale)
+            movement.rotationQuats_,
+            translationsVec,
+            rotQuatsVec,
+            uniformScaleFactors);
 
-		// compute new values of transform data using the movement data
-		ComputeTransformData(
-			deltaTime,
-			translationsVec,
-			rotQuatsVec,
-			uniformScaleFactors,
-			positionsVec,
-			dirQuats, 
-			uniformScales);
+        // compute new values of transform data using the movement data
+        ComputeTransformData(
+            deltaTime,
+            translationsVec,
+            rotQuatsVec,
+            uniformScaleFactors,
+            positionsVec,
+            dirQuats, 
+            uniformScales);
 
-		// write updated transform data into the Transform component
-		transformSys.SetTransformDataByDataIdxs(
-			transformDataIdxs, 
-			positionsVec, 
-			dirQuats, 
-			uniformScales);
+        // write updated transform data into the Transform component
+        transformSys.SetTransformDataByDataIdxs(
+            transformDataIdxs, 
+            positionsVec, 
+            dirQuats, 
+            uniformScales);
 
-		// ------------------------------------------------------
+        // ------------------------------------------------------
 
-		// get world matrices which will be updated according to new transform data;
-		transformSys.GetMatricesByIdxs(
-			transformDataIdxs,
-			transformSys.GetAllWorldMatrices(),
-			worldMatricesToUpdate);
+        // get world matrices which will be updated according to new transform data;
+        transformSys.GetMatricesByIdxs(
+            transformDataIdxs,
+            transformSys.GetAllWorldMatrices(),
+            worldMatricesToUpdate);
 
-		// rebuild world matrices of that entities which were moved
-		ComputeWorldMatrices(
-			translationsVec, 
-			rotQuatsVec, 
-			uniformScaleFactors,
-			worldMatricesToUpdate);
+        // rebuild world matrices of that entities which were moved
+        ComputeWorldMatrices(
+            translationsVec, 
+            rotQuatsVec, 
+            uniformScaleFactors,
+            worldMatricesToUpdate);
 
-		// apply updated world matrices
-		transformSys.SetWorldMatricesByDataIdxs(
-			transformDataIdxs, 
-			worldMatricesToUpdate);
+        // apply updated world matrices
+        transformSys.SetWorldMatricesByDataIdxs(
+            transformDataIdxs, 
+            worldMatricesToUpdate);
 #endif
-	}
-	catch (const std::out_of_range& e)
-	{
-		Log::Error(e.what());
-		throw LIB_Exception("Went out of range during movement updating");
-	}
+    }
+    catch (const std::out_of_range& e)
+    {
+        Log::Error(e.what());
+        throw LIB_Exception("Went out of range during movement updating");
+    }
 }
 
 
-
-// ********************************************************************************
-// 
+// ================================================================================
 //                      PUBLIC CREATION / DELETING API
-// 
-// ********************************************************************************
-
+// ================================================================================
 void MoveSystem::AddRecords(
-	const std::vector<EntityID>& ids,
-	const std::vector<XMFLOAT3>& translations,
-	const std::vector<XMVECTOR>& rotationQuats,
-	const std::vector<float>& uniformScaleChanges)
+    const EntityID* ids,
+    const XMFLOAT3* translations,
+    const XMVECTOR* rotationQuats,
+    const float* uniformScaleFactors,
+    const size numEntts)
 {
-	Assert::NotEmpty(ids.empty(), "array of entities IDs is empty");
-	Assert::True(Utils::CheckArrSizesEqual(ids, translations), "count of entities and translations must be equal");
-	Assert::True(Utils::CheckArrSizesEqual(ids, rotationQuats), "count of entities and rotationQuats must be equal");
-	Assert::True(Utils::CheckArrSizesEqual(ids, uniformScaleChanges), "count of entities and scaleFactors must be equal");
-
-	Movement& comp = *pMoveComponent_;
+    Movement& comp = *pMoveComponent_;
+    cvector<XMFLOAT4> packedTrScales(numEntts);
+    cvector<XMVECTOR> normRotQuats(numEntts);
+    const XMFLOAT3* tr = translations;
 
 
-	// check if there is no record with such entities IDs
-	bool canAddRecords = Utils::CheckValuesExistInSortedArr(comp.ids_, ids);
-	Assert::True(canAddRecords, "there is already some record with some input ID (key)");
+    // pack translation and uniformScale into a single XMFLOAT4
+    for (index i = 0; i < numEntts; ++i)
+    {
+        const XMFLOAT3& t = translations[i];
+        packedTrScales[i] = { t.x, t.y, t.z, 1.0f };
+    }
 
-	const int numNewRecords = (int)std::ssize(ids);
-	std::vector<XMFLOAT4> packedTrScales(numNewRecords);
-	std::vector<XMVECTOR> normRotQuats(numNewRecords);
+    for (index i = 0; i < numEntts; ++i)
+        packedTrScales[i].w = uniformScaleFactors[i];
 
-
-	// pack translation and uniformScale into a single XMFLOAT4
-	for (int i = 0; i < numNewRecords; ++i)
-	{
-		packedTrScales[i].x = translations[i].x;
-		packedTrScales[i].y = translations[i].y;
-		packedTrScales[i].z = translations[i].z;
-		packedTrScales[i].w = uniformScaleChanges[i];
-	}
-
-	// normalize each input rotation quaternion
-	for (int i = 0; i < numNewRecords; ++i)
-		normRotQuats[i] = DirectX::XMQuaternionNormalize(rotationQuats[i]);
+    // normalize each input rotation quaternion
+    for (index i = 0; i < numEntts; ++i)
+        normRotQuats[i] = DirectX::XMQuaternionNormalize(rotationQuats[i]);
 
 
-	// execute sorted insertion into the data arrays
-	for (int i = 0; i < numNewRecords; ++i)
-	{	
-		const index insertAtPos = Utils::GetPosForID(comp.ids_, ids[i]);
+    cvector<index> idxs;
+    comp.ids_.get_insert_idxs(ids, numEntts, idxs);
 
-		Utils::InsertAtPos(comp.ids_, insertAtPos, ids[i]);
-		Utils::InsertAtPos(comp.translationAndUniScales_, insertAtPos, packedTrScales[i]);
-		Utils::InsertAtPos(comp.rotationQuats_, insertAtPos, normRotQuats[i]);
-	}
+
+    // allocate ahead more memory
+    const size newCapacity = comp.ids_.size() + numEntts;
+    comp.ids_.reserve(newCapacity);
+    comp.translationAndUniScales_.reserve(newCapacity);
+    comp.rotationQuats_.reserve(newCapacity);
+
+
+    // execute sorted insertion into the data arrays
+    for (index i = 0; i < numEntts; ++i)
+        comp.ids_.insert_before(idxs[i] + i, ids[i]);
+
+    for (index i = 0; i < numEntts; ++i)
+        comp.translationAndUniScales_.insert_before(idxs[i] + i, packedTrScales[i]);
+
+    for (index i = 0; i < numEntts; ++i)
+        comp.rotationQuats_.insert_before(idxs[i] + i, normRotQuats[i]);
 }
 
 ///////////////////////////////////////////////////////////
 
-void MoveSystem::RemoveRecords(const std::vector<EntityID>& enttsIDs)
+void MoveSystem::RemoveRecords(const cvector<EntityID>& enttsIDs)
 {
-	throw LIB_Exception("TODO: IMPLEMENT IT!");
+    throw LIB_Exception("TODO: IMPLEMENT IT!");
 }
 
 }

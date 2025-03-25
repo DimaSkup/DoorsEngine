@@ -10,6 +10,8 @@
 #include <UICommon/StatesGUI.h>
 #include <CoreCommon/SystemState.h>
 
+#include "../EditorPanelElement/ModelsAssetsList.h"
+
 #include "../Debug/DebugEditor.h"
 #include "../Entity/Controller/EditorController.h"
 #include "../Fog/FogEditorController.h"
@@ -47,6 +49,8 @@ private:
 
 	IFacadeEngineToUI* pFacadeEngineToUI_ = nullptr;
 	StatesGUI*         pStatesGUI_        = nullptr;
+
+    ModelsAssetsList modelsAssetsList_;
 };
 
 } // namespace UI

@@ -12,6 +12,7 @@
 #pragma once
 
 #include "../Components/TextureTransform.h"
+#include "../Common/cvector.h"
 
 namespace ECS
 {
@@ -19,61 +20,56 @@ namespace ECS
 class TextureTransformSystem
 {
 public:
-	TextureTransformSystem(TextureTransform* pTexTransformComp);
-	~TextureTransformSystem() {}
+    TextureTransformSystem(TextureTransform* pTexTransformComp);
+    ~TextureTransformSystem() {}
 
 
-	void AddTexTransformation(
-		const TexTransformType type,
-		const std::vector<EntityID>& ids,
-		const TexTransformInitParams& inParams);
+    void AddTexTransformation(
+        const EntityID* ids,
+        const size numEntts,
+        const TexTransformType type,
+        const TexTransformInitParams& params);
 
-	void GetTexTransformsForEntts(
-		const std::vector<EntityID>& enttsIDs,
-		std::vector<XMMATRIX>& outTexTransforms);
+    void GetTexTransformsForEntts(
+        const EntityID* ids,
+        XMMATRIX* outTexTransforms,
+        const size numEntts);
 
-	void UpdateAllTextrureAnimations(
-		const float totalGameTime, 
-		const float deltaTime);
+    void UpdateAllTextrureAnimations(
+        const float totalGameTime, 
+        const float deltaTime);
 
 private:
-	bool CheckCanAddRecords(const std::vector<EntityID>& ids);
+    inline bool CheckCanAddRecords(const EntityID* ids, const size numEntts) const { return !pTexTransformComponent_->ids.binary_search(ids, numEntts); }
 
-	void AddStaticTexTransform(
-		const std::vector<EntityID>& ids,
-		const TexTransformInitParams& inParams);
+    void AddStaticTexTransform(
+        const EntityID* ids,
+        const size numEntts,
+        const TexTransformInitParams& inParams);
 
-	void AddAtlasTextureAnimation(
-		const std::vector<EntityID>& ids,
-		const TexTransformInitParams& inParams);
+    void AddAtlasTextureAnimation(
+        const EntityID* ids,
+        const size numEntts,
+        const TexTransformInitParams& inParams);
 
-	void AddRotationAroundTexCoord(
-		const std::vector<EntityID>& ids,
-		const TexTransformInitParams& inParams);
+    void AddRotationAroundTexCoord(
+        const EntityID* ids,
+        const size numEntts,
+        const TexTransformInitParams& inParams);
 
+    const index AddAtlasAnimationData(
+        const EntityID enttID,
+        const TexAtlasAnimationData& data);
 
+    void UpdateTextureStaticTransformation(const float deltaTime);
+    void UpdateTextureAtlasAnimations(const float deltaTime);
+    void UpdateTextureRotations(const float totalGameTime);
 
-	const ptrdiff_t AddAtlasAnimationData(
-		const EntityID enttID,
-		const u32 texRows,
-		const u32 texColumns,
-		const float animDuration);
+    void ApplyTexTransformsByIdxs(
+        const cvector<index>& idxs,
+        const cvector<XMMATRIX>& texTransforms);
 
-	void UpdateTextureStaticTransformation(const float deltaTime);
-	void UpdateTextureAtlasAnimations(const float deltaTime);
-	void UpdateTextureRotations(const float totalGameTime);
-
-
-	void GetDataIdxsOfIDs(
-		const std::vector<EntityID>& allEnttsIDs,
-		const std::vector<EntityID>& searchedEnttsIDs,
-		std::vector<ptrdiff_t>& outDataIdxs);
-
-	void ApplyTexTransformsByIdxs(
-		const std::vector<ptrdiff_t>& dataIdxs,
-		const std::vector<XMMATRIX>& texTransforms);
-
-	TextureTransform* pTexTransformComponent_ = nullptr;
+    TextureTransform* pTexTransformComponent_ = nullptr;
 };
 
 };

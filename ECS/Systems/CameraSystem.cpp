@@ -5,11 +5,11 @@
 // =================================================================================
 #include "CameraSystem.h"
 #include "../Common/Assert.h"
+#include "../Common/log.h"
+
 
 namespace ECS
 {
-
-
 
 CameraSystem::CameraSystem(Camera* pCameraComponent) 
 	: pCameraComponent_(pCameraComponent)
@@ -32,9 +32,15 @@ void CameraSystem::Update(
 
 	const index idx = GetIdxByID(id);
 
-	comp.views_[idx] = view;
-	comp.projs_[idx] = proj;
-	comp.invViews_[idx] = DirectX::XMMatrixInverse(nullptr, view);
+    if (idx == -1)
+    {
+        Log::Error("can't update camera by id: " + std::to_string(id));
+        return;
+    }
+
+	comp.views[idx] = view;
+	comp.projs[idx] = proj;
+	comp.invViews[idx] = DirectX::XMMatrixInverse(nullptr, view);
 }
 
 
@@ -49,16 +55,21 @@ void CameraSystem::AddRecord(
 {
 	Camera& comp = *pCameraComponent_;
 
-	// if there is no such record yet we create a new one
-	if (!Utils::BinarySearch(comp.ids_, id))
-	{
-		const index insertAt = Utils::GetPosForID(comp.ids_, id);
+    const index idx = comp.ids.get_insert_idx(id);
+    const bool exist = (comp.ids[idx] == id);
 
-		Utils::InsertAtPos(comp.ids_, insertAt, id);
-		Utils::InsertAtPos(comp.views_, insertAt, view);
-		Utils::InsertAtPos(comp.projs_, insertAt, proj);
-		Utils::InsertAtPos(comp.invViews_, insertAt, DirectX::XMMatrixInverse(nullptr, view));
+	// if there is no such record yet we create a new one
+	if (!exist)
+	{
+        comp.ids.insert_before(idx, id);
+        comp.views.insert_before(idx, view);
+        comp.projs.insert_before(idx, proj);
+        comp.invViews.insert_before(idx, DirectX::XMMatrixInverse(nullptr, view));
 	}
+    else
+    {
+        Log::Error("can't add new record there is already such by ID: " + std::to_string(id));
+    }
 }
 
 ///////////////////////////////////////////////////////////
@@ -85,12 +96,12 @@ void CameraSystem::RemoveRecords()
 
 const DirectX::XMMATRIX& CameraSystem::GetViewMatrixByID(const EntityID id)
 {
-	return pCameraComponent_->views_[GetIdxByID(id)];
+	return pCameraComponent_->views[GetIdxByID(id)];
 }
 
 const DirectX::XMMATRIX& CameraSystem::GetProjMatrixByID(const EntityID id)
 {
-	return pCameraComponent_->projs_[GetIdxByID(id)];
+	return pCameraComponent_->projs[GetIdxByID(id)];
 }
 
 ///////////////////////////////////////////////////////////
@@ -101,8 +112,15 @@ void CameraSystem::GetViewAndProjByID(
 	DirectX::XMMATRIX& proj)
 {
 	const index idx = GetIdxByID(id);
-	view = pCameraComponent_->views_[idx];
-	proj = pCameraComponent_->projs_[idx];
+
+    if (idx == -1)
+    {
+        Log::Error("can't get data by id: " + std::to_string(id));
+        return;
+    }
+
+	view = pCameraComponent_->views[idx];
+	proj = pCameraComponent_->projs[idx];
 }
 
 

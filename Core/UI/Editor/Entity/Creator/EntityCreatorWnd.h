@@ -9,6 +9,8 @@
 #include <CoreCommon/cvector.h>
 #include <UICommon/IFacadeEngineToUI.h>
 #include <UICommon/Vectors.h>
+#include "../../EditorPanelElement/ModelsAssetsList.h"
+
 
 
 namespace UI
@@ -25,6 +27,8 @@ struct eAddedComponents
     bool isAddedTexTransform = false;
 };
 
+///////////////////////////////////////////////////////////
+
 struct TransformComponentData
 {
     Vec3 position;
@@ -34,10 +38,14 @@ struct TransformComponentData
 
 struct ModelComponentData
 {
-    uint32_t modelID = 0;
+    EntityID modelID = 0;
     std::string selectedModelName = "invalid_model";
+};
 
-    Core::cvector<std::string> modelsNames;
+struct NameComponentData
+{
+    const int maxNameLength = 64;
+    char enttName[64]{ '\0' };
 };
 
 ///////////////////////////////////////////////////////////
@@ -57,13 +65,15 @@ private:
     void ShowRenderedComponentFields();
 
 private:
-    eAddedComponents addedComponents_;
-    const int maxNameLength_ = 64;
-    char enttName_[64]{ '\0' };
+    // window elements
+    ModelsAssetsList        modelsList_;
 
     // components data
-    TransformComponentData transformData_;
-    ModelComponentData modelData_;
+    eAddedComponents        addedComponents_;
+    TransformComponentData  transformData_;
+    ModelComponentData      modelData_;
+    NameComponentData       nameData_;
+    
 };
 
 };

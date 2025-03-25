@@ -1,8 +1,9 @@
+// =================================================================================
+// Filename:   ModelSystem.cpp
+// =================================================================================
 #include "ModelSystem.h"
 
 #include "../Common/Assert.h"
-#include "../Common/log.h"
-//#include "SaveLoad/ModelSysSerDeser.h"
 #include <map>
 
 
@@ -18,26 +19,12 @@ ModelSystem::ModelSystem(Model* pModelComponent) : pModelComponent_(pModelCompon
 
 void ModelSystem::Serialize(std::ofstream& fout, u32& offset)
 {
-#if 0
-    MeshSysSerDeser::Serialize(
-        fout,
-        offset,
-        static_cast<u32>(ComponentType::ModelComponent),  // data block marker
-        pModelComponent_->enttToModel_);
-#endif
 }
 
 ///////////////////////////////////////////////////////////
 
 void ModelSystem::Deserialize(std::ifstream& fin, const u32 offset)
 {
-#if 0
-    MeshSysSerDeser::Deserialize(
-        fin,
-        offset,
-        pModelComponent_->enttToModel_,
-        pModelComponent_->modelToEntt_);
-#endif
 }
 
 ///////////////////////////////////////////////////////////
@@ -70,7 +57,7 @@ void ModelSystem::AddRecords(
 
 ///////////////////////////////////////////////////////////
 
-void ModelSystem::RemoveRecords(const std::vector<EntityID>& enttsIDs)
+void ModelSystem::RemoveRecords(const EntityID* ids, const size numEntts)
 {
     Assert::True(false, "TODO: IMPLEMENT IT!");
 }
@@ -94,23 +81,25 @@ ModelID ModelSystem::GetModelIdRelatedToEntt(const EntityID enttID)
 ///////////////////////////////////////////////////////////
 
 void ModelSystem::GetModelsIdsRelatedToEntts(
-    const std::vector<EntityID>& enttsIDs,         // by these entts we will get models
-    std::vector<ModelID>& outModelsIDs,            // models by these IDs will be rendered for this frame
-    std::vector<EntityID>& outEnttsSortByModels,
-    std::vector<size>& outNumInstancesPerModel)
+    const EntityID* enttsIDs,                        // by these entts we will get models
+    const size numEntts,                             // models by these IDs will be rendered for this frame
+    cvector<ModelID>& outModelsIDs,
+    cvector<EntityID>& outEnttsSortByModels,
+    cvector<size>& outNumInstancesPerModel)
 {
     // in: array of entts IDs
     // 
     // out: 1) arr of models which are related to the input entities
     //      2) arr of entts sorted by its models
     //      3) arr of entts number per model
-    
+
+    Assert::True((enttsIDs != nullptr) && (numEntts > 0), "invalid input args");
+
     cvector<index> idxs;
     const Model& comp = *pModelComponent_;
-    const size numEntts = std::ssize(enttsIDs);
     std::map<ModelID, cvector<EntityID>> modelToEntts;
 
-    comp.enttsIDs_.get_idxs(enttsIDs.data(), std::ssize(enttsIDs), idxs);
+    comp.enttsIDs_.get_idxs(enttsIDs, numEntts, idxs);
 
     // get related models IDs and use them as keys
     // and group entities by these models IDs

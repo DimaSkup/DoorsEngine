@@ -1,189 +1,172 @@
-// *********************************************************************************
+// =================================================================================
 // Filename:     RenderSystem.cpp
 // Description:  implementation of the ECS RenderSystem's functional
 // 
 // Created:      21.05.24
-// *********************************************************************************
+// =================================================================================
 #include "RenderSystem.h"
 
-#include "../Common/Utils.h"
 #include "../Common/UtilsFilesystem.h"
-#include "../Common/log.h"
 #include "../Common/Assert.h"
 
-#include <stdexcept>
 #include <fstream>
 
 namespace ECS
 {
 
-RenderSystem::RenderSystem(
-	Rendered* pRenderComponent)
-	:
-	pRenderComponent_(pRenderComponent)
+RenderSystem::RenderSystem(Rendered* pRenderComponent) :
+    pRenderComponent_(pRenderComponent)
 {
-	Assert::NotNullptr(pRenderComponent, "ptr to the Rendered component == nullptr");
+    Assert::NotNullptr(pRenderComponent, "ptr to the Rendered component == nullptr");
+
+    Rendered& comp = *pRenderComponent;
+    constexpr size newCapacity = 128;
+
+    comp.ids.reserve(newCapacity);
+    comp.shaderTypes.reserve(newCapacity);
+    comp.primTopologies.reserve(newCapacity);
 }
 
 
-// *********************************************************************************
-//                            PUBLIC FUNCTIONS
-// *********************************************************************************
-
+// =================================================================================
+//                            PUBLIC METHODS
+// =================================================================================
 void RenderSystem::Serialize(std::ofstream& fout, u32& offset)
 {
-	// serialize all the data from the Rendered component into the data file
+    // serialize all the data from the Rendered component into the data file
 
-	// store offset of this data block so we will use it later for deserialization
-	offset = static_cast<u32>(fout.tellp());
+    // store offset of this data block so we will use it later for deserialization
+    offset = static_cast<u32>(fout.tellp());
 
-	Rendered& component = *pRenderComponent_;
-	const u32 dataBlockMarker = static_cast<u32>(pRenderComponent_->type_);
-	const u32 dataCount = (u32)std::ssize(component.ids_);
+    Rendered& comp = *pRenderComponent_;
+    const u32 dataBlockMarker = static_cast<u32>(pRenderComponent_->type);
+    const u32 dataCount = (u32)comp.ids.size();
 
-	// write serialized data into the file
-	FileUtils::FileWrite(fout, &dataBlockMarker);
-	FileUtils::FileWrite(fout, &dataCount);
+    // write serialized data into the file
+    FileUtils::FileWrite(fout, &dataBlockMarker);
+    FileUtils::FileWrite(fout, &dataCount);
 
-	FileUtils::FileWrite(fout, component.ids_);
-	FileUtils::FileWrite(fout, component.shaderTypes_);
-	FileUtils::FileWrite(fout, component.primTopologies_);
+    FileUtils::FileWrite(fout, comp.ids);
+    FileUtils::FileWrite(fout, comp.shaderTypes);
+    FileUtils::FileWrite(fout, comp.primTopologies);
 }
 
 /////////////////////////////////////////////////
 
 void RenderSystem::Deserialize(std::ifstream& fin, const u32 offset)
 {
-	// deserialize the data from the data file into the Rendered component
-	
-	// read data starting from this offset
-	fin.seekg(offset, std::ios_base::beg);
+    // deserialize the data from the data file into the Rendered component
+    
+    // read data starting from this offset
+    fin.seekg(offset, std::ios_base::beg);
 
-	// check if we read the proper data block
-	u32 dataBlockMarker = 0;
-	FileUtils::FileRead(fin, &dataBlockMarker);
+    // check if we read the proper data block
+    u32 dataBlockMarker = 0;
+    FileUtils::FileRead(fin, &dataBlockMarker);
 
-	const bool isProperDataBlock = (dataBlockMarker == static_cast<u32>(ComponentType::RenderedComponent));
-	Assert::True(isProperDataBlock, "read wrong data block during deserialization of the Rendered component data from a file");
+    const bool isProperDataBlock = (dataBlockMarker == static_cast<u32>(ComponentType::RenderedComponent));
+    Assert::True(isProperDataBlock, "read wrong data block during deserialization of the Rendered component data from a file");
 
-	// ------------------------------------------
+    // ------------------------------------------
 
-	// read in how much data will we have
-	u32 dataCount = 0;
-	FileUtils::FileRead(fin, &dataCount);
+    // read in how much data will we have
+    u32 dataCount = 0;
+    FileUtils::FileRead(fin, &dataCount);
 
-	std::vector<EntityID>& ids = pRenderComponent_->ids_;
-	std::vector<RenderShaderType>& shaderTypes = pRenderComponent_->shaderTypes_;
-	std::vector<D3D11_PRIMITIVE_TOPOLOGY>& topologies = pRenderComponent_->primTopologies_;
+    Rendered& comp = *pRenderComponent_;
 
-	// prepare enough amount of memory for data
-	ids.resize(dataCount);
-	shaderTypes.resize(dataCount);
-	topologies.resize(dataCount);
+    // prepare enough amount of memory for data
+    comp.ids.resize(dataCount);
+    comp.shaderTypes.resize(dataCount);
+    comp.primTopologies.resize(dataCount);
 
-	FileUtils::FileRead(fin, ids);
-	FileUtils::FileRead(fin, shaderTypes);
-	FileUtils::FileRead(fin, topologies);
+    FileUtils::FileRead(fin, comp.ids.data());
+    FileUtils::FileRead(fin, comp.shaderTypes.data());
+    FileUtils::FileRead(fin, comp.primTopologies.data());
 }
 
 /////////////////////////////////////////////////
 
 void RenderSystem::AddRecords(
-	const std::vector<EntityID>& ids, 
-	const std::vector<RenderShaderType>& shaderTypes,
-	const std::vector<D3D11_PRIMITIVE_TOPOLOGY>& topologyTypes)
+    const EntityID* ids, 
+    const RenderInitParams* params,
+    const size numEntts)
 {
-	// set that input entities by IDs will be rendered onto the screen;
-	// also setup rendering params for each input entity;
+    // set that input entities by IDs will be rendered onto the screen;
+    // also setup rendering params for each input entity;
 
-	Assert::NotEmpty(ids.empty(), "the array of entities IDs is empty");
-	Assert::True(Utils::CheckArrSizesEqual(ids, shaderTypes), "entities count != count of the input shaders types");
-	Assert::True(Utils::CheckArrSizesEqual(ids, topologyTypes), "entities count != count of the input primitive topoECS::Logy types");
+    Assert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
+    Assert::True(params != nullptr, "input ptr to render init params == nullptr");
+    Assert::True(numEntts > 0, "input number of entts must be > 0");
 
-	Rendered& comp = *pRenderComponent_;
+    Rendered& comp = *pRenderComponent_;
+    cvector<index> idxs;
 
-	for (int i = 0; i < (int)ids.size(); ++i)
-	{
-		const EntityID id = ids[i];
+    comp.ids.get_insert_idxs(ids, numEntts, idxs);
 
-		// check if there is no record with such entity ID
-		if (!std::binary_search(comp.ids_.begin(), comp.ids_.end(), id))
-		{
-			// execute sorted insertion into the data arrays
-			const ptrdiff_t insertAtPos = Utils::GetPosForID(comp.ids_, id);
+    // exec indices correction
+    for (index i = 0; i < numEntts; ++i)
+        idxs[i] += i;
 
-			Utils::InsertAtPos(comp.ids_, insertAtPos, id);
-			Utils::InsertAtPos(comp.shaderTypes_, insertAtPos, shaderTypes[i]);
-			Utils::InsertAtPos(comp.primTopologies_, insertAtPos, topologyTypes[i]);
-		}
-	}	
+    // execute sorted insertion of input values
+    for (index i = 0; i < numEntts; ++i)
+        comp.ids.insert_before(idxs[i], ids[i]);
+
+    for (index i = 0; i < numEntts; ++i)
+        comp.shaderTypes.insert_before(idxs[i], params[i].shaderType);
+
+    for (index i = 0; i < numEntts; ++i)
+        comp.primTopologies.insert_before(idxs[i], params[i].topologyType);
 }
 
 /////////////////////////////////////////////////
 
-void RenderSystem::RemoveRecords(const std::vector<EntityID>& enttsIDs)
+void RenderSystem::RemoveRecords(const EntityID* ids, const size numEntts)
 {
+    assert(0 && "TODO");
 }
 
 /////////////////////////////////////////////////
 
 void RenderSystem::GetRenderingDataOfEntts(
-	const std::vector<EntityID>& enttsIDs,
-	std::vector<RenderShaderType>& outShaderTypes)
+    const EntityID* ids,
+    const size numEntts,
+    cvector<RenderShaderType>& outShaderTypes)
 {
-	// get necessary data for rendering of each curretly visible entity;
-	// 
-	// in:     array of entities IDs;
-	// out:    shader type for each entity 
+    // get necessary data for rendering of each curretly visible entity;
+    // 
+    // out:    shader type for each entity 
 
-	GetShaderTypesOfEntts(enttsIDs, outShaderTypes);
-}
-
-/////////////////////////////////////////////////
-
-void RenderSystem::ClearVisibleEntts()
-{
-	// clear an arr of entities that were visible in the previous frame;
-	// so we will be able to use it again for the current frame;
-	pRenderComponent_->visibleEnttsIDs_.clear();
-}
-
-/////////////////////////////////////////////////
-
-void RenderSystem::ClearVisibleLightSources()
-{
-	// clear the array of visible light sources (were visible in the prev frame);
-	// so we will be able to use it again for the current frame;
-	pRenderComponent_->visiblePointLightsIDs_.clear();
+    Assert::True((ids != nullptr) && (numEntts > 0), "invalid input args");
+    GetShaderTypesOfEntts(ids, numEntts, outShaderTypes);
 }
 
 
-// *********************************************************************************
-//                           PRIVATE FUNCTIONS
-// *********************************************************************************
-
+// =================================================================================
+//                           PRIVATE METHODS
+// =================================================================================
 void RenderSystem::GetShaderTypesOfEntts(
-	const std::vector<EntityID>& enttsIDs,
-	std::vector<RenderShaderType>& outShaderTypes)
+    const EntityID* ids,
+    const size numEntts,
+    cvector<ECS::RenderShaderType>& outShaderTypes)
 {
-	// get shader types of each input entity by its ID;
-	// 
-	// in:  SORTED array of entities IDs
-	// out: array of rendering shader types
+    // get shader types of each input entity by its ID;
+    // 
+    // in:  SORTED array of entities IDs
+    // out: array of rendering shader types
 
-	
-	std::vector<ptrdiff_t> idxs; 
+    const Rendered& comp = *pRenderComponent_;
+    cvector<index> idxs;
 
-	idxs.reserve(std::ssize(enttsIDs));
-	outShaderTypes.reserve(std::ssize(enttsIDs));
 
-	// get index into array of each input entity by ID
-	for (const EntityID& enttID : enttsIDs)
-		idxs.push_back(Utils::GetIdxInSortedArr(pRenderComponent_->ids_, enttID));
+    // get index into array of each input entity by ID
+    comp.ids.get_idxs(ids, numEntts, idxs);
+   
+    // get shader type of each input entity
+    outShaderTypes.resize(numEntts);
 
-	// get shader type of each input entity
-	for (const ptrdiff_t idx : idxs)
-		outShaderTypes.push_back(pRenderComponent_->shaderTypes_[idx]);
+    for (int i = 0; const index idx : idxs)
+        outShaderTypes[i++] = comp.shaderTypes[idx];
 }
 
-}
+} // namespace ECS

@@ -8,7 +8,6 @@
 #include "../../Common/UtilsFilesystem.h"
 #include "../../Common/log.h"
 
-
 namespace ECS
 {
 
@@ -16,8 +15,8 @@ void NameSysSerDeser::Serialize(
 	std::ofstream& fout, 
 	u32& offset,
 	const u32 dataBlockMarker,
-	const std::vector<EntityID>& ids,
-	const std::vector<EntityName>& names)
+	const cvector<EntityID>& ids,
+	const cvector<EntityName>& names)
 {
 	// serialize all the data from the Name component into the data file
 
@@ -47,8 +46,8 @@ void NameSysSerDeser::Serialize(
 void NameSysSerDeser::Deserialize(
 	std::ifstream& fin,
 	const u32 offset,
-	std::vector<EntityID>& outIds,
-	std::vector<EntityName>& outNames)
+	cvector<EntityID>& outIds,
+	cvector<EntityName>& outNames)
 {
 	// deserialize all the data from the data file into the Name component
 

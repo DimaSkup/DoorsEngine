@@ -33,9 +33,6 @@
     <ClInclude Include="Entity\EntityMgr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Systems\Helpers\MoveSystemUpdateHelpers.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Systems\ModelSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -135,9 +132,6 @@
     <ClInclude Include="Systems\SaveLoad\TransformSysSerDeser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Systems\Helpers\TexturesSysAddHelpers.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Common\MemHelpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -148,9 +142,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Systems\CameraSystem.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Common\cvector.h">
@@ -183,9 +174,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Common\LIB_Exception.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Common\Utils.h">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Systems\NameSystem.cpp">
@@ -225,12 +213,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Systems\CameraSystem.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Common\pch.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Common\Utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

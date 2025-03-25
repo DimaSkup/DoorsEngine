@@ -8,7 +8,6 @@
 #pragma once
 
 #include "../../Common/Types.h"
-#include <vector>
 #include <map>
 #include <fstream>
 

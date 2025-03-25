@@ -216,17 +216,17 @@ void CreateLightPoles(ECS::EntityMgr& mgr, const BasicModel& lightPole)
     // create and setup light poles entities
     Log::Debug();
 
-    const int numlightPoles = 10;
+    constexpr size numEntts = 10;
 
-    const std::vector<EntityID> lightPoleEnttIDs = mgr.CreateEntities(numlightPoles);
+    const ECS::cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
 
-    std::vector<XMFLOAT3>   positions(numlightPoles);
-    std::vector<XMVECTOR>   dirQuats(numlightPoles);
-    std::vector<float>      uniformScales(numlightPoles, 1.0f);
-    std::vector<EntityName> names(numlightPoles, "lightPole_");
+    std::vector<XMFLOAT3>   positions(numEntts);
+    std::vector<XMVECTOR>   dirQuats(numEntts);
+    std::vector<float>      uniformScales(numEntts, 1.0f);
+    std::vector<EntityName> names(numEntts, "lightPole_");
 
     // generate 2 rows of lightPoles
-    for (int i = 0, z = 0; i < numlightPoles; z += 30, i += 2)
+    for (int i = 0, z = 0; i < numEntts; z += 30, i += 2)
     {
         const float x = 11;
         const float y1 = GetHeightOfGeneratedTerrainAtPoint(-x, (float)z);
@@ -239,23 +239,29 @@ void CreateLightPoles(ECS::EntityMgr& mgr, const BasicModel& lightPole)
     }
 
     // generate names
-    for (int i = 0; i < numlightPoles; ++i)
-        names[i] += std::to_string(lightPoleEnttIDs[i]);
+    for (int i = 0; i < numEntts; ++i)
+        names[i] += std::to_string(enttsIDs[i]);
 
+    // ----------------------------------------------------
 
+    const EntityID* ids = enttsIDs.data();
 
-    mgr.AddTransformComponent(lightPoleEnttIDs, positions, dirQuats, uniformScales);
-    mgr.AddNameComponent(lightPoleEnttIDs, names);
-    mgr.AddModelComponent(lightPoleEnttIDs.data(), lightPole.GetID(), numlightPoles);
-    mgr.AddRenderingComponent(lightPoleEnttIDs);
+    mgr.AddTransformComponent(ids, numEntts, positions.data(), dirQuats.data(), uniformScales.data());
+    mgr.AddNameComponent(ids, names.data(), numEntts);
+    mgr.AddModelComponent(ids, lightPole.GetID(), numEntts);
 
-    const size numEntts = std::ssize(lightPoleEnttIDs);
+    ECS::RenderInitParams renderParams;
+    renderParams.shaderType   = ECS::LIGHT_SHADER;
+    renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+    mgr.AddRenderingComponent(ids, numEntts, renderParams);
+
     const size numSubsets = 2;                       // number of submeshes
     const ECS::BoundingType boundTypes[1] = { ECS::BoundingType::BOUND_BOX };
 
     // add bounding component to each entity
     mgr.AddBoundingComponent(
-        lightPoleEnttIDs.data(),
+        ids,
         numEntts,
         numSubsets,
         boundTypes,
@@ -271,47 +277,49 @@ void CreateSpheres(ECS::EntityMgr& mgr, const BasicModel& model)
     //
     Log::Debug();
 
-    const u32 numSpheres = 10;
-    const std::vector<EntityID> enttsIDs = mgr.CreateEntities(numSpheres);
+    constexpr size numEntts = 10;
+    const ECS::cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
+    const EntityID* ids = enttsIDs.data();
 
+    
     // ---------------------------------------------------------
     // setup transform data for entities
-
     TransformData transform;
 
-    transform.positions.reserve(numSpheres);
-    transform.dirQuats.resize(numSpheres, {0,0,0,1});   // no rotation
-    transform.uniformScales.resize(numSpheres, 1.0f);
+    transform.positions.reserve(numEntts);
+    transform.dirQuats.resize(numEntts, {0,0,0,1});   // no rotation
+    transform.uniformScales.resize(numEntts, 1.0f);
 
     // make two rows of the spheres
-    for (u32 idx = 0; idx < numSpheres/2; ++idx)
+    for (u32 idx = 0; idx < numEntts /2; ++idx)
     {
         transform.positions.emplace_back(-5.0f, 5.0f, 10.0f * idx);
         transform.positions.emplace_back(+5.0f, 5.0f, 10.0f * idx);
     }
-        
+
     mgr.AddTransformComponent(
-        enttsIDs,
-        transform.positions,
-        transform.dirQuats,
-        transform.uniformScales);
+        ids,
+        numEntts,
+        transform.positions.data(),
+        transform.dirQuats.data(),
+        transform.uniformScales.data());
 
 
     // ---------------------------------------------------------
     // setup movement for the spheres
-
     MovementData movement;
 
-    movement.translations.resize(numSpheres, { 0,0,0 });
-    movement.rotQuats.resize(numSpheres, { 0,0,0,1 });  // XMQuaternionRotationRollPitchYaw(0, 0.001f, 0));
-    movement.uniformScales.resize(numSpheres, 1.0f);
+    movement.translations.resize(numEntts, { 0,0,0 });
+    movement.rotQuats.resize(numEntts, { 0,0,0,1 });  // XMQuaternionRotationRollPitchYaw(0, 0.001f, 0));
+    movement.uniformScales.resize(numEntts, 1.0f);
     movement.uniformScales[0] = 1.0f;
 
     mgr.AddMoveComponent(
-        enttsIDs,
-        movement.translations,
-        movement.rotQuats,
-        movement.uniformScales);
+        ids,
+        movement.translations.data(),
+        movement.rotQuats.data(),
+        movement.uniformScales.data(),
+        numEntts);
 
     transform.Clear();
     movement.Clear();	
@@ -319,33 +327,24 @@ void CreateSpheres(ECS::EntityMgr& mgr, const BasicModel& model)
     // ---------------------------------------------
     
     // generate a name for each sphere entity
-    std::vector<EntityName> enttsNames(numSpheres, "sphere_");
+    std::vector<EntityName> enttsNames(numEntts, "sphere_");
 
     for (int i = 0; const EntityID& id : enttsIDs)
         enttsNames[i++] += std::to_string(id);
 
-    // ---------------------------------------------
-    // create and setup a model 
-
-    TextureMgr* pTexMgr = TextureMgr::Get();
-    ModelsCreator modelCreator;
-
-    //const MeshSphereParams params;
-    //BasicModel& model = modelCreator.CreateSphere(pDevice, params);
-    //const TexPath gigachadTexPath = g_TexDirPath + "/gigachad.dds";
-
-    //const TexID texID = pTexMgr->LoadFromFile(gigachadTexPath);
-    //model.SetTexture(0, TexType::DIFFUSE, texID);
+    // setup rendering params
+    ECS::RenderInitParams renderParams;
+    renderParams.shaderType = ECS::LIGHT_SHADER;
+    renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
     // ---------------------------------------------
 
-    mgr.AddModelComponent(enttsIDs.data(), model.GetID(), numSpheres);
-    mgr.AddNameComponent(enttsIDs, enttsNames);
-    mgr.AddRenderingComponent(enttsIDs);
+    mgr.AddModelComponent(ids, model.GetID(), numEntts);
+    mgr.AddNameComponent(ids, enttsNames.data(), numEntts);
+    mgr.AddRenderingComponent(ids, numEntts, renderParams);
 
     // ---------------------------------------------
 
-    const size numEntts = std::ssize(enttsIDs);
     const size numSubsets = 1;                    // each cylinder has only one mesh
     const ECS::BoundingType boundTypes[1] = { ECS::BoundingType::BOUND_BOX };
 
@@ -402,8 +401,6 @@ void CreateSkyBox(ECS::EntityMgr& mgr, SkyModel& sky)
         colorApex   = { 0.38f, 0.45f, 0.51f };
     }
 
-
-
     TextureMgr& texMgr = *TextureMgr::Get();
     TexID skyMapID = texMgr.LoadFromFile(g_RelPathTexDir + skyTexPath);
 
@@ -427,75 +424,77 @@ void CreateCylinders(ECS::EntityMgr& mgr, const BasicModel& model)
     //
     Log::Debug();
 
-    const int numCylinders = 10;
-    const std::vector<EntityID> enttsIDs = mgr.CreateEntities(numCylinders);
+    constexpr size numEntts = 10;
+    const ECS::cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
+    const EntityID* ids = enttsIDs.data();
 
     // ---------------------------------------------------------
     // setup transform data for entities
 
     TransformData transform;
 
-    transform.positions.reserve(numCylinders);
-    transform.dirQuats.resize(numCylinders, { 0,0,0,1 });  // no rotation
-    transform.uniformScales.resize(numCylinders, 1.0f);
+    transform.positions.reserve(numEntts);
+    transform.dirQuats.resize(numEntts, { 0,0,0,1 });  // no rotation
+    transform.uniformScales.resize(numEntts, 1.0f);
 
     // make two rows of the cylinders
-    for (int idx = 0; idx < numCylinders / 2; ++idx)
+    for (int idx = 0; idx < numEntts / 2; ++idx)
     {
         transform.positions.emplace_back(-5.0f, 2.0f, 10.0f * idx);
         transform.positions.emplace_back(+5.0f, 2.0f, 10.0f * idx);
     }
 
-    mgr.AddTransformComponent(
-        enttsIDs,
-        transform.positions,
-        transform.dirQuats,
-        transform.uniformScales);
+    // ----------------------------------------------------
+    // generate names for the entities
 
-    transform.Clear();
-
-    // ---------------------------------------------------------
-    // generate and set names for the entities
-
-    std::vector<std::string> names(numCylinders, "cylinder_");
+    std::vector<std::string> names(numEntts, "cylinder_");
 
     for (int i = 0; const EntityID id : enttsIDs)
         names[i++] += std::to_string(id);
 
-    mgr.AddNameComponent(enttsIDs, names);
-    names.clear();
-
-    // ---------------------------------------------------------
-
-    TextureMgr* pTexMgr = TextureMgr::Get();
-
+    // ----------------------------------------------------
     // set a default texture for the cylinder mesh
+    TextureMgr* pTexMgr        = TextureMgr::Get();
     const TexPath brickTexPath = g_RelPathTexDir + "brick01.dds";
-    const TexID brickTexID = pTexMgr->LoadFromFile(brickTexPath);
-    //model.SetTexture(0, TexType::DIFFUSE, brickTexID);
+    const TexID brickTexID     = pTexMgr->LoadFromFile(brickTexPath);
 
-    // ---------------------------------------------------------
+    // ----------------------------------------------------
+    // setup rendering params
+    ECS::RenderInitParams renderParams;
+    renderParams.shaderType   = ECS::LIGHT_SHADER;
+    renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
-    mgr.AddModelComponent(enttsIDs.data(), model.GetID(), numCylinders);
-    mgr.AddRenderingComponent(enttsIDs);
+
+    // setup bounding params
+    const size numSubsets = 1;                    // each cylinder has only one mesh
+    const ECS::BoundingType boundTypes[1] = { ECS::BoundingType::BOUND_BOX };
+    const DirectX::BoundingBox* enttAABBs = model.GetSubsetsAABB();
 
     TexID textures[22]{ 0 };
     textures[TexType::DIFFUSE] = brickTexID;
 
+    // ----------------------------------------------------
+
+    mgr.AddTransformComponent(
+        ids,
+        numEntts,
+        transform.positions.data(),
+        transform.dirQuats.data(),
+        transform.uniformScales.data());
+
     for (const EntityID id : enttsIDs)
         mgr.AddTexturedComponent(id, textures, 22, 0);
 
-    const size numEntts = std::ssize(enttsIDs);
-    const size numSubsets = 1;                    // each cylinder has only one mesh
-    const ECS::BoundingType boundTypes[1] = { ECS::BoundingType::BOUND_BOX };
+    mgr.AddNameComponent(ids, names.data(), numEntts);
+    mgr.AddRenderingComponent(ids, numEntts, renderParams);
+    mgr.AddModelComponent(ids, model.GetID(), numEntts);
 
-    // add bounding component to each entity
     mgr.AddBoundingComponent(
-        enttsIDs.data(),
+        ids,
         numEntts,
         numSubsets,
         boundTypes,
-        model.GetSubsetsAABB());      // AABB data (center, extents)
+        enttAABBs);
 }
 
 ///////////////////////////////////////////////////////////
@@ -509,7 +508,7 @@ void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
     try
     {
         Log::Debug();
-        const int numCubes = 6;
+        constexpr int numEntts = 6;
 
         const std::vector<EntityName> enttsNames =
         {
@@ -521,21 +520,22 @@ void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
             "box01",
         };
 
-        const std::vector<EntityID> enttsIDs = mgr.CreateEntities(numCubes);
+        const ECS::cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
+        const EntityID* ids = enttsIDs.data();
 
-        Assert::True(std::ssize(enttsNames) == numCubes, "num of names != num of cubes");
+        Assert::True(std::ssize(enttsNames) == numEntts, "num of names != num of cubes");
 
         // make a map: 'entt_name' => 'entity_id'
         std::map<EntityName, EntityID> enttsNameToID;
 
-        for (int i = 0; i < numCubes; ++i)
+        for (int i = 0; i < numEntts; ++i)
             enttsNameToID.insert({ enttsNames[i], enttsIDs[i] });
 
 
         // ---------------------------------------------------------
         // setup textures for the cubes
 
-        const std::string texKeys[numCubes] =
+        const std::string texKeys[numEntts] =
         {
             "cat",
             "fireAtlas",
@@ -545,7 +545,7 @@ void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
             "box01",
         };
 
-        const TexPath texFilenames[numCubes] =
+        const TexPath texFilenames[numEntts] =
         {
             "cat.dds",
             "fire_atlas.dds",
@@ -556,28 +556,28 @@ void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
         };
 
         TextureMgr& texMgr = *TextureMgr::Get();
-        TexID texIDs[numCubes];  // just setup only diffuse texture for each cube
+        TexID texIDs[numEntts];  // just setup only diffuse texture for each cube
 
         // load textures
-        for (int i = 0; i < numCubes; ++i)
+        for (int i = 0; i < numEntts; ++i)
             texIDs[i] = texMgr.LoadFromFile(g_RelPathTexDir + texFilenames[i]);
 
         // ---------------------------------------------
 
         std::map<std::string, TexID> keysToTexIDs;
 
-        for (int i = 0; i < numCubes; ++i)
+        for (int i = 0; i < numEntts; ++i)
             keysToTexIDs.insert({ texKeys[i], texIDs[i] });
 
         // ---------------------------------------------------------
         // prepare position/rotations/scales
 
-        const std::vector<XMVECTOR> dirQuats(numCubes, { 0,0,0,1 }); // no rotation
-        const std::vector<float> uniformScales(numCubes, 1.0f);
-        std::vector<XMFLOAT3> positions(numCubes);
+        const std::vector<XMVECTOR> dirQuats(numEntts, { 0,0,0,1 }); // no rotation
+        const std::vector<float> uniformScales(numEntts, 1.0f);
+        std::vector<XMFLOAT3> positions(numEntts);
 
-        for (index i = 0; i < numCubes; ++i)
-            positions[i] = { -15.0f, 1.0f, 2.0f * i };
+        for (index i = 0; i < numEntts; ++i)
+            positions[i] = { -15, 1, (float)2*i };
 
         positions[2] = { -7, -0.3f, 0 };
 
@@ -594,9 +594,9 @@ void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
         // ---------------------------------------------------------
         // setup the cubes entities
 
-        mgr.AddTransformComponent(enttsIDs, positions, dirQuats, uniformScales);
-        mgr.AddNameComponent(enttsIDs, enttsNames);
-        mgr.AddModelComponent(enttsIDs.data(), model.GetID(), numCubes);
+        mgr.AddTransformComponent(ids, numEntts, positions.data(), dirQuats.data(), uniformScales.data());
+        mgr.AddNameComponent(ids, enttsNames.data(), numEntts);
+        mgr.AddModelComponent(ids, model.GetID(), numEntts);
 
         // the cube has only one submesh
         int subsetID = 0;
@@ -668,16 +668,22 @@ void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
 
         // some texture animation for some cubes
         mgr.AddTextureTransformComponent(
-            ECS::TexTransformType::ATLAS_ANIMATION,
             enttsNameToID.at("fireflame"),
+            ECS::TexTransformType::ATLAS_ANIMATION,
             atlasTexAnimParams);
 
         mgr.AddTextureTransformComponent(
-            ECS::TexTransformType::ROTATION_AROUND_TEX_COORD,
             enttsNameToID.at("cat"),
+            ECS::TexTransformType::ROTATION_AROUND_TEX_COORD,
             rotAroundCoordsParams);
 
-        mgr.AddRenderingComponent(enttsIDs);
+
+        // setup rendering params
+        ECS::RenderInitParams renderParams;
+        renderParams.shaderType = ECS::LIGHT_SHADER;
+        renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+        mgr.AddRenderingComponent(ids, numEntts, renderParams);
 
         // setup blending params of the entities
         using enum ECS::RSTypes;
@@ -688,13 +694,12 @@ void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
         //enttMgr.renderStatesSystem_.UpdateStates(enttsNameToID.at("woodCrate02"), MULTIPLYING);
 
 
-        const size numEntts = std::ssize(enttsIDs);
         const size numSubsets = 1;                    // each cube has only one mesh
         const ECS::BoundingType boundTypes[1] = { ECS::BoundingType::BOUND_BOX };
 
         // add bounding component to each entity
         mgr.AddBoundingComponent(
-            enttsIDs.data(),
+            ids,
             numEntts,
             numSubsets,
             boundTypes,
@@ -719,16 +724,20 @@ void CreateTerrain(ECS::EntityMgr& mgr, const BasicModel& model)
     // create and setup a terrain entity
     const EntityID enttID = mgr.CreateEntity();
 
+    // setup a transformation for the terrain's texture (scale it)
+    ECS::StaticTexTransParams terrainTexTransform;
+    terrainTexTransform.Push(DirectX::XMMatrixScaling(50, 50, 0));
+
+    // setup rendering params
+    ECS::RenderInitParams renderParams;
+    renderParams.shaderType = ECS::LIGHT_SHADER;
+    renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
     mgr.AddTransformComponent(enttID, { 0, 0, 0 });
     mgr.AddNameComponent(enttID, model.GetName());
     mgr.AddModelComponent(enttID, model.GetID());
-
-    // setup a transformation for the terrain's texture
-    ECS::StaticTexTransParams terrainTexTransform;
-    terrainTexTransform.Push(DirectX::XMMatrixScaling(50, 50, 0));
-    mgr.AddTextureTransformComponent(ECS::TexTransformType::STATIC, enttID, { terrainTexTransform });
-
-    mgr.AddRenderingComponent(enttID);
+    mgr.AddTextureTransformComponent(enttID, ECS::TexTransformType::STATIC, terrainTexTransform);
+    mgr.AddRenderingComponent(enttID, renderParams);
 
     // add bounding component to each subset of this entity
     const size numEntts = 1;
@@ -817,10 +826,15 @@ void CreateSkull(ECS::EntityMgr& mgr, const BasicModel& model)
     {
         const EntityID enttID = mgr.CreateEntity();
 
+        // setup rendering params
+        ECS::RenderInitParams renderParams;
+        renderParams.shaderType   = ECS::LIGHT_SHADER;
+        renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
         mgr.AddTransformComponent(enttID, { -15, 4, 10 });
         mgr.AddNameComponent(enttID, "skull");
         mgr.AddModelComponent(enttID, model.GetID());
-        mgr.AddRenderingComponent(enttID);
+        mgr.AddRenderingComponent(enttID, renderParams);
 
         const size numEntts = 1;
         const size numSubsets = 1;                    // each cylinder has only one mesh
@@ -849,71 +863,71 @@ void CreatePlanes(ECS::EntityMgr& mgr, const BasicModel& model)
 
     try 
     {
+        constexpr int numEntts = 2;
+        const ECS::cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
+        const EntityID* ids = enttsIDs.data();
 
-    const UINT numPlanes = 2;
-    const std::vector<EntityID> enttsIDs = mgr.CreateEntities(numPlanes);
+        // ---------------------------------------------------------
+        // setup transform data for entities
 
-    // ---------------------------------------------------------
-    // setup transform data for entities
+        TransformData transform;
 
-    TransformData transform;
+        transform.positions.resize(numEntts, { 0,0,0 });
+        transform.dirQuats.resize(numEntts, { 0,0,0,1 });  // no rotation
+        transform.uniformScales.resize(numEntts, 1.0f);
 
-    transform.positions.resize(numPlanes, { 0,0,0 });
-    transform.dirQuats.resize(numPlanes, { 0,0,0,1 });  // no rotation
-    transform.uniformScales.resize(numPlanes, 1.0f);
+        transform.positions[0] = { 4, 1.5f, 6 };
+        transform.positions[1] = { 2, 1.5f, 6 };
 
-    transform.positions[0] = { 4, 1.5f, 6 };
-    transform.positions[1] = { 2, 1.5f, 6 };
+        mgr.AddTransformComponent(
+            ids,
+            numEntts,
+            transform.positions.data(),
+            transform.dirQuats.data(),
+            transform.uniformScales.data());
 
-    mgr.AddTransformComponent(
-        enttsIDs,
-        transform.positions,
-        transform.dirQuats,
-        transform.uniformScales);
+        // ---------------------------------------------------------
+        // setup names for the entities
 
-    // ---------------------------------------------------------
-    // setup names for the entities
+        std::vector<std::string> names(numEntts, "plane_");
 
-    std::vector<std::string> names(numPlanes, "plane_");
+        for (int i = 0; const EntityID id : enttsIDs)
+            names[i++] += std::to_string(id);
 
-    for (int i = 0; const EntityID id : enttsIDs)
-        names[i++] += std::to_string(id);
+        // ---------------------------------------------------------
+        // setup meshes of the entities
 
-    // ---------------------------------------------------------
-    // setup meshes of the entities
+        TextureMgr& texMgr = *TextureMgr::Get();
 
-    TextureMgr& texMgr = *TextureMgr::Get();
+        constexpr int numTexPaths = 2;
+        const TexPath texPaths[numTexPaths] =
+        {
+            "data/textures/brick01.dds",
+            "data/textures/sprite01.tga",
+        };
 
-    const int numTexPaths = 2;
-    const TexPath texPaths[numTexPaths] =
-    {
-        "data/textures/brick01.dds",
-        "data/textures/sprite01.tga",
-    };
+        TexID texIDs[numTexPaths];
 
-    TexID texIDs[numTexPaths];
+        // create textures
+        for (int i = 0; i < numTexPaths; ++i)
+            texIDs[i] = texMgr.LoadFromFile(texPaths[i]);
 
-    // create textures
-    for (int i = 0; i < numTexPaths; ++i)
-        texIDs[i] = texMgr.LoadFromFile(texPaths[i]);
 
-    //model.SetTexture(0, TexType::DIFFUSE, texIDs[0]);
+        // setup rendering params
+        ECS::RenderInitParams renderParams;
+        renderParams.shaderType   = ECS::LIGHT_SHADER;
+        renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
-    // setup texture for each plane mesh
-    //for (int idx = 0; const MeshID meshID : meshesIDs)
-    //	pMeshStorage->SetTextureForMeshByID(meshID, aiTextureType_DIFFUSE, texIDs[idx++]);
-    
+        mgr.AddModelComponent(ids, model.GetID(), numEntts);
+        mgr.AddNameComponent(ids, names.data(), numEntts);
+        mgr.AddRenderingComponent(ids, numEntts, renderParams);
 
-    mgr.AddModelComponent(enttsIDs.data(), model.GetID(), numPlanes);
-    mgr.AddNameComponent(enttsIDs, names);
-    mgr.AddRenderingComponent(enttsIDs);
+        // ---------------------------------------------------------
+        // setup render states of the entities
+        //using enum ECS::RSTypes;
 
-    // ---------------------------------------------------------
-    // setup render states of the entities
-    using enum ECS::RSTypes;
-
-    //mgr.renderStatesSystem_.UpdateStates(enttsIDs[0], ADDING);
-    //mgr.renderStatesSystem_.UpdateStates(enttsIDs[1], SUBTRACTING);
+        //mgr.renderStatesSystem_.UpdateStates(enttsIDs[0], ADDING);
+        //mgr.renderStatesSystem_.UpdateStates(enttsIDs[1], SUBTRACTING);
 
     }
     catch (EngineException& e)
@@ -936,15 +950,16 @@ void CreateTreesPine(ECS::EntityMgr& mgr, const BasicModel& model)
     Log::Debug();
 
     using enum ECS::RSTypes;
-    const int numTrees = 50;
-    const std::vector<EntityID> enttsIDs = mgr.CreateEntities(numTrees);
+    constexpr int numEntts = 50;
+    const ECS::cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
+    const EntityID* ids = enttsIDs.data();
 
     // ---------------------------------------------
 
-    std::vector<EntityName> names(numTrees, "tree_pine_");
-    std::vector<XMFLOAT3>   positions(numTrees);
-    std::vector<XMVECTOR>   quats(numTrees);
-    std::vector<float>      uniScales(numTrees, 1.0f);
+    std::vector<EntityName> names(numEntts, "tree_pine_");
+    std::vector<XMFLOAT3>   positions(numEntts);
+    std::vector<XMVECTOR>   quats(numEntts);
+    std::vector<float>      uniScales(numEntts, 1.0f);
 
 
     // generate a name for each tree
@@ -964,25 +979,29 @@ void CreateTreesPine(ECS::EntityMgr& mgr, const BasicModel& model)
     positions[0] = {0,0,0};
 
     // generate direction quats
-    for (int i = 0; i < numTrees; ++i)
+    for (int i = 0; i < numEntts; ++i)
     {
         float angleY = MathHelper::RandF(0, 314) * 0.01f;
         quats[i] = XMQuaternionRotationRollPitchYaw(DirectX::XM_PIDIV2, angleY, 0);
     }
 
     // generate a scale value for each tree
-    for (int i = 0; i < numTrees; ++i)
+    for (int i = 0; i < numEntts; ++i)
     {
         //uniScales[i] += MathHelper::RandF(0.0f, 50.0f) * 0.01f;
         uniScales[i] = 0.01f;
     }
 
+    // setup rendering params
+    ECS::RenderInitParams renderParams;
+    renderParams.shaderType   = ECS::LIGHT_SHADER;
+    renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
     // add components to each tree entity
-    mgr.AddTransformComponent(enttsIDs, positions, quats, uniScales);   
-    mgr.AddNameComponent(enttsIDs, names);
-    mgr.AddModelComponent(enttsIDs.data(), model.GetID(), numTrees);
-    mgr.AddRenderingComponent(enttsIDs);
+    mgr.AddTransformComponent(ids, numEntts, positions.data(), quats.data(), uniScales.data());
+    mgr.AddNameComponent(ids, names.data(), numEntts);
+    mgr.AddModelComponent(ids, model.GetID(), numEntts);
+    mgr.AddRenderingComponent(ids, numEntts, renderParams);
 
     // apply alpha_clipping and cull_none to each tree entt
     mgr.renderStatesSystem_.UpdateStates(enttsIDs, { ALPHA_CLIPPING, CULL_NONE });
@@ -994,7 +1013,7 @@ void CreateTreesPine(ECS::EntityMgr& mgr, const BasicModel& model)
     // add bounding component to each entity
     mgr.AddBoundingComponent(
         enttsIDs.data(),
-        numTrees,
+        numEntts,
         numSubsets,
         boundTypes.data(),
         model.GetSubsetsAABB());      // AABB data (center, extents)
@@ -1007,15 +1026,16 @@ void CreateTreesSpruce(ECS::EntityMgr& mgr, const BasicModel& model)
     Log::Debug();
 
     using enum ECS::RSTypes;
-    const int numTrees = 50;
-    const std::vector<EntityID> enttsIDs = mgr.CreateEntities(numTrees);
+    constexpr int numEntts = 50;
+    const ECS::cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
+    const EntityID* ids = enttsIDs.data();
 
     // ---------------------------------------------
 
-    std::vector<EntityName> names(numTrees, "tree_spruce_");
-    std::vector<XMFLOAT3>   positions(numTrees);
-    std::vector<XMVECTOR>   quats(numTrees);
-    std::vector<float>      uniScales(numTrees, 3.5f);
+    std::vector<EntityName> names(numEntts, "tree_spruce_");
+    std::vector<XMFLOAT3>   positions(numEntts);
+    std::vector<XMVECTOR>   quats(numEntts);
+    std::vector<float>      uniScales(numEntts, 3.5f);
 
 
     // generate a name for each tree
@@ -1035,24 +1055,29 @@ void CreateTreesSpruce(ECS::EntityMgr& mgr, const BasicModel& model)
     positions[0] = { 0,0,0 };
 
     // generate direction quats
-    for (int i = 0; i < numTrees; ++i)
+    for (int i = 0; i < numEntts; ++i)
     {
         float angleY = MathHelper::RandF(0, 314) * 0.01f;
         quats[i] = XMQuaternionRotationAxis({ 0,1,0 }, DirectX::XM_PIDIV2);
-        //quats[i] *= XMQuaternionRotationRollPitchYaw(DirectX::XM_PIDIV2, angleY, 0);
     }
 
     // generate a scale value for each tree
-    for (int i = 0; i < numTrees; ++i)
+    for (int i = 0; i < numEntts; ++i)
     {
         uniScales[i] += MathHelper::RandF(0.0f, 50.0f) * 0.01f;
     }
 
+    // setup rendering params
+    ECS::RenderInitParams renderParams;
+    renderParams.shaderType = ECS::LIGHT_SHADER;
+    renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+
     // add components to each tree entity
-    mgr.AddTransformComponent(enttsIDs, positions, quats, uniScales);
-    mgr.AddNameComponent(enttsIDs, names);
-    mgr.AddModelComponent(enttsIDs.data(), model.GetID(), numTrees);
-    mgr.AddRenderingComponent(enttsIDs);
+    mgr.AddTransformComponent(ids, numEntts, positions.data(), quats.data(), uniScales.data());
+    mgr.AddNameComponent(ids, names.data(), numEntts);
+    mgr.AddModelComponent(ids, model.GetID(), numEntts);
+    mgr.AddRenderingComponent(ids, numEntts, renderParams);
 
     // apply alpha_clipping and cull_none to each tree entt
     mgr.renderStatesSystem_.UpdateStates(enttsIDs, { ALPHA_CLIPPING, CULL_NONE });
@@ -1064,7 +1089,7 @@ void CreateTreesSpruce(ECS::EntityMgr& mgr, const BasicModel& model)
     // add bounding component to each entity
     mgr.AddBoundingComponent(
         enttsIDs.data(),
-        numTrees,
+        numEntts,
         numSubsets,
         boundTypes.data(),
         model.GetSubsetsAABB());      // AABB data (center, extents)
@@ -1079,8 +1104,14 @@ void CreatePowerLine(ECS::EntityMgr& mgr, const BasicModel& model)
     Log::Debug();
 
     // create and setup an entity
-    const int numPWTowers = 3;
-    const std::vector<EntityID> enttsIDs = mgr.CreateEntities(numPWTowers);
+    constexpr int numEntts = 3;
+    const ECS::cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
+    const EntityID* ids = enttsIDs.data();
+
+    // apply the same rotation and scale for each entt
+    XMVECTOR rotQuat = DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XM_PIDIV2, 0, 0);
+    const std::vector<XMVECTOR> quats(numEntts, rotQuat);
+    const std::vector<float>    scales(numEntts, 0.5f);
 
     // a position for each power line
     std::vector<XMFLOAT3> positions =
@@ -1095,26 +1126,25 @@ void CreatePowerLine(ECS::EntityMgr& mgr, const BasicModel& model)
 
 
     // generate a name for each entt
-    std::vector<std::string> names(numPWTowers, "power_hw_tower_");
+    std::string names[numEntts];
 
     for (int i = 0; const EntityID id : enttsIDs)
-        names[i++] += std::to_string(id);
+        names[i++] = "power_hw_tower_" + std::to_string(id);
 
+    // setup rendering params
+    ECS::RenderInitParams renderParams;
+    renderParams.shaderType = ECS::LIGHT_SHADER;
+    renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
-    // apply the same rotation and scale for each entt
-    XMVECTOR rotQuat = DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XM_PIDIV2, 0, 0);
-    const std::vector<XMVECTOR> quats(numPWTowers, rotQuat);
-    const std::vector<float> scales(numPWTowers, 0.5f);        
-
-    mgr.AddTransformComponent(enttsIDs, positions, quats, scales);
-    mgr.AddNameComponent(enttsIDs, names);
-    mgr.AddModelComponent(enttsIDs.data(), model.GetID(), numPWTowers);
-    mgr.AddRenderingComponent(enttsIDs);
-
-    // add bounding component to each subset of this entity
-    const size numEntts = numPWTowers;
+    // setup bounding params
     const size numSubsets = model.GetNumSubsets();
     const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
+
+
+    mgr.AddTransformComponent(ids, numEntts, positions.data(), quats.data(), scales.data());
+    mgr.AddNameComponent(ids, names, numEntts);
+    mgr.AddModelComponent(ids, model.GetID(), numEntts);
+    mgr.AddRenderingComponent(ids, numEntts, renderParams);
 
     mgr.AddBoundingComponent(
         enttsIDs.data(),
@@ -1134,14 +1164,21 @@ void CreateBarrel(ECS::EntityMgr& mgr, const BasicModel& model)
 
     const EntityID enttID = mgr.CreateEntity();
 
-    mgr.AddTransformComponent(enttID, { 0, 2, -5 });
-    mgr.AddNameComponent(enttID, "barrel");
-    mgr.AddModelComponent(enttID, model.GetID());
-    mgr.AddRenderingComponent(enttID);
+    // setup rendering params
+    ECS::RenderInitParams renderParams;
+    renderParams.shaderType = ECS::LIGHT_SHADER;
+    renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
+    // setup bounding params
     const size numEntts = 1;
     const size numSubsets = model.GetNumSubsets();
     const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
+
+
+    mgr.AddTransformComponent(enttID, { 0, 2, -5 });
+    mgr.AddNameComponent(enttID, "barrel");
+    mgr.AddModelComponent(enttID, model.GetID());
+    mgr.AddRenderingComponent(enttID, renderParams);
 
     mgr.AddBoundingComponent(
         &enttID,
@@ -1155,24 +1192,31 @@ void CreateBarrel(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateStalkerFreedom(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    // create and setup a nanosuit entity
+    // create and setup a stalker entity
     Log::Debug();
 
     const EntityID enttID = mgr.CreateEntity();
 
+    // setup transformation params
     float posY = GetHeightOfGeneratedTerrainAtPoint(7, 3);
     DirectX::XMFLOAT3 pos = { 7, posY, 3 };
     DirectX::XMVECTOR rotQuat = DirectX::XMQuaternionRotationRollPitchYaw(XM_PIDIV2, XM_PIDIV2, 0);
 
-    mgr.AddTransformComponent(enttID, pos, rotQuat, 5.0f);
-    mgr.AddNameComponent(enttID, "stalker_freedom");
-    mgr.AddModelComponent(enttID, model.GetID());
-    mgr.AddRenderingComponent(enttID);
+    // setup rendering params
+    ECS::RenderInitParams renderParams;
+    renderParams.shaderType = ECS::LIGHT_SHADER;
+    renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
-    // add bounding component to each subset of this entity
+    // setup bounding params
     const size numEntts = 1;
     const size numSubsets = model.GetNumSubsets();
     const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
+
+
+    mgr.AddTransformComponent(enttID, pos, rotQuat, 5.0f);
+    mgr.AddNameComponent(enttID, "stalker_freedom");
+    mgr.AddModelComponent(enttID, model.GetID());
+    mgr.AddRenderingComponent(enttID, renderParams);
 
     mgr.AddBoundingComponent(
         &enttID,
@@ -1191,19 +1235,26 @@ void CreateNanoSuit(ECS::EntityMgr& mgr, const BasicModel& model)
 
     const EntityID enttID = mgr.CreateEntity();
 
+    // setup transformation params
     float posY = GetHeightOfGeneratedTerrainAtPoint(20, 8);
     DirectX::XMFLOAT3 pos = { 20, posY, 8 };
     DirectX::XMVECTOR rotQuat = DirectX::XMQuaternionRotationRollPitchYaw(0, DirectX::XM_PIDIV2, 0);
 
-    mgr.AddTransformComponent(enttID, pos, rotQuat, 0.5f);
-    mgr.AddNameComponent(enttID, model.GetName());
-    mgr.AddModelComponent(enttID, model.GetID());
-    mgr.AddRenderingComponent(enttID);
+    // setup rendering params
+    ECS::RenderInitParams renderParams;
+    renderParams.shaderType = ECS::LIGHT_SHADER;
+    renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
-    // add bounding component to each subset of this entity
+    // setup bounding params
     const size numEntts = 1;
     const size numSubsets = model.GetNumSubsets();
     const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
+
+
+    mgr.AddTransformComponent(enttID, pos, rotQuat, 0.5f);
+    mgr.AddNameComponent(enttID, model.GetName());
+    mgr.AddModelComponent(enttID, model.GetID());
+    mgr.AddRenderingComponent(enttID, renderParams);
 
     mgr.AddBoundingComponent(
         &enttID,
@@ -1221,17 +1272,27 @@ void CreateBuilding(ECS::EntityMgr& mgr, const BasicModel& model)
 
     const EntityID enttID = mgr.CreateEntity();
 
-    DirectX::XMVECTOR dirQuat = { 0,0,0,1 };// XMQuaternionRotationRollPitchYaw(XM_PIDIV2, 0, 0);
+    // setup transformation params
+    float posY = GetHeightOfGeneratedTerrainAtPoint(-130, 70);
+    const DirectX::XMFLOAT3 pos = { -130, posY, 70 };
+    const DirectX::XMVECTOR dirQuat = { 0,0,0,1 };
+    const float uniformScale = 2.5f;
 
-    mgr.AddTransformComponent(enttID, { -130, 1.3f, 70 }, dirQuat, 2.5f);
-    mgr.AddNameComponent(enttID, "building");
-    mgr.AddModelComponent(enttID, model.GetID());
-    mgr.AddRenderingComponent(enttID);
+    // setup rendering params
+    ECS::RenderInitParams renderParams;
+    renderParams.shaderType = ECS::LIGHT_SHADER;
+    renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
-    // add bounding component to each subset of this entity
+    // setup bounding params
     const size numEntts = 1;
     const size numSubsets = model.GetNumSubsets();
     const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
+
+
+    mgr.AddTransformComponent(enttID, pos, dirQuat, uniformScale);
+    mgr.AddNameComponent(enttID, "building");
+    mgr.AddModelComponent(enttID, model.GetID());
+    mgr.AddRenderingComponent(enttID, renderParams);
 
     mgr.AddBoundingComponent(
         &enttID,
@@ -1248,15 +1309,26 @@ void CreateSovietStatue(ECS::EntityMgr& mgr, const BasicModel& model)
     Log::Debug();
     const EntityID enttID = mgr.CreateEntity();
 
-    mgr.AddTransformComponent(enttID, { -50, 1.3f, 60 }, { 0,0,0,1 }, 5.0f);
-    mgr.AddNameComponent(enttID, "soviet_statue");
-    mgr.AddModelComponent(enttID, model.GetID());
-    mgr.AddRenderingComponent(enttID);
+    // setup transformation params
+    const XMFLOAT3 pos = { -50, 1.3f, 60 };
+    const XMVECTOR dirQuat = { 0,0,0,1 };
+    const float uniformScale = 5.0f;
 
-    // add bounding component to each subset of this entity
+    // setup rendering params
+    ECS::RenderInitParams renderParams;
+    renderParams.shaderType = ECS::LIGHT_SHADER;
+    renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+    // add bounding params
     const size numEntts = 1;
     const size numSubsets = model.GetNumSubsets();
     const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
+
+
+    mgr.AddTransformComponent(enttID, pos, dirQuat, uniformScale);
+    mgr.AddNameComponent(enttID, "soviet_statue");
+    mgr.AddModelComponent(enttID, model.GetID());
+    mgr.AddRenderingComponent(enttID, renderParams);
 
     mgr.AddBoundingComponent(
         &enttID,
@@ -1273,15 +1345,26 @@ void CreateApartment(ECS::EntityMgr& mgr, const BasicModel& model)
     Log::Debug();
     const EntityID enttID = mgr.CreateEntity();
 
-    mgr.AddTransformComponent(enttID, { -50, 0, 0 }, { 0,0,0,1 }, { 0.1f });
-    mgr.AddNameComponent(enttID, "apartment");
-    mgr.AddModelComponent(enttID, model.GetID());
-    mgr.AddRenderingComponent(enttID);
+    // setup transformation params
+    const XMFLOAT3 pos = { -50, 0, 0 };
+    const XMVECTOR dirQuat = { 0,0,0,1 };
+    const float uniformScale = 0.1f;
 
-    // add bounding component to each subset of this entity
+    // setup rendering params
+    ECS::RenderInitParams renderParams;
+    renderParams.shaderType = ECS::LIGHT_SHADER;
+    renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+    // setup bounding params
     const size numEntts = 1;
     const size numSubsets = model.GetNumSubsets();
     const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
+
+
+    mgr.AddTransformComponent(enttID, pos, dirQuat, uniformScale);
+    mgr.AddNameComponent(enttID, "apartment");
+    mgr.AddModelComponent(enttID, model.GetID());
+    mgr.AddRenderingComponent(enttID, renderParams);
 
     mgr.AddBoundingComponent(
         &enttID,
@@ -1299,19 +1382,26 @@ void CreateAk47(ECS::EntityMgr& mgr, const BasicModel& model)
 
     const EntityID enttID = mgr.CreateEntity();
 
+    // setup transformation params
     const XMFLOAT3 position  = { 10, 2, 10 };
     const XMVECTOR dirQuat   = { 0, 0, 0, 1 };
     const float uniformScale = 5.0f;
 
-    mgr.AddTransformComponent(enttID, position, dirQuat, uniformScale);
-    mgr.AddNameComponent(enttID, "ak_47");
-    mgr.AddModelComponent(enttID, model.GetID());
-    mgr.AddRenderingComponent(enttID);
+    // setup rendering params
+    ECS::RenderInitParams renderParams;
+    renderParams.shaderType = ECS::LIGHT_SHADER;
+    renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
-    // add bounding component to each subset of this entity
+    // setup bounding params
     const size numEntts = 1;
     const size numSubsets = model.GetNumSubsets();
     const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
+
+
+    mgr.AddTransformComponent(enttID, position, dirQuat, uniformScale);
+    mgr.AddNameComponent(enttID, "ak_47");
+    mgr.AddModelComponent(enttID, model.GetID());
+    mgr.AddRenderingComponent(enttID, renderParams);
 
     mgr.AddBoundingComponent(
         &enttID,
@@ -1329,19 +1419,26 @@ void CreateAk74(ECS::EntityMgr& mgr, const BasicModel& model)
 
     const EntityID enttID = mgr.CreateEntity();
 
+    // setup transformation params
     const XMFLOAT3 position  = { 10, 2, 6 };
     const XMVECTOR dirQuat   = { 0, 0, 0, 1 };
     const float uniformScale = 5.0f;
 
-    mgr.AddTransformComponent(enttID, position, dirQuat, uniformScale);
-    mgr.AddNameComponent(enttID, "ak_74");
-    mgr.AddModelComponent(enttID, model.GetID());
-    mgr.AddRenderingComponent(enttID);
+    // setup rendering params
+    ECS::RenderInitParams renderParams;
+    renderParams.shaderType = ECS::LIGHT_SHADER;
+    renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
-    // add bounding component to each subset of this entity
+    // setup bounding params
     const size numEntts = 1;
     const size numSubsets = model.GetNumSubsets();
     const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
+
+
+    mgr.AddTransformComponent(enttID, position, dirQuat, uniformScale);
+    mgr.AddNameComponent(enttID, "ak_74");
+    mgr.AddModelComponent(enttID, model.GetID());
+    mgr.AddRenderingComponent(enttID, renderParams);
 
     mgr.AddBoundingComponent(
         &enttID,
@@ -1359,23 +1456,30 @@ void CreateHouse(ECS::EntityMgr& mgr, const BasicModel& model)
 
     Log::Debug();
 
-    // create and setup an entity
     const EntityID enttID = mgr.CreateEntity();
 
+    // setup transformation params
     const float posY      = GetHeightOfGeneratedTerrainAtPoint(34, 43) + 2.5f;
     const XMFLOAT3 pos    = { 34, posY, 43 };
     const XMVECTOR rotVec = { DirectX::XM_PIDIV2, 0,0 };
     const XMVECTOR quat   = DirectX::XMQuaternionRotationRollPitchYawFromVector(rotVec);
+    const float uniScale  = 1.0f;
 
-    mgr.AddTransformComponent(enttID, pos, quat);
-    mgr.AddNameComponent(enttID, "kordon_house");
-    mgr.AddModelComponent(enttID, model.GetID());
-    mgr.AddRenderingComponent({ enttID });
+    // setup rendering params
+    ECS::RenderInitParams renderParams;
+    renderParams.shaderType = ECS::LIGHT_SHADER;
+    renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
-    // add bounding component to each subset of this entity
+    // setup bounding params
     const size numEntts = 1;
     const size numSubsets = model.GetNumSubsets();
     const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
+
+
+    mgr.AddTransformComponent(enttID, pos, quat, uniScale);
+    mgr.AddNameComponent(enttID, "kordon_house");
+    mgr.AddModelComponent(enttID, model.GetID());
+    mgr.AddRenderingComponent(enttID, renderParams);
 
     mgr.AddBoundingComponent(
         &enttID,
@@ -1393,19 +1497,26 @@ void CreateHouse2(ECS::EntityMgr& mgr, const BasicModel& model)
     Log::Debug();
 
     const EntityID enttID = mgr.CreateEntity();
-    const float posY = GetHeightOfGeneratedTerrainAtPoint(-20, 107);
-    const XMFLOAT3 pos{ -20, posY, 107 };
-    const DirectX::XMVECTOR quat = DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XM_PIDIV2, DirectX::XM_PIDIV2, 0);
-    
-    mgr.AddTransformComponent(enttID, pos, quat, 0.01f);
-    mgr.AddNameComponent(enttID, "blockpost");
-    mgr.AddModelComponent(enttID, model.GetID());
-    mgr.AddRenderingComponent(enttID);
 
-    // add bounding component to each subset of this entity
+    // setup transformation params
+    const float posY      = GetHeightOfGeneratedTerrainAtPoint(-20, 107);
+    const XMFLOAT3 pos    = { -20, posY, 107 };
+    const XMVECTOR quat   = DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XM_PIDIV2, DirectX::XM_PIDIV2, 0);
+
+    // setup rendering params
+    ECS::RenderInitParams renderParams;
+    renderParams.shaderType = ECS::LIGHT_SHADER;
+    renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+    // setup bounding params
     const size numEntts = 1;
     const size numSubsets = model.GetNumSubsets();
     const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
+
+    mgr.AddTransformComponent(enttID, pos, quat, 0.01f);
+    mgr.AddNameComponent(enttID, "blockpost");
+    mgr.AddModelComponent(enttID, model.GetID());
+    mgr.AddRenderingComponent(enttID, renderParams);
 
     mgr.AddBoundingComponent(
         &enttID,
@@ -1421,16 +1532,17 @@ void CreateRocks(ECS::EntityMgr& mgr, const BasicModel& model)
 {
     // create and setup rock entities
 
-    const int numRocks = 20;
-    const std::vector<EntityID> enttsIDs = mgr.CreateEntities(numRocks);
+    constexpr int numEntts = 20;
+    const ECS::cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
+    const EntityID* ids = enttsIDs.data();
 
-    std::vector<XMFLOAT3> positions(numRocks);
-    std::vector<XMVECTOR> quats(numRocks, { 0,0,0,1 });       // apply the same rotation to each entt
-    std::vector<float>    scales(numRocks, 1);                // apply the same scale to each entt
-    std::vector<std::string> names(numRocks, "rock_");
+    XMFLOAT3    positions[numEntts];
+    XMVECTOR    quats[numEntts];       
+    float       uniformScales[numEntts];               
+    std::string names[numEntts];
 
 
-    // generate positions for entts
+    // setup transformation params
     for (XMFLOAT3& pos : positions)
     {
         pos.x = MathHelper::RandF(-250.0f, 250.0f);
@@ -1438,23 +1550,35 @@ void CreateRocks(ECS::EntityMgr& mgr, const BasicModel& model)
         pos.y = GetHeightOfGeneratedTerrainAtPoint(pos.x, pos.z);
     }
 
+    // apply the same rotation to each entt
+    for (XMVECTOR& quat : quats)       
+        quat = { 0,0,0,1 };
+
+    // apply the same scale to each entt
+    for (float& scale : uniformScales)    
+        scale = 1.0f;
+
     // generate names for entts
-    for (int i = 0; std::string & name : names)
-        name += std::to_string(enttsIDs[i++]);
+    for (int i = 0; std::string& name : names)
+        name = "rock_" + std::to_string(enttsIDs[i++]);
 
-    mgr.AddTransformComponent(enttsIDs, positions, quats, scales);
-    mgr.AddNameComponent(enttsIDs, names);
-    mgr.AddModelComponent(enttsIDs.data(), model.GetID(), numRocks);
+    // setup rendering params
+    ECS::RenderInitParams renderParams;
+    renderParams.shaderType = ECS::LIGHT_SHADER;
+    renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
-    mgr.AddRenderingComponent(enttsIDs);
-
-    // add bounding component to each subset of this entity
-    const size numEntts = numRocks;
+    // setup bounding params
     const size numSubsets = model.GetNumSubsets();
     const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
 
+
+    mgr.AddTransformComponent(ids, numEntts, positions, quats, uniformScales);
+    mgr.AddNameComponent(ids, names, numEntts);
+    mgr.AddModelComponent(ids, model.GetID(), numEntts);
+    mgr.AddRenderingComponent(ids, numEntts, renderParams);
+
     mgr.AddBoundingComponent(
-        enttsIDs.data(),
+        ids,
         numEntts,
         numSubsets,
         boundTypes.data(),
@@ -1467,21 +1591,29 @@ void CreatePillar(ECS::EntityMgr& mgr, const BasicModel& model)
 {
     const EntityID enttID = mgr.CreateEntity();
 
+    // setup transformation params
+    const XMVECTOR quat = { 0,0,0,1 };
+    const float uniformScale = 1.0f;
     XMFLOAT3 pos;
     pos.x = MathHelper::RandF(-250, 250);
     pos.z = MathHelper::RandF(-250, 250);
-    pos.y = GetHeightOfGeneratedTerrainAtPoint(pos.x, pos.z);
+    pos.y = GetHeightOfGeneratedTerrainAtPoint(pos.x, pos.z);  
+    
+    // setup rendering params
+    ECS::RenderInitParams renderParams;
+    renderParams.shaderType = ECS::LIGHT_SHADER;
+    renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+    // setup bounding params
+    const size numEntts = 1;
+    const size numSubsets = model.GetNumSubsets();
+    const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
+
 
     mgr.AddTransformComponent(enttID, pos, { 0,0,0,1 }, 1.0f);
     mgr.AddNameComponent(enttID, "pillar_" + std::to_string(enttID));
     mgr.AddModelComponent(enttID, model.GetID());
-
-    mgr.AddRenderingComponent(enttID);
-
-    // add bounding component to each subset of this entity
-    const size numEntts = 1;
-    const size numSubsets = model.GetNumSubsets();
-    const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
+    mgr.AddRenderingComponent(enttID, renderParams);
 
     mgr.AddBoundingComponent(
         &enttID,
@@ -1884,60 +2016,65 @@ bool InitializeGraphics::InitializeLightSources(
 
     using namespace DirectX;
 
-    const int numDirLights = 3;
-    const int numPointLights = 20;
-    const int numSpotLights = 2;
+    constexpr int numDirLights = 3;
+    constexpr int numPointLights = 20;
+    constexpr int numSpotLights = 2;
 
     // -----------------------------------------------------------------------------
     //                 DIRECTIONAL LIGHTS: SETUP AND CREATE
     // -----------------------------------------------------------------------------
 
-    if (numDirLights > 0)
+    if constexpr (numDirLights > 0)
     {
 
         ECS::DirLightsInitParams dirLightsParams;
+        dirLightsParams.data.resize(numDirLights);
 
-        dirLightsParams.ambients =
+        ECS::DirLight& dirLight0 = dirLightsParams.data[0];
+        ECS::DirLight& dirLight1 = dirLightsParams.data[1];
+        ECS::DirLight& dirLight2 = dirLightsParams.data[2];
+
+        // setup main directed light source
+        dirLight0.ambient   = { 0.6f, 0.6f, 0.6f, 1.0f };
+        dirLight0.diffuse   = { 0.8f, 0.8f, 0.8f, 1.0f };
+        dirLight0.specular  = { 0.3f, 0.3f, 0.3f, 1.0f };
+        dirLight0.direction = { 0.57735f, -0.9f, 0.57735f };
+
+        // setup 2nd directed light source
+        dirLight1.ambient   = { 0.0f, 0.0f, 0.0f, 1.0f };
+        dirLight1.diffuse   = { 0.2f, 0.2f, 0.2f, 1.0f };
+        dirLight1.specular  = { 0.25f, 0.25f, 0.25f, 1.0f };
+        dirLight1.direction = { -0.57735f, -0.57735f, 0.57735f };
+
+        // setup 3rd directed light source
+        dirLight2.ambient   = { 0.0f, 0.0f, 0.0f, 1.0f };
+        dirLight2.diffuse   = { 0.2f, 0.2f, 0.2f, 1.0f };
+        dirLight2.specular  = { 0.0f, 0.0f, 0.0f, 1.0f };
+        dirLight2.direction = { 0.0f, -0.707f, -0.707f };
+
+
+        // create directional light entities and add components to them
+        const ECS::cvector<EntityID> dirLightsIds = mgr.CreateEntities(numDirLights);
+        const EntityID* ids = dirLightsIds.data();
+
+        const std::string names[numDirLights] =
         {
-            {0.6f, 0.6f, 0.6f, 1.0f},
-            {0.0f, 0.0f, 0.0f, 1.0f},
-            {0.0f, 0.0f, 0.0f, 1.0f}
+            "dir_light_1",
+            "dir_light_2",
+            "dir_light_3"
         };
 
-        dirLightsParams.diffuses =
-        {
-            //{1.0f, 1.0f, 1.0f, 1.0f},
-            {0.8f, 0.8f, 0.8f, 1.0f},
-            {0.2f, 0.2f, 0.2f, 1.0f},
-            {0.2f, 0.2f, 0.2f, 1.0f}
-        };
+        mgr.AddLightComponent(ids, numDirLights, dirLightsParams);
+        mgr.AddNameComponent(ids, names, numDirLights);
 
-        dirLightsParams.speculars =
-        {
-            {0.3f, 0.3f, 0.3f, 1.0f},
-            {0.25f, 0.25f, 0.25f, 1.0f},
-            {0.0f, 0.0f, 0.0f, 1.0f}
-        };
-
-        dirLightsParams.directions =
-        {
-            {0.57735f, -0.9f, 0.57735f},
-            {-0.57735f, -0.57735f, 0.57735f},
-            {0.0f, -0.707f, -0.707f}
-        };
-
-        // create directional light entities and add a light component to them
-        std::vector<EntityID> dirLightsIds = mgr.CreateEntities(numDirLights);
-
-        mgr.AddLightComponent(dirLightsIds, dirLightsParams);
-        mgr.AddNameComponent(dirLightsIds, { "dir_light_1", "dir_light_2", "dir_light_3" });
-
-        // add transform component to each directed light because we may need to manipulate directed lights icons (in editor we can change icons positions in the scene) or manipulate light direction
-        for (index i = 0; i < std::ssize(dirLightsIds); ++i)
+     
+        // add transform component to each directed light because we may need to manipulate directed lights icons (in editor we can change icons positions in the scene or manipulate light direction using gizmo) 
+        for (index i = 0; i < (size)numDirLights; ++i)
         {
             const XMFLOAT3 pos = { 3, 3, (float)i };
-            const XMFLOAT3 dir = dirLightsParams.directions[i];
+            const XMFLOAT3 dir = dirLightsParams.data[i].direction;
             const XMVECTOR dirQuat = { dir.x, dir.y, dir.z };
+
             mgr.AddTransformComponent(dirLightsIds[i], pos, dirQuat, 1.0f);
         }
     }
@@ -1950,29 +2087,17 @@ bool InitializeGraphics::InitializeLightSources(
     if (numPointLights > 0)
     {
         ECS::PointLightsInitParams pointLightsParams;
+        pointLightsParams.data.resize(numPointLights);
 
-        // setup point light which is moving over the surface
-        pointLightsParams.ambients.resize(numPointLights, { 0.2f, 0.2f, 0.2f, 1.0f });
-        pointLightsParams.diffuses.resize(numPointLights, { 0.7f, 0.7f, 0.7f, 1.0f });
-        pointLightsParams.speculars.resize(numPointLights, { 0.7f, 0.7f, 0.7f, 1.0f });
-        pointLightsParams.attenuations.resize(numPointLights, { 0, 0.1f, 0 });
-        pointLightsParams.ranges.resize(numPointLights, 30);
-        pointLightsParams.positions.resize(numPointLights);
+        for (index i = 0; i < numPointLights; ++i)
+            pointLightsParams.data[i].ambient = { 0.2f, 0.2f, 0.2f, 1.0f };
 
-        // generate positions for the point light sources
-        for (XMFLOAT3& pos : pointLightsParams.positions)
-        {
-            pos.x = MathHelper::RandF(-100, 100);
-            pos.y = 4.0f;
-            pos.z = MathHelper::RandF(-100, 100);
-        }
-
-        // generate diffuse colors for point lights
+        // generate diffuse and specular color for each point light source
         for (int i = 1; i < numPointLights; ++i)
         {
             const XMFLOAT4 color = MathHelper::RandColorRGBA();
-            XMFLOAT4& diffColor = pointLightsParams.diffuses[i];
-            XMFLOAT4& specColor = pointLightsParams.speculars[i];
+            XMFLOAT4& diffColor = pointLightsParams.data[i].diffuse;
+            XMFLOAT4& specColor = pointLightsParams.data[i].specular;
 
             diffColor = color * 0.6f;
             diffColor.w = 1.0f;
@@ -1981,32 +2106,70 @@ bool InitializeGraphics::InitializeLightSources(
             specColor.w = 1.0f;
         }
 
-        std::vector<EntityID> pointLightsIds = mgr.CreateEntities(numPointLights);
-        std::vector<std::string> names(numPointLights, "point_light_");
+        // setup attenuation params
+        for (index i = 0; i < numPointLights; ++i)
+            pointLightsParams.data[i].att = { 0, 0.1f, 0 };
+
+        for (index i = 0; i < numPointLights; ++i)
+            pointLightsParams.data[i].range = 30;
+
+        // generate random position for each point light source
+        for (index i = 0; i < numPointLights; ++i)
+        {
+            XMFLOAT3 pos;
+            pos.x = MathHelper::RandF(-100, 100);
+            pos.y = 4.0f;
+            pos.z = MathHelper::RandF(-100, 100);
+
+            pointLightsParams.data[i].position = pos;
+        }
+
+        // ------------------------------------------------
+ 
+        // setup transformation params because we may need to manipulate point lights icons (in editor we can change icons positions in the scene or manipulate light position using gizmo) 
+        XMFLOAT3 positions[numPointLights];
+        XMVECTOR dirQuats[numPointLights];
+        float uniformScales[numPointLights];
+
+        for (index i = 0; i < numPointLights; ++i)
+            positions[i] = pointLightsParams.data[i].position;
+
+        for (index i = 0; i < numPointLights; ++i)
+            dirQuats[i] = { 0,0,0,1 };
+
+        for (index i = 0; i < numPointLights; ++i)
+            uniformScales[i] = pointLightsParams.data[i].range;
+
 
         // generate name for each point light src
-        for (int i = 0; const EntityID id : pointLightsIds)
-            names[i++] += std::to_string(i);
+        std::string names[numPointLights];
 
-        // add bounding component to each point light entity so we will be able to cull invisible sources and not compute them
+        for (int i = 0; std::string& name : names)
+            name = "point_light_" + std::to_string(i);
+
+        // setup bounding params
         const size numSubsets = 1;
         const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::SPHERE);
-        std::vector<DirectX::BoundingSphere> boundSpheres(numPointLights);
+        DirectX::BoundingSphere boundSpheres[numPointLights];
 
         // setup bounding sphere for each point light src
         for (int i = 0; i < numPointLights; ++i)
-            boundSpheres[i].Center = pointLightsParams.positions[i];
+            boundSpheres[i].Center = pointLightsParams.data[i].position;
 
         for (int i = 0; i < numPointLights; ++i)
-            boundSpheres[i].Radius = pointLightsParams.ranges[i];
+            boundSpheres[i].Radius = pointLightsParams.data[i].range;
 
-        const std::vector<XMVECTOR> dirQuats(numPointLights, { 0,0,0,1 }); // no rotation
 
-        // add components to each point light src
-        mgr.AddTransformComponent(pointLightsIds, pointLightsParams.positions, dirQuats, pointLightsParams.ranges);
-        mgr.AddLightComponent(pointLightsIds, pointLightsParams);
-        mgr.AddNameComponent(pointLightsIds, names);
-        mgr.AddBoundingComponent(pointLightsIds.data(),	boundSpheres.data(), numPointLights);   
+        // ------------------------------------------------
+        // create and setup point light entities
+
+        const ECS::cvector<EntityID> pointLightsIds = mgr.CreateEntities(numPointLights);
+        const EntityID* ids = pointLightsIds.data();
+
+        mgr.AddTransformComponent(ids, numPointLights, positions, dirQuats, uniformScales);
+        mgr.AddLightComponent(ids, numPointLights, pointLightsParams);
+        mgr.AddNameComponent(ids, names, numPointLights);
+        //mgr.AddBoundingComponent(ids, boundSpheres, numPointLights);
     }
     
 
@@ -2014,6 +2177,7 @@ bool InitializeGraphics::InitializeLightSources(
     //                   SPOT LIGHTS: SETUP AND CREATE
     // -----------------------------------------------------------------------------
 
+#if 0
     if (numSpotLights > 0)
     {
         ECS::SpotLightsInitParams spotLightsParams;
@@ -2077,6 +2241,7 @@ bool InitializeGraphics::InitializeLightSources(
         // main flashlight is inactive by default
         mgr.lightSystem_.SetLightIsActive(flashLightID, false);
     }
+#endif
 
     return true;
 }

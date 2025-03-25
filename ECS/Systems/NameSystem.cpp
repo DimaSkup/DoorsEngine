@@ -1,11 +1,9 @@
 #include "NameSystem.h"
 
 #include "../Common/Assert.h"
-#include "../Common/Utils.h"
 #include "../Common/log.h"
 
 #include "SaveLoad/NameSysSerDeser.h"
-#include <format>
 
 
 namespace ECS
@@ -14,141 +12,74 @@ namespace ECS
 
 NameSystem::NameSystem(Name* pNameComponent)
 {
-	Assert::NotNullptr(pNameComponent, "ptr to the Name component == nullptr");
-	pNameComponent_ = pNameComponent;
+    Assert::NotNullptr(pNameComponent, "ptr to the Name component == nullptr");
+    pNameComponent_ = pNameComponent;
 
-	// add invalid data; this data is returned when we ask for wrong entity
-	pNameComponent_->ids_.push_back(INVALID_ENTITY_ID);
-	pNameComponent_->names_.push_back(INVALID_ENTITY_NAME);
+    // add invalid data; this data is returned when we ask for wrong entity
+    pNameComponent_->ids_.push_back(INVALID_ENTITY_ID);
+    pNameComponent_->names_.push_back(INVALID_ENTITY_NAME);
 }
 
 ///////////////////////////////////////////////////////////
 
 void NameSystem::Serialize(std::ofstream& fout, u32& offset)
 {
-	const Name& component = *pNameComponent_;
-
-	NameSysSerDeser::Serialize(
-		fout, 
-		offset,
-		static_cast<u32>(component.type_),
-		component.ids_,
-		component.names_);
 }
 
 ///////////////////////////////////////////////////////////
 
 void NameSystem::Deserialize(std::ifstream& fin, const u32 offset)
 {
-	Name& component = *pNameComponent_;
-
-	NameSysSerDeser::Deserialize(
-		fin,
-		offset,
-		component.ids_,
-		component.names_);
 }
 
 ///////////////////////////////////////////////////////////
 
 void NameSystem::AddRecords(
-	const std::vector<EntityID>& ids,
-	const std::vector<EntityName>& names)
+    const EntityID* ids,
+    const EntityName* names,
+    const size numEntts)
 {
-	// add name for each entity from the input arr
+    // add name for each entity from the input arr (for instance: ids[2] => names[2])
 
-	Name& component = *pNameComponent_;
-	CheckInputData(ids, names);
+    Name& comp = *pNameComponent_;
 
-	for (index idx = 0; idx < std::ssize(ids); ++idx)
-	{
-		const index insertAt = Utils::GetPosForID(component.ids_, ids[idx]);
-		Utils::InsertAtPos(component.ids_, insertAt, ids[idx]);
-		Utils::InsertAtPos(component.names_, insertAt, names[idx]);
-	}
-}
+    cvector<index> idxs;
+    comp.ids_.get_insert_idxs(ids, numEntts, idxs);
 
-///////////////////////////////////////////////////////////
+    // allocate additional memory ahead if we need
+    const size newCapacity = comp.ids_.size() + numEntts;
+    comp.ids_.reserve(newCapacity);
+    comp.names_.reserve(newCapacity);
 
-void NameSystem::PrintAllNames()
-{
-	// print out all the names into the console
-	const std::vector<EntityID>& ids     = pNameComponent_->ids_;
-	const std::vector<EntityName>& names = pNameComponent_->names_;
+    // execute sorted insertion of IDs
+    for (index i = 0; i < numEntts; ++i)
+        comp.ids_.insert_before(idxs[i] + i, ids[i]);
 
-	for (index idx = 0; idx < std::ssize(ids); ++idx)
-		ECS::Log::Print(std::format("id:name = {} : {}", ids[idx], names[idx]));
+    for (index i = 0; i < numEntts; ++i)
+        comp.names_.insert_before(idxs[i] + i, names[i]);
 }
 
 ///////////////////////////////////////////////////////////
 
 EntityID NameSystem::GetIdByName(const EntityName& name)
 {
-	const Name& comp = *pNameComponent_;
+    // if there is such a name in the arr we return a responsible entity ID;
+    const Name& comp = *pNameComponent_;
+    const index idx  = comp.names_.find(name);
 
-	// check if such name exists
-	if (!Utils::ArrHasVal(comp.names_, name))
-		return INVALID_ENTITY_ID;
-	
-	// if there is such a name in the arr we return a responsible entity ID;
-	return comp.ids_[Utils::FindIdxOfVal(comp.names_, name)];
+    return (idx != -1) ? comp.ids_[idx] : INVALID_ENTITY_ID;
 }
 
 ///////////////////////////////////////////////////////////
 
 const EntityName& NameSystem::GetNameById(const EntityID& id) const
 {
-	// if there is such an ID in the arr we return a responsible entity name;
-	// or in another case we return invalid value
-	return pNameComponent_->names_[GetIdxByID(id)];
-}
+    // if there is such an ID in the arr we return a responsible entity name;
+    const Name& comp = *pNameComponent_;
+    const bool exist = comp.ids_.binary_search(id);
+    const index idx  = comp.ids_.get_idx(id);
 
-///////////////////////////////////////////////////////////
-
-void NameSystem::CheckInputData(
-	const std::vector<EntityID>& ids,
-	const std::vector<EntityName>& names)
-{
-	// here we check if input data is correct to store it into the Name component
-
-	const Name& component = *pNameComponent_;
-	bool idsValid = true;
-	bool namesValid = true;
-	bool namesUnique = true;
-
-	// check ids are valid (entts doesn't have the Name component yet)
-	idsValid = !Utils::CheckValuesExistInSortedArr(component.ids_, ids);
-
-	// check names are valid
-	for (const EntityName& name : names)
-		namesValid &= (!name.empty());
-
-	// check names are unique
-	namesUnique = !Utils::CheckValuesExistInArr(component.names_, names);
-
-	Assert::True(idsValid, "there is already an entt with the Name component");
-	Assert::True(namesValid, "some input name is empty");
-	Assert::True(namesUnique, "some input name isn't unique");
-}
-
-///////////////////////////////////////////////////////////
-
-index NameSystem::GetIdxByID(const EntityID id) const
-{
-	// return valid idx if there is an entity by such ID;
-	// or return 0 if there is no such entity;
-	const std::vector<EntityID>& ids = pNameComponent_->ids_;
-	//return (Utils::BinarySearch(ids, id)) ? Utils::GetIdxInSortedArr(ids, id) : 0;
-
-	const index idx = Utils::GetIdxInSortedArr(ids, id);
-
-	if (ids[idx] != id)
-	{
-		Log::Error("there is no name for entity by ID: " + std::to_string(id));
-		return 0;
-	}
-
-	return idx;
+    return (exist) ? comp.names_[idx] : INVALID_ENTITY_NAME;
 }
 
 

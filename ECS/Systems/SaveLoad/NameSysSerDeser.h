@@ -8,8 +8,8 @@
 #pragma once
 
 #include "../../Common/Types.h"
+#include "../../Common/cvector.h"
 #include <fstream>
-#include <vector>
 
 
 namespace ECS
@@ -21,7 +21,7 @@ class NameSysSerDeser
 public:
 
 #if 0
-	// FOR FUTURE: to make serialization/deserialization without using of std::vector
+	// FOR FUTURE: to make serialization/deserialization without using of cvector
 	struct DataToSerialize
 	{
 		u32 dataBlockMarker = 0;
@@ -38,14 +38,14 @@ public:
 		std::ofstream& fout,
 		u32& offset,
 		const u32 dataBlockMarker,
-		const std::vector<EntityID>& ids,
-		const std::vector<EntityName>& names);
+		const cvector<EntityID>& ids,
+		const cvector<EntityName>& names);
 
 	static void Deserialize(
 		std::ifstream& fin,
 		const u32 offset,
-		std::vector<EntityID>& outIds,
-		std::vector<EntityName>& outNames);
+		cvector<EntityID>& outIds,
+		cvector<EntityName>& outNames);
 };
 
 

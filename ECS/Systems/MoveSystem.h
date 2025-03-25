@@ -30,15 +30,16 @@ public:
 
 	void UpdateAllMoves(const float deltaTime, TransformSystem& transformSys);
 
-	void AddRecords(
-		const std::vector<EntityID>& enttsIDs,
-		const std::vector<XMFLOAT3>& translations,
-		const std::vector<XMVECTOR>& rotationQuats,
-		const std::vector<float>& uniformScaleChanges);
+    void AddRecords(
+        const EntityID* ids,
+        const XMFLOAT3* translations,
+        const XMVECTOR* rotationQuats,
+        const float* uniformScaleFactors,
+        const size numEntts);
 
-	void RemoveRecords(const std::vector<EntityID>& enttsIDs);
+	void RemoveRecords(const cvector<EntityID>& enttsIDs);
 
-	inline void GetEnttsIDsFromMoveComponent(std::vector<EntityID>& outEnttsIDs) { outEnttsIDs = pMoveComponent_->ids_; }
+	inline void GetEnttsIDsFromMoveComponent(cvector<EntityID>& outEnttsIDs) { outEnttsIDs = pMoveComponent_->ids_; }
 
 private:
 	Transform*   pTransformComponent_ = nullptr;

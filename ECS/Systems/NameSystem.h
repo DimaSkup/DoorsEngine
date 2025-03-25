@@ -21,17 +21,18 @@ public:
 	void Serialize(std::ofstream& fout, u32& offset);
 	void Deserialize(std::ifstream& fin, const u32 offset);
 
-	void AddRecords(
-		const std::vector<EntityID>& enttsIDs,
-		const std::vector<EntityName>& enttsNames);
+    void AddRecords(
+        const EntityID* ids,
+        const EntityName* names,
+        const size numEntts);
 	
 #if 0
 	// TODO
 	void RenameRecords(
-		const std::vector<EntityID>& enttsIDs,
-		const std::vector<EntityName>& newEnttsNames);
+		const cvector<EntityID>& enttsIDs,
+		const cvector<EntityName>& newEnttsNames);
 
-	void RemoveRecords(const std::vector<EntityID>& enttsIDs);
+	void RemoveRecords(const cvector<EntityID>& enttsIDs);
 #endif
 
 	//
@@ -40,13 +41,11 @@ public:
 	EntityID GetIdByName(const EntityName& name);
 	const EntityName& GetNameById(const EntityID& id) const;
 
-	// for different debug purposes
-	void PrintAllNames();
 	
 private:
 	void CheckInputData(
-		const std::vector<EntityID>& ids,
-		const std::vector<EntityName>& names);
+		const cvector<EntityID>& ids,
+		const cvector<EntityName>& names);
 
 	index GetIdxByID(const EntityID id) const;
 

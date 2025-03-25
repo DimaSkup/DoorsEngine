@@ -8,7 +8,8 @@
 #pragma once
 
 #include "../Components/RenderStates.h"
-#include <set>
+#include "../Common/cvector.h"
+
 #include <map>
 
 namespace ECS
@@ -18,8 +19,6 @@ namespace ECS
 
 class RenderStatesSystem final
 {
-	using RenderStatesTypesSet = std::set<RSTypes>;
-
 public:
 
 	struct EnttsRenderStatesData
@@ -30,7 +29,7 @@ public:
 		EnttsAlphaClipping enttsAlphaClipping_;
 		EnttsBlended       enttsBlended_;
 		EnttsReflection    enttsReflection_;
-		EnttsFarThanFog    enttsFarThanFog_;
+		EnttsFarThanFog    enttsFogged_;
 		
 		void Clear()
 		{
@@ -38,7 +37,7 @@ public:
 			enttsAlphaClipping_.Clear();
 			enttsBlended_.Clear();
 			enttsReflection_.Clear();
-			enttsFarThanFog_.Clear();
+            enttsFogged_.Clear();
 		}
 	};
 
@@ -52,18 +51,18 @@ public:
 
 	// ---------------------------------------------
 
-	void AddWithDefaultStates(const std::vector<EntityID>& ids);
+    void AddWithDefaultStates(const EntityID* ids, const size numEntts);
 
 	// update:
 	// 1. one state of single entt
 	// 2. multiple states of single entt
 	// 3. multiple states of multiple entts
 	void UpdateStates(const EntityID id, const RSTypes state);
-	void UpdateStates(const EntityID id, const std::vector<RSTypes>& states);
-	void UpdateStates(const std::vector<EntityID>& ids,	const std::vector<RSTypes>& states);
+	void UpdateStates(const EntityID id, const cvector<RSTypes>& states);
+	void UpdateStates(const cvector<EntityID>& ids,	const cvector<RSTypes>& states);
 
 	void SeparateEnttsByRenderStates(
-		const std::vector<EntityID>& ids,
+		const cvector<EntityID>& ids,
 		EnttsRenderStatesData& outData);
 
 	inline void ChangeRenderStateForHash(u32& hash, const RSTypes newState, const u32 disablingMask)
@@ -73,69 +72,55 @@ public:
 	}
 
 private:
+    void GetNewEntts(
+        const EntityID* ids,
+        const size numEntts,
+        cvector<EntityID>& newIds);
 
-	void GetNewEntts(const std::vector<EntityID>& ids, std::vector<EntityID>& newIds);
-
-	void GetStatesByHash(const u32 hash, std::vector<RSTypes>& outStates);
-	void GetHashByStates(const std::vector<RSTypes>& states, u32& outHash);
+	void GetStatesByHash(const u32 hash, cvector<RSTypes>& outStates);
+	void GetHashByStates(const cvector<RSTypes>& states, u32& outHash);
 
 	void MakeDisablingMasks();
 
 	void GetIdsByIdxs(
-		const std::vector<ptrdiff_t>& idxs,
-		std::vector<EntityID>& outIds);
+		const cvector<ptrdiff_t>& idxs,
+		cvector<EntityID>& outIds);
 
 	void GetEnttsWithDefaultRS(
-		const std::vector<EntityID>& ids,
-		const std::vector<u32>& hashes,
+		const cvector<EntityID>& ids,
+		const cvector<u32>& hashes,
 		EnttsDefaultState& outData);
 
 	void GetEnttsWithAlphaClipCullNone(
-		const std::vector<EntityID>& ids,
-		const std::vector<u32>& hashes,
+		const cvector<EntityID>& ids,
+		const cvector<u32>& hashes,
 		EnttsAlphaClipping& outData);
 
 	void FilterEnttsOnlyBlending(
-		const std::vector<EntityID>& ids,
-		const std::vector<u32>& hashes,
-		std::vector<EntityID>& enttWithBS,
-		std::vector<u32>& hashesWithBS);
+		const cvector<EntityID>& ids,
+		const cvector<u32>& hashes,
+		cvector<EntityID>& enttWithBS,
+		cvector<u32>& hashesWithBS);
 
 	void GetBlendingStatesByHashes(
-		const std::vector<u32>& hashes,
-		std::vector<RSTypes>& blendStates);
+		const cvector<u32>& hashes,
+		cvector<RSTypes>& blendStates);
 
 	void GetEnttsBlended(
-		const std::vector<EntityID>& ids,
-		const std::vector<u32>& hashes,
+		const cvector<EntityID>& ids,
+		const cvector<u32>& hashes,
 		EnttsBlended& outData);
 
 	void UpdateRecords(
-		const std::vector<EntityID>& ids,
-		const std::vector<RSTypes>& states);
+		const cvector<EntityID>& ids,
+		const cvector<RSTypes>& states);
 
 	void UpdateRenderStatesForHashes(
-		const std::vector<RSTypes>& states,
-		std::vector<u32>& hashes);
-
-#if 0
-
-	void GetEnttsByStates(
-		const std::vector<ptrdiff_t>& idxsToEntts,
-		const std::vector<RSTypes>& states,
-		std::vector<EntityID>& outEnttsWithStates,
-		std::vector<ptrdiff_t>& outIdxsToEnttsWithoutInputStates);
-
-	void GetRenderStatesTypesByDataIdxs(
-		const std::vector<ptrdiff_t>& idxsToEnttsWithSpecificRS,
-		EnttsRenderStatesData& outData);
-#endif
-	
+		const cvector<RSTypes>& states,
+		cvector<u32>& hashes);
 
 
 private:
-
-
 	RenderStates* pRSComponent_ = nullptr;
 
 	// all possible fill/cull/alpha clipping states

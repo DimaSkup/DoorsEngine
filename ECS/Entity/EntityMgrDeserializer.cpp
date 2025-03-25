@@ -37,7 +37,7 @@ void EntityMgrDeserializer::ReadDataHeader(
 void EntityMgrDeserializer::DeserializeEnttMgrData(
 	std::ifstream& fin,
 	EntityID** ids,
-	ComponentsHash** hashes,
+	ComponentHash** hashes,
 	u32& count,
 	const u32 enttMgrDataBlockMarker)
 {
@@ -65,7 +65,7 @@ void EntityMgrDeserializer::DeserializeEnttMgrData(
 
 	// prepare enough amount of memory for data
 	*ids = new EntityID[count]{ 0 };
-	*hashes = new ComponentsHash[count]{ 0 };
+	*hashes = new ComponentHash[count]{ 0 };
 
 	FileUtils::FileRead(fin, ids, count);
 	FileUtils::FileRead(fin, hashes, count);

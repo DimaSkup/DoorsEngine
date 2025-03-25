@@ -1,13 +1,13 @@
-// *********************************************************************************
+// =================================================================================
 // Filename:     Bounding.h
 // Description:  an ECS component stores Bounding data for entities
 // 
 // Created:      26.09.24
-// *********************************************************************************
+// =================================================================================
 #pragma once
 
 #include "../Common/Types.h"
-#include <vector>
+#include "../Common/cvector.h"
 #include <DirectXCollision.h>
 
 namespace ECS
@@ -22,6 +22,8 @@ enum BoundingType
 	BOUND_BOX,
 };
 
+// ----------------------------------------------
+
 struct BoundingData
 {
 	// contains bounding data for each subset (mesh / submesh) of the entity
@@ -29,39 +31,41 @@ struct BoundingData
 	//       idx == 1 means subset_1
 	//       etc.
 
+    BoundingData() {};
+
 	BoundingData(
 		const size numData,
 		const BoundingType* types,             // AABB type per mesh
 		const DirectX::BoundingBox* AABBs) :
-		numData_(numData),
-		types_(types, types + numData)
+		numData(numData),
+		types(types, types + numData)
 	{
-		obbs_.resize(numData);
+		obbs.resize(numData);
 
 		// convert each input AABB into OBB
 		for (index i = 0; i < numData; ++i)
-			DirectX::BoundingOrientedBox::CreateFromBoundingBox(obbs_[i], AABBs[i]);
+			DirectX::BoundingOrientedBox::CreateFromBoundingBox(obbs[i], AABBs[i]);
 	}
 
-	size numData_ = 0;
-	std::vector<BoundingType> types_;                   // types: AABB/sphere
-	std::vector<DirectX::BoundingOrientedBox> obbs_;    // center, extents, rotation
+	size numData = 0;
+    cvector<BoundingType> types;                   // types: AABB/sphere
+	cvector<DirectX::BoundingOrientedBox> obbs;    // center, extents, rotation
 }; 
 
 
-//
+// =================================================================================
 // COMPONENT
-//
+// =================================================================================
 struct Bounding
 {
 	// Bounding Box:
 	// center  - center of the box / sphere; 
 	// extents - Distance from the center to each side OR radius of the sphere
 
-	ComponentType componentType_ = ComponentType::BoundingComponent;
+	cvector<EntityID>     ids;
+	cvector<BoundingData> data;
 
-	std::vector<EntityID>     ids_;
-	std::vector<BoundingData> data_;
+    ComponentType componentType_ = ComponentType::BoundingComponent;
 };
 
 
