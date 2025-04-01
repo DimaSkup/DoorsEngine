@@ -13,7 +13,7 @@
 #include "../Components/Model.h"
 #include "../Components/Rendered.h"
 #include "../Components/Name.h"
-#include "../Components/Textured.h"          // if entity has the Textured component it means that this entt has own textures set which is different from the meshes textures
+#include "../Components/Material.h"   
 #include "../Components/TextureTransform.h"
 #include "../Components/Light.h"
 #include "../Components/RenderStates.h"
@@ -26,7 +26,7 @@
 #include "../Systems/ModelSystem.h"
 #include "../Systems/RenderSystem.h"
 #include "../Systems/NameSystem.h"
-#include "../Systems/TexturesSystem.h"
+#include "../Systems/MaterialSystem.h"
 #include "../Systems/TextureTransformSystem.h"
 #include "../Systems/LightSystem.h"
 #include "../Systems/RenderStatesSystem.h"
@@ -38,7 +38,7 @@
 namespace ECS
 {
 
-class EntityMgr final
+class EntityMgr
 {
 public:
     EntityMgr();
@@ -70,7 +70,7 @@ public:
     // PUBLIC METHODS: ADD COMPONENTS 
     // =============================================================================
 
-    // add TRANSFORM component API
+    // add TRANSFORM component
     void AddTransformComponent(
         const EntityID& enttID,
         const XMFLOAT3& position = { 0,0,0 },
@@ -85,7 +85,7 @@ public:
         const float* uniformScales);
 
 
-    // add RENDERED component API
+    // add RENDERED component
     void AddMoveComponent(
         const EntityID& enttID,
         const XMFLOAT3& translation,
@@ -100,7 +100,7 @@ public:
         const size numEntts);
 
   
-    // add NAME component API
+    // add NAME component
     void AddNameComponent(
         const EntityID& id,
         const EntityName& name);
@@ -111,7 +111,7 @@ public:
         const size numEntts);
 
     
-    // add MODEL component API
+    // add MODEL component
     void AddModelComponent(
         const EntityID enttID,
         const ModelID modelID);
@@ -127,7 +127,7 @@ public:
         const size numEntts);
 
 
-    // add RENDERED component API
+    // add RENDERED component
     void AddRenderingComponent(const EntityID id, const RenderInitParams& params);
 
     void AddRenderingComponent(
@@ -141,15 +141,15 @@ public:
         const RenderInitParams* params);
 
   
-    // add TEXTURED component API
-    void AddTexturedComponent(
+    // add MATERIAL component
+    void AddMaterialComponent(
         const EntityID enttID,
-        const TexID* texIDs,
-        const size numTextures,
-        const int submeshID);
+        const MaterialID* materialsIDs,
+        const size numSubmeshes,
+        const bool areMaterialsMeshBased);
 
 
-    // add TEXTURE TRANSFORM component API
+    // add TEXTURE TRANSFORM component
     void AddTextureTransformComponent(
         const EntityID enttID,
         const TexTransformType type,
@@ -162,18 +162,18 @@ public:
         const TexTransformInitParams& params);
 
 
-    // add LIGHT component API
+    // add LIGHT component
     void AddLightComponent(const EntityID* ids, const size numEntts, DirLightsInitParams& params);
     void AddLightComponent(const EntityID* ids, const size numEntts, PointLightsInitParams& params);
     void AddLightComponent(const EntityID* ids, const size numEntts, SpotLightsInitParams& params);
 
 
-    // add RENDER STATES component API
+    // add RENDER STATES component
     void AddRenderStatesComponent(const EntityID id);
     void AddRenderStatesComponent(const EntityID* ids, const size numEntts);
 
 
-    // add BOUNDING component API
+    // add BOUNDING component
     void AddBoundingComponent(               // takes only one entt with only one subset (mesh)
         const EntityID id,
         const BoundingType type,
@@ -219,13 +219,15 @@ public:
     inline const Model&             GetComponentModel()         const { return modelComponent_; }
     inline const Name&              GetComponentName()          const { return names_; }
     inline const Rendered&          GetComponentRendered()      const { return renderComponent_; }
-    inline const Textured&          GetComponentTextured()      const { return textureComponent_; }
+    inline const Material&          GetComponentMaterial()      const { return materialComponent_;; }
     inline const TextureTransform&  GetComponentTexTransform()  const { return texTransform_; }
     inline const Light&             GetComponentLight()         const { return light_; }
     inline const Bounding&          GetComponentBounding()      const { return bounding_; }
 
-    inline const std::map<ComponentType, ComponentName>& GetMapCompTypeToName() {	return componentTypeToName_; }
-    inline const cvector<EntityID>& GetAllEnttsIDs() const { return ids_; }
+    inline const std::map<eComponentType, ComponentName>& GetMapCompTypeToName() {	return componentTypeToName_; }
+
+    inline const size      GetNumAllEntts() const { return ids_.size(); }
+    inline const EntityID* GetAllEnttsIDs() const { return ids_.data(); }
 
     void GetComponentNamesByEntity(const EntityID id, cvector<std::string>& names);
 
@@ -234,21 +236,21 @@ public:
 
 
 private:
-    ComponentHash GetHashByComponent(const ComponentType component);
+    ComponentHash GetHashByComponent(const eComponentType component);
  
     // common setters: components
     void SetEnttHasComponent(
         const EntityID id,
-        const ComponentType compType);
+        const eComponentType compType);
 
     void SetEnttsHaveComponent(
         const EntityID* ids,
         const size numEntts,
-        const ComponentType compType);
+        const eComponentType compType);
 
     void SetEnttsHaveComponents(
         const EntityID* ids,
-        const cvector<ComponentType>& compTypes,
+        const cvector<eComponentType>& compTypes,
         const size numEntts);
 
 public:
@@ -261,7 +263,7 @@ public:
     MoveSystem             moveSystem_;
     ModelSystem            modelSystem_;
     RenderSystem           renderSystem_;
-    TexturesSystem         texturesSystem_;
+    MaterialSystem         materialSystem_;
     TextureTransformSystem texTransformSystem_;
     RenderStatesSystem     renderStatesSystem_;
     BoundingSystem         boundingSystem_;
@@ -274,7 +276,7 @@ public:
     // bit flags for every component, indicating whether this object "has it"
     cvector<ComponentHash> componentHashes_;
 
-    std::map<ComponentType, ComponentName> componentTypeToName_;  
+    std::map<eComponentType, ComponentName> componentTypeToName_;  
 
 
 private:
@@ -286,7 +288,7 @@ private:
     Movement         movement_;
     Model            modelComponent_;
     Rendered         renderComponent_;
-    Textured         textureComponent_;
+    Material         materialComponent_;
     Name             names_;
     TextureTransform texTransform_;
     Light            light_;

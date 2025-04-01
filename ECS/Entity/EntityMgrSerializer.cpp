@@ -34,8 +34,8 @@ void EntityMgrSerializer::WriteDataHeader(
 		header.records_[idx].dataBlockMarker = idx;
 
 	// write the header into the file
-	FileUtils::FileWrite(fout, header.recordsCount_);
-	FileUtils::FileWrite(fout, header.records_, header.recordsCount_);
+	FileWrite(fout, header.recordsCount_);
+	FileWrite(fout, header.records_, header.recordsCount_);
 }
 
 ///////////////////////////////////////////////////////////
@@ -55,11 +55,11 @@ void EntityMgrSerializer::SerializeEnttMgrData(
 	Assert::NotZero(count, "wrong count value");
 
 	// write data into the data file
-	FileUtils::FileWrite(fout, enttMgrDataBlockMarker);
-	FileUtils::FileWrite(fout, count);
+	FileWrite(fout, enttMgrDataBlockMarker);
+	FileWrite(fout, count);
 
-	FileUtils::FileWrite(fout, ids, count);
-	FileUtils::FileWrite(fout, hashes, count);
+	FileWrite(fout, ids, count);
+	FileWrite(fout, hashes, count);
 }
 
 }

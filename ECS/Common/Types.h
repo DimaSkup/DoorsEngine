@@ -10,6 +10,11 @@
 #include <string>
 #include <DirectXMath.h>
 
+
+
+namespace ECS
+{
+
 // Common typedefs
 using UINT = unsigned int;
 using XMFLOAT2 = DirectX::XMFLOAT2;
@@ -25,25 +30,30 @@ using index          = ptrdiff_t;
 using ComponentHash  = uint32_t;
 using ModelID        = uint32_t;
 
-// textures related typedefs
+// textures/materials related typedefs
 using TexID          = uint32_t;
 using TexPath        = std::string;
+using MaterialID     = uint32_t;
+using SubmeshID      = uint16_t;
 
 using EntityID       = uint32_t;
 using EntityName     = std::string;
 using ComponentName  = std::string;
 using SystemID       = std::string;
 
-constexpr EntityID   INVALID_ENTITY_ID{ 0 };
-const EntityName     INVALID_ENTITY_NAME{ "invalid" };
 
-constexpr TexID      INVALID_TEXTURE_ID{ 0 };
+// common constants
+constexpr EntityID   INVALID_ENTITY_ID   = 0;
+constexpr MaterialID INVALID_MATERIAL_ID = 0;
+constexpr TexID      INVALID_TEXTURE_ID  = 0;
+constexpr size       NUM_TEXTURE_TYPES   = 21;
+
+const EntityName     INVALID_ENTITY_NAME{ "invalid" };
 const TexPath        INVALID_TEXTURE_PATH{ "invalid" };
 
-namespace ECS
-{
 
-enum ComponentType
+// for detailed description of each component you need to look for responsible component header file
+enum eComponentType
 {
     NameComponent,                 // REQUIRED: attach some name for the entity
     TransformComponent,            // REQUIRED: set that entity has properties: position (x,y,z), direction (quaternion), and scale (uniform)
@@ -52,7 +62,7 @@ enum ComponentType
     ModelComponent,                // attach to entity a 2D/3D model by ID
 
     CameraComponent,               // attach to entity a camera
-    TexturedComponent,             // entity has its own set of textures for its particular mesh (if it is a complex model) so we don't use textures by default (which goes together with mesh) but use own textures (for instance: default cube has some wood texture but we use different other)
+    MaterialComponent,             
     TextureTransformComponent,     // set that texture has some kind of transformation (maybe it is a translation over some atlas texture so we create an animation, or rotation around texture center -- creates a rotating fireball)
     LightComponent,                // attach to entity some type of light source (directed, point, spotlight, etc.)
     RenderStatesComponent,         // for using different render states: blending, alpha clipping, fill mode, cull mode, etc.

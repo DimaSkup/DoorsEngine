@@ -11,7 +11,7 @@
 #include <CoreCommon/log.h>
 #include <CoreCommon/Assert.h>
 #include <CoreCommon/MemHelpers.h>
-#include "Vertex.h"
+//#include "Vertex.h"
 
 #include <d3d11.h>
 

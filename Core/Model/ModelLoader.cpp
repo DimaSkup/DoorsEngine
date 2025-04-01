@@ -45,7 +45,7 @@ void ModelLoader::Load(
 
 		matParams = new M3dMaterial[model.numSubsets_];
 
-		ReadMaterials(fin, model.numSubsets_, model.materials_, matParams);
+		//ReadMaterials(fin, model.numSubsets_, model.materials_, matParams);
 		ReadSubsetTable(fin, model.numSubsets_, model.GetSubsets());
 		ReadModelSubsetsAABB(fin, model.numSubsets_, model.modelAABB_, model.subsetsAABB_);
 
@@ -87,7 +87,7 @@ void ModelLoader::ReadHeader(std::ifstream& fin, BasicModel& model)
 	fin >> ignore >> model.numBones_;
 	fin >> ignore >> model.numAnimClips_;
 
-	model.type_ = ModelType(modelType);
+	model.type_ = eModelType(modelType);
 }
 
 ///////////////////////////////////////////////////////////
@@ -95,7 +95,7 @@ void ModelLoader::ReadHeader(std::ifstream& fin, BasicModel& model)
 void ModelLoader::ReadMaterials(
 	std::ifstream& fin,
 	int numMaterials,
-	MeshMaterial* materials,
+	Material* materials,
 	M3dMaterial* materialsParams)
 {
 	std::string ignore;
@@ -107,30 +107,30 @@ void ModelLoader::ReadMaterials(
 	for (int i = 0; i < numMaterials; ++i)
 	{
 		M3dMaterial& matParams = materialsParams[i];
-		MeshMaterial& meshMat = materials[i];
+		Material& meshMat = materials[i];
 
 		fin >> ignore
-			>> meshMat.ambient_.x
-			>> meshMat.ambient_.y
-			>> meshMat.ambient_.z;
+			>> meshMat.ambient.x
+			>> meshMat.ambient.y
+			>> meshMat.ambient.z;
 
 		fin >> ignore
-			>> meshMat.diffuse_.x
-			>> meshMat.diffuse_.y
-			>> meshMat.diffuse_.z;
+			>> meshMat.diffuse.x
+			>> meshMat.diffuse.y
+			>> meshMat.diffuse.z;
 
 		fin >> ignore
-			>> meshMat.specular_.x
-			>> meshMat.specular_.y
-			>> meshMat.specular_.z;
+			>> meshMat.specular.x
+			>> meshMat.specular.y
+			>> meshMat.specular.z;
 
 		// read in a specular power
-		fin >> ignore >> meshMat.specular_.w;
+		fin >> ignore >> meshMat.specular.w;
 
 		fin >> ignore
-			>> meshMat.reflect_.x
-			>> meshMat.reflect_.y
-			>> meshMat.reflect_.z;
+			>> meshMat.reflect.x
+			>> meshMat.reflect.y
+			>> meshMat.reflect.z;
 
 		fin >> ignore >> matParams.alphaClip_;
 		fin >> ignore >> matParams.effectTypeName_;
@@ -162,8 +162,8 @@ void ModelLoader::SetupSubsets(
 
 
 	// setup alpha clipping for each subset
-	for (int i = 0; i < model.numSubsets_; ++i)
-		subsets[i].alphaClip_ = matParams[i].alphaClip_;
+	//for (int i = 0; i < model.numSubsets_; ++i)
+	//	subsets[i].alphaClip = matParams[i].alphaClip_;
 
 	// load textures for each subset (mesh)
 	for (int i = 0; i < model.numSubsets_; ++i)
@@ -175,7 +175,7 @@ void ModelLoader::SetupSubsets(
 			const std::string fullPathToTex = texDirPath + params.texPaths[j];
 			const TexID texID = texMgr.LoadFromFile(fullPathToTex);
 
-			model.SetTexture(i, TexType(stoi(params.texTypes[j])), texID);
+			//model.SetTexture(i, eTexType(stoi(params.texTypes[j])), texID);
 		}
 	}
 }
@@ -195,11 +195,11 @@ void ModelLoader::ReadSubsetTable(
 	// read in each subset data
 	for (int i = 0; i < numSubsets; ++i)
 	{
-		fin >> ignore >> subsets[i].id_;
-		fin >> ignore >> subsets[i].vertexStart_;
-		fin >> ignore >> subsets[i].vertexCount_;
-		fin >> ignore >> subsets[i].indexStart_;
-		fin >> ignore >> subsets[i].indexCount_;
+		fin >> ignore >> subsets[i].id;
+		fin >> ignore >> subsets[i].vertexStart;
+		fin >> ignore >> subsets[i].vertexCount;
+		fin >> ignore >> subsets[i].indexStart;
+		fin >> ignore >> subsets[i].indexCount;
 	}
 }
 

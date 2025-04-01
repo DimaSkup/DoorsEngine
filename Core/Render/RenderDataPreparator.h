@@ -6,14 +6,15 @@
 // ********************************************************************************
 #pragma once
 
-#include "../Texture/TextureHelperTypes.h"
+#include "../Texture/TextureTypes.h"
 #include "../Model/BasicModel.h"
 #include "../Model/ModelStorage.h"
 
-#include <CoreCommon/Types.h>    // ECS types
+#include <CoreCommon/Types.h>  
 #include "Render.h"
 #include "Entity/EntityMgr.h"
 #include "../Texture/TextureMgr.h"
+#include "../Mesh/MaterialMgr.h"
 
 #include <vector>
 
@@ -23,70 +24,74 @@ namespace Core
 class RenderDataPreparator
 {
 public:
-	RenderDataPreparator(
-		Render::Render& render,
-		ECS::EntityMgr& enttMgr);
+    RenderDataPreparator(
+        Render::Render& render,
+        ECS::EntityMgr& enttMgr);
 
-	void PrepareInstanceFromModel(
-		BasicModel& model,
-		Render::Instance& instance);
+    void PrepareInstanceFromModel(
+        BasicModel& model,
+        Render::Instance& instance);
 
-	void PrepareEnttsDataForRendering(
+    void PrepareEnttsDataForRendering(
         const EntityID* enttsIds,
         const size numEntts,
-		Render::InstBuffData& instanceBuffData,      // data for the instance buffer
-		std::vector<Render::Instance>& instances);   // instances (models subsets) data for rendering
+        Render::InstBuffData& instanceBuffData,      // data for the instance buffer
+        std::vector<Render::Instance>& instances);   // instances (models subsets) data for rendering
 
     // ----------------------------------------------------
-
-	void PrepareInstanceData(
-		const BasicModel& model,
-		Render::Instance& instance,
-		TextureMgr& texMgr);
 
     void PrepareInstancesData(
         const EntityID* ids,
         const size numEntts,
         std::vector<Render::Instance>& instances,
-        std::vector<EntityID>& enttsSortedByModels);            
+        cvector<EntityID>& enttsSortedByModels);
 
+    void PrepareInstanceData(const BasicModel& model, Render::Instance& instance);
+      
     // ----------------------------------------------------
 
-	void PrepareEnttsBoundingLineBox(
+    void PrepareEnttsBoundingLineBox(
         const EntityID* visibleEntts,
         const size numEntts,
-		Render::Instance& instance,
-		Render::InstBuffData& instanceBuffer);
+        Render::Instance& instance,
+        Render::InstBuffData& instanceBuffer);
 
-	void PrepareEnttsMeshesBoundingLineBox(
+    void PrepareEnttsMeshesBoundingLineBox(
         const EntityID* visibleEntts,
         const size numEntts,
-		Render::Instance& instance,
-		Render::InstBuffData& instanceBuffer);
-
-
-	void PrepareInstancesOfEnttWithOwnTex(
-        const EntityID* enttsIDs,
-        const size numEntts,
-		ECS::EntityMgr& mgr,
-		std::vector<Render::Instance>& instances,
-		std::map<ModelID, Render::Instance*>& modelIdToInstance,
-		ModelStorage& storage,
-		TextureMgr& texMgr,
-		int& instanceIdx);
-
-	void PrepareSubsetsData(
-		const MeshGeometry::Subset* subsets,
-		std::vector<Render::Subset>& instanceSubsets);
-
-	void PrepareSubsetsMaterials(
-		const MeshMaterial* srcModelMats,
-		const int numMats,
-		Render::Material* instanceMats);
+        Render::Instance& instance,
+        Render::InstBuffData& instanceBuffer);
 
 private:
-	Render::Render* pRender_ = nullptr;
-	ECS::EntityMgr* pEnttMgr_ = nullptr;
+    void SeparateEnttsByMaterialGroups(
+        const ECS::EntityMgr& mgr,
+        const EntityID* ids,
+        const size numEntts,
+        cvector<EntityID>& outEnttsWithOrigMat,
+        cvector<EntityID>& outEnttsWithUniqueMat);
+
+    void PrepareInstancesForEntts(
+        ECS::EntityMgr& mgr,
+        const EntityID* ids,
+        const size numEntts,
+        std::vector<Render::Instance>& instances,
+        cvector<EntityID>& outEnttsSortedByInstances);
+
+    void PrepareInstancesForEnttsWithUniqueMaterials(
+        ECS::EntityMgr& mgr,
+        const EntityID* ids,
+        const size numEntts,
+        std::vector<Render::Instance>& instances,
+        cvector<EntityID>& outEnttsSortedByInstances);
+
+    void PrepareTexturesForInstance(
+        MaterialMgr& materialMgr,
+        TextureMgr& texMgr,
+        Render::Instance& instance);
+
+private:
+    Render::Render* pRender_ = nullptr;
+    ECS::EntityMgr* pEnttMgr_ = nullptr;
 };
 
 } // namespace Core

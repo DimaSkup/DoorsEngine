@@ -13,9 +13,9 @@
 namespace ECS
 {
 
-// this macro is used for the vassert() method
-//#define CALL_INFO "  FILE: \t%s\n  CLASS:\t%s\n  FUNC: \t%s()\n  LINE: \t%d\n  MSG: \t\t%s\n", __FILE__, typeid(this).name(), __func__, __LINE__
+    // this macro is used for the vassert() method
 #define CALL_INFO "  FILE: \t%s\n  FUNC: \t%s()\n  LINE: \t%d\n  MSG: \t\t%s\n", __FILE__, __func__, __LINE__
+
 
 constexpr bool ENABLE_CHECK = true;
 
@@ -53,7 +53,7 @@ public:
 
 
     // operators
-    inline       T& operator[](index i) { return data_[i]; }    // v[i] = x
+    inline       T& operator[](index i)       { return data_[i]; }    // v[i] = x
     inline const T& operator[](index i) const { return data_[i]; }    // x = v[i]
 
     bool        operator==(const cvector<T>& rhs) const;
@@ -67,10 +67,11 @@ public:
     inline const T* begin()                 const { return data_; }
     inline T*       end()                         { return data_ + size_; }
     inline const T* end()                   const { return data_ + size_; }
+    inline       T& back()                  const { return *(data_ + size_ - 1); }
 
 
     // getters
-    inline       T* data()                  const { return data_; }
+    inline T*       data()                  const { return data_; }
     inline bool     empty()                 const { return size_ == 0; }
     inline vsize    size()                  const { return size_; }
     inline vsize    capacity()              const { return capacity_; }
@@ -81,6 +82,7 @@ public:
 
     // setters
     void         push_back(const T& value);
+    void         push_back(T&& rvalue);
     inline void  pop_back() { if (size_ > 0) size_--; }
     inline void  clear() { size_ = 0; };
 
@@ -151,12 +153,11 @@ private:
     inline vsize GetGrownCapacity(const vsize capacity)
     {
         // compute grown capacity: newCapacity = growFactor * capacity;
-        return (vsize)(ceil(growFactor_ * capacity));
+        return (vsize)(ceil(growFactor_ * (float)capacity));
     }
 };
 
-
-// ----------------------------------------------------
+// =================================================================================
 
 template <typename T>
 void cvector<T>::error_msg(
@@ -173,6 +174,7 @@ void cvector<T>::error_msg(
     printf(format, fileName, funcName, line, msg);
     printf("%s", consoleNorm);
 }
+
 
 // =================================================================================
 //                          constructor, destructor
@@ -410,7 +412,7 @@ inline void cvector<T>::shift_left(const index idx, const int num)
             return;
         }
     }
-  
+
     std::shift_left(begin() + idx, end(), num);
 }
 
@@ -429,6 +431,22 @@ inline void cvector<T>::push_back(const T& value)
     }
 
     data_[size_] = value;
+    size_++;
+}
+
+// ----------------------------------------------------
+
+template <typename T>
+inline void cvector<T>::push_back(T&& rvalue)
+{
+    if (size_ == capacity_)
+    {
+        // create a new array with growFactor times the original capacity
+        const vsize newCapacity = GetGrownCapacity(capacity_ ? capacity_ : 8);
+        reserve(newCapacity);
+    }
+
+    data_[size_] = std::move(rvalue);
     size_++;
 }
 
@@ -644,7 +662,7 @@ inline void cvector<T>::get_idxs(
             return;
         }
     }
-   
+
     outIdxs.resize(numElems);
 
     for (int i = 0; i < numElems; ++i)
@@ -700,7 +718,7 @@ bool cvector<T>::binary_search(const cvector<T>& values) const
     const T* e = end();
 
     for (index i = 0; i < values.size(); ++i)
-        isExist &= std::binary_search(b + i, e, values[i]);
+        isExist &= std::binary_search(b, e, values[i]);
 
     return isExist;
 }
@@ -767,7 +785,7 @@ void cvector<T>::binary_search(const T* values, vsize numElems, cvector<bool>& f
 template <typename T>
 inline void cvector<T>::reserve(const vsize newCapacity)
 {
-   // printf("reserve for :%s of size %d\n", typeid(T).name(), newCapacity);
+    // printf("reserve for :%s of size %d\n", typeid(T).name(), newCapacity);
     if (capacity_ < newCapacity)
         realloc_buffer(newCapacity);
 }
@@ -892,7 +910,7 @@ inline void cvector<T>::realloc_buffer(const vsize newCapacity)
             // if we need to store less elements than before
             if (newCapacity < size_)
                 size_ = newCapacity;
-            
+
 
             // TODO: test using memmove()
             // 

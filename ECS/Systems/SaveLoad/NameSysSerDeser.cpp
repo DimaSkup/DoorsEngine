@@ -24,9 +24,9 @@ void NameSysSerDeser::Serialize(
 	offset = static_cast<u32>(fout.tellp());
 
 	// write the data block marker, data count, and the IDs values
-	FileUtils::FileWrite(fout, &dataBlockMarker);
-	FileUtils::FileWrite(fout, (u32)std::ssize(ids)); 
-	FileUtils::FileWrite(fout, ids);
+	FileWrite(fout, &dataBlockMarker);
+	FileWrite(fout, (u32)std::ssize(ids)); 
+	FileWrite(fout, ids);
 
 	for (const EntityName& name : names)
 	{
@@ -36,8 +36,8 @@ void NameSysSerDeser::Serialize(
 		// 2. write name
 
 		u32 strSize = (u32)name.size();
-		FileUtils::FileWrite(fout, strSize);
-		FileUtils::FileWrite(fout, name.data(), strSize);
+		FileWrite(fout, strSize);
+		FileWrite(fout, name.data(), strSize);
 	}
 }
 
@@ -56,9 +56,9 @@ void NameSysSerDeser::Deserialize(
 
 	// check if we read the proper data block
 	u32 dataBlockMarker = 0;
-	FileUtils::FileRead(fin, &dataBlockMarker);
+	FileRead(fin, &dataBlockMarker);
 	
-	const bool isProperDataBlock = (dataBlockMarker == static_cast<u32>(ComponentType::NameComponent));
+	const bool isProperDataBlock = (dataBlockMarker == static_cast<u32>(eComponentType::NameComponent));
 	if (!isProperDataBlock)
 	{
 		Log::Error("read wrong data during deserialization of the Name component data");
@@ -69,21 +69,21 @@ void NameSysSerDeser::Deserialize(
 
 	// get how many data elements we will have
 	u32 dataCount = 0;
-	FileUtils::FileRead(fin, &dataCount);
+	FileRead(fin, &dataCount);
 
 	// prepare enough amount of memory for data
 	outIds.resize(dataCount);
 	outNames.resize(dataCount);
 
 	// read in entities ids
-	FileUtils::FileRead(fin, outIds);
+	FileRead(fin, outIds);
 
 	// read in entities names
 	for (u32 idx = 0, strSize = 0; idx < dataCount; ++idx)
 	{
-		FileUtils::FileRead(fin, &strSize);                        // read in chars count
+		FileRead(fin, &strSize);                        // read in chars count
 		outNames[idx].resize(strSize);                         // prepare memory for a string
-		FileUtils::FileRead(fin, outNames[idx].data(), strSize);   // read in a string
+		FileRead(fin, outNames[idx].data(), strSize);   // read in a string
 	}
 }
 

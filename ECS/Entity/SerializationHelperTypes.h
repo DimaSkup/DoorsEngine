@@ -37,7 +37,7 @@ public:
 	inline u32& GetDataBlockPos(const u32 idx)
 	{
 		// return a data start position for component 
-		// by idx (look at the ComponentType enum)
+		// by idx (look at the eComponentType enum)
 		return records_[idx].dataBlockPos;
 	}
 

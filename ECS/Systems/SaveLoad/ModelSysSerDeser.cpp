@@ -26,15 +26,15 @@ void ModelSysSerDeser::Serialize(
 
 	const u32 dataCount = static_cast<u32>(std::ssize(enttsToMeshes));
 
-	FileUtils::FileWrite(fout, dataBlockMarker);
-	FileUtils::FileWrite(fout, dataCount);
+	FileWrite(fout, dataBlockMarker);
+	FileWrite(fout, dataCount);
 
 	// if we have any entt=>meshes data we serialize it
 	for (const auto& it : enttsToMeshes)
 	{
-		FileUtils::FileWrite(fout, it.first);                    // write entt id
-		FileUtils::FileWrite(fout, (u32)std::ssize(it.second));  // write how many meshes are related to this entt
-		FileUtils::FileWrite(fout, it.second);                   // write related meshes ids
+		FileWrite(fout, it.first);                    // write entt id
+		FileWrite(fout, (u32)std::ssize(it.second));  // write how many meshes are related to this entt
+		FileWrite(fout, it.second);                   // write related meshes ids
 	}
 }
 
@@ -53,9 +53,9 @@ void ModelSysSerDeser::Deserialize(
 
 	// check if we read the proper data block
 	u32 dataBlockMarker = 0;
-	FileUtils::FileRead(fin, &dataBlockMarker);
+	FileRead(fin, &dataBlockMarker);
 
-	const bool isProperDataBlock = (dataBlockMarker == static_cast<u32>(ComponentType::ModelComponent));
+	const bool isProperDataBlock = (dataBlockMarker == static_cast<u32>(eComponentType::ModelComponent));
 	if (!isProperDataBlock)
 	{
 		Log::Error("read wrong data during deserialization of the Mesh component data");
@@ -70,7 +70,7 @@ void ModelSysSerDeser::Deserialize(
 
 	// read in how much data will we have
 	u32 dataCount = 0;
-	FileUtils::FileRead(fin, &dataCount);
+	FileRead(fin, &dataCount);
 
 	// read in each entity ID and its related meshes IDs
 	for (u32 idx = 0; idx < dataCount; ++idx)
@@ -78,13 +78,13 @@ void ModelSysSerDeser::Deserialize(
 		EntityID enttID = 0;
 		u32 relatedMeshesCount = 0;
 
-		FileUtils::FileRead(fin, &enttID);
-		FileUtils::FileRead(fin, &relatedMeshesCount);
+		FileRead(fin, &enttID);
+		FileRead(fin, &relatedMeshesCount);
 
 		enttToMeshes[enttID].resize(relatedMeshesCount);
 		//std::vector<MeshID> meshesIDs(relatedMeshesCount);
 
-		FileUtils::FileRead(fin, enttToMeshes[enttID]);
+		FileRead(fin, enttToMeshes[enttID]);
 
 		// store data into component: make pair ['entity_id' => 'set_of_related_meshes_ids']
 		//enttToMeshes.insert({ enttID, meshesIDs });

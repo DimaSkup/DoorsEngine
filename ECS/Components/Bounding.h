@@ -65,7 +65,7 @@ struct Bounding
 	cvector<EntityID>     ids;
 	cvector<BoundingData> data;
 
-    ComponentType componentType_ = ComponentType::BoundingComponent;
+    eComponentType componentType_ = eComponentType::BoundingComponent;
 };
 
 

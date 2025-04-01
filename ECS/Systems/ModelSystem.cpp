@@ -93,7 +93,8 @@ void ModelSystem::GetModelsIdsRelatedToEntts(
     //      2) arr of entts sorted by its models
     //      3) arr of entts number per model
 
-    Assert::True((enttsIDs != nullptr) && (numEntts > 0), "invalid input args");
+    Assert::True(enttsIDs != nullptr, "input ptr to entities IDs arr == nullptr");
+    Assert::True(numEntts > 0,        "input number of entities must be > 0");
 
     cvector<index> idxs;
     const Model& comp = *pModelComponent_;

@@ -436,16 +436,26 @@ void UserInterface::RenderDebugInfo(
 	// render engine/game stats as text onto the sceen
 	// (is used when we in the game mode)
 
-	std::vector<ID3D11Buffer*> vbPtrs;
-	std::vector<ID3D11Buffer*> ibPtrs;
-	std::vector<u32> indexCounts;
+	cvector<ID3D11Buffer*> vertexBuffersPtrs;
+	cvector<ID3D11Buffer*> indexBuffersPtrs;
+	cvector<u32>           indexCounts;
 
 	// receive a font texture SRV 
-	SRV* const* ppFontTexSRV = font1_.GetTextureResourceViewAddress();
+	ID3D11ShaderResourceView* const* ppFontTexSRV = font1_.GetTextureResourceViewAddress();
 
-	textStorage_.GetRenderingData(vbPtrs, ibPtrs, indexCounts);
+	textStorage_.GetRenderingData(vertexBuffersPtrs, indexBuffersPtrs, indexCounts);
 
-	fontShader.Render(pContext, vbPtrs, ibPtrs, indexCounts, sizeof(Core::VertexFont), ppFontTexSRV);
+    // each sentence has its own vertex buffer so number of sentences == number of buffers
+    const size numSentences = vertexBuffersPtrs.size();
+
+	fontShader.Render(
+        pContext,
+        vertexBuffersPtrs.data(),
+        indexBuffersPtrs.data(),
+        indexCounts.data(),
+        numSentences,
+        sizeof(Core::VertexFont),
+        ppFontTexSRV);
 }
 
 

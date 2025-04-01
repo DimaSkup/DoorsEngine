@@ -135,10 +135,7 @@ void GeometryGenerator::GenerateCube(BasicModel& model)
     // ---------------------------------------------
 
     // setup subset (mesh) data (for cube we have only one subset)
-    model.meshes_.SetSubsetName(0, "cube");
-    
-    // setup default material for the model's mesh
-    SetDefaultMaterial(model.materials_[0]);
+    model.meshes_.SetSubsetName(0, "cube_mesh");
 }
 
 ///////////////////////////////////////////////////////////
@@ -608,13 +605,8 @@ void GeometryGenerator::GeneratePlane(
 
     // ---------------------------------------------
 
-    SetDefaultMaterial(model.materials_[0]);
-
     // setup subset (mesh) data (for plane we have only one subset)
-    model.meshes_.SetSubsetName(0, "plane");
-
-    // setup default material for the model's mesh
-    SetDefaultMaterial(model.materials_[0]);
+    model.meshes_.SetSubsetName(0, "plane_mesh");
 }
 
 //////////////////////////////////////////////////////////
@@ -781,9 +773,6 @@ void GeometryGenerator::GenerateFlatGrid(
         model.SetSubsetAABB(0, aabb);
         model.SetModelAABB(aabb);
 
-        // set a default material for a single mesh of the model
-        SetDefaultMaterial(model.materials_[0]);
-
     }
     catch (std::bad_alloc& e)
     {
@@ -935,9 +924,6 @@ void GeometryGenerator::GeneratePyramid(
     };
 
     model.CopyIndices(indicesData, numIndices);
-
-    // setup a default material for a single mesh of the model
-    SetDefaultMaterial(model.materials_[0]);
 }
 
 //////////////////////////////////////////////////////////
@@ -1121,9 +1107,6 @@ void GeometryGenerator::GenerateCylinder(
 
         // ----------------------------------- 
 
-        // setup a default material for a single mesh of the model
-        SetDefaultMaterial(model.materials_[0]);
-
         // release the memory
         SafeDeleteArr(tempData.tu);
         SafeDeleteArr(tempData.thetaSines);
@@ -1306,9 +1289,6 @@ void GeometryGenerator::GenerateSphere(
 
     BuildSphereVertices(model.vertices_, vertexIdx, params, numVertices);
     BuildSphereIndices(model.indices_, vertexIdx - 1, sliceCount, stackCount);
-
-    // setup a default material for a single mesh of the model
-    SetDefaultMaterial(model.materials_[0]);
 }
 
 ///////////////////////////////////////////////////////////
@@ -1553,9 +1533,6 @@ void GeometryGenerator::GenerateGeosphere(
         // normalize the tangent
         DirectX::XMStoreFloat3(&vertices[i].tangent, DirectX::XMVector3Normalize(T));
     }
-
-    // setup a default material for a single mesh of the model
-    SetDefaultMaterial(model.materials_[0]);
 }
 
 // *********************************************************************************
@@ -1896,8 +1873,8 @@ void GeometryGenerator::Subdivide(BasicModel& model)
     model.AllocateVertices(newNumVertices);
     model.AllocateIndices(newNumIndices);
 
-    model.meshes_.subsets_[0].vertexCount_ = newNumVertices;
-    model.meshes_.subsets_[0].indexCount_ = newNumIndices;
+    model.meshes_.subsets_[0].vertexCount = newNumVertices;
+    model.meshes_.subsets_[0].indexCount = newNumIndices;
 
     //       v1
     //       *
@@ -1978,15 +1955,6 @@ void GeometryGenerator::Subdivide(BasicModel& model)
 
     SafeDeleteArr(oldVertices);
     SafeDeleteArr(oldIndices);
-}
-
-///////////////////////////////////////////////////////////
-
-void GeometryGenerator::SetDefaultMaterial(MeshMaterial& mat)
-{
-    mat.ambient_  = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
-    mat.diffuse_  = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
-    mat.specular_ = XMFLOAT4(0.2f, 0.2f, 0.2f, 2.0f);
 }
 
 } // namespace Core

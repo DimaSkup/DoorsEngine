@@ -4,7 +4,7 @@
 //////////////////////////////////
 // GLOBALS
 //////////////////////////////////
-Texture2D    gTextures[22] : register(t0);
+Texture2D    gTextures[128] : register(t0);
 SamplerState gSampleType   : register(s0);
 
 

@@ -6,16 +6,14 @@
 #include "../Common/Log.h"
 #include "../Common/StringHelper.h"
 #include "../Common/MemHelpers.h"
+#include "../Common/Assert.h"
 
 #include <d3dx11async.h>   // is neccessary for the D3DX11CompileFromFile() function
 #include <d3dcompiler.h>   // for using shader flags
 
+
 namespace Render
 {
-
-
-std::string ShaderClass::pathToShadersDir_ = "shaders/";
-
 
 // Compiles effect's or shader's bytecode from a .fx or .hlsl files respectively
 HRESULT ShaderClass::CompileShaderFromFile(
@@ -55,11 +53,7 @@ HRESULT ShaderClass::CompileShaderFromFile(
 	}
 
 	// even if there are no errorMsgs, check to make sure there were no other errors
-	if (FAILED(hr)) outErrorMgr = {
-		"can't compile a shader function (" + 
-		std::string(functionName) + ")" +
-		"; from the shader file : " + 
-		StringHelper::ToString(filename) };
+    Assert::NotFailed(hr, "can't compile a shader function (" + std::string(functionName) + "); from the shader file : " + StringHelper::ToString(filename));
 
 	return hr;
 }

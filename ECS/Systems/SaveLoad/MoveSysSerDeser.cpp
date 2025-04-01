@@ -27,12 +27,12 @@ void MoveSysSerDeser::Serialize(
 	const u32 dataCount = static_cast<u32>(std::ssize(ids));
 
 	// write movement data into the file
-	FileUtils::FileWrite(fout, &dataBlockMarker);
-	FileUtils::FileWrite(fout, &dataCount);
+	FileWrite(fout, &dataBlockMarker);
+	FileWrite(fout, &dataCount);
 
-	FileUtils::FileWrite(fout, ids);
-	FileUtils::FileWrite(fout, translationAndUniScales);
-	FileUtils::FileWrite(fout, rotationQuats);
+	FileWrite(fout, ids);
+	FileWrite(fout, translationAndUniScales);
+	FileWrite(fout, rotationQuats);
 }
 
 ///////////////////////////////////////////////////////////
@@ -51,9 +51,9 @@ void MoveSysSerDeser::Deserialize(
 
 	// check if we read the proper data block
 	u32 dataBlockMarker = 0;
-	FileUtils::FileRead(fin, &dataBlockMarker);
+	FileRead(fin, &dataBlockMarker);
 
-	const bool isProperDataBlock = (dataBlockMarker == static_cast<u32>(ComponentType::MoveComponent));
+	const bool isProperDataBlock = (dataBlockMarker == static_cast<u32>(eComponentType::MoveComponent));
 	if (!isProperDataBlock)
 	{
 		Log::Error("read wrong data during deserialization of the Move component data");
@@ -64,7 +64,7 @@ void MoveSysSerDeser::Deserialize(
 
 	// read in how much data will we have
 	u32 dataCount = 0;
-	FileUtils::FileRead(fin, &dataCount);
+	FileRead(fin, &dataCount);
 
 	// prepare enough amount of memory for data
 	ids.resize(dataCount);
@@ -72,9 +72,9 @@ void MoveSysSerDeser::Deserialize(
 	rotationQuats.resize(dataCount);
 
 	// read data from a file right into the component
-	FileUtils::FileRead(fin, ids);
-	FileUtils::FileRead(fin, translationAndUniScales);
-	FileUtils::FileRead(fin, rotationQuats);
+	FileRead(fin, ids);
+	FileRead(fin, translationAndUniScales);
+	FileRead(fin, rotationQuats);
 }
 
 

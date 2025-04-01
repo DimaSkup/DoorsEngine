@@ -6,7 +6,7 @@
 
 #include <fstream>
 
-namespace FileUtils
+namespace ECS
 {
 
 	// ****************************************************************************

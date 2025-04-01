@@ -13,7 +13,7 @@
 
 #include "../../Mesh/Vertex.h"
 
-#include <CoreCommon/Types.h>
+#include <UICommon/Types.h>
 #include <d3d11.h>
 #include <DirectXMath.h>
 

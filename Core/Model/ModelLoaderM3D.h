@@ -19,11 +19,11 @@ class ModelLoaderM3D
 public:
 	struct M3dMaterial
 	{
-		MeshMaterial mat_;
-		bool alphaClip_;
-		std::string effectTypeName_;
-		std::string diffuseMapName_;
-		std::string normalMapName_;
+		Material mat;
+		bool alphaClip;
+		std::string effectTypeName;
+		std::string diffuseMapName;
+		std::string normalMapName;
 	};
 
 public:
@@ -31,8 +31,8 @@ public:
 
 	void ReadMaterials(
 		std::ifstream& fin,
-		int numMaterials,
-		MeshMaterial* materials,
+		const int numMaterials,
+		Material* materials,
 		M3dMaterial* materialsParams);
 
 	void SetupMaterials(
@@ -42,17 +42,17 @@ public:
 
 	void ReadSubsetTable(
 		std::ifstream& fin,
-		int numSubsets,
+		const int numSubsets,
 		MeshGeometry::Subset* subsets);
 
 	void ReadVertices(
 		std::ifstream& fin,
-		int numVertices,
+		const  int numVertices,
 		Vertex3D* vertices);
 
 	void ReadTriangles(
 		std::ifstream& fin,
-		int numTriangles,
+		const int numTriangles,
 		UINT* indices);
 };
 

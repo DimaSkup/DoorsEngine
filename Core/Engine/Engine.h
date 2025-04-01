@@ -31,7 +31,9 @@
 // camera stuff
 #include "../Camera/Camera.h"
 
-// main graphics class
+
+// graphics stuff
+#include "../Mesh/MaterialMgr.h"
 #include "../Render/graphicsclass.h"
 
 // UI
@@ -123,6 +125,7 @@ private:
 	InputManager       inputMgr_;
 	KeyboardClass      keyboard_;            // represents a keyboard device
 	MouseClass         mouse_;               // represents a mouse device
+    MaterialMgr        materialMgr_;
 	GraphicsClass      graphics_;            // rendering system
 
 	ImGuiLayer         imGuiLayer_;

@@ -3,6 +3,9 @@
 #include <fstream>
 #include <string>
 
+namespace Core
+{
+
 class ModelStorageSerializer
 {
 public:
@@ -25,3 +28,4 @@ public:
 		const size numModels);
 };
 
+} // namespace Core

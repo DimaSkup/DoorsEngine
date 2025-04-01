@@ -26,17 +26,20 @@ SkyDomeShader::~SkyDomeShader()
 //                             public methods                                      
 // =================================================================================
 
-bool SkyDomeShader::Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
+bool SkyDomeShader::Initialize(
+    ID3D11Device* pDevice,
+    ID3D11DeviceContext* pContext,
+    const std::string& pathToShadersDir)
 {
 	// initialize the shader class: for rendering textured + lit objects;
 	// also create an instanced buffer;
-
 	try
 	{
-		const std::string vsFilePath = ShaderClass::pathToShadersDir_ + "SkyDomeVS.cso";
-		const std::string psFilePath = ShaderClass::pathToShadersDir_ + "SkyDomePS.cso";
-
-		InitializeShaders(pDevice, pContext, vsFilePath, psFilePath);
+		InitializeShaders(
+            pDevice,
+            pContext,
+            pathToShadersDir + "SkyDomeVS.cso",
+            pathToShadersDir + "SkyDomePS.cso");
 
 		Log::Debug("is initialized");
 	}
@@ -128,7 +131,7 @@ void SkyDomeShader::InitializeShaders(
 	HRESULT hr = S_OK;
 
 	// input layout desc for the vertex shader
-	const UINT numInputLayoutElems = 1U;
+	constexpr UINT numInputLayoutElems = 1U;
 	const D3D11_INPUT_ELEMENT_DESC inputLayoutDesc[numInputLayoutElems] =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },

@@ -61,10 +61,10 @@ public:
 
 	DirectX::XMMATRIX GetWorldMatrixOfEntt(const EntityID id);
 
-	void GetWorldMatricesOfEntts(
-		const EntityID* ids,
-		DirectX::XMMATRIX* outWorlds,
-		const size numEntts);
+    void GetWorldMatricesOfEntts(
+        const EntityID* ids,
+        const size numEntts,
+        cvector<DirectX::XMMATRIX>& outWorlds);
 
 	const DirectX::XMMATRIX& GetInverseWorldMatrixOfEntt(const EntityID id);
 

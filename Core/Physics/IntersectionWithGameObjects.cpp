@@ -10,9 +10,6 @@
 
 #include <iomanip>       // we print into the console some debug data about intersection so we need to see it in a convenient view
 
-using namespace DirectX;
-
-
 
 #if 0
 IntersectionWithGameObjects::IntersectionWithGameObjects()

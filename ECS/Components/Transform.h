@@ -21,7 +21,7 @@ __declspec(align(16)) struct Transform
     cvector<XMVECTOR> dirQuats_;            // normalized direction quaternion
     cvector<EntityID> ids_;
 	
-	ComponentType type_ = ComponentType::TransformComponent;
+	eComponentType type_ = eComponentType::TransformComponent;
 };
 
 }

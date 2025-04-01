@@ -66,6 +66,7 @@ public:
 		const DirectX::XMMATRIX* worlds,
 		const DirectX::XMMATRIX* texTransforms,
 		const Material* materials,
+        const uint8_t* textureSubsetIdxs,
 		const int count);
 
 	void UpdateInstancedBufferWorlds(

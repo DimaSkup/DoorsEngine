@@ -38,7 +38,7 @@ struct TextureTransform
     TexAtlasAnimations          texAtlasAnim;
     TexRotationsAroundCoords    texRotations;
 
-    ComponentType               type = ComponentType::TextureTransformComponent;
+    eComponentType               type = eComponentType::TextureTransformComponent;
 };
 
 

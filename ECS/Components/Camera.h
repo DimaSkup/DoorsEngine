@@ -30,7 +30,7 @@ struct Camera
     cvector<XMMATRIX> projs;         // projection matrix of the camera
     cvector<XMMATRIX> invViews;      // current inverse view matrix
 
-    ComponentType type = ComponentType::CameraComponent;
+    eComponentType type = eComponentType::CameraComponent;
 
 };
 

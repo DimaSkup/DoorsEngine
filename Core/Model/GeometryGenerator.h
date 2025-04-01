@@ -10,7 +10,7 @@
 #include "../Mesh/Vertex.h"
 #include "../Model/SkyModel.h"
 #include "../Mesh/MeshHelperTypes.h"
-#include "../Mesh/MeshMaterial.h"
+#include "../Mesh/Material.h"
 #include "../Model/BasicModel.h"
 
 
@@ -133,8 +133,6 @@ private:
 
 	// helper function for a geosphere creation
 	void Subdivide(BasicModel& model);
-
-	void SetDefaultMaterial(MeshMaterial& mat);
 };
 
 } // namespace Core

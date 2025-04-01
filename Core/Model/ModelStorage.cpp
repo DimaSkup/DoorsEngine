@@ -7,7 +7,7 @@
 #include <CoreCommon/FileSystemPaths.h>
 #include <CoreCommon/log.h>
 #include <CoreCommon/Assert.h>
-#include <CoreCommon/Utils.h>
+//#include <CoreCommon/Utils.h>
 #include "ModelExporter.h"
 #include "ModelsCreator.h"
 #include "ModelStorageSerializer.h"
@@ -27,9 +27,7 @@ namespace Core
 // when we add some new model into a storage its ID == lastModelID
 // and then we increase the lastModelID_ by 1, so the next model will have as ID
 // this increased value, and so on
-int ModelStorage::lastModelID_ = 0;
-
-int ModelStorage::INVALID_MODEL_ID = 0;
+ModelID ModelStorage::lastModelID_ = 0;
 ModelStorage* ModelStorage::pInstance_ = nullptr;
 
 
@@ -228,19 +226,19 @@ void ModelStorage::Deserialize(ID3D11Device* pDevice)
 ModelID ModelStorage::AddModel(BasicModel&& model)
 {
     // check if there is no such model id yet
-    if (CoreUtils::ArrHasVal(ids_, model.id_))
+    if (ids_.binary_search(model.id_))
     {
-        Log::Error("there is already a model id: " + std::to_string(model.id_));
-        Log::Error("can't add this model");
+        Log::Error("can't add model: there is already a model by ID: " + std::to_string(model.id_));
         return INVALID_MODEL_ID;
     }
 
-    const index insertAt = CoreUtils::GetPosForVal(ids_, model.id_);
+    const ModelID id = model.id_;
+    const index idx = ids_.get_insert_idx(model.id_);
 
-    CoreUtils::InsertAtPos(ids_, insertAt, model.id_);
-    CoreUtils::InsertAtPos(models_, insertAt, std::move(model));
+    ids_.insert_before(idx, id);
+    models_.insert_before(idx, std::move(model));
 
-    return model.id_;
+    return id;
 }
 
 ///////////////////////////////////////////////////////////
@@ -266,17 +264,11 @@ BasicModel& ModelStorage::AddEmptyModel()
 
 BasicModel& ModelStorage::GetModelByID(const ModelID id)
 {
-    // check if such a model exist
-    const auto beg = ids_.begin();
-    const auto end = ids_.end();
-    const bool exist = std::binary_search(beg, end, id);
+    // return a model by ID, or invalid model (by idx == 0) if there is no such ID
+    const index idx = ids_.get_idx(id);
+    const bool exist = (ids_[idx] == id);
 
-    index idx = std::distance(beg, std::lower_bound(beg, end, id));
-    idx *= exist;
-
-    // idx > 0  -- we return a valid model
-    // idx == 0 -- we return an invalid model (cube)
-    return models_[idx];
+    return models_[idx * exist];
 }
 
 ///////////////////////////////////////////////////////////

@@ -188,7 +188,7 @@ void Log::Printf(const char* format, ...)
 
     vsprintf_s(buffer, len, format, args);
 
-    SetConsoleColor(RED);
+    SetConsoleColor(GREEN);
     PrintHelper("", buffer);
     ResetConsoleColor();
 

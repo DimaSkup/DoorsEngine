@@ -13,8 +13,7 @@
 namespace ECS
 {
 
-// render states types
-enum RSTypes
+enum eRenderState
 {
     // rasterizer params
     FILL_SOLID,
@@ -52,10 +51,10 @@ enum RSTypes
 struct EnttToStates
 {
     EntityID id_;
-    cvector<RSTypes> states_;
+    cvector<eRenderState> states_;
 };
 
-static const cvector<RSTypes> g_DefaultStates =
+static const cvector<eRenderState> g_DefaultStates =
 {
     FILL_SOLID,
     CULL_BACK,
@@ -65,7 +64,7 @@ static const cvector<RSTypes> g_DefaultStates =
     NOT_REFLECTION_PLANE
 };
 
-static const cvector<RSTypes> g_AlphaClipCullNoneStates =
+static const cvector<eRenderState> g_AlphaClipCullNoneStates =
 {
     FILL_SOLID,
     CULL_NONE,
@@ -79,7 +78,7 @@ static const cvector<RSTypes> g_AlphaClipCullNoneStates =
 
 struct RenderStates
 {
-    ComponentType type_ = ComponentType::RenderStatesComponent;
+    eComponentType type_ = eComponentType::RenderStatesComponent;
 
     cvector<EntityID> ids_;
     cvector<u32> statesHashes_;    // hash where each bit responds for a specific render state
@@ -110,7 +109,7 @@ struct EnttsBlended
 {
     cvector<EntityID>   ids_;
     cvector<size>       instanceCountPerBS_;
-    cvector<RSTypes>    states_;                   // each instances set has its own blending state
+    cvector<eRenderState>    states_;                   // each instances set has its own blending state
 
     void Clear()
     {
@@ -125,7 +124,7 @@ struct EnttsBlended
 struct EnttsReflection
 {
     cvector<EntityID> ids_;                              // reflection planes
-    RSTypes     states_[6] =
+    eRenderState     states_[6] =
     {
         FILL_SOLID,
         CULL_NONE,

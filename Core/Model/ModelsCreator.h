@@ -24,7 +24,7 @@ public:
 	ModelID ImportFromFile(ID3D11Device* pDevice, const std::string& filepath);
 
 	// create a model according to its type and with default params
-	ModelID Create(ID3D11Device* pDevice, const ModelType type);
+	ModelID Create(ID3D11Device* pDevice, const eModelType type);
 
 	ModelID CreateSkyDome(ID3D11Device* pDevice, const float radius, const int sliceCount, const int stackCount);
 	ModelID CreatePlane(ID3D11Device* pDevice, const float width = 1.0f, const float height = 1.0f);

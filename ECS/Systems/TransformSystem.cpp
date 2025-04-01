@@ -259,11 +259,12 @@ const DirectX::XMMATRIX& TransformSystem::GetInverseWorldMatrixOfEntt(const Enti
 
 void TransformSystem::GetWorldMatricesOfEntts(
     const EntityID* ids,
-    DirectX::XMMATRIX* outWorlds,
-    const size numEntts)
+    const size numEntts,
+    cvector<DirectX::XMMATRIX>& outWorlds)
 {
     // NOTE: size of arrays ids and outWorlds must be equal !!!
-    Assert::True((ids != nullptr) && (outWorlds != nullptr) && (numEntts > 0), "invalid input arguments");
+    Assert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
+    Assert::True(numEntts > 0,   "input number of entities must be > 0");
 
     const Transform& comp = *pTransform_;
     cvector<index> idxs(numEntts);
@@ -271,8 +272,7 @@ void TransformSystem::GetWorldMatricesOfEntts(
 
     // get data idx by each ID and then get world matrices by these idxs
     comp.ids_.get_idxs(ids, numEntts, idxs);
-    comp.worlds_.get_data_by_idxs(idxs, worlds);
-    memcpy(outWorlds, worlds.data(), worlds.size() * sizeof(XMMATRIX));
+    comp.worlds_.get_data_by_idxs(idxs, outWorlds);
 }
 
 ///////////////////////////////////////////////////////////

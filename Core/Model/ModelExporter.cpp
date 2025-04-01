@@ -5,7 +5,7 @@
 #include "ModelExporter.h"
 
 #include <CoreCommon/FileSystemPaths.h>
-#include "../Texture/TextureHelperTypes.h"
+#include "../Texture/TextureTypes.h"
 #include "ImgConverter.h"
 #include "../Texture/TextureMgr.h"
 
@@ -162,19 +162,20 @@ void WriteSubsetTextures(
 	const int subsetID,
 	const std::string& texDirFullPath)
 {
-	const int offset = subsetID * 22;           // each subset (mesh) has 22 textures types
+#if 0
+	const int offset = subsetID * NUM_TEXTURE_TYPES;           // each subset (mesh) has 22 textures types
 	int numTexTypes = 0;                        // of this mesh (subset)
 
 	TextureMgr& texMgr = *TextureMgr::Get();
-	Texture* textures[22]{ nullptr };
-	TexType texTypes[22];
-	ID3D11Resource* texResources[22]{ nullptr };
+	Texture* textures[NUM_TEXTURE_TYPES]{ nullptr };
+	TexType texTypes[NUM_TEXTURE_TYPES];
+	ID3D11Resource* texResources[NUM_TEXTURE_TYPES]{ nullptr };
 
-	std::string texFilenames[22];
+	std::string texFilenames[NUM_TEXTURE_TYPES];
 
 
 	// define what kinds of textures this mesh has and store them as .dds files
-	for (int type = 0; type < 22; ++type)
+	for (int type = 0; type < NUM_TEXTURE_TYPES; ++type)
 	{
 		TexType texType = TexType(type);
 		TexID texID = texIDs[offset + texType];
@@ -196,7 +197,7 @@ void WriteSubsetTextures(
 
 	// generate target filenames
 	for (int i = 0; i < numTexTypes; ++i)
-		texFilenames[i] = fs::path(textures[i]->GetPath()).stem().string() + +".dds";
+		texFilenames[i] = fs::path(textures[i]->GetName()).stem().string() + +".dds";
 
 	// write the number of textures for this mesh
 	fout << "TexturesNumber: " << numTexTypes << '\n';
@@ -215,6 +216,7 @@ void WriteSubsetTextures(
 	}
 
 	fout << std::endl;
+#endif
 }
 
 
@@ -227,6 +229,7 @@ void ModelExporter::WriteMaterials(
 	const BasicModel& model,
 	const std::string& targetDirFullPath)
 {
+#if 0
 	// write materials (light properties) and textures data of each model's subset
 
 	ID3D11DeviceContext* pContext = nullptr;
@@ -256,11 +259,11 @@ void ModelExporter::WriteMaterials(
 			fout, 
 			pDevice, 
 			pContext,
-			model.texIDs_, 
+			model.texIDs, 
 			i,
 			texDirFullPathStr);
 	}
-		
+#endif
 }
 
 ///////////////////////////////////////////////////////////
@@ -278,11 +281,11 @@ void ModelExporter::WriteSubsetTable(
 
 	for (int i = 0; i < numSubsets; ++i)
 	{
-		fout << "SubsetID: "    << subsets[i].id_ << ' '
-			 << "VertexStart: " << subsets[i].vertexStart_ << ' '
-			 << "VertexCount: " << subsets[i].vertexCount_ << ' '
-			 << "IndexStart: "  << subsets[i].indexStart_ << ' '
-			 << "IndexCount: "  << subsets[i].indexCount_ << std::endl;
+		fout << "SubsetID: "    << subsets[i].id << ' '
+			 << "VertexStart: " << subsets[i].vertexStart << ' '
+			 << "VertexCount: " << subsets[i].vertexCount << ' '
+			 << "IndexStart: "  << subsets[i].indexStart << ' '
+			 << "IndexCount: "  << subsets[i].indexCount << std::endl;
 	}
 
 	fout << std::endl;
@@ -347,31 +350,31 @@ void ModelExporter::WriteIndices(
 
 ///////////////////////////////////////////////////////////
 
-void ModelExporter::WriteMaterialProps(std::ofstream& fout, const MeshMaterial& mat)
+void ModelExporter::WriteMaterialProps(std::ofstream& fout, const Material& mat)
 {
 	// write input material into file output stream
 
 	fout << "Ambient: "
-		<< mat.ambient_.x << ' '
-		<< mat.ambient_.y << ' '
-		<< mat.ambient_.z << '\n';
+		<< mat.ambient.x << ' '
+		<< mat.ambient.y << ' '
+		<< mat.ambient.z << '\n';
 
 	fout << "Diffuse: "
-		<< mat.diffuse_.x << ' '
-		<< mat.diffuse_.y << ' '
-		<< mat.diffuse_.z << '\n';
+		<< mat.diffuse.x << ' '
+		<< mat.diffuse.y << ' '
+		<< mat.diffuse.z << '\n';
 
 	fout << "Specular: "
-		<< mat.specular_.x << ' '
-		<< mat.specular_.y << ' '
-		<< mat.specular_.z << '\n';
+		<< mat.specular.x << ' '
+		<< mat.specular.y << ' '
+		<< mat.specular.z << '\n';
 
-	fout << "SpecPower: " << mat.specular_.w << '\n';
+	fout << "SpecPower: " << mat.specular.w << '\n';
 
 	fout << "Reflectivity: "
-		<< mat.reflect_.x << ' '
-		<< mat.reflect_.y << ' '
-		<< mat.reflect_.z << '\n';
+		<< mat.reflect.x << ' '
+		<< mat.reflect.y << ' '
+		<< mat.reflect.z << '\n';
 }
 
 ///////////////////////////////////////////////////////////

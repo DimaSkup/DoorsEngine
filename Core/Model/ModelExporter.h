@@ -56,7 +56,7 @@ private:
 
 	void WriteAABB(std::ofstream& fout, const DirectX::BoundingBox& aabb);
 	void WriteFLOAT3(std::ofstream& fout, const DirectX::XMFLOAT3& data);
-	void WriteMaterialProps(std::ofstream& fout, const MeshMaterial& mat);
+	void WriteMaterialProps(std::ofstream& fout, const Material& mat);
 };
 
 } // namespace Core

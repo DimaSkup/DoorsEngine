@@ -43,12 +43,12 @@ void RenderSystem::Serialize(std::ofstream& fout, u32& offset)
     const u32 dataCount = (u32)comp.ids.size();
 
     // write serialized data into the file
-    FileUtils::FileWrite(fout, &dataBlockMarker);
-    FileUtils::FileWrite(fout, &dataCount);
+    FileWrite(fout, &dataBlockMarker);
+    FileWrite(fout, &dataCount);
 
-    FileUtils::FileWrite(fout, comp.ids);
-    FileUtils::FileWrite(fout, comp.shaderTypes);
-    FileUtils::FileWrite(fout, comp.primTopologies);
+    FileWrite(fout, comp.ids);
+    FileWrite(fout, comp.shaderTypes);
+    FileWrite(fout, comp.primTopologies);
 }
 
 /////////////////////////////////////////////////
@@ -62,16 +62,16 @@ void RenderSystem::Deserialize(std::ifstream& fin, const u32 offset)
 
     // check if we read the proper data block
     u32 dataBlockMarker = 0;
-    FileUtils::FileRead(fin, &dataBlockMarker);
+    FileRead(fin, &dataBlockMarker);
 
-    const bool isProperDataBlock = (dataBlockMarker == static_cast<u32>(ComponentType::RenderedComponent));
+    const bool isProperDataBlock = (dataBlockMarker == static_cast<u32>(eComponentType::RenderedComponent));
     Assert::True(isProperDataBlock, "read wrong data block during deserialization of the Rendered component data from a file");
 
     // ------------------------------------------
 
     // read in how much data will we have
     u32 dataCount = 0;
-    FileUtils::FileRead(fin, &dataCount);
+    FileRead(fin, &dataCount);
 
     Rendered& comp = *pRenderComponent_;
 
@@ -80,9 +80,9 @@ void RenderSystem::Deserialize(std::ifstream& fin, const u32 offset)
     comp.shaderTypes.resize(dataCount);
     comp.primTopologies.resize(dataCount);
 
-    FileUtils::FileRead(fin, comp.ids.data());
-    FileUtils::FileRead(fin, comp.shaderTypes.data());
-    FileUtils::FileRead(fin, comp.primTopologies.data());
+    FileRead(fin, comp.ids.data());
+    FileRead(fin, comp.shaderTypes.data());
+    FileRead(fin, comp.primTopologies.data());
 }
 
 /////////////////////////////////////////////////

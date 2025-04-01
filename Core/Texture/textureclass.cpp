@@ -12,7 +12,6 @@
 #include <CoreCommon/StringHelper.h>
 
 #include <D3DX11tex.h>
-#include <vector>            // TEMPORARY
 
 #pragma warning (disable : 4996)
 
@@ -34,7 +33,7 @@ Texture::Texture()
 Texture::Texture(
 	ID3D11Device* pDevice, 
 	const std::string& filePath) :
-	path_(filePath)
+	name_(filePath)
 {
 	// create and initialize a texture from a file by filePath
 
@@ -53,25 +52,25 @@ Texture::Texture(
 
 Texture::Texture(
 	ID3D11Device* pDevice,
-	const std::string& texArrLabel,
-	const std::string* filenames,
-	const int numFilenames,
+    const std::string& name,            // a name for this texture object
+	const std::string* texturesNames,
+	const size numTextures,
 	const DXGI_FORMAT format)
-	//const UINT filter,
-	//const UINT mipFilter)
 {
-	// a constructor for loading multiple textures to create a Texture2DArray
+	// a constructor which loads a texture array and associated view from a series
+    // of textures on disk.
 
-	Assert::True((pDevice != nullptr) && (filenames != nullptr) && (numFilenames > 0) && (!texArrLabel.empty()), "invalid input data");
+    Assert::True(!name.empty(),            "input name for the texture object is empty");
+    Assert::True(texturesNames != nullptr, "input arr of paths to textures == nullptr");
+    Assert::True(numTextures > 0,          "input number of textures filenames must be > 0");
 
 	// load the texture elements individually from file. These texture won't
 	// be used by the GPU (0 bind flags), they are just used to load the image 
 	// data from file. We use the STAGING usage so the CPU can read the resource.
 	HRESULT hr = S_OK;
-	UINT size = (UINT)numFilenames;
-	std::vector<ID3D11Texture2D*> srcTex(size, nullptr);
+    ID3D11Texture2D* srcTex[128]{ nullptr };
 
-	for (UINT i = 0; i < size; ++i)
+	for (index i = 0; i < numTextures; ++i)
 	{
 		D3DX11_IMAGE_LOAD_INFO loadInfo;
 		loadInfo.Width          = D3DX11_FROM_FILE;
@@ -90,17 +89,17 @@ Texture::Texture(
 
 		hr = D3DX11CreateTextureFromFile(
 			pDevice,
-			StringHelper::StringToWide(filenames[i]).c_str(),
+			StringHelper::StringToWide(texturesNames[i]).c_str(),
 			&loadInfo,
 			nullptr,
 			(ID3D11Resource**)&srcTex[i], 
 			nullptr);
-		Assert::NotFailed(hr, "can't create a texture from file: " + filenames[i]);
+		Assert::NotFailed(hr, "can't create a texture from file: " + texturesNames[i]);
 	}
 
 
 	// Create the texture array. Each element in the texture array
-	// has the same format/dimensions
+	// has the same format/dimensions/mip levels number
 	ID3D11DeviceContext* pContext = nullptr;
 	D3D11_TEXTURE2D_DESC texElemDesc;
 	D3D11_TEXTURE2D_DESC texArrayDesc;
@@ -112,7 +111,7 @@ Texture::Texture(
 	texArrayDesc.Width              = texElemDesc.Width;
 	texArrayDesc.Height             = texElemDesc.Height;
 	texArrayDesc.MipLevels          = texElemDesc.MipLevels;
-	texArrayDesc.ArraySize          = size;
+	texArrayDesc.ArraySize          = (UINT)numTextures;
 	texArrayDesc.Format             = texElemDesc.Format;
 	texArrayDesc.SampleDesc.Count   = 1;
 	texArrayDesc.SampleDesc.Quality = 0;
@@ -130,7 +129,7 @@ Texture::Texture(
 	//
 
 	// for each texture element...
-	for (UINT texElem = 0; texElem < size; ++texElem)
+	for (index texElem = 0; texElem < numTextures; ++texElem)
 	{
 		// for each mipmap level...
 		for (UINT mipLevel = 0; mipLevel < texElemDesc.MipLevels; ++mipLevel)
@@ -144,7 +143,7 @@ Texture::Texture(
 				texArr,                       // dst resource
 				D3D11CalcSubresource(         // compute idx identifying the subresource we are updating in the dst resource
 					mipLevel,
-					texElem,
+					(UINT)texElem,
 					texElemDesc.MipLevels),
 				nullptr,                      // pDstBox - a ptr to a D3D11_BOX instance that specifies the volume in the destination subresource we are updating; specify null to update the entire subresource
 				mappedTex2D.pData,            // ptr to the src data
@@ -166,17 +165,17 @@ Texture::Texture(
 	viewDesc.Texture2DArray.MostDetailedMip = 0;
 	viewDesc.Texture2DArray.MipLevels       = texArrayDesc.MipLevels;
 	viewDesc.Texture2DArray.FirstArraySlice = 0;
-	viewDesc.Texture2DArray.ArraySize       = size;
+	viewDesc.Texture2DArray.ArraySize       = (UINT)numTextures;
 
 	ID3D11ShaderResourceView* texArrSRV = 0;
 
 	hr = pDevice->CreateShaderResourceView(texArr, &viewDesc, &texArrSRV);
+    Assert::NotFailed(hr, "can't create a shader resource view for texture array");
 
 	//
 	// Cleanup -- we only need the resource view
 	//
-
-	for (UINT i = 0; i < size; ++i)
+	for (index i = 0; i < numTextures; ++i)
 		SafeRelease(&srcTex[i]);
 
 	// assignment
@@ -184,17 +183,14 @@ Texture::Texture(
 	pTextureView_ = texArrSRV;
 	width_        = texArrayDesc.Width;
 	height_       = texArrayDesc.Height;
-	path_         = texArrLabel;
+	name_         = name;
 }
 
 ///////////////////////////////////////////////////////////
 
-Texture::Texture(
-	ID3D11Device* pDevice, 
-	const Color & color)
+Texture::Texture(ID3D11Device* pDevice, const Color & color)
 {
-	// THIS FUNC creates a 1x1 texture with input color value
-
+	// create a 1x1 texture with input color value
 	try
 	{
 		Initialize1x1ColorTexture(pDevice, color);
@@ -214,8 +210,7 @@ Texture::Texture(
 	const UINT width,
 	const UINT height)
 {
-	// THIS FUNC creates a width_x_height texture with input color data
-
+	// create a width_x_height texture with input color data
 	try
 	{
 		Assert::NotNullptr(pColorData, "the input ptr to color data == nullptr");
@@ -234,24 +229,25 @@ Texture::Texture(
 
 Texture::Texture(
 	ID3D11Device* pDevice,
-	const std::string& path,
+	const std::string& name,
 	const uint8_t* pData,
 	const size_t size)
 	:
-	path_(path)
+	name_(name)
 {
 	// a constructor for loading embedded compressed textures;
 	// 
 	// source texture can be compressed or embedded so we firstly load its 
 	// content into the memory and then passed here ptr to this loaded data;
 
-
 	try
 	{
-		Assert::True((pData != nullptr) && (size > 0), "wrong input data");
+        Assert::True(!name.empty(),    "input name for the texture obj is empty");
+        Assert::True(pData != nullptr, "input ptr to texture data == nullptr");
+        Assert::True(size > 0,         "size of input texture data must be > 0");
 
 		ImgReader::ImageReader imageReader;
-		ImgReader::ImageReader::DXTextureData texData(path, &pTexture_, &pTextureView_);
+		ImgReader::ImageReader::DXTextureData texData(name, &pTexture_, &pTextureView_);
 
 		imageReader.LoadTextureFromMemory(pDevice, pData, size, texData);
 
@@ -278,11 +274,11 @@ Texture::Texture(
 ///////////////////////////////////////////////////////////
 
 Texture::Texture(Texture&& rhs) noexcept :
-	path_(std::exchange(rhs.path_, "")),
-	pTexture_(std::exchange(rhs.pTexture_, nullptr)),
+	name_        (std::exchange(rhs.name_, "")),
+	pTexture_    (std::exchange(rhs.pTexture_, nullptr)),
 	pTextureView_(std::exchange(rhs.pTextureView_, nullptr)),
-	width_(rhs.width_),
-	height_(rhs.height_)
+	width_       (rhs.width_),
+	height_      (rhs.height_)
 {
 	// move constructor
 }
@@ -318,7 +314,7 @@ void Texture::Copy(Texture& src)
 	this->Copy(src.pTexture_);
 
 	// copy common data of the texture instance
-	path_   = src.path_;
+	name_   = src.name_;
 	width_  = src.width_;
 	height_ = src.height_;
 }
@@ -417,7 +413,7 @@ void Texture::Copy(ID3D11Resource* const pSrcTexResource)
 	// ----------------------------------------------------
 
 	// copy common data of the src texture
-	path_   = "copy_without_path";
+	name_   = "copy_without_path";
 	width_  = dstTextureDesc.Width;
 	height_ = dstTextureDesc.Height;
 
@@ -442,31 +438,31 @@ POINT Texture::GetTextureSize()
 // =================================================================================
 // Private API
 // =================================================================================
-
 void Texture::Clear()
 {
+    // clear the texture data and release resources
 	width_ = 0;
 	height_ = 0;
-	path_.clear();
+	name_.clear();
 	SafeRelease(&pTexture_);
 	SafeRelease(&pTextureView_);
 }
 
 ///////////////////////////////////////////////////////////
 
-void Texture::LoadFromFile(
-	ID3D11Device* pDevice,
-	const std::string & filePath)
+void Texture::LoadFromFile(ID3D11Device* pDevice, const std::string& filePath)
 {
-	// create a texture's resource and shader resource view loading texture data from the file
+	// load a texture from file by input path and store texture obj into the manager;
 	try
 	{
+        Assert::True(!filePath.empty(), "input path to texture is empty");
+
 		ImgReader::ImageReader imageReader;
 		ImgReader::ImageReader::DXTextureData data(filePath, &pTexture_, &pTextureView_);
 
 		imageReader.LoadTextureFromFile(pDevice, data);
 
-		path_ = filePath;
+		name_ = filePath;
 		width_ = data.textureWidth;
 		height_ = data.textureHeight;
 	}

@@ -3,7 +3,7 @@
 // Created:    24.11.24
 // ********************************************************************************
 #include "DebugShader.h"
-#include "shaderclass.h"
+#include "../Common/Types.h"
 
 namespace Render
 {
@@ -24,14 +24,16 @@ DebugShader::~DebugShader()
 
 bool DebugShader::Initialize(
 	ID3D11Device* pDevice,
-	ID3D11DeviceContext* pContext)
+	ID3D11DeviceContext* pContext,
+    const std::string& pathToShadersDir)
 {
 	try
 	{
-		const std::string vsFilepath = ShaderClass::pathToShadersDir_ + "DebugVS.cso";
-		const std::string psFilepath = ShaderClass::pathToShadersDir_ + "DebugPS.cso";
-
-		InitializeShaders(pDevice, pContext, vsFilepath, psFilepath);
+		InitializeShaders(
+            pDevice,
+            pContext,
+            pathToShadersDir + "DebugVS.cso",
+            pathToShadersDir + "DebugPS.cso");
 	}
 	catch (LIB_Exception& e)
 	{
@@ -82,7 +84,10 @@ void DebugShader::Render(
 		for (int subsetIdx = 0; subsetIdx < (int)std::ssize(instance.subsets); ++subsetIdx)
 		{
 			// update textures for the current subset
-			pContext->PSSetShaderResources(0U, 22U, texIDs + (subsetIdx * 22));
+			pContext->PSSetShaderResources(
+                0U,
+                NUM_TEXTURE_TYPES,
+                texIDs + (subsetIdx * NUM_TEXTURE_TYPES));
 
 			const Subset& subset = instance.subsets[subsetIdx];
 

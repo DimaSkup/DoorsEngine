@@ -30,7 +30,7 @@ struct Rendered
     cvector<EntityID>                   visibleEnttsIDs;        // currently visible entts (models) for this frame
     cvector<EntityID>                   visiblePointLightsIDs;  // currently visible point light sources
 
-    ComponentType                       type = ComponentType::RenderedComponent;
+    eComponentType                       type = eComponentType::RenderedComponent;
 };
 
 }

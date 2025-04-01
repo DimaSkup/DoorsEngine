@@ -9,13 +9,12 @@
 #include <string>
 
 // Rel - relative
-static const std::string g_RelPathExtModelsDir = "data/models/ext/";     // external models (.obj, .blend, .fbx, etc.)
-static const std::string g_RelPathAssetsDir = "data/models/assets/";      // assets (models in the internal format: .de3d)
-//static const std::string g_RelImportedModelsDirPath = "data/models/imported/";
-static const std::string g_RelPathTexDir = "data/textures/";
-static const std::string g_RelPathUIDataDir = "data/ui/";
+static const std::string g_RelPathExtModelsDir = "data/models/ext/";      // external models (.obj, .blend, .fbx, etc.)
+static const std::string g_RelPathAssetsDir    = "data/models/assets/";   // assets (models in the internal format: .de3d)
+static const std::string g_RelPathTexDir       = "data/textures/";
+static const std::string g_RelPathUIDataDir    = "data/ui/";
 
-const std::string g_RelPathAudioDir = "data/audio/";
+const std::string g_RelPathAudioDir            = "data/audio/";
 
 
 // full paths from the sys root

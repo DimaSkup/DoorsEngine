@@ -81,10 +81,10 @@
     <ClInclude Include="Entity\SerializationHelperTypes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Components\Textured.h">
+    <ClInclude Include="Components\Material.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Systems\TexturesSystem.h">
+    <ClInclude Include="Systems\MaterialSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Components\TextureTransform.h">
@@ -185,7 +185,7 @@
     <ClCompile Include="Entity\EntityMgrDeserializer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Systems\TexturesSystem.cpp">
+    <ClCompile Include="Systems\MaterialSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Systems\TextureTransformSystem.cpp">

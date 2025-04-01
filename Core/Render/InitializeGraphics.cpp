@@ -13,6 +13,8 @@
 #include <CoreCommon/StringHelper.h>
 #include "Common/LIB_Exception.h"    // ECS exception
 
+#include "../Texture/TextureTypes.h"
+#include "../Mesh/MaterialMgr.h"
 #include "../Model/ModelExporter.h"
 #include "../Model/ModelImporter.h"
 #include "../Model/ModelLoader.h"
@@ -69,8 +71,7 @@ bool InitializeGraphics::InitializeDirectX(
         Assert::True(result, "can't initialize the Direct3D");
 
         // setup the rasterizer state to default params
-        using enum RenderStates::STATES;
-        d3d.SetRS({ CULL_BACK, FILL_SOLID });
+        d3d.SetRS({ eRenderState::CULL_BACK, eRenderState::FILL_SOLID });
     }
     catch (EngineException & e)
     {
@@ -350,11 +351,26 @@ void CreateSpheres(ECS::EntityMgr& mgr, const BasicModel& model)
 
     // add bounding component to each entity
     mgr.AddBoundingComponent(
-        enttsIDs.data(),
+        ids,
         numEntts,
         numSubsets,
         boundTypes,
         model.GetSubsetsAABB());      // AABB data (center, extents)
+
+
+    // add material for each sphere entity
+    MaterialMgr& materialMgr = *MaterialMgr::Get();
+    const MaterialID matID          = model.meshes_.subsets_[0].materialID;
+    const MaterialID catMatID       = materialMgr.GetMaterialIdByName("cat");
+    const MaterialID woodCrateMatID = materialMgr.GetMaterialIdByName("wood_crate_1");
+    constexpr bool areMaterialsMeshBased = true;
+
+
+    mgr.AddMaterialComponent(enttsIDs[0], &catMatID, numSubsets, false);
+    mgr.AddMaterialComponent(enttsIDs[1], &woodCrateMatID, numSubsets, false);
+
+    for (index i = 2; i < numEntts; ++i)
+        mgr.AddMaterialComponent(enttsIDs[i], &matID, numSubsets, areMaterialsMeshBased);
 }
 
 ///////////////////////////////////////////////////////////
@@ -424,6 +440,9 @@ void CreateCylinders(ECS::EntityMgr& mgr, const BasicModel& model)
     //
     Log::Debug();
 
+    TextureMgr& texMgr = *TextureMgr::Get();
+    MaterialMgr& materialMgr = *MaterialMgr::Get();
+
     constexpr size numEntts = 10;
     const ECS::cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
     const EntityID* ids = enttsIDs.data();
@@ -454,9 +473,9 @@ void CreateCylinders(ECS::EntityMgr& mgr, const BasicModel& model)
 
     // ----------------------------------------------------
     // set a default texture for the cylinder mesh
-    TextureMgr* pTexMgr        = TextureMgr::Get();
+    
     const TexPath brickTexPath = g_RelPathTexDir + "brick01.dds";
-    const TexID brickTexID     = pTexMgr->LoadFromFile(brickTexPath);
+    const TexID brickTexID     = texMgr.LoadFromFile(brickTexPath);
 
     // ----------------------------------------------------
     // setup rendering params
@@ -470,8 +489,10 @@ void CreateCylinders(ECS::EntityMgr& mgr, const BasicModel& model)
     const ECS::BoundingType boundTypes[1] = { ECS::BoundingType::BOUND_BOX };
     const DirectX::BoundingBox* enttAABBs = model.GetSubsetsAABB();
 
-    TexID textures[22]{ 0 };
-    textures[TexType::DIFFUSE] = brickTexID;
+    // setup material params
+    Material cylinderMat;
+    cylinderMat.SetTexture(TEX_TYPE_DIFFUSE, brickTexID);
+    const MaterialID cylinderMatID = materialMgr.AddMaterial(std::move(cylinderMat));
 
     // ----------------------------------------------------
 
@@ -482,8 +503,12 @@ void CreateCylinders(ECS::EntityMgr& mgr, const BasicModel& model)
         transform.dirQuats.data(),
         transform.uniformScales.data());
 
+    // each cylinder has only one mesh
+    constexpr int  numSubmeshes = 1;
+    constexpr bool areMaterialsMeshBased = false;
+
     for (const EntityID id : enttsIDs)
-        mgr.AddTexturedComponent(id, textures, 22, 0);
+        mgr.AddMaterialComponent(id, &cylinderMatID, numSubmeshes, areMaterialsMeshBased);
 
     mgr.AddNameComponent(ids, names.data(), numEntts);
     mgr.AddRenderingComponent(ids, numEntts, renderParams);
@@ -556,6 +581,7 @@ void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
         };
 
         TextureMgr& texMgr = *TextureMgr::Get();
+        MaterialMgr& materialMgr = *MaterialMgr::Get();
         TexID texIDs[numEntts];  // just setup only diffuse texture for each cube
 
         // load textures
@@ -599,74 +625,67 @@ void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
         mgr.AddModelComponent(ids, model.GetID(), numEntts);
 
         // the cube has only one submesh
-        int subsetID = 0;
+        constexpr int numSubmeshes = 1;
 
-        const TexID unloadedTexID = TextureMgr::TEX_ID_UNLOADED;
-        const u32 texTypesCount = Texture::TEXTURE_TYPE_COUNT;
+
+        // ---------------------------------------------------------
+        // Prepare materials for the cubes
 
         // cube_0: rotated cat
-        TexID cat1TexIDs[texTypesCount]{ unloadedTexID };
-        cat1TexIDs[TexType::DIFFUSE] = keysToTexIDs.at("cat");
-
-        mgr.AddTexturedComponent(
-            enttsNameToID.at("cat"),
-            cat1TexIDs,
-            texTypesCount,
-            subsetID);
+        Material catMaterial;
+        catMaterial.SetName("cat");
+        catMaterial.SetTexture(TEX_TYPE_DIFFUSE, keysToTexIDs.at("cat"));
+        const MaterialID catMatID = materialMgr.AddMaterial(std::move(catMaterial));
 
         // cube_1: firecamp animated
-        TexID fireflameTexIDs[texTypesCount]{ unloadedTexID };
-        fireflameTexIDs[TexType::DIFFUSE] = keysToTexIDs.at("fireAtlas");
-
-        mgr.AddTexturedComponent(
-            enttsNameToID.at("fireflame"),
-            fireflameTexIDs,
-            texTypesCount,
-            subsetID);
+        Material firecampMaterial;
+        firecampMaterial.SetName("firecamp");
+        firecampMaterial.SetTexture(TEX_TYPE_DIFFUSE, keysToTexIDs.at("fireAtlas"));
+        const MaterialID firecampMatID = materialMgr.AddMaterial(std::move(firecampMaterial));
 
         // cube_2: wirefence with alpha clipping
-        std::vector<TexID> wireFenceTexIDs(texTypesCount, unloadedTexID);
-        wireFenceTexIDs[TexType::DIFFUSE] = keysToTexIDs.at("wireFence");
-
-        mgr.AddTexturedComponent(
-            enttsNameToID.at("wireFence"),
-            wireFenceTexIDs.data(),
-            std::ssize(wireFenceTexIDs),
-            subsetID);
+        Material wirefenceMaterial;
+        wirefenceMaterial.SetName("wirefence");
+        wirefenceMaterial.SetAlphaClip(true);
+        wirefenceMaterial.SetTexture(TEX_TYPE_DIFFUSE, keysToTexIDs.at("wireFence"));
+        const MaterialID wirefenceMatID = materialMgr.AddMaterial(std::move(wirefenceMaterial));
 
         // cube_3: wood crate 1
-        std::vector<TexID> woodCrate01TexIDs(texTypesCount, unloadedTexID);
-        woodCrate01TexIDs[TexType::DIFFUSE] = keysToTexIDs.at("woodCrate01");
-
-        mgr.AddTexturedComponent(
-            enttsNameToID.at("woodCrate01"),
-            woodCrate01TexIDs.data(),
-            std::ssize(woodCrate01TexIDs),
-            subsetID);
+        Material woodCrate1Material;
+        woodCrate1Material.SetName("wood_crate_1");
+        woodCrate1Material.SetTexture(TEX_TYPE_DIFFUSE, keysToTexIDs.at("woodCrate01"));
+        const MaterialID woodCrate1MatID = materialMgr.AddMaterial(std::move(woodCrate1Material));
 
         // cube_4: wood crate 2
-        TexID woodCrate02TexIDs[texTypesCount]{ unloadedTexID };
-        woodCrate02TexIDs[TexType::DIFFUSE] = keysToTexIDs.at("woodCrate02");
-
-        mgr.AddTexturedComponent(
-            enttsNameToID.at("woodCrate02"),
-            woodCrate02TexIDs,
-            texTypesCount,
-            subsetID);
+        Material woodCrate2Material;
+        woodCrate2Material.SetName("wood_crate_2");
+        woodCrate2Material.SetTexture(TEX_TYPE_DIFFUSE, keysToTexIDs.at("woodCrate02"));
+        const MaterialID woodCrate2MatID = materialMgr.AddMaterial(std::move(woodCrate2Material));
 
         // cube_5: box01
-        TexID box01TexIDs[texTypesCount]{ unloadedTexID };
-        box01TexIDs[TexType::DIFFUSE] = keysToTexIDs.at("box01");
+        //Material box01Material;
+        //box01Material.SetName("box_01");
+        //box01Material.SetTexture(TEX_TYPE_DIFFUSE, keysToTexIDs.at("box01"));
+        //const MaterialID box01MatID = materialMgr.AddMaterial(std::move(box01Material));
+        const MaterialID box01MatID = model.meshes_.subsets_[0].materialID;
 
-        mgr.AddTexturedComponent(
-            enttsNameToID.at("box01"),
-            box01TexIDs,
-            texTypesCount,
-            subsetID);
+        // add material component (materials are the same as the original model)
 
+        constexpr bool matIsMeshBased = true;
+        constexpr bool matIsNotMeshBased = false;
+        mgr.AddMaterialComponent(enttsNameToID.at("cat"), &catMatID, numSubmeshes, matIsNotMeshBased);
+        mgr.AddMaterialComponent(enttsNameToID.at("fireflame"), &firecampMatID, numSubmeshes, matIsNotMeshBased);
+        mgr.AddMaterialComponent(enttsNameToID.at("box01"), &box01MatID, numSubmeshes, matIsMeshBased);
+
+        // add material component (each material is unique)
+        mgr.AddMaterialComponent(enttsNameToID.at("wireFence"), &wirefenceMatID, numSubmeshes, matIsNotMeshBased);
+        mgr.AddMaterialComponent(enttsNameToID.at("woodCrate01"), &woodCrate1MatID, numSubmeshes, matIsNotMeshBased);
+        mgr.AddMaterialComponent(enttsNameToID.at("woodCrate02"), &woodCrate2MatID, numSubmeshes, matIsNotMeshBased);
+       
         // ------------------------------------------
 
-        // some texture animation for some cubes
+        // add some texture transformations (animations) for some cubes
+#if 1
         mgr.AddTextureTransformComponent(
             enttsNameToID.at("fireflame"),
             ECS::TexTransformType::ATLAS_ANIMATION,
@@ -676,7 +695,7 @@ void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
             enttsNameToID.at("cat"),
             ECS::TexTransformType::ROTATION_AROUND_TEX_COORD,
             rotAroundCoordsParams);
-
+#endif
 
         // setup rendering params
         ECS::RenderInitParams renderParams;
@@ -685,14 +704,15 @@ void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
 
         mgr.AddRenderingComponent(ids, numEntts, renderParams);
 
+#if 0
         // setup blending params of the entities
-        using enum ECS::RSTypes;
+        using enum ECS::eRenderState;
         mgr.renderStatesSystem_.UpdateStates(enttsNameToID.at("wireFence"), { ALPHA_CLIPPING, CULL_NONE });
 
         mgr.renderStatesSystem_.UpdateStates(enttsNameToID.at("cat"), ADDING);
         //enttMgr.renderStatesSystem_.UpdateStates(enttsNameToID.at("woodCrate01"), ADDING);
         //enttMgr.renderStatesSystem_.UpdateStates(enttsNameToID.at("woodCrate02"), MULTIPLYING);
-
+#endif
 
         const size numSubsets = 1;                    // each cube has only one mesh
         const ECS::BoundingType boundTypes[1] = { ECS::BoundingType::BOUND_BOX };
@@ -740,16 +760,20 @@ void CreateTerrain(ECS::EntityMgr& mgr, const BasicModel& model)
     mgr.AddRenderingComponent(enttID, renderParams);
 
     // add bounding component to each subset of this entity
-    const size numEntts = 1;
-    const size numSubsets = model.GetNumSubsets();
-    const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
+    constexpr size numEntts   = 1;
+    constexpr size numSubsets = 1;
+    ECS::BoundingType boundTypes = ECS::BoundingType::BOUND_BOX;
 
     mgr.AddBoundingComponent(
         &enttID,
         numEntts,
         numSubsets,
-        boundTypes.data(),
+        &boundTypes,
         model.GetSubsetsAABB());             // AABB data (center, extents)
+
+    constexpr bool areMaterialsMeshBased = true;
+    const MaterialID terrainMatID = model.meshes_.subsets_[0].materialID;
+    mgr.AddMaterialComponent(enttID, &terrainMatID, numSubsets, areMaterialsMeshBased);
 
     Log::Debug("Terrain is created");
 }
@@ -787,7 +811,7 @@ void CreateWater(ECS::EntityMgr& mgr)
 
 
 
-    using enum ECS::RSTypes;
+    using enum ECS::eRenderState;
 
     // create and setup a water entity
     EntityID waterEnttID = mgr.CreateEntity();
@@ -820,6 +844,7 @@ void CreateWater(ECS::EntityMgr& mgr)
 void CreateSkull(ECS::EntityMgr& mgr, const BasicModel& model)
 {
     // create and setup a skull entity
+
     Log::Debug();
 
     try
@@ -859,6 +884,8 @@ void CreateSkull(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreatePlanes(ECS::EntityMgr& mgr, const BasicModel& model)
 {
+    // create planes entities
+
     Log::Debug();
 
     try 
@@ -924,7 +951,7 @@ void CreatePlanes(ECS::EntityMgr& mgr, const BasicModel& model)
 
         // ---------------------------------------------------------
         // setup render states of the entities
-        //using enum ECS::RSTypes;
+        //using enum ECS::eRenderState;
 
         //mgr.renderStatesSystem_.UpdateStates(enttsIDs[0], ADDING);
         //mgr.renderStatesSystem_.UpdateStates(enttsIDs[1], SUBTRACTING);
@@ -947,10 +974,12 @@ void CreatePlanes(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateTreesPine(ECS::EntityMgr& mgr, const BasicModel& model)
 {
+    // create tree pine entities
+
     Log::Debug();
 
-    using enum ECS::RSTypes;
-    constexpr int numEntts = 50;
+    using enum ECS::eRenderState;
+    constexpr size numEntts = 50;
     const ECS::cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
     const EntityID* ids = enttsIDs.data();
 
@@ -979,14 +1008,14 @@ void CreateTreesPine(ECS::EntityMgr& mgr, const BasicModel& model)
     positions[0] = {0,0,0};
 
     // generate direction quats
-    for (int i = 0; i < numEntts; ++i)
+    for (index i = 0; i < numEntts; ++i)
     {
         float angleY = MathHelper::RandF(0, 314) * 0.01f;
         quats[i] = XMQuaternionRotationRollPitchYaw(DirectX::XM_PIDIV2, angleY, 0);
     }
 
     // generate a scale value for each tree
-    for (int i = 0; i < numEntts; ++i)
+    for (index i = 0; i < numEntts; ++i)
     {
         //uniScales[i] += MathHelper::RandF(0.0f, 50.0f) * 0.01f;
         uniScales[i] = 0.01f;
@@ -1007,25 +1036,40 @@ void CreateTreesPine(ECS::EntityMgr& mgr, const BasicModel& model)
     mgr.renderStatesSystem_.UpdateStates(enttsIDs, { ALPHA_CLIPPING, CULL_NONE });
 
     //const DirectX::XMMATRIX world = mgr.transformSystem_.GetWorldMatrixOfEntt(enttI)
-    const size numSubsets = model.GetNumSubsets();
-    const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
+    constexpr size numSubsets = 3;    // tree pine model has 3 meshes
+    const ECS::BoundingType boundTypes[numSubsets] = { ECS::BoundingType::BOUND_BOX, ECS::BoundingType::BOUND_BOX, ECS::BoundingType::BOUND_BOX };
 
     // add bounding component to each entity
     mgr.AddBoundingComponent(
         enttsIDs.data(),
         numEntts,
         numSubsets,
-        boundTypes.data(),
+        boundTypes,
         model.GetSubsetsAABB());      // AABB data (center, extents)
+
+
+    // get material ID of each tree subset (mesh)
+    MaterialID materialIDs[numSubsets];
+
+    for (index i = 0; i < numSubsets; ++i)
+        materialIDs[i] = model.meshes_.subsets_[i].materialID;
+
+    // add material component to each tree pine
+    constexpr bool matIsMeshBased = true;
+
+    for (index i = 0; i < numEntts; ++i)
+        mgr.AddMaterialComponent(ids[i], materialIDs, numSubsets, matIsMeshBased);
 }
 
 ///////////////////////////////////////////////////////////
 
 void CreateTreesSpruce(ECS::EntityMgr& mgr, const BasicModel& model)
 {
+    // create tree spruce entities
+
     Log::Debug();
 
-    using enum ECS::RSTypes;
+    using enum ECS::eRenderState;
     constexpr int numEntts = 50;
     const ECS::cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
     const EntityID* ids = enttsIDs.data();
@@ -1099,7 +1143,7 @@ void CreateTreesSpruce(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreatePowerLine(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    // create and setup a power lines entts
+    // create and setup a power line entities
 
     Log::Debug();
 
@@ -1224,6 +1268,15 @@ void CreateStalkerFreedom(ECS::EntityMgr& mgr, const BasicModel& model)
         numSubsets,
         boundTypes.data(),
         model.GetSubsetsAABB());             // AABB data (center, extents)
+
+
+    constexpr bool areMaterialsMeshBased = true;
+    cvector<MaterialID> materialIDs(numSubsets);
+
+    for (index i = 0; i < numSubsets; ++i)
+        materialIDs[i] = model.meshes_.subsets_[i].materialID;
+
+    mgr.AddMaterialComponent(enttID, materialIDs.data(), numSubsets, areMaterialsMeshBased);
 }
 
 ///////////////////////////////////////////////////////////
@@ -1393,10 +1446,20 @@ void CreateAk47(ECS::EntityMgr& mgr, const BasicModel& model)
     renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
     // setup bounding params
-    const size numEntts = 1;
-    const size numSubsets = model.GetNumSubsets();
-    const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
+    constexpr size numEntts = 1;
+    constexpr size numSubsets = 4;                // model of ak-47 has 4 meshes
+    ECS::BoundingType boundTypes[numSubsets];
 
+    for (index i = 0; i < numSubsets; ++i)
+        boundTypes[i] = ECS::BoundingType::BOUND_BOX;
+
+    // prepare materials IDs for the material component
+    MaterialID materialsIDs[numSubsets]{ 0 };
+
+    for (index i = 0; i < numSubsets; ++i)
+        materialsIDs[i] = model.meshes_.subsets_[i].materialID;
+
+    // ----------------------------------------------------
 
     mgr.AddTransformComponent(enttID, position, dirQuat, uniformScale);
     mgr.AddNameComponent(enttID, "ak_47");
@@ -1405,10 +1468,13 @@ void CreateAk47(ECS::EntityMgr& mgr, const BasicModel& model)
 
     mgr.AddBoundingComponent(
         &enttID,
-        1,
+        numEntts,
         numSubsets,
-        boundTypes.data(),
+        boundTypes,
         model.GetSubsetsAABB());      // AABB data (center, extents)
+
+    constexpr bool areMaterialsMeshBased = true;
+    mgr.AddMaterialComponent(enttID, materialsIDs, numSubsets, areMaterialsMeshBased);
 }
 
 ///////////////////////////////////////////////////////////
@@ -1627,17 +1693,23 @@ void CreatePillar(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void PrintImportTimingInfo()
 {
+    // print into the console information about the duration of the whole
+    // process of importing models from the external formats
+
     const double factor = (1.0 / ModelImporter::s_ImportDuration_) * 100.0;
 
-    Log::Print();
-    Log::Print("Summary about import process:", eConsoleColor::YELLOW);
-    Log::Print(std::format("time spent to import:        {}", ModelImporter::s_ImportDuration_));
-    Log::Print(std::format("time spent to load scene:    {} ({:.2} percent)", ModelImporter::s_SceneLoading_, ModelImporter::s_SceneLoading_ * factor));
-    Log::Print(std::format("time spent to load nodes:    {} ({:.2} percent)", ModelImporter::s_NodesLoading_, ModelImporter::s_NodesLoading_ * factor));
+ 
+    Log::Print("-------------------------------------------------", eConsoleColor::GREEN);
+    Log::Debug();
 
-    Log::Print(std::format("time spent to load vertices: {} ({:.2} percent)", ModelImporter::s_VerticesLoading_, ModelImporter::s_VerticesLoading_ * factor));
-    Log::Print(std::format("time spent to load textures: {} ({:.2} percent)", ModelImporter::s_TexLoadingDuration_, ModelImporter::s_TexLoadingDuration_ * factor));
-    Log::Print();
+    Log::Print("Summary about import process:", eConsoleColor::YELLOW);
+    Log::Printf("time spent to import:        %.3f ms (100 %%)",  ModelImporter::s_ImportDuration_);
+    Log::Printf("time spent to load scene:    %.3f ms (%.2f %%)", ModelImporter::s_SceneLoading_, ModelImporter::s_SceneLoading_ * factor);
+    Log::Printf("time spent to load nodes:    %.3f ms (%.2f %%)", ModelImporter::s_NodesLoading_, ModelImporter::s_NodesLoading_ * factor);
+
+    Log::Printf("time spent to load vertices: %.3f ms (%.2f %%)", ModelImporter::s_VerticesLoading_, ModelImporter::s_VerticesLoading_ * factor);
+    Log::Printf("time spent to load textures: %.3f ms (%.2f %%)", ModelImporter::s_TexLoadingDuration_, ModelImporter::s_TexLoadingDuration_ * factor);
+    Log::Print("-------------------------------------------------\n",  eConsoleColor::GREEN);
 }
 
 ///////////////////////////////////////////////////////////
@@ -1671,22 +1743,22 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     // import a model from file by path
     Log::Debug("Start of models importing");
 
-    const ModelID lightPoleID      = creator.ImportFromFile(pDevice, lightPolePath);
-    const ModelID treeSpruceID     = creator.ImportFromFile(pDevice, treeSprucePath);
+    //const ModelID lightPoleID      = creator.ImportFromFile(pDevice, lightPolePath);
+    //const ModelID treeSpruceID     = creator.ImportFromFile(pDevice, treeSprucePath);
     const ModelID treePineID       = creator.ImportFromFile(pDevice, treePinePath);
-    const ModelID nanosuitID       = creator.ImportFromFile(pDevice, nanosuitPath);
+    //const ModelID nanosuitID       = creator.ImportFromFile(pDevice, nanosuitPath);
     const ModelID stalkerFreedomID = creator.ImportFromFile(pDevice, stalkerFreedom1Path);
-    const ModelID stalkerHouse1ID  = creator.ImportFromFile(pDevice, stalkerHouseSmallPath);
-    const ModelID stalkerHouse2ID  = creator.ImportFromFile(pDevice, stalkerHouseAbandonedPath);
+    //const ModelID stalkerHouse1ID  = creator.ImportFromFile(pDevice, stalkerHouseSmallPath);
+    //const ModelID stalkerHouse2ID  = creator.ImportFromFile(pDevice, stalkerHouseAbandonedPath);
     const ModelID ak47ID           = creator.ImportFromFile(pDevice, ak47Path);
-    const ModelID ak74ID           = creator.ImportFromFile(pDevice, ak74uPath);
-    const ModelID barrelID         = creator.ImportFromFile(pDevice, barrelPath);
-    const ModelID powerHVTowerID   = creator.ImportFromFile(pDevice, powerHVTowerPath);
+    //const ModelID ak74ID           = creator.ImportFromFile(pDevice, ak74uPath);
+    //const ModelID barrelID         = creator.ImportFromFile(pDevice, barrelPath);
+    //const ModelID powerHVTowerID   = creator.ImportFromFile(pDevice, powerHVTowerPath);
     
    
-    const ModelID buildingID       = creator.ImportFromFile(pDevice, building9Path);
-    const ModelID apartmentID      = creator.ImportFromFile(pDevice, apartmentPath);
-    const ModelID sovietStatueID   = creator.ImportFromFile(pDevice, sovientStatuePath);
+    //const ModelID buildingID       = creator.ImportFromFile(pDevice, building9Path);
+    //const ModelID apartmentID      = creator.ImportFromFile(pDevice, apartmentPath);
+    //const ModelID sovietStatueID   = creator.ImportFromFile(pDevice, sovientStatuePath);
 
 
     PrintImportTimingInfo();
@@ -1694,44 +1766,44 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     Log::Debug("All the models are imported successfully");
 
     // get models by its ids
-    BasicModel& building        = storage.GetModelByID(buildingID);
-    BasicModel& apartment       = storage.GetModelByID(apartmentID);
-    BasicModel& sovietStatue    = storage.GetModelByID(sovietStatueID);
-    BasicModel& treeSpruce      = storage.GetModelByID(treeSpruceID);
+    //BasicModel& building        = storage.GetModelByID(buildingID);
+    //BasicModel& apartment       = storage.GetModelByID(apartmentID);
+    //BasicModel& sovietStatue    = storage.GetModelByID(sovietStatueID);
+    //BasicModel& treeSpruce      = storage.GetModelByID(treeSpruceID);
     BasicModel& treePine        = storage.GetModelByID(treePineID);
-    BasicModel& powerHVTower    = storage.GetModelByID(powerHVTowerID);
-    BasicModel& nanosuit        = storage.GetModelByID(nanosuitID);
+    //BasicModel& powerHVTower    = storage.GetModelByID(powerHVTowerID);
+    //BasicModel& nanosuit        = storage.GetModelByID(nanosuitID);
     BasicModel& stalkerFreedom  = storage.GetModelByID(stalkerFreedomID);
-    BasicModel& lightPole       = storage.GetModelByID(lightPoleID);
-    BasicModel& barrel          = storage.GetModelByID(barrelID);
-    BasicModel& stalkerHouse1   = storage.GetModelByID(stalkerHouse1ID);
-    BasicModel& stalkerHouse2   = storage.GetModelByID(stalkerHouse2ID);
+    //BasicModel& lightPole       = storage.GetModelByID(lightPoleID);
+    //BasicModel& barrel          = storage.GetModelByID(barrelID);
+    //BasicModel& stalkerHouse1   = storage.GetModelByID(stalkerHouse1ID);
+    //BasicModel& stalkerHouse2   = storage.GetModelByID(stalkerHouse2ID);
     BasicModel& ak47            = storage.GetModelByID(ak47ID);
-    BasicModel& ak74            = storage.GetModelByID(ak74ID);
+    //BasicModel& ak74            = storage.GetModelByID(ak74ID);
 
     // setup some models (set textures, setup materials)
-    SetupStalkerSmallHouse(stalkerHouse1);
-    SetupStalkerAbandonedHouse(stalkerHouse2);
+    //SetupStalkerSmallHouse(stalkerHouse1);
+    //SetupStalkerAbandonedHouse(stalkerHouse2);
     SetupTree(treePine);
-    SetupPowerLine(powerHVTower);
-    SetupBuilding9(building);
+    //SetupPowerLine(powerHVTower);
+    //SetupBuilding9(building);
     SetupAk47(ak47);
 
     CreateTreesPine(mgr, treePine);
-    CreateTreesSpruce(mgr, treeSpruce);
-    CreatePowerLine(mgr, powerHVTower);
+    //CreateTreesSpruce(mgr, treeSpruce);
+    //CreatePowerLine(mgr, powerHVTower);
     //CreateLightPoles(mgr, lightPole);
     //CreateHouse(mgr, stalkerHouse1);
     //CreateHouse2(mgr, stalkerHouse2);
 
     CreateAk47(mgr, ak47);
-    CreateAk74(mgr, ak74);
-    CreateBarrel(mgr, barrel);
-    CreateNanoSuit(mgr, nanosuit);
+    //CreateAk74(mgr, ak74);
+    //CreateBarrel(mgr, barrel);
+    //CreateNanoSuit(mgr, nanosuit);
     CreateStalkerFreedom(mgr, stalkerFreedom);
-    CreateBuilding(mgr, building);
-    CreateApartment(mgr, apartment);
-    CreateSovietStatue(mgr, sovietStatue);
+    //CreateBuilding(mgr, building);
+    //CreateApartment(mgr, apartment);
+    //CreateSovietStatue(mgr, sovietStatue);
 }
 
 ///////////////////////////////////////////////////////////
@@ -1775,6 +1847,7 @@ void GenerateAssets(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     boundSphere.SetName("bound_sphere");
 
     // manual setup of some models
+    SetupCube(cube);
     SetupSphere(sphere);
 
     // create and setup entities with models
@@ -1881,8 +1954,10 @@ bool InitializeGraphics::InitializeModels(
         ModelStorage& storage = *ModelStorage::Get();
         TextureMgr& texMgr = *TextureMgr::Get();
 
+        constexpr int numTreeTexturesPaths = 4;
+
         // create a texture 2D array for trees billboards
-        const std::vector<std::string> treeTexPaths =
+        const std::string treeTexPaths[numTreeTexturesPaths] =
         {
                 g_RelPathTexDir + "tree_pine_diffuse_512.dds",
                 g_RelPathTexDir + "tree1.dds",
@@ -1890,25 +1965,37 @@ bool InitializeGraphics::InitializeModels(
                 g_RelPathTexDir + "tree3.dds"
         };
 
-        texMgr.LoadFromFileTexture2DArray(treeTexPaths, DXGI_FORMAT_R8G8B8A8_UNORM);
+        texMgr.LoadTextureArray(
+            treeTexPaths,
+            numTreeTexturesPaths,
+            DXGI_FORMAT_R8G8B8A8_UNORM);
 
+
+        // load the "no_texture" texture from the file;
+        // (this texture will serve us as "invalid")
+        TexID noTextureID = texMgr.LoadFromFile(g_RelPathTexDir + "notexture.dds");
+
+        // create and setup an "invalid" material
+        Material invalidMaterial;
+        invalidMaterial.SetTexture(TEX_TYPE_DIFFUSE, noTextureID);
+
+        // add "invalid" material into the material manager
+        MaterialID invalidMaterialID = MaterialMgr::Get()->AddMaterial(std::move(invalidMaterial));
 
         // create a cube which will serve for us as an invalid model
         const ModelID cubeID     = creator.CreateCube(pDevice);
         BasicModel& invalidModel = storage.GetModelByID(cubeID);
-        TexID noTextureID = texMgr.LoadFromFile(g_RelPathTexDir + "notexture.dds");
-        
+
         invalidModel.SetName("invalid_model");
-        invalidModel.SetTexture(0, TexType::DIFFUSE, noTextureID);
+        invalidModel.SetMaterialForSubset(0, invalidMaterialID);
 
         // NOTE: the bounding line box model must be created first of all, before all the other models
         const ModelID boundingBoxID = creator.CreateBoundingLineBox(pDevice);
 
-
 #if 1
         if (fs::exists(g_RelPathAssetsDir))
         {
-            LoadAssets(pDevice, mgr);
+            //LoadAssets(pDevice, mgr);
         }
         else
         {
@@ -2006,23 +2093,13 @@ bool InitializeGraphics::InitializeModels(
     return true;
 }
 
-/////////////////////////////////////////////////
+///////////////////////////////////////////////////////////
 
-bool InitializeGraphics::InitializeLightSources(
-    ECS::EntityMgr& mgr,
-    const Settings& settings)
+void InitDirectedLightEntities(ECS::EntityMgr& mgr)
 {
-    // this function initializes all the light sources on the scene
-
-    using namespace DirectX;
+    // setup and create directed light entities
 
     constexpr int numDirLights = 3;
-    constexpr int numPointLights = 20;
-    constexpr int numSpotLights = 2;
-
-    // -----------------------------------------------------------------------------
-    //                 DIRECTIONAL LIGHTS: SETUP AND CREATE
-    // -----------------------------------------------------------------------------
 
     if constexpr (numDirLights > 0)
     {
@@ -2078,32 +2155,33 @@ bool InitializeGraphics::InitializeLightSources(
             mgr.AddTransformComponent(dirLightsIds[i], pos, dirQuat, 1.0f);
         }
     }
+}
 
+///////////////////////////////////////////////////////////
 
-    // -----------------------------------------------------------------------------
-    //                    POINT LIGHTS: SETUP AND CREATE
-    // -----------------------------------------------------------------------------
+void InitPointLightEntities(ECS::EntityMgr& mgr)
+{
+    constexpr size numPointLights = 20;
 
     if (numPointLights > 0)
     {
         ECS::PointLightsInitParams pointLightsParams;
         pointLightsParams.data.resize(numPointLights);
 
-        for (index i = 0; i < numPointLights; ++i)
-            pointLightsParams.data[i].ambient = { 0.2f, 0.2f, 0.2f, 1.0f };
 
-        // generate diffuse and specular color for each point light source
-        for (int i = 1; i < numPointLights; ++i)
+        // generate ambient/diffuse/specular color for each point light source
+        for (index i = 0; i < numPointLights; ++i)
         {
             const XMFLOAT4 color = MathHelper::RandColorRGBA();
-            XMFLOAT4& diffColor = pointLightsParams.data[i].diffuse;
-            XMFLOAT4& specColor = pointLightsParams.data[i].specular;
+            ECS::PointLight& light = pointLightsParams.data[i];
 
-            diffColor = color * 0.6f;
-            diffColor.w = 1.0f;
+            light.ambient = color * 0.3f;
 
-            specColor = color * 0.1f;
-            specColor.w = 1.0f;
+            light.diffuse = color * 0.7f;
+            light.diffuse.w = 1.0f;
+
+            light.specular = color * 0.8f;
+            light.specular.w = 1.0f;          // setup specular power
         }
 
         // setup attenuation params
@@ -2125,8 +2203,10 @@ bool InitializeGraphics::InitializeLightSources(
         }
 
         // ------------------------------------------------
- 
-        // setup transformation params because we may need to manipulate point lights icons (in editor we can change icons positions in the scene or manipulate light position using gizmo) 
+
+        // setup transformation params because we may need to manipulate point
+        // lights icons (in editor we can change icons positions in the scene or
+        // manipulate light position using gizmo) 
         XMFLOAT3 positions[numPointLights];
         XMVECTOR dirQuats[numPointLights];
         float uniformScales[numPointLights];
@@ -2144,7 +2224,7 @@ bool InitializeGraphics::InitializeLightSources(
         // generate name for each point light src
         std::string names[numPointLights];
 
-        for (int i = 0; std::string& name : names)
+        for (int i = 0; std::string & name : names)
             name = "point_light_" + std::to_string(i);
 
         // setup bounding params
@@ -2153,10 +2233,10 @@ bool InitializeGraphics::InitializeLightSources(
         DirectX::BoundingSphere boundSpheres[numPointLights];
 
         // setup bounding sphere for each point light src
-        for (int i = 0; i < numPointLights; ++i)
+        for (index i = 0; i < numPointLights; ++i)
             boundSpheres[i].Center = pointLightsParams.data[i].position;
 
-        for (int i = 0; i < numPointLights; ++i)
+        for (index i = 0; i < numPointLights; ++i)
             boundSpheres[i].Radius = pointLightsParams.data[i].range;
 
 
@@ -2171,77 +2251,125 @@ bool InitializeGraphics::InitializeLightSources(
         mgr.AddNameComponent(ids, names, numPointLights);
         //mgr.AddBoundingComponent(ids, boundSpheres, numPointLights);
     }
-    
+}
 
-    // -----------------------------------------------------------------------------
-    //                   SPOT LIGHTS: SETUP AND CREATE
-    // -----------------------------------------------------------------------------
+///////////////////////////////////////////////////////////
 
-#if 0
+void InitSpotLightEntities(ECS::EntityMgr& mgr)
+{
+    constexpr size numSpotLights = 2;
+
     if (numSpotLights > 0)
     {
         ECS::SpotLightsInitParams spotLightsParams;
 
-        spotLightsParams.ambients.resize(numSpotLights, { 0.01f, 0.01f, 0.01f, 1.0f });
-        spotLightsParams.diffuses.resize(numSpotLights, { 0.1f, 0.1f, 0.1f, 1.0f });
-        spotLightsParams.speculars.resize(numSpotLights, { 0, 0, 0, 1 });
+        spotLightsParams.data.resize(numSpotLights);
 
-        spotLightsParams.positions.resize(numSpotLights, { 0, 0, 0 });
-        spotLightsParams.directions.resize(numSpotLights, { 0, -DirectX::XM_PIDIV2, 0 });
+        // setup ambient/diffuse/specular for the flashlight in a separate way
+        ECS::SpotLight& flashlight = spotLightsParams.data[0];
+        flashlight.ambient  = XMFLOAT4(0.01f, 0.01f, 0.01f, 1.0f);
+        flashlight.diffuse  = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+        flashlight.specular = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
 
-        const float PI_DIV6 = DirectX::XM_PI * 0.333f;
-
-        // generate 2 rows of spot light sources
-        for (int i = 0, z = 0; i < numSpotLights / 2; z += 30, i += 2)
+        // generate ambient/diffuse/specular color for each spotlight source
+        for (index i = 1; i < numSpotLights; ++i)
         {
-            spotLightsParams.positions[i + 0] = { -8, 10, (float)z };
-            spotLightsParams.positions[i + 1] = { +8, 10, (float)z };
+            const XMFLOAT4 color = MathHelper::RandColorRGBA();
+            ECS::SpotLight& light = spotLightsParams.data[i];
+
+            light.ambient = color * 0.1f;
+            light.ambient.w = 1.0f;
+
+            light.diffuse = color * 0.7f;
+            light.diffuse.w = 1.0f;
+
+            light.specular = color * 0.01f;
+            light.specular.w = 3.0f;          // setup specular power
         }
 
-        for (int i = 0; i < numSpotLights / 2; i += 2)
+        // generate positions: 2 rows of spot light sources
+        for (index i = 0, z = 0; i < numSpotLights / 2; z += 30, i += 2)
         {
-            spotLightsParams.directions[i + 0].y -= PI_DIV6;
-            spotLightsParams.directions[i + 1].y += PI_DIV6;
+            spotLightsParams.data[i + 0].position = { -8, 10, (float)z };
+            spotLightsParams.data[i + 1].position = { +8, 10, (float)z };
         }
 
-        spotLightsParams.attenuations.resize(numSpotLights, { 1.0f, 100.0f, 100.0f });
-        spotLightsParams.ranges.resize(numSpotLights, 100);
-        spotLightsParams.spotExponents.resize(numSpotLights, 5);
+        // generate directions
+        constexpr float PI_DIV6 = DirectX::XM_PI * 0.333f;
+
+        for (index i = 0; i < numSpotLights / 2; i += 2)
+        {
+            spotLightsParams.data[i + 0].direction = { 0.0f, (-DirectX::XM_PIDIV2 - PI_DIV6), 0.0f };
+            spotLightsParams.data[i + 1].direction = { 0.0f, (-DirectX::XM_PIDIV2 + PI_DIV6), 0.0f };
+        }
+
+        // setup attenuation params (const, linear, quadratic)
+        for (index i = 0; i < numSpotLights; ++i)
+            spotLightsParams.data[i].att = { 1.0f, 100.0f, 100.0f };
+
+        // setup ranges (how far the spotlight can lit)
+        for (index i = 0; i < numSpotLights; ++i)
+            spotLightsParams.data[i].range = 100;
+
+        // setup spot exponent: light intensity fallof (for control the spotlight cone)
+        for (index i = 0; i < numSpotLights; ++i)
+            spotLightsParams.data[i].spot = 5;
 
 
         //
         // create and setup spotlight entities
         //
-        std::vector<EntityID> spotLightsIds = mgr.CreateEntities(numSpotLights);
+        const ECS::cvector<EntityID> spotLightsIds = mgr.CreateEntities(numSpotLights);
+        const EntityID* enttsIDs = spotLightsIds.data();
         const EntityID flashLightID = spotLightsIds[0];
 
-        std::vector<EntityName> spotLightsNames(numSpotLights, "spot_light_");
+        // setup names
+        EntityName spotLightsNames[numSpotLights];
         spotLightsNames[0] = "flashlight";
 
-        // generate names for each spot light (except of the flashlight: so we start from 1)
-        for (int i = 1; i < numSpotLights; ++i)
-            spotLightsNames[i] += std::to_string(spotLightsIds[i]);
+        for (index i = 1; i < numSpotLights; ++i)
+            spotLightsNames[i] = "spot_light_" + std::to_string(spotLightsIds[i]);
 
 
         // generate transform data for spotlight sources
-        std::vector<XMVECTOR> dirQuats(numSpotLights);
-        const std::vector<float> uniformScales(numSpotLights, 1.0f);
+        XMFLOAT3 positions[numSpotLights];
+        XMVECTOR dirQuats[numSpotLights];
+        float uniformScales[numSpotLights];
 
-        for (int i = 0; i < numSpotLights; ++i)
+        for (index i = 0; i < numSpotLights; ++i)
+            positions[i] = spotLightsParams.data[i].position;
+
+        for (index i = 0; i < numSpotLights; ++i)
         {
             // convert light direction into quaternion and normalize it
-            dirQuats[i] = XMQuaternionNormalize(XMLoadFloat3(&spotLightsParams.directions[i]));
+            dirQuats[i] = XMQuaternionNormalize(XMLoadFloat3(&spotLightsParams.data[i].direction));
         }
 
+        for (index i = 0; i < numSpotLights; ++i)
+            uniformScales[i] = 1.0f;
+
+
         // add components to each spotlight entity
-        mgr.AddTransformComponent(spotLightsIds, spotLightsParams.positions, dirQuats, uniformScales);
-        mgr.AddLightComponent(spotLightsIds, spotLightsParams);
-        mgr.AddNameComponent(spotLightsIds, spotLightsNames);
+        mgr.AddTransformComponent(enttsIDs, numSpotLights, positions, dirQuats, uniformScales);
+        mgr.AddLightComponent(enttsIDs, numSpotLights, spotLightsParams);
+        mgr.AddNameComponent(enttsIDs, spotLightsNames, numSpotLights);
 
         // main flashlight is inactive by default
         mgr.lightSystem_.SetLightIsActive(flashLightID, false);
     }
-#endif
+}
+
+///////////////////////////////////////////////////////////
+
+bool InitializeGraphics::InitializeLightSources(
+    ECS::EntityMgr& mgr,
+    const Settings& settings)
+{
+    // initialize all the light sources (entities) on the scene
+
+    InitDirectedLightEntities(mgr);
+    InitPointLightEntities(mgr);
+    InitSpotLightEntities(mgr);
 
     return true;
 }

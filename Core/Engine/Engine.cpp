@@ -359,7 +359,7 @@ void Engine::RenderFrame()
         D3DClass& d3d = graphics_.GetD3DClass();
         ID3D11DeviceContext* pContext = d3d.GetDeviceContext();
 
-        
+       
         if (systemState_.isEditorMode)
         {
             // Clear all the buffers before frame rendering and render our 3D scene
@@ -418,7 +418,7 @@ void Engine::RenderUI()
 
     // preparation before 2D rendering
     d3d.TurnZBufferOff();
-    d3d.TurnOnBlending(RenderStates::STATES::ALPHA_ENABLE);
+    d3d.TurnOnBlending(ALPHA_ENABLE);
     d3d.TurnOnRSfor2Drendering();
 
     if (systemState_.isEditorMode)

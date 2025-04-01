@@ -16,6 +16,8 @@
 #include <random>
 #include <format>
 
+using namespace DirectX;
+
 
 namespace Core
 {
@@ -39,6 +41,30 @@ GraphicsClass::~GraphicsClass()
 // =================================================================================
 
 bool GraphicsClass::Initialize(
+    HWND hwnd,
+    SystemState& systemState,
+    const Settings& settings)
+{
+    return InitHelper(hwnd, systemState, settings);
+}
+
+void GraphicsClass::Update(
+    SystemState& sysState,
+    const float deltaTime,
+    const float gameTime)
+{
+    UpdateHelper(sysState, deltaTime, gameTime);
+}
+
+void GraphicsClass::Render3D()
+{
+    RenderHelper();
+}
+
+
+///////////////////////////////////////////////////////////
+
+bool GraphicsClass::InitHelper(
     HWND hwnd, 
     SystemState& systemState,
     const Settings& settings)
@@ -183,7 +209,7 @@ void GraphicsClass::Shutdown()
 // Update / prepare scene
 // =================================================================================
 
-void GraphicsClass::Update(
+void GraphicsClass::UpdateHelper(
     SystemState& sysState,
     const float deltaTime,
     const float totalGameTime)
@@ -262,7 +288,7 @@ void GraphicsClass::Update(
         {
             const XMVECTOR enttPos      = XMLoadFloat3(&positions[i]);
             const XMVECTOR camToEnttVec = XMVectorSubtract(enttPos, camPos);
-            const int distSqr           = XMVectorGetX(XMVector3Dot(camToEnttVec, camToEnttVec));
+            const int distSqr           = (int)XMVectorGetX(XMVector3Dot(camToEnttVec, camToEnttVec));
 
             if (distSqr > fullFogDistanceSqr_)
             {
@@ -299,11 +325,13 @@ void GraphicsClass::Update(
     const EntityID* basicEntts = rsDataToRender_.enttsDefault_.ids_.data();
     const size numBasicEntts = rsDataToRender_.enttsDefault_.ids_.size();
     PrepBasicInstancesForRender(basicEntts, numBasicEntts);
-    /*
+    
     const EntityID* alphaClippedEnttsIDs = rsDataToRender_.enttsAlphaClipping_.ids_.data();
     const size numAlphaClippedEntts = rsDataToRender_.enttsAlphaClipping_.ids_.size();
     PrepAlphaClippedInstancesForRender(alphaClippedEnttsIDs, numAlphaClippedEntts);
 
+    
+    /*
     const EntityID* blendedEntts = rsDataToRender_.enttsBlended_.ids_.data();
     const size numBlendedEntts = rsDataToRender_.enttsBlended_.ids_.size();
     PrepBlendedInstancesForRender(blendedEntts, numBlendedEntts);
@@ -315,7 +343,6 @@ void GraphicsClass::Update(
 void GraphicsClass::PrepBasicInstancesForRender(
     const EntityID* ids,
     const size numEntts)
-
 {
     // prepare rendering data of entts which have default render states
 
@@ -329,11 +356,11 @@ void GraphicsClass::PrepBasicInstancesForRender(
     prep_.PrepareEnttsDataForRendering(
         ids,
         numEntts,
-        storage.modelInstBuffer_,
-        storage.modelInstances_);
+        storage.modelInstBuffer,
+        storage.modelInstances);
 
     // compute how many vertices will we render
-    for (const Render::Instance& inst : storage.modelInstances_)
+    for (const Render::Instance& inst : storage.modelInstances)
         pSysState_->visibleVerticesCount += inst.numInstances * inst.GetNumVertices();
 }
 
@@ -356,11 +383,11 @@ void GraphicsClass::PrepAlphaClippedInstancesForRender(
     prep_.PrepareEnttsDataForRendering(
         ids,
         numEntts,
-        storage.alphaClippedModelInstBuffer_,
-        storage.alphaClippedModelInstances_);
+        storage.alphaClippedModelInstBuffer,
+        storage.alphaClippedModelInstances);
 
     // compute how many vertices will we render
-    for (const Render::Instance& inst : storage.alphaClippedModelInstances_)
+    for (const Render::Instance& inst : storage.alphaClippedModelInstances)
         pSysState_->visibleVerticesCount += inst.numInstances * inst.GetNumVertices();
 }
 
@@ -383,8 +410,8 @@ void GraphicsClass::PrepBlendedInstancesForRender(
     prep_.PrepareEnttsDataForRendering(
         ids,
         numEntts,
-        storage.blendedModelInstBuffer_,
-        storage.blendedModelInstances_);
+        storage.blendedModelInstBuffer,
+        storage.blendedModelInstances);
 }
 
 ///////////////////////////////////////////////////////////
@@ -437,7 +464,7 @@ void GraphicsClass::ComputeFrustumCulling(SystemState& sysState)
         XMVECTOR scale;
         XMVECTOR dirQuat;
         XMVECTOR translation;
-        XMMatrixDecompose(&scale, &dirQuat, &translation, enttsLocal[idx]);
+        DirectX::XMMatrixDecompose(&scale, &dirQuat, &translation, enttsLocal[idx]);
 
         // transform the camera frustum from view space to the object's local space
         DirectX::BoundingFrustum LSpaceFrustum; 
@@ -492,7 +519,7 @@ void GraphicsClass::ComputeFrustumCullingOfLightSources(SystemState& sysState)
 
     // compute local space matrices for frustum transformations
     for (int i = 0; i < numPointLights; ++i)
-        localSpaces[i] = XMMatrixMultiply(pCurrCamera_->InverseView(), invWorlds[i]);
+        localSpaces[i] = DirectX::XMMatrixMultiply(pCurrCamera_->InverseView(), invWorlds[i]);
 
     invWorlds.clear();
     visPointLights.reserve(numPointLights);
@@ -504,7 +531,7 @@ void GraphicsClass::ComputeFrustumCullingOfLightSources(SystemState& sysState)
         XMVECTOR scale;
         XMVECTOR dirQuat;
         XMVECTOR translation;
-        XMMatrixDecompose(&scale, &dirQuat, &translation, localSpaces[idx]);
+        DirectX::XMMatrixDecompose(&scale, &dirQuat, &translation, localSpaces[idx]);
 
         // transform the camera frustum from view space to the point light local space
         BoundingFrustum LSpaceFrustum;
@@ -560,10 +587,8 @@ void GraphicsClass::ChangeModelFillMode()
 {
     // toggling on / toggling off the fill mode for the models
 
-    using enum RenderStates::STATES;
-
     isWireframeMode_ = !isWireframeMode_;
-    RenderStates::STATES fillParam = (isWireframeMode_) ? FILL_WIREFRAME : FILL_SOLID;
+    const eRenderState fillParam = (isWireframeMode_) ? FILL_WIREFRAME : FILL_SOLID;
 
     d3d_.SetRS(fillParam);
 };
@@ -573,8 +598,6 @@ void GraphicsClass::ChangeModelFillMode()
 void GraphicsClass::ChangeCullMode()
 {
     // toggling on and toggling off the cull mode for the models
-
-    using enum RenderStates::STATES;
 
     isCullBackMode_ = !isCullBackMode_;
     d3d_.SetRS((isCullBackMode_) ? CULL_BACK : CULL_FRONT);
@@ -614,22 +637,23 @@ void GraphicsClass::operator delete(void* ptr)
 // Rendering methods
 // =================================================================================
 
-void GraphicsClass::Render3D()
+void GraphicsClass::RenderHelper()
 {
     try
     {
         pDeviceContext_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         RenderEnttsDefault();
-        RenderEnttsAlphaClipCullNone();
-        
 
+        RenderEnttsAlphaClipCullNone();
+        RenderSkyDome();
+#if 0
         pDeviceContext_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
         RenderBoundingLineBoxes();
         RenderBoundingLineSpheres();
         RenderBillboards();
-        RenderSkyDome();
-
+        
         RenderEnttsBlended();
+#endif
     }
     catch (const std::out_of_range& e)
     {
@@ -650,6 +674,7 @@ void GraphicsClass::RenderModel(BasicModel& model, const DirectX::XMMATRIX& worl
     // for specific purposes:
     // just render a single asset/model at the center of the world
 
+#if 0
     Render::Instance instance;
     Render::InstBuffData instanceBuffData;
     int numSubsets = model.GetNumSubsets();
@@ -663,7 +688,7 @@ void GraphicsClass::RenderModel(BasicModel& model, const DirectX::XMMATRIX& worl
     {
         instanceBuffData.worlds_[i]        = world;
         instanceBuffData.texTransforms_[i] = DirectX::XMMatrixIdentity();
-        instanceBuffData.materials_[i]     = instance.materials[i];
+        instanceBuffData.materials_[i]     = Render::Material();//instance.materials[i];
     }
 
     render_.UpdateInstancedBuffer(pDeviceContext_, instanceBuffData);
@@ -673,6 +698,7 @@ void GraphicsClass::RenderModel(BasicModel& model, const DirectX::XMMATRIX& worl
         pDeviceContext_, 
         Render::ShaderTypes::LIGHT,
         &instance, 1);
+#endif
 }
 
 ///////////////////////////////////////////////////////////
@@ -682,7 +708,7 @@ void GraphicsClass::RenderEnttsDefault()
     const Render::RenderDataStorage& storage = render_.dataStorage_;
 
     // check if we have any instances to render
-    if (storage.modelInstances_.empty())
+    if (storage.modelInstances.empty())
         return;
 
     // setup states before rendering
@@ -693,8 +719,8 @@ void GraphicsClass::RenderEnttsDefault()
     UpdateInstanceBuffAndRenderInstances(
         pDeviceContext_,
         Render::ShaderTypes::LIGHT,
-        storage.modelInstBuffer_,
-        storage.modelInstances_);
+        storage.modelInstBuffer,
+        storage.modelInstances);
 }
 
 ///////////////////////////////////////////////////////////
@@ -707,21 +733,21 @@ void GraphicsClass::RenderEnttsAlphaClipCullNone()
     const Render::RenderDataStorage& storage = render_.dataStorage_;
 
     // check if we have any instances to render
-    if (storage.alphaClippedModelInstances_.empty())
+    if (storage.alphaClippedModelInstances.empty())
         return;
 
 
     // setup rendering pipeline
     RenderStates& renderStates = d3d_.GetRenderStates();
-    renderStates.SetRS(pDeviceContext_, { RenderStates::STATES::CULL_NONE });
+    renderStates.SetRS(pDeviceContext_, CULL_NONE);
     render_.SwitchAlphaClipping(pDeviceContext_, true);
 
     // load instances data and render them
     UpdateInstanceBuffAndRenderInstances(
         pDeviceContext_,
         Render::ShaderTypes::LIGHT,
-        storage.alphaClippedModelInstBuffer_,
-        storage.alphaClippedModelInstances_);
+        storage.alphaClippedModelInstBuffer,
+        storage.alphaClippedModelInstances);
 
     // reset rendering pipeline
     renderStates.ResetRS(pDeviceContext_);
@@ -737,14 +763,14 @@ void GraphicsClass::RenderEnttsBlended()
     const Render::RenderDataStorage& storage = render_.dataStorage_;
 
     // check if we have any instances to render
-    if (storage.blendedModelInstances_.empty())
+    if (storage.blendedModelInstances.empty())
         return;
 
     const ECS::EnttsBlended& blendData = rsDataToRender_.enttsBlended_;
-    const ECS::RSTypes* blendStates = blendData.states_.data();
+    const ECS::eRenderState* blendStates = blendData.states_.data();
     const size numBlendStates = blendData.states_.size();
     const size* numInstancesPerBlendState = blendData.instanceCountPerBS_.data();
-    const Render::InstBuffData& instBuffer = storage.blendedModelInstBuffer_;
+    const Render::InstBuffData& instBuffer = storage.blendedModelInstBuffer;
 
     // push data into the instanced buffer
     render_.UpdateInstancedBuffer(pDeviceContext_, instBuffer);
@@ -754,11 +780,11 @@ void GraphicsClass::RenderEnttsBlended()
     // go through each blending state, turn it on and render blended entts with this state
     for (index bsIdx = 0; bsIdx < numBlendStates; ++bsIdx)
     {
-        d3d_.TurnOnBlending(RenderStates::STATES(blendStates[bsIdx]));
+        d3d_.TurnOnBlending(eRenderState(blendStates[bsIdx]));
 
         for (u32 instCount = 0; instCount < numInstancesPerBlendState[bsIdx]; ++instCount)
         {
-            const Render::Instance* instance = &(storage.blendedModelInstances_[instanceOffset]);
+            const Render::Instance* instance = &(storage.blendedModelInstances[instanceOffset]);
             render_.RenderInstances(pDeviceContext_, Render::ShaderTypes::LIGHT, instance, 1);
             ++instanceOffset;
         }
@@ -785,8 +811,8 @@ void GraphicsClass::RenderBoundingLineBoxes()
         return;                          
 
     Render::RenderDataStorage& storage       = render_.dataStorage_;
-    Render::InstBuffData& instancesBuffer    = storage.boundingLineBoxBuffer_;
-    std::vector<Render::Instance>& instances = storage.boundingLineBoxInstances_;
+    Render::InstBuffData& instancesBuffer    = storage.boundingLineBoxBuffer;
+    std::vector<Render::Instance>& instances = storage.boundingLineBoxInstances;
     
 
     // prepare the line box instance
@@ -797,7 +823,7 @@ void GraphicsClass::RenderBoundingLineBoxes()
     // we will use only one type of model -- line box
     instances.resize(1);                         
     Render::Instance& instance = instances[0];
-    prep_.PrepareInstanceData(lineBox, instance, *TextureMgr::Get());
+    prep_.PrepareInstanceData(lineBox, instance);
 
 
     // choose the bounding box show mode
@@ -871,9 +897,10 @@ void GraphicsClass::RenderBillboards()
 
     if (numFoggedEntts > 0)
     {
-        d3d_.TurnOnBlending(RenderStates::STATES::ALPHA_TO_COVERAGE);
+        d3d_.TurnOnBlending(ALPHA_TO_COVERAGE);
+
         RenderStates& renderStates = d3d_.GetRenderStates();
-        renderStates.SetRS(pDeviceContext_, { RenderStates::STATES::CULL_NONE });
+        renderStates.SetRS(pDeviceContext_, CULL_NONE);
         render_.SwitchAlphaClipping(pDeviceContext_, true);
 
         //
@@ -917,13 +944,11 @@ void GraphicsClass::RenderSkyDome()
     const EntityID skyEnttID  = entityMgr_.nameSystem_.GetIdByName("sky");
 
     // if there is no sky entity
-    if (skyEnttID == INVALID_ENTITY_ID)
+    if (skyEnttID == 0)
         return;
 
-    const XMMATRIX skyWorld   = entityMgr_.transformSystem_.GetWorldMatrixOfEntt(skyEnttID);
     const SkyModel& sky       = modelStorage_.GetSky();
     Render::SkyInstance instance;
-
 
     //
     // prepare the sky instance
@@ -932,7 +957,9 @@ void GraphicsClass::RenderSkyDome()
     const int skyTexMaxNum = sky.GetMaxTexturesNum();
 
     // get shader resource views for the sky
-    texMgr_.GetSRVsByTexIDs(skyTexIDs, skyTexMaxNum, instance.texSRVs);
+    cvector<ID3D11ShaderResourceView*> instanceTexSRVs;
+    texMgr_.GetSRVsByTexIDs(skyTexIDs, skyTexMaxNum, instanceTexSRVs);
+    instance.texSRVs = { instanceTexSRVs.begin(), instanceTexSRVs.end() };
 
     instance.vertexStride = sky.GetVertexStride();
     instance.pVB          = sky.GetVertexBuffer();
@@ -944,16 +971,16 @@ void GraphicsClass::RenderSkyDome()
 
 
     // setup rendering pipeline before rendering of the sky dome
-    using enum RenderStates::STATES;
     RenderStates& renderStates = d3d_.GetRenderStates();
     renderStates.ResetRS(pDeviceContext_);
-    renderStates.SetRS(pDeviceContext_, { RenderStates::STATES::CULL_NONE });
+    renderStates.SetRS(pDeviceContext_, CULL_NONE);
     renderStates.ResetBS(pDeviceContext_);
     renderStates.SetDSS(pDeviceContext_, SKY_DOME, 1);
 
     // compute a worldViewProj matrix for the sky instance
-    const DirectX::XMFLOAT3& eyePos = pCurrCamera_->GetPosition();
+    const XMFLOAT3& eyePos = pCurrCamera_->GetPosition();
     const XMMATRIX camOffset        = DirectX::XMMatrixTranslation(eyePos.x, eyePos.y, eyePos.z);
+    const XMMATRIX skyWorld         = entityMgr_.transformSystem_.GetWorldMatrixOfEntt(skyEnttID);
     const XMMATRIX worldViewProj    = DirectX::XMMatrixTranspose(camOffset * skyWorld * viewProj_);
 
     render_.RenderSkyDome(pDeviceContext_, instance, worldViewProj);
@@ -967,7 +994,6 @@ void GraphicsClass::UpdateInstanceBuffAndRenderInstances(
     const Render::InstBuffData& instanceBuffData,
     const std::vector<Render::Instance>& instances)
 {
-
     render_.UpdateInstancedBuffer(pDeviceContext_, instanceBuffData);
 
     // render prepared instances using shaders
@@ -987,20 +1013,17 @@ void GraphicsClass::SetupLightsForFrame(
     const size pointLightSize = sizeof(ECS::PointLight);
     const size spotLightSize  = sizeof(ECS::SpotLight);
 
-    const ECS::DirLights& dirLights   = lightSys.GetDirLights();
+    const ECS::DirLights&  dirLights  = lightSys.GetDirLights();
     const ECS::SpotLights& spotLights = lightSys.GetSpotLights();
 
     const int numDirLights   = static_cast<int>(dirLights.data.size());
     const int numSpotLights  = static_cast<int>(spotLights.data.size());
 
-    
-#if 1	// new
-
     const EntityID* visPointLights = entityMgr_.renderSystem_.GetArrVisibleLightSources().data();
     const size numVisLightSources = entityMgr_.renderSystem_.GetArrVisibleLightSources().size();
 
 
-    outData.ResizeLightData(numDirLights, numVisLightSources, numSpotLights);
+    outData.ResizeLightData(numDirLights, (int)numVisLightSources, numSpotLights);
 
     if (numVisLightSources)
     {
@@ -1008,27 +1031,13 @@ void GraphicsClass::SetupLightsForFrame(
         lightSys.GetPointLightData(
             visPointLights,
             pointLightData.data(),
-            numVisLightSources);
+            (int)numVisLightSources);
 
         for (int idx = 0; idx < numVisLightSources; ++idx)
         {
             memcpy(&outData.pointLights[idx], &pointLightData[idx], pointLightSize);
         }
     }
-
-#else
-
-    const ECS::PointLights& pointLights = lightSys.GetPointLights();
-    const int numPointLights = (int)lightSys.GetNumPointLights();
-
-    outData.ResizeLightData(numDirLights, numPointLights, numSpotLights);
-
-    // old
-    for (int idx = 0; idx < numPointLights; ++idx)
-    {
-        memcpy(&outData.pointLights[idx], &pointLights.data_[idx], pointLightSize);
-    }
-#endif
 
     // --------------------------------
 
@@ -1082,14 +1091,14 @@ int GraphicsClass::TestEnttSelection(const int sx, const int sy)
         const ModelID modelID = entityMgr_.modelSystem_.GetModelIdRelatedToEntt(enttID);
         const BasicModel& model = modelStorage_.GetModelByID(modelID);
 
-        if (model.type_ == ModelType::Terrain)
+        if (model.type_ == eModelType::Terrain)
         {
             continue;
         }
     
         // get an inverse world matrix of the current entt
         const XMMATRIX invWorld = entityMgr_.transformSystem_.GetInverseWorldMatrixOfEntt(enttID);
-        const XMMATRIX toLocal = XMMatrixMultiply(invView, invWorld);
+        const XMMATRIX toLocal = DirectX::XMMatrixMultiply(invView, invWorld);
 
         XMVECTOR rayOrigin = XMVector3TransformCoord(rayOrigin_, toLocal);   // supposed to take a point (w == 1)
         XMVECTOR rayDir    = XMVector3TransformNormal(rayDir_, toLocal);  // supposed to take a vec (w == 0)
@@ -1186,7 +1195,6 @@ void GraphicsClass::BuildGeometryBuffers()
     //
     // Create VB
     //
-
     D3D11_BUFFER_DESC vbd;
     vbd.Usage = D3D11_USAGE_IMMUTABLE;
     vbd.ByteWidth = sizeof(TreePointSprite);
@@ -1204,7 +1212,6 @@ void GraphicsClass::BuildGeometryBuffers()
     //
     // Create IB
     //
-
     UINT indices = 0;
 
     D3D11_BUFFER_DESC ibd;

@@ -1,13 +1,12 @@
-// *********************************************************************************
+// =================================================================================
 // Filename:     RenderStatesSystem.cpp
 // Description:  implementation of the RenderStatesSystem functional
 // 
 // Created:      29.08.24
-// *********************************************************************************
+// =================================================================================
 #include "RenderStatesSystem.h"
 
 #include "../Common/Assert.h"
-//#include "../Common/Utils.h"
 #include "../Common/log.h"
 
 
@@ -19,12 +18,14 @@ RenderStatesSystem::RenderStatesSystem(RenderStates* pRenderStatesComponent)
 	Assert::NotNullptr(pRenderStatesComponent, "a ptr to the component == nullptr");
 	pRSComponent_ = pRenderStatesComponent;
 
-	const cvector<RSTypes> notDefaultRasterStates =
+#if 0
+	const cvector<eRenderState> notDefaultRasterStates =
 	{
 		FILL_WIREFRAME, CULL_FRONT,	CULL_NONE,
 	};
+#endif
 
-	const cvector<RSTypes> blendingStates =
+	const cvector<eRenderState> blendingStates =
 	{
 		ALPHA_ENABLE, ADDING, SUBTRACTING, MULTIPLYING,	TRANSPARENCY,
 	};
@@ -35,30 +36,10 @@ RenderStatesSystem::RenderStatesSystem(RenderStates* pRenderStatesComponent)
 	GetHashByStates(g_AlphaClipCullNoneStates, alphaClipCullNoneMask_);
 
 	// make a hash mask to get entts: default + blending
-	//blendingRSMask_ = defaultRSMask_;
-	//blendingRSMask_ &= ~(1 << NO_BLENDING);
 	GetHashByStates(blendingStates, blendingRSMask_);
 
-	// hash for all not default raster states
-	//GetHashByStates(notDefaultRasterStates, specRasterStates_);
-
-	// we'll use this hash to get entts which must be blended
-	//GetHashByStates(blendingStates, blendStatesMask_);
-
-	// by this hash we define if entt has an alpha clipping state
-	//alphaClippingMask_ |= (1 << ALPHA_CLIPPING);
-
-	// define a hash which will be used to get entts with specific render states
-	//specRenderStatesTypes_ |= ~defaultRSMask_;
-
-	// ---------------------------------------------
-	
-	// make a map of pairs ['rs_hash' => 'rs_state']
-	//for (const RSTypes rs : rasterStates)
-	//	hashesToRS_.insert({ (1 << rs), rs });
-
 	// make a map of pairs ['bs_hash' => 'bs_state']
-	for (const RSTypes bs : blendingStates)
+	for (const eRenderState bs : blendingStates)
 		hashesToBS_.insert({ (1 << bs), bs });
 
 	MakeDisablingMasks();
@@ -70,8 +51,6 @@ RenderStatesSystem::~RenderStatesSystem()
 {
 	pRSComponent_ = nullptr;
 }
-
-
 
 ///////////////////////////////////////////////////////////
 
@@ -105,16 +84,16 @@ void RenderStatesSystem::AddWithDefaultStates(const EntityID* ids, const size nu
 
 ///////////////////////////////////////////////////////////
 
-void RenderStatesSystem::UpdateStates(const EntityID id, const RSTypes state)
+void RenderStatesSystem::UpdateStates(const EntityID id, const eRenderState state)
 {
-	UpdateStates(cvector<EntityID>{id}, cvector<RSTypes>{state});
+	UpdateStates(cvector<EntityID>{id}, cvector<eRenderState>{state});
 }
 
 ///////////////////////////////////////////////////////////
 
 void RenderStatesSystem::UpdateStates(
 	const EntityID id,
-	const cvector<RSTypes>& states)
+	const cvector<eRenderState>& states)
 {
 	UpdateStates(cvector<EntityID>{id}, states);
 }
@@ -123,7 +102,7 @@ void RenderStatesSystem::UpdateStates(
 
 void RenderStatesSystem::UpdateStates(
 	const cvector<EntityID>& ids,
-	const cvector<RSTypes>& states)
+	const cvector<eRenderState>& states)
 {
 	// update each input entt with the same set of states
 	UpdateRecords(ids, states);
@@ -153,11 +132,9 @@ void RenderStatesSystem::SeparateEnttsByRenderStates(
 }
 
 
-// ***********************************************************************************
-// 
+// ================================================================================= 
 //                               PRIVATE METHODS
-// 
-// ***********************************************************************************
+// =================================================================================
 void RenderStatesSystem::GetNewEntts(
 	const EntityID* ids,
     const size numEntts,
@@ -182,11 +159,11 @@ void RenderStatesSystem::GetNewEntts(
 ///////////////////////////////////////////////////////////
 
 void RenderStatesSystem::GetHashByStates(
-	const cvector<RSTypes>& states,
+	const cvector<eRenderState>& states,
 	u32& outHash)
 {
 	// generate a hash by input arr of states
-	for (const RSTypes state : states)
+	for (const eRenderState state : states)
 		outHash |= (1 << state);
 }
 
@@ -194,14 +171,14 @@ void RenderStatesSystem::GetHashByStates(
 
 void RenderStatesSystem::GetStatesByHash(
 	const u32 hash,
-	cvector<RSTypes>& outStates)
+	cvector<eRenderState>& outStates)
 {
 	// FOR DEBUG: get states by hash
 
-	for (int i = 0; i < (int)RSTypes::LAST_RS_TYPE; ++i)
+	for (int i = 0; i < (int)eRenderState::LAST_RS_TYPE; ++i)
 	{
 		if (hash & (1 << i))
-			outStates.push_back(RSTypes(i));
+			outStates.push_back(eRenderState(i));
 	}
 }
 
@@ -212,19 +189,19 @@ void RenderStatesSystem::MakeDisablingMasks()
 	// these hash masks are used to reset all render states of particular type
 	// (for instance: disable all cull mode flags)
 
-	for (const RSTypes fillMode : allFillModes_)
+	for (const eRenderState fillMode : allFillModes_)
 		disableAllFillModesMask_ &= ~(1 << fillMode);
 
-	for (const RSTypes cullMode : allCullModes_)
+	for (const eRenderState cullMode : allCullModes_)
 		disableAllCullModesMask_ &= ~(1 << cullMode);
 
-	for (const RSTypes alphaClippingState : allAlphaClipping_)
+	for (const eRenderState alphaClippingState : allAlphaClipping_)
 		disableAllAlphaClippingMask_ &= ~(1 << alphaClippingState);
 
-	for (const RSTypes blendingState : allBS_)
+	for (const eRenderState blendingState : allBS_)
 		disableAllBlendingMask_ &= ~(1 << blendingState);
 
-	for (const RSTypes reflectionState : allReflections_)
+	for (const eRenderState reflectionState : allReflections_)
 		disableAllReflectionMask_ &= ~(1 << reflectionState);
 }
 
@@ -327,7 +304,7 @@ void RenderStatesSystem::FilterEnttsOnlyBlending(
 
 void RenderStatesSystem::GetBlendingStatesByHashes(
 	const cvector<u32>& hashes,
-	cvector<RSTypes>& blendStates)
+	cvector<eRenderState>& blendStates)
 {
 	// get blending state code for each hash
 
@@ -381,15 +358,15 @@ void RenderStatesSystem::GetEnttsBlended(
 {
 	cvector<EntityID> enttWithBS;
 	cvector<u32> hashesWithBS;
-	cvector<RSTypes> bsCodes;
-	std::map<RSTypes, cvector<EntityID>> bsToIdxs;
+	cvector<eRenderState> bsCodes;
+	std::map<eRenderState, cvector<EntityID>> bsToIdxs;
 	
 
 	FilterEnttsOnlyBlending(ids, hashes, enttWithBS, hashesWithBS);
 	GetBlendingStatesByHashes(hashesWithBS, bsCodes);
 
 	// separate entts by blending states
-	for (int i = 0; const RSTypes bs : bsCodes)
+	for (int i = 0; const eRenderState bs : bsCodes)
 		bsToIdxs[bs].push_back(enttWithBS[i++]);
 
 	const size bsCount = std::ssize(bsToIdxs);
@@ -419,7 +396,7 @@ void RenderStatesSystem::GetEnttsBlended(
 
 void RenderStatesSystem::UpdateRecords(
 	const cvector<EntityID>& ids,
-	const cvector<RSTypes>& states)
+	const cvector<eRenderState>& states)
 {
 	// update records by ids with new render states values
 
@@ -443,12 +420,12 @@ void RenderStatesSystem::UpdateRecords(
 ///////////////////////////////////////////////////////////
 
 void RenderStatesSystem::UpdateRenderStatesForHashes(
-	const cvector<RSTypes>& states,
+	const cvector<eRenderState>& states,
 	cvector<u32>& hashes)
 {
 	// go through each hash and update its values according to input render states;
 
-	for (const RSTypes state : states)
+	for (const eRenderState state : states)
 	{
 		for (u32& hash : hashes)
 		{

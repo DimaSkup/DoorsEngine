@@ -8,13 +8,14 @@
 #pragma once
 
 #include <algorithm>
+#include <utility>
 #include <stdarg.h>
 
 namespace Core
 {
 
 // this macro is used for the vassert() method
-#define CALLER_INFO "  FILE: \t%s\n  CLASS:\t%s\n  FUNC: \t%s()\n  LINE: \t%d\n  MSG: \t\t%s\n", __FILE__, typeid(this).name(), __func__, __LINE__
+#define CALLER_INFO "  FILE: \t%s\n  FUNC: \t%s()\n  LINE: \t%d\n  MSG: \t\t%s\n", __FILE__, __func__, __LINE__
 
 
 constexpr bool ENABLE_CHECK = true;
@@ -67,6 +68,7 @@ public:
     inline const T* begin()                 const { return data_; }
     inline T*       end()                         { return data_ + size_; }
     inline const T* end()                   const { return data_ + size_; }
+    inline       T& back()                  const { return *(data_ + size_ - 1); }
 
 
     // getters
@@ -81,6 +83,7 @@ public:
 
     // setters
     void         push_back(const T& value);
+    void         push_back(T&& rvalue);
     inline void  pop_back() { if (size_ > 0) size_--; }
     inline void  clear() { size_ = 0; };
 
@@ -94,6 +97,7 @@ public:
     void  get_insert_idxs(const cvector<T>& values, cvector<index>& idxs) const;
     void  get_insert_idxs(const T* values, const vsize numValues, cvector<index>& idxs) const;
     void  insert_before(const vsize idx, const T& val);
+    void  insert_before(const vsize idx, T&& value);
 
     template <typename U>
     void append_vector(U&& src);
@@ -139,7 +143,6 @@ private:
         const char* msg,
         const char* format,
         const char* fileName,
-        const char* className,
         const char* funcName,
         const int line) const;
 
@@ -152,11 +155,27 @@ private:
     inline vsize GetGrownCapacity(const vsize capacity)
     {
         // compute grown capacity: newCapacity = growFactor * capacity;
-        return (vsize)(ceil(growFactor_ * capacity));
+        return (vsize)(ceil(growFactor_ * (float)capacity));
     }
 };
 
+// =================================================================================
 
+template <typename T>
+void cvector<T>::error_msg(
+    const char* msg,
+    const char* format,
+    const char* fileName,
+    const char* funcName,
+    const int line) const
+{
+    const char* consoleRed = "\x1B[31m";
+    const char* consoleNorm = "\x1B[0m";
+
+    printf("%s\nERROR:\n", consoleRed);
+    printf(format, fileName, funcName, line, msg);
+    printf("%s", consoleNorm);
+}
 
 
 // =================================================================================
@@ -420,6 +439,24 @@ inline void cvector<T>::push_back(const T& value)
 // ----------------------------------------------------
 
 template <typename T>
+inline void cvector<T>::push_back(T&& rvalue)
+{
+    if (size_ == capacity_)
+    {
+        // create a new array with growFactor times the original capacity
+        const vsize newCapacity = GetGrownCapacity(capacity_ ? capacity_ : 8);
+        reserve(newCapacity);
+    }
+
+    data_[size_]
+        =
+        std::move(rvalue);
+    size_++;
+}
+
+// ----------------------------------------------------
+
+template <typename T>
 inline void cvector<T>::erase(const vsize index)
 {
     if constexpr (ENABLE_CHECK)
@@ -503,7 +540,6 @@ void cvector<T>::insert_before(const vsize idx, const T& value)
     // so input value will be right at this idx and all the rest will shift right;
     // (for instance insert 1 at idx 1: [0 2 3] becomes [0 1 2 3]
 
-
     if constexpr (ENABLE_CHECK)
     {
         if ((idx < 0) | (idx > size_))
@@ -526,6 +562,39 @@ void cvector<T>::insert_before(const vsize idx, const T& value)
     // prepare a place for the input element and set it by index
     shift_right(idx, 1);
     new (&data_[idx]) T(value);
+}
+
+// ----------------------------------------------------
+
+template <typename T>
+void cvector<T>::insert_before(const vsize idx, T&& value)
+{
+    // insert input value before arr value by idx;
+    // so input value will be right at this idx and all the rest will shift right;
+    // (for instance insert 1 at idx 1: [0 2 3] becomes [0 1 2 3]
+
+    if constexpr (ENABLE_CHECK)
+    {
+        if ((idx < 0) | (idx > size_))
+        {
+            error_msg("invalid input args", CALLER_INFO);
+            return;
+        }
+    }
+
+    if (capacity_ <= size_)
+    {
+        // create a new array with growFactor times the original capacity
+        const vsize newCapacity = GetGrownCapacity(capacity_ ? capacity_ : 8);
+        reserve(newCapacity);
+    }
+
+    // now we have one more element
+    size_++;
+
+    // prepare a place for the input element and set it by index
+    shift_right(idx, 1);
+    new (&data_[idx]) T(std::move(value));
 }
 
 // ----------------------------------------------------
@@ -685,7 +754,7 @@ bool cvector<T>::binary_search(const cvector<T>& values) const
     const T* e = end();
 
     for (index i = 0; i < values.size(); ++i)
-        isExist &= std::binary_search(b + i, e, values[i]);
+        isExist &= std::binary_search(b, e, values[i]);
 
     return isExist;
 }
@@ -712,7 +781,7 @@ bool cvector<T>::binary_search(const T* values, const vsize numElems) const
     const T* e = end();
 
     for (index i = 0; i < numElems; ++i)
-        isExist &= std::binary_search(b + i, e, values[i]);
+        isExist &= std::binary_search(b, e, values[i]);
 
     return isExist;
 }
@@ -742,7 +811,7 @@ void cvector<T>::binary_search(const T* values, vsize numElems, cvector<bool>& f
     flags.resize(numElems);
 
     for (index i = 0; i < numElems; ++i)
-        flags[i] = std::binary_search(b + i, e, values[i]);
+        flags[i] = std::binary_search(b, e, values[i]);
 }
 
 
@@ -830,25 +899,6 @@ void cvector<T>::vassert(
         printf(format, fileName, className, funcName, line, msg);
         printf("%s", consoleNorm);
     }
-}
-
-// ----------------------------------------------------
-
-template <typename T>
-void cvector<T>::error_msg(
-    const char* msg,
-    const char* format,
-    const char* fileName,
-    const char* className,
-    const char* funcName,
-    const int line) const
-{
-    const char* consoleRed = "\x1B[31m";
-    const char* consoleNorm = "\x1B[0m";
-
-    printf("%s\nERROR:\n", consoleRed);
-    printf(format, fileName, className, funcName, line, msg);
-    printf("%s", consoleNorm);
 }
 
 // ----------------------------------------------------

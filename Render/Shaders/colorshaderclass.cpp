@@ -24,23 +24,21 @@ ColorShaderClass::~ColorShaderClass()
 }
 
 
-// ------------------------------------------------------------------------------ //
-//
+// ------------------------------------------------------------------------------
 //                         PUBLIC FUNCTIONS
-//
-// ------------------------------------------------------------------------------ //
-
-bool ColorShaderClass::Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
+// ------------------------------------------------------------------------------
+bool ColorShaderClass::Initialize(
+    ID3D11Device* pDevice,
+    ID3D11DeviceContext* pContext,
+    const std::string& pathToShadersDir)
 {
-	// THIS FUNCTION initializes the ColorShaderClass; 
-	// creates a vertex and pixel shader, input layout, and const buffer 
-
 	try
 	{
-		const std::string vsFilename = ShaderClass::pathToShadersDir_ + "colorVS.cso";
-		const std::string psFilename = ShaderClass::pathToShadersDir_ + "colorPS.cso";
-
-		InitializeShaders(pDevice, pContext, vsFilename, psFilename);
+		InitializeShaders(
+            pDevice,
+            pContext,
+            pathToShadersDir + "colorVS.cso",
+            pathToShadersDir + "colorPS.cso");
 	}
 	catch (LIB_Exception& e)
 	{
@@ -89,8 +87,13 @@ void ColorShaderClass::Render(
 		// go through each subset (mesh) of this model and render it
 		for (int subsetIdx = 0; subsetIdx < (int)std::ssize(instance.subsets); ++subsetIdx)
 		{
+            /*
 			// update textures for the current subset
-			pContext->PSSetShaderResources(0U, 22U, texIDs + (subsetIdx * 22));
+			pContext->PSSetShaderResources(
+                0U,
+                NUM_TEXTURE_TYPES,
+                texIDs + (subsetIdx * NUM_TEXTURE_TYPES));
+             */
 
 			const Subset& subset = instance.subsets[subsetIdx];
 
@@ -107,13 +110,9 @@ void ColorShaderClass::Render(
 }
 
 
-
-// ------------------------------------------------------------------------------ //
-//
+// ------------------------------------------------------------------------------
 //                         PRIVATE FUNCTIONS
-//
-// ------------------------------------------------------------------------------ //
-
+// ------------------------------------------------------------------------------
 void ColorShaderClass::InitializeShaders( 
 	ID3D11Device* pDevice,
 	ID3D11DeviceContext* pContext,

@@ -18,7 +18,7 @@ struct Model
     cvector<EntityID> enttsIDs_;   // primary keys (can have only unique values)
     cvector<ModelID>  modelIDs_;   // there can be multiple the same values
 
-    ComponentType type_ = ComponentType::ModelComponent;
+    eComponentType type_ = eComponentType::ModelComponent;
 };
 
 }

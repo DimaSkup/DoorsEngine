@@ -15,7 +15,8 @@
 namespace Core
 {
 
-TexStoreType DetermineTextureStorageType(const aiScene* pScene,
+TexStoreType DetermineTextureStorageType(
+    const aiScene* pScene,
 	const aiMaterial* pMaterial,
 	const UINT index,
 	const aiTextureType textureType)
@@ -86,8 +87,12 @@ UINT GetIndexOfEmbeddedCompressedTexture(aiString* pStr)
 {
 	// this function returns an index of the embedded compressed texture by path pStr
 
-	assert(pStr->length >= 2);             // assert that path is "*0", "*1", or something like that
-	return (UINT)atoi(&pStr->C_Str()[1]);  // return an index
+    // assert that path is "*0", "*1", or something like that
+    if (!(pStr->length >= 2))
+        return 0;
+
+    // return an index
+	return (UINT)atoi(&pStr->C_Str()[1]); 
 }
 
 } // namespace Core

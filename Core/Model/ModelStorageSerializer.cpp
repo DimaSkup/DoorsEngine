@@ -2,6 +2,8 @@
 #include <cassert>
 
 
+namespace Core
+{
 
 ModelStorageSerializer::ModelStorageSerializer()
 {
@@ -38,3 +40,5 @@ void ModelStorageSerializer::WriteModelsInfo(
         fout << ids[i] << ' ' << paths[i] << '\n';
     }
 }
+
+} // namespace Core

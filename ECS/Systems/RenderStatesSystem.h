@@ -1,10 +1,10 @@
-// *********************************************************************************
+// =================================================================================
 // Filename:     RenderStatesSystem.h
 // Description:  an ECS system which is responsible for
 //               handling blending of the entities;
 //
 // Created:      28.08.24
-// *********************************************************************************
+// =================================================================================
 #pragma once
 
 #include "../Components/RenderStates.h"
@@ -12,10 +12,9 @@
 
 #include <map>
 
+
 namespace ECS
 {
-
-
 
 class RenderStatesSystem final
 {
@@ -57,15 +56,15 @@ public:
 	// 1. one state of single entt
 	// 2. multiple states of single entt
 	// 3. multiple states of multiple entts
-	void UpdateStates(const EntityID id, const RSTypes state);
-	void UpdateStates(const EntityID id, const cvector<RSTypes>& states);
-	void UpdateStates(const cvector<EntityID>& ids,	const cvector<RSTypes>& states);
+	void UpdateStates(const EntityID id, const eRenderState state);
+	void UpdateStates(const EntityID id, const cvector<eRenderState>& states);
+	void UpdateStates(const cvector<EntityID>& ids,	const cvector<eRenderState>& states);
 
 	void SeparateEnttsByRenderStates(
 		const cvector<EntityID>& ids,
 		EnttsRenderStatesData& outData);
 
-	inline void ChangeRenderStateForHash(u32& hash, const RSTypes newState, const u32 disablingMask)
+	inline void ChangeRenderStateForHash(u32& hash, const eRenderState newState, const u32 disablingMask)
 	{
 		hash &= disablingMask;    // disable all the other related render states (for instance: disable all blending states)
 		hash |= (1 << newState);  // enable some render state
@@ -77,8 +76,8 @@ private:
         const size numEntts,
         cvector<EntityID>& newIds);
 
-	void GetStatesByHash(const u32 hash, cvector<RSTypes>& outStates);
-	void GetHashByStates(const cvector<RSTypes>& states, u32& outHash);
+	void GetStatesByHash(const u32 hash, cvector<eRenderState>& outStates);
+	void GetHashByStates(const cvector<eRenderState>& states, u32& outHash);
 
 	void MakeDisablingMasks();
 
@@ -104,7 +103,7 @@ private:
 
 	void GetBlendingStatesByHashes(
 		const cvector<u32>& hashes,
-		cvector<RSTypes>& blendStates);
+		cvector<eRenderState>& blendStates);
 
 	void GetEnttsBlended(
 		const cvector<EntityID>& ids,
@@ -113,10 +112,10 @@ private:
 
 	void UpdateRecords(
 		const cvector<EntityID>& ids,
-		const cvector<RSTypes>& states);
+		const cvector<eRenderState>& states);
 
 	void UpdateRenderStatesForHashes(
-		const cvector<RSTypes>& states,
+		const cvector<eRenderState>& states,
 		cvector<u32>& hashes);
 
 
@@ -124,13 +123,13 @@ private:
 	RenderStates* pRSComponent_ = nullptr;
 
 	// all possible fill/cull/alpha clipping states
-	RSTypes allFillModes_[2]     = { FILL_SOLID, FILL_WIREFRAME };
-	RSTypes allCullModes_[3]     = { CULL_BACK, CULL_FRONT, CULL_NONE };
-	RSTypes allAlphaClipping_[2] = { NO_ALPHA_CLIPPING, ALPHA_CLIPPING };
-	RSTypes allReflections_[2]   = { REFLECTION_PLANE, NOT_REFLECTION_PLANE };
+	eRenderState allFillModes_[2]     = { FILL_SOLID, FILL_WIREFRAME };
+	eRenderState allCullModes_[3]     = { CULL_BACK, CULL_FRONT, CULL_NONE };
+	eRenderState allAlphaClipping_[2] = { NO_ALPHA_CLIPPING, ALPHA_CLIPPING };
+	eRenderState allReflections_[2]   = { REFLECTION_PLANE, NOT_REFLECTION_PLANE };
 
 	// all possible blending states (BS)
-	RSTypes allBS_[7] =
+	eRenderState allBS_[7] =
 	{
 		NO_RENDER_TARGET_WRITES, NO_BLENDING, ALPHA_ENABLE,
 		ADDING,	SUBTRACTING, MULTIPLYING, TRANSPARENCY,
@@ -155,8 +154,8 @@ private:
 	u32 disableAllBlendingMask_      = UINT32_MAX;
 	u32 disableAllReflectionMask_ = UINT32_MAX;
 	
-	std::map<u32, RSTypes> hashesToRS_;   // hashes to RASTER states
-	std::map<u32, RSTypes> hashesToBS_;   // hashes to BLENDING states
+	std::map<u32, eRenderState> hashesToRS_;   // hashes to RASTER states
+	std::map<u32, eRenderState> hashesToBS_;   // hashes to BLENDING states
 };
 
 

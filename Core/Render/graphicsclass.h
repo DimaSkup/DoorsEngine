@@ -119,7 +119,11 @@ public:
 		const DirectX::XMMATRIX& view,
 		const DirectX::XMMATRIX& proj);
 
-private: 
+private:
+    bool InitHelper(HWND hwnd, SystemState& systemState, const Settings& settings);
+    void UpdateHelper(SystemState& sysState, const float deltaTime, const float gameTime);
+    void RenderHelper();
+
 	// private updating API
 	void UpdateShadersDataPerFrame();
 

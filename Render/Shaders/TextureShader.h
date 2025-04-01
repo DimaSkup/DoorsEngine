@@ -24,14 +24,6 @@ class TextureShader final
 {
 	using SRV = ID3D11ShaderResourceView;
 
-	/*
-	struct InstancedData
-	{
-		DirectX::XMMATRIX world;
-		DirectX::XMMATRIX texTransform;
-	};
-	*/
-
 public:
 	TextureShader();
 	~TextureShader();
@@ -41,7 +33,10 @@ public:
 	TextureShader& operator=(const TextureShader& obj) = delete;
 
 	// Public modification API
-	bool Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
+	bool Initialize(
+        ID3D11Device* pDevice,
+        ID3D11DeviceContext* pContext,
+        const std::string& pathToShadersDir);
 
 	// Public rendering API
 	void Render(

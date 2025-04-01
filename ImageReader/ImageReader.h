@@ -5,8 +5,7 @@
 #include <string>
 #include <d3d11.h>
 #include <list>
-//#include <dxgitype.h>
-//#include <dxgi.h>
+
 
 namespace ImgReader
 {

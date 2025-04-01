@@ -18,12 +18,12 @@ class ModelLoader
 public:
 	struct M3dMaterial
 	{
-		MeshMaterial mat_;
+		Material mat_;
 		bool alphaClip_;
 		int numTextures_ = 0;
 		std::string effectTypeName_;
-		std::string texTypes[22];
-		std::string texPaths[22];           // each mesh (subset) can have 22 texture types
+		std::string texTypes[NUM_TEXTURE_TYPES];
+		std::string texPaths[NUM_TEXTURE_TYPES];           // each mesh (subset) can have 22 texture types
 	};
 
 public:
@@ -37,7 +37,7 @@ private:
 	void ReadMaterials(
 		std::ifstream& fin,
 		int numMaterials,
-		MeshMaterial* materials,
+		Material* materials,
 		M3dMaterial* materialsParams);
 
 	void SetupSubsets(

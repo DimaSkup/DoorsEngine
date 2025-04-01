@@ -33,13 +33,13 @@ public:
 
 	// ----------------------------------------------------
 
-	bool Initialize(ID3D11Device* pDevice);
+	bool Initialize(ID3D11Device* pDevice, const std::string& pathToShadersDir);
 
 	void Render(
 		ID3D11DeviceContext* pContext,
 		ID3D11Buffer* pInstancedBuffer,
 		const Instance* instances,
-		const int numInstances,
+		const int numUniqueGeometry,
 		const UINT instancesBuffElemSize);
 
 	inline const std::string& GetShaderName() const { return className_; }

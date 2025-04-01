@@ -7,9 +7,6 @@
 ////////////////////////////////////////////////////////////////////
 #pragma once
 
-//////////////////////////////////
-// INCLUDES
-//////////////////////////////////
 #include <d3d11.h>
 #include <string>
 
@@ -17,10 +14,7 @@
 namespace Render
 {
 
-//////////////////////////////////
-// Class name: ShaderClass
-//////////////////////////////////
-class ShaderClass final
+class ShaderClass
 {
 public:
 	static HRESULT CompileShaderFromFile(
@@ -29,8 +23,6 @@ public:
 		LPCSTR shaderProfile,
 		ID3D10Blob** shaderOutput,
 		std::string& outErrorMgr);
-
-	static std::string pathToShadersDir_;
 };
 
 

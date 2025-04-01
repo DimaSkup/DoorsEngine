@@ -284,7 +284,7 @@ struct Light
     PointLights         pointLights;
     SpotLights          spotLights;
 
-    ComponentType type = ComponentType::LightComponent;
+    eComponentType type = eComponentType::LightComponent;
 };
 
 

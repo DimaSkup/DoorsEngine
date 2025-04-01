@@ -43,7 +43,10 @@ public:
 	ColorShaderClass& operator=(const ColorShaderClass& obj) = delete;
 
 
-	bool Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
+	bool Initialize(
+        ID3D11Device* pDevice,
+        ID3D11DeviceContext* pContext,
+        const std::string& pathToShadersDir);
 
 	void Render(
 		ID3D11DeviceContext* pContext,

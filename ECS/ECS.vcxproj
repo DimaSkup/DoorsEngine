@@ -177,7 +177,7 @@
     <ClInclude Include="Components\Movement.h" />
     <ClInclude Include="Components\Name.h" />
     <ClInclude Include="Components\Rendered.h" />
-    <ClInclude Include="Components\Textured.h" />
+    <ClInclude Include="Components\Material.h" />
     <ClInclude Include="Components\TextureTransform.h" />
     <ClInclude Include="Components\Transform.h" />
     <ClInclude Include="Common\Types.h" />
@@ -197,7 +197,7 @@
     <ClInclude Include="Systems\SaveLoad\MoveSysSerDeser.h" />
     <ClInclude Include="Systems\SaveLoad\NameSysSerDeser.h" />
     <ClInclude Include="Systems\SaveLoad\TransformSysSerDeser.h" />
-    <ClInclude Include="Systems\TexturesSystem.h" />
+    <ClInclude Include="Systems\MaterialSystem.h" />
     <ClInclude Include="Systems\TextureTransformSystem.h" />
     <ClInclude Include="Systems\TransformSystem.h" />
     <ClInclude Include="ECS_Tests\Unit\ECS_Main_Unit_Test.h" />
@@ -224,7 +224,7 @@
     <ClCompile Include="Systems\SaveLoad\MoveSysSerDeser.cpp" />
     <ClCompile Include="Systems\SaveLoad\NameSysSerDeser.cpp" />
     <ClCompile Include="Systems\SaveLoad\TransformSysSerDeser.cpp" />
-    <ClCompile Include="Systems\TexturesSystem.cpp" />
+    <ClCompile Include="Systems\MaterialSystem.cpp" />
     <ClCompile Include="Systems\TextureTransformSystem.cpp" />
     <ClCompile Include="Systems\TransformSystem.cpp" />
   </ItemGroup>

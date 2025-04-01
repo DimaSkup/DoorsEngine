@@ -19,7 +19,7 @@ struct Name
 	cvector<EntityID> ids_;
 	cvector<EntityName> names_;
 
-    ComponentType type_ = ComponentType::NameComponent;
+    eComponentType type_ = eComponentType::NameComponent;
 };
 
 }

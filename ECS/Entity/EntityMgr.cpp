@@ -24,7 +24,7 @@ EntityMgr::EntityMgr() :
     moveSystem_         { &transform_, &movement_ },
     modelSystem_        { &modelComponent_ },
     renderSystem_       { &renderComponent_ },
-    texturesSystem_     { &textureComponent_ },
+    materialSystem_     { &materialComponent_, &nameSystem_ },
     texTransformSystem_ { &texTransform_ },
     lightSystem_        { &light_ },
     renderStatesSystem_ { &renderStates_ },
@@ -48,7 +48,7 @@ EntityMgr::EntityMgr() :
         { MoveComponent,                "Movement" },
         { ModelComponent,               "Model" },
         { RenderedComponent,            "Rendered" },
-        { TexturedComponent,            "Textured" },
+        { MaterialComponent,            "Textured" },
         { TextureTransformComponent,    "Texture transform" },
         { LightComponent,               "Light" },
         { RenderStatesComponent,        "Render states" },
@@ -200,7 +200,7 @@ void EntityMgr::Update(const float totalGameTime, const float deltaTime)
 
 void EntityMgr::SetEnttHasComponent(
     const EntityID id,
-    const ComponentType compType)
+    const eComponentType compType)
 {
     // set that an entity by ID has such a component 
     const index idx = ids_.get_idx(id);
@@ -212,7 +212,7 @@ void EntityMgr::SetEnttHasComponent(
 void EntityMgr::SetEnttsHaveComponent(
     const EntityID* ids,
     const size numEntts,
-    const ComponentType compType)
+    const eComponentType compType)
 {
     // add the same component to each input entt
 
@@ -230,7 +230,7 @@ void EntityMgr::SetEnttsHaveComponent(
 
 void EntityMgr::SetEnttsHaveComponents(
     const EntityID* ids,
-    const cvector<ComponentType>& compTypes,
+    const cvector<eComponentType>& compTypes,
     const size numEntts)
 {
     // add an arr of components to each input entt
@@ -241,7 +241,7 @@ void EntityMgr::SetEnttsHaveComponents(
 
     // generate hash mask by input component types
     ComponentHash hashMask = 0;
-    for (const ComponentType type : compTypes)
+    for (const eComponentType type : compTypes)
         hashMask |= (1 << type);
 
     for (const index idx : idxs)
@@ -469,7 +469,7 @@ void EntityMgr::AddRenderingComponent(
         renderSystem_.AddRecords(ids, params, numEntts);
         renderStatesSystem_.AddWithDefaultStates(ids, numEntts);
 
-        using enum ComponentType;
+        using enum eComponentType;
         SetEnttsHaveComponents(ids, { RenderedComponent, RenderStatesComponent }, numEntts);
     }
     catch (LIB_Exception& e)
@@ -485,27 +485,29 @@ void EntityMgr::AddRenderingComponent(
 
 ///////////////////////////////////////////////////////////
 
-void EntityMgr::AddTexturedComponent(
+void EntityMgr::AddMaterialComponent(
     const EntityID enttID,
-    const TexID* texIDs,     // set of tex ids for the entity submesh
-    const size numTextures,  // expected to be 22 (the num of textures types)
-    const int submeshID)     // to which submesh we bind these textures
+    const MaterialID* materialsIDs,
+    const size numSubmeshes,
+    const bool areMaterialsMeshBased)             
 {
-    // add Textured component to each input entity by its ID
-    // and set that this entity has own textures set 
-    // (which is different from its mesh's textures set)
+    // add material component for input entity by ID;
+    //
+    // in: materialsIDs          -- arr of material IDs (each material ID will be related to a single submesh of the entity)
+    //     numSubmeshes          -- how many meshes does input entity have
+    //     areMaterialsMeshBased -- defines if all the materials IDs are the same as materials IDs of the related model
 
     try
     {
         Assert::True(CheckEnttExist(enttID), "no entity by ID: " + std::to_string(enttID));
 
-        texturesSystem_.AddRecord(enttID, texIDs, numTextures, submeshID);
-        SetEnttHasComponent(enttID, TexturedComponent);
+        materialSystem_.AddRecord(enttID, materialsIDs, numSubmeshes, areMaterialsMeshBased);
+        SetEnttHasComponent(enttID, MaterialComponent);
     }
     catch (LIB_Exception& e)
     {
         Log::Error(e);
-        Log::Error(std::format("can't add textured component to entt (id: {}; entt_name: {})", enttID, nameSystem_.GetNameById(enttID)));
+        Log::Error(std::format("can't add Material component to entt (id: {}; entt_name: {})", enttID, nameSystem_.GetNameById(enttID)));
     }
 }
 
@@ -741,7 +743,7 @@ void EntityMgr::AddCameraComponent(
 // ************************************************************************************
 
 
-ComponentHash EntityMgr::GetHashByComponent(const ComponentType component)
+ComponentHash EntityMgr::GetHashByComponent(const eComponentType component)
 {
     u32 bitmask = 0;
     return (bitmask |= (1 << component));
@@ -751,13 +753,13 @@ ComponentHash EntityMgr::GetHashByComponent(const ComponentType component)
 
 #if 0
 ComponentHash EntityMgr::GetHashByComponents(
-    const std::vector<ComponentType>& components)
+    const std::vector<eComponentType>& components)
 {
     // generate and return a hash by input components
 
     u32 bitmask = 0;
 
-    for (const ComponentType comp : components)
+    for (const eComponentType comp : components)
         bitmask |= (1 << comp);
 
     return bitmask;
@@ -772,7 +774,7 @@ void EntityMgr::GetComponentNamesByEntity(
 {
     const index idx = ids_.get_idx(id);
 
-    for (int i = 0; i < ComponentType::NUM_COMPONENTS; ++i)
+    for (int i = 0; i < eComponentType::NUM_COMPONENTS; ++i)
     {
         //names.push_back
     }

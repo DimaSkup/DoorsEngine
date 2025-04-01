@@ -25,12 +25,12 @@ void TransformSysSerDeser::Serialize(
 
 	const size dataCount = ids.size();
 
-	FileUtils::FileWrite(fout, &dataBlockMarker);
-	FileUtils::FileWrite(fout, &dataCount);
+	FileWrite(fout, &dataBlockMarker);
+	FileWrite(fout, &dataCount);
 
-	FileUtils::FileWrite(fout, ids);
-	FileUtils::FileWrite(fout, posAndUniScales);
-	FileUtils::FileWrite(fout, dirQuats);
+	FileWrite(fout, ids);
+	FileWrite(fout, posAndUniScales);
+	FileWrite(fout, dirQuats);
 }
 
 ///////////////////////////////////////////////////////////
@@ -49,9 +49,9 @@ void TransformSysSerDeser::Deserialize(
 
 	// check if we read the proper data block
 	u32 dataBlockMarker = 0;
-	FileUtils::FileRead(fin, &dataBlockMarker);
+	FileRead(fin, &dataBlockMarker);
 
-	const bool isProperDataBlock = (dataBlockMarker == static_cast<u32>(ComponentType::TransformComponent));
+	const bool isProperDataBlock = (dataBlockMarker == static_cast<u32>(eComponentType::TransformComponent));
 	if (!isProperDataBlock)
 	{
 		Log::Error("read wrong data during deserialization of the Transform component data");
@@ -61,7 +61,7 @@ void TransformSysSerDeser::Deserialize(
 	// ------------------------------------------
 
 	size dataCount = 0;
-	FileUtils::FileRead(fin, &dataCount);
+	FileRead(fin, &dataCount);
 
 	// prepare enough amount of memory for data
 	ids.resize(dataCount);
@@ -69,9 +69,9 @@ void TransformSysSerDeser::Deserialize(
 	dirQuats.resize(dataCount);
 
 	// read data from a file right into the component
-	FileUtils::FileRead(fin, ids);
-	FileUtils::FileRead(fin, posAndUniScales);
-	FileUtils::FileRead(fin, dirQuats);
+	FileRead(fin, ids);
+	FileRead(fin, posAndUniScales);
+	FileRead(fin, dirQuats);
 }
 
 

@@ -17,6 +17,8 @@ struct MeshWavesParams : public MeshGeometryParams
 	int numColumns;
 };
 
+///////////////////////////////////////////////////////////
+
 struct MeshCylinderParams : public MeshGeometryParams
 {
 	MeshCylinderParams() {}
@@ -41,6 +43,8 @@ struct MeshCylinderParams : public MeshGeometryParams
 	int stackCount_ = 10;
 };
 
+///////////////////////////////////////////////////////////
+
 struct MeshSphereParams : public MeshGeometryParams
 {
 	MeshSphereParams() {}
@@ -53,6 +57,8 @@ struct MeshSphereParams : public MeshGeometryParams
 	int stackCount_ = 10;
 };
 
+///////////////////////////////////////////////////////////
+
 struct MeshGeosphereParams : public MeshGeometryParams
 {
 	MeshGeosphereParams() {}
@@ -63,6 +69,8 @@ struct MeshGeosphereParams : public MeshGeometryParams
 	float radius_ = 1.0f;
 	int numSubdivisions_ = 10;   // defatization level
 };
+
+///////////////////////////////////////////////////////////
 
 struct MeshPyramidParams : public MeshGeometryParams
 {

@@ -53,7 +53,7 @@ bool FacadeEngineToUI::GetShaderResourceViewByTexID(
     const uint32_t textureID,
     ID3D11ShaderResourceView*& pSRV)
 {
-    pTextureMgr_->GetSRVByTexID(textureID, pSRV);
+    pSRV = pTextureMgr_->GetSRVByTexID(textureID);
     return true;
 }
 
@@ -141,8 +141,8 @@ bool FacadeEngineToUI::AddBoundingComponent(const EntityID id, const int boundTy
 
 bool FacadeEngineToUI::GetAllEnttsIDs(const uint32_t*& pEnttsIDsArr, int& numEntts)
 {
-    pEnttsIDsArr = pEntityMgr_->GetAllEnttsIDs().data() + 1;    // +1 because entity by [0] is the default invalid entity
-    numEntts = static_cast<int>(pEntityMgr_->GetAllEnttsIDs().size() - 1);
+    pEnttsIDsArr = pEntityMgr_->GetAllEnttsIDs();    // +1 because entity by [0] is the default invalid entity
+    numEntts = static_cast<int>(pEntityMgr_->GetNumAllEntts() - 1);
     return true;
 }
 
@@ -201,7 +201,7 @@ bool FacadeEngineToUI::GetEnttData(
 
 ///////////////////////////////////////////////////////////
 
-void FacadeEngineToUI::GetEnttWorldMatrix(const EntityID id, XMMATRIX& outMat)
+void FacadeEngineToUI::GetEnttWorldMatrix(const EntityID id, DirectX::XMMATRIX& outMat)
 {
     outMat = pEntityMgr_->transformSystem_.GetWorldMatrixOfEntt(id);
 }
@@ -411,7 +411,7 @@ ColorRGBA FacadeEngineToUI::GetDirectedLightSpecular(const EntityID id) const
 
 Vec3 FacadeEngineToUI::GetDirectedLightDirection(const EntityID id) const
 {
-    XMFLOAT4 dir = pEntityMgr_->lightSystem_.GetDirLightProp(id, ECS::LightProp::DIRECTION);
+    DirectX::XMFLOAT4 dir = pEntityMgr_->lightSystem_.GetDirLightProp(id, ECS::LightProp::DIRECTION);
     return Vec3(dir.x, dir.y, dir.z);
 }
 
@@ -596,7 +596,7 @@ Vec3 FacadeEngineToUI::GetSpotLightPos(const EntityID id) const
 
 Vec3 FacadeEngineToUI::GetSpotLightDirection(const EntityID id) const
 {
-    const XMFLOAT4 dir = pEntityMgr_->lightSystem_.GetSpotLightProp(id, ECS::LightProp::DIRECTION);
+    const DirectX::XMFLOAT4 dir = pEntityMgr_->lightSystem_.GetSpotLightProp(id, ECS::LightProp::DIRECTION);
     //const XMVECTOR q   = DirectX::XMQuaternionRotationRollPitchYaw(dir.y, dir.x, dir.w);
     //const XMVECTOR q = pEntityMgr_->transformSystem_.GetRotationQuatByID(id);
 
@@ -670,7 +670,7 @@ bool FacadeEngineToUI::SetSkyOffset(const Vec3& offset)
     const EntityID enttID = pEntityMgr_->nameSystem_.GetIdByName("sky");
 
     // if we found the sky entity we change its offset
-    if (enttID != INVALID_ENTITY_ID)
+    if (enttID != 0)
     {
         pEntityMgr_->transformSystem_.SetPositionByID(enttID, offset.ToFloat3());
         return true;

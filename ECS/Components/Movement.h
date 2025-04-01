@@ -20,7 +20,7 @@ struct Movement
 	cvector<XMFLOAT4> translationAndUniScales_; // translation (x,y,z); uniform scale (w)
 	cvector<XMVECTOR> rotationQuats_;           // rotation quatertion {0, pitch, yaw, roll}
 
-    ComponentType type_ = ComponentType::MoveComponent;
+    eComponentType type_ = eComponentType::MoveComponent;
 };
 
 }
