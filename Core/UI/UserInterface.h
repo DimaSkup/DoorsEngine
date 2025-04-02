@@ -76,7 +76,7 @@ public:
 		const int maxStrSize);              // max possible length for this string
 
 	inline void SetSelectedEntt(const uint32_t entityID)       { editorPanels_.enttEditorController_.SetSelectedEntt(entityID); }
-	inline uint32_t GetSelectedEntt()                    const { return guiStates_.selectedEnttID_; }
+	inline uint32_t GetSelectedEntt()                    const { return editorPanels_.enttEditorController_.GetSelectedEnttID(); }
 
 	// gizmo stuff
 	inline void SetGizmoOperation(const int op)                { guiStates_.gizmoOperation_ = op; }

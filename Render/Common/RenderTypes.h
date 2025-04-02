@@ -203,11 +203,11 @@ struct Subset
     // subset (mesh) data of the model
     Subset() {}
 
-    char        name[SUBSET_NAME_LENGTH_LIMIT];                   // for debugging
-    int         vertexStart = 0;        // start pos of vertex in the common buffer
-    int         vertexCount = 0;        // how many vertices this subset has
-    int         indexStart = 0;         // start pos of index in the common buffer
-    int         indexCount = 0;         // how many indices this subset has
+    char     name[SUBSET_NAME_LENGTH_LIMIT] {'\0'};  // for debugging
+    uint32_t vertexStart = 0;                        // start pos of vertex in the common buffer
+    uint32_t vertexCount = 0;                        // how many vertices this subset has
+    uint32_t indexStart = 0;                         // start pos of index in the common buffer
+    uint32_t indexCount = 0;                         // how many indices this subset has
 };
 
 ///////////////////////////////////////////////////////////
@@ -218,53 +218,32 @@ struct Instance
     Instance() {}
 
     char                  name[32]{ '\0' };
-    //std::string           name;              // for debugging
     int                   numInstances = 0;  // how many instances will be rendered
     UINT                  vertexStride = 0;  // size in bytes of a single vertex
 
-    ID3D11Buffer*           pVB = nullptr;     // vertex buffer
-    ID3D11Buffer*           pIB = nullptr;     // index buffer
-    std::vector<SRV*>       texSRVs;           // textures arr for each mesh
-    std::vector<Subset>     subsets;           // subInstance (mesh) data
-    std::vector<uint32_t>   materialIDs;
+    ID3D11Buffer*         pVB = nullptr;     // vertex buffer
+    ID3D11Buffer*         pIB = nullptr;     // index buffer
+    std::vector<SRV*>     texSRVs;           // textures arr for each mesh
+    std::vector<Subset>   subsets;           // subInstance (mesh) data
+    std::vector<uint32_t> materialIDs;
     
-    // --------------------------------
-
-#if 0
-    Instance& operator=(const Instance& rhs)
-    {
-        if (this == &rhs)
-            return *this;
-
-        strcpy(name, rhs.name);
-        numInstances  = rhs.numInstances;
-        vertexStride  = rhs.vertexStride;
-
-        pVB           = rhs.pVB;
-        pIB           = rhs.pIB;
-        texSRVs       = rhs.texSRVs;
-        subsets       = rhs.subsets;
-
-
-        return *this;
-    }
-#endif
 
     // --------------------------------
 
-    int GetNumVertices() const
+    inline int GetNumVertices() const
     {
         return subsets.back().vertexStart + subsets.back().vertexCount;
     }
 
     // --------------------------------
     
-    void Clear()
+    inline void Clear()
     {
         pVB = nullptr;
         pIB = nullptr;
         texSRVs.clear();
         subsets.clear();
+        materialIDs.clear();
     }
 };
 

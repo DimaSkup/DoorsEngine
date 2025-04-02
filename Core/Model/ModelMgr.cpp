@@ -1,13 +1,12 @@
 // ************************************************************************************
-// Filename:      ModelStorage.cpp
+// Filename:      ModelMgr.cpp
 // Created:       30.10.24
 // ************************************************************************************
-#include "ModelStorage.h"
+#include "ModelMgr.h"
 
 #include <CoreCommon/FileSystemPaths.h>
 #include <CoreCommon/log.h>
 #include <CoreCommon/Assert.h>
-//#include <CoreCommon/Utils.h>
 #include "ModelExporter.h"
 #include "ModelsCreator.h"
 #include "ModelStorageSerializer.h"
@@ -15,8 +14,7 @@
 #include <algorithm>
 #include <fstream>
 #include <filesystem>
-#include <thread>
-//#include <format>
+//#include <thread>
 
 namespace fs = std::filesystem;
 
@@ -24,27 +22,29 @@ namespace fs = std::filesystem;
 namespace Core
 {
 
+// init a global instance of the model manager
+ModelMgr g_ModelMgr;
+
+// a static pointer to the instance of the model manager
+ModelMgr* ModelMgr::pInstance_ = nullptr;
+
 // when we add some new model into a storage its ID == lastModelID
 // and then we increase the lastModelID_ by 1, so the next model will have as ID
 // this increased value, and so on
-ModelID ModelStorage::lastModelID_ = 0;
-ModelStorage* ModelStorage::pInstance_ = nullptr;
+ModelID ModelMgr::lastModelID_ = 0;
 
 
+///////////////////////////////////////////////////////////
 
-ModelStorage::ModelStorage()
+ModelMgr::ModelMgr()
 {
     if (pInstance_ == nullptr)
     {
         pInstance_ = this;
-
-        // invalid model
-        //ids_.push_back(0);
-        //models_.push_back(BasicModel());
     }
     else
     {
-        Log::Error("there is already an instance of the ModelStorage");
+        Log::Error("there is already an instance of the ModelMgr");
         return;
     }
 }
@@ -74,7 +74,7 @@ void SerializeModels(
 
 ///////////////////////////////////////////////////////////
 
-void ModelStorage::Serialize(ID3D11Device* pDevice)
+void ModelMgr::Serialize(ID3D11Device* pDevice)
 {
     // 1. write model storage's data into the file
     // 2. export model into the internal model format if it hadn't been done before
@@ -175,7 +175,7 @@ void ModelStorage::Serialize(ID3D11Device* pDevice)
 
 ///////////////////////////////////////////////////////////
 
-void ModelStorage::Deserialize(ID3D11Device* pDevice)
+void ModelMgr::Deserialize(ID3D11Device* pDevice)
 {
     Log::Debug("deserialization: start");
 
@@ -186,8 +186,6 @@ void ModelStorage::Deserialize(ID3D11Device* pDevice)
 
     std::ifstream fin(pathToDataFile, std::ios::in);
     Assert::True(fin.is_open(), "can't open a file for deserialization of models storage");
-
-
 
     // skip header
     fin >> ignore;
@@ -223,7 +221,7 @@ void ModelStorage::Deserialize(ID3D11Device* pDevice)
 
 ///////////////////////////////////////////////////////////
 
-ModelID ModelStorage::AddModel(BasicModel&& model)
+ModelID ModelMgr::AddModel(BasicModel&& model)
 {
     // check if there is no such model id yet
     if (ids_.binary_search(model.id_))
@@ -243,12 +241,12 @@ ModelID ModelStorage::AddModel(BasicModel&& model)
 
 ///////////////////////////////////////////////////////////
 
-BasicModel& ModelStorage::AddEmptyModel()
+BasicModel& ModelMgr::AddEmptyModel()
 {
     // push new empty model into the storage;
     // return: a ref to this new model
 
-    ModelID id = lastModelID_;
+    const ModelID id = lastModelID_;
     ++lastModelID_;
 
     ids_.push_back(id);
@@ -262,7 +260,30 @@ BasicModel& ModelStorage::AddEmptyModel()
 
 ///////////////////////////////////////////////////////////
 
-BasicModel& ModelStorage::GetModelByID(const ModelID id)
+void ModelMgr::GetModelsByIDs(
+    const ModelID* ids,
+    const size numModels,
+    cvector<const BasicModel*>& outModels)
+{
+    // out: array of pointers to models by input IDs
+
+    Assert::True(ids != nullptr, "input ptr to models IDs arr == nullptr");
+    Assert::True(numModels > 0,  "input number of models must be > 0");
+
+    // get idxs by IDs
+    cvector<index> idxs;
+    ids_.get_idxs(ids, numModels, idxs);
+
+    // get pointers by idxs
+    outModels.resize(numModels);
+
+    for (int i = 0; const index idx : idxs)
+        outModels[i++] = &models_[idx];
+}
+
+///////////////////////////////////////////////////////////
+
+BasicModel& ModelMgr::GetModelByID(const ModelID id)
 {
     // return a model by ID, or invalid model (by idx == 0) if there is no such ID
     const index idx = ids_.get_idx(id);
@@ -273,7 +294,7 @@ BasicModel& ModelStorage::GetModelByID(const ModelID id)
 
 ///////////////////////////////////////////////////////////
 
-BasicModel& ModelStorage::GetModelByName(const std::string& name)
+BasicModel& ModelMgr::GetModelByName(const std::string& name)
 {
     // get a model by its input name
 
@@ -296,7 +317,7 @@ BasicModel& ModelStorage::GetModelByName(const std::string& name)
 
 ///////////////////////////////////////////////////////////
 
-ModelID ModelStorage::GetModelIdByName(const std::string& name)
+ModelID ModelMgr::GetModelIdByName(const std::string& name)
 {
     // get a model ID by its input name
 
@@ -319,7 +340,7 @@ ModelID ModelStorage::GetModelIdByName(const std::string& name)
 
 ///////////////////////////////////////////////////////////
 
-void ModelStorage::GetAssetsNamesList(cvector<std::string>& names)
+void ModelMgr::GetAssetsNamesList(cvector<std::string>& names)
 {
     // fill in the input array with names of the assets from the storage
 

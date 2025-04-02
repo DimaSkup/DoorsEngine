@@ -11,6 +11,9 @@
 namespace Core
 {
 
+// init a global instance of the material manager
+MaterialMgr g_MaterialMgr;
+
 // setup some static fields
 MaterialMgr* MaterialMgr::pInstance_      = nullptr;
 MaterialID   MaterialMgr::lastMaterialID_ = 0;
@@ -29,11 +32,6 @@ MaterialMgr::MaterialMgr()
         constexpr size newCapacity = 128;
         ids_.reserve(newCapacity);
         materials_.reserve(newCapacity);
-
-        // empty material with ID == 0
-        // which is used when we try to get not existent material by wrong ID
-        //ids_.push_back(INVALID_MATERIAL_ID);
-        //materials_.push_back(Material());
     }
     else
     {
@@ -117,6 +115,9 @@ MaterialID MaterialMgr::GetMaterialIdByName(const std::string name)
 
         ++i;
     }
+
+    // if we didn't found any material by name, we just return an invalid ID (0)
+    return INVALID_MATERIAL_ID;
 }
 
 } // namespace Core

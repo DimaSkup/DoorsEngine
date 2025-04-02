@@ -96,7 +96,7 @@ void ModelController::LoadEnttData(const uint32_t enttID)
 	Vec4 rotQuat;
 	float uniScale = 0.0f;
 
-	if (pFacade_->GetEnttData(enttID, position, rotQuat, uniScale))
+	if (pFacade_->GetEnttTransformData(enttID, position, rotQuat, uniScale))
 		enttModel_.SetData(position, rotQuat, uniScale);
 }
 

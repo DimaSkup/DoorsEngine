@@ -8,7 +8,7 @@
 
 #include "../Texture/TextureTypes.h"
 #include "../Model/BasicModel.h"
-#include "../Model/ModelStorage.h"
+#include "../Model/ModelMgr.h"
 
 #include <CoreCommon/Types.h>  
 #include "Render.h"
@@ -84,14 +84,11 @@ private:
         std::vector<Render::Instance>& instances,
         cvector<EntityID>& outEnttsSortedByInstances);
 
-    void PrepareTexturesForInstance(
-        MaterialMgr& materialMgr,
-        TextureMgr& texMgr,
-        Render::Instance& instance);
+    void PrepareTexturesForInstance(Render::Instance& instance);
 
 private:
-    Render::Render* pRender_ = nullptr;
-    ECS::EntityMgr* pEnttMgr_ = nullptr;
+    Render::Render* pRender_ = nullptr;    // a ptr to the Render class of the Render module
+    ECS::EntityMgr* pEnttMgr_ = nullptr;   // a ptr to the EntityMgr class of the ECS module
 };
 
 } // namespace Core

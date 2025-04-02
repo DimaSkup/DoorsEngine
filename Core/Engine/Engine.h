@@ -125,7 +125,6 @@ private:
 	InputManager       inputMgr_;
 	KeyboardClass      keyboard_;            // represents a keyboard device
 	MouseClass         mouse_;               // represents a mouse device
-    MaterialMgr        materialMgr_;
 	GraphicsClass      graphics_;            // rendering system
 
 	ImGuiLayer         imGuiLayer_;

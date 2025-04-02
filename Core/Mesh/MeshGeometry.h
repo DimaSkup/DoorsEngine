@@ -46,6 +46,7 @@ public:
     MeshGeometry(MeshGeometry&& rhs) noexcept;
     MeshGeometry& operator=(MeshGeometry&& rhs) noexcept;
 
+    void Shutdown();
 
     // deep copy
     void Copy(

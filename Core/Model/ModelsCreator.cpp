@@ -16,7 +16,7 @@
 #include "../Model/BasicModel.h"
 #include "ModelImporter.h"
 
-#include "../Model/ModelStorage.h"
+#include "../Model/ModelMgr.h"
 #include "../Texture/TextureMgr.h"
 
 #include <fstream>
@@ -54,7 +54,7 @@ ModelID ModelsCreator::CreateFromDE3D(
         model.InitializeBuffers(pDevice);
 
         ModelID id = id = model.id_;
-        ModelStorage::Get()->AddModel(std::move(model));
+        g_ModelMgr.AddModel(std::move(model));
 
         return id;
     }
@@ -79,8 +79,6 @@ ModelID ModelsCreator::ImportFromFile(
     const std::string& path)
 {
     // create a model by loading its vertices/indices/texture data/etc. from a file
-
-    ModelStorage& storage = *ModelStorage::Get();
     
     try
     {
@@ -88,7 +86,7 @@ ModelID ModelsCreator::ImportFromFile(
         Assert::True(fs::exists(pathToModel), "there is no model file by path: " + path);
 
         ModelImporter importer;
-        BasicModel& model = storage.AddEmptyModel();
+        BasicModel& model = g_ModelMgr.AddEmptyModel();
 
         model.name_ = pathToModel.stem().string();
         model.type_ = eModelType::Imported;
@@ -178,7 +176,7 @@ ModelID ModelsCreator::CreatePlane(
     // create new plane model
 
     GeometryGenerator geoGen;
-    BasicModel& model = ModelStorage::Get()->AddEmptyModel();
+    BasicModel& model = g_ModelMgr.AddEmptyModel();
 
     // generate mesh data for the model
     geoGen.GeneratePlane(width, height, model);
@@ -202,7 +200,7 @@ ModelID ModelsCreator::CreateBoundingLineBox(ID3D11Device* pDevice)
     // create a line box which will be used to visualise bounding boxes (AABB)
 
     GeometryGenerator geoGen;
-    BasicModel& model = ModelStorage::Get()->AddEmptyModel();
+    BasicModel& model = g_ModelMgr.AddEmptyModel();
 
     // generate mesh data for the model
     geoGen.GenerateLineBox(model);
@@ -226,7 +224,7 @@ ModelID ModelsCreator::CreateCube(ID3D11Device* pDevice)
     // THIS FUNCTION creates a cube model and stores it into the storage;
 
     GeometryGenerator geoGen;
-    BasicModel& model = ModelStorage::Get()->AddEmptyModel();
+    BasicModel& model = g_ModelMgr.AddEmptyModel();
     
     // generate mesh data for the model
     geoGen.GenerateCube(model);
@@ -250,7 +248,7 @@ void ModelsCreator::CreateSkyCube(ID3D11Device* pDevice, const float height)
     // create a sky cube model which can be used to render the sky
     
     GeometryGenerator geoGen;
-    SkyModel& sky = ModelStorage::Get()->GetSky();
+    SkyModel& sky = g_ModelMgr.GetSky();
 
     // generate mesh data for the sky model and init its buffers
     geoGen.GenerateSkyBoxForCubeMap(pDevice, sky, height);
@@ -267,7 +265,7 @@ void ModelsCreator::CreateSkySphere(ID3D11Device* pDevice, const float radius, c
     // and also is used for the sky gradient
 
     GeometryGenerator geoGen;
-    SkyModel& sky = ModelStorage::Get()->GetSky();
+    SkyModel& sky = g_ModelMgr.GetSky();
 
     // generate mesh data for the sky model and init its buffers
     geoGen.GenerateSkySphere(pDevice, sky, radius, sliceCount, stackCount);
@@ -308,7 +306,7 @@ ModelID ModelsCreator::CreateWater(
 
     // set a default water texture for the mesh
     const TexPath waterDiffTexPath = "data/textures/water2.dds";
-    const TexID waterDiffTexID = TextureMgr::Get()->LoadFromFile(waterDiffTexPath);
+    const TexID waterDiffTexID = g_TextureMgr.LoadFromFile(waterDiffTexPath);
 
     data.texIDs_[aiTextureType_DIFFUSE] = waterDiffTexID;
 
@@ -332,7 +330,7 @@ ModelID ModelsCreator::CreateSkyDome(
     // return: created model ID
 
     GeometryGenerator geoGen;
-    BasicModel& model = ModelStorage::Get()->AddEmptyModel();
+    BasicModel& model = g_ModelMgr.AddEmptyModel();
 
     // generate mesh data for the model
     geoGen.GenerateSkyDome(radius, sliceCount, stackCount, model);
@@ -359,7 +357,7 @@ ModelID ModelsCreator::CreateSphere(
     // return: created model ID
 
     GeometryGenerator geoGen;
-    BasicModel& model = ModelStorage::Get()->AddEmptyModel();
+    BasicModel& model = g_ModelMgr.AddEmptyModel();
 
     // generate mesh data for the model
     geoGen.GenerateSphere(params, model);
@@ -394,7 +392,7 @@ ModelID ModelsCreator::CreateGeoSphere(
     // return: created model ID
 
     GeometryGenerator geoGen;
-    BasicModel& model = ModelStorage::Get()->AddEmptyModel();
+    BasicModel& model = g_ModelMgr.AddEmptyModel();
 
     // generate mesh data for the model
     geoGen.GenerateGeosphere(params.radius_, params.numSubdivisions_, model);
@@ -552,7 +550,7 @@ ModelID ModelsCreator::CreateCylinder(
     // return: created model ID
 
     GeometryGenerator geoGen;
-    BasicModel& model = ModelStorage::Get()->AddEmptyModel();
+    BasicModel& model = g_ModelMgr.AddEmptyModel();
 
     // generate geometry of cylinder by input params
     geoGen.GenerateCylinder(params, model);
@@ -680,8 +678,7 @@ ModelID ModelsCreator::CreateGeneratedTerrain(
     //
     // CREATE TERRAIN GRID
     //
-    ModelStorage& storage = *ModelStorage::Get();
-    BasicModel& model = storage.AddEmptyModel();
+    BasicModel& model = g_ModelMgr.AddEmptyModel();
 
     GeometryGenerator geoGen;
 

@@ -156,7 +156,6 @@ void ModelLoader::SetupSubsets(
 {
 	// load textures for each subset (mesh) and make some other setup
 
-	TextureMgr& texMgr = *TextureMgr::Get();
 	const std::string texDirPath = modelDirPath + "/textures/";
 	MeshGeometry::Subset* subsets = model.GetSubsets();
 
@@ -173,7 +172,7 @@ void ModelLoader::SetupSubsets(
 		for (int j = 0; j < params.numTextures_; ++j)
 		{
 			const std::string fullPathToTex = texDirPath + params.texPaths[j];
-			const TexID texID = texMgr.LoadFromFile(fullPathToTex);
+			const TexID texID = g_TextureMgr.LoadFromFile(fullPathToTex);
 
 			//model.SetTexture(i, eTexType(stoi(params.texTypes[j])), texID);
 		}

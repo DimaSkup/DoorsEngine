@@ -89,9 +89,17 @@ std::string GetEnttsIDsAsString(
 
 ///////////////////////////////////////////////////////////
 
-std::string GetErrMsg(const std::string& prefix, const EntityID* ids, const size numEntts)
+inline std::string GetErrMsg(const std::string& prefix, const EntityID* ids, const size numEntts)
 {
+    // return a string: "prefix + arr_of_ids"
     return prefix + GetEnttsIDsAsString(ids, numEntts);
+}
+
+///////////////////////////////////////////////////////////
+
+inline std::string GetErrMsgNoEntt(const EntityID id)
+{
+    return "there is no entity by ID: " + std::to_string(id);
 }
 
 ///////////////////////////////////////////////////////////
@@ -768,15 +776,27 @@ ComponentHash EntityMgr::GetHashByComponents(
 
 ///////////////////////////////////////////////////////////
 
-void EntityMgr::GetComponentNamesByEntity(
-    const EntityID id,
-    cvector<std::string>& names)
+bool EntityMgr::GetComponentNamesByEntity(const EntityID id, cvector<std::string>& names)
 {
+    // out:    names array of components which are added to entity by ID;
+    // return: false because there is no entity by ID
+
     const index idx = ids_.get_idx(id);
+    const bool exist = (ids_[idx] == id);
+
+    if (!exist)
+    {
+        Log::Error(GetErrMsgNoEntt(id));
+        return false;
+    }
+
+    // get a bitfield where each bit is define if such component is added to entity or not
+    const ComponentHash hash = componentHashes_[idx];
 
     for (int i = 0; i < eComponentType::NUM_COMPONENTS; ++i)
     {
-        //names.push_back
+        if (hash & (1 << i))
+            names.push_back(componentTypeToName_.at(eComponentType(i)));
     }
 }
 

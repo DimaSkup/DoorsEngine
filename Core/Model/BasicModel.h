@@ -64,7 +64,7 @@ public:
     void Copy(ID3D11Device* pDevice, const BasicModel& rhs);
 
     void InitializeBuffers(ID3D11Device* pDevice);
-    void Clear();
+    void Shutdown();
     void ClearMemory();
 
     void CopyVertices(const Vertex3D* vertices, const int numVertices);

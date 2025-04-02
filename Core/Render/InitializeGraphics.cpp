@@ -19,7 +19,7 @@
 #include "../Model/ModelImporter.h"
 #include "../Model/ModelLoader.h"
 #include "../Model/ModelMath.h"
-#include "../Model/ModelStorage.h"
+#include "../Model/ModelMgr.h"
 
 #include "../Engine/ProjectSaver.h"
 
@@ -359,10 +359,9 @@ void CreateSpheres(ECS::EntityMgr& mgr, const BasicModel& model)
 
 
     // add material for each sphere entity
-    MaterialMgr& materialMgr = *MaterialMgr::Get();
     const MaterialID matID          = model.meshes_.subsets_[0].materialID;
-    const MaterialID catMatID       = materialMgr.GetMaterialIdByName("cat");
-    const MaterialID woodCrateMatID = materialMgr.GetMaterialIdByName("wood_crate_1");
+    const MaterialID catMatID       = g_MaterialMgr.GetMaterialIdByName("cat");
+    const MaterialID woodCrateMatID = g_MaterialMgr.GetMaterialIdByName("wood_crate_1");
     constexpr bool areMaterialsMeshBased = true;
 
 
@@ -417,8 +416,7 @@ void CreateSkyBox(ECS::EntityMgr& mgr, SkyModel& sky)
         colorApex   = { 0.38f, 0.45f, 0.51f };
     }
 
-    TextureMgr& texMgr = *TextureMgr::Get();
-    TexID skyMapID = texMgr.LoadFromFile(g_RelPathTexDir + skyTexPath);
+    TexID skyMapID = g_TextureMgr.LoadFromFile(g_RelPathTexDir + skyTexPath);
 
     // setup sky model
     sky.SetTexture(textureIdx, skyMapID);
@@ -439,9 +437,6 @@ void CreateCylinders(ECS::EntityMgr& mgr, const BasicModel& model)
     // create and setup cylinders entities
     //
     Log::Debug();
-
-    TextureMgr& texMgr = *TextureMgr::Get();
-    MaterialMgr& materialMgr = *MaterialMgr::Get();
 
     constexpr size numEntts = 10;
     const ECS::cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
@@ -475,7 +470,7 @@ void CreateCylinders(ECS::EntityMgr& mgr, const BasicModel& model)
     // set a default texture for the cylinder mesh
     
     const TexPath brickTexPath = g_RelPathTexDir + "brick01.dds";
-    const TexID brickTexID     = texMgr.LoadFromFile(brickTexPath);
+    const TexID brickTexID     = g_TextureMgr.LoadFromFile(brickTexPath);
 
     // ----------------------------------------------------
     // setup rendering params
@@ -492,7 +487,7 @@ void CreateCylinders(ECS::EntityMgr& mgr, const BasicModel& model)
     // setup material params
     Material cylinderMat;
     cylinderMat.SetTexture(TEX_TYPE_DIFFUSE, brickTexID);
-    const MaterialID cylinderMatID = materialMgr.AddMaterial(std::move(cylinderMat));
+    const MaterialID cylinderMatID = g_MaterialMgr.AddMaterial(std::move(cylinderMat));
 
     // ----------------------------------------------------
 
@@ -580,13 +575,11 @@ void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
             "box01d.dds",
         };
 
-        TextureMgr& texMgr = *TextureMgr::Get();
-        MaterialMgr& materialMgr = *MaterialMgr::Get();
-        TexID texIDs[numEntts];  // just setup only diffuse texture for each cube
+        // load and setup only diffuse texture for each cube
+        TexID texIDs[numEntts];  
 
-        // load textures
         for (int i = 0; i < numEntts; ++i)
-            texIDs[i] = texMgr.LoadFromFile(g_RelPathTexDir + texFilenames[i]);
+            texIDs[i] = g_TextureMgr.LoadFromFile(g_RelPathTexDir + texFilenames[i]);
 
         // ---------------------------------------------
 
@@ -635,32 +628,32 @@ void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
         Material catMaterial;
         catMaterial.SetName("cat");
         catMaterial.SetTexture(TEX_TYPE_DIFFUSE, keysToTexIDs.at("cat"));
-        const MaterialID catMatID = materialMgr.AddMaterial(std::move(catMaterial));
+        const MaterialID catMatID = g_MaterialMgr.AddMaterial(std::move(catMaterial));
 
         // cube_1: firecamp animated
         Material firecampMaterial;
         firecampMaterial.SetName("firecamp");
         firecampMaterial.SetTexture(TEX_TYPE_DIFFUSE, keysToTexIDs.at("fireAtlas"));
-        const MaterialID firecampMatID = materialMgr.AddMaterial(std::move(firecampMaterial));
+        const MaterialID firecampMatID = g_MaterialMgr.AddMaterial(std::move(firecampMaterial));
 
         // cube_2: wirefence with alpha clipping
         Material wirefenceMaterial;
         wirefenceMaterial.SetName("wirefence");
         wirefenceMaterial.SetAlphaClip(true);
         wirefenceMaterial.SetTexture(TEX_TYPE_DIFFUSE, keysToTexIDs.at("wireFence"));
-        const MaterialID wirefenceMatID = materialMgr.AddMaterial(std::move(wirefenceMaterial));
+        const MaterialID wirefenceMatID = g_MaterialMgr.AddMaterial(std::move(wirefenceMaterial));
 
         // cube_3: wood crate 1
         Material woodCrate1Material;
         woodCrate1Material.SetName("wood_crate_1");
         woodCrate1Material.SetTexture(TEX_TYPE_DIFFUSE, keysToTexIDs.at("woodCrate01"));
-        const MaterialID woodCrate1MatID = materialMgr.AddMaterial(std::move(woodCrate1Material));
+        const MaterialID woodCrate1MatID = g_MaterialMgr.AddMaterial(std::move(woodCrate1Material));
 
         // cube_4: wood crate 2
         Material woodCrate2Material;
         woodCrate2Material.SetName("wood_crate_2");
         woodCrate2Material.SetTexture(TEX_TYPE_DIFFUSE, keysToTexIDs.at("woodCrate02"));
-        const MaterialID woodCrate2MatID = materialMgr.AddMaterial(std::move(woodCrate2Material));
+        const MaterialID woodCrate2MatID = g_MaterialMgr.AddMaterial(std::move(woodCrate2Material));
 
         // cube_5: box01
         //Material box01Material;
@@ -924,8 +917,6 @@ void CreatePlanes(ECS::EntityMgr& mgr, const BasicModel& model)
         // ---------------------------------------------------------
         // setup meshes of the entities
 
-        TextureMgr& texMgr = *TextureMgr::Get();
-
         constexpr int numTexPaths = 2;
         const TexPath texPaths[numTexPaths] =
         {
@@ -937,7 +928,7 @@ void CreatePlanes(ECS::EntityMgr& mgr, const BasicModel& model)
 
         // create textures
         for (int i = 0; i < numTexPaths; ++i)
-            texIDs[i] = texMgr.LoadFromFile(texPaths[i]);
+            texIDs[i] = g_TextureMgr.LoadFromFile(texPaths[i]);
 
 
         // setup rendering params
@@ -1720,7 +1711,6 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     // 2. create relative entities
 
     ModelsCreator creator;
-    ModelStorage& storage = *ModelStorage::Get();
 
     // paths to external models
     const std::string lightPolePath             = g_RelPathExtModelsDir + "light_pole/light_pole.obj";
@@ -1766,20 +1756,20 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     Log::Debug("All the models are imported successfully");
 
     // get models by its ids
-    //BasicModel& building        = storage.GetModelByID(buildingID);
-    //BasicModel& apartment       = storage.GetModelByID(apartmentID);
-    //BasicModel& sovietStatue    = storage.GetModelByID(sovietStatueID);
-    //BasicModel& treeSpruce      = storage.GetModelByID(treeSpruceID);
-    BasicModel& treePine        = storage.GetModelByID(treePineID);
-    //BasicModel& powerHVTower    = storage.GetModelByID(powerHVTowerID);
-    //BasicModel& nanosuit        = storage.GetModelByID(nanosuitID);
-    BasicModel& stalkerFreedom  = storage.GetModelByID(stalkerFreedomID);
-    //BasicModel& lightPole       = storage.GetModelByID(lightPoleID);
-    //BasicModel& barrel          = storage.GetModelByID(barrelID);
-    //BasicModel& stalkerHouse1   = storage.GetModelByID(stalkerHouse1ID);
-    //BasicModel& stalkerHouse2   = storage.GetModelByID(stalkerHouse2ID);
-    BasicModel& ak47            = storage.GetModelByID(ak47ID);
-    //BasicModel& ak74            = storage.GetModelByID(ak74ID);
+    //BasicModel& building        = g_ModelMgr.GetModelByID(buildingID);
+    //BasicModel& apartment       = g_ModelMgr.GetModelByID(apartmentID);
+    //BasicModel& sovietStatue    = g_ModelMgr.GetModelByID(sovietStatueID);
+    //BasicModel& treeSpruce      = g_ModelMgr.GetModelByID(treeSpruceID);
+    BasicModel& treePine        = g_ModelMgr.GetModelByID(treePineID);
+    //BasicModel& powerHVTower    = g_ModelMgr.GetModelByID(powerHVTowerID);
+    //BasicModel& nanosuit        = g_ModelMgr.GetModelByID(nanosuitID);
+    BasicModel& stalkerFreedom  = g_ModelMgr.GetModelByID(stalkerFreedomID);
+    //BasicModel& lightPole       = g_ModelMgr.GetModelByID(lightPoleID);
+    //BasicModel& barrel          = g_ModelMgr.GetModelByID(barrelID);
+    //BasicModel& stalkerHouse1   = g_ModelMgr.GetModelByID(stalkerHouse1ID);
+    //BasicModel& stalkerHouse2   = g_ModelMgr.GetModelByID(stalkerHouse2ID);
+    BasicModel& ak47            = g_ModelMgr.GetModelByID(ak47ID);
+    //BasicModel& ak74            = g_ModelMgr.GetModelByID(ak74ID);
 
     // setup some models (set textures, setup materials)
     //SetupStalkerSmallHouse(stalkerHouse1);
@@ -1811,8 +1801,7 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
 void GenerateAssets(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
 {
     ModelsCreator creator;
-    ModelStorage& storage = *ModelStorage::Get();
-        
+
     //
     // create sky
     //
@@ -1820,13 +1809,13 @@ void GenerateAssets(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     //creator.CreateSkySphere(pDevice, 2000, 30, 30);
     //MeshSphereParams skyDomeSphereParams(2000, 30, 30);
     //const ModelID skyBoxID = creator.CreateSphere(pDevice, skyDomeSphereParams);
-    SkyModel& skyBox = storage.GetSky();
+    SkyModel& skyBox = g_ModelMgr.GetSky();
 
     //
     // create terrain
     //
     const ModelID terrainID = creator.CreateGeneratedTerrain(pDevice, 500, 500, 501, 501);
-    BasicModel& terrain = storage.GetModelByID(terrainID);
+    BasicModel& terrain = g_ModelMgr.GetModelByID(terrainID);
     SetupTerrain(terrain);
     CreateTerrain(mgr, terrain);
 
@@ -1840,9 +1829,9 @@ void GenerateAssets(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     const ModelID sphereID      = creator.CreateSphere(pDevice, sphereParams);
 
     // get actual model by its ID
-    BasicModel& cube            = storage.GetModelByID(cubeID);
-    BasicModel& sphere          = storage.GetModelByID(sphereID);
-    BasicModel& boundSphere     = storage.GetModelByID(boundSphereID);
+    BasicModel& cube            = g_ModelMgr.GetModelByID(cubeID);
+    BasicModel& sphere          = g_ModelMgr.GetModelByID(sphereID);
+    BasicModel& boundSphere     = g_ModelMgr.GetModelByID(boundSphereID);
 
     boundSphere.SetName("bound_sphere");
 
@@ -1863,9 +1852,8 @@ void LoadAssets(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     // load models from the internal .de3d format
 
     ModelsCreator creator;
-    ModelStorage& storage = *ModelStorage::Get();
 
-    storage.Deserialize(pDevice);
+    g_ModelMgr.Deserialize(pDevice);
 
     // create and setup entities with models
     //CreateTreesPine   (mgr, storage.GetModelByName("tree_pine"));
@@ -1883,7 +1871,7 @@ void LoadAssets(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     //CreateApartment   (mgr, storage.GetModelByName("Apartment"));
     //CreateSovietStatue(mgr, storage.GetModelByName("sickle&hammer"));
 
-    CreateStalkerFreedom(mgr, storage.GetModelByName("stalker_freedom_1"));
+    CreateStalkerFreedom(mgr, g_ModelMgr.GetModelByName("stalker_freedom_1"));
     
 #if 0
     // load models from the internal asset format and get its IDs
@@ -1951,8 +1939,6 @@ bool InitializeGraphics::InitializeModels(
     try
     {
         ModelsCreator creator;
-        ModelStorage& storage = *ModelStorage::Get();
-        TextureMgr& texMgr = *TextureMgr::Get();
 
         constexpr int numTreeTexturesPaths = 4;
 
@@ -1965,7 +1951,7 @@ bool InitializeGraphics::InitializeModels(
                 g_RelPathTexDir + "tree3.dds"
         };
 
-        texMgr.LoadTextureArray(
+        g_TextureMgr.LoadTextureArray(
             treeTexPaths,
             numTreeTexturesPaths,
             DXGI_FORMAT_R8G8B8A8_UNORM);
@@ -1973,18 +1959,18 @@ bool InitializeGraphics::InitializeModels(
 
         // load the "no_texture" texture from the file;
         // (this texture will serve us as "invalid")
-        TexID noTextureID = texMgr.LoadFromFile(g_RelPathTexDir + "notexture.dds");
+        TexID noTextureID = g_TextureMgr.LoadFromFile(g_RelPathTexDir + "notexture.dds");
 
         // create and setup an "invalid" material
         Material invalidMaterial;
         invalidMaterial.SetTexture(TEX_TYPE_DIFFUSE, noTextureID);
 
         // add "invalid" material into the material manager
-        MaterialID invalidMaterialID = MaterialMgr::Get()->AddMaterial(std::move(invalidMaterial));
+        MaterialID invalidMaterialID = g_MaterialMgr.AddMaterial(std::move(invalidMaterial));
 
         // create a cube which will serve for us as an invalid model
         const ModelID cubeID     = creator.CreateCube(pDevice);
-        BasicModel& invalidModel = storage.GetModelByID(cubeID);
+        BasicModel& invalidModel = g_ModelMgr.GetModelByID(cubeID);
 
         invalidModel.SetName("invalid_model");
         invalidModel.SetMaterialForSubset(0, invalidMaterialID);

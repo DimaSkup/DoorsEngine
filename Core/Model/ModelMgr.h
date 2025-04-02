@@ -1,5 +1,5 @@
 // ************************************************************************************
-// Filename:      ModelStorage.h
+// Filename:      ModelMgr.h
 // Description:   a main single storage for the models (BasicModel)
 // 
 // Created:       30.10.24
@@ -14,12 +14,10 @@
 namespace Core
 {
 
-class ModelStorage
+class ModelMgr
 {
 public:
-    ModelStorage();
-
-    inline static ModelStorage* Get() { return pInstance_; };
+    ModelMgr();
 
     void Serialize  (ID3D11Device* pDevice);
     void Deserialize(ID3D11Device* pDevice);
@@ -27,6 +25,7 @@ public:
     ModelID AddModel(BasicModel&& model);
     BasicModel& AddEmptyModel();
 
+    void GetModelsByIDs(const ModelID* ids, const size numModels, cvector<const BasicModel*>& outModels);
     BasicModel& GetModelByID    (const ModelID id);
     BasicModel& GetModelByName  (const std::string& name);
     ModelID     GetModelIdByName(const std::string& name);
@@ -38,13 +37,19 @@ public:
     void GetAssetsNamesList(cvector<std::string>& names);
 
 private:
-    cvector<ModelID>        ids_;
-    cvector<BasicModel>     models_;
+    cvector<ModelID>    ids_;
+    cvector<BasicModel> models_;
 
-    SkyModel                sky_;
+    SkyModel            sky_;
 
-    static ModelStorage*    pInstance_;
-    static ModelID          lastModelID_;
+    static ModelMgr*    pInstance_;
+    static ModelID      lastModelID_;
 };
+
+
+// =================================================================================
+// Declare a global instance of the model manager
+// =================================================================================
+extern ModelMgr g_ModelMgr;
 
 }

@@ -37,8 +37,6 @@ public:
     TextureMgr(const TextureMgr&) = delete;
     TextureMgr& operator=(const TextureMgr&) = delete;
 
-    inline static TextureMgr* Get() { return pInstance_; }
-
     // public creation API
     void Initialize(ID3D11Device* pDevice);
 
@@ -90,5 +88,11 @@ private:
     cvector<TexName>    names_;               // name (there can be path) which is used for searching of texture
     cvector<Texture>    textures_;
 };
+
+
+// =================================================================================
+// Declare a global instance of the texture manager
+// =================================================================================
+extern TextureMgr g_TextureMgr;
 
 } // namespace Core

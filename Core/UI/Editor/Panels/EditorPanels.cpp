@@ -141,7 +141,7 @@ void EditorPanels::RenderEntitiesListWnd(Core::SystemState& sysState)
         // render selectable menu with entts names
         for (int i = 0; i < numEntts; ++i)
         {
-            bool isSelected = pEnttsIDs[i] == pStatesGUI_->selectedEnttID_;
+            bool isSelected = pEnttsIDs[i] == enttEditorController_.GetSelectedEnttID();
 
             if (ImGui::Selectable(enttsNames[i].c_str(), isSelected, ImGuiSelectableFlags_AllowDoubleClick))
             {
@@ -205,7 +205,8 @@ void EditorPanels::RenderPropertiesControllerWnd()
 
     if (ImGui::Begin("Properties"), &isPropertiesWndOpen_)
     {
-        if (pStatesGUI_->IsSelectedAnyEntt())
+        // if we have selected any entity
+        if (enttEditorController_.selectedEnttData_.IsSelectedAnyEntt())
             enttEditorController_.Render();
         
 

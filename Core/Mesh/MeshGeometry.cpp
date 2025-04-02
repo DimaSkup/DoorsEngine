@@ -5,7 +5,6 @@
 // =================================================================================
 #include "MeshGeometry.h"
 #include <CoreCommon/MemHelpers.h>
-#include <format>
 
 #pragma warning (disable : 4996)
 
@@ -18,12 +17,7 @@ MeshGeometry::MeshGeometry()
 
 MeshGeometry::~MeshGeometry() 
 {
-    // release memory
-    SafeDeleteArr(subsets_);
-    numSubsets_ = 0;
-
-    vb_.~VertexBuffer();
-    ib_.~IndexBuffer();
+    Shutdown();
 }
 
 ///////////////////////////////////////////////////////////
@@ -54,6 +48,17 @@ MeshGeometry& MeshGeometry::operator=(MeshGeometry&& rhs) noexcept
 // =================================================================================
 //                              PUBLIC METHODS
 // =================================================================================
+void MeshGeometry::Shutdown()
+{
+    // release memory
+    SafeDeleteArr(subsets_);
+    numSubsets_ = 0;
+
+    vb_.~VertexBuffer();
+    ib_.~IndexBuffer();
+}
+
+///////////////////////////////////////////////////////////
 
 void MeshGeometry::Copy(
     ID3D11Device* pDevice,
@@ -168,7 +173,7 @@ void MeshGeometry::SetSubsetName(const SubsetID subsetID, const char* name)
     catch (EngineException& e)
     {
         Log::Error(e);
-        Log::Error(std::format("can't set a name for subset {}: invalid input args", subsetID));
+        Log::Error("can't set a name for subset " + std::to_string(subsetID) + ": invalid input args");
     }
 }
 
@@ -186,7 +191,7 @@ void MeshGeometry::SetMaterialForSubset(const SubsetID subsetID, const MaterialI
     catch (EngineException& e)
     {
         Log::Error(e);
-        Log::Error(std::format("can't setup a material (its ID: {}) for subset by ID: {}", matID, subsetID));
+        Log::Error("can't setup a material (ID: " + std::to_string(matID) + ") for subset (ID: " + std::to_string(subsetID));
     }
 }
 

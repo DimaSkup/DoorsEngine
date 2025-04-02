@@ -11,7 +11,7 @@
 // =================================================================================
 #pragma once
 
-#include <CoreCommon/cvector.h>
+#include <UICommon/cvector.h>
 #include "Color.h"
 #include "Vectors.h"
 
@@ -53,6 +53,8 @@ public:
     // =============================================================================
     virtual EntityID CreateEntity() { return 0; }
 
+    virtual bool GetEntityAddedComponentsNames(const EntityID id, cvector<std::string>& componentsNames)              const { return false; };
+
     virtual bool AddNameComponent     (const EntityID id, const std::string& name)                                          { return false; }
     virtual bool AddTransformComponent(const EntityID id, const Vec3& pos, const Vec3& direction, const float uniformScale) { return false; }
     virtual bool AddModelComponent    (const EntityID enttID, const uint32_t modelID)                                       { return false; }
@@ -60,27 +62,28 @@ public:
     virtual bool AddBoundingComponent (const EntityID id, const int boundType, const DirectX::BoundingBox& aabb)            { return false; }
 
 
-    virtual bool GetAllEnttsIDs(const uint32_t*& pEnttsIDsArr, int& numEntts) { return false; }
-    virtual uint32_t GetEnttIDByName(const char* name) { return 0; }
-    virtual bool GetEnttNameByID(const EntityID id, std::string& name) { return false; }
+    virtual bool     GetAllEnttsIDs   (const EntityID*& outPtrToEnttsIDsArr, int& outNumEntts)        const { return false; }
+    virtual EntityID GetEnttIDByName  (const std::string& name)                                       const { return 0; }
+    virtual bool     GetEnttNameByID  (const EntityID id, std::string& outName)                       const { return false; }
 
-    virtual bool GetEnttsIDsOfTypeModel(const EntityID*& enttsIDs, int& numEntts) { return false; }
-    virtual bool GetEnttsIDsOfTypeCamera(const EntityID*& enttsIDs, int& numEntts) { return false; }
-    virtual bool GetEnttsIDsOfTypeLight(const EntityID*& enttsIDs, int& numEntts) { return false; }
+    // extract entities with particular component
+    virtual bool GetEnttsOfModelType  (const EntityID*& enttsIDs, int& numEntts)                            { return false; }
+    virtual bool GetEnttsOfCameraType (const EntityID*& enttsIDs, int& numEntts)                            { return false; }
+    virtual bool GetEnttsOfLightType  (const EntityID*& enttsIDs, int& numEntts)                            { return false; }
 
-    virtual bool GetEnttData(const EntityID id, Vec3& pos, Vec4& rotQuat, float& uniScale) { return false; }
-    virtual void GetEnttWorldMatrix(const EntityID id, DirectX::XMMATRIX& outMat) { assert(0 && "TODO: implement this virtual method in children"); }
+    virtual bool GetEnttTransformData (const EntityID id, Vec3& pos, Vec4& rotQuat, float& uniScale)  const { return false; }
+    virtual bool GetEnttWorldMatrix   (const EntityID id, DirectX::XMMATRIX& outMat)                  const { return false; }
 
     // get/set entity position/rotation_quat/uniform_scale
-    virtual Vec3 GetEnttPosition    (const EntityID id)                           const { return GetInvalidVec3(); }
-    virtual Vec4 GetEnttRotationQuat(const EntityID id)                           const { return GetInvalidVec4(); }
-    virtual float GetEnttScale      (const EntityID id)                           const { return GetInvalidFloat(); }
+    virtual Vec3 GetEnttPosition    (const EntityID id)                                               const { return GetInvalidVec3(); }
+    virtual Vec4 GetEnttRotationQuat(const EntityID id)                                               const { return GetInvalidVec4(); }
+    virtual float GetEnttScale      (const EntityID id)                                               const { return GetInvalidFloat(); }
 
-    virtual bool SetEnttPosition    (const EntityID id, const Vec3& pos)                { return false; }
-    virtual bool SetEnttRotationQuat(const EntityID id, const Vec4& rotQuat)            { return false; }
-    virtual bool SetEnttUniScale    (const EntityID id, const float scale)              { return false; }
+    virtual bool SetEnttPosition    (const EntityID id, const Vec3& pos)                                    { return false; }
+    virtual bool SetEnttRotationQuat(const EntityID id, const Vec4& rotQuat)                                { return false; }
+    virtual bool SetEnttUniScale    (const EntityID id, const float scale)                                  { return false; }
 
-    virtual bool IsEnttLightSource(const EntityID id, int& lightType)             const { return false; }
+    virtual bool IsEnttLightSource(const EntityID id, int& lightType)                                 const { return false; }
 
 
     // =============================================================================
@@ -204,7 +207,7 @@ public:
     // =============================================================================
     // for assets manager
     // =============================================================================
-    virtual bool GetAssetsNamesList(Core::cvector<std::string>& names) { return false; }
+    virtual bool GetAssetsNamesList(cvector<std::string>& names) { return false; }
 
 
 private:

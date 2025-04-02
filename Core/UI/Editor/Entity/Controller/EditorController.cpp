@@ -48,34 +48,39 @@ void EditorController::Initialize(IFacadeEngineToUI* pFacade)
 
 ///////////////////////////////////////////////////////////
 
-void EditorController::SetSelectedEntt(const uint32_t enttID)
+void EditorController::SetSelectedEntt(const EntityID enttID)
 {
     // set that we have selected some entity and load its data
 
-    using enum StatesGUI::SelectedEnttType;
-    StatesGUI& states = *pStatesGUI_;
-
-    // we deselected the chosen entt so we won't render any control panel
+    // if we deselected the chosen entt so we won't render any control panel
     // until we won't select any other
     if (enttID == 0)
     {
-        states.selectedEnttType_ = NONE;
-        states.selectedEnttID_ = 0;
+        selectedEnttData_.id   = 0;
+        selectedEnttData_.type = eSelectedEnttType::NONE;
+        selectedEnttData_.name = "";
         return;
     }
     // we have chosen some entt
     else
     {
-        std::string enttName;
         int lightType;
 
-        states.selectedEnttID_ = enttID;
-        pFacade_->GetEnttNameByID(enttID, enttName);
+        // get selected entity ID and name
+        selectedEnttData_.id = enttID;
+        pFacade_->GetEnttNameByID(enttID, selectedEnttData_.name);
+
+        // get names of added components
+        pFacade_->GetEntityAddedComponentsNames(enttID, selectedEnttData_.componentsNames);
+
+
+        // ------------------------------------------------
+        // define entity type and load its specific data
 
         // if we selected the sky entt
-        if (enttName == "sky")
+        if (selectedEnttData_.name == "sky")
         {
-            states.selectedEnttType_ = SKY;
+            selectedEnttData_.type = SKY;
             skyController_.LoadEnttData(enttID);
         }
         // if we selected any light source
@@ -83,17 +88,17 @@ void EditorController::SetSelectedEntt(const uint32_t enttID)
         {
             if (lightType == 0)
             {
-                states.selectedEnttType_ = DIRECTED_LIGHT;
+                selectedEnttData_.type = DIRECTED_LIGHT;
                 directedLightController_.LoadEnttData(enttID);
             }
             else if (lightType == 1)
             {
-                states.selectedEnttType_ = POINT_LIGHT;
+                selectedEnttData_.type = POINT_LIGHT;
                 pointLightController_.LoadEnttData(enttID);
             }
             else if (lightType == 2)
             {
-                states.selectedEnttType_ = SPOT_LIGHT;
+                selectedEnttData_.type = SPOT_LIGHT;
                 spotLightController_.LoadEnttData(enttID);
             }
             else
@@ -101,16 +106,23 @@ void EditorController::SetSelectedEntt(const uint32_t enttID)
                 Log::Error("unknown light type");
                 return;
             }
-
-
         }
         // we selected any model entity
         else
         {
-            states.selectedEnttType_ = MODEL;
+            selectedEnttData_.type = MODEL;
             modelController_.LoadEnttData(enttID);
         }
     }
+}
+
+///////////////////////////////////////////////////////////
+
+void RenderEntityIdAndName(const EntityID id, const char* enttName, const char* enttType)
+{
+    ImGui::Text("Entity ID:   %d", id);
+    ImGui::Text("Entity name: %s", enttName);
+    ImGui::Text("Entity type: %s", enttType);
 }
 
 ///////////////////////////////////////////////////////////
@@ -119,22 +131,22 @@ void EditorController::Render()
 {
     //  render a panel for controlling properties of the chosen entity
 
-    using enum StatesGUI::SelectedEnttType;
+    const EntityID enttID = selectedEnttData_.id;
+
+    // we have no entity as selected
+    if (enttID == 0)
+        return;
 
     // we want the next editor panel to be visible
     static bool isOpen = true;
     ImGui::SetNextItemOpen(isOpen);
-    StatesGUI& states = *pStatesGUI_;
-    StatesGUI::EntityID enttID = states.selectedEnttID_;
-    StatesGUI::SelectedEnttType type = states.selectedEnttType_;
-    std::string enttName;
-
-    pFacade_->GetEnttNameByID(enttID, enttName);
-
-    switch (type)
+    
+    switch (selectedEnttData_.type)
     {
         case SKY:
         {
+            RenderEntityIdAndName(enttID, selectedEnttData_.name.c_str(), "sky entity");
+
             // render a panel for changing properties of the sky (since it is the chosen entity)
             if (isOpen = ImGui::CollapsingHeader("SkyEditor", ImGuiTreeNodeFlags_SpanFullWidth))
                 viewSky_.Render(skyController_.GetModel());
@@ -142,8 +154,7 @@ void EditorController::Render()
         }
         case DIRECTED_LIGHT:
         {
-            ImGui::Text("Entity ID (directed light): %d", enttID);
-            ImGui::Text("Entity Name: %s", enttName.c_str());
+            RenderEntityIdAndName(enttID, selectedEnttData_.name.c_str(), "directed light");
 
             if (ImGui::CollapsingHeader("Directed light properties", ImGuiTreeNodeFlags_SpanFullWidth))
                 viewLight_.Render(directedLightController_.GetModel());
@@ -152,8 +163,7 @@ void EditorController::Render()
         }
         case POINT_LIGHT:
         {
-            ImGui::Text("Entity ID (point light): %d", enttID);
-            ImGui::Text("Entity Name: %s", enttName.c_str());
+            RenderEntityIdAndName(enttID, selectedEnttData_.name.c_str(), "point light");
 
             if (isOpen = ImGui::CollapsingHeader("Point Light Properties", ImGuiTreeNodeFlags_SpanFullWidth))
                 viewLight_.Render(pointLightController_.GetModel());
@@ -161,8 +171,7 @@ void EditorController::Render()
         }
         case SPOT_LIGHT:
         {
-            ImGui::Text("enttID (spot light): %d", enttID);
-            ImGui::Text("Entity Name: %s", enttName.c_str());
+            RenderEntityIdAndName(enttID, selectedEnttData_.name.c_str(), "spotlight");
 
             if (isOpen = ImGui::CollapsingHeader("Spotlight Properties", ImGuiTreeNodeFlags_SpanFullWidth))
                 viewLight_.Render(spotLightController_.GetModel());
@@ -170,14 +179,22 @@ void EditorController::Render()
         }
         case MODEL:
         {
-            // render a panel for changing properties of the chosen entity 
-            ImGui::Text("enttID (model): %d", enttID);
-            ImGui::Text("Entity Name: %s", enttName.c_str());
+            RenderEntityIdAndName(enttID, selectedEnttData_.name.c_str(), "model");
 
             if (isOpen = ImGui::CollapsingHeader("EntityEditor", ImGuiTreeNodeFlags_SpanFullWidth))
                 viewModel_.Render(modelController_.GetModel());
             break;
         }
+    }
+
+    // render a list of components names which are added to the entity
+    if (enttID != 0)
+    {
+        ImGui::Separator();
+        ImGui::Text("Added components:");
+
+        for (const std::string& name : selectedEnttData_.componentsNames)
+            ImGui::Text(name.c_str());
     }
 }
 
@@ -225,13 +242,10 @@ void EditorController::UpdateSelectedEnttWorld(const DirectX::XMMATRIX& world)
 
 void EditorController::TranslateSelectedEntt(const DirectX::XMVECTOR& translation)
 {
-    using enum StatesGUI::SelectedEnttType;
-
-    StatesGUI::SelectedEnttType enttType = pStatesGUI_->selectedEnttType_;
     EditorCmdType cmdType = EditorCmdType::INVALID_CMD;
 
     // generate a command and call executor according to the entity type
-    switch (enttType)
+    switch (selectedEnttData_.type)
     {
         case SKY:
         {
@@ -258,7 +272,7 @@ void EditorController::TranslateSelectedEntt(const DirectX::XMVECTOR& translatio
         }
         default:
         {
-            Log::Error("unknown entity type for translation: " + std::to_string(enttType));
+            Log::Error("unknown entity type for translation: " + std::to_string(selectedEnttData_.type));
             return;
         }
     }
@@ -272,12 +286,9 @@ void EditorController::TranslateSelectedEntt(const DirectX::XMVECTOR& translatio
 
 void EditorController::RotateSelectedEntt(const DirectX::XMVECTOR& quat)
 {
-    using enum StatesGUI::SelectedEnttType;
-
-    StatesGUI::SelectedEnttType enttType = pStatesGUI_->selectedEnttType_;
     EditorCmdType cmdType = EditorCmdType::INVALID_CMD;
 
-    switch (enttType)
+    switch (selectedEnttData_.type)
     {
         case DIRECTED_LIGHT:
         {
@@ -300,7 +311,7 @@ void EditorController::RotateSelectedEntt(const DirectX::XMVECTOR& quat)
         }
         default:
         {
-            Log::Error("unknown entity type for rotation: " + std::to_string(enttType));
+            Log::Error("unknown entity type for rotation: " + std::to_string(selectedEnttData_.type));
             return;
         }
     }
@@ -314,11 +325,9 @@ void EditorController::RotateSelectedEntt(const DirectX::XMVECTOR& quat)
 
 void EditorController::ScaleSelectedEntt(const float uniformScale)
 {
-    using enum StatesGUI::SelectedEnttType;
-
     EditorCmdType cmdType = EditorCmdType::INVALID_CMD;
 
-    switch (pStatesGUI_->selectedEnttType_)
+    switch (selectedEnttData_.type)
     {
         case MODEL:
         {
@@ -331,7 +340,7 @@ void EditorController::ScaleSelectedEntt(const float uniformScale)
         }
         default:
         {
-            Log::Error("unknown entity type for scaling: " + std::to_string(pStatesGUI_->selectedEnttType_));
+            Log::Error("unknown entity type for scaling: " + std::to_string(selectedEnttData_.type));
             return;
         }
     }
@@ -350,13 +359,13 @@ void EditorController::Execute(const ICommand* pCmd)
 {
     // execute a command according to its type for the currently selected entity
 
-    if ((pCmd == nullptr) || (pFacade_ == nullptr) || (!pStatesGUI_->IsSelectedAnyEntt()))
+    if ((pCmd == nullptr) || (pFacade_ == nullptr) || (!selectedEnttData_.IsSelectedAnyEntt()))
     {
         Log::Error("can't execute a command of type: " + std::to_string(pCmd->type_));
         return;
     }
 
-    const uint32_t enttID = pStatesGUI_->selectedEnttID_;
+    const uint32_t enttID = selectedEnttData_.id;
 
     switch (pCmd->type_)
     {

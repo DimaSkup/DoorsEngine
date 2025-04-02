@@ -240,7 +240,7 @@
     <ClCompile Include="Model\BasicModel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Model\ModelStorage.cpp">
+    <ClCompile Include="Model\ModelMgr.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Model\ModelExporter.cpp">
@@ -557,7 +557,7 @@
     <ClInclude Include="Model\BasicModel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Model\ModelStorage.h">
+    <ClInclude Include="Model\ModelMgr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Model\ModelExporter.h">
@@ -753,6 +753,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\UICommon\cvector.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Editor\Entity\Model\SelectedEntityData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

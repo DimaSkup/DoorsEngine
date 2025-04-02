@@ -11,30 +11,39 @@ namespace Core
 
 BasicModel::BasicModel()
 {
+#if 0
+    // to define size of a single BasicModel instance
+    Log::Print("sizeof(BasicModel):            " + std::to_string(sizeof(BasicModel)));
+    Log::Print("sizeof(MeshGeometry::Subset):  " + std::to_string(sizeof(MeshGeometry::Subset)));
+    Log::Print("sizeof(MeshGeometry):          " + std::to_string(sizeof(MeshGeometry)));
+    Log::Print("sizeof(VertexBuffer<Vertex3D>):" + std::to_string(sizeof(VertexBuffer<Vertex3D>)));
+    Log::Print("sizeof(IndexBuffer<UINT>):     " + std::to_string(sizeof(IndexBuffer<UINT>)));
+    Log::Print("sizeof(ID3D11Buffer):          " + std::to_string(sizeof(ID3D11Buffer)));
+#endif
 }
 
 BasicModel::~BasicModel()
 {
-    Clear();
+    Shutdown();
 }
 
 ///////////////////////////////////////////////////////////
 
 BasicModel::BasicModel(BasicModel&& rhs) noexcept :
-    id_(rhs.id_),
-    name_(std::exchange(rhs.name_, "")),
-    type_(std::exchange(rhs.type_, eModelType::Invalid)),
-    meshes_(std::move(rhs.meshes_)),
-    modelAABB_(std::exchange(rhs.modelAABB_, {})),
+    id_         (rhs.id_),
+    name_       (std::exchange(rhs.name_, "")),
+    type_       (std::exchange(rhs.type_, eModelType::Invalid)),
+    meshes_     (std::move(rhs.meshes_)),
+    modelAABB_  (std::exchange(rhs.modelAABB_, {})),
     
     subsetsAABB_(std::exchange(rhs.subsetsAABB_, nullptr)),
-    vertices_(std::exchange(rhs.vertices_, nullptr)),
-    indices_(std::exchange(rhs.indices_, nullptr)),
+    vertices_   (std::exchange(rhs.vertices_, nullptr)),
+    indices_    (std::exchange(rhs.indices_, nullptr)),
 
     numVertices_(rhs.numVertices_),
-    numIndices_(rhs.numIndices_),
-    numSubsets_(rhs.numSubsets_),
-    numBones_(rhs.numBones_),
+    numIndices_ (rhs.numIndices_),
+    numSubsets_ (rhs.numSubsets_),
+    numBones_   (rhs.numBones_),
     numAnimClips_(rhs.numAnimClips_)
 {
     // move constructor
@@ -47,7 +56,7 @@ BasicModel& BasicModel::operator=(BasicModel&& rhs) noexcept
     // move assignment
     if (this != &rhs)
     {
-        this->~BasicModel();                    // lifetime of *this ends
+        Shutdown();                    // lifetime of *this ends
         std::construct_at(this, std::move(rhs));
     }
 
@@ -99,7 +108,7 @@ void BasicModel::InitializeBuffers(ID3D11Device* pDevice)
 
 ///////////////////////////////////////////////////////////
 
-void BasicModel::Clear()
+void BasicModel::Shutdown()
 {
     id_ = 0;
     name_ = "";
@@ -164,7 +173,7 @@ void BasicModel::AllocateMemory()
     }
     catch (const std::bad_alloc& e)
     {
-        Clear();
+        Shutdown();
 
         Log::Error(e.what());
         Log::Error("can't allocate memory for some data of the model");
@@ -185,17 +194,13 @@ void BasicModel::AllocateMemory(
         assert(numIndices > 0);
         assert(numSubsets > 0);
 
-
-        //
         // prepare memory
-        //
         ClearMemory();
         meshes_.AllocateSubsets(numSubsets);
 
         numVertices_ = numVertices;
-        numIndices_ = numIndices;
-        //numMats_ = numSubsets;
-        numSubsets_ = numSubsets;
+        numIndices_  = numIndices;
+        numSubsets_  = numSubsets;
 
         vertices_    = new Vertex3D[numVertices_]{};
         indices_     = new UINT[numIndices_]{ 0 };
@@ -213,7 +218,7 @@ void BasicModel::AllocateMemory(
     }
     catch (const std::bad_alloc& e)
     {
-        Clear();
+        Shutdown();
 
         Log::Error(e.what());
         Log::Error("can't allocate memory for some data of the model");

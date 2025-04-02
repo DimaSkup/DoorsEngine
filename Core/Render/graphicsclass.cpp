@@ -27,7 +27,6 @@ GraphicsClass::GraphicsClass() : prep_(render_, entityMgr_)
     Log::Debug();
 }
 
-// the class destructor
 GraphicsClass::~GraphicsClass() 
 {
     Log::Debug("start of destroying");
@@ -39,7 +38,6 @@ GraphicsClass::~GraphicsClass()
 // =================================================================================
 //                             PUBLIC METHODS
 // =================================================================================
-
 bool GraphicsClass::Initialize(
     HWND hwnd,
     SystemState& systemState,
@@ -71,14 +69,7 @@ bool GraphicsClass::InitHelper(
 {
     // Initializes all the main parts of graphics rendering module
 
-    Log::Print("sizeof(BasicModel):            " + std::to_string(sizeof(BasicModel)));
-    Log::Print("sizeof(MeshGeometry::Subset): " + std::to_string(sizeof(MeshGeometry::Subset)));
-    Log::Print("sizeof(MeshGeometry):          " + std::to_string(sizeof(MeshGeometry)));
-    Log::Print("sizeof(VertexBuffer<Vertex3D>):" + std::to_string(sizeof(VertexBuffer<Vertex3D>)));
-    Log::Print("sizeof(IndexBuffer<UINT>):     " + std::to_string(sizeof(IndexBuffer<UINT>)));
-    Log::Print("sizeof(ID3D11Buffer):          " + std::to_string(sizeof(ID3D11Buffer)));
-    
-    //exit(-1);
+
 
     try
     {
@@ -112,9 +103,8 @@ bool GraphicsClass::InitHelper(
         // choose the editor camera as current by default
         pCurrCamera_ = &editorCamera_;
 
-
-        // initializer the textures container
-        texMgr_.Initialize(pDevice_);
+        // initializer the textures global manager (container)
+        g_TextureMgr.Initialize(pDevice_);
 
 #if 0
         // create a texture which can be used as a render target
@@ -161,7 +151,9 @@ bool GraphicsClass::InitHelper(
         renderParams.fogStart = settings.GetFloat("FOG_START");
         renderParams.fogRange = settings.GetFloat("FOG_RANGE");
 
-        const DirectX::XMFLOAT3 skyColorCenter = modelStorage_.GetSky().GetColorCenter();
+        const DirectX::XMFLOAT3 skyColorCenter = g_ModelMgr.GetSky().GetColorCenter();
+        const DirectX::XMFLOAT3 skyColorApex   = g_ModelMgr.GetSky().GetColorApex();
+
         renderParams.fogColor.x *= skyColorCenter.x;
         renderParams.fogColor.y *= skyColorCenter.y;
         renderParams.fogColor.z *= skyColorCenter.z;
@@ -176,10 +168,7 @@ bool GraphicsClass::InitHelper(
         Assert::True(result, "can't init the render module");
 
 
-        render_.SetSkyGradient(
-            pDeviceContext_,
-            modelStorage_.GetSky().GetColorCenter(),
-            modelStorage_.GetSky().GetColorApex());
+        render_.SetSkyGradient(pDeviceContext_, skyColorCenter, skyColorApex);
 
         BuildGeometryBuffers();
     }
@@ -818,7 +807,7 @@ void GraphicsClass::RenderBoundingLineBoxes()
     // prepare the line box instance
     const int numInstances = 1;                // how many different line box models we have
     const ModelID lineBoxId = 1;
-    BasicModel& lineBox = modelStorage_.GetModelByID(lineBoxId);
+    BasicModel& lineBox = g_ModelMgr.GetModelByID(lineBoxId);
     
     // we will use only one type of model -- line box
     instances.resize(1);                         
@@ -863,7 +852,7 @@ void GraphicsClass::RenderBoundingLineSpheres()
 
         instances.resize(1);
         Render::Instance& instance = instances[0];
-        prep_.PrepareInstanceData(boundSphere, instance, *TextureMgr::Get());
+        prep_.PrepareInstanceData(boundSphere, instance);
 
 
         // prepare instances buffer data
@@ -926,7 +915,7 @@ void GraphicsClass::RenderBillboards()
         Render::Instance instance;
         instance.pVB = pGeomVB_;
         instance.pIB = pGeomIB_;
-        instance.texSRVs = { texMgr_.GetTexPtrByName("texture_array")->GetTextureResourceView() };
+        instance.texSRVs = { g_TextureMgr.GetTexPtrByName("texture_array")->GetTextureResourceView() };
         instance.vertexStride = sizeof(TreePointSprite);
 
         render_.shadersContainer_.billboardShader_.Render(pDeviceContext_, instance);
@@ -947,7 +936,7 @@ void GraphicsClass::RenderSkyDome()
     if (skyEnttID == 0)
         return;
 
-    const SkyModel& sky       = modelStorage_.GetSky();
+    const SkyModel& sky = g_ModelMgr.GetSky();
     Render::SkyInstance instance;
 
     //
@@ -958,7 +947,7 @@ void GraphicsClass::RenderSkyDome()
 
     // get shader resource views for the sky
     cvector<ID3D11ShaderResourceView*> instanceTexSRVs;
-    texMgr_.GetSRVsByTexIDs(skyTexIDs, skyTexMaxNum, instanceTexSRVs);
+    g_TextureMgr.GetSRVsByTexIDs(skyTexIDs, skyTexMaxNum, instanceTexSRVs);
     instance.texSRVs = { instanceTexSRVs.begin(), instanceTexSRVs.end() };
 
     instance.vertexStride = sky.GetVertexStride();
@@ -1089,7 +1078,7 @@ int GraphicsClass::TestEnttSelection(const int sx, const int sy)
     {
         //const EntityID enttID = visEntts[i];
         const ModelID modelID = entityMgr_.modelSystem_.GetModelIdRelatedToEntt(enttID);
-        const BasicModel& model = modelStorage_.GetModelByID(modelID);
+        const BasicModel& model = g_ModelMgr.GetModelByID(modelID);
 
         if (model.type_ == eModelType::Terrain)
         {

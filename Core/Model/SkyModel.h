@@ -11,7 +11,7 @@
 #include "../Mesh/IndexBuffer.h"
 
 #include <d3d11.h>
-#include <DirectXCollision.h>
+//#include <DirectXCollision.h>
 
 
 namespace Core

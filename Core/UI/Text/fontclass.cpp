@@ -54,11 +54,10 @@ void FontClass::Initialize(
 
 
 		// load and initialize a texture for this font
-		TextureMgr& texMgr = *TextureMgr::Get();
-		fontTexID_ = texMgr.LoadFromFile(fontTexFilePath);
+		fontTexID_ = g_TextureMgr.LoadFromFile(fontTexFilePath);
 
 		// we need to have a height of the font texture for proper building of the vertices data
-		fontHeight_ = texMgr.GetTexPtrByID(fontTexID_)->GetHeight();
+		fontHeight_ = g_TextureMgr.GetTexPtrByID(fontTexID_)->GetHeight();
 		
 		// load the data into the font data array
 		LoadFontData(fontDataFilePath, charNum_, fontDataArr_);
@@ -210,12 +209,12 @@ void FontClass::operator delete(void* p)
 
 ID3D11ShaderResourceView* const FontClass::GetTextureResourceView()
 {
-	return TextureMgr::Get()->GetTexByID(fontTexID_).GetTextureResourceView();
+	return g_TextureMgr.GetTexByID(fontTexID_).GetTextureResourceView();
 }
 
 ID3D11ShaderResourceView* const* FontClass::GetTextureResourceViewAddress()
 {
-	return TextureMgr::Get()->GetTexByID(fontTexID_).GetTextureResourceViewAddress();
+	return g_TextureMgr.GetTexByID(fontTexID_).GetTextureResourceViewAddress();
 }
 
 

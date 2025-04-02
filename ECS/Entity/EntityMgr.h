@@ -229,7 +229,7 @@ public:
     inline const size      GetNumAllEntts() const { return ids_.size(); }
     inline const EntityID* GetAllEnttsIDs() const { return ids_.data(); }
 
-    void GetComponentNamesByEntity(const EntityID id, cvector<std::string>& names);
+    bool GetComponentNamesByEntity(const EntityID id, cvector<std::string>& names);
 
     inline bool CheckEnttExist(const EntityID id)                         const { return ids_.binary_search(id); }
     inline bool CheckEnttsExist(const EntityID* ids, const size numEntts) const { return ids_.binary_search(ids, numEntts); }

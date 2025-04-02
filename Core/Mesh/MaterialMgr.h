@@ -20,8 +20,6 @@ class MaterialMgr
 public:
     MaterialMgr();
 
-    inline static MaterialMgr* Get() { return pInstance_; }
-
     // adders/setters
     MaterialID AddMaterial(Material&& material);
 
@@ -37,5 +35,11 @@ private:
     static MaterialMgr* pInstance_;
     static MaterialID   lastMaterialID_;
 };
+
+
+// =================================================================================
+// Declare a global instance of the material manager
+// =================================================================================
+extern MaterialMgr g_MaterialMgr;
 
 } // namespace Core

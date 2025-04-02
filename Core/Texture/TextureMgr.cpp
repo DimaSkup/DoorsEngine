@@ -20,8 +20,12 @@
 namespace fs = std::filesystem;
 
 
+
 namespace Core
 {
+
+// init a global instance of the texture manager
+TextureMgr g_TextureMgr;
 
 // initialize a static pointer to this class instance
 TextureMgr* TextureMgr::pInstance_ = nullptr;
@@ -29,6 +33,8 @@ TextureMgr* TextureMgr::pInstance_ = nullptr;
 // we use this value as ID for each created/added texture
 TexID TextureMgr::lastTexID_ = 0;
 
+
+///////////////////////////////////////////////////////////
 
 TextureMgr::TextureMgr()
 {
@@ -52,6 +58,8 @@ TextureMgr::TextureMgr()
         throw EngineException("you can't have more that only one instance of this class");
     }
 }
+
+///////////////////////////////////////////////////////////
 
 TextureMgr::~TextureMgr()
 {

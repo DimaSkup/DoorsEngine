@@ -238,8 +238,7 @@ void ModelImporter::ProcessMesh(
         LoadMaterialTextures(pDevice, material.textureIDs, pAiMat, subset, pScene, filePath);
 
         // store a material into the material manager and also store its material ID into the subset (mesh)
-        const MaterialID matID = MaterialMgr::Get()->AddMaterial(std::move(material));
-        subset.materialID = matID;
+        subset.materialID = g_MaterialMgr.AddMaterial(std::move(material));
     }
     catch (EngineException& e)
     {
@@ -292,7 +291,6 @@ void ModelImporter::LoadMaterialTextures(
     // load all the available textures for this mesh by its material data
     //
 
-    TextureMgr* pTexMgr = TextureMgr::Get();
     std::vector<aiTextureType> texTypesToLoad;
     std::vector<UINT> texCounts;
 
@@ -361,7 +359,7 @@ void ModelImporter::LoadMaterialTextures(
                 const std::string texName = texPath.stem().string();
 
                 // add into the tex mgr a new texture
-                const TexID id = pTexMgr->Add(texName, Texture(
+                const TexID id = g_TextureMgr.Add(texName, Texture(
                     pDevice,
                     texName,
                     (uint8_t*)(pAiTexture->pcData),         // data of texture
@@ -380,7 +378,7 @@ void ModelImporter::LoadMaterialTextures(
                 const std::string texName = texPath.stem().string();
 
                 // add into the tex mgr a new texture
-                const TexID id = pTexMgr->Add(texName, Texture(
+                const TexID id = g_TextureMgr.Add(texName, Texture(
                     pDevice,
                     texName,
                     (uint8_t*)(pScene->mTextures[index]->pcData),   // data of texture
@@ -402,7 +400,7 @@ void ModelImporter::LoadMaterialTextures(
         const aiTextureType type = texTypeToPath[i].first;
         const std::string& path = texTypeToPath[i].second;
 
-        texIDs[type] = pTexMgr->LoadFromFile(path);
+        texIDs[type] = g_TextureMgr.LoadFromFile(path);
     }
 
     // compute the duration of textures loading for this model

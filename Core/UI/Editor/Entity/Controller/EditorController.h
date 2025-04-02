@@ -16,6 +16,7 @@
 #include "../View/SkyEditorView.h"
 #include "../View/LightEditorView.h"
 
+#include "../Model/SelectedEntityData.h"
 #include "ModelController.h"
 #include "SkyController.h"
 #include "DirectedLightController.h"
@@ -28,44 +29,50 @@ namespace UI
 
 class EditorController : public IEditorController
 {
-
 public:
-	EditorController(StatesGUI* pStatesGUI);
-
-	void Initialize(IFacadeEngineToUI* pFacade);
-	void Render();
-	void SetSelectedEntt(const uint32_t entityID);
-
-
-	// methods for transformations with gizmo
-	void UpdateSelectedEnttWorld(const DirectX::XMMATRIX& world);
-	void TranslateSelectedEntt(const DirectX::XMVECTOR& translation);
-	void RotateSelectedEntt(const DirectX::XMVECTOR& quat);
-	void ScaleSelectedEntt(const float uniformScale);
-
-
-	// execute command and store this change into the events history
-	virtual void Execute(const ICommand* pCommand) override;
-
-	// undo/alt_undo an event from the events history
-	virtual void Undo(const ICommand* pCommand, const uint32_t entityID) override;
+    SelectedEntityData selectedEnttData_;
 
 private:
-	// entities MVC views
-	ViewSky             viewSky_;
-	ViewEntityModel     viewModel_;
-	ViewLight           viewLight_;
+    // entities MVC views
+    ViewSky                 viewSky_;
+    ViewEntityModel         viewModel_;
+    ViewLight               viewLight_;
 
-	// entities MVC controllers
-	ModelController      modelController_;
-	SkyController        skyController_;
+    // entities MVC controllers
+    ModelController         modelController_;
+    SkyController           skyController_;
 
     DirectedLightController directedLightController_;
-	PointLightController    pointLightController_;
-	SpotLightController     spotLightController_;
+    PointLightController    pointLightController_;
+    SpotLightController     spotLightController_;
 
-	IFacadeEngineToUI* pFacade_ = nullptr;          // facade interface btw GUI and engine        
-	StatesGUI* pStatesGUI_ = nullptr;
+    IFacadeEngineToUI*      pFacade_ = nullptr;          // facade interface btw GUI and engine        
+    StatesGUI*              pStatesGUI_ = nullptr;
+
+public:
+    EditorController(StatesGUI* pStatesGUI);
+
+    void Initialize(IFacadeEngineToUI* pFacade);
+    void Render();
+    void SetSelectedEntt(const EntityID entityID);
+
+    inline EntityID GetSelectedEnttID() const { return selectedEnttData_.id; }
+
+
+    // methods for transformations with gizmo
+    void UpdateSelectedEnttWorld(const DirectX::XMMATRIX& world);
+    void TranslateSelectedEntt(const DirectX::XMVECTOR& translation);
+    void RotateSelectedEntt(const DirectX::XMVECTOR& quat);
+    void ScaleSelectedEntt(const float uniformScale);
+
+
+    // execute command and store this change into the events history
+    virtual void Execute(const ICommand* pCommand) override;
+
+    // undo/alt_undo an event from the events history
+    virtual void Undo(const ICommand* pCommand, const uint32_t entityID) override;
+
+
 };
 
 } // namespace UI

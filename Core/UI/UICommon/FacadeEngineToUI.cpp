@@ -8,6 +8,9 @@
 #include <CoreCommon/log.h>
 #include <CoreCommon/MathHelper.h>
 
+#include "../../Model/ModelMgr.h"
+#include "../../Texture/TextureMgr.h"   // texture mgr is used to get textures by its IDs
+
 using namespace Core;
 
 namespace UI
@@ -17,15 +20,15 @@ FacadeEngineToUI::FacadeEngineToUI(
     ID3D11DeviceContext* pContext,
     Render::Render* pRender,
     ECS::EntityMgr* pEntityMgr,
-    TextureMgr* pTextureMgr,
-    ModelStorage* pModelStorage,
+    //TextureMgr* pTextureMgr,
+    //ModelMgr* pModelStorage,
     Camera* pEditorCamera)
     :
     pContext_(pContext),
     pRender_(pRender),
     pEntityMgr_(pEntityMgr),
-    pTextureMgr_(pTextureMgr),
-    pModelStorage_(pModelStorage),
+   // pTextureMgr_(pTextureMgr),
+    //pModelStorage_(pModelStorage),
     pEditorCamera_(pEditorCamera)
 {
     // set pointers to the subsystems
@@ -33,8 +36,8 @@ FacadeEngineToUI::FacadeEngineToUI(
     Assert::NotNullptr(pRender, "ptr to render == nullptr");
     Assert::NotNullptr(pContext, "ptr to device context == nullptr");
     Assert::NotNullptr(pEntityMgr, "ptr to the entt mgr == nullptr");
-    Assert::NotNullptr(pTextureMgr, "ptr to the texture mgr == nullptr");
-    Assert::NotNullptr(pModelStorage, "ptr to the model storage == nullptr");
+    //Assert::NotNullptr(pTextureMgr, "ptr to the texture mgr == nullptr");
+    //Assert::NotNullptr(pModelStorage, "ptr to the model storage == nullptr");
     Assert::NotNullptr(pEditorCamera, "ptr to the editor camera == nullptr");
 }
 
@@ -42,7 +45,7 @@ FacadeEngineToUI::FacadeEngineToUI(
 
 ModelID FacadeEngineToUI::GetModelIdByName(const std::string& name)
 {
-    return pModelStorage_->GetModelIdByName(name);
+    return g_ModelMgr.GetModelIdByName(name);
 }
 
 
@@ -53,7 +56,7 @@ bool FacadeEngineToUI::GetShaderResourceViewByTexID(
     const uint32_t textureID,
     ID3D11ShaderResourceView*& pSRV)
 {
-    pSRV = pTextureMgr_->GetSRVByTexID(textureID);
+    pSRV = g_TextureMgr.GetSRVByTexID(textureID);
     return true;
 }
 
@@ -103,6 +106,29 @@ EntityID FacadeEngineToUI::CreateEntity()
     return pEntityMgr_->CreateEntity();
 }
 
+///////////////////////////////////////////////////////////
+
+bool FacadeEngineToUI::GetEntityAddedComponentsNames(
+    const EntityID id,
+    cvector<std::string>& componentsNames) const
+{
+    // out:    names array of components which are added to entity by ID;
+    // return: false because there is no entity by ID
+
+    ECS::cvector<std::string> names;
+
+    if (pEntityMgr_->GetComponentNamesByEntity(id, names))
+    {
+        componentsNames = cvector<std::string>(names.begin(), names.end());
+        return true;
+    }
+
+    // we didn't manage to get components names
+    return false;
+}
+
+///////////////////////////////////////////////////////////
+
 bool FacadeEngineToUI::AddNameComponent(const EntityID id, const std::string& name)
 {
     pEntityMgr_->AddNameComponent(id, name);
@@ -139,24 +165,26 @@ bool FacadeEngineToUI::AddBoundingComponent(const EntityID id, const int boundTy
 
 ///////////////////////////////////////////////////////////
 
-bool FacadeEngineToUI::GetAllEnttsIDs(const uint32_t*& pEnttsIDsArr, int& numEntts)
+bool FacadeEngineToUI::GetAllEnttsIDs(
+    const EntityID*& outPtrToEnttsIDsArr,
+    int& outNumEntts) const
 {
-    pEnttsIDsArr = pEntityMgr_->GetAllEnttsIDs();    // +1 because entity by [0] is the default invalid entity
-    numEntts = static_cast<int>(pEntityMgr_->GetNumAllEntts() - 1);
+    outPtrToEnttsIDsArr = pEntityMgr_->GetAllEnttsIDs();    // +1 because entity by [0] is the default invalid entity
+    outNumEntts         = static_cast<int>(pEntityMgr_->GetNumAllEntts() - 1);
     return true;
 }
 
 ///////////////////////////////////////////////////////////
 
-uint32_t FacadeEngineToUI::GetEnttIDByName(const char* name)
+EntityID FacadeEngineToUI::GetEnttIDByName(const std::string& name) const
 {
     // return 0 if there is no entity by such a name
-    return pEntityMgr_->nameSystem_.GetIdByName({ name });
+    return pEntityMgr_->nameSystem_.GetIdByName(name);
 }
 
 ///////////////////////////////////////////////////////////
 
-bool FacadeEngineToUI::GetEnttNameByID(const uint32_t enttID, std::string& name)
+bool FacadeEngineToUI::GetEnttNameByID(const EntityID enttID, std::string& name) const
 {
     name = pEntityMgr_->nameSystem_.GetNameById(enttID);
     return true;
@@ -164,7 +192,7 @@ bool FacadeEngineToUI::GetEnttNameByID(const uint32_t enttID, std::string& name)
 
 ///////////////////////////////////////////////////////////
 
-bool FacadeEngineToUI::GetEnttsIDsOfTypeModel(const EntityID*& enttsIDs, int& numEntts)
+bool FacadeEngineToUI::GetEnttsOfModelType(const EntityID*& enttsIDs, int& numEntts)
 {
     pEntityMgr_->modelSystem_.GetAllEntts(enttsIDs, (size&)numEntts);
     return true;
@@ -172,28 +200,28 @@ bool FacadeEngineToUI::GetEnttsIDsOfTypeModel(const EntityID*& enttsIDs, int& nu
 
 ///////////////////////////////////////////////////////////
 
-bool FacadeEngineToUI::GetEnttsIDsOfTypeCamera(const EntityID*& enttsIDs, int& numEntts)
+bool FacadeEngineToUI::GetEnttsOfCameraType(const EntityID*& enttsIDs, int& numEntts)
 {
     return false;
 }
 
 ///////////////////////////////////////////////////////////
 
-bool FacadeEngineToUI::GetEnttsIDsOfTypeLight(const EntityID*& enttsIDs, int& numEntts)
+bool FacadeEngineToUI::GetEnttsOfLightType(const EntityID*& enttsIDs, int& numEntts)
 {
     return false;
 }
 
 ///////////////////////////////////////////////////////////
 
-bool FacadeEngineToUI::GetEnttData(
+bool FacadeEngineToUI::GetEnttTransformData(
     const EntityID enttID,
     Vec3& position,
     Vec4& rotQuat,
-    float& uniformScale)
+    float& uniformScale) const
 {
-    position = pEntityMgr_->transformSystem_.GetPositionByID(enttID);
-    rotQuat = pEntityMgr_->transformSystem_.GetRotationQuatByID(enttID);
+    position     = pEntityMgr_->transformSystem_.GetPositionByID(enttID);
+    rotQuat      = pEntityMgr_->transformSystem_.GetRotationQuatByID(enttID);
     uniformScale = pEntityMgr_->transformSystem_.GetUniformScaleByID(enttID);
 
     return true;
@@ -201,9 +229,12 @@ bool FacadeEngineToUI::GetEnttData(
 
 ///////////////////////////////////////////////////////////
 
-void FacadeEngineToUI::GetEnttWorldMatrix(const EntityID id, DirectX::XMMATRIX& outMat)
+bool FacadeEngineToUI::GetEnttWorldMatrix(const EntityID id, DirectX::XMMATRIX& outMat) const
 {
     outMat = pEntityMgr_->transformSystem_.GetWorldMatrixOfEntt(id);
+
+    // if we have NAN in the m00 component of matrix that means there is no world matrix in the Transform component (ECS) for entity by ID 
+    return isnan(DirectX::XMVectorGetX(outMat.r[0]));
 }
 
 ///////////////////////////////////////////////////////////
@@ -225,22 +256,19 @@ float FacadeEngineToUI::GetEnttScale(const EntityID id) const
 
 ///////////////////////////////////////////////////////////
 
-bool FacadeEngineToUI::SetEnttPosition(const uint32_t entityID, const Vec3& pos)
+bool FacadeEngineToUI::SetEnttPosition(const EntityID id, const Vec3& pos)
 {
-    pEntityMgr_->transformSystem_.SetPositionByID(entityID, pos.ToFloat3());
-    return true;
+    return pEntityMgr_->transformSystem_.SetPositionByID(id, pos.ToFloat3());
 }
 
-bool FacadeEngineToUI::SetEnttRotationQuat(const uint32_t entityID, const Vec4& rotationQuat)
+bool FacadeEngineToUI::SetEnttRotationQuat(const EntityID id, const Vec4& rotationQuat)
 {
-    pEntityMgr_->transformSystem_.SetRotationQuatByID(entityID, rotationQuat.ToXMVector());
-    return true;
+    return pEntityMgr_->transformSystem_.SetRotationQuatByID(id, rotationQuat.ToXMVector());
 }
 
-bool FacadeEngineToUI::SetEnttUniScale(const uint32_t entityID, const float scale)
+bool FacadeEngineToUI::SetEnttUniScale(const EntityID id, const float scale)
 {
-    pEntityMgr_->transformSystem_.SetUniScaleByID(entityID, scale);
-    return true;
+    return pEntityMgr_->transformSystem_.SetUniScaleByID(id, scale);
 }
 
 ///////////////////////////////////////////////////////////
@@ -728,10 +756,14 @@ bool FacadeEngineToUI::SwitchDebugState(const int debugType)
 // =================================================================================
 // For assets manager
 // =================================================================================
-bool FacadeEngineToUI::GetAssetsNamesList(Core::cvector<std::string>& names)
+bool FacadeEngineToUI::GetAssetsNamesList(cvector<std::string>& names)
 {
     // get a name of each loaded asset
-    pModelStorage_->GetAssetsNamesList(names);
+    Core::cvector<std::string> assetsNames;
+    g_ModelMgr.GetAssetsNamesList(assetsNames);
+
+    names = UI::cvector<std::string>(names.begin(), names.end());
+
     return true;
 }
 

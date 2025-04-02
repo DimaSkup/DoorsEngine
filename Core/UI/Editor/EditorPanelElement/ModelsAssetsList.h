@@ -23,7 +23,7 @@ public:
 
 private:
     ModelID                     selectedModelID_ = 0;
-    Core::cvector<std::string>  modelsNames_;           // a list of models (assets) names
+    cvector<std::string>        modelsNames_;           // a list of models (assets) names
     std::string                 selectedModelName_;
 };
 

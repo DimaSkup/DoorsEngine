@@ -94,6 +94,7 @@ bool Engine::Initialize(
         windowTitle_ = windowTitle;
 
 
+
         // GRAPHICS SYSTEM: initialize the graphics system
         bool result = graphics_.Initialize(
             hwnd_,
@@ -101,12 +102,12 @@ bool Engine::Initialize(
             settings);
         Assert::True(result, "can't initialize the graphics system");
 
-        D3DClass& d3d = graphics_.GetD3DClass();
-        ID3D11Device* pDevice = d3d.GetDevice();
+        D3DClass& d3d                 = graphics_.GetD3DClass();
+        ID3D11Device* pDevice         = d3d.GetDevice();
         ID3D11DeviceContext* pContext = d3d.GetDeviceContext();
 
-        systemState_.wndWidth_ = d3d.GetWindowWidth();
-        systemState_.wndHeight_ = d3d.GetWindowHeight();
+        systemState_.wndWidth_        = d3d.GetWindowWidth();
+        systemState_.wndHeight_       = d3d.GetWindowHeight();
         
         // create a texture which can be used as a render target
         FrameBufferSpecification fbSpec;
@@ -119,10 +120,7 @@ bool Engine::Initialize(
 
         result = frameBuffer_.Initialize(pDevice, fbSpec);
         Assert::True(result, "can't initialize the render to texture object");
-#if 0
-        
-        
-#endif
+
 #if 0
         // SOUND SYSTEM: initialize the sound obj
         result = sound_.Initialize(hwnd_);
@@ -133,14 +131,11 @@ bool Engine::Initialize(
         timer_.Tick();                 
         cpu_.Initialize();
 
-
         // create a facade btw the UI and the engine parts
         pFacadeEngineToUI_ = new UI::FacadeEngineToUI(
             pContext,
             &graphics_.GetRender(),
             &graphics_.entityMgr_,
-            &graphics_.GetTextureMgr(),
-            &graphics_.GetModelsStorage(),
             &graphics_.GetEditorCamera());
 
         imGuiLayer_.Initialize(hwnd_, pDevice, pContext);

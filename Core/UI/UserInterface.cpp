@@ -362,8 +362,7 @@ void UserInterface::RenderSceneWnd(SystemState& sysState)
 
             // handle directed and spot lights in a separate way for correct change
             // of its direction using gizmo
-            if (guiStates_.selectedEnttType_ == StatesGUI::SelectedEnttType::DIRECTED_LIGHT ||
-                guiStates_.selectedEnttType_ == StatesGUI::SelectedEnttType::SPOT_LIGHT)
+            if (editorPanels_.enttEditorController_.selectedEnttData_.IsSelectedEnttLightSource())
             {
                 const Vec3 pos = pFacadeEngineToUI_->GetEnttPosition(selectedEntt);
 

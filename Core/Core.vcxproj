@@ -221,7 +221,7 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClCompile Include="Model\BasicModel.cpp" />
     <ClCompile Include="Model\ModelImporter.cpp" />
     <ClCompile Include="Model\ModelMath.cpp" />
-    <ClCompile Include="Model\ModelStorage.cpp" />
+    <ClCompile Include="Model\ModelMgr.cpp" />
     <ClCompile Include="Model\ModelStorageSerializer.cpp" />
     <ClCompile Include="Model\SkyDomeClass.cpp" />
     <ClCompile Include="Model\SkyModel.cpp" />
@@ -349,6 +349,7 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClInclude Include="UI\Editor\Entity\Controller\SpotLightController.h" />
     <ClInclude Include="UI\Editor\Entity\Creator\EntityCreatorWnd.h" />
     <ClInclude Include="UI\Editor\Entity\Model\EntityEditorModel.h" />
+    <ClInclude Include="UI\Editor\Entity\Model\SelectedEntityData.h" />
     <ClInclude Include="UI\Editor\Entity\View\EntityEditorView.h" />
     <ClInclude Include="UI\Editor\Entity\Model\LightEditorModel.h" />
     <ClInclude Include="UI\Editor\Entity\View\LightEditorView.h" />
@@ -379,7 +380,7 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClInclude Include="Mesh\IndexBuffer.h" />
     <ClInclude Include="Model\ModelImporter.h" />
     <ClInclude Include="Model\ModelMath.h" />
-    <ClInclude Include="Model\ModelStorage.h" />
+    <ClInclude Include="Model\ModelMgr.h" />
     <ClInclude Include="Model\SkyDomeClass.h" />
     <ClInclude Include="Model\SkyPlaneClass.h" />
     <ClInclude Include="Model\TerrainCellClass.h" />

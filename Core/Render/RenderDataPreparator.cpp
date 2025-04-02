@@ -133,7 +133,6 @@ void RenderDataPreparator::PrepareEnttsBoundingLineBox(
     Assert::True(visibleEntts != nullptr, "input ptr to entities IDs arr == nullptr");
     Assert::True(numEntts > 0,            "input number of entts must be > 0");
 
-    ModelStorage&                   modelStorage = *ModelStorage::Get();
     ECS::EntityMgr&                 mgr = *pEnttMgr_;
     ECS::cvector<ModelID>           modelsIDs;
     ECS::cvector<EntityID>          enttsSortByModels(numEntts);
@@ -153,7 +152,7 @@ void RenderDataPreparator::PrepareEnttsBoundingLineBox(
     ECS::cvector<DirectX::BoundingBox> modelsAABBs(std::ssize(modelsIDs));
 
     for (int i = 0; const ModelID id : modelsIDs)
-        modelsAABBs[i++] = modelStorage.GetModelByID(id).GetModelAABB();
+        modelsAABBs[i++] = g_ModelMgr.GetModelByID(id).GetModelAABB();
 
     // get world matrix for each entts and local space matrix by each model's AABB
     mgr.transformSystem_.GetWorldMatricesOfEntts(enttsSortByModels.data(), numEntts, worlds);
@@ -249,10 +248,7 @@ void RenderDataPreparator::PrepareInstancesData(
 
     // prepare textures shader resource view (SRV) for each instance
     for (Render::Instance& instance : instances)
-        PrepareTexturesForInstance(
-            *MaterialMgr::Get(),
-            *TextureMgr::Get(),
-            instance);
+        PrepareTexturesForInstance(instance);
 }
 
 ///////////////////////////////////////////////////////////
@@ -323,8 +319,6 @@ void RenderDataPreparator::PrepareInstancesForEntts(
     if (numEntts == 0)
         return;
 
-    ModelStorage& storage = *ModelStorage::Get();
-
     ECS::cvector<ModelID>  modelsIDs;
     ECS::cvector<EntityID> enttsSortedByModels;
     ECS::cvector<size>     numEnttsPerModel;
@@ -345,9 +339,13 @@ void RenderDataPreparator::PrepareInstancesForEntts(
     // update how many instances will we have at all
     instances.resize(instances.size() + numInstances);
 
-    // fill in particular instance with data of model by ID
+    // get pointers to models by its IDs
+    cvector<const BasicModel*> models;
+    g_ModelMgr.GetModelsByIDs(modelsIDs.data(), modelsIDs.size(), models);
+
+    // fill in particular instance with data of model
     for (index i = startInstanceIdx, j = 0; j < numInstances; ++i, ++j)
-        PrepareInstanceData(storage.GetModelByID(modelsIDs[j]), instances[i]);
+        PrepareInstanceData(*models[j], instances[i]);
 
     // how many instances of this model will be rendered
     for (index i = startInstanceIdx, j = 0; j < numInstances; ++i, ++j)
@@ -371,11 +369,9 @@ void RenderDataPreparator::PrepareInstancesForEnttsWithUniqueMaterials(
     if (numEntts == 0)
         return;
 
-    ModelStorage& storage = *ModelStorage::Get();
-
     ECS::cvector<ModelID>           modelsIDs;
     ECS::cvector<EntityID>          enttsSortedByModels;
-    ECS::cvector<size>              numEnttsPerModel;
+    ECS::cvector<size>              numEnttsPerInstance;
     ECS::cvector<ECS::MaterialData> materialsDataPerEntt;
 
     mgr.modelSystem_.GetModelsIdsRelatedToEntts(
@@ -383,7 +379,7 @@ void RenderDataPreparator::PrepareInstancesForEnttsWithUniqueMaterials(
         numEntts,
         modelsIDs,
         enttsSortedByModels,
-        numEnttsPerModel);
+        numEnttsPerInstance);
 
     const index startInstanceIdx = instances.size();
     const size  numNewInstances = enttsSortedByModels.size();  // one instance per entity
@@ -399,9 +395,20 @@ void RenderDataPreparator::PrepareInstancesForEnttsWithUniqueMaterials(
     // update how many instances will we have at all
     instances.resize(instances.size() + numNewInstances);
 
-    // fill in particular instance with data of model by ID
-    for (index i = startInstanceIdx, j = 0; j < numNewInstances; ++i, ++j)
-        PrepareInstanceData(storage.GetModelByID(modelsIDs[j]), instances[i]);
+    // get pointers to models by its IDs
+    cvector<const BasicModel*> models;
+    g_ModelMgr.GetModelsByIDs(modelsIDs.data(), modelsIDs.size(), models);
+
+    // fill in particular instance with data of model
+    for (index i = startInstanceIdx, modelIdx = 0; const size num : numEnttsPerInstance)
+    {
+        for (index j = 0; j < num; ++j, ++i)
+        {
+            const BasicModel& model = *(models[modelIdx]);
+            PrepareInstanceData(model, instances[i]);
+        }
+        ++modelIdx;
+    }
 
     // each instance will be rendered only once (since one instance per entity)
     for (index i = startInstanceIdx, j = 0; j < numNewInstances; ++i, ++j)
@@ -428,18 +435,18 @@ void RenderDataPreparator::PrepareInstanceData(
     // NOTE: we don't write textures shader resource view (!!!) into the instance
     //       we do it in the PrepareTexturesForInstance() method;
 
-    const MeshGeometry& meshes = model.meshes_;
-
     strcpy(instance.name, model.name_.c_str());
-    instance.subsets.resize(model.GetNumSubsets());
 
+    // copy buffers data
+    const MeshGeometry& meshes = model.meshes_;
     instance.vertexStride = meshes.vb_.GetStride();
-    instance.pVB = meshes.vb_.Get();
-    instance.pIB = meshes.ib_.Get();
-
-    const size numSubsets = std::ssize(instance.subsets);
+    instance.pVB          = meshes.vb_.Get();
+    instance.pIB          = meshes.ib_.Get();
 
     // prepare data of each subset (mesh)
+    const size numSubsets = model.GetNumSubsets();
+    instance.subsets.resize(numSubsets);
+    
     for (index i = 0; i < numSubsets; ++i)
     {
         const MeshGeometry::Subset& srcSubset = meshes.subsets_[i];
@@ -448,8 +455,10 @@ void RenderDataPreparator::PrepareInstanceData(
         // copy 4 ints: vertex start/count, index start/count
         //memcpy(&subset.vertexStart, &subsetData.vertexStart_, sizeof(int) * 4);
 
+        // copy name of the subset
         strcpy(dstSubset.name, srcSubset.name);
 
+        // copy subset's vertex/index info
         dstSubset.vertexStart = srcSubset.vertexStart;
         dstSubset.vertexCount = srcSubset.vertexCount;
         dstSubset.indexStart  = srcSubset.indexStart;
@@ -465,10 +474,7 @@ void RenderDataPreparator::PrepareInstanceData(
 
 ///////////////////////////////////////////////////////////
 
-void RenderDataPreparator::PrepareTexturesForInstance(
-    MaterialMgr& materialMgr,
-    TextureMgr& texMgr,
-    Render::Instance& instance)
+void RenderDataPreparator::PrepareTexturesForInstance(Render::Instance& instance)
 {
     // prepare textures for the instance which are based on original related model
 
@@ -484,7 +490,7 @@ void RenderDataPreparator::PrepareTexturesForInstance(
 
     
     // get materials data by materials IDs (one material per one subset)
-    materialMgr.GetMaterialsByIDs(instance.materialIDs.data(), numSubsets, materials);
+    g_MaterialMgr.GetMaterialsByIDs(instance.materialIDs.data(), numSubsets, materials);
 
     // go through each material and store related textures IDs
     for (index i = 0, texIdx = 0; i < numSubsets; ++i)
@@ -493,7 +499,7 @@ void RenderDataPreparator::PrepareTexturesForInstance(
             texturesIDs[texIdx++] = materials[i].textureIDs[j];
     }
 
-    texMgr.GetSRVsByTexIDs(texturesIDs, NUM_TEXTURE_TYPES * numSubsets, textureSRVs);
+    g_TextureMgr.GetSRVsByTexIDs(texturesIDs, NUM_TEXTURE_TYPES * numSubsets, textureSRVs);
 
     // store texture SRVs into the instance
     instance.texSRVs.resize(numSubsets * NUM_TEXTURE_TYPES);
@@ -533,7 +539,7 @@ void RenderDataPreparator::PrepareInstanceFromModel(
         instance.materials.data());
 
     // prepare textures (SRVs) for this instance
-    TextureMgr::Get()->GetSRVsByTexIDs(model.texIDs_, model.numTextures_, instance.texSRVs);
+    g_TextureMgr->GetSRVsByTexIDs(model.texIDs_, model.numTextures_, instance.texSRVs);
 }
 #endif
 

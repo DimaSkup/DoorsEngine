@@ -6,7 +6,7 @@
 // =================================================================================
 #include "ProjectSaver.h"
 
-#include "../Model/ModelStorage.h"
+#include "../Model/ModelMgr.h"
 
 
 namespace Core
@@ -19,14 +19,14 @@ ProjectSaver::~ProjectSaver() {}
 
 void ProjectSaver::StoreModels(ID3D11Device* pDevice)
 {
-	ModelStorage::Get()->Serialize(pDevice);
+	g_ModelMgr.Serialize(pDevice);
 }
 
 ///////////////////////////////////////////////////////////
 
 void ProjectSaver::LoadModels(ID3D11Device* pDevice)
 {
-	ModelStorage::Get()->Deserialize(pDevice);
+    g_ModelMgr.Deserialize(pDevice);
 }
 
 } // namespace Core

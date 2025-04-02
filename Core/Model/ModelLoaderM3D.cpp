@@ -130,7 +130,6 @@ void ModelLoaderM3D::SetupMaterials(
     const int numMaterials,
     const M3dMaterial* matParams)
 {
-    TextureMgr& texMgr = *TextureMgr::Get();
     const std::string texDirPath = g_RelPathTexDir + "TexturesM3D/";
 
     // setup alpha clipping for each subset
@@ -144,8 +143,8 @@ void ModelLoaderM3D::SetupMaterials(
     {
         const ModelLoaderM3D::M3dMaterial& params = matParams[i];
 
-        const TexID texDiff = texMgr.LoadFromFile(texDirPath + params.diffuseMapName_);
-        const TexID texNorm = texMgr.LoadFromFile(texDirPath + params.normalMapName_);
+        const TexID texDiff = g_TextureMgr.LoadFromFile(texDirPath + params.diffuseMapName_);
+        const TexID texNorm = g_TextureMgr.LoadFromFile(texDirPath + params.normalMapName_);
 
         model.SetTexture(i, TexType::DIFFUSE, texDiff);
         model.SetTexture(i, TexType::NORMALS, texNorm);
