@@ -20,10 +20,6 @@ namespace UI
 
 class FacadeEngineToUI : public IFacadeEngineToUI
 {
-public:
-    using EntityID = uint32_t;
-    
-
 private:
     ID3D11DeviceContext* pContext_      = nullptr;
     Render::Render*      pRender_       = nullptr;
@@ -54,7 +50,7 @@ public:
     // get camera info
     //
     virtual void GetCameraViewAndProj(const EntityID camEnttID, float* view, float* proj) override;
-    virtual void FocusCameraOnEntity(const EntityID id)                                   override;
+    virtual void FocusCameraOnEntity (const EntityID id)                                   override;
 
 
     // =============================================================================
@@ -62,7 +58,8 @@ public:
     // =============================================================================
     virtual EntityID CreateEntity() override;
 
-    virtual bool GetEntityAddedComponentsNames(const EntityID id, cvector<std::string>& componentsNames) const override;
+    virtual bool GetEntityAddedComponentsNames(const EntityID id, cvector<std::string>& componentsNames)              const override;
+    virtual bool GetEntityAddedComponentsTypes(const EntityID id, cvector<eEnttComponentType>& componentTypes)        const override;
 
     virtual bool AddNameComponent     (const EntityID id, const std::string& name)                                          override;
     virtual bool AddTransformComponent(const EntityID id, const Vec3& pos, const Vec3& direction, const float uniformScale) override;
@@ -82,15 +79,15 @@ public:
     virtual bool GetEnttTransformData (const EntityID id, Vec3& pos, Vec4& rotQuat, float& uniScale)                  const override;
     virtual bool GetEnttWorldMatrix   (const EntityID id, DirectX::XMMATRIX& outMat)                                  const override;
 
-    virtual Vec3 GetEnttPosition    (const EntityID id)                                                               const override;
-    virtual Vec4 GetEnttRotationQuat(const EntityID id)                                                               const override;
-    virtual float GetEnttScale      (const EntityID id)                                                               const override;
+    virtual Vec3 GetEnttPosition     (const EntityID id)                                                              const override;
+    virtual Vec4 GetEnttDirectionQuat(const EntityID id)                                                              const override;
+    virtual float GetEnttScale       (const EntityID id)                                                              const override;
 
-    virtual bool SetEnttPosition    (const EntityID entityID, const Vec3& pos)                                              override;
-    virtual bool SetEnttRotationQuat(const EntityID entityID, const Vec4& rotationQuat)                                     override;
-    virtual bool SetEnttUniScale    (const EntityID entityID, const float scale)                                            override;
+    virtual bool SetEnttPosition     (const EntityID entityID, const Vec3& pos)                                             override;
+    virtual bool SetEnttDirectionQuat(const EntityID entityID, const Vec4& rotationQuat)                                    override;
+    virtual bool SetEnttUniScale     (const EntityID entityID, const float scale)                                           override;
 
-    virtual bool IsEnttLightSource(const EntityID id, int& lightType)                                                 const override;
+    virtual bool GetEnttLightType(const EntityID id, int& lightType)                                                 const override;
 
     // =============================================================================
     // get all the data of light entity by ID
@@ -99,28 +96,25 @@ public:
         const EntityID id,
         ColorRGBA& ambient,
         ColorRGBA& diffuse,
-        ColorRGBA& specular,
-        Vec3& direction) override;
+        ColorRGBA& specular) override;
 
     virtual bool GetEnttPointLightData(
         const EntityID id,
         ColorRGBA& ambient,
         ColorRGBA& diffuse,
         ColorRGBA& specular,
-        Vec3& position,
-        float& range,
-        Vec3& attenuation) override;
+        Vec3& attenuation,
+        float& range) override;
 
     virtual bool GetEnttSpotLightData(
         const EntityID id,
         ColorRGBA& ambient,
         ColorRGBA& diffuse,
         ColorRGBA& specular,
-        Vec3& position,
+        Vec3& attenuation,
         float& range,
-        Vec3& direction,
-        float& spotExponent,
-        Vec3& attenuation) override;
+        float& spotExponent) override;
+
 
     // =============================================================================
     // set/get directed light props

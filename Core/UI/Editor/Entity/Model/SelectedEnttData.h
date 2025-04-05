@@ -1,5 +1,5 @@
 // =================================================================================
-// Filename:    SelectedEntityData.h
+// Filename:    SelectedEnttData.h
 // Description: container for the entity common data we fill it with data
 //              after we pick (select) any entity in the editor;
 //              so we store this data between frames
@@ -10,37 +10,31 @@
 #pragma once
 
 #include <UICommon/cvector.h>
+#include <UICommon/IFacadeEngineToUI.h>
 #include <string>
 
 
 namespace UI
 {
 
-using EntityID = uint32_t;
-
-enum eSelectedEnttType
+enum eEnttLightType
 {
-    NONE,
-    SKY,
-    DIRECTED_LIGHT,
-    POINT_LIGHT,
-    SPOT_LIGHT,
-    CAMERA,
-    MODEL,
+    ENTT_LIGHT_TYPE_DIRECTED,
+    ENTT_LIGHT_TYPE_POINT,
+    ENTT_LIGHT_TYPE_SPOT,
+    NUM_LIGHT_TYPES
 };
 
-///////////////////////////////////////////////////////////
-
-struct SelectedEntityData
+struct SelectedEnttData
 {
     inline bool IsSelectedAnyEntt()         const { return (id != 0); }
-    inline bool IsSelectedEnttLightSource() const { return (type == DIRECTED_LIGHT) || (type == POINT_LIGHT) || (type == SPOT_LIGHT); }
 
-    EntityID          id = 0;
-    eSelectedEnttType type = NONE;
-    std::string       name;
-
-    cvector<std::string> componentsNames;   // components names which are added to the entity
+    
+    EntityID        id = 0;                         // selected entity ID
+    std::string     name;                           // selected entity name
+    eEnttLightType  lightType = NUM_LIGHT_TYPES;
+    
+    cvector<eEnttComponentType> componentsTypes;   // types of components which are added to the entity
 };
 
 

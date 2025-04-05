@@ -12,14 +12,14 @@
 namespace UI
 {
 
-enum EditorCmdType
+enum eEditorCmdType
 {
 	INVALID_CMD,
 
 	// entity: model
-	CHANGE_MODEL_POSITION,
-	CHANGE_MODEL_ROTATION,
-	CHANGE_MODEL_SCALE,
+	CHANGE_ENTITY_POSITION,
+	CHANGE_ENTITY_DIRECTION,
+	CHANGE_ENTITY_SCALE,
 
 	// entity: sky
 	CHANGE_SKY_COLOR_CENTER,    // change the horizon color of the sky gradient
@@ -30,14 +30,11 @@ enum EditorCmdType
 	CHANGE_DIR_LIGHT_AMBIENT,
 	CHANGE_DIR_LIGHT_DIFFUSE,
 	CHANGE_DIR_LIGHT_SPECULAR,
-	CHANGE_DIR_LIGHT_DIRECTION,
-    CHANGE_DIR_LIGHT_DIRECTION_BY_QUAT,
 
 	// entity: point light
 	CHANGE_POINT_LIGHT_AMBIENT,
 	CHANGE_POINT_LIGHT_DIFFUSE,
 	CHANGE_POINT_LIGHT_SPECULAR,
-	CHANGE_POINT_LIGHT_POSITION,
 	CHANGE_POINT_LIGHT_ATTENUATION,
 	CHANGE_POINT_LIGHT_RANGE,
 
@@ -45,9 +42,6 @@ enum EditorCmdType
 	CHANGE_SPOT_LIGHT_AMBIENT,
 	CHANGE_SPOT_LIGHT_DIFFUSE,
 	CHANGE_SPOT_LIGHT_SPECULAR,
-	CHANGE_SPOT_LIGHT_POSITION,
-	CHANGE_SPOT_LIGHT_DIRECTION,
-    CHANGE_SPOT_LIGHT_DIRECTION_BY_QUAT,
 	CHANGE_SPOT_LIGHT_RANGE,           // how far spotlight can lit
 	CHANGE_SPOT_LIGHT_ATTENUATION,
 	CHANGE_SPOT_LIGHT_SPOT_EXPONENT,   // light intensity fallof (for control the spotlight cone)
@@ -62,7 +56,7 @@ enum EditorCmdType
 class CmdChangeVec3 : public ICommand
 {
 public:
-	CmdChangeVec3(const EditorCmdType type, const Vec3& vec3)
+	CmdChangeVec3(const eEditorCmdType type, const Vec3& vec3)
 		: ICommand(type, vec3) {}
 };
 
@@ -71,7 +65,7 @@ public:
 class CmdChangeVec4 : public ICommand
 {
 public:
-	CmdChangeVec4(const EditorCmdType type, const Vec4& vec4)
+	CmdChangeVec4(const eEditorCmdType type, const Vec4& vec4)
 		: ICommand(type, vec4) {}
 };
 
@@ -80,7 +74,7 @@ public:
 class CmdChangeFloat : public ICommand
 {
 public:
-	CmdChangeFloat(const EditorCmdType type, const float value)
+	CmdChangeFloat(const eEditorCmdType type, const float value)
 		: ICommand(type, value) {}
 };
 
@@ -89,10 +83,10 @@ public:
 class CmdChangeColor : public ICommand
 {
 public:
-	CmdChangeColor(const EditorCmdType type, const ColorRGB& color)
+	CmdChangeColor(const eEditorCmdType type, const ColorRGB& color)
 		: ICommand(type, color) {}
 
-	CmdChangeColor(const EditorCmdType type, const ColorRGBA& color)
+	CmdChangeColor(const eEditorCmdType type, const ColorRGBA& color)
 		: ICommand(type, color) {}
 };
 

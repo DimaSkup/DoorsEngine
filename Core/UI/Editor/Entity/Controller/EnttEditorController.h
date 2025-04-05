@@ -1,5 +1,5 @@
 // =================================================================================
-// Filename:       EditorController.h
+// Filename:       EnttEditorController.h
 // Description:    1. handle all the entity editor events
 //                 2. execute changes of the entity properties 
 //                 3. store this change as a command into the events history stack
@@ -12,45 +12,41 @@
 #include <UICommon/ICommand.h>
 #include <UICommon/IFacadeEngineToUI.h>
 
-#include "../View/EntityEditorView.h"
-#include "../View/SkyEditorView.h"
-#include "../View/LightEditorView.h"
+#include "../View/EnttTransformView.h"
+#include "../View/EnttLightView.h"
 
-#include "../Model/SelectedEntityData.h"
-#include "ModelController.h"
-#include "SkyController.h"
-#include "DirectedLightController.h"
-#include "PointLightController.h"
-#include "SpotLightController.h"
+#include "../Model/SelectedEnttData.h"
+#include "EnttTransformController.h"
+#include "EnttDirLightController.h"
+#include "EnttPointLightController.h"
+#include "EnttSpotLightController.h"
 
 
 namespace UI
 {
 
-class EditorController : public IEditorController
+class EnttEditorController : public IEditorController
 {
 public:
-    SelectedEntityData selectedEnttData_;
+    SelectedEnttData            selectedEnttData_;
 
 private:
     // entities MVC views
-    ViewSky                 viewSky_;
-    ViewEntityModel         viewModel_;
-    ViewLight               viewLight_;
+    EnttTransformView           viewEnttTransform_;
+    EnttLightView               viewEnttLight_;
 
     // entities MVC controllers
-    ModelController         modelController_;
-    SkyController           skyController_;
+    EnttTransformController     transformController_;
 
-    DirectedLightController directedLightController_;
-    PointLightController    pointLightController_;
-    SpotLightController     spotLightController_;
+    EnttDirLightController      dirLightController_;
+    EnttPointLightController    pointLightController_;
+    EnttSpotLightController     spotLightController_;
 
-    IFacadeEngineToUI*      pFacade_ = nullptr;          // facade interface btw GUI and engine        
-    StatesGUI*              pStatesGUI_ = nullptr;
+    IFacadeEngineToUI*          pFacade_ = nullptr;          // facade interface btw GUI and engine        
+    StatesGUI*                  pStatesGUI_ = nullptr;
 
 public:
-    EditorController(StatesGUI* pStatesGUI);
+    EnttEditorController(StatesGUI* pStatesGUI);
 
     void Initialize(IFacadeEngineToUI* pFacade);
     void Render();
@@ -61,18 +57,12 @@ public:
 
     // methods for transformations with gizmo
     void UpdateSelectedEnttWorld(const DirectX::XMMATRIX& world);
-    void TranslateSelectedEntt(const DirectX::XMVECTOR& translation);
-    void RotateSelectedEntt(const DirectX::XMVECTOR& quat);
-    void ScaleSelectedEntt(const float uniformScale);
-
 
     // execute command and store this change into the events history
     virtual void Execute(const ICommand* pCommand) override;
 
     // undo/alt_undo an event from the events history
     virtual void Undo(const ICommand* pCommand, const uint32_t entityID) override;
-
-
 };
 
 } // namespace UI

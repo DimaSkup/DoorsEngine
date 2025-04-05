@@ -6,11 +6,9 @@
 #include <cassert>
 #include <algorithm>
 #include <unordered_map>
-
-//#include <cctype>
-//#include <random>
 #include <sstream>
 #include <format>
+
 
 namespace ECS
 {
@@ -21,12 +19,13 @@ int EntityMgr::lastEntityID_ = 1;
 
 EntityMgr::EntityMgr() :
     nameSystem_         { &names_ },
+    transformSystem_    { &transform_ },
     moveSystem_         { &transform_, &movement_ },
     modelSystem_        { &modelComponent_ },
     renderSystem_       { &renderComponent_ },
     materialSystem_     { &materialComponent_, &nameSystem_ },
     texTransformSystem_ { &texTransform_ },
-    lightSystem_        { &light_ },
+    lightSystem_        { &light_, &transformSystem_ },
     renderStatesSystem_ { &renderStates_ },
     boundingSystem_     { &bounding_ },
     cameraSystem_       { &camera_ }
@@ -35,7 +34,7 @@ EntityMgr::EntityMgr() :
 
     constexpr int reserveMemForEnttsCount = 100;
 
-    transformSystem_.Initialize(&transform_);
+    
 
     ids_.reserve(reserveMemForEnttsCount);
     componentHashes_.reserve(reserveMemForEnttsCount);
@@ -776,10 +775,10 @@ ComponentHash EntityMgr::GetHashByComponents(
 
 ///////////////////////////////////////////////////////////
 
-bool EntityMgr::GetComponentNamesByEntity(const EntityID id, cvector<std::string>& names)
+bool EntityMgr::GetComponentNamesByEntt(const EntityID id, cvector<std::string>& names) const
 {
     // out:    names array of components which are added to entity by ID;
-    // return: false because there is no entity by ID
+    // return: false if there is no entity by ID
 
     const index idx = ids_.get_idx(id);
     const bool exist = (ids_[idx] == id);
@@ -798,8 +797,37 @@ bool EntityMgr::GetComponentNamesByEntity(const EntityID id, cvector<std::string
         if (hash & (1 << i))
             names.push_back(componentTypeToName_.at(eComponentType(i)));
     }
+
+    return true;
 }
 
+///////////////////////////////////////////////////////////
 
+bool EntityMgr::GetComponentTypesByEntt(const EntityID id, cvector<uint8_t>& types) const
+{
+    // out:    names array of component types which are added to entity by ID;
+    // return: false if there is no entity by ID
+
+    const index idx = ids_.get_idx(id);
+    const bool exist = (ids_[idx] == id);
+
+    if (!exist)
+    {
+        Log::Error(GetErrMsgNoEntt(id));
+        return false;
+    }
+
+    // get a bitfield where each bit is define if such component is added to entity or not
+    const ComponentHash hash = componentHashes_[idx];
+    types.reserve(4);
+
+    for (int i = 0; i < (int)eComponentType::NUM_COMPONENTS; ++i)
+    {
+        if (hash & (1 << i))
+            types.push_back((uint8_t)i);
+    }
+
+    return true;
+}
 
 } // namespace ECS

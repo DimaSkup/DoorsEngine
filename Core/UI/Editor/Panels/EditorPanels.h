@@ -13,7 +13,7 @@
 #include "../EditorPanelElement/ModelsAssetsList.h"
 
 #include "../Debug/DebugEditor.h"
-#include "../Entity/Controller/EditorController.h"
+#include "../Entity/Controller/EnttEditorController.h"
 #include "../Fog/FogEditorController.h"
 
 
@@ -40,7 +40,7 @@ private:
 
 public:
 	DebugEditor          debugEditor_;
-	EditorController     enttEditorController_;
+	EnttEditorController     enttEditorController_;
 	FogEditorController  fogEditorController_;
 
 private:

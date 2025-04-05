@@ -1,5 +1,5 @@
 // =================================================================================
-// Filename:      PointLightController.h
+// Filename:      EnttPointLightController.h
 // Description:   editor controller for execution/undoing of commands 
 //                related to the point light entities
 // 
@@ -10,16 +10,16 @@
 #include <UICommon/ICommand.h>
 #include <UICommon/IFacadeEngineToUI.h>
 
-#include "../Model/LightEditorModel.h"
+#include "../Model/EnttLightData.h"
 
 
 namespace UI
 {
 
-class PointLightController
+class EnttPointLightController
 {
 public:
-    PointLightController() {};
+    EnttPointLightController() {};
 
 	void Initialize(IFacadeEngineToUI* pFacade);
 	void LoadEnttData(const EntityID id);
@@ -27,20 +27,19 @@ public:
 	void ExecuteCommand(const ICommand* pCmd, const EntityID id);
 	void UndoCommand   (const ICommand* pCmd, const EntityID id);
 
-	inline const ModelEntityPointLight& GetModel() const { return pointLightModel_; }
+	inline const EnttPointLightData& GetModel() const { return pointLightModel_; }
 
 private:
 	// change entt point light props
 	void ExecChangeAmbient    (const EntityID id, const ColorRGBA& ambient);
 	void ExecChangeDiffuse    (const EntityID id, const ColorRGBA& diffuse);
 	void ExecChangeSpecular   (const EntityID id, const ColorRGBA& specular);
-	void ExecChangePos        (const EntityID id, const Vec3& pos);
 	void ExecChangeRange      (const EntityID id, const float range);
 	void ExecChangeAttenuation(const EntityID id, const Vec3& att);
 
 private:
-	ModelEntityPointLight pointLightModel_;
-	IFacadeEngineToUI*    pFacade_ = nullptr;   // facade interface btw GUI and engine
+	EnttPointLightData pointLightModel_;
+	IFacadeEngineToUI* pFacade_ = nullptr;   // facade interface btw GUI and engine
 
 };
 

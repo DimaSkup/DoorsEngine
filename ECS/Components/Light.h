@@ -70,7 +70,6 @@ struct DirLight
         ambient   = rhs.ambient;
         diffuse   = rhs.diffuse;
         specular  = rhs.specular;
-        direction = rhs.direction;
 
         return *this;
     }
@@ -78,20 +77,17 @@ struct DirLight
     DirLight(
         const DirectX::XMFLOAT4& ambient,
         const DirectX::XMFLOAT4& diffuse,
-        const DirectX::XMFLOAT4& specular,
-        const DirectX::XMFLOAT3& direction)
+        const DirectX::XMFLOAT4& specular)
         :
         ambient(ambient),
         diffuse(diffuse),
-        specular(specular),
-        direction(direction) {}
+        specular(specular)
+        {}
     
 
     DirectX::XMFLOAT4 ambient;
     DirectX::XMFLOAT4 diffuse;
     DirectX::XMFLOAT4 specular;
-    DirectX::XMFLOAT3 direction;
-    float pad = 0;                    // pad the last float so we can array of light if we wanted
 };
 
 ///////////////////////////////////////////////////////////
@@ -102,7 +98,6 @@ struct PointLight
         ambient{ NAN, NAN, NAN, NAN },
         diffuse{ NAN, NAN, NAN, NAN },
         specular{ NAN, NAN, NAN, NAN },
-        position{ NAN, NAN, NAN },
         range{ NAN },
         att{ NAN, NAN, NAN }
     {}
@@ -120,7 +115,6 @@ struct PointLight
         ambient  = rhs.ambient;
         diffuse  = rhs.diffuse;
         specular = rhs.specular;
-        position = rhs.position;
         range    = rhs.range;
         att      = rhs.att;
 
@@ -131,14 +125,12 @@ struct PointLight
         const XMFLOAT4& ambient,
         const XMFLOAT4& diffuse,
         const XMFLOAT4& specular,
-        const XMFLOAT3& position,
         const float range,
         const XMFLOAT3& attenuation)
         :
         ambient(ambient),
         diffuse(diffuse),
         specular(specular),
-        position(position),
         range(range)
     {
         att.x = (attenuation.x > 0.01f) ? attenuation.x : 0.01f;
@@ -151,13 +143,9 @@ struct PointLight
     DirectX::XMFLOAT4 diffuse;
     DirectX::XMFLOAT4 specular;
 
-    // packed into 4D vector: (position, range)
-    DirectX::XMFLOAT3 position;
-    float range;
-
-    // packed into 4D vector: (1/att(A0,A1,A2), pad)
+    // packed into 4D vector: (att(A0,A1,A2), range)
     DirectX::XMFLOAT3 att;            // attenuation
-    float pad = 0;                    // pad the last float so we can array of light if we wanted
+    float range;
 };
 
 ///////////////////////////////////////////////////////////
@@ -168,9 +156,7 @@ struct SpotLight
         ambient{ NAN, NAN, NAN, NAN },
         diffuse{ NAN, NAN, NAN, NAN },
         specular{ NAN, NAN, NAN, NAN },
-        position{ NAN, NAN, NAN },
         range{ NAN },
-        direction{ NAN, NAN, NAN },
         spot{ NAN },
         att{ NAN, NAN, NAN }
     {}
@@ -180,18 +166,14 @@ struct SpotLight
         const XMFLOAT4& ambient,
         const XMFLOAT4& diffuse,
         const XMFLOAT4& specular,
-        const XMFLOAT3& position,
         const float range,
-        const XMFLOAT3& direction,
         const float spot,
         const XMFLOAT3& attenuation)
         :
         ambient(ambient),
         diffuse(diffuse),
         specular(specular),
-        position(position),
         range(range),
-        direction(direction),
         spot(spot)
     {
         att.x = (attenuation.x > 0.01f) ? attenuation.x : 0.01f;
@@ -204,19 +186,12 @@ struct SpotLight
     DirectX::XMFLOAT4 diffuse;
     DirectX::XMFLOAT4 specular;
 
-    // packed into 4D vector: (position, range)
-    DirectX::XMFLOAT3 position;
+    // packed into 4D vector: (attenuation(A0,A1,A2), range)
+    DirectX::XMFLOAT3 att;
     float range;
 
-    // packed into 4D vector: 
-    // 1. direction, 
-    // 2. spot exponent: light intensity fallof (for control the spotlight cone)
-    DirectX::XMFLOAT3 direction;
+    // spot exponent: light intensity fallof (for control the spotlight cone)
     float spot;
-
-    // packed into 4D vector: (att(A0,A1,A2), pad)
-    DirectX::XMFLOAT3 att;            // attenuation
-    float pad = 0;                    // pad the last float so we can array of light if we wanted
 };
 
 

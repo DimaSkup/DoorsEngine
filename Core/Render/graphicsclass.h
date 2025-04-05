@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////
+// =================================================================================
 // Filename:     graphicsclass.h
-// Description:  controls all the main parts of rendering process
+// Description:  controls all the main parts of rendering process:
+//               mainly update frame data and prepare data for the rendering
 // Revising:     07.11.22
-////////////////////////////////////////////////////////////////////
+// =================================================================================
 #pragma once
 
 

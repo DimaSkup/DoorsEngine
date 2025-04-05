@@ -10,6 +10,7 @@
 #include <CoreCommon/Assert.h>
 #include <CoreCommon/log.h>
 #include <format>
+#include <imgui.h>
 
 
 namespace UI
@@ -26,6 +27,15 @@ void SkyController::Initialize(IFacadeEngineToUI* pFacade)
 	// the facade interface is used to contact with the rest of the engine
 	Core::Assert::NotNullptr(pFacade, "ptr to the facade == nullptr");
 	pFacade_ = pFacade;
+
+#if 0
+    // if we selected the sky entt
+    if (selectedEnttData_.name == "sky")
+    {
+        selectedEnttData_.type = SKY;
+        skyController_.LoadEnttData(enttID);
+    }
+#endif
 }
 
 ///////////////////////////////////////////////////////////
@@ -48,6 +58,27 @@ void SkyController::LoadEnttData(const uint32_t skyEnttID)
 		Core::Log::Error("can't gather data for the sky editor model for unknown reason");
 	}
 }
+
+///////////////////////////////////////////////////////////
+#if 0
+void RenderEntityIdAndName(const EntityID id, const std::string& enttName)
+{
+    ImGui::Text("Entity ID:   %d", id);
+    ImGui::Text("Entity name: %s", enttName.c_str());
+}
+
+///////////////////////////////////////////////////////////
+
+void SkyController::Render(const EntityID id, const std::string& enttName)
+{
+    RenderEntityIdAndName(id, enttName.c_str());
+
+    // render a panel for changing properties of the sky (since it is the chosen entity)
+    if (isOpen = ImGui::CollapsingHeader("SkyEditor", ImGuiTreeNodeFlags_SpanFullWidth))
+        viewSky_.Render(GetModel());
+    break;
+}
+#endif
 
 
 // =================================================================================

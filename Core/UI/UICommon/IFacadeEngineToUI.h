@@ -24,8 +24,42 @@
 namespace UI
 {
 
-using EntityID = uint32_t;
-using ModelID = uint32_t;
+using EntityID          = uint32_t;
+using ModelID           = uint32_t;
+//using EnttComponentType = uint8_t;
+
+enum eEnttComponentType : uint8_t
+{
+    NameComponent,                 // REQUIRED: attach some name for the entity
+    TransformComponent,            // REQUIRED: set that entity has properties: position (x,y,z), direction (quaternion), and scale (uniform)
+    MoveComponent,                 // set that this entity must be transformed over the time using some transformation matrix (for instance rotate around itself and go into some particular direction)
+    RenderedComponent,             // set that this entity is renderable (preferably it is a model), set that this entity must be rendered with particular kind of shader, maybe with specific primitive topology
+    ModelComponent,                // attach to entity a 2D/3D model by ID
+
+    CameraComponent,               // attach to entity a camera
+    MaterialComponent,
+    TextureTransformComponent,     // set that texture has some kind of transformation (maybe it is a translation over some atlas texture so we create an animation, or rotation around texture center -- creates a rotating fireball)
+    LightComponent,                // attach to entity some type of light source (directed, point, spotlight, etc.)
+    RenderStatesComponent,         // for using different render states: blending, alpha clipping, fill mode, cull mode, etc.
+    BoundingComponent,             // for using AABB, OBB, bounding spheres
+
+
+    // NOT IMPLEMENTED YET
+    AIComponent,
+    HealthComponent,
+    DamageComponent,
+    EnemyComponent,
+    ColliderComponent,
+
+    PhysicsTypeComponent,
+    VelocityComponent,
+    GroundedComponent,
+    CollisionComponent,
+
+    NUM_COMPONENTS
+};
+
+///////////////////////////////////////////////////////////
 
 class IFacadeEngineToUI
 {
@@ -53,7 +87,8 @@ public:
     // =============================================================================
     virtual EntityID CreateEntity() { return 0; }
 
-    virtual bool GetEntityAddedComponentsNames(const EntityID id, cvector<std::string>& componentsNames)              const { return false; };
+    virtual bool GetEntityAddedComponentsNames(const EntityID id, cvector<std::string>& componentsNames)               const { return false; }
+    virtual bool GetEntityAddedComponentsTypes(const EntityID id, cvector<eEnttComponentType>& componentTypes)         const { return false; }
 
     virtual bool AddNameComponent     (const EntityID id, const std::string& name)                                          { return false; }
     virtual bool AddTransformComponent(const EntityID id, const Vec3& pos, const Vec3& direction, const float uniformScale) { return false; }
@@ -75,15 +110,15 @@ public:
     virtual bool GetEnttWorldMatrix   (const EntityID id, DirectX::XMMATRIX& outMat)                  const { return false; }
 
     // get/set entity position/rotation_quat/uniform_scale
-    virtual Vec3 GetEnttPosition    (const EntityID id)                                               const { return GetInvalidVec3(); }
-    virtual Vec4 GetEnttRotationQuat(const EntityID id)                                               const { return GetInvalidVec4(); }
-    virtual float GetEnttScale      (const EntityID id)                                               const { return GetInvalidFloat(); }
+    virtual Vec3 GetEnttPosition     (const EntityID id)                                               const { return GetInvalidVec3(); }
+    virtual Vec4 GetEnttDirectionQuat(const EntityID id)                                              const { return GetInvalidVec4(); }
+    virtual float GetEnttScale       (const EntityID id)                                               const { return GetInvalidFloat(); }
 
-    virtual bool SetEnttPosition    (const EntityID id, const Vec3& pos)                                    { return false; }
-    virtual bool SetEnttRotationQuat(const EntityID id, const Vec4& rotQuat)                                { return false; }
-    virtual bool SetEnttUniScale    (const EntityID id, const float scale)                                  { return false; }
+    virtual bool SetEnttPosition     (const EntityID id, const Vec3& pos)                                    { return false; }
+    virtual bool SetEnttDirectionQuat(const EntityID id, const Vec4& rotQuat)                               { return false; }
+    virtual bool SetEnttUniScale     (const EntityID id, const float scale)                                  { return false; }
 
-    virtual bool IsEnttLightSource(const EntityID id, int& lightType)                                 const { return false; }
+    virtual bool GetEnttLightType(const EntityID id, int& lightType)                                 const { return false; }
 
 
     // =============================================================================
@@ -93,8 +128,7 @@ public:
         const EntityID id,
         ColorRGBA& ambient,
         ColorRGBA& diffuse,
-        ColorRGBA& specular,
-        Vec3& direction)
+        ColorRGBA& specular)
     {
         return false;
     }
@@ -104,9 +138,8 @@ public:
         ColorRGBA& ambient,
         ColorRGBA& diffuse,
         ColorRGBA& specular,
-        Vec3& position,
-        float& range,
-        Vec3& attenuation)
+        Vec3& attenuation,
+        float& range)
     {
         return false;
     }
@@ -116,11 +149,9 @@ public:
         ColorRGBA& ambient,
         ColorRGBA& diffuse,
         ColorRGBA& specular,
-        Vec3& position,
+        Vec3& attenuation,
         float& range,
-        Vec3& direction,
-        float& spotExponent,
-        Vec3& attenuation)
+        float& spotExponent)
     {
         return false;
     }

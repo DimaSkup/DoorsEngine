@@ -1,6 +1,6 @@
 // =================================================================================
-// Filename:    EntityEditorModel.h
-// Description: holds entity data for the editor view 
+// Filename:    EnttTransformData.h
+// Description: holds entity transformation data for the editor view 
 //              (a part of the MVC pattern)
 // 
 // Created:     01.01.25  by DimaSkup
@@ -8,18 +8,14 @@
 #pragma once
 
 #include <CoreCommon/MathHelper.h>
-#include <CoreCommon/cvector.h>          // container
 #include <UICommon/Vectors.h>            // math vectors
-#include <string>
 
 namespace UI
 {
 
-class ModelEntity
+class EnttTransformData
 {
 private:
-    Core::cvector<std::string> addedComponentsNames_;   // the list of components names which are attached to the entity
-
 	Vec3  position_     = { 0,0,0 };
 	float pitchInDeg_   = 0.0f;        // in degrees
 	float yawInDeg_     = 0.0f;
@@ -32,20 +28,20 @@ public:
 	//
 	inline void SetData(
 		const Vec3& position,
-		const Vec4& rotationQuat,
+		const Vec4& dirQuat,
 		const float uniformScale)
 	{
 		position_       = position;
 		uniformScale_   = uniformScale;
-		SetRotation(rotationQuat);
+		SetDirection(dirQuat);
 	}
 
 	inline void SetPosition(const Vec3& pos)       { position_ = pos; }
 	inline void SetUniformScale(const float scale) { uniformScale_ = scale; }
 
-	void SetRotation(const Vec4& rotationQuat)
+	void SetDirection(const Vec4& dirQuat)
 	{ 
-		DirectX::XMFLOAT3 rollPitchYaw = MathHelper::QuatToRollPitchYaw(rotationQuat.ToXMVector());
+		DirectX::XMFLOAT3 rollPitchYaw = MathHelper::QuatToRollPitchYaw(dirQuat.ToXMVector());
 		rollInDeg_  = DirectX::XMConvertToDegrees(rollPitchYaw.x);
 		pitchInDeg_ = DirectX::XMConvertToDegrees(rollPitchYaw.y);
 		yawInDeg_   = DirectX::XMConvertToDegrees(rollPitchYaw.z);

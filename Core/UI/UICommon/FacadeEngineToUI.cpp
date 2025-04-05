@@ -113,17 +113,43 @@ bool FacadeEngineToUI::GetEntityAddedComponentsNames(
     cvector<std::string>& componentsNames) const
 {
     // out:    names array of components which are added to entity by ID;
-    // return: false because there is no entity by ID
+    // return: false if there is no entity by ID in the Entity Manager
 
     ECS::cvector<std::string> names;
 
-    if (pEntityMgr_->GetComponentNamesByEntity(id, names))
+    if (pEntityMgr_->GetComponentNamesByEntt(id, names))
     {
         componentsNames = cvector<std::string>(names.begin(), names.end());
         return true;
     }
 
     // we didn't manage to get components names
+    return false;
+}
+
+///////////////////////////////////////////////////////////
+
+bool FacadeEngineToUI::GetEntityAddedComponentsTypes(
+    const EntityID id,
+    cvector<eEnttComponentType>& componentTypes) const
+{
+    // out:    array of components types which are added to entity by ID;
+    // return: false if there is no entity by ID in the Entity Manager
+
+    ECS::cvector<uint8_t> types;
+
+    if (pEntityMgr_->GetComponentTypesByEntt(id, types))
+    {
+        // store received component types into the output array
+        componentTypes.resize(types.size());
+
+        for (int i = 0; const uint8_t type : types)
+            componentTypes[i++] = (eEnttComponentType)type;
+
+        return true;
+    }
+
+    // we didn't manage to get components types
     return false;
 }
 
@@ -221,7 +247,7 @@ bool FacadeEngineToUI::GetEnttTransformData(
     float& uniformScale) const
 {
     position     = pEntityMgr_->transformSystem_.GetPositionByID(enttID);
-    rotQuat      = pEntityMgr_->transformSystem_.GetRotationQuatByID(enttID);
+    rotQuat      = pEntityMgr_->transformSystem_.GetDirectionQuatByID(enttID);
     uniformScale = pEntityMgr_->transformSystem_.GetUniformScaleByID(enttID);
 
     return true;
@@ -244,9 +270,9 @@ Vec3 FacadeEngineToUI::GetEnttPosition(const EntityID id) const
     return pEntityMgr_->transformSystem_.GetPositionByID(id);
 }
 
-Vec4 FacadeEngineToUI::GetEnttRotationQuat(const EntityID id) const
+Vec4 FacadeEngineToUI::GetEnttDirectionQuat(const EntityID id) const
 {
-    return pEntityMgr_->transformSystem_.GetRotationQuatByID(id);
+    return pEntityMgr_->transformSystem_.GetDirectionQuatByID(id);
 }
 
 float FacadeEngineToUI::GetEnttScale(const EntityID id) const
@@ -261,9 +287,9 @@ bool FacadeEngineToUI::SetEnttPosition(const EntityID id, const Vec3& pos)
     return pEntityMgr_->transformSystem_.SetPositionByID(id, pos.ToFloat3());
 }
 
-bool FacadeEngineToUI::SetEnttRotationQuat(const EntityID id, const Vec4& rotationQuat)
+bool FacadeEngineToUI::SetEnttDirectionQuat(const EntityID id, const Vec4& rotationQuat)
 {
-    return pEntityMgr_->transformSystem_.SetRotationQuatByID(id, rotationQuat.ToXMVector());
+    return pEntityMgr_->transformSystem_.SetDirectionQuatByID(id, rotationQuat.ToXMVector());
 }
 
 bool FacadeEngineToUI::SetEnttUniScale(const EntityID id, const float scale)
@@ -273,10 +299,11 @@ bool FacadeEngineToUI::SetEnttUniScale(const EntityID id, const float scale)
 
 ///////////////////////////////////////////////////////////
 
-bool FacadeEngineToUI::IsEnttLightSource(const EntityID id, int& lightType) const
+bool FacadeEngineToUI::GetEnttLightType(const EntityID id, int& lightType) const
 {
-    // return flag to define if input entt is a light source;
-    // if it's a light source we return its type code in lightType argument or -1 if not
+    // output:  a code of light type which is added to entity by ID
+    // return:  false - if there is no light which is added to the entity;
+
     if (pEntityMgr_->lightSystem_.IsLightSource(id))
     {
         lightType = pEntityMgr_->lightSystem_.GetLightType(id);
@@ -297,8 +324,7 @@ bool FacadeEngineToUI::GetEnttDirectedLightData(
     const EntityID id,
     ColorRGBA& ambient,
     ColorRGBA& diffuse,
-    ColorRGBA& specular,
-    Vec3& direction)
+    ColorRGBA& specular)
 {
     // get data of a directed light entity by input ID
 
@@ -309,7 +335,6 @@ bool FacadeEngineToUI::GetEnttDirectedLightData(
         ambient   = data.ambient;
         diffuse   = data.diffuse;
         specular  = data.specular;
-        direction = data.direction;
 
         return true;
     }
@@ -327,9 +352,8 @@ bool FacadeEngineToUI::GetEnttPointLightData(
     ColorRGBA& ambient,
     ColorRGBA& diffuse,
     ColorRGBA& specular,
-    Vec3& position,
-    float& range,
-    Vec3& attenuation)
+    Vec3& attenuation,
+    float& range)
 {
     // get data of a point light entity by input ID
 
@@ -340,7 +364,6 @@ bool FacadeEngineToUI::GetEnttPointLightData(
         ambient     = data.ambient;
         diffuse     = data.diffuse;
         specular    = data.specular;
-        position    = data.position;
         range       = data.range;
         attenuation = data.att;
 
@@ -360,11 +383,9 @@ bool FacadeEngineToUI::GetEnttSpotLightData(
     ColorRGBA& ambient,
     ColorRGBA& diffuse,
     ColorRGBA& specular,
-    Vec3& position,
+    Vec3& attenuation,
     float& range,
-    Vec3& direction,
-    float& spotExponent,
-    Vec3& attenuation)
+    float& spotExponent)
 {
     // get all the data of the spotlight entity by ID
     ECS::SpotLight spotlight;
@@ -374,9 +395,7 @@ bool FacadeEngineToUI::GetEnttSpotLightData(
         ambient      = spotlight.ambient;
         diffuse      = spotlight.diffuse;
         specular     = spotlight.specular;
-        position     = spotlight.position;
         range        = spotlight.range;
-        direction    = spotlight.direction;
         spotExponent = spotlight.spot;
         attenuation  = spotlight.att;
 
@@ -571,7 +590,7 @@ bool FacadeEngineToUI::SetSpotLightDirection(const EntityID id, const Vec3& dir)
     if (pEntityMgr_->lightSystem_.SetSpotLightProp(id, ECS::LightProp::DIRECTION, { dir.x, dir.y, dir.z, 0.0f }))
     {
         return true;
-        //return SetEnttRotationQuat(id, dirQuat);
+        //return SetEnttDirectionQuat(id, dirQuat);
     }
     return false;
 }

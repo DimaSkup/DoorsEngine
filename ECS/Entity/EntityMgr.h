@@ -33,7 +33,6 @@
 #include "../Systems/BoundingSystem.h"
 #include "../Systems/CameraSystem.h"
 
-#include <set> 
 
 namespace ECS
 {
@@ -208,9 +207,6 @@ public:
         const DirectX::XMMATRIX& proj);
 
 
-
-
-
     // =============================================================================
     // public API: QUERY
     // =============================================================================
@@ -224,16 +220,16 @@ public:
     inline const Light&             GetComponentLight()         const { return light_; }
     inline const Bounding&          GetComponentBounding()      const { return bounding_; }
 
-    inline const std::map<eComponentType, ComponentName>& GetMapCompTypeToName() {	return componentTypeToName_; }
+    inline const std::map<eComponentType, ComponentName> GetMapCompTypeToName() { return componentTypeToName_; }
 
     inline const size      GetNumAllEntts() const { return ids_.size(); }
     inline const EntityID* GetAllEnttsIDs() const { return ids_.data(); }
 
-    bool GetComponentNamesByEntity(const EntityID id, cvector<std::string>& names);
+    bool GetComponentNamesByEntt(const EntityID id, cvector<std::string>& names) const;
+    bool GetComponentTypesByEntt(const EntityID id, cvector<uint8_t>& types)     const;
 
     inline bool CheckEnttExist(const EntityID id)                         const { return ids_.binary_search(id); }
     inline bool CheckEnttsExist(const EntityID* ids, const size numEntts) const { return ids_.binary_search(ids, numEntts); }
-
 
 private:
     ComponentHash GetHashByComponent(const eComponentType component);
@@ -252,6 +248,8 @@ private:
         const EntityID* ids,
         const cvector<eComponentType>& compTypes,
         const size numEntts);
+
+
 
 public:
     static const u32 ENTT_MGR_SERIALIZE_DATA_BLOCK_MARKER = 1000;

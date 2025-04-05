@@ -26,7 +26,7 @@ ViewSky::ViewSky(IEditorController* pController) : pController_(pController)
 
 void ViewSky::Render(const ModelSky& data)
 {
-	using enum EditorCmdType;
+	using enum eEditorCmdType;
 	
 	ColorRGB colorCenter;
 	ColorRGB colorApex;

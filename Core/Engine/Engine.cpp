@@ -864,7 +864,6 @@ void Engine::SwitchFlashLight(const Camera& camera)
         mgr.lightSystem_.SetSpotLightProp(flashlightID, ECS::LightProp::POSITION, { pos.x, pos.y, pos.z, 1.0f });
 
         // update direction
-        mgr.transformSystem_.SetRotationQuatByID(flashlightID, dirQuat);
         mgr.lightSystem_.SetSpotLightProp(flashlightID, ECS::LightProp::DIRECTION, { dir.x, dir.y, dir.z, 0.0f });
     }
 }
@@ -895,7 +894,7 @@ void Engine::UpdateFlashLightDirection(const DirectX::XMFLOAT3& dir)
     if (isFlashlightActive)
     {
         const DirectX::XMVECTOR dirQuat = DirectX::XMQuaternionRotationRollPitchYaw(dir.y, dir.x, dir.z);
-        mgr.transformSystem_.SetRotationQuatByID(flashlightID, dirQuat);
+        //mgr.transformSystem_.SetDirectionQuatByID(flashlightID, dirQuat);
         mgr.lightSystem_.SetSpotLightProp(flashlightID, ECS::LightProp::DIRECTION, { dir.x, dir.y, dir.z, 0.0f });
     }
 }

@@ -1248,7 +1248,7 @@ void CreateStalkerFreedom(ECS::EntityMgr& mgr, const BasicModel& model)
     const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
 
 
-    mgr.AddTransformComponent(enttID, pos, rotQuat, 5.0f);
+    mgr.AddTransformComponent(enttID, pos, { 0,0,1,0 }, 5.0f);
     mgr.AddNameComponent(enttID, "stalker_freedom");
     mgr.AddModelComponent(enttID, model.GetID());
     mgr.AddRenderingComponent(enttID, renderParams);
@@ -1428,7 +1428,7 @@ void CreateAk47(ECS::EntityMgr& mgr, const BasicModel& model)
 
     // setup transformation params
     const XMFLOAT3 position  = { 10, 2, 10 };
-    const XMVECTOR dirQuat   = { 0, 0, 0, 1 };
+    const XMVECTOR dirQuat   = { 0, 0, 1, 1 };
     const float uniformScale = 5.0f;
 
     // setup rendering params
@@ -2085,7 +2085,7 @@ void InitDirectedLightEntities(ECS::EntityMgr& mgr)
 {
     // setup and create directed light entities
 
-    constexpr int numDirLights = 3;
+    constexpr size numDirLights = 3;
 
     if constexpr (numDirLights > 0)
     {
@@ -2098,22 +2098,19 @@ void InitDirectedLightEntities(ECS::EntityMgr& mgr)
         ECS::DirLight& dirLight2 = dirLightsParams.data[2];
 
         // setup main directed light source
-        dirLight0.ambient   = { 0.6f, 0.6f, 0.6f, 1.0f };
-        dirLight0.diffuse   = { 0.8f, 0.8f, 0.8f, 1.0f };
-        dirLight0.specular  = { 0.3f, 0.3f, 0.3f, 1.0f };
-        dirLight0.direction = { 0.57735f, -0.9f, 0.57735f };
+        dirLight0.ambient = { 0.6f, 0.6f, 0.6f, 1.0f };
+        dirLight0.diffuse = { 0.8f, 0.8f, 0.8f, 1.0f };
+        dirLight0.specular = { 0.3f, 0.3f, 0.3f, 1.0f };
 
         // setup 2nd directed light source
-        dirLight1.ambient   = { 0.0f, 0.0f, 0.0f, 1.0f };
-        dirLight1.diffuse   = { 0.2f, 0.2f, 0.2f, 1.0f };
-        dirLight1.specular  = { 0.25f, 0.25f, 0.25f, 1.0f };
-        dirLight1.direction = { -0.57735f, -0.57735f, 0.57735f };
+        dirLight1.ambient = { 0.0f, 0.0f, 0.0f, 1.0f };
+        dirLight1.diffuse = { 0.2f, 0.2f, 0.2f, 1.0f };
+        dirLight1.specular = { 0.25f, 0.25f, 0.25f, 1.0f };
 
         // setup 3rd directed light source
-        dirLight2.ambient   = { 0.0f, 0.0f, 0.0f, 1.0f };
-        dirLight2.diffuse   = { 0.2f, 0.2f, 0.2f, 1.0f };
-        dirLight2.specular  = { 0.0f, 0.0f, 0.0f, 1.0f };
-        dirLight2.direction = { 0.0f, -0.707f, -0.707f };
+        dirLight2.ambient = { 0.0f, 0.0f, 0.0f, 1.0f };
+        dirLight2.diffuse = { 0.2f, 0.2f, 0.2f, 1.0f };
+        dirLight2.specular = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 
         // create directional light entities and add components to them
@@ -2130,13 +2127,19 @@ void InitDirectedLightEntities(ECS::EntityMgr& mgr)
         mgr.AddLightComponent(ids, numDirLights, dirLightsParams);
         mgr.AddNameComponent(ids, names, numDirLights);
 
-     
-        // add transform component to each directed light because we may need to manipulate directed lights icons (in editor we can change icons positions in the scene or manipulate light direction using gizmo) 
-        for (index i = 0; i < (size)numDirLights; ++i)
+
+        const XMFLOAT3 directions[numDirLights] =
         {
-            const XMFLOAT3 pos = { 3, 3, (float)i };
-            const XMFLOAT3 dir = dirLightsParams.data[i].direction;
-            const XMVECTOR dirQuat = { dir.x, dir.y, dir.z };
+            { 0.57735f, -0.9f, 0.57735f },
+            { -0.57735f, -0.57735f, 0.57735f },
+            { 0.0f, -0.707f, -0.707f }
+        };
+
+        // add transform component to each directed light because we may need to manipulate directed lights icons (in editor we can change icons positions in the scene or manipulate light direction using gizmo) 
+        for (index i = 0; i < numDirLights; ++i)
+        {
+            const XMFLOAT3 pos     = { 3, 3, (float)i };
+            const XMVECTOR dirQuat = DirectX::XMLoadFloat3(&directions[i]);
 
             mgr.AddTransformComponent(dirLightsIds[i], pos, dirQuat, 1.0f);
         }
@@ -2172,21 +2175,12 @@ void InitPointLightEntities(ECS::EntityMgr& mgr)
 
         // setup attenuation params
         for (index i = 0; i < numPointLights; ++i)
-            pointLightsParams.data[i].att = { 0, 0.1f, 0 };
+            pointLightsParams.data[i].att = { 0, 0.1f, 0.005f };
 
         for (index i = 0; i < numPointLights; ++i)
             pointLightsParams.data[i].range = 30;
 
-        // generate random position for each point light source
-        for (index i = 0; i < numPointLights; ++i)
-        {
-            XMFLOAT3 pos;
-            pos.x = MathHelper::RandF(-100, 100);
-            pos.y = 4.0f;
-            pos.z = MathHelper::RandF(-100, 100);
-
-            pointLightsParams.data[i].position = pos;
-        }
+    
 
         // ------------------------------------------------
 
@@ -2197,8 +2191,13 @@ void InitPointLightEntities(ECS::EntityMgr& mgr)
         XMVECTOR dirQuats[numPointLights];
         float uniformScales[numPointLights];
 
+        // generate random position for each point light source
         for (index i = 0; i < numPointLights; ++i)
-            positions[i] = pointLightsParams.data[i].position;
+        {
+            positions[i].x = MathHelper::RandF(-100, 100);
+            positions[i].y = 4.0f;
+            positions[i].z = MathHelper::RandF(-100, 100);
+        }
 
         for (index i = 0; i < numPointLights; ++i)
             dirQuats[i] = { 0,0,0,1 };
@@ -2210,8 +2209,8 @@ void InitPointLightEntities(ECS::EntityMgr& mgr)
         // generate name for each point light src
         std::string names[numPointLights];
 
-        for (int i = 0; std::string & name : names)
-            name = "point_light_" + std::to_string(i);
+        for (index i = 0; i < numPointLights; ++i)
+            names[i] = "point_light_" + std::to_string(i);
 
         // setup bounding params
         const size numSubsets = 1;
@@ -2220,7 +2219,7 @@ void InitPointLightEntities(ECS::EntityMgr& mgr)
 
         // setup bounding sphere for each point light src
         for (index i = 0; i < numPointLights; ++i)
-            boundSpheres[i].Center = pointLightsParams.data[i].position;
+            boundSpheres[i].Center = positions[i];
 
         for (index i = 0; i < numPointLights; ++i)
             boundSpheres[i].Radius = pointLightsParams.data[i].range;
@@ -2243,7 +2242,7 @@ void InitPointLightEntities(ECS::EntityMgr& mgr)
 
 void InitSpotLightEntities(ECS::EntityMgr& mgr)
 {
-    constexpr size numSpotLights = 2;
+    constexpr size numSpotLights = 10;
 
     if (numSpotLights > 0)
     {
@@ -2271,22 +2270,6 @@ void InitSpotLightEntities(ECS::EntityMgr& mgr)
 
             light.specular = color * 0.01f;
             light.specular.w = 3.0f;          // setup specular power
-        }
-
-        // generate positions: 2 rows of spot light sources
-        for (index i = 0, z = 0; i < numSpotLights / 2; z += 30, i += 2)
-        {
-            spotLightsParams.data[i + 0].position = { -8, 10, (float)z };
-            spotLightsParams.data[i + 1].position = { +8, 10, (float)z };
-        }
-
-        // generate directions
-        constexpr float PI_DIV6 = DirectX::XM_PI * 0.333f;
-
-        for (index i = 0; i < numSpotLights / 2; i += 2)
-        {
-            spotLightsParams.data[i + 0].direction = { 0.0f, (-DirectX::XM_PIDIV2 - PI_DIV6), 0.0f };
-            spotLightsParams.data[i + 1].direction = { 0.0f, (-DirectX::XM_PIDIV2 + PI_DIV6), 0.0f };
         }
 
         // setup attenuation params (const, linear, quadratic)
@@ -2322,13 +2305,22 @@ void InitSpotLightEntities(ECS::EntityMgr& mgr)
         XMVECTOR dirQuats[numSpotLights];
         float uniformScales[numSpotLights];
 
-        for (index i = 0; i < numSpotLights; ++i)
-            positions[i] = spotLightsParams.data[i].position;
-
-        for (index i = 0; i < numSpotLights; ++i)
+        // generate positions: 2 rows of spot light sources
+        for (index i = 0, z = 0; i < numSpotLights / 2; z += 30, i += 2)
         {
-            // convert light direction into quaternion and normalize it
-            dirQuats[i] = XMQuaternionNormalize(XMLoadFloat3(&spotLightsParams.data[i].direction));
+            positions[i + 0] = { -8, 10, (float)z };
+            positions[i + 1] = { +8, 10, (float)z };
+        }
+
+        // generate directions
+        constexpr float PI_DIV6 = DirectX::XM_PI * 0.333f;
+        constexpr float dir1 = -DirectX::XM_PIDIV2 - PI_DIV6;
+        constexpr float dir2 = -DirectX::XM_PIDIV2 + PI_DIV6;
+
+        for (index i = 0; i < numSpotLights / 2; i += 2)
+        {
+            dirQuats[i + 0] = { 0.0f, dir1, 0.0f, 1.0f };
+            dirQuats[i + 1] = { 0.0f, dir2, 0.0f, 1.0f };
         }
 
         for (index i = 0; i < numSpotLights; ++i)

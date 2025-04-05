@@ -10,7 +10,7 @@
 #include <UICommon/ICommand.h>
 #include <UICommon/IFacadeEngineToUI.h>
 
-#include "../Model/SkyEditorModel.h"
+#include "SkyEditorModel.h"
 
 
 namespace UI

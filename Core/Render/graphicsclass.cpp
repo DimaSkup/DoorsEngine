@@ -266,10 +266,10 @@ void GraphicsClass::UpdateHelper(
     {
         size count = 0;
         std::vector<index> idxs(numVisEntts);
-        std::vector<XMFLOAT3> positions(numVisEntts);
+        ECS::cvector<XMFLOAT3> positions;
 
 
-        entityMgr_.transformSystem_.GetPositionsByIDs(alphaClippedEntts.data(), positions.data(), numVisEntts);
+        entityMgr_.transformSystem_.GetPositionsByIDs(alphaClippedEntts.data(), numVisEntts, positions);
         const XMVECTOR camPos = pCurrCamera_->GetPositionVec();
 
         // check if entity by idx is farther than fog range if so we store its idx
@@ -494,7 +494,7 @@ void GraphicsClass::ComputeFrustumCullingOfLightSources(SystemState& sysState)
     ECS::EntityMgr& mgr = entityMgr_;
 
     mgr.renderSystem_.ClearVisibleLightSources();
-    ECS::cvector<EntityID>& visPointLights = mgr.renderSystem_.GetArrVisibleLightSources();
+    ECS::cvector<EntityID>& visPointLights = mgr.renderSystem_.GetVisiblePointLights();
 
     // get all the point light sources which are in the visibility range
     const int numPointLights = (int)mgr.lightSystem_.GetNumPointLights();
@@ -896,10 +896,10 @@ void GraphicsClass::RenderBillboards()
         // prepare billboards data for rendering
         //
         std::vector<Render::Material> materials(numFoggedEntts);
-        std::vector<DirectX::XMFLOAT3> foggedPositions(numFoggedEntts);
+        ECS::cvector<DirectX::XMFLOAT3> foggedPositions;
         std::vector<DirectX::XMFLOAT2> sizes(numFoggedEntts, { 30, 30 });
 
-        entityMgr_.transformSystem_.GetPositionsByIDs(foggedEntts, foggedPositions.data(), numFoggedEntts);
+        entityMgr_.transformSystem_.GetPositionsByIDs(foggedEntts, numFoggedEntts, foggedPositions);
 
         render_.shadersContainer_.billboardShader_.UpdateInstancedBuffer(
             pDeviceContext_,
@@ -1005,38 +1005,90 @@ void GraphicsClass::SetupLightsForFrame(
     const ECS::DirLights&  dirLights  = lightSys.GetDirLights();
     const ECS::SpotLights& spotLights = lightSys.GetSpotLights();
 
-    const int numDirLights   = static_cast<int>(dirLights.data.size());
-    const int numSpotLights  = static_cast<int>(spotLights.data.size());
+    const size numDirLights   = dirLights.data.size();
+    const size numSpotLights  = spotLights.data.size();
 
-    const EntityID* visPointLights = entityMgr_.renderSystem_.GetArrVisibleLightSources().data();
-    const size numVisLightSources = entityMgr_.renderSystem_.GetArrVisibleLightSources().size();
+    const ECS::RenderSystem& renderSys           = entityMgr_.renderSystem_;
+    const ECS::cvector<EntityID>& visPointLights = renderSys.GetVisiblePointLights();
+    const size numVisPointLightSources           = visPointLights.size();
 
 
-    outData.ResizeLightData(numDirLights, (int)numVisLightSources, numSpotLights);
+    outData.ResizeLightData(numDirLights, (int)numVisPointLightSources, numSpotLights);
 
-    if (numVisLightSources)
+    if (numVisPointLightSources > 0)
     {
-        std::vector<ECS::PointLight> pointLightData(numVisLightSources);
-        lightSys.GetPointLightData(
-            visPointLights,
-            pointLightData.data(),
-            (int)numVisLightSources);
+        ECS::cvector<ECS::PointLight>   pointLightsData;
+        ECS::cvector<DirectX::XMFLOAT3> pointLightsPositions;
 
-        for (int idx = 0; idx < numVisLightSources; ++idx)
+        lightSys.GetPointLightsData(
+            visPointLights.data(),
+            numVisPointLightSources,
+            pointLightsData,
+            pointLightsPositions);
+
+        // store light properties, range, and attenuation
+        for (index i = 0; i < numVisPointLightSources; ++i)
         {
-            memcpy(&outData.pointLights[idx], &pointLightData[idx], pointLightSize);
+            outData.pointLights[i].ambient  = pointLightsData[i].ambient;
+            outData.pointLights[i].diffuse  = pointLightsData[i].diffuse;
+            outData.pointLights[i].specular = pointLightsData[i].specular;
+            outData.pointLights[i].att      = pointLightsData[i].att;
+            outData.pointLights[i].range    = pointLightsData[i].range;
         }
+
+        // store positions
+        for (index i = 0; i < numVisPointLightSources; ++i)
+            outData.pointLights[i].position = pointLightsPositions[i];
     }
 
-    // --------------------------------
+    // ----------------------------------------------------
+    // prepare data of directed lights
 
+    for (index i = 0; i < numDirLights; ++i)
+    {
+        outData.dirLights[i].ambient  = dirLights.data[i].ambient;
+        outData.dirLights[i].diffuse  = dirLights.data[i].diffuse;
+        outData.dirLights[i].specular = dirLights.data[i].specular;
+    }
 
-    // copy data of directional/point/spot light sources
-    for (int idx = 0; idx < numDirLights; ++idx)
-        memcpy(&outData.dirLights[idx], &dirLights.data[idx], dirLightSize);
+    ECS::cvector<XMVECTOR> dirLightsDirections;
+    entityMgr_.transformSystem_.GetDirectionsQuatsByIDs(dirLights.ids.data(), numDirLights, dirLightsDirections);
 
-    for (int idx = 0; idx < numSpotLights; ++idx)
-        memcpy(&outData.spotLights[idx], &spotLights.data[idx], spotLightSize);
+    for (int i = 0; const XMVECTOR& dirQuat : dirLightsDirections)
+    {
+        DirectX::XMStoreFloat3(&outData.dirLights[i].direction, dirQuat);
+        ++i;
+    }
+
+    // ----------------------------------------------------
+    // prepare data of spot lights
+
+    ECS::cvector<ECS::SpotLight> spotLightsData;
+    ECS::cvector<XMFLOAT3>       spotLightsPositions;
+    ECS::cvector<XMFLOAT3>       spotLightsDirections;
+
+    entityMgr_.lightSystem_.GetSpotLightsData(
+        spotLights.ids.data(),
+        numSpotLights,
+        spotLightsData,
+        spotLightsPositions,
+        spotLightsDirections);
+
+    for (index i = 0; i < numSpotLights; ++i)
+    {
+        outData.spotLights[i].ambient  = spotLightsData[i].ambient;
+        outData.spotLights[i].diffuse  = spotLightsData[i].diffuse;
+        outData.spotLights[i].specular = spotLightsData[i].specular;
+        outData.spotLights[i].range    = spotLightsData[i].range;
+        outData.spotLights[i].spot     = spotLightsData[i].spot;
+        outData.spotLights[i].att      = spotLightsData[i].att;
+    }
+
+    for (int i = 0; const XMFLOAT3& pos : spotLightsPositions)
+        outData.spotLights[i++].position = pos;
+
+    for (int i = 0; const XMFLOAT3& dir : spotLightsDirections)
+        outData.spotLights[i++].direction = dir;
 }
 
 ///////////////////////////////////////////////////////////

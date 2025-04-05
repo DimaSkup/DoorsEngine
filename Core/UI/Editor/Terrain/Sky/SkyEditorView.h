@@ -7,7 +7,7 @@
 #pragma once
 
 #include <UICommon/IEditorController.h>
-#include "../Model/SkyEditorModel.h"
+#include "SkyEditorModel.h"
 
 namespace UI
 {

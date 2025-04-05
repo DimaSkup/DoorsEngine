@@ -1,5 +1,5 @@
 // =================================================================================
-// Filename:     LightEditorView.h
+// Filename:     EnttLightView.h
 // Description:  editor control fields for different types of light sources
 // 
 // Created:      30.01.25  by DimaSkup
@@ -7,23 +7,23 @@
 #pragma once
 
 #include <UICommon/IEditorController.h>
-#include "../Model/LightEditorModel.h"
+#include "../Model/EnttLightData.h"
 
 
 namespace UI
 {
 
-class ViewLight
+class EnttLightView
 {
 private:
 	IEditorController* pController_ = nullptr;
 
 public:
-	ViewLight(IEditorController* pController);
+    EnttLightView(IEditorController* pController);
 
-	void Render(const ModelEntityDirLight& data);
-	void Render(const ModelEntityPointLight& data);
-	void Render(const ModelEntitySpotLight& data);
+	void Render(const EnttDirLightData& data);
+	void Render(const EnttPointLightData& data);
+	void Render(const EnttSpotLightData& data);
 };
 
 }

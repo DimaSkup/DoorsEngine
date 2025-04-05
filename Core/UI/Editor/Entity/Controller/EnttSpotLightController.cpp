@@ -1,9 +1,9 @@
 // =================================================================================
-// Filename:      SpotLightController.cpp
+// Filename:      EnttSpotLightController.cpp
 // 
 // Created:       20.02.25  by DimaSkup
 // =================================================================================
-#include "SpotLightController.h"
+#include "EnttSpotLightController.h"
 
 #include <UICommon/EventsHistory.h>
 #include <UICommon/EditorCommands.h>
@@ -13,7 +13,7 @@
 namespace UI
 {
 
-void SpotLightController::Initialize(IFacadeEngineToUI* pFacade)
+void EnttSpotLightController::Initialize(IFacadeEngineToUI* pFacade)
 {
     // the facade interface is used to contact with the rest of the engine
     Core::Assert::NotNullptr(pFacade, "ptr to the facade == nullptr");
@@ -22,20 +22,18 @@ void SpotLightController::Initialize(IFacadeEngineToUI* pFacade)
 
 ///////////////////////////////////////////////////////////
 
-void SpotLightController::LoadEnttData(const EntityID id)
+void EnttSpotLightController::LoadEnttData(const EntityID id)
 {
-    ModelEntitySpotLight& model = spotLightModel_;  // MVC model
+    EnttSpotLightData& model = spotLightModel_;  // MVC model
 
     if (!pFacade_->GetEnttSpotLightData(
         id,
-        model.data_.ambient,
-        model.data_.diffuse,
-        model.data_.specular,
-        model.data_.position,
-        model.data_.range,
-        model.data_.direction,
-        model.data_.spotExp,
-        model.data_.attenuation))
+        model.ambient,
+        model.diffuse,
+        model.specular,
+        model.attenuation,
+        model.range,
+        model.spotExp))
     {
         Core::Log::Error("can't load data of the spotlight entity by ID: " + std::to_string(id));
     }
@@ -43,7 +41,7 @@ void SpotLightController::LoadEnttData(const EntityID id)
 
 ///////////////////////////////////////////////////////////
 
-void SpotLightController::ExecuteCommand(const ICommand* pCmd, const EntityID id)
+void EnttSpotLightController::ExecuteCommand(const ICommand* pCmd, const EntityID id)
 {
     switch (pCmd->type_)
     {
@@ -60,21 +58,6 @@ void SpotLightController::ExecuteCommand(const ICommand* pCmd, const EntityID id
         case CHANGE_SPOT_LIGHT_SPECULAR:
         {
             ExecChangeSpecular(id, pCmd->GetColorRGBA());
-            break;
-        }
-        case CHANGE_SPOT_LIGHT_POSITION:
-        {
-            ExecChangePosition(id, pCmd->GetVec3());
-            break;
-        }
-        case CHANGE_SPOT_LIGHT_DIRECTION:
-        {
-            ExecChangeDirection(id, pCmd->GetVec3());
-            break;
-        }
-        case CHANGE_SPOT_LIGHT_DIRECTION_BY_QUAT:
-        {
-            ExecChangeDirectionByQuat(id, pCmd->GetVec4());
             break;
         }
         case CHANGE_SPOT_LIGHT_RANGE:           // how far spotlight can lit
@@ -97,7 +80,7 @@ void SpotLightController::ExecuteCommand(const ICommand* pCmd, const EntityID id
 
 ///////////////////////////////////////////////////////////
 
-void SpotLightController::UndoCommand(const ICommand* pCmd, const EntityID id)
+void EnttSpotLightController::UndoCommand(const ICommand* pCmd, const EntityID id)
 {
     // "undo" the change of spotlight entity by ID according to the input command;
 
@@ -106,49 +89,37 @@ void SpotLightController::UndoCommand(const ICommand* pCmd, const EntityID id)
         case CHANGE_SPOT_LIGHT_AMBIENT:
         {
             if (pFacade_->SetSpotLightAmbient(id, pCmd->GetColorRGBA()))
-                spotLightModel_.data_.ambient = pCmd->GetColorRGBA();
+                spotLightModel_.ambient = pCmd->GetColorRGBA();
             break;
         }
         case CHANGE_SPOT_LIGHT_DIFFUSE:
         {
             if (pFacade_->SetSpotLightDiffuse(id, pCmd->GetColorRGBA()))
-                spotLightModel_.data_.diffuse = pCmd->GetColorRGBA();
+                spotLightModel_.diffuse = pCmd->GetColorRGBA();
             break;
         }
         case CHANGE_SPOT_LIGHT_SPECULAR:
         {
             if (pFacade_->SetSpotLightSpecular(id, pCmd->GetColorRGBA()))
-                spotLightModel_.data_.specular = pCmd->GetColorRGBA();
-            break;
-        }
-        case CHANGE_SPOT_LIGHT_POSITION:
-        {
-            if (pFacade_->SetSpotLightPos(id, pCmd->GetVec3()))
-                spotLightModel_.data_.position = pCmd->GetVec3();
-            break;
-        }
-        case CHANGE_SPOT_LIGHT_DIRECTION:
-        {
-            if (pFacade_->SetSpotLightDirection(id, pCmd->GetVec3()))
-                spotLightModel_.data_.direction = pCmd->GetVec3();
+                spotLightModel_.specular = pCmd->GetColorRGBA();
             break;
         }
         case CHANGE_SPOT_LIGHT_RANGE:
         {
             if (pFacade_->SetSpotLightRange(id, pCmd->GetFloat()))
-                spotLightModel_.data_.range = pCmd->GetFloat();
+                spotLightModel_.range = pCmd->GetFloat();
             break;
         }
         case CHANGE_SPOT_LIGHT_ATTENUATION:
         {
             if (pFacade_->SetSpotLightAttenuation(id, pCmd->GetVec3()))
-                spotLightModel_.data_.attenuation = pCmd->GetVec3();
+                spotLightModel_.attenuation = pCmd->GetVec3();
             break;
         }
         case CHANGE_SPOT_LIGHT_SPOT_EXPONENT:
         {
             if (pFacade_->SetSpotLightSpotExponent(id, pCmd->GetFloat()))
-                spotLightModel_.data_.spotExp = pCmd->GetFloat();
+                spotLightModel_.spotExp = pCmd->GetFloat();
             break;
         }
     }
@@ -173,14 +144,14 @@ static std::string GenerateErrMsg(const EntityID id, const std::string& property
 
 ///////////////////////////////////////////////////////////
 
-void SpotLightController::ExecChangeAmbient(const EntityID id, const ColorRGBA& ambient)
+void EnttSpotLightController::ExecChangeAmbient(const EntityID id, const ColorRGBA& ambient)
 {
     const ColorRGBA oldAmbient = pFacade_->GetSpotLightAmbient(id);
 
     if (pFacade_->SetSpotLightAmbient(id, ambient))
     {
         // update editor fields	
-        spotLightModel_.data_.ambient = ambient;
+        spotLightModel_.ambient = ambient;
 
         // generate an "undo" command and store it into the history
         gEventsHistory.Push(
@@ -196,14 +167,14 @@ void SpotLightController::ExecChangeAmbient(const EntityID id, const ColorRGBA& 
 
 ///////////////////////////////////////////////////////////
 
-void SpotLightController::ExecChangeDiffuse(const EntityID id, const ColorRGBA& diffuse)
+void EnttSpotLightController::ExecChangeDiffuse(const EntityID id, const ColorRGBA& diffuse)
 {
     const ColorRGBA oldDiffuse = pFacade_->GetSpotLightDiffuse(id);
 
     if (pFacade_->SetSpotLightDiffuse(id, diffuse))
     {
         // update editor fields	
-        spotLightModel_.data_.diffuse = diffuse;
+        spotLightModel_.diffuse = diffuse;
 
         // generate an "undo" command and store it into the history
         gEventsHistory.Push(
@@ -219,14 +190,14 @@ void SpotLightController::ExecChangeDiffuse(const EntityID id, const ColorRGBA& 
 
 ///////////////////////////////////////////////////////////
 
-void SpotLightController::ExecChangeSpecular(const EntityID id, const ColorRGBA& specular)
+void EnttSpotLightController::ExecChangeSpecular(const EntityID id, const ColorRGBA& specular)
 {
     const ColorRGBA oldSpecular = pFacade_->GetSpotLightSpecular(id);
 
     if (pFacade_->SetSpotLightSpecular(id, specular))
     {
         // update editor fields	
-        spotLightModel_.data_.specular = specular;
+        spotLightModel_.specular = specular;
 
         // generate an "undo" command and store it into the history
         gEventsHistory.Push(
@@ -240,32 +211,11 @@ void SpotLightController::ExecChangeSpecular(const EntityID id, const ColorRGBA&
     }
 }
 
-///////////////////////////////////////////////////////////
-
-void SpotLightController::ExecChangePosition(const EntityID id, const Vec3& pos)
-{
-    const Vec3 oldPos = pFacade_->GetSpotLightPos(id);
-
-    if (pFacade_->SetSpotLightPos(id, pos))
-    {
-        // update editor fields	
-        spotLightModel_.data_.position = pos;
-
-        // generate an "undo" command and store it into the history
-        gEventsHistory.Push(
-            CmdChangeVec3(CHANGE_SPOT_LIGHT_POSITION, oldPos),
-            GenerateMsgForHistory(id, "position"),
-            id);
-    }
-    else
-    {
-        Core::Log::Error(GenerateErrMsg(id, "position"));
-    }
-}
+#if 0
 
 ///////////////////////////////////////////////////////////
 
-void SpotLightController::ExecChangeDirection(const EntityID id, const Vec3& direction)
+void EnttSpotLightController::ExecChangeDirection(const EntityID id, const Vec3& direction)
 {
     const Vec3 oldDirection = pFacade_->GetSpotLightDirection(id);
 
@@ -288,7 +238,7 @@ void SpotLightController::ExecChangeDirection(const EntityID id, const Vec3& dir
 
 ///////////////////////////////////////////////////////////
 
-void SpotLightController::ExecChangeDirectionByQuat(const EntityID id, const Vec4& dirQuat)
+void EnttSpotLightController::ExecChangeDirectionByQuat(const EntityID id, const Vec4& dirQuat)
 {
     // rotate current direction vector of directed light source by input quaternion
     using namespace DirectX;
@@ -318,10 +268,11 @@ void SpotLightController::ExecChangeDirectionByQuat(const EntityID id, const Vec
         Core::Log::Error(GenerateErrMsg(id, "direction"));
     }
 }
+#endif
 
 ///////////////////////////////////////////////////////////
 
-void SpotLightController::ExecChangeRange(const EntityID id, const float range)
+void EnttSpotLightController::ExecChangeRange(const EntityID id, const float range)
 {
     // change how far can this spotlight lit
 
@@ -330,7 +281,7 @@ void SpotLightController::ExecChangeRange(const EntityID id, const float range)
     if (pFacade_->SetSpotLightRange(id, range))
     {
         // update editor fields
-        spotLightModel_.data_.range = range;
+        spotLightModel_.range = range;
 
         // generate an "undo" command and store it into the history
         gEventsHistory.Push(
@@ -346,7 +297,7 @@ void SpotLightController::ExecChangeRange(const EntityID id, const float range)
 
 ///////////////////////////////////////////////////////////
 
-void SpotLightController::ExecChangeAttenuation(const EntityID id, const Vec3& att)
+void EnttSpotLightController::ExecChangeAttenuation(const EntityID id, const Vec3& att)
 {
     // change params for control the spotlight lit distance
 
@@ -355,7 +306,7 @@ void SpotLightController::ExecChangeAttenuation(const EntityID id, const Vec3& a
     if (pFacade_->SetSpotLightAttenuation(id, att))
     {
         // update editor fields
-        spotLightModel_.data_.attenuation = att;
+        spotLightModel_.attenuation = att;
 
         // generate an "undo" command and store it into the history
         gEventsHistory.Push(
@@ -367,7 +318,7 @@ void SpotLightController::ExecChangeAttenuation(const EntityID id, const Vec3& a
 
 ///////////////////////////////////////////////////////////
 
-void SpotLightController::ExecChangeSpotExponent(const EntityID id, const float spotExponent)
+void EnttSpotLightController::ExecChangeSpotExponent(const EntityID id, const float spotExponent)
 {
     // change the light intensity fallof (for control the spotlight cone)
 
@@ -376,7 +327,7 @@ void SpotLightController::ExecChangeSpotExponent(const EntityID id, const float 
     if (pFacade_->SetSpotLightSpotExponent(id, spotExponent))
     {
         // update editor fields
-        spotLightModel_.data_.spotExp = spotExponent;
+        spotLightModel_.spotExp = spotExponent;
 
         // generate an "undo" command and store it into the history
         gEventsHistory.Push(

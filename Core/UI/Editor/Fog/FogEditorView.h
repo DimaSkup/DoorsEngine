@@ -40,7 +40,7 @@ public:
 		// show the fog editor fields
 		//
 
-		using enum EditorCmdType;
+		using enum eEditorCmdType;
 
 		ColorRGB fogColor;
 		float    fogStart;
