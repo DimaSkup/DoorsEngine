@@ -178,7 +178,8 @@ void ImGuiLayer::Begin()
         ImGui::DockBuilderDockWindow("Entities List", dockIdLeft);
         ImGui::DockBuilderDockWindow("Scene", dockIdScene);
         ImGui::DockBuilderDockWindow("Run scene", dockspaceId);
-        ImGui::DockBuilderDockWindow("Assets", dockIdBottom);
+        ImGui::DockBuilderDockWindow("Models", dockIdBottom);
+        ImGui::DockBuilderDockWindow("Textures browser", dockIdBottom);
         ImGui::DockBuilderDockWindow("Events history", dockIdBottom);
 
         pSceneNode = ImGui::DockBuilderGetNode(dockIdScene);

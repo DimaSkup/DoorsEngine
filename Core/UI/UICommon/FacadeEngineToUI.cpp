@@ -54,11 +54,26 @@ ModelID FacadeEngineToUI::GetModelIdByName(const std::string& name)
 // =================================================================================
 bool FacadeEngineToUI::GetShaderResourceViewByTexID(
     const uint32_t textureID,
-    ID3D11ShaderResourceView*& pSRV)
+    SRV*& pSRV)
 {
     pSRV = g_TextureMgr.GetSRVByTexID(textureID);
     return true;
 }
+
+///////////////////////////////////////////////////////////
+
+bool FacadeEngineToUI::GetArrShaderResourceViews(
+    SRV**& outArrShadersResourceViews,
+    size& outNumViews) const
+{
+    // output: 1. array of pointers to shader resource views
+    //         2. size of this array
+
+    outArrShadersResourceViews = (SRV**)g_TextureMgr.GetAllShaderResourceViews();
+    outNumViews = g_TextureMgr.GetNumShaderResourceViews();
+    return true;
+}
+
 
 // =================================================================================
 // Get camera info
@@ -295,6 +310,11 @@ bool FacadeEngineToUI::SetEnttDirectionQuat(const EntityID id, const Vec4& rotat
 bool FacadeEngineToUI::SetEnttUniScale(const EntityID id, const float scale)
 {
     return pEntityMgr_->transformSystem_.SetUniScaleByID(id, scale);
+}
+
+bool FacadeEngineToUI::RotateEnttByQuat(const EntityID id, const Vec4& rotQuat)
+{
+    return pEntityMgr_->transformSystem_.RotateWorldByQuat(id, rotQuat.ToXMVector());
 }
 
 ///////////////////////////////////////////////////////////
@@ -775,13 +795,16 @@ bool FacadeEngineToUI::SwitchDebugState(const int debugType)
 // =================================================================================
 // For assets manager
 // =================================================================================
-bool FacadeEngineToUI::GetAssetsNamesList(cvector<std::string>& names)
+bool FacadeEngineToUI::GetAssetsNamesList(cvector<std::string>& outNames)
 {
-    // get a name of each loaded asset
-    Core::cvector<std::string> assetsNames;
-    g_ModelMgr.GetAssetsNamesList(assetsNames);
+    // get a name of each loaded model
+    Core::cvector<std::string> modelsNames;
+    g_ModelMgr.GetAssetsNamesList(modelsNames);
 
-    names = UI::cvector<std::string>(names.begin(), names.end());
+    outNames.resize(modelsNames.size());
+
+    for (int i = 0; const std::string & name : modelsNames)
+        outNames[i++] = name;
 
     return true;
 }

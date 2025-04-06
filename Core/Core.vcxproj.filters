@@ -330,6 +330,9 @@
     <ClCompile Include="UI\Editor\Entity\View\EnttComponentsEditor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="UI\Editor\EditorPanelElement\TextureAssetsBrowser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Input\MouseClass.h">
@@ -762,6 +765,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\Editor\Entity\View\EnttComponentsEditor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Editor\EditorPanelElement\TextureAssetsBrowser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

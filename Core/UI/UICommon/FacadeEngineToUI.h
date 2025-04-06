@@ -43,7 +43,8 @@ public:
     // 
     // for using the textures manager
     //
-    virtual bool GetShaderResourceViewByTexID(const uint32_t textureID, ID3D11ShaderResourceView*& pSRV) override;
+    virtual bool GetShaderResourceViewByTexID(const uint32_t textureID, SRV*& pSRV)              override;
+    virtual bool GetArrShaderResourceViews(SRV**& outArrShadersResourceViews, size& outNumViews) const override;
 
 
     //
@@ -86,6 +87,8 @@ public:
     virtual bool SetEnttPosition     (const EntityID entityID, const Vec3& pos)                                             override;
     virtual bool SetEnttDirectionQuat(const EntityID entityID, const Vec4& rotationQuat)                                    override;
     virtual bool SetEnttUniScale     (const EntityID entityID, const float scale)                                           override;
+
+    virtual bool RotateEnttByQuat(const EntityID id, const Vec4& rotQuat) override;
 
     virtual bool GetEnttLightType(const EntityID id, int& lightType)                                                 const override;
 
@@ -199,7 +202,7 @@ public:
     // =============================================================================
     // for assets manager
     // =============================================================================
-    virtual bool GetAssetsNamesList(cvector<std::string>& names) override;
+    virtual bool GetAssetsNamesList(cvector<std::string>& outNames) override;
 };
 
 } // namespace UI

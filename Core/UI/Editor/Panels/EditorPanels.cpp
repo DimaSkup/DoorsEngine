@@ -39,6 +39,8 @@ void EditorPanels::Initialize(IFacadeEngineToUI* pFacade)
     fogEditorController_.Initialize(pFacadeEngineToUI_);
 
     debugEditor_.Initialize(pFacadeEngineToUI_);
+
+    texAssetsBrowser_.Initialize(pFacadeEngineToUI_);
 }
 
 ///////////////////////////////////////////////////////////
@@ -56,6 +58,7 @@ void EditorPanels::Render(Core::SystemState& sysState)
     RenderDebugPanel(sysState);
     RenderLogPanel();
     RenderAssetsManager();
+    RenderTexturesBrowser();
     RenderEditorEventHistory();
 }
 
@@ -80,10 +83,25 @@ void EditorPanels::RenderLogPanel()
 
 void EditorPanels::RenderAssetsManager()
 {
-    if (ImGui::Begin("Assets"))
+    if (ImGui::Begin("Models", &isTexBrowserWndOpen_))
     {
         modelsAssetsList_.LoadModelsNamesList(pFacadeEngineToUI_);
         modelsAssetsList_.PrintModelsNamesList();
+    }
+    ImGui::End();
+    
+}
+
+///////////////////////////////////////////////////////////
+
+void EditorPanels::RenderTexturesBrowser()
+{
+    
+
+    ImGui::SetNextWindowSize(texAssetsBrowser_.GetWindowSize(), ImGuiCond_FirstUseEver);
+    if (ImGui::Begin("Textures browser", &isTexBrowserWndOpen_, ImGuiWindowFlags_MenuBar))
+    {
+        texAssetsBrowser_.Render(pFacadeEngineToUI_);
     }
     ImGui::End();
 }

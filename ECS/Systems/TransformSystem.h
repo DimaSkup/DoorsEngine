@@ -56,6 +56,8 @@ public:
 	bool SetDirectionQuatByID(const EntityID id, const XMVECTOR& dirQuat);
 	bool SetUniScaleByID     (const EntityID id, const float uniformScale);
 
+    bool RotateWorldByQuat(const EntityID id, const XMVECTOR& quat);
+
 	// -------------------------------------------------------
 
 	void GetTransformByID(

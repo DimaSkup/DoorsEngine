@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <string>
+#include <d3d11.h>
 
 
 namespace UI
@@ -17,6 +18,11 @@ using u32 = uint32_t;
 using size = ptrdiff_t;
 using index = ptrdiff_t;
 using UINT = unsigned int;
+
+using EntityID = uint32_t;
+using ModelID = uint32_t;
+using SRV = ID3D11ShaderResourceView;
+
 
 //
 // MESH/MODEL TYPEDEFS

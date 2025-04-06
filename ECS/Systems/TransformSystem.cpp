@@ -301,11 +301,61 @@ bool TransformSystem::SetUniScaleByID(const EntityID id, const float uniformScal
     return true;
 }
 
+///////////////////////////////////////////////////////////
+
+bool TransformSystem::RotateWorldByQuat(const EntityID id, const XMVECTOR& quat)
+{
+    using namespace DirectX;
+
+    Transform& comp = *pTransform_;
+    const index idx = comp.ids.get_idx(id);
+
+    if (idx == -1)
+    {
+        Log::Error("there is no transformation for entity by ID: " + std::to_string(id));
+        return false;
+    }
+
+    const XMMATRIX R = XMMatrixRotationQuaternion(quat);
+    XMMATRIX W = comp.worlds[idx];
+    XMVECTOR translation = W.r[3];
+    W.r[3] = { 0,0,0,1 };
+    comp.worlds[idx] = W * R;
+    comp.worlds[idx].r[3] = translation;
+    RecomputeInvWorldMatrixByIdx(idx);
+
+    XMVECTOR scale;
+    XMVECTOR rotQuat;
+    //XMVECTOR translation;
+    XMMatrixDecompose(&scale, &rotQuat, &translation, comp.worlds[idx]);
+
+    // store translation in (x,y,z) of float4
+    XMStoreFloat4(&comp.posAndUniformScale[idx], translation);
+
+    // store uniform scale in w-component of float4
+    comp.posAndUniformScale[idx].w = XMVectorGetX(scale);
+
+    // store direction quaternion
+    comp.dirQuats[idx] = rotQuat;
+
+    return true;
+
+#if 0
+    XMVECTOR& origQuat     = comp.dirQuats[idx];
+    const XMVECTOR invQuat = XMQuaternionInverse(quat);
+
+    // rotated_vec = inv_quat * vec * quat;
+    XMVECTOR newVec = DirectX::XMQuaternionMultiply(invQuat, origQuat);
+    origQuat        = DirectX::XMQuaternionMultiply(newVec, quat);
+
+    return true;
+#endif
+}
+
 
 // =================================================================================
 // Get/Set transformation
 // =================================================================================
-
 void TransformSystem::GetTransformByID(
     const EntityID id,
     XMFLOAT3& pos,

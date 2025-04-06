@@ -67,6 +67,8 @@ public:
     ID3D11ShaderResourceView* GetSRVByTexID  (const TexID texID);
     void GetSRVsByTexIDs(const TexID* texIDs, const size numTex, cvector<ID3D11ShaderResourceView*>& outSRVs);
 
+    inline const ID3D11ShaderResourceView** GetAllShaderResourceViews()       { return (const ID3D11ShaderResourceView**)shaderResourceViews_.data(); }
+    inline size                             GetNumShaderResourceViews() const { return shaderResourceViews_.size(); }
 #if 0
     void GetAllTexturesPathsWithinDirectory(
         const std::string& pathToDir,

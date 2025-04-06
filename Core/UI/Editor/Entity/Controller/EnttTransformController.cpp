@@ -151,7 +151,25 @@ void EnttTransformController::ExecChangeDirectionQuat(const EntityID id, const V
     {
         Core::Log::Error("can't change direction of entt; id: " + std::to_string(id));
     }
-#else
+#elif 1
+    Vec4 oldDirectionQuat = pFacade_->GetEnttDirectionQuat(id);
+
+    if (pFacade_->RotateEnttByQuat(id, dirQuat))
+    {
+        // update editor fields
+        data_.SetDirection(dirQuat);
+
+        // generate an "undo" command and store it into the history
+        const CmdChangeVec4 undoCmd(CHANGE_ENTITY_DIRECTION, oldDirectionQuat);
+        const std::string msg = "changed direction of entt (id: " + std::to_string(id) + ")";
+        gEventsHistory.Push(undoCmd, msg, id);
+    }
+    else
+    {
+        Core::Log::Error("can't change direction of entt; id: " + std::to_string(id));
+    }
+
+#elif 0
 
     using namespace DirectX;
 

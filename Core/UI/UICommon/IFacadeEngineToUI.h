@@ -11,22 +11,18 @@
 // =================================================================================
 #pragma once
 
-#include <UICommon/cvector.h>
+#include <UICommon/Types.h>
 #include "Color.h"
 #include "Vectors.h"
+#include <UICommon/cvector.h>
 
 #include <d3d11.h>
-#include <cstdint>
-#include <string>
 #include <DirectXCollision.h>
 
 
 namespace UI
 {
 
-using EntityID          = uint32_t;
-using ModelID           = uint32_t;
-//using EnttComponentType = uint8_t;
 
 enum eEnttComponentType : uint8_t
 {
@@ -72,7 +68,9 @@ public:
     // 
     // for using the textures manager
     //
-    virtual bool GetShaderResourceViewByTexID(const uint32_t textureID, ID3D11ShaderResourceView*& pSRV) { return false; }
+    virtual bool GetShaderResourceViewByTexID(const uint32_t textureID, SRV*& pSRV)            { return false; }
+    virtual bool GetArrShaderResourceViews(SRV**& outArrShadersResourceViews, size& outNumViews)  const { return false; }
+
 
 
     // =============================================================================
@@ -115,8 +113,10 @@ public:
     virtual float GetEnttScale       (const EntityID id)                                               const { return GetInvalidFloat(); }
 
     virtual bool SetEnttPosition     (const EntityID id, const Vec3& pos)                                    { return false; }
-    virtual bool SetEnttDirectionQuat(const EntityID id, const Vec4& rotQuat)                               { return false; }
+    virtual bool SetEnttDirectionQuat(const EntityID id, const Vec4& dirQuat)                               { return false; }
     virtual bool SetEnttUniScale     (const EntityID id, const float scale)                                  { return false; }
+
+    virtual bool RotateEnttByQuat(const EntityID id, const Vec4& rotQuat) { return false; }
 
     virtual bool GetEnttLightType(const EntityID id, int& lightType)                                 const { return false; }
 

@@ -11,6 +11,7 @@
 #include <CoreCommon/SystemState.h>
 
 #include "../EditorPanelElement/ModelsAssetsList.h"
+#include "../EditorPanelElement/TextureAssetsBrowser.h"
 
 #include "../Debug/DebugEditor.h"
 #include "../Entity/Controller/EnttEditorController.h"
@@ -35,6 +36,7 @@ private:
 	void RenderDebugPanel(const Core::SystemState& sysState);
 	void RenderLogPanel();
 	void RenderAssetsManager();
+    void RenderTexturesBrowser();
 	void RenderEditorEventHistory();
 
 
@@ -46,11 +48,14 @@ public:
 private:
 	bool isEnttsListWndOpen_  = true;
 	bool isPropertiesWndOpen_ = true;
+    bool isTexBrowserWndOpen_ = false;
+
 
 	IFacadeEngineToUI* pFacadeEngineToUI_ = nullptr;
 	StatesGUI*         pStatesGUI_        = nullptr;
 
-    ModelsAssetsList modelsAssetsList_;
+    TextureAssetsBrowser texAssetsBrowser_;
+    ModelsAssetsList     modelsAssetsList_;
 };
 
 } // namespace UI
