@@ -52,6 +52,10 @@ public:
     static void Debug(const std::source_location& location = std::source_location::current());
 
     // print input message into console/log-file
+    static void Print(const char* msg, const std::source_location& location = std::source_location::current());
+    static void Debug(const char* msg, const std::source_location& location = std::source_location::current());
+    static void Error(const char* msg, const std::source_location& location = std::source_location::current());
+
     static void Print(const std::string& msg, const std::source_location& location = std::source_location::current());
     static void Debug(const std::string& msg, const std::source_location& location = std::source_location::current());
     static void Error(const std::string& msg, const std::source_location& location = std::source_location::current());

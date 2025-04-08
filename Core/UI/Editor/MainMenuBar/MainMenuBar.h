@@ -10,7 +10,6 @@
 
 #include <UICommon/IFacadeEngineToUI.h>
 #include <UICommon/StatesGUI.h>
-#include "../Entity/Creator/EntityCreatorWnd.h"
 
 namespace UI
 {
@@ -20,15 +19,10 @@ class MainMenuBar
 public:
     void RenderBar(StatesGUI& states);
     void RenderWndEngineOptions (bool* pOpen);
-    void RenderWndAssetsControl (bool* pOpen);
-    void RenderWndEntityCreation(bool* pOpen, IFacadeEngineToUI* pFacade);
-
+  
 private:
     void ShowOptionsGui();
     void ShowFontSelector();
-
-private:
-    EntityCreatorWnd* pEnttCreatorWnd_ = nullptr;
 };
 
 }

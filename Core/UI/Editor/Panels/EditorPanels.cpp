@@ -57,16 +57,32 @@ void EditorPanels::Render(Core::SystemState& sysState)
     RenderPropertiesControllerWnd();
     RenderDebugPanel(sysState);
     RenderLogPanel();
-    RenderAssetsManager();
-    RenderTexturesBrowser();
     RenderEditorEventHistory();
+
+    if (pStatesGUI_->showWndModelsBrowser)
+        RenderModelsBrowser();
+    if (pStatesGUI_->showWndTexturesBrowser)
+        RenderTexturesBrowser();
+
+    if (pStatesGUI_->showWndMaterialsBrowser)
+        RenderMaterialsBrowser();
+
+    
+    //if (pStatesGUI_->showWnd)
+    //RenderWndModelAssetsCreation()
+
+    // show modal window for entity creation
+    if (pStatesGUI_->showWndEnttCreation)
+    {
+        RenderWndEntityCreation(&pStatesGUI_->showWndEnttCreation, pFacadeEngineToUI_);
+    }
 }
+
 
 
 // =================================================================================
 //                              private methods
 // =================================================================================
-
 void EditorPanels::RenderLogPanel()
 {
     // show logger messages
@@ -81,27 +97,45 @@ void EditorPanels::RenderLogPanel()
 
 ///////////////////////////////////////////////////////////
 
-void EditorPanels::RenderAssetsManager()
+void EditorPanels::RenderModelsBrowser()
 {
-    if (ImGui::Begin("Models", &isTexBrowserWndOpen_))
+    if (ImGui::Begin("Models browser", &pStatesGUI_->showWndTexturesBrowser))
     {
         modelsAssetsList_.LoadModelsNamesList(pFacadeEngineToUI_);
         modelsAssetsList_.PrintModelsNamesList();
     }
     ImGui::End();
-    
 }
 
 ///////////////////////////////////////////////////////////
 
 void EditorPanels::RenderTexturesBrowser()
 {
-    
+    ImGui::SetNextWindowSize(texAssetsBrowser_.GetBrowserWndSize(), ImGuiCond_FirstUseEver);
 
-    ImGui::SetNextWindowSize(texAssetsBrowser_.GetWindowSize(), ImGuiCond_FirstUseEver);
-    if (ImGui::Begin("Textures browser", &isTexBrowserWndOpen_, ImGuiWindowFlags_MenuBar))
+    if (ImGui::Begin("Textures browser", &pStatesGUI_->showWndTexturesBrowser, ImGuiWindowFlags_MenuBar))
     {
-        texAssetsBrowser_.Render(pFacadeEngineToUI_);
+        texAssetsBrowser_.Render(pFacadeEngineToUI_, &pStatesGUI_->showWndTexturesBrowser);
+
+        if (texAssetsBrowser_.TexWasChanged())
+        {
+            // TODO: this is temporal to simply test functional
+            TexID texID = texAssetsBrowser_.GetSelectedTexID();
+            pFacadeEngineToUI_->SetEnttMaterial(enttEditorController_.GetSelectedEnttID(), 0, texID);
+        }
+    }
+    ImGui::End();
+}
+
+///////////////////////////////////////////////////////////
+
+void EditorPanels::RenderMaterialsBrowser()
+{
+    ImGui::SetNextWindowSize(ImVec2(100, 100), ImGuiCond_FirstUseEver);
+
+    if (ImGui::Begin("Materials browser", &pStatesGUI_->showWndMaterialsBrowser, ImGuiWindowFlags_MenuBar))
+    {
+        ImGui::Text("nothing");
     }
     ImGui::End();
 }
@@ -131,7 +165,7 @@ void EditorPanels::RenderEntitiesListWnd(Core::SystemState& sysState)
     // render editor elements which are responsible for rendering 
     // the scene hierarchy list, etc.
 
-    if (ImGui::Begin("Entities List", &isEnttsListWndOpen_))
+    if (ImGui::Begin("Entities List", &pStatesGUI_->showWndEnttsList))
     {
         const uint32_t* pEnttsIDs = nullptr;
         int numEntts = 0;
@@ -156,10 +190,12 @@ void EditorPanels::RenderEntitiesListWnd(Core::SystemState& sysState)
             viewLight_.Render(spotLightController_.GetModel());
             */
 
+        const EntityID currSelectedEnttID = enttEditorController_.GetSelectedEnttID();
+
         // render selectable menu with entts names
         for (int i = 0; i < numEntts; ++i)
         {
-            bool isSelected = pEnttsIDs[i] == enttEditorController_.GetSelectedEnttID();
+            bool isSelected = (pEnttsIDs[i] == currSelectedEnttID);
 
             if (ImGui::Selectable(enttsNames[i].c_str(), isSelected, ImGuiSelectableFlags_AllowDoubleClick))
             {
@@ -171,7 +207,7 @@ void EditorPanels::RenderEntitiesListWnd(Core::SystemState& sysState)
                 if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
                 {
                     pFacadeEngineToUI_->FocusCameraOnEntity(sysState.pickedEntt_);
-                    pStatesGUI_->gizmoOperation_ = 7;   // ImGizmo::OPERATION::TRANSLATE
+                    pStatesGUI_->gizmoOperation = 7;   // ImGizmo::OPERATION::TRANSLATE
                     //Log::Print("double click on: " + enttsNames[i], eConsoleColor::YELLOW);
                 }
             }
@@ -221,7 +257,7 @@ void EditorPanels::RenderPropertiesControllerWnd()
     // render editor elements which are responsible for editing of:
     // sky, scene fog, entities, etc.
 
-    if (ImGui::Begin("Properties"), &isPropertiesWndOpen_)
+    if (ImGui::Begin("Properties"), &pStatesGUI_->showWndEnttProperties)
     {
         // if we have selected any entity
         if (enttEditorController_.selectedEnttData_.IsSelectedAnyEntt())
@@ -237,5 +273,75 @@ void EditorPanels::RenderPropertiesControllerWnd()
     }
     ImGui::End();
 }
+
+///////////////////////////////////////////////////////////
+
+void EditorPanels::RenderWndModelAssetsCreation(bool* pOpen)
+{
+    // render a modal window for loading/importing/generation of assets
+
+    ImGuiViewport* pViewport = ImGui::GetMainViewport();
+
+    const ImVec2 wndSize = { 0.5f * pViewport->Size.x, 0.5f * pViewport->Size.y };
+    const ImVec2 halfWndSize = { 0.5f * wndSize.x, 0.5f * wndSize.y };
+    const ImVec2 midPoint = wndSize;
+    const ImVec2 pos = { midPoint.x - halfWndSize.x, midPoint.y - halfWndSize.y };
+
+    ImGui::SetNextWindowSize(wndSize, ImGuiCond_Once);
+    ImGui::SetNextWindowPos(pos, ImGuiCond_Once);
+
+    if (ImGui::Begin("Assets creator", pOpen))
+    {
+        if (ImGui::BeginTabBar("##TabBarAssetsControl"))
+        {
+            if (ImGui::BeginTabItem("Load"))
+            {
+                ImGui::Text("Load a new asset from the engine internal format ");
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Import"))
+            {
+                ImGui::Text("Import a new asset from the external format");
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Create"))
+            {
+                ImGui::Text("Create (generate) a new asset");
+                ImGui::EndTabItem();
+            }
+        }
+        ImGui::EndTabBar();
+    }
+
+    ImGui::End();
+}
+
+///////////////////////////////////////////////////////////
+
+void EditorPanels::RenderWndEntityCreation(bool* pOpen, IFacadeEngineToUI* pFacade)
+{
+    if (*pOpen)
+    {
+        if (pEnttCreatorWnd_ == nullptr)
+        {
+            pEnttCreatorWnd_ = new EntityCreatorWnd;
+            Core::Log::Print("Entity creator window is allocated", Core::eConsoleColor::YELLOW);
+        }
+
+        pEnttCreatorWnd_->RenderCreationWindow(pOpen, pFacade);
+    }
+
+    if (*pOpen == false)
+    {
+        if (pEnttCreatorWnd_ != nullptr)
+        {
+            delete pEnttCreatorWnd_;
+            pEnttCreatorWnd_ = nullptr;
+        }
+
+        Core::Log::Print("Entity creator window is DEallocated", Core::eConsoleColor::YELLOW);
+    }
+}
+
 
 } // namespace UI

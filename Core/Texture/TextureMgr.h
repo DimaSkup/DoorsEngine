@@ -62,6 +62,7 @@ public:
     Texture* GetTexPtrByName(const TexName& name);
 
     TexID GetIDByName (const TexName& name);
+    TexID GetTexIdByIdx(const index idx) const;
     void GetIDsByNames(const TexName* names, const size numNames, cvector<TexID>& outIDs);
 
     ID3D11ShaderResourceView* GetSRVByTexID  (const TexID texID);

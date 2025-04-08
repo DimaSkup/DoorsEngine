@@ -303,19 +303,9 @@ void UserInterface::RenderEditor(SystemState& systemState)
     editorMainMenuBar_.RenderBar(guiStates_);
 
     // show window to control engine options
-    if (guiStates_.showWndEngineOptions_)
-        editorMainMenuBar_.RenderWndEngineOptions(&guiStates_.showWndEngineOptions_);
+    if (guiStates_.showWndEngineOptions)
+        editorMainMenuBar_.RenderWndEngineOptions(&guiStates_.showWndEngineOptions);
 
-    // show window for assets creation/import
-    if (guiStates_.showWndAssetsControl_)
-        editorMainMenuBar_.RenderWndAssetsControl(&guiStates_.showWndAssetsControl_);
-
-    // show modal window for entity creation
-    if (guiStates_.showWndEnttCreation_)
-    {
-        editorMainMenuBar_.RenderWndEntityCreation(&guiStates_.showWndEnttCreation_, pFacadeEngineToUI_);
-    }
-    
     editorPanels_.Render(systemState);
 }
 
@@ -340,10 +330,10 @@ void UserInterface::RenderSceneWnd(SystemState& sysState)
         uint32_t selectedEntt = GetSelectedEntt();
         
         // if any entt is selected and any gizmo operation is chosen
-        if (selectedEntt && (guiStates_.gizmoOperation_ != -1))    
+        if (selectedEntt && (guiStates_.gizmoOperation != -1))    
         {
             // is any gizmo manipulator hovered by a mouse
-            guiStates_.isGizmoHovered_ = ImGuizmo::IsOver();
+            guiStates_.isGizmoHovered = ImGuizmo::IsOver();
 
             // set rendering of the gizmos only in the screen window space:
             // to make gizmo be rendered behind editor panels BUT in this case the gizmo is inactive :(
@@ -382,26 +372,26 @@ void UserInterface::RenderSceneWnd(SystemState& sysState)
 #endif
 
 
-            if (guiStates_.useSnapping_)
+            if (guiStates_.useSnapping)
             {
-                switch (guiStates_.gizmoOperation_)
+                switch (guiStates_.gizmoOperation)
                 {
                     case ImGuizmo::TRANSLATE:
                     {
-                        guiStates_.snap_ = guiStates_.snapTranslation_;
-                        ImGui::InputFloat3("Translation Snap", &guiStates_.snap_.x);
+                        guiStates_.snap = guiStates_.snapTranslation;
+                        ImGui::InputFloat3("Translation Snap", &guiStates_.snap.x);
                         break;
                     }
                     case ImGuizmo::ROTATE:
                     {
-                        guiStates_.snap_ = guiStates_.snapRotation_;
-                        ImGui::InputFloat("Angle Snap", &guiStates_.snap_.x);
+                        guiStates_.snap = guiStates_.snapRotation;
+                        ImGui::InputFloat("Angle Snap", &guiStates_.snap.x);
                         break;
                     }
                     case ImGuizmo::SCALE:
                     {
-                        guiStates_.snap_ = guiStates_.snapScale_;
-                        ImGui::InputFloat("Scale Snap", &guiStates_.snap_.x);
+                        guiStates_.snap = guiStates_.snapScale;
+                        ImGui::InputFloat("Scale Snap", &guiStates_.snap.x);
                         break;
                     }
                 }
@@ -413,11 +403,11 @@ void UserInterface::RenderSceneWnd(SystemState& sysState)
             ImGuizmo::Manipulate(
                 cameraView,
                 cameraProj,
-                ImGuizmo::OPERATION(guiStates_.gizmoOperation_),
+                ImGuizmo::OPERATION(guiStates_.gizmoOperation),
                 ImGuizmo::MODE::WORLD,
                 rawWorld,
                 NULL,
-                (guiStates_.useSnapping_) ? &guiStates_.snap_.x : NULL);
+                (guiStates_.useSnapping) ? &guiStates_.snap.x : NULL);
 
             // if we do some manipulations using guizmo
             if (ImGuizmo::IsUsingAny())

@@ -373,7 +373,7 @@ void cvector<T>::shift_right(const index idx, const int num)
 
     if constexpr (ENABLE_CHECK)
     {
-        if (!is_valid_index(idx) | (num <= 0))
+        if (!is_valid_index(idx) || (num <= 0))
         {
             error_msg("can't exec shift left", CALL_INFO);
             return;

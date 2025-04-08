@@ -1013,7 +1013,7 @@ void GraphicsClass::SetupLightsForFrame(
     const size numVisPointLightSources           = visPointLights.size();
 
 
-    outData.ResizeLightData(numDirLights, (int)numVisPointLightSources, numSpotLights);
+    outData.ResizeLightData((int)numDirLights, (int)numVisPointLightSources, (int)numSpotLights);
 
     if (numVisPointLightSources > 0)
     {

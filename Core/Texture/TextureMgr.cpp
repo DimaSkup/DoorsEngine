@@ -309,6 +309,16 @@ TexID TextureMgr::GetIDByName(const TexName& name)
 
 ///////////////////////////////////////////////////////////
 
+TexID TextureMgr::GetTexIdByIdx(const index idx) const
+{
+    // return ID by input idx; if idx is invalid we return 0
+
+    const bool isValidIdx = (idx >= 0 && idx < ids_.size());
+    return (isValidIdx) ? ids_[idx] : INVALID_TEXTURE_ID;
+}
+
+///////////////////////////////////////////////////////////
+
 void TextureMgr::GetIDsByNames(
     const TexName* inNames,
     const size numNames,

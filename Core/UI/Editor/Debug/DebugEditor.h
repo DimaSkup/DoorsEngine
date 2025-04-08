@@ -63,9 +63,9 @@ public:
 			"only normal map",
 		};
 
-		const int numItems = ARRAYSIZE(items);
+		const int numItems_ = ARRAYSIZE(items);
 
-		for (int i = 0; i < numItems; ++i)
+		for (int i = 0; i < numItems_; ++i)
 			anyBtnWasPressed |= ImGui::RadioButton(items[i], &debugOption, i);
 
 		if (anyBtnWasPressed)

@@ -65,13 +65,6 @@ public:
 
     virtual ModelID GetModelIdByName(const std::string& name) { return 0; }
 
-    // 
-    // for using the textures manager
-    //
-    virtual bool GetShaderResourceViewByTexID(const uint32_t textureID, SRV*& pSRV)            { return false; }
-    virtual bool GetArrShaderResourceViews(SRV**& outArrShadersResourceViews, size& outNumViews)  const { return false; }
-
-
 
     // =============================================================================
     // get/set camera properties
@@ -236,9 +229,18 @@ public:
 
 
     // =============================================================================
-    // for assets manager
+    // for assets: models/textures/sounds/etc.
     // =============================================================================
     virtual bool GetAssetsNamesList(cvector<std::string>& names) { return false; }
+
+    virtual bool GetShaderResourceViewByTexID(const TexID textureID, SRV*& pSRV) { return false; }
+    virtual bool GetArrShaderResourceViews(SRV**& outArrShadersResourceViews, size& outNumViews)  const { return false; }
+    virtual bool GetTextureIdByIdx(const index idx, TexID& outTextureID) const { return false; }
+
+    virtual bool SetEnttMaterial(
+        const EntityID enttID,
+        const SubsetID subsetID,
+        const MaterialID matID) { return false; }
 
 
 private:

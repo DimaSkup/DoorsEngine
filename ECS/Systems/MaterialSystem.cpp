@@ -9,6 +9,8 @@
 #include "../Common/Assert.h"
 #include "../Common/log.h"
 
+#pragma warning (disable : 4996)
+
 
 namespace ECS
 {
@@ -24,13 +26,13 @@ MaterialSystem::MaterialSystem(
     Assert::True(pNameSys != nullptr,           "input ptr to the Name system == nullptr");
 
     // setup default (invalid) material which has ID == 0 for invalid entity
-    Material& comp = *pMaterialComponent_;
-    cvector<MaterialID> materialsIDs(1, INVALID_MATERIAL_ID);
-    const bool isMeshBasedMaterials = true;
+    const cvector<MaterialID> materialsIDs(1, INVALID_MATERIAL_ID);
+    const bool                isMeshBasedMaterials = true;
+    MaterialData              matData(materialsIDs.data(), materialsIDs.size());
 
-    comp.enttsIDs.push_back(INVALID_ENTITY_ID);
-    comp.data.push_back(MaterialData(materialsIDs.data(), materialsIDs.size()));
-    comp.flagsMeshBasedMaterials.push_back(isMeshBasedMaterials);
+    pMaterialComponent->enttsIDs.push_back(INVALID_ENTITY_ID);
+    pMaterialComponent->data.push_back(std::move(matData));
+    pMaterialComponent->flagsMeshBasedMaterials.push_back(isMeshBasedMaterials);
 }
 
 ///////////////////////////////////////////////////////////
@@ -81,6 +83,32 @@ void MaterialSystem::AddRecord(
     comp.enttsIDs.insert_before(idx, enttID);
     comp.data.insert_before(idx, MaterialData(materialsIDs, numSubmeshes));
     comp.flagsMeshBasedMaterials.insert_before(idx, areMaterialsMeshBased);
+}
+
+///////////////////////////////////////////////////////////
+
+void MaterialSystem::SetMaterial(
+    const EntityID enttID,
+    const SubmeshID enttSubmeshID,
+    const MaterialID matID)
+{
+    // set a material (matID) for subset/mesh (enttSubmeshID) of entity (enttID)
+
+    Material& comp = *pMaterialComponent_;
+    const index idx      = comp.enttsIDs.get_idx(enttID);
+    const bool exist     = (comp.enttsIDs[idx] == enttID);
+
+    if (exist)
+    {
+        comp.data[idx].materialsIDs[0] = matID;
+        comp.flagsMeshBasedMaterials[idx] = false;
+    }
+    else
+    {
+        char buf[64];
+        sprintf(buf, "there is no entity by ID: %d", enttID);
+        Log::Error(buf);
+    }
 }
 
 ///////////////////////////////////////////////////////////

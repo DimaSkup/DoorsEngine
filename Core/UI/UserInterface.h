@@ -79,10 +79,10 @@ public:
 	inline uint32_t GetSelectedEntt()                    const { return editorPanels_.enttEditorController_.GetSelectedEnttID(); }
 
 	// gizmo stuff
-	inline void SetGizmoOperation(const int op)                { guiStates_.gizmoOperation_ = op; }
-	inline void SetGizmoClicked(const bool isClicked)          { guiStates_.isGizmoClicked_ = isClicked;}
-	inline bool IsGizmoHovered()                         const { return guiStates_.isGizmoHovered_; }
-	inline void UseSnapping(const bool use)                    { guiStates_.useSnapping_ = use;}
+	inline void SetGizmoOperation(const int op)                { guiStates_.gizmoOperation = op; }
+	inline void SetGizmoClicked(const bool isClicked)          { guiStates_.isGizmoClicked = isClicked;}
+	inline bool IsGizmoHovered()                         const { return guiStates_.isGizmoHovered; }
+	inline void UseSnapping(const bool use)                    { guiStates_.useSnapping = use;}
 
 private:
 	void LoadDebugInfoStringFromFile(

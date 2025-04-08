@@ -17,9 +17,11 @@ void TextureAssetsBrowser::Initialize(IFacadeEngineToUI* pFacade)
     if (pFacade)
     {
         pFacade_ = pFacade;
-        pFacade->GetArrShaderResourceViews(arrShaderResourceViews, numItems);
 
-       
+        // get a pointer to the array of textures shader resource views
+        size tmpNumItems = 0;
+        pFacade->GetArrShaderResourceViews(arrShaderResourceViews_, tmpNumItems);
+        numItems_ = (int)tmpNumItems;
     }
     else
     {
@@ -29,179 +31,72 @@ void TextureAssetsBrowser::Initialize(IFacadeEngineToUI* pFacade)
 
 ///////////////////////////////////////////////////////
 
-void TextureAssetsBrowser::UpdateLayoutSizes(float availWidth)
+void TextureAssetsBrowser::Render(IFacadeEngineToUI* pFacade, bool* pOpen)
 {
-    // when not stretching: allow extending into right-most spacing
-    layoutItemSpacing = (float)iconSpacing;
+    // render a browser (window) of loaded textures
 
-    if (stretchSpacing == false)
-        availWidth += floorf(layoutItemSpacing * 0.5f);
-
-    // calculate number of icons per line and number of lines
-    layoutItemSize    = ImVec2(floorf(iconSize), floorf(iconSize));
-    layoutColumnCount = max((int)(availWidth / (layoutItemSize.x + layoutItemSpacing)), 1);
-    layoutLineCount   = (numItems + layoutColumnCount - 1) / layoutColumnCount;
-
-    // when stretching: allocate remaining space to more spacing. Round before division, so itemSpacing may be non-integer
-    if (stretchSpacing && (layoutColumnCount > 1))
-        layoutItemSpacing = floorf(availWidth - layoutItemSize.x * layoutColumnCount) / layoutColumnCount;
-
-    layoutItemStep          = ImVec2(layoutItemSize.x + layoutItemSpacing, layoutItemSize.y + layoutItemSpacing);
-    layoutSelectableSpacing = max(floorf(layoutItemSpacing) - iconHitSpacing, 0.0f);
-    layoutOuterPadding      = floorf(layoutItemSpacing * 0.5f);
-}
-
-///////////////////////////////////////////////////////
-
-void TextureAssetsBrowser::DrawTextureIcons(const ImVec2 startPos)
-{
-    ImDrawList* draw_list = ImGui::GetWindowDrawList();
-
-    const int columnCount = layoutColumnCount;
-    ImGuiListClipper clipper;
-    clipper.Begin(layoutLineCount, layoutItemStep.y);
-
-    //if (itemCurrIdxToFocus != -1)
-    //    clipper.IncludeItemByIndex(itemCurrIdxToFocus / columntCount)
-
-    while (clipper.Step())
-    {
-        for (int lineIdx = clipper.DisplayStart; lineIdx < clipper.DisplayEnd; ++lineIdx)
-        {
-            const int itemMinIdxForCurrLine = lineIdx * columnCount;
-            const int itemMaxIdxForCurrLine = min((lineIdx + 1) * columnCount, numItems);
-
-            for (int itemIdx = itemMinIdxForCurrLine; itemIdx < itemMaxIdxForCurrLine; ++itemIdx)
-            {
-                ImGui::PushID(std::string("texture_item" + std::to_string(itemIdx)).c_str());
-
-                // position item
-                const float itemOffsetX = (itemIdx % columnCount) * layoutItemStep.x;
-                const float itemOffsetY = lineIdx * layoutItemStep.y;
-                ImVec2 pos = ImVec2(startPos.x + itemOffsetX, startPos.y + itemOffsetY);
-                ImGui::SetCursorScreenPos(pos);
-
-                ImGui::SetNextItemSelectionUserData(itemIdx);
-                bool itemIsVisible = ImGui::IsRectVisible(layoutItemSize);
-
-                // show texture image
-                if (itemIsVisible)
-                {
-                    ImVec2 boxMin(pos.x - 1, pos.y - 1);
-                    ImVec2 boxMax(boxMin.x + layoutItemSize.x + 2, boxMin.y + layoutItemSize.y + 2);
-                    ImU32 bgColor = ImGui::GetColorU32({ 0.5f, 0.5f, 0.5f, 1.0f });
-                    draw_list->AddRectFilled(boxMin, boxMax, bgColor);
-                    ImGui::Image((ImTextureID)arrShaderResourceViews[itemIdx], { iconSize, iconSize });
-
-                    // display label
-                    ImU32 labelColor = ImGui::GetColorU32(ImGuiCol_Text);
-                    char label[32];
-                    sprintf(label, "%d", itemIdx);
-                    draw_list->AddText(ImVec2(boxMin.x, boxMax.y - ImGui::GetFontSize()), labelColor, label);
-                }
-
-
-                ImGui::PopID();
-            }
-        }
-    }
-
-    clipper.End();
-}
-
-
-///////////////////////////////////////////////////////
-
-void TextureAssetsBrowser::Render(IFacadeEngineToUI* pFacade)
-{
-    if (!pFacade && !arrShaderResourceViews)
+    if (!pFacade && !arrShaderResourceViews_)
     {
         Core::Log::Error("can't render textures browser");
         return;
     }
 
-  
-    // child window: assets icons
-    ImGuiIO& io = ImGui::GetIO();
-    ImGui::SetNextWindowContentSize(ImVec2(0.0f, layoutOuterPadding + layoutLineCount * (layoutItemSize.y + layoutItemSpacing)));
-    if (ImGui::BeginChild("Assets", ImVec2(0.0f, -ImGui::GetTextLineHeightWithSpacing()), ImGuiChildFlags_Borders, ImGuiWindowFlags_NoMove))
-    {
-        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    ImGui::SetNextWindowContentSize(ImVec2(0.0f, layoutOuterPadding_ + numLayoutLine_ * (layoutItemSize_.y + layoutItemSpacing_)));
+    const int textLineHeight = ImGui::GetTextLineHeightWithSpacing();
 
+
+    // menu bar
+    if (ImGui::BeginMenuBar())
+    {
+        if (ImGui::BeginMenu("File"))
+        {
+            if (ImGui::MenuItem("Add texture"))
+            {
+                // TODO: loading a texture from file using UI
+            }
+
+            if (ImGui::MenuItem("Close", NULL, false, pOpen != nullptr))
+            {
+                *pOpen = false;
+            }
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Add"))
+        {
+            ImGui::MenuItem("Load");
+            ImGui::MenuItem("Generate");
+
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Update"))
+        {
+            ImGui::MenuItem("Load");
+            ImGui::MenuItem("Set another");
+            ImGui::MenuItem("Generate");
+
+            ImGui::EndMenu();
+        }
+
+        ImGui::EndMenuBar();
+    }
+
+
+    if (ImGui::BeginChild("TextureAssets", ImVec2(0.0f, -textLineHeight), ImGuiChildFlags_None, ImGuiWindowFlags_NoMove))
+    {
         const float availWidth = ImGui::GetContentRegionAvail().x;
         UpdateLayoutSizes(availWidth);
 
-        ImGui::Text("num_items: %d", numItems);
-        ImGui::SameLine();
-        ImGui::Text("width: %f", availWidth);
-        ImGui::SameLine();
-        ImGui::Text("lines: %d", layoutLineCount);
-        ImGui::SameLine();
-        ImGui::Text("columns: %d", layoutColumnCount);
-        ImGui::SameLine();
-        ImGui::Text("spacing: %f", layoutItemSpacing);
-
-
-#if 0
-        // multi-select
-        ImGuiMultiSelectFlags msFlags = ImGuiMultiSelectFlags_ClearOnEscape | ImGuiMultiSelectFlags_ClearOnClickVoid;
-
-        // enable box-select (in 2D mode, so that changing box-select rectangle x1/x2 will affect clipped items)
-        if (allowBoxSelect)
-            msFlags |= ImGuiMultiSelectFlags_BoxSelect2d;
-
-        // enable keyboard wrapping on X axis
-        msFlags |= ImGuiMultiSelectFlags_NavWrapX;
-
-        ImGuiMultiSelectIO* msIO = ImGui::BeginMultiSelect(msFlags, 10, numItems);
-
-        //
-#endif
         // calculate and store start position
         ImVec2 startPos = ImGui::GetCursorScreenPos();
-        startPos = ImVec2(startPos.x + layoutOuterPadding, startPos.y + layoutOuterPadding);
+        startPos = ImVec2(startPos.x + layoutOuterPadding_, startPos.y + layoutOuterPadding_);
         ImGui::SetCursorScreenPos(startPos);
 
+        RenderDebugInfo(availWidth);
 
-        // draw texture icons
+        startPos = ImVec2(startPos.x, startPos.y + textLineHeight + 3);
         DrawTextureIcons(startPos);
-
-
-  
-        // Zooming with CTRL+Wheel
-        if (ImGui::IsWindowAppearing())
-            zoomWheelAccum = 0.0f;
-
-        if (ImGui::IsWindowHovered() && io.MouseWheel != 0.0f && ImGui::IsKeyDown(ImGuiMod_Ctrl) && ImGui::IsAnyItemActive() == false)
-        {
-            zoomWheelAccum += io.MouseWheel;
-
-            if (fabsf(zoomWheelAccum) >= 1.0f)
-            {
-                // calculate hovered item index from mouse location
-                const float hoveredItemNX = (io.MousePos.x - startPos.x + layoutItemSpacing * 0.5f) / layoutItemStep.x;
-                const float hoveredItemNY = (io.MousePos.y - startPos.y + layoutItemSpacing * 0.5f) / layoutItemStep.y;
-                const int hoveredItemIdx = ((int)hoveredItemNY * layoutColumnCount) + (int)hoveredItemNX;
-
-                // zoom
-                iconSize *= powf(1.1f, zoomWheelAccum);
-
-                // clamp in range [16, 128]
-                iconSize = (iconSize < 16.0f)  ? 16.0f : iconSize;
-                iconSize = (iconSize > 128.0f) ? 128.0f : iconSize;
-                zoomWheelAccum -= (int)zoomWheelAccum;
-                UpdateLayoutSizes(availWidth);
-
-                // manipulate scroll to that we will land at the same Y location of currently hovered item
-                // - calculate next frame position of item under mouse
-                // - set new scroll position to be used in next ImGui::BeginChild() call
-                float hoveredItemRelPosY = ((float)(hoveredItemIdx / layoutColumnCount) + fmodf(hoveredItemNY, 1.0f)) * layoutItemStep.y;
-                hoveredItemRelPosY += ImGui::GetStyle().WindowPadding.y;
-
-                float mouseLocalY = io.MousePos.y - ImGui::GetWindowPos().y;
-                ImGui::SetScrollY(hoveredItemRelPosY - mouseLocalY);
-            }
-        }
+        ComputeZooming(startPos, availWidth);
 
         // context menu
         if (ImGui::BeginPopupContextWindow())
@@ -211,8 +106,189 @@ void TextureAssetsBrowser::Render(IFacadeEngineToUI* pFacade)
         }
     }
     ImGui::EndChild();
-    // TODO: render selectable grid of textures
-    // TODO: zooming with CTRL+Wheel
 }
+
+
+// =================================================================================
+// Private methods
+// =================================================================================
+void TextureAssetsBrowser::UpdateLayoutSizes(float availWidth)
+{
+    // when not stretching: allow extending into right-most spacing
+    layoutItemSpacing_ = (float)iconSpacing_;
+
+    if (stretchSpacing_ == false)
+        availWidth += floorf(layoutItemSpacing_ * 0.5f);
+
+    // calculate number of icons per line and number of lines
+    layoutItemSize_  = ImVec2(floorf(iconSize_), floorf(iconSize_));
+    numLayoutColumn_ = max((int)(availWidth / (layoutItemSize_.x + layoutItemSpacing_)), 1);
+    numLayoutLine_   = (numItems_ + numLayoutColumn_ - 1) / numLayoutColumn_;
+
+    // when stretching: allocate remaining space to more spacing. Round before division, so itemSpacing may be non-integer
+    if (stretchSpacing_ && (numLayoutColumn_ > 1))
+        layoutItemSpacing_ = floorf(availWidth - layoutItemSize_.x * numLayoutColumn_) / numLayoutColumn_;
+
+    layoutItemStep_          = ImVec2(layoutItemSize_.x + layoutItemSpacing_, layoutItemSize_.y + layoutItemSpacing_);
+    layoutSelectableSpacing_ = max(floorf(layoutItemSpacing_) - iconHitSpacing_, 0.0f);
+    layoutOuterPadding_      = floorf(layoutItemSpacing_ * 0.5f);
+}
+
+///////////////////////////////////////////////////////
+
+void TextureAssetsBrowser::DrawTextureIcons(const ImVec2 startPos)
+{
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+    // push specific colors
+    ImGui::PushStyleColor(ImGuiCol_Header, { 1,1,1,1 });
+    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, { 1,1,1,1 });
+    ImGui::PushStyleColor(ImGuiCol_HeaderActive, { 1,1,1,1 });
+
+    const int columnCount = numLayoutColumn_;
+    const int currSelectedItemIdx = selectedItemIdx_;
+
+    ImGuiListClipper clipper;
+    clipper.Begin(numLayoutLine_, layoutItemStep_.y);
+
+    while (clipper.Step())
+    {
+        for (int lineIdx = clipper.DisplayStart; lineIdx < clipper.DisplayEnd; ++lineIdx)
+        {
+            const int itemMinIdxForCurrLine = lineIdx * columnCount;
+            const int itemMaxIdxForCurrLine = min((lineIdx + 1) * columnCount, numItems_);
+
+            // render a line of textures icons
+            for (int itemIdx = itemMinIdxForCurrLine; itemIdx < itemMaxIdxForCurrLine; ++itemIdx)
+            {
+                ImGui::PushID(itemIdx);
+     
+                // position of current item
+                const float itemOffsetX = (itemIdx % columnCount) * layoutItemStep_.x;
+                const float itemOffsetY = lineIdx * layoutItemStep_.y;
+                ImVec2 pos = ImVec2(startPos.x + itemOffsetX, startPos.y + itemOffsetY);
+                ImGui::SetCursorScreenPos(pos);
+
+                ImGui::SetNextItemSelectionUserData(itemIdx);
+                const bool itemIsSelected = (itemIdx == currSelectedItemIdx);
+                const bool itemIsVisible = ImGui::IsRectVisible(layoutItemSize_);
+
+                // show texture image
+                if (itemIsVisible)
+                {
+                    char buf[32];
+                    sprintf(buf, "##texture_item %d", itemIdx);
+
+                    // we can select texture icon
+                    if (ImGui::Selectable(buf, itemIsSelected, ImGuiSelectableFlags_None, layoutItemSize_))
+                    {
+                        TexID tempTexID = 0;
+                        selectedItemIdx_ = itemIdx;
+
+                        // try to get a texture ID by index
+                        if (pFacade_->GetTextureIdByIdx(itemIdx, tempTexID))
+                        {
+                            textureWasChanged_ = true;
+                            selectedTexItemID_ = tempTexID;
+                        }
+                    }
+
+                    // draw background
+                    const ImVec2 boxMin(pos.x - 1, pos.y - 1);
+                    const ImVec2 boxMax(boxMin.x + layoutItemSize_.x + 2, boxMin.y + layoutItemSize_.y + 2);
+                    const ImU32 iconBgColor = ImGui::GetColorU32({ 0,0,0,1 });
+                    drawList->AddRectFilled(boxMin, boxMax, iconBgColor);
+
+                    // render texture image icon
+                    ImGui::SetCursorScreenPos(pos);
+                    ImGui::Image((ImTextureID)arrShaderResourceViews_[itemIdx], { iconSize_, iconSize_ });
+
+                    // display label (just number)
+               
+                    const ImU32 labelColor = ImGui::GetColorU32(ImGuiCol_Text);
+                    char label[32];
+
+
+
+                    sprintf(label, "%d", itemIdx);
+                    drawList->AddText(ImVec2(boxMin.x, boxMax.y - ImGui::GetFontSize()), labelColor, label);
+                }
+
+                ImGui::PopID();
+            }
+        }
+    }
+
+    clipper.End();
+    ImGui::PopStyleColor(3);
+}
+
+///////////////////////////////////////////////////////
+
+void TextureAssetsBrowser::RenderDebugInfo(const float availWidth)
+{
+    ImGui::Text("texture ID: %d;", selectedTexItemID_);
+    ImGui::SameLine();
+    ImGui::Text("selected item idx: %d;", selectedItemIdx_);
+    ImGui::SameLine();
+
+    ImGui::Text("num_items: %d;", numItems_);
+    ImGui::SameLine();
+
+    ImGui::Text("avail width: %f;", availWidth);
+    ImGui::SameLine();
+
+    ImGui::Text("lines: %d;", numLayoutLine_);
+    ImGui::SameLine();
+
+    ImGui::Text("columns: %d;", numLayoutColumn_);
+    ImGui::SameLine();
+
+    ImGui::Text("spacing: %f", layoutItemSpacing_);
+}
+
+///////////////////////////////////////////////////////
+
+void TextureAssetsBrowser::ComputeZooming(const ImVec2 startPos, const float availWidth)
+{
+    ImGuiIO& io = ImGui::GetIO();
+
+    // Zooming with CTRL+Wheel
+    if (ImGui::IsWindowAppearing())
+        zoomWheelAccum_ = 0.0f;
+
+    if (ImGui::IsWindowHovered() && io.MouseWheel != 0.0f && ImGui::IsKeyDown(ImGuiMod_Ctrl) && ImGui::IsAnyItemActive() == false)
+    {
+        zoomWheelAccum_ += io.MouseWheel;
+
+        if (fabsf(zoomWheelAccum_) >= 1.0f)
+        {
+            // calculate hovered item index from mouse location
+            const float hoveredItemNX = (io.MousePos.x - startPos.x + layoutItemSpacing_ * 0.5f) / layoutItemStep_.x;
+            const float hoveredItemNY = (io.MousePos.y - startPos.y + layoutItemSpacing_ * 0.5f) / layoutItemStep_.y;
+            const int hoveredItemIdx = ((int)hoveredItemNY * numLayoutColumn_) + (int)hoveredItemNX;
+
+            // zoom
+            iconSize_ *= powf(1.1f, zoomWheelAccum_);
+
+            // clamp in range [16, 128]
+            iconSize_ = (iconSize_ < 16.0f) ? 16.0f : iconSize_;
+            iconSize_ = (iconSize_ > 128.0f) ? 128.0f : iconSize_;
+            zoomWheelAccum_ -= (int)zoomWheelAccum_;
+            UpdateLayoutSizes(availWidth);
+
+            // manipulate scroll to that we will land at the same Y location of currently hovered item
+            // - calculate next frame position of item under mouse
+            // - set new scroll position to be used in next ImGui::BeginChild() call
+            float hoveredItemRelPosY = ((float)(hoveredItemIdx / numLayoutColumn_) + fmodf(hoveredItemNY, 1.0f)) * layoutItemStep_.y;
+            hoveredItemRelPosY += ImGui::GetStyle().WindowPadding.y;
+
+            float mouseLocalY = io.MousePos.y - ImGui::GetWindowPos().y;
+            ImGui::SetScrollY(hoveredItemRelPosY - mouseLocalY);
+        }
+    }
+}
+
+
 
 }

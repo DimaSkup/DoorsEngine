@@ -30,6 +30,11 @@ public:
         const size numSubmeshes,
         const bool areMaterialsMeshBased);
 
+    void SetMaterial(
+        const EntityID enttID,
+        const SubmeshID enttSubmeshID,
+        const MaterialID matID);
+
 
     const MaterialData& GetDataByEnttID(const EntityID enttID) const;
 

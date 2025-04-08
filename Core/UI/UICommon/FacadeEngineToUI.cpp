@@ -11,6 +11,9 @@
 #include "../../Model/ModelMgr.h"
 #include "../../Texture/TextureMgr.h"   // texture mgr is used to get textures by its IDs
 
+#pragma warning (disable : 4996)
+
+
 using namespace Core;
 
 namespace UI
@@ -46,32 +49,6 @@ FacadeEngineToUI::FacadeEngineToUI(
 ModelID FacadeEngineToUI::GetModelIdByName(const std::string& name)
 {
     return g_ModelMgr.GetModelIdByName(name);
-}
-
-
-// =================================================================================
-// For using the textures manager
-// =================================================================================
-bool FacadeEngineToUI::GetShaderResourceViewByTexID(
-    const uint32_t textureID,
-    SRV*& pSRV)
-{
-    pSRV = g_TextureMgr.GetSRVByTexID(textureID);
-    return true;
-}
-
-///////////////////////////////////////////////////////////
-
-bool FacadeEngineToUI::GetArrShaderResourceViews(
-    SRV**& outArrShadersResourceViews,
-    size& outNumViews) const
-{
-    // output: 1. array of pointers to shader resource views
-    //         2. size of this array
-
-    outArrShadersResourceViews = (SRV**)g_TextureMgr.GetAllShaderResourceViews();
-    outNumViews = g_TextureMgr.GetNumShaderResourceViews();
-    return true;
 }
 
 
@@ -806,6 +783,61 @@ bool FacadeEngineToUI::GetAssetsNamesList(cvector<std::string>& outNames)
     for (int i = 0; const std::string & name : modelsNames)
         outNames[i++] = name;
 
+    return true;
+}
+
+///////////////////////////////////////////////////////////
+
+bool FacadeEngineToUI::GetShaderResourceViewByTexID(
+    const uint32_t textureID,
+    SRV*& pSRV)
+{
+    pSRV = g_TextureMgr.GetSRVByTexID(textureID);
+    return true;
+}
+
+///////////////////////////////////////////////////////////
+
+bool FacadeEngineToUI::GetArrShaderResourceViews(
+    SRV**& outArrShadersResourceViews,
+    size& outNumViews) const
+{
+    // output: 1. array of pointers to shader resource views
+    //         2. size of this array
+
+    outArrShadersResourceViews = (SRV**)g_TextureMgr.GetAllShaderResourceViews();
+    outNumViews = g_TextureMgr.GetNumShaderResourceViews();
+    return true;
+}
+
+///////////////////////////////////////////////////////////
+
+bool FacadeEngineToUI::GetTextureIdByIdx(const index idx, TexID& outTextureID) const
+{
+    outTextureID = g_TextureMgr.GetTexIdByIdx(idx);
+
+    // if we got an "invalid" texture ID
+    if (outTextureID == 0)
+    {
+        char buff[64];
+        sprintf(buff, "there is no texture ID by idx: %lld", idx);
+        Log::Error(buff);
+        return false;
+    }
+
+    return true;
+}
+
+///////////////////////////////////////////////////////////
+
+bool FacadeEngineToUI::SetEnttMaterial(
+    const EntityID enttID,
+    const SubsetID subsetID,
+    const MaterialID matID)
+{
+    // set a material (matID) for subset/mesh (subsetID) of entity (enttID)
+
+    pEntityMgr_->materialSystem_.SetMaterial(enttID, subsetID, matID);
     return true;
 }
 

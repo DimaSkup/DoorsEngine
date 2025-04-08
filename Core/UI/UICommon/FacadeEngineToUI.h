@@ -40,13 +40,6 @@ public:
 
     virtual ModelID GetModelIdByName(const std::string& name) override;
 
-    // 
-    // for using the textures manager
-    //
-    virtual bool GetShaderResourceViewByTexID(const uint32_t textureID, SRV*& pSRV)              override;
-    virtual bool GetArrShaderResourceViews(SRV**& outArrShadersResourceViews, size& outNumViews) const override;
-
-
     //
     // get camera info
     //
@@ -200,9 +193,19 @@ public:
 
 
     // =============================================================================
-    // for assets manager
+    // for assets: models/textures/sounds/etc.
     // =============================================================================
     virtual bool GetAssetsNamesList(cvector<std::string>& outNames) override;
+    virtual bool GetShaderResourceViewByTexID(const TexID textureID, SRV*& pSRV)              override;
+    virtual bool GetArrShaderResourceViews(SRV**& outArrShadersResourceViews, size& outNumViews) const override;
+
+    virtual bool GetTextureIdByIdx(const index idx, TexID& outTextureID) const override;
+
+    virtual bool SetEnttMaterial(
+        const EntityID enttID,
+        const SubsetID subsetID,
+        const MaterialID matID) override;
+
 };
 
 } // namespace UI

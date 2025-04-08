@@ -178,8 +178,9 @@ void ImGuiLayer::Begin()
         ImGui::DockBuilderDockWindow("Entities List", dockIdLeft);
         ImGui::DockBuilderDockWindow("Scene", dockIdScene);
         ImGui::DockBuilderDockWindow("Run scene", dockspaceId);
-        ImGui::DockBuilderDockWindow("Models", dockIdBottom);
+        ImGui::DockBuilderDockWindow("Models browser", dockIdBottom);
         ImGui::DockBuilderDockWindow("Textures browser", dockIdBottom);
+        ImGui::DockBuilderDockWindow("Materials browser", dockIdBottom);
         ImGui::DockBuilderDockWindow("Events history", dockIdBottom);
 
         pSceneNode = ImGui::DockBuilderGetNode(dockIdScene);
@@ -254,6 +255,11 @@ void ImGuiLayer::SetDefaultThemeColors()
 
     colors[ImGuiCol_TabHovered]        = { 0.21f, 0.20f, 0.24f, 1.0f };
     colors[ImGuiCol_TabDimmedSelected] = { 0.26f, 0.25f, 0.29f, 1.0f };
+
+    // selectable
+    colors[ImGuiCol_Header]            = { 0.26f, 0.25f, 0.29f, 1.0f };
+    colors[ImGuiCol_HeaderHovered]     = { 0.40f, 0.40f, 0.40f, 1.0f };
+    colors[ImGuiCol_HeaderActive]      = { 0.50f, 0.50f, 0.50f, 1.0f};
 }
 
 } // namespace Core

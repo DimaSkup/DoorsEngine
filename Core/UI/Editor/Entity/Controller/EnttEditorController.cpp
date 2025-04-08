@@ -260,7 +260,7 @@ void EnttEditorController::UpdateSelectedEnttWorld(const DirectX::XMMATRIX& worl
     // when we used a gizmo to modify a world of the selected entity
     // we call this method to actual update of the world properties
 
-    int transformType = pStatesGUI_->gizmoOperation_;
+    int transformType = pStatesGUI_->gizmoOperation;
     DirectX::XMVECTOR scale, rotQuat, translation;
     XMMatrixDecompose(&scale, &rotQuat, &translation, world);
 

@@ -93,6 +93,31 @@ void Log::Debug(const std::source_location& location)
 // print input message into console/log-file together with info about caller
 // =================================================================================
 
+void Log::Print(const char* msg, const std::source_location& location)
+{
+    SetConsoleColor(GREEN);
+    PrintHelper("", GenerateLogMsg(msg, location));
+    ResetConsoleColor();
+}
+
+///////////////////////////////////////////////////////////
+
+void Log::Debug(const char* msg, const std::source_location& location)
+{
+    PrintHelper("", GenerateLogMsg(msg, location));
+}
+
+///////////////////////////////////////////////////////////
+
+void Log::Error(const char* msg, const std::source_location& location)
+{
+    SetConsoleColor(RED);
+    PrintHelper("ERROR: ", GenerateLogMsg(msg, location));
+    ResetConsoleColor();
+}
+
+///////////////////////////////////////////////////////////
+
 void Log::Print(const std::string& msg, const std::source_location& location)
 {
     // prints a usual message and the source location params as well

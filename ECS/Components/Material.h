@@ -28,7 +28,7 @@ struct MaterialData
     cvector<MaterialID> materialsIDs;
 };
 
-// --------------------------------------------------------
+///////////////////////////////////////////////////////////
 
 // ECS component
 struct Material

@@ -16,6 +16,7 @@
 #include "../Debug/DebugEditor.h"
 #include "../Entity/Controller/EnttEditorController.h"
 #include "../Fog/FogEditorController.h"
+#include "../Entity/Creator/EntityCreatorWnd.h"
 
 
 namespace UI
@@ -24,35 +25,35 @@ namespace UI
 class EditorPanels
 {
 public:
-	EditorPanels(StatesGUI* pStatesGUI);
+    EditorPanels(StatesGUI* pStatesGUI);
 
-	void Initialize(IFacadeEngineToUI* pFacade);
+    void Initialize(IFacadeEngineToUI* pFacade);
 
-	void Render(Core::SystemState& sysState);
+    void Render(Core::SystemState& sysState);
 
 private:
-	void RenderEntitiesListWnd(Core::SystemState& sysState);
-	void RenderPropertiesControllerWnd();
-	void RenderDebugPanel(const Core::SystemState& sysState);
-	void RenderLogPanel();
-	void RenderAssetsManager();
+    void RenderEntitiesListWnd(Core::SystemState& sysState);
+    void RenderPropertiesControllerWnd();
+    void RenderDebugPanel(const Core::SystemState& sysState);
+    void RenderLogPanel();
+    void RenderModelsBrowser();
     void RenderTexturesBrowser();
-	void RenderEditorEventHistory();
+    void RenderMaterialsBrowser();
+    void RenderEditorEventHistory();
 
+    void RenderWndEntityCreation(bool* pOpen, IFacadeEngineToUI* pFacade);
+    void RenderWndModelAssetsCreation(bool* pOpen);
 
 public:
-	DebugEditor          debugEditor_;
-	EnttEditorController     enttEditorController_;
-	FogEditorController  fogEditorController_;
+
+    DebugEditor          debugEditor_;
+    EnttEditorController enttEditorController_;
+    FogEditorController  fogEditorController_;
 
 private:
-	bool isEnttsListWndOpen_  = true;
-	bool isPropertiesWndOpen_ = true;
-    bool isTexBrowserWndOpen_ = false;
-
-
-	IFacadeEngineToUI* pFacadeEngineToUI_ = nullptr;
-	StatesGUI*         pStatesGUI_        = nullptr;
+    IFacadeEngineToUI* pFacadeEngineToUI_ = nullptr;
+    StatesGUI*         pStatesGUI_        = nullptr;
+    EntityCreatorWnd* pEnttCreatorWnd_ = nullptr;
 
     TextureAssetsBrowser texAssetsBrowser_;
     ModelsAssetsList     modelsAssetsList_;
