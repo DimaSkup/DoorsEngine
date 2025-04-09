@@ -84,7 +84,7 @@ public:
         const float* uniformScales);
 
 
-    // add RENDERED component
+    // add MOVEMENT component
     void AddMoveComponent(
         const EntityID& enttID,
         const XMFLOAT3& translation,
@@ -126,7 +126,7 @@ public:
         const size numEntts);
 
 
-    // add RENDERED component
+    // add RENDER component
     void AddRenderingComponent(const EntityID id, const RenderInitParams& params);
 
     void AddRenderingComponent(
