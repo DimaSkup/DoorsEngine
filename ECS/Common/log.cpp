@@ -1,209 +1,207 @@
 // =================================================================================
 // Filename: Log.cpp
-// There is a Log system source file
 // =================================================================================
 #include "Log.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctime>
-#include <sstream>
-
-#include "MemHelpers.h"
-#include "StringHelper.h"
+#include <cstdarg>
+#include <string>
 
 #pragma warning (disable : 4996)
 
+
 namespace ECS
 {
-	
-Log* Log::pInstance_ = nullptr;
-HANDLE Log::handle_ = GetStdHandle(STD_OUTPUT_HANDLE);
-FILE* Log::pFile_ = nullptr;
-std::list<std::string>* Log::pMsgsList_ = nullptr;
 
-///////////////////////////////////////////////////////////
+// global buffer for characters
+char g_String[256]{ '\0' };
 
-Log::Log()
+// a buffer for internal using 
+static char s_TmpString[256]{ '\0' };
+
+// a static descriptor of the log file 
+static FILE* s_pLogFile = nullptr;
+
+// helpers prototypes
+std::string GetPathFromProjRoot(const std::string& fullPath);
+void PrintHelper(const char* lvlText, const char* text);
+void PrepareMsg(const char* msg, const std::source_location& loc);
+void PrintExceptionErrHelper(const LIB_Exception& e, const bool showMsgBox);
+
+// =================================================================================
+
+bool InitLogger()
 {
-	if (!pInstance_) // we can have only one instance of Logger
-	{
-		pInstance_ = this;
-		printf("Log::Log(): the Log system is created successfully\n");
-	}
-	else
-	{
-		printf("Log::Log(): there is already one instance of the ECS::Log\n");
-	}
+    if ((s_pLogFile = fopen("DoorsEngineLog.txt", "w")) == 0)
+    {
+        LogMsg("the log file is created successfully");
+
+        char time[9];
+        char date[9];
+
+        _strtime(time);
+        _strtime(date);
+
+        if (s_pLogFile)
+            fprintf(s_pLogFile, "%s : %s| the Log file is created\n", time, date);
+        LogMsgf("-------------------------------------------\n\n");
+
+        return true;
+    }
+    else
+    {
+        printf("%scan't initialize the logger %s\n", RED, RESET);
+        return false;
+    }
 }
 
 ///////////////////////////////////////////////////////////
 
-Log::~Log()
+void CloseLogger()
 {
-	pFile_ = nullptr;
-	pMsgsList_ = nullptr;
+    // print message about closing of the log file and close it
 
-	printf("Log::~Log(): the Log system is destroyed\n");
-}
+    char time[9];
+    char date[9];
 
-///////////////////////////////////////////////////////////
+    _strtime(time);
+    _strdate(date);
 
-void Log::Setup(FILE* pFile, std::list<std::string>* pMsgsList)
-{
-	// setup logger to make possible writing into the log file;
+    fprintf(s_pLogFile, "\n-------------------------------------------\n");
+    fprintf(s_pLogFile, "%s : %s| the end of the Log file\n", time, date);
 
-	if (!pFile)     { Log::Error("ptr to file == nullptr");	     return; }
-	if (!pMsgsList) { Log::Error("ptr to msgs list == nullptr"); return; }
-
-	pFile_ = pFile;
-	pMsgsList_ = pMsgsList;
+    fflush(s_pLogFile);
+    fclose(s_pLogFile);
 }
 
 
 // =================================================================================
-// 
-//                             LOG PRINT METHODS
-// 
+// logger functions which prints info about its caller (file, function, line)
 // =================================================================================
-
-void Log::Print(const std::string& msg, ConsoleColor attr)
+void LogMsg(const char* msg, const std::source_location& loc)
 {
-	// prints a usual message and setup it wit passed particular console text attribute
-
-	SetConsoleTextAttribute(Log::handle_, attr);
-	PrintHelper(" ", msg);
-	SetConsoleTextAttribute(Log::handle_, ConsoleColor::WHITE);  // reset
+    printf("%s", GREEN);                                // setup console color
+    PrepareMsg(msg, loc);
+    PrintHelper("", s_TmpString);
+    printf("%s", RESET);                                // reset console color
 }
 
 ///////////////////////////////////////////////////////////
 
-void Log::Print()
+void LogDbg(const char* msg, const std::source_location& loc)
 {
-	// print empty string
-	PrintHelper("", "");
+    PrepareMsg(msg, loc);
+    PrintHelper("DEBUG: ", s_TmpString);
 }
 
 ///////////////////////////////////////////////////////////
 
-void Log::Print(const std::string& msg, const std::source_location& location)
+void LogErr(const char* msg, const std::source_location& loc)
 {
-	// prints a usual message and the source location params as well
-	SetConsoleTextAttribute(Log::handle_, ConsoleColor::GREEN);
-	PrintHelper("", GenerateLogMsg(msg, location));
-	SetConsoleTextAttribute(Log::handle_, ConsoleColor::WHITE);
-}
-
-
-
-// =================================================================================
-//  
-//                             LOG DEBUG METHODS
-// 
-// =================================================================================
-
-void Log::Debug(const std::source_location& location)
-{
-	PrintHelper("DEBUG_ECS: ", GenerateLogMsg(" ", location));
+    printf("%s", GREEN);                                // setup console color
+    PrepareMsg(msg, loc);
+    PrintHelper("ERROR: ", s_TmpString);
+    printf("%s", RESET);                                // reset console color
 }
 
 ///////////////////////////////////////////////////////////
 
-void Log::Debug(const std::string& msg, const std::source_location& location)
+#if 0
+void LogMsg(const std::string& msg, const std::source_location& location = std::source_location::current());
+void LogDbg(const std::string& msg, const std::source_location& location = std::source_location::current());
+void LogErr(const std::string& msg, const std::source_location& location = std::source_location::current());
+#endif
+
+
+
+// =================================================================================
+// logger function with variadic arguments
+// =================================================================================
+void LogMsgf(const char* format, ...)
 {
-	// prints a debug message
-	Log::PrintHelper("DEBUG_ECS: ", GenerateLogMsg(msg, location));
+    va_list args;
+    va_start(args, format);
+
+    vsprintf(s_TmpString, format, args);
+    PrintHelper("", s_TmpString);
+    printf("%s", RESET);                  // reset console color
+
+    va_end(args);
 }
 
 
 // =================================================================================
-// 
-//                             LOG ERROR METHODS
-// 
+// exception handlers
 // =================================================================================
-
-
-void Log::Error(LIB_Exception* pException, bool showMsgBox)
+void LogErr(const LIB_Exception* pException, bool showMsgBox)
 {
-	// exception ERROR PRINTING (takes a pointer to the LIB_Exception)
-	PrintExceptionErrHelper(*pException, showMsgBox);
+    // exception ERROR PRINTING (takes a pointer to the EngineException)
+    PrintExceptionErrHelper(*pException, showMsgBox);
 }
 
 ///////////////////////////////////////////////////////////
 
-void Log::Error(LIB_Exception& e, bool showMsgBox)
+void LogErr(const LIB_Exception& e, const bool showMsgBox)
 {
-	// exception ERROR PRINTING (takes a reference to the LIB_Exception)
-	PrintExceptionErrHelper(e, showMsgBox);
-}
-
-///////////////////////////////////////////////////////////
-
-void Log::Error(const std::string& msg, const std::source_location& location)
-{
-	SetConsoleTextAttribute(Log::handle_, ConsoleColor::RED);
-	PrintHelper("ERROR_ECS: ", GenerateLogMsg(msg, location));
-	SetConsoleTextAttribute(Log::handle_, ConsoleColor::WHITE);
+    // exception ERROR PRINTING (takes a reference to the EngineException)
+    PrintExceptionErrHelper(e, showMsgBox);
 }
 
 
 // =================================================================================
-// 
-//                         PRIVATE METHODS (HELPERS)
-// 
+// Helpers
 // =================================================================================
-
-
-void Log::PrintExceptionErrHelper(LIB_Exception& e, bool showMsgBox)
+std::string GetPathFromProjRoot(const std::string& fullPath)
 {
-	// show a message box if we need
-	if (showMsgBox)
-		MessageBoxW(NULL, e.GetStrWide().c_str(), L"ECS Error", MB_ICONERROR);
+    // return relative path from the project root
 
-	// print an error msg into the console and log file
-	SetConsoleTextAttribute(Log::handle_, ConsoleColor::RED);
-	PrintHelper("ERROR_ECS: ", e.GetStr());
-	SetConsoleTextAttribute(Log::handle_, ConsoleColor::WHITE);
+    std::size_t found = fullPath.find("DoorsEngine\\");
+
+    if (found != std::string::npos)
+        return fullPath.substr(found + strlen("DoorsEngine\\"));
+
+    return "invalid_path";
 }
 
 ///////////////////////////////////////////////////////////
 
-void Log::PrintHelper(const char* levtext, const std::string& text)
+void PrintHelper(const char* lvlText, const char* text)
 {
-	// a helper for printing messages into the command prompt
-	// and into the Logger text file (if we have a ptr to it)
+    // a helper for printing messages into the command prompt
+    // and into the Logger text file
 
-	clock_t cl = clock();
-	char* buffer = nullptr;
-	int size = snprintf(nullptr, 0, "[%05d]\t%s%s\n", cl, levtext, text.c_str());
+    printf("[%05d] %s: %s\n", clock(), lvlText, text);
 
-	buffer = new char[size + 1]{ '\0' };   // +1 because of '\0'
-
-	sprintf(buffer, "[%05d]\t%s%s\n", cl, levtext, text.c_str());
-	printf(buffer);
-
-	if (pFile_)
-		fwrite(buffer, sizeof(char), size, pFile_);
-
-	if (pMsgsList_)
-		pMsgsList_->push_back(std::string(buffer));
-
-	SafeDeleteArr(buffer);
+    if (s_pLogFile)
+        fprintf(s_pLogFile, "[%05d] %s: %s\n", clock(), lvlText, text);
 }
 
 ///////////////////////////////////////////////////////////
 
-std::string Log::GenerateLogMsg(
-	const std::string& msg,
-	const std::source_location& location)
+void PrepareMsg(const char* msg, const std::source_location& loc)
 {
-	std::stringstream ss;
+    // prepare a message for logger and put it into the global buffer (g_String)
 
-	ss << StringHelper::GetPathFromProjRoot(location.file_name()) << ": "
-		<< location.function_name() << "() (line:"
-		<< location.line() << "): "
-		<< msg;
-
-	return ss.str();
+    sprintf(s_TmpString, "%s: %s() (line: %d): %s\n",
+        GetPathFromProjRoot(loc.file_name()).c_str(),   // relative path to the caller file
+        loc.function_name(),                            // a function name where we call this log-function
+        loc.line(),                                     // at what line
+        msg);
 }
 
-};
+///////////////////////////////////////////////////////////
+
+void PrintExceptionErrHelper(const LIB_Exception& e, const bool showMsgBox)
+{
+    // show a message box if we need
+    if (showMsgBox)
+        MessageBoxW(NULL, e.GetStrWide(), L"Error", MB_ICONERROR);
+
+    // print an error msg into the console and log file
+    printf("%s", RED);                                   // setup console color
+    PrintHelper("ERROR: ", e.GetConstStr());
+    printf("%s", RESET);                                 // reset console color
+}
+
+} // namespace ECS

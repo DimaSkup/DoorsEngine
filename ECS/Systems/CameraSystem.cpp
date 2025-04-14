@@ -34,7 +34,8 @@ void CameraSystem::Update(
 
     if (idx == -1)
     {
-        Log::Error("can't update camera by id: " + std::to_string(id));
+        sprintf(g_String, "can't update camera by id: %ud", id);
+        LogErr(g_String);
         return;
     }
 
@@ -68,7 +69,8 @@ void CameraSystem::AddRecord(
 	}
     else
     {
-        Log::Error("can't add new record there is already such by ID: " + std::to_string(id));
+        sprintf(g_String, "can't add new record there is already such by ID: %ud", id);
+        LogErr(g_String);
     }
 }
 
@@ -115,7 +117,8 @@ void CameraSystem::GetViewAndProjByID(
 
     if (idx == -1)
     {
-        Log::Error("can't get data by id: " + std::to_string(id));
+        sprintf(g_String, "can't get data by id: %ud", id);
+        LogErr(g_String);
         return;
     }
 

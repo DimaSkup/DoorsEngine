@@ -65,7 +65,7 @@ bool SamplerState::Initialize(ID3D11Device* pDevice, D3D11_SAMPLER_DESC* pSample
 	// check if we managed to create a sampler state
 	if (FAILED(hr))
 	{
-		Log::Error("can't create a sampler state");
+		LogErr("can't create a sampler state");
 		return false;
 	}
 

@@ -6,11 +6,11 @@
 #include "../Common/Log.h"
 #include "../Common/StringHelper.h"
 #include "../Common/MemHelpers.h"
-#include "../Common/Assert.h"
 
 #include <d3dx11async.h>   // is neccessary for the D3DX11CompileFromFile() function
 #include <d3dcompiler.h>   // for using shader flags
 
+#pragma warning (disable : 4996)
 
 namespace Render
 {
@@ -48,12 +48,16 @@ HRESULT ShaderClass::CompileShaderFromFile(
 	if (pErrorMsgs != nullptr)
 	{
 		MessageBoxA(0, (char*)pErrorMsgs->GetBufferPointer(), 0, 0);
-		Log::Error(static_cast<char*>(pErrorMsgs->GetBufferPointer()));
+		LogErr(static_cast<char*>(pErrorMsgs->GetBufferPointer()));
 		SafeRelease(&pErrorMsgs);
 	}
 
 	// even if there are no errorMsgs, check to make sure there were no other errors
-    Assert::NotFailed(hr, "can't compile a shader function (" + std::string(functionName) + "); from the shader file : " + StringHelper::ToString(filename));
+    if (FAILED(hr))
+    {
+        sprintf(g_String, "can't compile a shader function (%s); from the shader file: %s", functionName, (char*)filename);
+        LogErr(g_String);
+    }
 
 	return hr;
 }

@@ -12,8 +12,6 @@
 
 #include <imgui.h>
 #include <ImGuizmo.h>
-#include <format>
-
 
 using namespace Core;
 
@@ -125,7 +123,8 @@ void EnttEditorController::SetSelectedEntt(const EntityID enttID)
 
                         else
                         {
-                            Log::Error(std::format("unknown light type ({}) for entity (id: {}, name: {})", enttID, lightType, selectedEnttData_.name));
+                            sprintf(g_String, "unknown light type (%d) for entity (id: %ld, name: %s)", lightType, enttID, selectedEnttData_.name.c_str());
+                            LogErr(g_String);
                             return;
                         }
 
@@ -288,7 +287,8 @@ void EnttEditorController::UpdateSelectedEnttWorld(const DirectX::XMMATRIX& worl
         }
         default:
         {
-            Log::Error("Unknown ImGuizmo::OPERATION: " + std::to_string(transformType));
+            sprintf(g_String, "Unknown ImGuizmo::OPERATION: %d", transformType);
+            LogErr(g_String);
         }
     }
 }
@@ -304,7 +304,8 @@ void EnttEditorController::Execute(const ICommand* pCmd)
 
     if ((pCmd == nullptr) || (pFacade_ == nullptr) || (!selectedEnttData_.IsSelectedAnyEntt()))
     {
-        Log::Error("can't execute a command of type: " + std::to_string(pCmd->type_));
+        sprintf(g_String, "can't execute a command for some reason (cmd type: %d; entt_id: %ld)", pCmd->type_, selectedEnttData_.id);
+        LogErr(g_String);
         return;
     }
 
@@ -320,7 +321,7 @@ void EnttEditorController::Execute(const ICommand* pCmd)
             const std::string enttIdStr = std::to_string(enttID);
             std::string enttName;
             pFacade_->GetEnttNameByID(enttID, enttName);
-            Core::Log::Debug("TRANSFORM ENTITY: (id: " + enttIdStr + ", name: " + enttName + ")");
+            Core::LogDbg("TRANSFORM ENTITY: (id: " + enttIdStr + ", name: " + enttName + ")");
 #endif
 
             transformController_.ExecuteCommand(pCmd, enttID);
@@ -354,7 +355,8 @@ void EnttEditorController::Execute(const ICommand* pCmd)
         }
         default:
         {
-            Log::Error("unknown type of command: " + std::to_string(pCmd->type_));
+            sprintf(g_String, "unknown type of command: %d", pCmd->type_);
+            LogErr(g_String);
             return;
         }
     }
@@ -368,7 +370,8 @@ void EnttEditorController::Undo(const ICommand* pCmd, const EntityID enttID)
 
     if ((pCmd == nullptr) || (pFacade_ == nullptr) || (enttID == 0))
     {
-        Log::Error("can't execute a command of type: " + std::to_string(pCmd->type_));
+        sprintf(g_String, "can't undo a command of type: %d (for entity by ID: %ld)", pCmd->type_, enttID);
+        LogErr(g_String);
         return;
     }
 

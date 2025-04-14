@@ -7,8 +7,7 @@
 #pragma once
 
 #include "BasicModel.h"
-#include <fstream>
-#include <filesystem>
+#include <string>
 
 namespace Core
 {
@@ -27,9 +26,7 @@ public:
 	};
 
 public:
-	void Load(
-		const std::string& assetFilepath,   // path to model relatively to the "assets" folder
-		BasicModel& model);
+	bool Load(const char* modelFilePath, BasicModel& outModel);
 
 private:
 	void ReadHeader(std::ifstream& fin, BasicModel& model);
@@ -43,7 +40,7 @@ private:
 	void SetupSubsets(
 		BasicModel& model,
 		const M3dMaterial* m3dMats,
-		const std::string& modelDirPath);
+		const char* modelDirPath);
 
 	void ReadSubsetTable(
 		std::ifstream& fin,

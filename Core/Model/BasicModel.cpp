@@ -6,21 +6,27 @@
 #include "BasicModel.h"
 #include <CoreCommon/MemHelpers.h>
 
+#include <memory>   // for using std::construct_at
+#include <utility>  // for using std::exchange
+
+
 namespace Core
 {
 
 BasicModel::BasicModel()
 {
 #if 0
-    // to define size of a single BasicModel instance
-    Log::Print("sizeof(BasicModel):            " + std::to_string(sizeof(BasicModel)));
-    Log::Print("sizeof(MeshGeometry::Subset):  " + std::to_string(sizeof(MeshGeometry::Subset)));
-    Log::Print("sizeof(MeshGeometry):          " + std::to_string(sizeof(MeshGeometry)));
-    Log::Print("sizeof(VertexBuffer<Vertex3D>):" + std::to_string(sizeof(VertexBuffer<Vertex3D>)));
-    Log::Print("sizeof(IndexBuffer<UINT>):     " + std::to_string(sizeof(IndexBuffer<UINT>)));
-    Log::Print("sizeof(ID3D11Buffer):          " + std::to_string(sizeof(ID3D11Buffer)));
+    // to get knowledge about size of a single BasicModel instance
+    LogMsg("sizeof(BasicModel):            " + std::to_string(sizeof(BasicModel)));
+    LogMsg("sizeof(MeshGeometry::Subset):  " + std::to_string(sizeof(MeshGeometry::Subset)));
+    LogMsg("sizeof(MeshGeometry):          " + std::to_string(sizeof(MeshGeometry)));
+    LogMsg("sizeof(VertexBuffer<Vertex3D>):" + std::to_string(sizeof(VertexBuffer<Vertex3D>)));
+    LogMsg("sizeof(IndexBuffer<UINT>):     " + std::to_string(sizeof(IndexBuffer<UINT>)));
+    LogMsg("sizeof(ID3D11Buffer):          " + std::to_string(sizeof(ID3D11Buffer)));
 #endif
 }
+
+///////////////////////////////////////////////////////////
 
 BasicModel::~BasicModel()
 {
@@ -31,7 +37,6 @@ BasicModel::~BasicModel()
 
 BasicModel::BasicModel(BasicModel&& rhs) noexcept :
     id_         (rhs.id_),
-    name_       (std::exchange(rhs.name_, "")),
     type_       (std::exchange(rhs.type_, eModelType::Invalid)),
     meshes_     (std::move(rhs.meshes_)),
     modelAABB_  (std::exchange(rhs.modelAABB_, {})),
@@ -47,6 +52,7 @@ BasicModel::BasicModel(BasicModel&& rhs) noexcept :
     numAnimClips_(rhs.numAnimClips_)
 {
     // move constructor
+    memmove(name_, rhs.name_, strlen(rhs.name_));
 }
 
 ///////////////////////////////////////////////////////////
@@ -111,7 +117,7 @@ void BasicModel::InitializeBuffers(ID3D11Device* pDevice)
 void BasicModel::Shutdown()
 {
     id_ = 0;
-    name_ = "";
+    name_[0] = '\0';
     type_ = eModelType::Invalid;
 
     meshes_.~MeshGeometry();
@@ -175,8 +181,8 @@ void BasicModel::AllocateMemory()
     {
         Shutdown();
 
-        Log::Error(e.what());
-        Log::Error("can't allocate memory for some data of the model");
+        LogErr(e.what());
+        LogErr("can't allocate memory for some data of the model");
         return;
     }
 }
@@ -220,8 +226,8 @@ void BasicModel::AllocateMemory(
     {
         Shutdown();
 
-        Log::Error(e.what());
-        Log::Error("can't allocate memory for some data of the model");
+        LogErr(e.what());
+        LogErr("can't allocate memory for some data of the model");
         return;
     }
 }
@@ -274,6 +280,23 @@ void BasicModel::CopyIndices(const UINT* indices, const int numIndices)
 // =================================================================================
 //                           PUBLIC UPDATING API
 // =================================================================================
+
+void BasicModel::SetName(const char* newName)
+{
+    // set new name if it is valid or don't change in another case
+    if ((newName == nullptr) || (newName[0] == '\0'))
+    {
+        LogErr("can't set a new name for the sky model: input name is empty");
+        return;
+    }
+
+    const size_t sz = strlen(newName);
+    const size_t size = (sz > 32) ? 32 : sz;    // trim length if necessary to 32
+
+    strncpy(name_, newName, size);
+}
+
+///////////////////////////////////////////////////////////
 
 void BasicModel::SetMaterialForSubset(const SubsetID subsetID, const MaterialID materialID)
 {

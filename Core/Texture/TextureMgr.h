@@ -14,8 +14,8 @@
 
 #include <d3d11.h>
 #include <d3dx11tex.h>
-#include <windows.h>
 #include <string>
+//#include <windows.h>
 
 
 namespace Core
@@ -40,11 +40,12 @@ public:
     // public creation API
     void Initialize(ID3D11Device* pDevice);
 
-    TexID Add(const TexName& name, Texture& tex);
-    TexID Add(const TexName& name, Texture&& tex);
-    
-    TexID LoadFromFile(const TexPath& path);
+    TexID Add(const char* name, Texture& tex);
+    TexID Add(const char* name, Texture&& tex);
 
+    TexID LoadFromFile(const char* dirPath, const char* texturePath);
+    TexID LoadFromFile(const char* path);
+        
     TexID LoadTextureArray(
         const std::string* textureNames,
         const size numTextures,
@@ -55,21 +56,25 @@ public:
 
     TexID CreateWithColor(const Color& textureColor);
 
+    void SetTexName(const TexID id, const char* inName);
+
 
     // public query API
     Texture& GetTexByID     (const TexID id);
     Texture* GetTexPtrByID  (const TexID id);
-    Texture* GetTexPtrByName(const TexName& name);
+    Texture* GetTexPtrByName(const char* name);
 
-    TexID GetIDByName (const TexName& name);
+    TexID GetIDByName (const char* name);
     TexID GetTexIdByIdx(const index idx) const;
-    void GetIDsByNames(const TexName* names, const size numNames, cvector<TexID>& outIDs);
+    //void GetIDsByNames(const char* names, const size numNames, cvector<TexID>& outIDs);
 
     ID3D11ShaderResourceView* GetSRVByTexID  (const TexID texID);
     void GetSRVsByTexIDs(const TexID* texIDs, const size numTex, cvector<ID3D11ShaderResourceView*>& outSRVs);
 
-    inline const ID3D11ShaderResourceView** GetAllShaderResourceViews()       { return (const ID3D11ShaderResourceView**)shaderResourceViews_.data(); }
-    inline size                             GetNumShaderResourceViews() const { return shaderResourceViews_.size(); }
+    inline const ID3D11ShaderResourceView** GetAllShaderResourceViews()         { return (const ID3D11ShaderResourceView**)shaderResourceViews_.data(); }
+    inline size                             GetNumShaderResourceViews()   const { return shaderResourceViews_.size(); }
+
+    inline bool                             IsNameEmpty(const char* name) const { return ((name == nullptr) || (name[0] == '\0')); }
 #if 0
     void GetAllTexturesPathsWithinDirectory(
         const std::string& pathToDir,
@@ -77,7 +82,7 @@ public:
 #endif
 
 private:
-    void AddDefaultTex(const TexName& name, Texture&& tex);
+    void AddDefaultTex(const char* name, Texture&& tex);
 
     inline int GenID() { return lastTexID_++; }
 
@@ -88,7 +93,7 @@ private:
 
     cvector<TexID>      ids_;                 // SORTED array of unique IDs
     cvector<SRV*>       shaderResourceViews_;
-    cvector<TexName>    names_;               // name (there can be path) which is used for searching of texture
+    cvector<std::string>    names_;               // name (there can be path) which is used for searching of texture
     cvector<Texture>    textures_;
 };
 

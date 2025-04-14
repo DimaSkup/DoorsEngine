@@ -7,7 +7,7 @@
 
 #include <CoreCommon/FileSystemPaths.h>
 #include "../Texture/TextureMgr.h"
-#include "Render.h"                     // from the Render module
+//#include "CRender.h"                     // from the Render module
 
 #include <format>
 #include <string>
@@ -51,7 +51,7 @@ void UserInterface::Initialize(
 {
     // initialize the graphics user interface (GUI)
 
-    Log::Debug();
+    LogDbg("initialization of the User Interface");
 
     try
     {
@@ -79,12 +79,12 @@ void UserInterface::Initialize(
         LoadDebugInfoStringFromFile(pDevice, videoCardName, videoCardMemory);
 
 
-        Log::Debug("USER INTERFACE is initialized");
+        LogDbg("USER INTERFACE is initialized");
     }
     catch (EngineException& e)
     {
-        Log::Error(e, false);
-        Log::Error("can't initialize the UserInterface");
+        LogErr(e, false);
+        LogErr("can't initialize the UserInterface");
     }
 }
 
@@ -102,8 +102,8 @@ void UserInterface::Update(
     }
     catch (EngineException & e)
     {
-        Log::Error(e);
-        Log::Error("can't update the GUI");
+        LogErr(e);
+        LogErr("can't update the GUI");
     }
 }
 
@@ -150,8 +150,9 @@ SentenceID UserInterface::CreateConstStr(
     }
     catch (EngineException& e)
     {
-        Log::Error(e);
-        Log::Error("can't create the sentence: " + content);
+        sprintf(g_String, "can't create the sentence: %s", content.c_str());
+        LogErr(e);
+        LogErr(g_String);
         return 0;
     }
 }
@@ -185,8 +186,9 @@ SentenceID UserInterface::CreateDynamicStr(
     }
     catch (EngineException& e)
     {
-        Log::Error(e);
-        Log::Error("can't create a sentence: " + content);
+        sprintf(g_String, "can't create a sentence: %s", content.c_str());
+        LogErr(e);
+        LogErr(g_String);
         return 0;
     }
 }
@@ -201,13 +203,16 @@ void UserInterface::LoadDebugInfoStringFromFile(
     // load debug info string params from the file and create these strings;
     // and create some strings manually
 
-    const std::string filepath = g_RelPathUIDataDir + "ui_debug_info_strings.txt";
+    char filePath[128]{ '\0' };
+    strcat(filePath, g_RelPathUIDataDir);
+    strcat(filePath, "ui_debug_info_strings.txt");
 
 
-    FILE* pFile = fopen(filepath.c_str(), "r");
+    FILE* pFile = fopen(filePath, "r+");
     if (!pFile)
     {
-        Log::Error("can't open a file: " + filepath);
+        sprintf(g_String, "can't open a file: %s", filePath);
+        LogErr(g_String);
         return;
     }
 
@@ -215,7 +220,6 @@ void UserInterface::LoadDebugInfoStringFromFile(
     char str[64] = { 0 };
     const int bufsize = 64;
     int posX, posY, maxStrSize;
-
 
     while (fgets(buffer, bufsize, pFile))
     {
@@ -228,7 +232,7 @@ void UserInterface::LoadDebugInfoStringFromFile(
             }
             else
             {
-                Log::Error("the input doen't match the format string");
+                LogErr("the input doen't match the format string");
             }
         }
         // we read and create a dynamic string (will be changed during the runtime)
@@ -241,7 +245,7 @@ void UserInterface::LoadDebugInfoStringFromFile(
             }
             else
             {
-                Log::Error("the input doen't match the format string");
+                LogErr("the input doen't match the format string");
             }
         }
     }
@@ -260,7 +264,7 @@ void UserInterface::LoadDebugInfoStringFromFile(
 // ====================================================================================
 void UserInterface::RenderGameUI(
     ID3D11DeviceContext* pContext,
-    Render::FontShaderClass& fontShader,
+    Render::FontShader& fontShader,
     Core::SystemState& systemState)
 {
 
@@ -423,7 +427,7 @@ void UserInterface::RenderSceneWnd(SystemState& sysState)
 
 void UserInterface::RenderDebugInfo(
     ID3D11DeviceContext* pContext,
-    Render::FontShaderClass& fontShader,
+    Render::FontShader& fontShader,
     const Core::SystemState& sysState)
 {
     // render engine/game stats as text onto the sceen

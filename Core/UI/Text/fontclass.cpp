@@ -9,9 +9,6 @@
 #include "../../Texture/TextureMgr.h"
 
 #include <fstream>
-#include <filesystem>
-
-namespace fs = std::filesystem;
 
 using namespace Core;
 
@@ -19,21 +16,13 @@ using namespace Core;
 namespace UI
 {
 
-FontClass::FontClass()
-{
-}
-
-FontClass::~FontClass() 
-{
-	Log::Debug();
-}
-
+FontClass::FontClass() {}
+FontClass::~FontClass() {}
 
 
 // ************************************************************************************
 //                           PUBLIC MODIFICATION API
 // ************************************************************************************
-
 void FontClass::Initialize(
 	ID3D11Device* pDevice,
 	const std::string& fontDataFilePath,
@@ -41,20 +30,25 @@ void FontClass::Initialize(
 {
 	// this function will load the font data and the font texture
 
-	Log::Debug();
+	LogDbg("init");
 
 	try
 	{
 		// check input params
-		fs::path fontDataPath = fontDataFilePath;
-		fs::path fontTexPath = fontTexFilePath;
+        if (fopen(fontDataFilePath.c_str(), "r+") == nullptr)
+        {
+            sprintf(g_String, "there is no file for font data by path: %s", fontDataFilePath.c_str());
+            LogErr(g_String);
+        }
 
-		Assert::True(fs::exists(fontDataPath), "there is no file for font data: " + fontDataFilePath);
-		Assert::True(fs::exists(fontTexPath), "there is no file for font texture" + fontTexFilePath);
-
+        if (fopen(fontTexFilePath.c_str(), "r+") == nullptr)
+        {
+            sprintf(g_String, "there is no file for font texture by path: %s", fontTexFilePath.c_str());
+            LogErr(g_String);
+        }
 
 		// load and initialize a texture for this font
-		fontTexID_ = g_TextureMgr.LoadFromFile(fontTexFilePath);
+		fontTexID_ = g_TextureMgr.LoadFromFile(fontTexFilePath.c_str());
 
 		// we need to have a height of the font texture for proper building of the vertices data
 		fontHeight_ = g_TextureMgr.GetTexPtrByID(fontTexID_)->GetHeight();
@@ -62,16 +56,10 @@ void FontClass::Initialize(
 		// load the data into the font data array
 		LoadFontData(fontDataFilePath, charNum_, fontDataArr_);
 	}
-	catch (const std::bad_alloc& e)
-	{
-		this->~FontClass();
-		Log::Error(e.what());
-		throw EngineException("can't initialize the FontClass object");
-	}
 	catch (EngineException & e)
 	{
 		this->~FontClass();
-		Log::Error(e, true);
+		LogErr(e, true);
 		throw EngineException("can't initialize the FontClass object");
 	}
 }
@@ -153,7 +141,8 @@ void FontClass::BuildVertexArray(
 void FontClass::BuildIndexArray(UINT* indices, const size numIndices)
 {
 	// NOTE: the input indices array must be empty before initialization
-	Assert::True(bool(indices) & (numIndices > 0), "wrong num of indices (must be > 0): " + std::to_string(numIndices));
+
+	Assert::True((indices != nullptr) && (numIndices > 0), "invalid input params");
 	
 	for (UINT vIdx = 0, arrIdx = 0; arrIdx < (UINT)numIndices;)
 	{
@@ -193,7 +182,7 @@ void* FontClass::operator new(size_t i)
 		return ptr;
 	}
 
-	Log::Error("can't allocate the memory for object");
+	LogErr("can't allocate the memory for object");
 	throw std::bad_alloc{};
 }
 
@@ -260,7 +249,7 @@ void FontClass::LoadFontData(
 	catch (EngineException & e)
 	{
 		fin.close();
-		Log::Error(e);
+		LogErr(e);
 		throw EngineException("can't load the font data from the file");
 	}
 }

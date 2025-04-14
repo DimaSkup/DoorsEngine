@@ -10,7 +10,7 @@
 #include <CoreCommon/Types.h>
 #include "../Model/BasicModel.h"
 #include "../Mesh/MeshHelperTypes.h"
-#include "../Texture/TextureMgr.h"
+
 
 namespace Core
 {
@@ -20,8 +20,8 @@ class ModelsCreator
 public:
 	ModelsCreator();
 
-	ModelID CreateFromDE3D(ID3D11Device* pDevice, const std::string& path);
-	ModelID ImportFromFile(ID3D11Device* pDevice, const std::string& filepath);
+	ModelID CreateFromDE3D(ID3D11Device* pDevice, const char* modelPath);
+	ModelID ImportFromFile(ID3D11Device* pDevice, const char* modelPath);
 
 	// create a model according to its type and with default params
 	ModelID Create(ID3D11Device* pDevice, const eModelType type);
@@ -44,14 +44,14 @@ public:
 
 	ModelID CreateGeneratedTerrain(
 		ID3D11Device* pDevice,
-		const float terrainWidth,
-		const float terrainDepth,
+		const int terrainWidth,
+		const int terrainDepth,
 		const int verticesCountByX,
 		const int verticesCountByZ);
 
 	
 private:
-	void ReadSkullMeshFromFile(BasicModel& model, const std::string& filepath);
+	void ReadSkullMeshFromFile(BasicModel& model, const char* filepath);
 
 #if 0
 	

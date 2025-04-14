@@ -1,6 +1,6 @@
 #include "MathHelper.h"
 #include <cmath>
-#include <DirectXMath.h>
+
 
 namespace ECS
 {

@@ -11,7 +11,6 @@
 namespace Render
 {
 
-
 struct Material
 {
 	DirectX::XMFLOAT4 ambient_  = { 1,1,1,1 };

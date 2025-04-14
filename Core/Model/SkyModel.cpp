@@ -38,10 +38,19 @@ void SkyModel::InitializeBuffers(
 
 ///////////////////////////////////////////////////////////
 
-void SkyModel::SetName(const std::string& newName)
+void SkyModel::SetName(const char* newName)
 {
 	// set new name if it is valid or don't change in another case
-	name_ = (!newName.empty()) ? newName : name_;
+    if ((newName == nullptr) || (newName[0] == '\0'))
+    {
+        LogErr("can't set a new name for the sky model: input name is empty");
+        return;
+    }
+
+    const size_t sz = strlen(newName);
+    const size_t size = (sz > 32) ? 32 : sz;    // trim length if necessary to 32
+
+    strncpy(name_, newName, size);
 }
 
 ///////////////////////////////////////////////////////////

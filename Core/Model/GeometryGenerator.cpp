@@ -13,6 +13,8 @@
 #include "../Model/ModelMath.h"
 #include "../Render/Color.h"
 
+#pragma warning (disable : 4996)
+
 
 using XMVECTOR = DirectX::XMVECTOR;
 using XMFLOAT2 = DirectX::XMFLOAT2;
@@ -613,8 +615,8 @@ void GeometryGenerator::GeneratePlane(
 
 void BuildFlatGridVertices(
     Vertex3D* vertices,
-    const float width,
-    const float depth,
+    const int width,
+    const int depth,
     const int vertByX,   // vertices count by X
     const int vertByZ)
 {
@@ -623,15 +625,15 @@ void BuildFlatGridVertices(
         //
         // Create grid vertices
         //
-        const float halfWidth = 0.5f * width;
-        const float halfDepth = 0.5f * depth;
+        const float halfWidth = 0.5f * (float)width;
+        const float halfDepth = 0.5f * (float)depth;
 
         const int quadsByX = vertByX - 1;
         const int quadsByZ = vertByZ - 1;
         const float du = 1.0f / (float)quadsByX; // width of a single quad
         const float dv = 1.0f / (float)quadsByZ; // depth of a single quad
-        const float dx = width * du;             // how many quads we can put in such width
-        const float dz = depth * dv;             // how many quads we can put in such depth
+        const float dx = (float)width * du;             // how many quads we can put in such width
+        const float dz = (float)depth * dv;             // how many quads we can put in such depth
 
         // precompute X-coords (of position) and tu-component (of texture) for each quad 
         float* quadsXCoords = new float[vertByX];
@@ -669,8 +671,8 @@ void BuildFlatGridVertices(
     }
     catch (const std::bad_alloc& e)
     {
-        Log::Error(e.what());
-        Log::Error("can't allocate memory during a flat grid vertices creation");
+        LogErr(e.what());
+        LogErr("can't allocate memory during a flat grid vertices creation");
         throw EngineException("can't allocate memory during a flat grid vertices creation");
     }
 }
@@ -725,8 +727,8 @@ void BuildFlatGridIndices(
 //////////////////////////////////////////////////////////
 
 void GeometryGenerator::GenerateFlatGrid(
-    const float w,            // width
-    const float d,            // depth
+    const int w,            // width
+    const int d,            // depth
     const int verticesByX,    // vertices count by X
     const int verticesByZ,
     BasicModel& model)
@@ -745,8 +747,8 @@ void GeometryGenerator::GenerateFlatGrid(
     //              Vij = [-0.5*width + j*dx, 0.0, 0.5*depth - i*dz];
 
     // if input params is wrong we use the default params
-    float width = (w > 0) ? w : 10;
-    float depth = (d > 0) ? d : 10;
+    const int width = (w > 0) ? w : 10;
+    const int depth = (d > 0) ? d : 10;
     const int vertByX = (verticesByX > 1) ? verticesByX : 2;
     const int vertByZ = (verticesByZ > 1) ? verticesByZ : 2;
 
@@ -768,7 +770,7 @@ void GeometryGenerator::GenerateFlatGrid(
         // compute the bounding box of the mesh
         DirectX::BoundingBox aabb;
         DirectX::XMStoreFloat3(&aabb.Center, { 0,0,0 });
-        DirectX::XMStoreFloat3(&aabb.Extents, { width, 0.1f, depth });
+        DirectX::XMStoreFloat3(&aabb.Extents, { (float)width, 0.1f, (float)depth });
 
         model.SetSubsetAABB(0, aabb);
         model.SetModelAABB(aabb);
@@ -776,7 +778,7 @@ void GeometryGenerator::GenerateFlatGrid(
     }
     catch (std::bad_alloc& e)
     {
-        Log::Error(e.what());
+        LogErr(e.what());
         throw EngineException("can't allocate memory for a flat grid");
     }
 }
@@ -1115,8 +1117,8 @@ void GeometryGenerator::GenerateCylinder(
     }
     catch (const std::bad_alloc& e)
     {
-        Log::Error(e.what());
-        Log::Error("can't allocate memory for some data");
+        LogErr(e.what());
+        LogErr("can't allocate memory for some data");
     }
 
 }
@@ -1377,8 +1379,8 @@ void GeometryGenerator::GenerateSkyDome(
 
     vertices[vIdx] = bottomVertex;
 
-    Log::Error("vertices count" + std::to_string(verticesCount));
-
+    sprintf(g_String, "sky dome has %d vertices", verticesCount);
+    LogErr(g_String);
 
 
     //

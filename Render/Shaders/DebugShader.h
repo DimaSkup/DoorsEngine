@@ -32,10 +32,7 @@ namespace BuffTypesDebug
 };
 
 
-//**********************************************************************************
-// Class name: DebugShader
-//**********************************************************************************
-class DebugShader final
+class DebugShader
 {
 public:
 	DebugShader();
@@ -49,8 +46,8 @@ public:
 
     bool Initialize(
         ID3D11Device* pDevice,
-        ID3D11DeviceContext* pContext,
-        const std::string& pathToShadersDir);
+        const char* vsFilePath,
+        const char* psFilePath);
 
 	void Render(
 		ID3D11DeviceContext* pContext,
@@ -62,24 +59,22 @@ public:
 	// change debug type (show normals, tangents, only diffuse map, etc.)
 	void SetDebugType(ID3D11DeviceContext* pContext, const DebugState state);
 
-	inline const std::string& GetShaderName()          const { return className_; }
+	inline const char*   GetShaderName()               const { return className_; }
 	inline ID3D11Buffer* GetConstBufferPSRareChanged() const { return cbpsRareChangedDebug_.Get(); }
 
 private:
 	void InitializeShaders(
 		ID3D11Device* pDevice,
-		ID3D11DeviceContext* pContext,
-		const std::string& vsFilename,
-		const std::string& psFilename);
+		const char* vsFilePath,
+        const char* psFilePath);
 
 private:
 	VertexShader vs_;
 	PixelShader  ps_;                       
 	SamplerState samplerState_;                                            // a sampler for texturing
+	ConstantBuffer<BuffTypesDebug::cbpsRareChanged> cbpsRareChangedDebug_; // cbps - const buffer pixel shader for rare changed stuff
 
-	ConstantBuffer<BuffTypesDebug::cbpsRareChanged> cbpsRareChangedDebug_; // for debugging
-
-	const std::string className_{ "debug_vector_shader" };
+	char className_[32]{"DebugShader"};
 };
 
 

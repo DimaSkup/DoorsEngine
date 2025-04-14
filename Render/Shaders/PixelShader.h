@@ -6,17 +6,12 @@
 ////////////////////////////////////////////////////////////////////
 #pragma once
 
-
-//////////////////////////////////
-// INCLUDES
-//////////////////////////////////
+#include <cstdint>
 #include <d3d11.h>
-#include <string>
 
 
 namespace Render
 {
-	
 
 class PixelShader
 {
@@ -26,8 +21,8 @@ public:
 
 	bool Initialize(
 		ID3D11Device* pDevice,
-		const std::string & shaderPath,
-		const std::string& funcName = "PS");
+		const char* shaderPath,
+		const char* funcName = "PS");
 
 	void Shutdown();
 

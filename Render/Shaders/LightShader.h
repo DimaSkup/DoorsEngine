@@ -1,5 +1,5 @@
 // =================================================================================
-// Filename:     LightShaderClass.h
+// Filename:     LightShader.h
 // Description:  this class is needed for rendering textured models 
 //               with simple DIFFUSE light on it using HLSL shaders.
 // Created:      09.04.23
@@ -10,30 +10,29 @@
 #include "PixelShader.h"
 #include "SamplerState.h"        // for using the ID3D11SamplerState 
 
-#include "../Common/MemHelpers.h"
-#include "../Common/MaterialLightTypes.h"
 #include "../Common/RenderTypes.h"
-
 #include <d3d11.h>
-#include <DirectXMath.h>
+
 
 namespace Render
 {
 
-
-class LightShaderClass final
+class LightShader
 {
 public:
-	LightShaderClass();
-	~LightShaderClass();
+	LightShader();
+	~LightShader();
 
 	// restrict a copying of this class instance
-	LightShaderClass(const LightShaderClass& obj) = delete;
-	LightShaderClass& operator=(const LightShaderClass& obj) = delete;
+	LightShader(const LightShader& obj) = delete;
+	LightShader& operator=(const LightShader& obj) = delete;
 
 	// ----------------------------------------------------
 
-	bool Initialize(ID3D11Device* pDevice, const std::string& pathToShadersDir);
+    bool Initialize(
+        ID3D11Device* pDevice,
+        const char* vsFilePath,
+        const char* psFilePath);
 
 	void Render(
 		ID3D11DeviceContext* pContext,
@@ -42,20 +41,20 @@ public:
 		const int numUniqueGeometry,
 		const UINT instancesBuffElemSize);
 
-	inline const std::string& GetShaderName() const { return className_; }
+	inline const char* GetShaderName() const { return className_; }
 
 private:
 	void InitializeShaders(
 		ID3D11Device* pDevice,
-		const std::string& vsFilePath,
-		const std::string& psFilePath);
+		const char* vsFilePath,
+		const char* psFilePath);
 
 private:
 	VertexShader vs_;
 	PixelShader  ps_;
 	SamplerState samplerState_;                     // a sampler for texturing
 
-	const std::string className_{ "light_shader" };
+	char className_[32]{"LightShader"};
 };
 
 

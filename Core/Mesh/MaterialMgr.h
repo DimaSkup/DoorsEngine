@@ -26,7 +26,7 @@ public:
     // getters
     Material& GetMaterialByID(const MaterialID id);
     void GetMaterialsByIDs(const MaterialID* ids, const size numMaterials, cvector<Material>& outMaterials) const;
-    MaterialID GetMaterialIdByName(const std::string name);
+    MaterialID GetMaterialIdByName(const char* name);
 
 private:
     cvector<MaterialID> ids_;

@@ -48,15 +48,10 @@ IS_CREATE_SKY_PLANE                         true
 
 IS_CREATE_TERRAIN_FROM_FILE                 false
 TERRAIN_LOAD_RAW_HEIGHT_MAP                 false
-TERRAIN_SETUP_FILE_LOAD_BMP                 data/terrain/setup_load_bmp_height_map.txt
-TERRAIN_SETUP_FILE_LOAD_RAW                 data/terrain/setup_load_raw_height_map.txt
+TERRAIN_SETUP_FILE_LOAD_BMP                 setup_load_bmp_height_map.txt
+TERRAIN_SETUP_FILE_LOAD_RAW                 setup_load_raw_height_map.txt
 
 IS_GENERATE_TERRAIN_MANUALLY                true
-TERRAIN_WIDTH                               100
-TERRAIN_DEPTH                               100
-TERRAIN_CELL_DEFAULT_DIFFUSE_TEXTURE_PATH   data/textures/dirt01d.dds
-TERRAIN_CELL_DEFAULT_NORMALS_TEXTURE_PATH   data/textures/dirt01n.dds
-
 
 CREATE_COPY_OF_DEFAULT_CUBE                 true          
 

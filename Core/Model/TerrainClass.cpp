@@ -31,15 +31,15 @@ TerrainClass::TerrainClass(ID3D11Device* pDevice, ID3D11DeviceContext* pDeviceCo
 
 TerrainClass::~TerrainClass()
 {
-	Log::Print("-------------------------------------------------");
-	Log::Print("            THE TERRAIN DESTROYMENT:             ");
-	Log::Print("-------------------------------------------------");
-	Log::Debug();
+	LogMsg("-------------------------------------------------");
+	LogMsg("            THE TERRAIN DESTROYMENT:             ");
+	LogMsg("-------------------------------------------------");
+	LogDbg();
 
 	// Shutting down of the terrain class, releasing of the memory, etc.
 	this->Shutdown();                     
 
-	Log::Print("The Terrain is destroyed");
+	LogMsg("The Terrain is destroyed");
 }
 
 
@@ -61,7 +61,7 @@ bool TerrainClass::Initialize(const std::string & filePath)
 	// the Inialize() function will just call the functions for initializing the 
 	// vertex and index buffers that will hold the terrain data
 
-	Log::Debug();
+	LogDbg();
 
 	// check that we've initialize some members of the model because we need it
 	// during initialization of the terrain
@@ -92,15 +92,15 @@ bool TerrainClass::Initialize(const std::string & filePath)
 
 		// print a message about the initialization process
 		std::string debugMsg = this->modelType_ + " is initialized!";
-		Log::Debug(debugMsg.c_str());
+		LogDbg(debugMsg.c_str());
 
 	}
 	catch (EngineException & e)
 	{
 		this->Shutdown();
 
-		Log::Error(e, false);
-		Log::Error("can't initialize the terrain");
+		LogErr(e, false);
+		LogErr("can't initialize the terrain");
 		return false;
 	}
 

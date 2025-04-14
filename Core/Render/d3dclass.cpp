@@ -5,10 +5,11 @@
 #include "d3dclass.h"
 
 #include <CoreCommon/MemHelpers.h>
-#include <CoreCommon/Assert.h>
 #include <CoreCommon/Log.h>
-#include <CoreCommon/StringHelper.h>
+#include <CoreCommon/StrHelper.h>
+#include <CoreCommon/Assert.h>
 
+#pragma warning (disable : 4996)
 
 // encourage the driver to select the discrete video adapter by default
 extern "C"
@@ -35,7 +36,7 @@ D3DClass::D3DClass()
         throw EngineException("you can't create more than only one instance of this class");
     }
 
-    Log::Debug();
+    LogDbg("D3DClass is init");
 }
 
 D3DClass::~D3DClass()
@@ -58,7 +59,7 @@ bool D3DClass::Initialize(
 {
     try
     {
-        Log::Debug();
+        LogDbg("D3DClass start of initialization");
 
         // check if we have any available IDXGI adapter
         Assert::True(adaptersReader_.GetNumAdapters() > 1, "can't find any IDXGI adapter");
@@ -85,7 +86,7 @@ bool D3DClass::Initialize(
             bool result = GetClientRect(hwnd, &clientRect);
             Assert::True(result, "can't get the client rectangle params");
         
-            wndWidth_ = clientRect.right - clientRect.left;
+            wndWidth_  = clientRect.right - clientRect.left;
             wndHeight_ = clientRect.bottom - clientRect.top;
 
             windowedModeWidth_ = wndWidth_;
@@ -111,11 +112,11 @@ bool D3DClass::Initialize(
         renderStates_.InitAll(pDevice_, enable4xMSAA);
         InitializeDepthStencil(wndWidth_, wndHeight_);
 
-        Log::Print("is initialized successfully");
+        LogMsg("is initialized successfully");
     }
     catch (EngineException& e)
     {
-        Log::Error(e, true);
+        LogErr(e, true);
         Shutdown();
         return false;
     }
@@ -155,7 +156,7 @@ void* D3DClass::operator new(size_t i)
         return ptr;
     }
     
-    Log::Error("can't allocate memory for the D3DClass object");
+    LogErr("can't allocate memory for the D3DClass object");
     throw std::bad_alloc{};
 }
 
@@ -204,9 +205,9 @@ void D3DClass::GetDeviceAndDeviceContext(
 ///////////////////////////////////////////////////////////
 
 void D3DClass::GetVideoCardInfo(
-    char* cardName, 
+    char* outCardName, 
     const int maxCardNameSize,
-    int& memorySize)
+    int& outMemorySize)
 {
     // get data about the video card
 
@@ -215,14 +216,21 @@ void D3DClass::GetVideoCardInfo(
     DXGI_ADAPTER_DESC adapterDesc = data->description_;
 
     // store the dedicated video card memory in megabytes and store its name
-    const UINT bytesInMegabyte = 1024 * 1024;
+    constexpr UINT bytesInMegabyte = 1024 * 1024;
 
-    std::string name = StringHelper::ToString(adapterDesc.Description);
-    memcpy(cardName, name.data(), name.length());
-    memorySize = static_cast<int>(adapterDesc.DedicatedVideoMemory / bytesInMegabyte);
-    
-    Log::Debug("Video card name: " + name);
-    Log::Debug("Video memory :   " + std::to_string(memorySize) + " MB");
+    StrHelper::ToStr(adapterDesc.Description, outCardName);
+    outMemorySize = (int)(adapterDesc.DedicatedVideoMemory / bytesInMegabyte);
+
+
+    // print info about GPU into the console and log file
+    char buf[128]{ '\0' };
+    LogDbg("Video card info:");
+
+    sprintf(buf, "Video card name: %s", outCardName);
+    LogDbg(buf);
+
+    sprintf(buf,  "Video memory: %d MB", outMemorySize);
+    LogDbg(buf);
 }
 
 ///////////////////////////////////////////////////////////
@@ -251,7 +259,7 @@ void D3DClass::InitializeDirectX(
 {
     try
     {
-        Log::Debug();
+        LogMsg("Start initialization of DirectX stuff");
 
         Assert::True((wndWidth & wndHeight), "wrong window dimensions");
         Assert::True(nearZ > 0, "near wnd plane must be > 0");
@@ -268,7 +276,7 @@ void D3DClass::InitializeDirectX(
     }
     catch (EngineException & e)
     {
-        Log::Error(e, true);
+        LogErr(e, true);
         throw EngineException("can't initialize DirectX stuff");
     }
 }
@@ -357,7 +365,7 @@ bool D3DClass::ResizeSwapChain(HWND hwnd, SIZE newSize)
     }
     catch (EngineException& e)
     {
-        Log::Error(e, true);
+        LogErr(e, true);
         Shutdown();
         return false;
     }
@@ -447,7 +455,7 @@ void D3DClass::InitializeRenderTargetView()
     }
     catch (EngineException & e)
     {
-        Log::Error(e, true);
+        LogErr(e, true);
         throw EngineException("can't initialize the render target view");
     }
 }
@@ -472,7 +480,7 @@ void D3DClass::InitializeDepthStencil(const UINT width, const UINT height)
     }
     catch (EngineException & e)
     {
-        Log::Error(e, true);
+        LogErr(e, true);
         throw EngineException("can't initialize some of the depth/stencil elements");
     }
 }
@@ -584,7 +592,7 @@ bool D3DClass::ToggleFullscreen(HWND hwnd, bool isFullscreen)
 {
     try
     {
-        Log::Debug("ToggleFullscreen(): " + (isFullscreen) ? "true" : "false");
+        LogDbg("ToggleFullscreen(): " + (isFullscreen) ? "true" : "false");
 
         HRESULT hr = S_OK;
 
@@ -651,8 +659,8 @@ bool D3DClass::ToggleFullscreen(HWND hwnd, bool isFullscreen)
     }
     catch (EngineException& e)
     {
-        Log::Error(e);
-        Log::Error("error during switching WINDOWED/FULL_SCREEN mode");
+        LogErr(e);
+        LogErr("error during switching WINDOWED/FULL_SCREEN mode");
         return false;
     }
 }

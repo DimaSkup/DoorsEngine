@@ -10,6 +10,8 @@
 #include <CoreCommon/Assert.h>
 #include <CoreCommon/log.h>
 
+using namespace Core;
+
 namespace UI
 {
 
@@ -26,6 +28,12 @@ void EnttSpotLightController::LoadEnttData(const EntityID id)
 {
     EnttSpotLightData& model = spotLightModel_;  // MVC model
 
+    if (pFacade_ == nullptr)
+    {
+        LogErr("ptr to facade interface == nullptr");
+        return;
+    }
+
     if (!pFacade_->GetEnttSpotLightData(
         id,
         model.ambient,
@@ -35,7 +43,8 @@ void EnttSpotLightController::LoadEnttData(const EntityID id)
         model.range,
         model.spotExp))
     {
-        Core::Log::Error("can't load data of the spotlight entity by ID: " + std::to_string(id));
+        sprintf(g_String, "can't load spotlight data of the entity by ID: %ld", id);
+        LogErr(g_String);
     }
 }
 
@@ -161,7 +170,7 @@ void EnttSpotLightController::ExecChangeAmbient(const EntityID id, const ColorRG
     }
     else
     {
-        Core::Log::Error(GenerateErrMsg(id, "ambient"));
+        LogErr(GenerateErrMsg(id, "ambient").c_str());
     }
 }
 
@@ -184,7 +193,7 @@ void EnttSpotLightController::ExecChangeDiffuse(const EntityID id, const ColorRG
     }
     else
     {
-        Core::Log::Error(GenerateErrMsg(id, "diffuse"));
+        LogErr(GenerateErrMsg(id, "diffuse").c_str());
     }
 }
 
@@ -207,7 +216,7 @@ void EnttSpotLightController::ExecChangeSpecular(const EntityID id, const ColorR
     }
     else
     {
-        Core::Log::Error(GenerateErrMsg(id, "specular"));
+        LogErr(GenerateErrMsg(id, "specular").c_str());
     }
 }
 
@@ -232,7 +241,7 @@ void EnttSpotLightController::ExecChangeDirection(const EntityID id, const Vec3&
     }
     else
     {
-        Core::Log::Error(GenerateErrMsg(id, "direction"));
+        Core::LogErr(GenerateErrMsg(id, "direction"));
     }
 }
 
@@ -265,7 +274,7 @@ void EnttSpotLightController::ExecChangeDirectionByQuat(const EntityID id, const
     }
     else
     {
-        Core::Log::Error(GenerateErrMsg(id, "direction"));
+        Core::LogErr(GenerateErrMsg(id, "direction"));
     }
 }
 #endif
@@ -291,7 +300,7 @@ void EnttSpotLightController::ExecChangeRange(const EntityID id, const float ran
     }
     else
     {
-        Core::Log::Error(GenerateErrMsg(id, "range"));
+        LogErr(GenerateErrMsg(id, "range").c_str());
     }
 }
 
@@ -337,7 +346,7 @@ void EnttSpotLightController::ExecChangeSpotExponent(const EntityID id, const fl
     }
     else
     {
-        Core::Log::Error(GenerateErrMsg(id, "spot exponent"));
+        LogErr(GenerateErrMsg(id, "spot exponent").c_str());
     }
 }
 

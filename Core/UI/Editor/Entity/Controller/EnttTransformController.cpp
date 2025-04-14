@@ -10,6 +10,7 @@
 #include <CoreCommon/Assert.h>
 #include <CoreCommon/log.h>
 
+using namespace Core;
 
 namespace UI
 {
@@ -23,7 +24,7 @@ EnttTransformController::EnttTransformController()
 void EnttTransformController::Initialize(IFacadeEngineToUI* pFacade)
 {
     // the facade interface is used to contact with the rest of the engine
-    Core::Assert::NotNullptr(pFacade, "ptr to the facade == nullptr");
+    Assert::True(pFacade != nullptr, "ptr to the facade == nullptr");
     pFacade_ = pFacade;
 }
 
@@ -51,7 +52,8 @@ void EnttTransformController::ExecuteCommand(const ICommand* pCmd, const EntityI
         }
         default:
         {
-            Core::Log::Error("Unknown command to execute: " + std::to_string(pCmd->type_));
+            sprintf(g_String, "Unknown entt transform command to execute (cmd: %d, entt_id: %ld)", pCmd->type_, id);
+            LogErr(g_String);
         }
     }
 }
@@ -79,7 +81,8 @@ void EnttTransformController::UndoCommand(const ICommand* pCmd, const EntityID i
         }
         default:
         {
-            Core::Log::Error("unknown undo command for entity (model): " + std::to_string(id));
+            sprintf(g_String, "unknown transform undo command (cmd: %d; entt_id: %ld)", pCmd->type_, id);
+            LogErr(g_String);
             return;
         }
     }
@@ -104,9 +107,7 @@ void EnttTransformController::LoadEnttData(const EntityID id)
 // Private API: commands executors
 // =================================================================================
 
-void EnttTransformController::ExecChangePosition(
-    const EntityID id,
-    const Vec3& newPos)
+void EnttTransformController::ExecChangePosition(const EntityID id, const Vec3& newPos)
 {
     // execute some command and store it into the events history
 
@@ -124,7 +125,8 @@ void EnttTransformController::ExecChangePosition(
     }
     else
     {
-        Core::Log::Error("can't change position of entt; id: " + std::to_string(id));
+        sprintf(g_String, "can't change position of entt: %ld", id);
+        LogErr(g_String);
     }
 }
 
@@ -149,7 +151,7 @@ void EnttTransformController::ExecChangeDirectionQuat(const EntityID id, const V
     }
     else
     {
-        Core::Log::Error("can't change direction of entt; id: " + std::to_string(id));
+        Core::LogErr("can't change direction of entt; id: " + std::to_string(id));
     }
 #elif 1
     Vec4 oldDirectionQuat = pFacade_->GetEnttDirectionQuat(id);
@@ -166,7 +168,8 @@ void EnttTransformController::ExecChangeDirectionQuat(const EntityID id, const V
     }
     else
     {
-        Core::Log::Error("can't change direction of entt; id: " + std::to_string(id));
+        sprintf(g_String, "can't change direction of entt: %ld", id);
+        LogErr(g_String);
     }
 
 #elif 0
@@ -189,7 +192,7 @@ void EnttTransformController::ExecChangeDirectionQuat(const EntityID id, const V
     }
     else
     {
-        Core::Log::Error("can't change direction of entt; id: " + std::to_string(id));
+        Core::LogErr("can't change direction of entt; id: " + std::to_string(id));
     }
 
 #endif
@@ -215,7 +218,8 @@ void EnttTransformController::ExecChangeUniformScale(const EntityID id, const fl
     }
     else
     {
-        Core::Log::Error("can't change scale of entt; id: " + std::to_string(id));
+        sprintf(g_String, "can't change scale of entt: %ld", id);
+        LogErr(g_String);
     }
 }
 

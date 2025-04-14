@@ -4,16 +4,17 @@
 // Created:       07.07.23
 ////////////////////////////////////////////////////////////////////
 #include "ModelImporter.h"
-#include "ModelMath.h"
+
 #include <CoreCommon/log.h>
 #include <CoreCommon/Assert.h>
+#include <CoreCommon/StrHelper.h>
+#include "ModelMath.h"
 
 #include "../Mesh/MaterialMgr.h"
 #include "../Model/ModelLoaderM3D.h"
 #include "../Texture/TextureMgr.h"
 #include "../Model/ModelImporterHelpers.h"
 
-#include <filesystem>
 #include <thread>
 #include <chrono>
 
@@ -34,26 +35,30 @@ double ModelImporter::s_SceneLoading_       = 0.0;
 // =================================================================================
 //                              PUBLIC METHODS
 // =================================================================================
-void ModelImporter::LoadFromFile(
+bool ModelImporter::LoadFromFile(
     ID3D11Device* pDevice,
     BasicModel& model,
-    const std::string& filePath)
+    const char* filePath)
 {
     // this function initializes a new model from the file 
     // of type .blend, .fbx, .3ds, .obj, .m3d, etc.
 
+    if ((filePath == nullptr) || (filePath[0] == '\0'))
+    {
+        LogErr("can't load file: input path is empty!");
+        return false;
+    }
+
+    // compute duration of importing process
     auto start = std::chrono::steady_clock::now();
-
-    fs::path path = filePath;
-
-    Assert::True(fs::exists(path), "there is no file by path: " + filePath);
 
     try
     {
-        fs::path ext = path.extension();
+        char fileExt[8];
+        StrHelper::GetFileExt(filePath, fileExt);
 
-        // define if we want to load a .m3d file
-        if (ext == L".m3d")
+        // define if we want to load (import) .m3d file
+        if (strcmp(fileExt, "m3d") == 0)
         {
             assert(0 && "FIXME: can't import .m3d format");
 #if 0
@@ -78,12 +83,19 @@ void ModelImporter::LoadFromFile(
             aiProcess_Triangulate |
             aiProcess_ConvertToLeftHanded);
 
-        // assert that we successfully read the data file 
-        Assert::NotNullptr(pScene, "can't read a model's data file: " + filePath);
+        // assert that we successfully read the data file
+        if (pScene == nullptr)
+        {
+            sprintf(g_String, "can't read a model's data from file: %s", filePath);
+            LogErr(g_String);
+            return false;
+        }
 
+        // compute duration of the scene loading
         auto sceneEnd = std::chrono::steady_clock::now();
         std::chrono::duration<double, std::milli> sceneElapsed = sceneEnd - sceneStart;
         ModelImporter::s_SceneLoading_ += sceneElapsed.count();
+
 
         // compute how many vertices/indices/materials/subsets this model has
         ComputeNumOfData(model, pScene->mRootNode, pScene);
@@ -92,7 +104,6 @@ void ModelImporter::LoadFromFile(
         model.AllocateMemory(model.numVertices_, model.numIndices_, model.numSubsets_);
 
         int subsetIdx = 0;
-
         auto nodeStart = std::chrono::steady_clock::now();
 
         // load all the meshes/materials/textures/etc.
@@ -118,13 +129,17 @@ void ModelImporter::LoadFromFile(
 
         ModelImporter::s_ImportDuration_ += elapsed.count();
 
+        sprintf(g_String, "Model is loaded from file: %s", filePath);
+        LogDbg(g_String);
 
-        Log::Debug("Asset is loaded from file: " + filePath);
+        return true;
     }
     catch (EngineException& e)
     {
-        Log::Error(e, true);
-        throw EngineException("can't initialize a model from the file: " + filePath);
+        LogErr(e, true);
+        sprintf(g_String, "can't import a model from the file: %s", filePath);
+        LogErr(g_String);
+        return false;
     }
 }
 
@@ -164,7 +179,7 @@ void ModelImporter::ProcessNode(
     const aiNode* pNode,
     const aiScene* pScene,
     const DirectX::XMMATRIX& parentTransformMatrix,  // a matrix which is used to transform position of this mesh to the proper location
-    const std::string& filePath)                     // full path to the model
+    const char* filePath)                            // full path to the model
 {
     //
     // this function goes through each node of the scene's tree structure
@@ -216,7 +231,7 @@ void ModelImporter::ProcessMesh(
     const aiMesh* pMesh,                                    // the current mesh of the model
     const aiScene* pScene,                            // a ptr to the scene of this model type
     const DirectX::XMMATRIX& transformMatrix,        // a matrix which is used to transform position of this mesh to the proper location
-    const std::string& filePath)                      // full path to the model
+    const char* filePath)                      // full path to the model
 {
     
     MeshGeometry::Subset& subset = model.meshes_.subsets_[subsetIdx];
@@ -242,8 +257,9 @@ void ModelImporter::ProcessMesh(
     }
     catch (EngineException& e)
     {
-        Log::Error(e);
-        Log::Error(std::format("can't import a mesh \"{}\" from file: {}", subset.name, filePath));
+        LogErr(e);
+        sprintf(g_String, "can't import a mesh \"%s\" for a model from file: %s", subset.name, filePath);
+        throw EngineException(g_String);
     }
 }
 
@@ -285,7 +301,7 @@ void ModelImporter::LoadMaterialTextures(
     const aiMaterial* pMaterial,
     const MeshGeometry::Subset& subset,
     const aiScene* pScene,
-    const std::string& filePath)
+    const char* filePath)
 {
     //
     // load all the available textures for this mesh by its material data
@@ -307,10 +323,7 @@ void ModelImporter::LoadMaterialTextures(
         }
     }
 
-    // get path to the directory which contains a model's data file
-    const fs::path fullPath = filePath;
-    const fs::path modelDirPath = fullPath.parent_path();
-    const std::string parentPath = modelDirPath.string() + "/";
+  
 
     std::pair<aiTextureType, std::string> texTypeToPath[22];
     int numTexLoadFromFile = 0;
@@ -345,7 +358,12 @@ void ModelImporter::LoadMaterialTextures(
             case TexStoreType::Disk:
             {
                 // make and store a pair [texture_type => texture_filepath]
-                texTypeToPath[numTexLoadFromFile] = { type, std::string(parentPath + path.C_Str()) };
+                 // get path to the directory which contains a model's data file
+                char texturePath[256]{ '\0' };
+                StrHelper::GetParentPath(filePath, g_String);
+                sprintf(texturePath, "%s%s", g_String, path.C_Str());
+
+                texTypeToPath[numTexLoadFromFile] = { type, texturePath };
                 numTexLoadFromFile++;
 
                 break;
@@ -354,14 +372,15 @@ void ModelImporter::LoadMaterialTextures(
             // load an embedded compressed texture
             case TexStoreType::EmbeddedCompressed:
             {
-                const fs::path texPath = path.C_Str();
                 const aiTexture* pAiTexture = pScene->GetEmbeddedTexture(path.C_Str());
-                const std::string texName = texPath.stem().string();
+
+                char textureName[64]{ '\0' };
+                StrHelper::GetFileName(path.C_Str(), textureName);
 
                 // add into the tex mgr a new texture
-                const TexID id = g_TextureMgr.Add(texName, Texture(
+                const TexID id = g_TextureMgr.Add(textureName, Texture(
                     pDevice,
-                    texName,
+                    textureName,
                     (uint8_t*)(pAiTexture->pcData),         // data of texture
                     pAiTexture->mWidth));                  // size of texture);
 
@@ -373,14 +392,14 @@ void ModelImporter::LoadMaterialTextures(
             // load an embedded indexed compressed texture
             case TexStoreType::EmbeddedIndexCompressed:
             {
-                const fs::path texPath = path.C_Str();
                 const UINT index = GetIndexOfEmbeddedCompressedTexture(&path);
-                const std::string texName = texPath.stem().string();
+                char textureName[64]{ '\0' };
+                StrHelper::GetFileName(path.C_Str(), textureName);
 
                 // add into the tex mgr a new texture
-                const TexID id = g_TextureMgr.Add(texName, Texture(
+                const TexID id = g_TextureMgr.Add(textureName, Texture(
                     pDevice,
-                    texName,
+                    textureName,
                     (uint8_t*)(pScene->mTextures[index]->pcData),   // data of texture
                     pScene->mTextures[index]->mWidth));             // size of texture
 
@@ -395,12 +414,9 @@ void ModelImporter::LoadMaterialTextures(
 
 
     // load textures from files
-    for (int i = 0; i < numTexLoadFromFile; ++i)
+    for (const auto& [type, path] : texTypeToPath)
     {
-        const aiTextureType type = texTypeToPath[i].first;
-        const std::string& path = texTypeToPath[i].second;
-
-        texIDs[type] = g_TextureMgr.LoadFromFile(path);
+        texIDs[type] = g_TextureMgr.LoadFromFile(path.c_str());
     }
 
     // compute the duration of textures loading for this model

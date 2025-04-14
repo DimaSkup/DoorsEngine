@@ -29,7 +29,7 @@
 #include "../Camera/Camera.h"
 
 // render stuff
-#include "Render.h"
+#include "CRender.h"
 #include "InitializeGraphics.h"        // for initialization of the graphics
 #include "FrameBuffer.h"      // for rendering to some particular texture
 
@@ -45,7 +45,7 @@
 namespace Core
 {
 
-class GraphicsClass final
+class CGraphics
 {
 public:
     enum AABBShowMode
@@ -56,25 +56,37 @@ public:
     };
 
 public:
-    GraphicsClass();
-    ~GraphicsClass();
+    CGraphics();
+    ~CGraphics();
 
     // restrict a copying of this class instance
-    GraphicsClass(const GraphicsClass& obj) = delete;
-    GraphicsClass& operator=(const GraphicsClass& obj) = delete;
+    CGraphics(const CGraphics& obj) = delete;
+    CGraphics& operator=(const CGraphics& obj) = delete;
 
-    // main functions
-    bool Initialize(HWND hwnd, SystemState& sysState, const Settings& settings);
+
+    bool Initialize(
+        HWND hwnd,
+        SystemState& sysState,
+        const Settings& settings,
+        ECS::EntityMgr* pEnttMgr,
+        Render::CRender* pRender);
+
     void Shutdown();
-    void Update(SystemState& sysState, const float dt, const float totalGameTime);
+
+    void Update(
+        SystemState& sysState,
+        const float dt,
+        const float totalGameTime,
+        ECS::EntityMgr* pEnttMgr,
+        Render::CRender* pRender);
 
     // ------------------------------------
     // render related methods
 
-    void ComputeFrustumCulling(SystemState& sysState);
-    void ComputeFrustumCullingOfLightSources(SystemState& sysState);
-    void ClearRenderingDataBeforeFrame();
-    void Render3D();
+    void ComputeFrustumCulling(SystemState& sysState, ECS::EntityMgr* pEnttMgr);
+    void ComputeFrustumCullingOfLightSources(SystemState& sysState, ECS::EntityMgr* pEnttMgr);
+    void ClearRenderingDataBeforeFrame(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender);
+    void Render3D(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender);
     void RenderModel(BasicModel& model, const DirectX::XMMATRIX& world);
 
     // ----------------------------------
@@ -92,7 +104,6 @@ public:
     inline D3DClass&       GetD3DClass()                      { return d3d_; }
     inline Camera&         GetEditorCamera()                  { return editorCamera_; }
     inline Camera&         GetGameCamera()                    { return gameCamera_; }
-    inline Render::Render& GetRender()                        { return render_; }
 
     // matrices getters
     inline const DirectX::XMMATRIX& GetWorldMatrix()    const { return worldMatrix_; }
@@ -106,7 +117,7 @@ public:
     void operator delete(void* ptr);
 
     // check if we have any entity by these coords of the screen
-    int TestEnttSelection(const int sx, const int sy);
+    int TestEnttSelection(const int sx, const int sy, ECS::EntityMgr* pEnttMgr);
 
     void UpdateCameraEntity(
         const std::string& cameraEnttName,
@@ -114,45 +125,60 @@ public:
         const DirectX::XMMATRIX& proj);
 
 private:
-    bool InitHelper(HWND hwnd, SystemState& systemState, const Settings& settings);
-    void UpdateHelper(SystemState& sysState, const float deltaTime, const float gameTime);
-    void RenderHelper();
+    bool InitHelper(
+        HWND hwnd,
+        SystemState& systemState,
+        const Settings& settings,
+        ECS::EntityMgr* pEnttMgr,
+        Render::CRender* pRender);
 
-    // private updating API
-    void UpdateShadersDataPerFrame();
+    void InitRenderModule(
+        const Settings& settings,
+        Render::CRender* pRender);
+
+    void UpdateHelper(
+        SystemState& sysState,
+        const float deltaTime,
+        const float gameTime,
+        ECS::EntityMgr* pEnttMgr,
+        Render::CRender* pRender);
+
+    void RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender);
+
+    void UpdateShadersDataPerFrame(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender);
 
     // ------------------------------------------
     // rendering data prepararion stage API
 
-    void PrepBasicInstancesForRender(const EntityID* ids, const size numEntts);
-    void PrepAlphaClippedInstancesForRender(const EntityID* ids, const size numEntts);
-    void PrepBlendedInstancesForRender(const EntityID* ids, const size numEntts);
+    void PrepBasicInstancesForRender        (ECS::EntityMgr* pEnttMgr, Render::CRender* pRender);
+    void PrepAlphaClippedInstancesForRender (ECS::EntityMgr* pEnttMgr, Render::CRender* pRender);
+    void PrepBlendedInstancesForRender      (ECS::EntityMgr* pEnttMgr, Render::CRender* pRender);
 
     // ------------------------------------------
 
-    void RenderEnttsDefault();
-    void RenderEnttsAlphaClipCullNone();
-    void RenderEnttsBlended();
-    void RenderBillboards();
+    void RenderEnttsDefault          (Render::CRender* pRender);
+    void RenderEnttsAlphaClipCullNone(Render::CRender* pRender);
+    void RenderEnttsBlended          (Render::CRender* pRender);
+    void RenderFoggedBillboards      (Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);
 
     // ------------------------------------------
 
     // render bounding boxes of models/meshes/light_sources/etc.
-    void RenderBoundingLineBoxes();
+    void RenderBoundingLineBoxes(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);
     void RenderBoundingLineSpheres();
-    void RenderSkyDome();
+    void RenderSkyDome(Render::CRender* pRender, const DirectX::XMFLOAT3& skyOffset);
 
+#if 0
     void UpdateInstanceBuffAndRenderInstances(
         ID3D11DeviceContext* pDeviceContext,
         const Render::ShaderTypes type,
         const Render::InstBuffData& instanceBuffData,
         const std::vector<Render::Instance>& instances);
+#endif
 
     // ------------------------------------------
 
-    void SetupLightsForFrame(
-        const ECS::LightSystem& lightSys,
-        Render::PerFrameData& perFrameData);
+    void SetupLightsForFrame(ECS::EntityMgr* pEnttMgr, Render::PerFrameData& perFrameData);
 
 public:
     DirectX::XMMATRIX WVO_            = DirectX::XMMatrixIdentity();  // main_world * baseView * ortho
@@ -171,13 +197,10 @@ public:
     ID3D11DeviceContext*  pDeviceContext_ = nullptr;
     SystemState*          pSysState_ = nullptr;                       // we got this ptr during init
 
-    ECS::EntityMgr        entityMgr_;
-
-
     std::vector<DirectX::BoundingFrustum> frustums_;
 
     D3DClass              d3d_;
-    Render::Render        render_;                                // rendering module
+    
     RenderDataPreparator  prep_;
     
     Camera*               pCurrCamera_ = nullptr;                 // a currently chosen camera

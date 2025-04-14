@@ -53,22 +53,18 @@ public:
     Texture& operator=(const Texture&) = delete;
 
     // a constructor for loading textures from the disk
-    Texture(
-        ID3D11Device* pDevice,
-        const std::string & filePath);	
+    Texture(ID3D11Device* pDevice, const char* filePath);	
 
     // a constructor for loading multiple textures to create a Texture2DArray
     Texture(
         ID3D11Device* pDevice,
-        const std::string& name,            // a name for this texture object
+        const char* name,            // a name for this texture object
         const std::string* texturesNames,
         const size numTextures,
         const DXGI_FORMAT format);
 
     // make 1x1 texture with single color
-    Texture(
-        ID3D11Device* pDevice, 
-        const Color& color);
+    Texture(ID3D11Device* pDevice, const Color& color);
 
     // make width_x_height texture with color data
     Texture(
@@ -80,7 +76,7 @@ public:
     // a constructor for loading embedded compressed textures 
     Texture(
         ID3D11Device* pDevice,
-        const std::string& name,
+        const char* name,
         const uint8_t* pData,
         const size_t size);
 
@@ -103,8 +99,7 @@ public:
 
     POINT GetTextureSize();
 
-    // set where to store this texture if it was generated
-    inline void SetPath(const std::string& newPath) { name_ = newPath; } 
+    inline void SetName(const std::string& newPath) { name_ = newPath; } 
 
     // --------------------------------------------------------------------------------
 
@@ -113,7 +108,7 @@ private:
 
     void LoadFromFile(
         ID3D11Device* pDevice, 
-        const std::string & filePath);
+        const char* filePath);
 
     void Initialize1x1ColorTexture(
         ID3D11Device* pDevice, 

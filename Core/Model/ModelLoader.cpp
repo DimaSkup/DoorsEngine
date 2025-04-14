@@ -9,6 +9,9 @@
 #include <CoreCommon/log.h>
 #include "../Texture/TextureMgr.h"
 
+#include <fstream>
+#include <filesystem>
+
 namespace fs = std::filesystem;
 
 
@@ -19,18 +22,24 @@ namespace Core
 // Public API
 // =================================================================================
 
-void ModelLoader::Load(
-	const std::string& assetFilepath,  // path to model relatively to the "assets" folder
-	BasicModel& model)
+bool ModelLoader::Load(const char* modelFilePath, BasicModel& outModel)
 {
-	// read in all data from the .de3d file and
-	// fill in the input model with this data
+	// read in all data from the .de3d file and fill in the input model with this data;
+    //
+    // input:  modelFilePath -- path to model relatively to the "assets" folder
+    // output: outModel      -- a model object filled with loaded data
 
-	const fs::path path     = g_RelPathAssetsDir + assetFilepath;
-	const fs::path modelDir = path.parent_path();
+    char modelPath[256]{ '\0' };
+    sprintf(modelPath, "%s%s", g_RelPathAssetsDir, modelFilePath);
 
-	std::ifstream fin(path, std::ios::in | std::ios::binary);
-	Assert::True(fin.is_open(), "can't open .de3d file: " + path.string());
+	
+	std::ifstream fin(modelPath, std::ios::in | std::ios::binary);
+    if (!fin)
+    {
+        sprintf(g_String, "can't open .de3d file for loading: %s", modelPath);
+        LogErr(g_String);
+        return false;
+    }
 
 	// ---------------------------------------------
 
@@ -38,31 +47,36 @@ void ModelLoader::Load(
 	
 	try
 	{
-		ReadHeader(fin, model);
+		ReadHeader(fin, outModel);
 
 		// allocate memory for the model and some temp data
-		model.AllocateMemory(model.numVertices_, model.numIndices_, model.numSubsets_);
+        outModel.AllocateMemory(outModel.numVertices_, outModel.numIndices_, outModel.numSubsets_);
 
-		matParams = new M3dMaterial[model.numSubsets_];
+		matParams = new M3dMaterial[outModel.numSubsets_];
 
 		//ReadMaterials(fin, model.numSubsets_, model.materials_, matParams);
-		ReadSubsetTable(fin, model.numSubsets_, model.GetSubsets());
-		ReadModelSubsetsAABB(fin, model.numSubsets_, model.modelAABB_, model.subsetsAABB_);
+		ReadSubsetTable(fin, outModel.numSubsets_, outModel.GetSubsets());
+		ReadModelSubsetsAABB(fin, outModel.numSubsets_, outModel.modelAABB_, outModel.subsetsAABB_);
 
-		ReadVertices(fin, model.numVertices_, model.vertices_);
-		ReadIndices(fin, model.numIndices_, model.indices_);
+		ReadVertices(fin, outModel.numVertices_, outModel.vertices_);
+		ReadIndices(fin, outModel.numIndices_, outModel.indices_);
 
 		// bind textures to the model, etc.
-		SetupSubsets(model, matParams, modelDir.string());
+        const std::string modelDir = fs::path(modelPath).parent_path().string();
+		SetupSubsets(outModel, matParams, modelDir.c_str());
 
 		SafeDeleteArr(matParams);
+
+        return true;
 	}
 	catch (std::bad_alloc& e)
 	{
-		Log::Error(e.what());
-		Log::Error("can't allocate memory for model's data");
-		model.~BasicModel();
+        fin.close();
+		LogErr(e.what());
+		LogErr("can't allocate memory for model's data");
+		outModel.Shutdown();
 		SafeDeleteArr(matParams);
+        return false;
 	}
 }
 
@@ -70,7 +84,6 @@ void ModelLoader::Load(
 // =================================================================================
 // Private API
 // =================================================================================
-
 void ModelLoader::ReadHeader(std::ifstream& fin, BasicModel& model)
 {
 	std::string ignore;
@@ -152,17 +165,9 @@ void ModelLoader::ReadMaterials(
 void ModelLoader::SetupSubsets(
 	BasicModel& model,
 	const M3dMaterial* matParams,
-	const std::string& modelDirPath)
+	const char* modelDirPath)
 {
 	// load textures for each subset (mesh) and make some other setup
-
-	const std::string texDirPath = modelDirPath + "/textures/";
-	MeshGeometry::Subset* subsets = model.GetSubsets();
-
-
-	// setup alpha clipping for each subset
-	//for (int i = 0; i < model.numSubsets_; ++i)
-	//	subsets[i].alphaClip = matParams[i].alphaClip_;
 
 	// load textures for each subset (mesh)
 	for (int i = 0; i < model.numSubsets_; ++i)
@@ -171,10 +176,11 @@ void ModelLoader::SetupSubsets(
 
 		for (int j = 0; j < params.numTextures_; ++j)
 		{
-			const std::string fullPathToTex = texDirPath + params.texPaths[j];
-			const TexID texID = g_TextureMgr.LoadFromFile(fullPathToTex);
+            // generate full path to texture...
+            sprintf(g_String, "%s%s%s", modelDirPath, "/textures/", params.texPaths[j].c_str());
 
-			//model.SetTexture(i, eTexType(stoi(params.texTypes[j])), texID);
+            // ...and load it
+			const TexID texID = g_TextureMgr.LoadFromFile(g_String);
 		}
 	}
 }

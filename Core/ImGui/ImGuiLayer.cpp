@@ -6,16 +6,18 @@
 // =================================================================================
 #include "ImGuiLayer.h"
 
+#include <CoreCommon/log.h>
 #include <CoreCommon/FileSystemPaths.h>
-#include <CoreCommon/Assert.h>
 
 #include <backends/imgui_impl_win32.h>
 #include <backends/imgui_impl_dx11.h>
-#include <ImGuizmo.h>
 
+#include <ImGuizmo.h>
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <filesystem>
+
+#pragma warning (disable : 4996)
 
 namespace fs = std::filesystem;
 
@@ -27,7 +29,9 @@ ImGuiLayer::ImGuiLayer()
 {
 }
 
-void ImGuiLayer::Initialize(
+///////////////////////////////////////////////////////////
+
+bool ImGuiLayer::Initialize(
     HWND hwnd,
     ID3D11Device* pDevice,
     ID3D11DeviceContext* pContext)
@@ -42,14 +46,19 @@ void ImGuiLayer::Initialize(
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
     // setup fonts
-    const std::string defaultFont = g_RelPathUIDataDir + "arial.ttf";
+    char defaultFontPath[64]{ '\0' };
+    sprintf(defaultFontPath, "%s%s", g_RelPathUIDataDir, "arial.ttf");
 
     // check if such font file exists
-    const bool exist = fs::exists(defaultFont);
-    Assert::True(exist, "there is no such font file: " + defaultFont);
+    if (!fs::exists(defaultFontPath))
+    {
+        sprintf(g_String, "there is no font file: %s", defaultFontPath);
+        LogErr(g_String);
+        return false;
+    }
 
-    io.Fonts->AddFontFromFileTTF(defaultFont.c_str(), 16.0f);
-    io.FontDefault = io.Fonts->AddFontFromFileTTF(defaultFont.c_str(), 16.0f);
+    io.Fonts->AddFontFromFileTTF(defaultFontPath, 16.0f);
+    io.FontDefault = io.Fonts->AddFontFromFileTTF(defaultFontPath, 16.0f);
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
@@ -90,6 +99,8 @@ void ImGuiLayer::Initialize(
 
     pViewport->Size = wndSize;
     pViewport->WorkSize = wndSize;
+
+    return true;
 }
 
 ///////////////////////////////////////////////////////////

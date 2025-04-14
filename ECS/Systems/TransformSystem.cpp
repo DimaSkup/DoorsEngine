@@ -312,7 +312,9 @@ bool TransformSystem::RotateWorldByQuat(const EntityID id, const XMVECTOR& quat)
 
     if (idx == -1)
     {
-        Log::Error("there is no transformation for entity by ID: " + std::to_string(id));
+        char buf[64];
+        sprintf(buf, "there is no transformation for entity by ID: %ud", id);
+        LogErr(buf);
         return false;
     }
 
@@ -455,7 +457,9 @@ void TransformSystem::SetTransformByID(
 
     if (idx == -1)
     {
-        Log::Error("there is no entity by ID: " + std::to_string(id));
+        char buf[64];
+        sprintf(buf, "there is no entity by ID: %ud", id);
+        LogErr(buf);
         return;
     }
 

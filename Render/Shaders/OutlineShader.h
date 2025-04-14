@@ -8,12 +8,11 @@
 
 #include "VertexShader.h"
 #include "PixelShader.h"
-
 #include "../Common/RenderTypes.h"
+
 
 namespace Render
 {
-
 
 class OutlineShader
 {
@@ -29,7 +28,8 @@ public:
 
 	bool Initialize(
 		ID3D11Device* pDevice,
-		const std::string& pathToShadersDir);
+        const char* vsFilePath,
+        const char* psFilePath);
 
 	void Render(
 		ID3D11DeviceContext* pContext,
@@ -38,19 +38,18 @@ public:
 		const int numInstances,
 		const UINT instancesBuffElemSize);
 
-	inline const std::string& GetShaderName() const { return className_; }
+	inline const char* GetShaderName() const { return className_; }
 
 private:
-	void InitializeShaders(
-		ID3D11Device* pDevice,
-		const std::string& vsFilePath,
-		const std::string& psFilePath);
+    void InitializeShaders(
+        ID3D11Device* pDevice,
+        const char* vsFilePath,
+        const char* psFilePath);
 
 private:
 	VertexShader vs_;
 	PixelShader  ps_;
-
-	const std::string className_{ "outline_shader" };
+	char className_[32]{"OutlineShader"};
 };
 
 

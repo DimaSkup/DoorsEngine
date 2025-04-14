@@ -5,10 +5,9 @@
 #include "TextStore.h"
 
 #include <CoreCommon/Log.h>
-//#include <algorithm>
 #include <stdexcept>
 
-//using namespace Core;
+using namespace Core;
 
 namespace UI
 {
@@ -22,7 +21,7 @@ TextStore::TextStore()
 
 TextStore::~TextStore() 
 {
-    Core::Log::Debug(); 
+    Core::LogDbg("");
 }
 
 
@@ -78,8 +77,11 @@ SentenceID TextStore::CreateConstSentence(
     }
     catch (Core::EngineException& e)
     {
-        Core::Log::Error(e, false);
-        throw Core::EngineException("can't create a sentence with the text: " + textContent);
+        LogErr(e, false);
+        sprintf(g_String, "can't create a sentence with the text: %s", textContent.c_str());
+        LogErr(g_String);
+
+        return 0;
     }
 }
 
@@ -135,8 +137,10 @@ SentenceID TextStore::CreateSentence(
     }
     catch (Core::EngineException & e)
     {
-        Core::Log::Error(e, false);
-        throw Core::EngineException("can't create a sentence with the text: " + textContent);
+        LogErr(e, false);
+        sprintf(g_String, "can't create a sentence with the text: ", textContent.c_str());
+        LogErr(g_String);
+        return 0;
     }
 }
 
@@ -149,7 +153,10 @@ void TextStore::SetKeyByID(const std::string& key, const SentenceID id)
     const auto result = keyToID_.insert({ key, id });
 
     if (!result.second)
-        Core::Log::Error("can't set a key (" + key + ") by id (" + std::to_string(id));
+    {
+        sprintf(g_String, "can't set a key (%s) by sentence ID (%ud)", key.c_str(), id);
+        LogErr(g_String);
+    }
 }
 
 ///////////////////////////////////////////////////////////
@@ -184,7 +191,7 @@ void TextStore::GetRenderingData(
     }
     catch (Core::EngineException & e)
     {
-        Core::Log::Error(e);
+        Core::LogErr(e);
         throw Core::EngineException("can't render the sentence");
     }
 }
@@ -271,13 +278,13 @@ void TextStore::Update(
     }
     catch (const std::out_of_range& e)
     {
-        Core::Log::Error(e.what());
-        Core::Log::Error("can't find an dynamic sentences of UI");
+        Core::LogErr(e.what());
+        Core::LogErr("can't find an dynamic sentences of UI");
     }
     catch (Core::EngineException& e)
     {
-        Core::Log::Error(e);
-        Core::Log::Error("failed to update the text vertex buffer with new data");
+        Core::LogErr(e);
+        Core::LogErr("failed to update the text vertex buffer with new data");
         throw Core::EngineException("can't update the sentence");
     }
 }
@@ -317,8 +324,9 @@ void TextStore::BuildTextVerticesIndices(
     }
     catch (Core::EngineException & e)
     {
-        Core::Log::Error(e);
-        throw Core::EngineException("can't build buffers for the sentence: " + textContent);
+        LogErr(e);
+        sprintf(g_String, "can't build buffers for the sentence: %s", textContent.c_str());
+        LogErr(g_String);
     }
 }
 

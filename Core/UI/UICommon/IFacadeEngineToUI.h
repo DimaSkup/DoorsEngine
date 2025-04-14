@@ -60,6 +60,9 @@ enum eEnttComponentType : uint8_t
 class IFacadeEngineToUI
 {
 public:
+    ID3D11ShaderResourceView* pFrameBufTexSRV_ = nullptr;
+
+
     virtual ~IFacadeEngineToUI() {};
 
 
@@ -71,7 +74,7 @@ public:
     // =============================================================================
     virtual void GetCameraViewAndProj(const EntityID camEnttID, float* view, float* proj) { assert(0 && "TODO: implement this virtual method in children"); }
     virtual void FocusCameraOnEntity(const EntityID id) { assert(0 && "TODO: implement this virtual method in children"); }
-
+    
 
     // =============================================================================
     // common methods for entity editor
@@ -231,7 +234,7 @@ public:
     // =============================================================================
     // for assets: models/textures/sounds/etc.
     // =============================================================================
-    virtual bool GetAssetsNamesList(cvector<std::string>& names) { return false; }
+    virtual bool GetModelsNamesList(cvector<std::string>& names) { return false; }
 
     virtual bool GetShaderResourceViewByTexID(const TexID textureID, SRV*& pSRV) { return false; }
     virtual bool GetArrShaderResourceViews(SRV**& outArrShadersResourceViews, size& outNumViews)  const { return false; }
@@ -241,6 +244,12 @@ public:
         const EntityID enttID,
         const SubsetID subsetID,
         const MaterialID matID) { return false; }
+
+    virtual bool RenderMaterialsIcons(
+        ID3D11ShaderResourceView** outArrShaderResourceViews,
+        const size numShaderResourceViews,
+        const int iconWidth,
+        const int iconHeight) { return false; }
 
 
 private:

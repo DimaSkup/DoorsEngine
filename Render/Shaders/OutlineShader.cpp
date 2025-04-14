@@ -5,41 +5,41 @@
 // Created:      07.02.25  by DimaSkup
 // =================================================================================
 #include "OutlineShader.h"
-
-#include "../Common/Assert.h"
 #include "../Common/Log.h"
+
+#pragma warning (disable : 4996)
+
 
 namespace Render
 {
 
-OutlineShader::OutlineShader() : className_ { __func__ }
+OutlineShader::OutlineShader()
 {
+    strcpy(className_, __func__);
 }
 
 OutlineShader::~OutlineShader()
 {
 }
 
-
 // =================================================================================
 //                             public methods                                       
 // =================================================================================
-
-bool OutlineShader::Initialize(ID3D11Device* pDevice, const std::string& pathToShadersDir)
+bool OutlineShader::Initialize(
+    ID3D11Device* pDevice,
+    const char* vsFilePath,
+    const char* psFilePath)
 {
 	try
 	{
-		InitializeShaders(
-			pDevice,
-			pathToShadersDir + "OutlineVS.cso",
-			pathToShadersDir + "OutlinePS.cso");
-
+        InitializeShaders(pDevice, vsFilePath, psFilePath);
+        LogDbg("is initialized");
 		return true;
 	}
 	catch (LIB_Exception& e)
 	{
-		Log::Error(e, true);
-		Log::Error("can't initialize the outline shader class");
+		LogErr(e, true);
+		LogErr("can't initialize the outline shader class");
 		return false;
 	}
 }
@@ -88,23 +88,19 @@ void OutlineShader::Render(
 	}
 }
 
-
-
 // =================================================================================
 //                              private methods                                       
 // =================================================================================
-
 void OutlineShader::InitializeShaders(
 	ID3D11Device* pDevice,
-	const std::string& vsFilePath,
-	const std::string& psFilePath)
+    const char* vsFilePath,
+    const char* psFilePath)
 {
 	//
 	// helps to initialize the HLSL shaders, layout, etc.
 	//
 
 	bool result = false;
-	const UINT layoutElemNum = 10;
 
 	const D3D11_INPUT_ELEMENT_DESC inputLayoutDesc[] =
 	{
@@ -124,8 +120,7 @@ void OutlineShader::InitializeShaders(
 		{"WORLD_INV_TRANSPOSE", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 112, D3D11_INPUT_PER_INSTANCE_DATA, 1},
 	};
 
-	// check yourself
-	Assert::True(layoutElemNum == ARRAYSIZE(inputLayoutDesc), "layout elems num != layout desc arr size");
+    const UINT layoutElemNum = sizeof(inputLayoutDesc) / sizeof(D3D11_INPUT_ELEMENT_DESC);
 
 	// initialize: VS, PS
 	result = vs_.Initialize(pDevice, vsFilePath, inputLayoutDesc, layoutElemNum);

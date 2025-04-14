@@ -1,64 +1,69 @@
 // =================================================================================
 // Filename:    Log.h
-// Description: there is a log system header
+// Description: just logger
 // =================================================================================
 #pragma once
 
+//#define WIN32_LEAN_AND_MEAN
+//#include <windows.h>
+
+#include <source_location>
 #include "LIB_Exception.h"
 
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-
-#include <string>
-#include <source_location>
-#include <list>
-
+#pragma warning (disable : 4996)
 
 namespace ImgReader
 {
 
-enum ConsoleColor
-{
-	// text color with a black background
-	GREEN = 0x000A,
-	WHITE = 0x0007,
-	RED = 0x0004,
-	YELLOW = 0x000E,
-};
+// macros to setup console color
+#define RESET       "\033[0m"
+#define BLACK       "\033[30m"              /* Black */
+#define RED         "\033[31m"              /* Red */
+#define GREEN       "\033[32m"              /* Green */
+#define YELLOW      "\033[33m"              /* Yellow */
+#define BLUE        "\033[34m"              /* Blue */
+#define MAGENTA     "\033[35m"              /* Magenta */
+#define CYAN        "\033[36m"              /* Cyan */
+#define WHITE       "\033[37m"              /* White */
+#define BOLDBLACK   "\033[1m\033[30m"       /* Bold Black */
+#define BOLDRED     "\033[1m\033[31m"       /* Bold Red */
+#define BOLDGREEN   "\033[1m\033[32m"       /* Bold Green */
+#define BOLDYELLOW  "\033[1m\033[33m"       /* Bold Yellow */
+#define BOLDBLUE    "\033[1m\033[34m"       /* Bold Blue */
+#define BOLDMAGENTA "\033[1m\033[35m"       /* Bold Magenta */
+#define BOLDCYAN    "\033[1m\033[36m"       /* Bold Cyan */
+#define BOLDWHITE   "\033[1m\033[37m"       /* Bold White */;
 
-class Log
-{
-private:
-	Log();
-	~Log();
+///////////////////////////////////////////////////////////
 
-public:
-	static void Setup(FILE* pFile, std::list<std::string>* pMsgsList);
+// macros for printing info about ther caller function
+#define LOG_MSG "%s%s() (line: %d): %s%s",      GREEN, __FILE__, __func__, __LINE__, RESET
+#define LOG_ERR "%sERROR: %s() (line: %d): %s%s", RED, __FILE__, __func__, __LINE__, RESET
+#define LOG_DBG "DEBUG: %s() (line: %d): %s",          __FILE__, __func__, __LINE__
 
-	static void Print();
-	static void Print(const std::string& msg, ConsoleColor attr);
-	static void Print(const std::string& msg, const std::source_location& location = std::source_location::current());
+///////////////////////////////////////////////////////////
 
-	static void Debug(const std::source_location& location = std::source_location::current());
-	static void Debug(const std::string& msg, const std::source_location& location = std::source_location::current());
+extern char g_String[256];
 
-	static void Error(const std::string& msg, const std::source_location& location = std::source_location::current());
-	static void Error(LIB_Exception* pException, bool showMsgBox = false);
-	static void Error(LIB_Exception& exception,  bool showMsgBox = false);
-
-private:
-	static std::string GenerateLogMsg(const std::string& msg, const std::source_location& location);
-
-	static void PrintExceptionErrHelper(LIB_Exception& e, bool showMsgBox); 
-	static void PrintHelper(const char* levtext, const std::string& text);  
+extern bool InitLogger();
+extern void CloseLogger();
 
 
-private:
-	static HANDLE handle_;                       // we need it for changing the text colour in the command prompt
+extern void LogMsg(const char* msg, const std::source_location& location = std::source_location::current());
+extern void LogDbg(const char* msg, const std::source_location& location = std::source_location::current());
+extern void LogErr(const char* msg, const std::source_location& location = std::source_location::current());
 
-	static FILE* pFile_;                         // a ptr to the global logger file handler
-	static std::list<std::string>* pMsgsList_;   // a ptr to the global log messages list
+#if 0
+extern void LogMsg(const std::string& msg, const std::source_location& location = std::source_location::current());
+extern void LogDbg(const std::string& msg, const std::source_location& location = std::source_location::current());
+extern void LogErr(const std::string& msg, const std::source_location& location = std::source_location::current());
+#endif
 
-};
+// variadic arguments
+extern void LogMsgf(const char* format, ...);
+
+// exception handlers
+extern void LogErr(const LIB_Exception* pException, const bool showMsgBox = false);
+extern void LogErr(const LIB_Exception& e,          const bool showMsgBox = false);
 
 } // namespace ImgReader

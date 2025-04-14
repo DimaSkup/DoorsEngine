@@ -23,7 +23,7 @@ MaterialID   MaterialMgr::lastMaterialID_ = 0;
 
 MaterialMgr::MaterialMgr()
 {
-    Log::Debug();
+    LogDbg("creation of the material manager");
 
     if (pInstance_ == nullptr)
     {
@@ -35,7 +35,7 @@ MaterialMgr::MaterialMgr()
     }
     else
     {
-        Log::Error("can't create new instance: there is already an instance of the MaterialMgr");
+        LogErr("can't create new instance: there is already an instance of the MaterialMgr");
         return;
     }
 }
@@ -96,21 +96,19 @@ void MaterialMgr::GetMaterialsByIDs(
         // in any case if we have some input number of materials we fill the output arr with "invalid" materials
         outMaterials.resize(numMaterials, Material());
 
-        Log::Error(e);
+        LogErr(e);
     }
 }
 
 ///////////////////////////////////////////////////////////
 
-MaterialID MaterialMgr::GetMaterialIdByName(const std::string name)
+MaterialID MaterialMgr::GetMaterialIdByName(const char* name)
 {
     // TODO: optimize me, shithead!
 
-    const char* inNameStr = name.c_str();
-
     for (int i = 0; const Material & mat : materials_)
     {
-        if (strcmp(mat.name, inNameStr) == 0)
+        if (strcmp(mat.name, name) == 0)
             return ids_[i];
 
         ++i;

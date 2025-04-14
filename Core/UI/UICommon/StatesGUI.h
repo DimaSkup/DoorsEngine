@@ -24,7 +24,7 @@ struct StatesGUI
     // browsers stuff
     bool showWndModelsBrowser = false;
     bool showWndTexturesBrowser = false;
-    bool showWndMaterialsBrowser = false;
+    bool showWndMaterialsBrowser = true;
 
     // gizmo stuff
     bool useSnapping          = false;   // use stride by some fixed value when we transform with guizmo or with fields

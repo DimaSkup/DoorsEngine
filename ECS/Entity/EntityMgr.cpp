@@ -30,7 +30,7 @@ EntityMgr::EntityMgr() :
     boundingSystem_     { &bounding_ },
     cameraSystem_       { &camera_ }
 {
-    Log::Debug("start of entity mgr init");
+    LogDbg("start of entity mgr init");
 
     constexpr int reserveMemForEnttsCount = 100;
 
@@ -59,14 +59,14 @@ EntityMgr::EntityMgr() :
     ids_.push_back(INVALID_ENTITY_ID);
     componentHashes_.push_back(0);
 
-    Log::Debug("entity mgr is initialized");
+    LogDbg("entity mgr is initialized");
 }
 
 ///////////////////////////////////////////////////////////
 
 EntityMgr::~EntityMgr()
 {
-    Log::Debug();
+    LogDbg("ECS destroyment");
 }
 
 ///////////////////////////////////////////////////////////
@@ -103,12 +103,12 @@ inline std::string GetErrMsgNoEntt(const EntityID id)
 
 ///////////////////////////////////////////////////////////
 
-void EntityMgr::SetupLogger(FILE* pFile, std::list<std::string>* pMsgsList)
+void EntityMgr::SetupLogger(FILE* pFile)
 {
     // setup a file for writing log msgs into it;
     // also setup a list which will be filled with log messages;
-    Log::Setup(pFile, pMsgsList);
-    Log::Debug("logger is setup successfully");
+    
+    LogDbg("logger is setup successfully");
 }
 
 
@@ -281,12 +281,8 @@ void EntityMgr::AddNameComponent(
     }
     catch (LIB_Exception& e)
     {
-        std::string errMsg;
-        errMsg += "can't add a name component to entts: ";
-        errMsg += GetEnttsIDsAsString(ids, numEntts);
-
-        Log::Error(e);
-        Log::Error(errMsg);
+        LogErr(e);
+        LogErr(GetErrMsg("can't add a name component to entts: ", ids, numEntts).c_str());
     }
 }
 
@@ -319,12 +315,9 @@ void EntityMgr::AddTransformComponent(
     }
     catch (LIB_Exception& e)
     {
-        std::string errMsg;
-        errMsg += "can't add transform component to entts: ";
-        errMsg += GetEnttsIDsAsString(ids, numEntts);
-
-        Log::Error(e);
-        Log::Error(errMsg);
+        sprintf(g_String, "can't add transform component to entts: %s", GetEnttsIDsAsString(ids, numEntts).c_str());
+        LogErr(e);
+        LogErr(g_String);
     }
 }
 
@@ -359,12 +352,9 @@ void EntityMgr::AddMoveComponent(
     }
     catch (LIB_Exception& e)
     {
-        std::string errMsg;
-        errMsg += "can't add move component to entts: ";
-        errMsg += GetEnttsIDsAsString(ids, numEntts);
-
-        Log::Error(e);
-        Log::Error(errMsg);
+        sprintf(g_String, "can't add move component to entts: %s", GetEnttsIDsAsString(ids, numEntts).c_str());
+        LogErr(e);
+        LogErr(g_String);
     }
 }
 
@@ -395,13 +385,9 @@ void EntityMgr::AddModelComponent(
     }
     catch (LIB_Exception& e)
     {
-        std::string errMsg;
-        errMsg += "can't add model component to entts: ";
-        errMsg += GetEnttsIDsAsString(enttsIDs, numEntts);
-        errMsg += "\nmodel_id: " + std::to_string(modelID);
-
-        Log::Error(e);
-        Log::Error(errMsg);
+        sprintf(g_String, "can't add model component to entts: %s; \nmodel ID: %ud", GetEnttsIDsAsString(enttsIDs, numEntts).c_str(), modelID);
+        LogErr(e);
+        LogErr(g_String);
     }
 }
 
@@ -430,8 +416,8 @@ void EntityMgr::AddModelComponent(
         errMsg += "can't add model component to entts: ";
         errMsg += Utils::GetEnttsIDsAsString(enttsIDs.data(), (int)enttsIDs.size());
 
-        Log::Error(e);
-        Log::Error(errMsg);
+        LogErr(e);
+        LogErr(errMsg);
     }
 }
 
@@ -481,12 +467,9 @@ void EntityMgr::AddRenderingComponent(
     }
     catch (LIB_Exception& e)
     {
-        std::string errMsg;
-        errMsg += "can't add rendering component to entts: ";
-        errMsg += GetEnttsIDsAsString(ids, numEntts);
-
-        Log::Error(e);
-        Log::Error(errMsg);
+        sprintf(g_String, "can't add rendering component to entts: %s", GetEnttsIDsAsString(ids, numEntts).c_str());
+        LogErr(e);
+        LogErr(g_String);
     }
 }
 
@@ -506,15 +489,17 @@ void EntityMgr::AddMaterialComponent(
 
     try
     {
-        Assert::True(CheckEnttExist(enttID), "no entity by ID: " + std::to_string(enttID));
+        sprintf(g_String, "no entity by ID: %ud", enttID);
+        Assert::True(CheckEnttExist(enttID), g_String);
 
         materialSystem_.AddRecord(enttID, materialsIDs, numSubmeshes, areMaterialsMeshBased);
         SetEnttHasComponent(enttID, MaterialComponent);
     }
     catch (LIB_Exception& e)
     {
-        Log::Error(e);
-        Log::Error(std::format("can't add Material component to entt (id: {}; entt_name: {})", enttID, nameSystem_.GetNameById(enttID)));
+        sprintf(g_String, "can't add Material component to entt (id: %ud; name: %s)", enttID, nameSystem_.GetNameById(enttID).c_str());
+        LogErr(e);
+        LogErr(g_String);
     }
 }
 
@@ -549,12 +534,9 @@ void EntityMgr::AddTextureTransformComponent(
     }
     catch (LIB_Exception& e)
     {
-        std::string errMsg;
-        errMsg += "can't add texture transform component to entts: ";
-        errMsg += GetEnttsIDsAsString(ids, numEntts);
-
-        Log::Error(e);
-        Log::Error(errMsg);
+        sprintf(g_String, "can't add texture transform component to entts: %s", GetEnttsIDsAsString(ids, numEntts).c_str());
+        LogErr(e);
+        LogErr(g_String);
     }
 }
 
@@ -573,12 +555,8 @@ void EntityMgr::AddLightComponent(
     }
     catch (LIB_Exception& e)
     {
-        std::string errMsg;
-        errMsg += "can't add Light component (directional lights) component to entts: ";
-        errMsg += GetEnttsIDsAsString(ids, numEntts);
-
-        Log::Error(e);
-        Log::Error(errMsg);
+        LogErr(e);
+        LogErr(GetErrMsg("can't add Light component (directional lights) to entts: ", ids, numEntts).c_str());
     }
 }
 
@@ -596,12 +574,8 @@ void EntityMgr::AddLightComponent(
     }
     catch (LIB_Exception& e)
     {
-        std::string errMsg;
-        errMsg += "can't add Light component (point lights) component to entts: ";
-        errMsg += GetEnttsIDsAsString(ids, numEntts);
-
-        Log::Error(e);
-        Log::Error(errMsg);
+        LogErr(e);
+        LogErr(GetErrMsg("can't add Light component (point lights) to entts: ", ids, numEntts).c_str());
     }
 }
 
@@ -621,12 +595,8 @@ void EntityMgr::AddLightComponent(
     }
     catch (LIB_Exception& e)
     {
-        std::string errMsg;
-        errMsg += "can't add Light component (spot lights) component to entts: ";
-        errMsg += GetEnttsIDsAsString(ids, numEntts);
-
-        Log::Error(e);
-        Log::Error(errMsg);
+        LogErr(e);
+        LogErr(GetErrMsg("can't add Light component (spot lights) to entts: ", ids, numEntts).c_str());
     }
 }
 
@@ -651,8 +621,9 @@ void EntityMgr::AddRenderStatesComponent(const EntityID* ids, const size numEntt
     }
     catch (LIB_Exception& e)
     {
-        Log::Error(e);
-        Log::Error(GetErrMsg("can't add render states component to entts: ", ids, numEntts));
+        sprintf(g_String, "can't add render states component to entts: %s", GetEnttsIDsAsString(ids, numEntts).c_str());
+        LogErr(e);
+        LogErr(g_String);
     }
 }
 
@@ -671,8 +642,9 @@ void EntityMgr::AddBoundingComponent(
     }
     catch (LIB_Exception& e)
     {
-        Log::Error(e);
-        Log::Error("can't add bounding component to entts: " + std::to_string(id));
+        sprintf(g_String, "can't add bounding component to entts: %ud", id);
+        LogErr(e);
+        LogErr(g_String);
     }
 }
 
@@ -694,8 +666,9 @@ void EntityMgr::AddBoundingComponent(
     }
     catch (LIB_Exception& e)
     {
-        Log::Error(e);
-        Log::Error(GetErrMsg("can't add bounding component to entts: ", ids, numEntts));
+        sprintf(g_String, "can't add bounding component to entts: %s", GetEnttsIDsAsString(ids, numEntts).c_str());
+        LogErr(e);
+        LogErr(g_String);
     }
 }
 
@@ -714,8 +687,9 @@ void EntityMgr::AddBoundingComponent(
     }
     catch (LIB_Exception& e)
     {
-        Log::Error(e);
-        Log::Error(GetErrMsg("can't add bounding component to entts: ", ids, numEntts));
+        sprintf(g_String, "can't add bounding component to entts: %s", GetEnttsIDsAsString(ids, numEntts).c_str());
+        LogErr(e);
+        LogErr(g_String);
     }
 }
 
@@ -734,8 +708,9 @@ void EntityMgr::AddCameraComponent(
     }
     catch (LIB_Exception& e)
     {
-        Log::Error(e);
-        Log::Error("can't add the camera component to entt: " + std::to_string(id));
+        sprintf(g_String, "can't add camera component to entts: %ud", id);
+        LogErr(e);
+        LogErr(g_String);
     }
 }
 
@@ -749,10 +724,9 @@ void EntityMgr::AddCameraComponent(
 // 
 // ************************************************************************************
 
-
 ComponentHash EntityMgr::GetHashByComponent(const eComponentType component)
 {
-    u32 bitmask = 0;
+    ComponentHash bitmask = 0;
     return (bitmask |= (1 << component));
 }
 
@@ -785,7 +759,7 @@ bool EntityMgr::GetComponentNamesByEntt(const EntityID id, cvector<std::string>&
 
     if (!exist)
     {
-        Log::Error(GetErrMsgNoEntt(id));
+        LogErr(GetErrMsgNoEntt(id).c_str());
         return false;
     }
 
@@ -813,7 +787,7 @@ bool EntityMgr::GetComponentTypesByEntt(const EntityID id, cvector<uint8_t>& typ
 
     if (!exist)
     {
-        Log::Error(GetErrMsgNoEntt(id));
+        LogErr(GetErrMsgNoEntt(id).c_str());
         return false;
     }
 

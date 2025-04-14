@@ -26,13 +26,16 @@ PixelShader::~PixelShader()
 
 bool PixelShader::Initialize(
 	ID3D11Device* pDevice,
-	const std::string& shaderPath,
-	const std::string& funcName)
+	const char* shaderPath,
+	const char* funcName)
 {
 	// initializing of a pixel shader object
 
-	try
-	{
+    if ((shaderPath == nullptr) || (shaderPath[0] == '\0'))
+    {
+        LogErr("input path to pixel shader file is empty!");
+        return false;
+    }
 #if 0
 		std::string errorMgr;
 
@@ -46,28 +49,33 @@ bool PixelShader::Initialize(
 		Assert::NotFailed(hr, errorMgr);
 #endif
 
-		std::streampos len = 0;
+	std::streampos len = 0;
 		
-		// load in shader bytecode
-		LoadCSO(shaderPath, &pShaderBuffer_, len);
+	// load in shader bytecode
+	const bool result = LoadCSO(shaderPath, &pShaderBuffer_, len);
+    if (!result)
+    {
+        sprintf(g_String, "Failed to load .CSO-file of pixel shader: %s", shaderPath);
+        LogErr(g_String);
+        Shutdown();
+        return false;
+    }
 
-		// --------------------------------------------
+	// --------------------------------------------
 
-		HRESULT hr = pDevice->CreatePixelShader(
-			pShaderBuffer_,
-			len,
-			nullptr,
-			&pShader_);
+	HRESULT hr = pDevice->CreatePixelShader(
+		pShaderBuffer_,
+		len,
+		nullptr,
+		&pShader_);
 
-		Assert::NotFailed(hr, "Failed to create a pixel shader obj: " + shaderPath);
-	}
-	catch (LIB_Exception& e)
-	{
-		Shutdown();
-
-		Log::Error(e, true);
-		return false;
-	}
+    if (FAILED(hr))
+    {
+        sprintf(g_String, "Failed to create a pixel shader obj: %s", shaderPath);
+        LogErr(g_String);
+        Shutdown();
+        return false;
+    }
 
 	return true;
 }
@@ -76,6 +84,7 @@ bool PixelShader::Initialize(
 
 void PixelShader::Shutdown()
 {
+    LogDbg("shutdown");
 	SafeRelease(&pShader_);
 	SafeDeleteArr(pShaderBuffer_);
 }

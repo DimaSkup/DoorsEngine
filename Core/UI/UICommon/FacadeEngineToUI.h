@@ -10,7 +10,7 @@
 
 #include "../../Camera/Camera.h"
 #include "Entity/EntityMgr.h"           // from the ECS module
-#include "Render.h"                     // from the Render module
+#include "CRender.h"                     // from the Render module
 
 #include <d3d11.h>
 
@@ -22,7 +22,7 @@ class FacadeEngineToUI : public IFacadeEngineToUI
 {
 private:
     ID3D11DeviceContext* pContext_      = nullptr;
-    Render::Render*      pRender_       = nullptr;
+    Render::CRender*      pRender_       = nullptr;
     ECS::EntityMgr*      pEntityMgr_    = nullptr;
     //Core::TextureMgr*    pTextureMgr_   = nullptr;
     //Core::ModelMgr*  pModelStorage_ = nullptr;
@@ -31,7 +31,7 @@ private:
 public:
     FacadeEngineToUI(
         ID3D11DeviceContext* pContext,
-        Render::Render* pRender,
+        Render::CRender* pRender,
         ECS::EntityMgr* pEntityMgr,
         //Core::TextureMgr* pTextureMgr,
         //Core::ModelMgr* pModelStorage,
@@ -195,7 +195,7 @@ public:
     // =============================================================================
     // for assets: models/textures/sounds/etc.
     // =============================================================================
-    virtual bool GetAssetsNamesList(cvector<std::string>& outNames) override;
+    virtual bool GetModelsNamesList(cvector<std::string>& outNames) override;
     virtual bool GetShaderResourceViewByTexID(const TexID textureID, SRV*& pSRV)              override;
     virtual bool GetArrShaderResourceViews(SRV**& outArrShadersResourceViews, size& outNumViews) const override;
 
@@ -205,6 +205,12 @@ public:
         const EntityID enttID,
         const SubsetID subsetID,
         const MaterialID matID) override;
+
+    virtual bool RenderMaterialsIcons(
+        ID3D11ShaderResourceView** outArrShaderResourceViews,
+        const size numShaderResourceViews,
+        const int iconWidth,
+        const int iconHeight) override;
 
 };
 

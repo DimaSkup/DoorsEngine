@@ -26,7 +26,7 @@ void FogEditorController::Initialize(IFacadeEngineToUI* pFacade)
 	if (pFacade_->GetFogData(fogColor, fogStart, fogRange))
 		fogModel_.Update(fogColor, fogStart, fogRange);
 	else
-		Core::Log::Error("can't gather data for the fog editor :(");
+		Core::LogErr("can't gather data for the fog editor :(");
 }
 
 ///////////////////////////////////////////////////////////
@@ -35,7 +35,7 @@ void FogEditorController::Execute(const ICommand* pCommand)
 {
 	if ((pCommand == nullptr) || (pFacade_ == nullptr))
 	{
-		Core::Log::Error("ptr to command or facade interface == nullptr");
+		Core::LogErr("ptr to command or facade interface == nullptr");
 		return;
 	}
 	

@@ -1,19 +1,22 @@
 // ***********************************************************************************
-// Filename: fontshaderclass.cpp
+// Filename: FontShader.cpp
 // Revising: 23.07.22
 // ***********************************************************************************
-#include "fontshaderclass.h"
+#include "FontShader.h"
 #include "../Common/Log.h"
+
+#pragma warning (disable : 4996)
 
 
 namespace Render
 {
 
-FontShaderClass::FontShaderClass() : className_(__func__)
+FontShader::FontShader()
 {
+    strcpy(className_, __func__);
 }
 
-FontShaderClass::~FontShaderClass() 
+FontShader::~FontShader() 
 {
 }
 
@@ -21,37 +24,31 @@ FontShaderClass::~FontShaderClass()
 //                             PUBLIC MODIFICATION API
 // =================================================================================
 
-bool FontShaderClass::Initialize(
+bool FontShader::Initialize(
     ID3D11Device* pDevice, 
-    ID3D11DeviceContext* pContext,
     const DirectX::XMMATRIX& WVO,            // world * base_view * ortho
-    const std::string& pathToShadersDir)
+    const char* vsFilePath,
+    const char* psFilePath)
 {
     // Initialize() initializes the vertex and pixel shaders, input layout,
     // sampler state, matrix and pixel buffers
     try
     {
-        // create shader objects, buffers, etc.
-        InitializeShaders(
-            pDevice,
-            pContext,
-            pathToShadersDir + "fontVS.cso",
-            pathToShadersDir + "fontPS.cso",
-            WVO);
+        InitializeShaders(pDevice, WVO, vsFilePath, psFilePath);
+        LogDbg("is initialized");
+        return true;
     }
     catch (LIB_Exception & e)
     {
-        Log::Error(e, true);
-        Log::Error("can't initialize the font shader class");
+        LogErr(e, true);
+        LogErr("can't initialize the font shader class");
         return false;
     }
-
-    return true;
 }
 
 ///////////////////////////////////////////////////////////
 
-void FontShaderClass::SetWorldViewOrtho(
+void FontShader::SetWorldViewOrtho(
     ID3D11DeviceContext* pContext,
     const DirectX::XMMATRIX& WVO)
 {
@@ -63,7 +60,7 @@ void FontShaderClass::SetWorldViewOrtho(
 
 ///////////////////////////////////////////////////////////
 
-void FontShaderClass::SetFontColor(
+void FontShader::SetFontColor(
     ID3D11DeviceContext* pContext,
     const DirectX::XMFLOAT3& color)
 {
@@ -76,7 +73,7 @@ void FontShaderClass::SetFontColor(
 // =================================================================================
 //                             PUBLIC RENDERING API
 // =================================================================================
-void FontShaderClass::Render(
+void FontShader::Render(
     ID3D11DeviceContext* pContext,
     ID3D11Buffer* const* vertexBuffers,           // array of text vertex buffers
     ID3D11Buffer* const* indexBuffers,            // array of text indices buffers
@@ -121,7 +118,7 @@ void FontShaderClass::Render(
     }
     catch (LIB_Exception& e)
     {
-        Log::Error(e, true);
+        LogErr(e, true);
         throw LIB_Exception("can't render using the shader");
     }
 }
@@ -130,20 +127,17 @@ void FontShaderClass::Render(
 // =================================================================================
 //                              PRIVATE METHODS
 // =================================================================================
-
-void FontShaderClass::InitializeShaders(
+void FontShader::InitializeShaders(
     ID3D11Device* pDevice,
-    ID3D11DeviceContext* pContext,
-    const std::string& vsFilename,
-    const std::string& psFilename,
-    const DirectX::XMMATRIX& WVO)        // world * base_view * ortho
+    const DirectX::XMMATRIX& WVO,        // world * base_view * ortho
+    const char* vsFilePath,
+    const char* psFilePath)
 {
     // InitializeShaders() helps to initialize the vertex and pixel shaders,
     // input layout, sampler state, matrix and pixel buffers
 
     bool result = false;
     HRESULT hr = S_OK;
-
 
     // --------------------------  INPUT LAYOUT DESC  ---------------------------------
 
@@ -155,21 +149,20 @@ void FontShaderClass::InitializeShaders(
 
     const UINT layoutElemNum = sizeof(layoutDesc) / sizeof(D3D11_INPUT_ELEMENT_DESC);
 
+
     // -----------------------  SHADERS / SAMPLER STATE  ------------------------------
 
-
     // initialize the vertex shader
-    result = vs_.Initialize(pDevice, vsFilename, layoutDesc, layoutElemNum);
+    result = vs_.Initialize(pDevice, vsFilePath, layoutDesc, layoutElemNum);
     Assert::True(result, "can't initialize the vertex shader");
 
     // initialize the pixel shader
-    result = ps_.Initialize(pDevice, psFilename);
+    result = ps_.Initialize(pDevice, psFilePath);
     Assert::True(result, "can't initialize the pixel shader");
 
     // initialize the sampler state
     result = samplerState_.Initialize(pDevice);
     Assert::True(result, "can't initialize the sampler state");
-
 
 
     // ---------------------------  CONSTANT BUFFERS  ---------------------------------
@@ -185,6 +178,8 @@ void FontShaderClass::InitializeShaders(
 
     // ---------------- SET DEFAULT PARAMS FOR CONST BUFFERS --------------------------
 
+    ID3D11DeviceContext* pContext = nullptr;
+    pDevice->GetImmediateContext(&pContext);
     SetFontColor(pContext, { 1, 1, 1 });  // set white colour by default
     SetWorldViewOrtho(pContext, WVO);
 }

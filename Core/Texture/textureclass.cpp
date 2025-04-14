@@ -9,9 +9,14 @@
 #include <CoreCommon/Log.h>
 #include <CoreCommon/MemHelpers.h>
 #include <CoreCommon/Assert.h>
-#include <CoreCommon/StringHelper.h>
+#include <CoreCommon/StrHelper.h>
 
 #include <D3DX11tex.h>
+
+#include <filesystem>
+
+namespace fs = std::filesystem;
+
 
 #pragma warning (disable : 4996)
 
@@ -30,21 +35,19 @@ Texture::Texture()
 
 ///////////////////////////////////////////////////////////
 
-Texture::Texture(
-	ID3D11Device* pDevice, 
-	const std::string& filePath) :
+Texture::Texture(ID3D11Device* pDevice, const char* filePath) :
 	name_(filePath)
 {
 	// create and initialize a texture from a file by filePath
-
 	try
 	{
 		LoadFromFile(pDevice, filePath);
 	}
 	catch (EngineException & e)
 	{
-		Log::Error(e);
-		throw EngineException("can't create a texture from file: " + filePath);
+        sprintf(g_String, "can't create a texture from file: %s", filePath);
+		LogErr(e);
+        LogErr(g_String);
 	}
 }
 
@@ -52,7 +55,7 @@ Texture::Texture(
 
 Texture::Texture(
 	ID3D11Device* pDevice,
-    const std::string& name,            // a name for this texture object
+    const char* name,            // a name for this texture object
 	const std::string* texturesNames,
 	const size numTextures,
 	const DXGI_FORMAT format)
@@ -60,15 +63,16 @@ Texture::Texture(
 	// a constructor which loads a texture array and associated view from a series
     // of textures on disk.
 
-    Assert::True(!name.empty(),            "input name for the texture object is empty");
-    Assert::True(texturesNames != nullptr, "input arr of paths to textures == nullptr");
-    Assert::True(numTextures > 0,          "input number of textures filenames must be > 0");
+    Assert::True((name != nullptr) && (name[0] != '\0'), "input name for the texture object is empty");
+    Assert::True(texturesNames != nullptr,               "input arr of paths to textures == nullptr");
+    Assert::True(numTextures > 0,                        "input number of textures filenames must be > 0");
 
 	// load the texture elements individually from file. These texture won't
 	// be used by the GPU (0 bind flags), they are just used to load the image 
 	// data from file. We use the STAGING usage so the CPU can read the resource.
 	HRESULT hr = S_OK;
     ID3D11Texture2D* srcTex[128]{ nullptr };
+    wchar_t srcFilepath[256]{ L'\0' };
 
 	for (index i = 0; i < numTextures; ++i)
 	{
@@ -87,14 +91,28 @@ Texture::Texture(
 		loadInfo.MipFilter      = D3DX11_DEFAULT;//mipFilter;
 		loadInfo.pSrcInfo       = 0;
 
+        if (!fs::exists(texturesNames[i].c_str()))
+        {
+            LogErr("no texture file");
+        }
+
+        StrHelper::StrToWide(texturesNames[i].c_str(), srcFilepath);
+        std::wstring wstr(texturesNames[i].begin(), texturesNames[i].end());
+
 		hr = D3DX11CreateTextureFromFile(
 			pDevice,
-			StringHelper::StringToWide(texturesNames[i]).c_str(),
+            //(wchar_t*)texturesNames[i].c_str(),
+            wstr.c_str(),
 			&loadInfo,
 			nullptr,
 			(ID3D11Resource**)&srcTex[i], 
 			nullptr);
-		Assert::NotFailed(hr, "can't create a texture from file: " + texturesNames[i]);
+
+        if (FAILED(hr))
+        {
+            sprintf(g_String, "can't create a texture from file: %s", texturesNames[i].c_str());
+            LogErr(g_String);
+        }
 	}
 
 
@@ -129,7 +147,7 @@ Texture::Texture(
 	//
 
 	// for each texture element...
-	for (index texElem = 0; texElem < numTextures; ++texElem)
+	for (int texElem = 0; texElem < (int)numTextures; ++texElem)
 	{
 		// for each mipmap level...
 		for (UINT mipLevel = 0; mipLevel < texElemDesc.MipLevels; ++mipLevel)
@@ -137,7 +155,11 @@ Texture::Texture(
 			D3D11_MAPPED_SUBRESOURCE mappedTex2D;
 
 			hr = pContext->Map(srcTex[texElem], mipLevel, D3D11_MAP_READ, 0, &mappedTex2D);
-			Assert::NotFailed(hr, "can't map a texture by idx: " + std::to_string(texElem));
+            if (FAILED(hr))
+            {
+                sprintf(g_String, "can't map a texture by idx: %d", texElem);
+                LogErr(g_String);
+            }
 
 			pContext->UpdateSubresource(
 				texArr,                       // dst resource
@@ -154,11 +176,9 @@ Texture::Texture(
 		}
 	}
 
-
-	//
+    //
 	// Create a resource view to the texture array
-	//
-
+    //
 	D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc;
 	viewDesc.Format                         = texArrayDesc.Format;
 	viewDesc.ViewDimension                  = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
@@ -197,7 +217,7 @@ Texture::Texture(ID3D11Device* pDevice, const Color & color)
 	}
 	catch (EngineException& e)
 	{
-		Log::Error(e);
+		LogErr(e);
 		throw EngineException("can't create a texture by input color data");
 	}
 }
@@ -220,7 +240,7 @@ Texture::Texture(
 	}
 	catch (EngineException& e)
 	{
-		Log::Error(e);
+		LogErr(e);
 		throw EngineException("can't create a texture by given color data");
 	}	
 }
@@ -229,11 +249,9 @@ Texture::Texture(
 
 Texture::Texture(
 	ID3D11Device* pDevice,
-	const std::string& name,
+	const char* name,
 	const uint8_t* pData,
 	const size_t size)
-	:
-	name_(name)
 {
 	// a constructor for loading embedded compressed textures;
 	// 
@@ -242,30 +260,38 @@ Texture::Texture(
 
 	try
 	{
-        Assert::True(!name.empty(),    "input name for the texture obj is empty");
-        Assert::True(pData != nullptr, "input ptr to texture data == nullptr");
-        Assert::True(size > 0,         "size of input texture data must be > 0");
+        Assert::True((name != nullptr) && (name[0] != '\0'), "input name for the texture obj is empty");
+        Assert::True(pData != nullptr,                       "input ptr to texture data == nullptr");
+        Assert::True(size > 0,                               "size of input texture data must be > 0");
 
-		ImgReader::ImageReader imageReader;
-		ImgReader::ImageReader::DXTextureData texData(name, &pTexture_, &pTextureView_);
+		ImgReader::ImageReader   imageReader;
+		ImgReader::DXTextureData texData(name, &pTexture_, &pTextureView_);
 
-		imageReader.LoadTextureFromMemory(pDevice, pData, size, texData);
+		bool result = imageReader.LoadTextureFromMemory(pDevice, pData, size, texData);
+
+        if (!result)
+        {
+            sprintf(g_String, "can't load a texture from memory");
+            LogErr(g_String);
+
+            // if we didn't manage to load a texture from the memory
+            // we create a 1x1 color texture for this texture object
+            Initialize1x1ColorTexture(pDevice, Colors::UnloadedTextureColor);
+
+            width_ = 1;
+            height_ = 1;
+
+            return;
+        }
 
 		width_ = texData.textureWidth;
 		height_ = texData.textureHeight;
-	}
-	catch (ImgReader::LIB_Exception& e)
-	{
-		Log::Error(e.GetStr());
-
-		// if we didn't manage to initialize texture's data from the memory
-		// we create a 1x1 color texture for this texture object
-		Initialize1x1ColorTexture(pDevice, Colors::UnloadedTextureColor);
+        name_ = name;
 	}
 	catch (EngineException& e)
 	{
-		Log::Error(e);
-		Log::Error("can't create an embedded compressed texture");
+		LogErr(e);
+		LogErr("can't create an embedded compressed texture");
 
 		Initialize1x1ColorTexture(pDevice, Colors::UnloadedTextureColor);
 	}
@@ -450,33 +476,40 @@ void Texture::Clear()
 
 ///////////////////////////////////////////////////////////
 
-void Texture::LoadFromFile(ID3D11Device* pDevice, const std::string& filePath)
+void Texture::LoadFromFile(ID3D11Device* pDevice, const char* filePath)
 {
 	// load a texture from file by input path and store texture obj into the manager;
 	try
 	{
-        Assert::True(!filePath.empty(), "input path to texture is empty");
+        Assert::True((filePath != nullptr) && (filePath[0] != '\0'), "input path to texture is empty");
 
 		ImgReader::ImageReader imageReader;
-		ImgReader::ImageReader::DXTextureData data(filePath, &pTexture_, &pTextureView_);
+		ImgReader::DXTextureData data(filePath, &pTexture_, &pTextureView_);
 
-		imageReader.LoadTextureFromFile(pDevice, data);
+		bool result = imageReader.LoadTextureFromFile(pDevice, data);
+
+        if (!result)
+        {
+            sprintf(g_String, "can't load a texture from file: %s", filePath);
+            LogErr(g_String);
+
+            // if we didn't manage to initialize a texture from the file 
+            // we create a 1x1 color texture for this texture object
+            Initialize1x1ColorTexture(pDevice, Colors::UnloadedTextureColor);
+
+            width_  = 1;
+            height_ = 1;
+
+            return;
+        }
 
 		name_ = filePath;
 		width_ = data.textureWidth;
 		height_ = data.textureHeight;
 	}
-	catch (ImgReader::LIB_Exception& e)
-	{
-		Log::Error(e.GetStr());
-
-		// if we didn't manage to initialize a texture from the file 
-		// we create a 1x1 color texture for this texture object
-		Initialize1x1ColorTexture(pDevice, Colors::UnloadedTextureColor);
-	}
 	catch (EngineException & e)
 	{
-		Log::Error(e);
+		LogErr(e);
 		throw EngineException("can't initialize a texture from file");
 	}
 }

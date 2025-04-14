@@ -24,7 +24,7 @@ SpriteClass::SpriteClass(ID3D11Device* pDevice,	ID3D11DeviceContext* pDeviceCont
 	}
 	catch (EngineException & e)
 	{
-		Log::Error(e, false);
+		LogErr(e, false);
 		throw EngineException("can't allocate memory for the SpriteClass members");
 	}
 	
@@ -33,7 +33,7 @@ SpriteClass::SpriteClass(ID3D11Device* pDevice,	ID3D11DeviceContext* pDeviceCont
 SpriteClass::~SpriteClass()
 {
 	//std::string debugMsg{ "destroyment of the " + this->GetModelDataObj()->GetID() };
-	//Log::Debug(debugMsg.c_str());
+	//LogDbg(debugMsg.c_str());
 }
 
 
@@ -90,8 +90,8 @@ bool SpriteClass::Initialize(const std::string & filePath)
 	}
 	catch (EngineException & e)
 	{
-		Log::Error(e, false);
-		Log::Error("can't initialize a 2D sprite model");
+		LogErr(e, false);
+		LogErr("can't initialize a 2D sprite model");
 
 		return false;
 	}
@@ -247,7 +247,7 @@ bool SpriteClass::LoadTextures(const std::string & spriteInfoDataFile)
 	if (fin.fail())
 	{
 		std::string errorMsg{ "can't open the sprite info data file: " + (std::string)spriteInfoDataFile };
-		Log::Error(errorMsg.c_str());
+		LogErr(errorMsg.c_str());
 		return false;
 	}
 

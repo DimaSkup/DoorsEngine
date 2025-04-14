@@ -61,7 +61,7 @@ void NameSysSerDeser::Deserialize(
 	const bool isProperDataBlock = (dataBlockMarker == static_cast<u32>(eComponentType::NameComponent));
 	if (!isProperDataBlock)
 	{
-		Log::Error("read wrong data during deserialization of the Name component data");
+		LogErr("read wrong data during deserialization of the Name component data");
 		return;
 	}
 	

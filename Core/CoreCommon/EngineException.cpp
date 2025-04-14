@@ -1,89 +1,58 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Filename:     EngineException.cpp
-// Descption:    implementation of functional for the EngineException class 
+// Descption:    a wrapper class for manual exceptions of the DoorsEngine core
 ///////////////////////////////////////////////////////////////////////////////////////////
 #include "EngineException.h"
-#include "StringHelper.h"
-#include <DxErr.h>
+#pragma warning (disable : 4996)
 
 
 namespace Core
 {
 
 EngineException::EngineException(
-	HRESULT hr, 
-	const std::string& msg,
-	const std::string& file,
-	const std::string& function,
-	const int line)
+    const char* msg,
+    const std::source_location& location,
+    const HRESULT hr)
 {
-	// generate an error string with data about some exception so later we can
-	// use this string for the Log::Error() function
+    // generate an error string with data about some EngineException so later we can
+    // use this string for the logger printing functions
 
-	MakeExceptionMsg(
-		hr,
-		msg, 
-		StringHelper::GetPathFromProjRoot(file),
-		function, 
-		line);
+    MakeExceptionMsg(hr, msg, location);
 }
 
 ///////////////////////////////////////////////////////////
-
-EngineException::EngineException(
-	const std::string& msg,
-	const std::source_location& loc,
-	const HRESULT hr)
-{
-	MakeExceptionMsg(
-		hr, 
-		msg, 
-		StringHelper::GetPathFromProjRoot(loc.file_name()),
-		loc.function_name(), 
-		loc.line());
-}
-
-///////////////////////////////////////////////////////////
-
-const std::wstring EngineException::GetWideStr() const
-{
-	return StringHelper::StringToWide(errMsg_).c_str();
-}
-
-///////////////////////////////////////////////////////////
-
-const std::string& EngineException::GetStr() const
-{
-	return errMsg_;
-}
-
-
-
-// =================================================================================
-// Private methods
-// =================================================================================
 
 void EngineException::MakeExceptionMsg(
-	HRESULT hr,
-	const std::string& msg,
-	const std::string& file,
-	const std::string& function,
-	const int line)
+    HRESULT hr,
+    const char* msg,
+    const std::source_location& location)
 {
-	errMsg_ = "\nErrorMsg: " + msg;
+    // TODO: FIXME (getting error msg from the HR)
+#if 0
+    if (hr != NULL)
+    {
+        _com_error error(hr);
 
-	if (hr != NULL)
-	{
-		_com_error error(hr);
+        errMsg_ += "\n";
+        errMsg_ += StringHelper::ToString(error.ErrorMessage());
+    }
+#endif
 
-		errMsg_ += "\n";
-		errMsg_ += StringHelper::ToString(error.ErrorMessage());
-	}
+    // string
+    sprintf(strBuf_,                                         // dst buffer
+        "\nErrMsg: %s \nFile: %s \nFunction: %s() \nLine: %d \n\n",
+        msg,
+        location.file_name(),
+        location.function_name(),
+        location.line());
 
-	errMsg_ += "\nFile:     " + file;
-	errMsg_ += "\nFunction: " + function + "()";
-	errMsg_ += "\nLine:     " + std::to_string(line);
-	errMsg_ += "\n\n";
+    // wstring
+    wsprintf(wstrBuf_,                                             // dst buffer
+        L"\nErrMsg: %s \nFile: %s \nFunction: %s() \nLine: %d \n\n",
+        msg,
+        location.file_name(),
+        location.function_name(),
+        location.line());
 }
 
 } // namespace Core

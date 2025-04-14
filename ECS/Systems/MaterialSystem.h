@@ -54,9 +54,7 @@ private:
         const index* idxs,
         const size numEntts) const;
 
-    std::string GenerateErrMsgNotHaveComponent(
-        const EntityID id,
-        const EntityName& name) const;
+    const char* GenerateErrMsgNotHaveComponent(const EntityID id) const;
 
 private:
     Material*   pMaterialComponent_ = nullptr;

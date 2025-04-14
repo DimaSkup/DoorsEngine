@@ -9,11 +9,8 @@
 ////////////////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
-#include <d3d11.h>
-#include <string>
-
 #include "../Common/Types.h"
-
+#include <d3d11.h>
 
 namespace ImgReader
 {
@@ -36,8 +33,8 @@ public:
 
 	// load texture's data from file by filePath and initialize a texture resource and
 	// a shader resource view with this data
-	void LoadTextureFromFile(
-		const std::string& filePath,
+	bool LoadTextureFromFile(
+		const char* filePath,
 		ID3D11Device* pDevice,
 		ID3D11Resource** ppTexture,
 		ID3D11ShaderResourceView** ppTextureView,

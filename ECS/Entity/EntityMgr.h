@@ -49,7 +49,7 @@ public:
     EntityMgr& operator=(const EntityMgr&) = delete;
     EntityMgr& operator=(EntityMgr&&) = delete;
 
-    void SetupLogger(FILE* pFile, std::list<std::string>* pMsgsList);
+    void SetupLogger(FILE* pFile);
 
     // public serialization / deserialization API
     bool Serialize(const std::string& dataFilepath);

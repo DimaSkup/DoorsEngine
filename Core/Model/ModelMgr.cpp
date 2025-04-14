@@ -13,8 +13,7 @@
 
 #include <algorithm>
 #include <fstream>
-#include <filesystem>
-//#include <thread>
+#include <chrono>
 
 namespace fs = std::filesystem;
 
@@ -44,7 +43,7 @@ ModelMgr::ModelMgr()
     }
     else
     {
-        Log::Error("there is already an instance of the ModelMgr");
+        LogErr("there is already an instance of the ModelMgr");
         return;
     }
 }
@@ -63,11 +62,13 @@ void SerializeModels(
 
     for (index i = startIdx; i < endIdx; ++i)
     {
+        // generate full path to the model in .de3d format
+        sprintf(g_String, "%s%s", g_RelPathAssetsDir, relativePathsToAssets[i].c_str());
+
         // if there is no such model in internal format we store it as asset
-        if (!fs::exists(g_RelPathAssetsDir + relativePathsToAssets[i]))
+        if (fopen(g_String, "r+") == nullptr)
         {
-            Log::Debug("\tExport of model (thread 2nd): " + relativePathsToAssets[i]);
-            exporter.ExportIntoDE3D(pDevice, models[i], relativePathsToAssets[i]);
+            exporter.ExportIntoDE3D(pDevice, models[i], relativePathsToAssets[i].c_str());
         }
     }
 }
@@ -79,7 +80,7 @@ void ModelMgr::Serialize(ID3D11Device* pDevice)
     // 1. write model storage's data into the file
     // 2. export model into the internal model format if it hadn't been done before
 
-    Log::Debug("serialization: start");
+    LogDbg("serialization: start");
 
     auto start = std::chrono::steady_clock::now();
 
@@ -166,18 +167,20 @@ void ModelMgr::Serialize(ID3D11Device* pDevice)
 
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double, std::milli> elapsed = end - start;
-    Log::Print("Serialization duration: " + std::to_string(elapsed.count() * 0.001) + " sec");
+
+    sprintf(g_String, "Model mgr serialization duration: %f sec", elapsed.count());
+    LogMsg(g_String);
 
     fout.close();
 
-    Log::Debug("serialization: finished");
+    LogDbg("serialization: finished");
 }
 
 ///////////////////////////////////////////////////////////
 
 void ModelMgr::Deserialize(ID3D11Device* pDevice)
 {
-    Log::Debug("deserialization: start");
+    LogDbg("deserialization: start");
 
     std::string ignore;
     ModelsCreator creator;
@@ -211,12 +214,16 @@ void ModelMgr::Deserialize(ID3D11Device* pDevice)
     for (int i = 0; i < numModelsToLoad; ++i)
     {
         // load a model from the internal format
-        ModelID loadedModelID = creator.CreateFromDE3D(pDevice, pathsToAssets[i]);
+        ModelID loadedModelID = creator.CreateFromDE3D(pDevice, pathsToAssets[i].c_str());
 
-        Assert::True(modelsIDs[i] == loadedModelID, std::format("ID ({}) of loaded model is not equal to the expected ({}) one", loadedModelID, modelsIDs[i]));
+        if (modelsIDs[i] != loadedModelID)
+        {
+            sprintf(g_String, "ID (%ud) of loaded model is not equal to the expected (%ud) one", loadedModelID, modelsIDs[i]);
+            LogErr(g_String);
+        }
     }
 
-    Log::Debug("deserialization: finished");
+    LogDbg("deserialization: finished");
 }
 
 ///////////////////////////////////////////////////////////
@@ -226,7 +233,8 @@ ModelID ModelMgr::AddModel(BasicModel&& model)
     // check if there is no such model id yet
     if (ids_.binary_search(model.id_))
     {
-        Log::Error("can't add model: there is already a model by ID: " + std::to_string(model.id_));
+        sprintf(g_String, "can't add model: there is already a model by ID: %ud", model.id_);
+        LogErr(g_String);
         return INVALID_MODEL_ID;
     }
 
@@ -294,53 +302,55 @@ BasicModel& ModelMgr::GetModelByID(const ModelID id)
 
 ///////////////////////////////////////////////////////////
 
-BasicModel& ModelMgr::GetModelByName(const std::string& name)
+BasicModel& ModelMgr::GetModelByName(const char* name)
 {
     // get a model by its input name
 
-    if (name.empty())
+    if ((name == nullptr) || (name[0] == '\0'))
     {
-        Log::Error("input name is empty");
-        return models_[0];                  // return empty model
+        LogErr("input name is empty");
+        return models_[0];                  // return empty model (actually cube)
     }
 
     for (index i = 0; i < std::ssize(models_); ++i)
     {
-        if (models_[i].name_ == name)
+        if (strcmp(models_[i].name_, name) == 0)
             return models_[i];
     }
 
     // return an empty model if we didn't find any
-    Log::Error("there is no model by name: " + name);
+    sprintf(g_String, "there is no model by name: %s", name);
+    LogErr(g_String);
     return models_[0];                  
 }
 
 ///////////////////////////////////////////////////////////
 
-ModelID ModelMgr::GetModelIdByName(const std::string& name)
+ModelID ModelMgr::GetModelIdByName(const char* name)
 {
     // get a model ID by its input name
 
-    if (name.empty())
+    if ((name == nullptr) || (name[0] == '\0'))
     {
-        Log::Error("input name is empty");
-        return ids_[0];                  // return empty model
+        LogErr("input name is empty");
+        return ids_[0];                  // return empty model (actually cube)
     }
 
     for (index i = 0; i < std::ssize(models_); ++i)
     {
-        if (models_[i].name_ == name)
+        if (strcmp(models_[i].name_, name) == 0)
             return ids_[i];
     }
 
     // return an empty model ID if we didn't find any
-    Log::Error("there is no model by name: " + name);
+    sprintf(g_String, "there is no model by name: %s", name);
+    LogErr(g_String);
     return ids_[0];
 }
 
 ///////////////////////////////////////////////////////////
 
-void ModelMgr::GetAssetsNamesList(cvector<std::string>& names)
+void ModelMgr::GetModelsNamesList(cvector<ModelName>& names)
 {
     // fill in the input array with names of the assets from the storage
 
@@ -348,7 +358,7 @@ void ModelMgr::GetAssetsNamesList(cvector<std::string>& names)
     names.resize(numNames);
 
     for (int i = 0; i < numNames; ++i)
-        names[i] = models_[i].GetName();
+        strcpy(names[i].name, models_[i].GetName());
 }
 
 } // namespace Core

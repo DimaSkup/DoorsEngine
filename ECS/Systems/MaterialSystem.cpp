@@ -73,7 +73,9 @@ void MaterialSystem::AddRecord(
     // if there is already a record with such entt ID
     if (comp.enttsIDs.binary_search(enttID))
     {
-        Log::Error("can't add record: there is already an entity by ID: {})" + std::to_string(enttID));
+        char buf[64];
+        sprintf(buf, "can't add record: there is already an entity by ID: %ud", enttID);
+        LogErr(buf);
         return;
     }
 
@@ -107,7 +109,7 @@ void MaterialSystem::SetMaterial(
     {
         char buf[64];
         sprintf(buf, "there is no entity by ID: %d", enttID);
-        Log::Error(buf);
+        LogErr(buf);
     }
 }
 
@@ -203,26 +205,20 @@ void MaterialSystem::CheckEnttsHaveMaterialComponent(
         // if we have not the same ID
         if (comp.enttsIDs[idxs[i]] != ids[i])
         {
-            std::string errMsg = GenerateErrMsgNotHaveComponent(ids[i], pNameSystem_->GetNameById(ids[i]));
-            Log::Error(errMsg);
+            LogErr(GenerateErrMsgNotHaveComponent(ids[i]));
         }
     }
 }
 
 ///////////////////////////////////////////////////////////
 
-std::string MaterialSystem::GenerateErrMsgNotHaveComponent(
-    const EntityID id,
-    const EntityName& name) const
+const char* MaterialSystem::GenerateErrMsgNotHaveComponent(const EntityID id) const
 {
     // a helper to generate a message about the entity doesn't have this component
+    const EntityName& name = pNameSystem_->GetNameById(id);
+    sprintf(g_String, "entity (ID: %ud; name: %s) doesn't have a material component!", id, name.c_str());
 
-    std::string errMsg;
-    errMsg += "entity (id: " + std::to_string(id);
-    errMsg += "; name: " + pNameSystem_->GetNameById(id);
-    errMsg += ") doesn't have a material component!";
-
-    return errMsg;
+    return g_String;
 }
 
 } // namespace ECS

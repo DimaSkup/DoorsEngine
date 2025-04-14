@@ -6,7 +6,11 @@
 #include "MeshGeometry.h"
 #include <CoreCommon/MemHelpers.h>
 
+#include <memory>   // for using std::construct_at
+#include <utility>  // for using std::exchange
+
 #pragma warning (disable : 4996)
+
 
 namespace Core
 {
@@ -37,7 +41,7 @@ MeshGeometry& MeshGeometry::operator=(MeshGeometry&& rhs) noexcept
     // move assignment
     if (this != &rhs)
     {
-        this->~MeshGeometry();
+        this->Shutdown();
         std::construct_at(this, std::move(rhs));
     }
 
@@ -54,8 +58,8 @@ void MeshGeometry::Shutdown()
     SafeDeleteArr(subsets_);
     numSubsets_ = 0;
 
-    vb_.~VertexBuffer();
-    ib_.~IndexBuffer();
+    vb_.Shutdown();
+    ib_.Shutdown();
 }
 
 ///////////////////////////////////////////////////////////
@@ -103,10 +107,9 @@ void MeshGeometry::AllocateSubsets(const int numSubsets)
     }
     catch (EngineException& e)
     {
-        const std::string errMsg = "can't allocate memory for subsets";
-        Log::Error(e);
-        Log::Error(errMsg);
-        throw EngineException(errMsg);
+        LogErr(e);
+        LogErr("can't allocate memory for subsets");
+        throw EngineException("can't allocate memory for subsets");
     }
 }
 
@@ -172,8 +175,9 @@ void MeshGeometry::SetSubsetName(const SubsetID subsetID, const char* name)
     }
     catch (EngineException& e)
     {
-        Log::Error(e);
-        Log::Error("can't set a name for subset " + std::to_string(subsetID) + ": invalid input args");
+        sprintf(g_String, "can't set a name for subset (id: %d): invalid input args", subsetID);
+        LogErr(e);
+        LogErr(g_String);
     }
 }
 
@@ -190,8 +194,9 @@ void MeshGeometry::SetMaterialForSubset(const SubsetID subsetID, const MaterialI
     }
     catch (EngineException& e)
     {
-        Log::Error(e);
-        Log::Error("can't setup a material (ID: " + std::to_string(matID) + ") for subset (ID: " + std::to_string(subsetID));
+        sprintf(g_String, "can't setup a material (ID: %ud) for subset (ID: %ud)", matID, subsetID);
+        LogErr(e);
+        LogErr(g_String);
     }
 }
 
@@ -206,7 +211,7 @@ void MeshGeometry::SetMaterialsForSubsets(
 
     if (!CheckInputParamsForMaterialsSetting(subsetsIDs, materialsIDs, count))
     {
-        Log::Error("can't set materials for subsets: invalid input args");
+        LogErr("can't set materials for subsets: invalid input args");
         return;
     }
 
@@ -244,7 +249,7 @@ bool MeshGeometry::CheckInputParamsForMaterialsSetting(
     }
     catch (EngineException& e)
     {
-        Log::Error(e);
+        LogErr(e);
         return false;
     }
 }

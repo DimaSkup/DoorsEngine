@@ -41,7 +41,7 @@ TexStoreType DetermineTextureStorageType(
 		}
 		else
 		{
-			Log::Error("SUPPORT DOES NOT EXIST YET FOR INDEXED NON COMPRESSES TEXTURES");
+			LogErr("SUPPORT DOES NOT EXIST YET FOR INDEXED NON COMPRESSES TEXTURES");
 			return TexStoreType::EmbeddedIndexNonCompressed;
 		}
 	}
@@ -57,7 +57,7 @@ TexStoreType DetermineTextureStorageType(
 		}
 		else
 		{
-			Log::Error("SUPPORT DOES NOT EXIST YET FOR EMBEDDED NON COMPRESSES TEXTURES");
+			LogErr("SUPPORT DOES NOT EXIST YET FOR EMBEDDED NON COMPRESSES TEXTURES");
 			return TexStoreType::EmbeddedNonCompressed;
 		}
 	}

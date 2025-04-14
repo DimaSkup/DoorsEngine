@@ -6,15 +6,14 @@
 // *********************************************************************************
 #pragma once
 
+
 namespace Render
 {
-	
-
-
+    
 template<typename T>
 inline void SafeDelete(T*& p)
 {
-	if (p) { delete(p); p = nullptr; }
+    if (p) { delete(p); p = nullptr; }
 }
 
 ///////////////////////////////////////////////////////////
@@ -22,7 +21,7 @@ inline void SafeDelete(T*& p)
 template<typename T>
 inline void SafeDeleteArr(T*& p)
 {
-	if (p) { delete[](p); p = nullptr; }
+    if (p) { delete[](p); p = nullptr; }
 }
 
 ///////////////////////////////////////////////////////////
@@ -30,7 +29,7 @@ inline void SafeDeleteArr(T*& p)
 template<class T>
 inline void SafeShutdown(T** ppT)
 {
-	if (*ppT) { (*ppT)->Shutdown(); delete(ppT); *ppT = nullptr; }
+    if (*ppT) { (*ppT)->Shutdown(); delete(ppT); *ppT = nullptr; }
 }
 
 ///////////////////////////////////////////////////////////
@@ -38,7 +37,7 @@ inline void SafeShutdown(T** ppT)
 template<class T>
 inline void SafeRelease(T** ppT)
 {
-	if (*ppT) { (*ppT)->Release(); *ppT = nullptr; }
+    if (*ppT) { (*ppT)->Release(); *ppT = nullptr; }
 }
 
 

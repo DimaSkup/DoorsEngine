@@ -45,7 +45,7 @@ AdapterReader::AdapterReader()
 	}
 	catch (EngineException& e)
 	{
-		Log::Error(e, true);
+		LogErr(e, true);
 		Shutdown();
 		throw EngineException("can't get adapters data");
 	}

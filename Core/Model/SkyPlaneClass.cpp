@@ -195,7 +195,7 @@ bool SkyPlaneClass::BuildSkyPlaneGeometry(ID3D11Device* pDevice,
 	}
 	catch (std::bad_alloc & e)
 	{
-		Log::Error(e.what());
+		LogErr(e.what());
 		throw EngineException("can't allocate memory for the sky plane data array");
 	}
 
@@ -336,7 +336,7 @@ bool SkyPlaneClass::LoadCloudTextures(ID3D11Device* pDevice,
 	}
 	catch (EngineException & e)
 	{
-		Log::Error(e, false);
+		LogErr(e, false);
 		return false;
 	}
 

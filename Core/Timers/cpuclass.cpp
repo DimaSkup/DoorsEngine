@@ -6,7 +6,7 @@
 #include <pdhmsg.h>
 
 #include <CoreCommon/Log.h>
-#include <CoreCommon/StringHelper.h>
+#include <CoreCommon/StrHelper.h>
 
 
 namespace Core
@@ -17,22 +17,19 @@ CpuClass::CpuClass(const CpuClass& copy) {}
 
 CpuClass::~CpuClass()
 {
-	Log::Debug();
+	LogDbg("destroyment");
 }
 
 
 // --------------------------------------------------------------------------------- //
-//                                                                                   //
 //                              PUBLIC FUNCTIONS                                     // 
-//                                                                                   //
 // --------------------------------------------------------------------------------- //
-
-
-// will setup the handle for querying the cpu on its usage
 void CpuClass::Initialize()
 {
+    // will setup the handle for querying the cpu on its usage
+
 	return;
-	Log::Debug();
+	LogDbg("init");
 
 	PDH_STATUS status;  // performance data helper status
 	HANDLE hPdhLibrary = NULL;
@@ -52,7 +49,7 @@ void CpuClass::Initialize()
 	status = PdhOpenQuery(NULL, 0, &m_queryHandle);
 	if (status != ERROR_SUCCESS)
 	{
-		Log::Error("can't create a query object to poll CPU usage");
+		LogErr("can't create a query object to poll CPU usage");
 		m_canReadCpu = false;
 	}
 
@@ -61,7 +58,7 @@ void CpuClass::Initialize()
 		                   0, &m_counterHandle);
 	if (status != ERROR_SUCCESS)
 	{
-		Log::Error("can't set query object to poll all CPUs in the system");
+		LogErr("can't set query object to poll all CPUs in the system");
 
 
 		if (!FormatMessage(FORMAT_MESSAGE_FROM_HMODULE |
@@ -74,16 +71,21 @@ void CpuClass::Initialize()
 			0,
 			NULL))
 		{
-			Log::Error("Format message failed with " + std::to_string(GetLastError()));
+            sprintf(g_String, "Format message failed with error: %d", GetLastError());
+            LogErr(g_String);
 		}
 
-		Log::Error("Formatted message: " + StringHelper::ToString(pMessage));
+        char msg[128]{ '\0' };
+        StrHelper::ToStr(pMessage, msg);
+        sprintf(g_String, "Formatted message: %s", msg);
+        LogErr(g_String);
+
 		LocalFree(pMessage);
 		m_canReadCpu = false;
 	}
 	else
 	{
-		Log::Error("can't set query object to poll all cpus in the system");
+		LogErr("can't set query object to poll all cpus in the system");
 	}
 
 	m_lastSampleTime = GetTickCount();
@@ -95,7 +97,7 @@ void CpuClass::Shutdown()
 {
 	// releases the handle we used to query the cpu usage
 
-	Log::Debug();
+	LogDbg("shutdown");
 
 	if (m_canReadCpu)
 	{
@@ -129,7 +131,7 @@ int CpuClass::GetCpuPercentage()
 	// returns the value of the current cpu usage to any calling function or 
 	// just returns zero value if it couldn't read the cpu for whatever reason
 
-	return (m_canReadCpu) ? static_cast<int>(m_cpuUsage) : 0;
+	return (m_canReadCpu) ? (int)(m_cpuUsage) : 0;
 }
 
 } // namespace Core

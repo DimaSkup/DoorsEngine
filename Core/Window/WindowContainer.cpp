@@ -25,7 +25,7 @@ bool RID_RegisterDevice(HWND hTarget, USHORT usage)
 
 	if (RegisterRawInputDevices(&rid, 1, sizeof(RAWINPUTDEVICE)) == FALSE)
 	{
-		Log::Error("can't register raw input devices");
+		LogErr("can't register raw input devices");
 		exit(-1);
 	}
 	return true;
@@ -35,7 +35,7 @@ bool RID_RegisterDevice(HWND hTarget, USHORT usage)
 
 WindowContainer::WindowContainer(HWND hwnd)
 {
-	Log::Debug();
+	LogDbg("wnd container");
 
 	// we can have only one instance of the WindowContainer
 	if (WindowContainer::pWindowContainer_ == nullptr)
@@ -54,7 +54,7 @@ WindowContainer::WindowContainer(HWND hwnd)
 	}
 	else
 	{
-		Log::Error("you can have only one instance of the WindowContainer");
+		LogErr("you can have only one instance of the WindowContainer");
 		exit(-1);
 	}
 }
@@ -64,7 +64,7 @@ WindowContainer::WindowContainer(HWND hwnd)
 WindowContainer::~WindowContainer()
 {
 	SystemParametersInfo(SPI_SETKEYBOARDDELAY, 0, &oldKeyboardDelayTime, 0);
-	Log::Debug();
+	LogDbg("destructor");
 }
 
 
@@ -101,14 +101,14 @@ LRESULT CALLBACK WindowContainer::WindowProc(
 		}
 		case WM_CLOSE:                // if we hit the "X" (close) button of the window
 		{
-			Log::Print("the window is closed");
+			LogMsg("the window is closed");
 			DestroyWindow(hwnd);
 			return 0;
 		}
 		case WM_DESTROY:              // an event of the window destroyment
 		{
 			// close the engine entirely
-			Log::Print("the window is destroyed");
+			LogMsg("the window is destroyed");
 			PostQuitMessage(0);
 			return 0;
 		}

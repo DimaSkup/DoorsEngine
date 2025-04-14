@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////
-// Filename:     fontshaderclass.h
+// Filename:     FontShader.h
 // Description:  this is a class for rendering fonts images
 //               using HLSL shaders.
 //
@@ -21,25 +21,25 @@
 namespace Render
 {
 
-class FontShaderClass final
+class FontShader
 {
 public:
     using SRV = ID3D11ShaderResourceView;
 
 public:
-    FontShaderClass();
-    ~FontShaderClass();
+    FontShader();
+    ~FontShader();
 
     // restrict a copying of this class instance
-    FontShaderClass(const FontShaderClass& obj) = delete;
-    FontShaderClass& operator=(const FontShaderClass& obj) = delete;
+    FontShader(const FontShader& obj) = delete;
+    FontShader& operator=(const FontShader& obj) = delete;
 
 
     bool Initialize(
         ID3D11Device* pDevice,
-        ID3D11DeviceContext* pContext,
         const DirectX::XMMATRIX& WVO,
-        const std::string& pathToShadersDir);
+        const char* vsFilePath,
+        const char* psFilePath);
 
     // Public rendering API
     void Render(
@@ -57,7 +57,7 @@ public:
     
 
     // Public query API
-    inline const std::string & GetShaderName() const { return className_; }
+    inline const char* GetShaderName() const { return className_; }
     inline ID3D11Buffer* GetConstBufferVS()    const { return matrixBuffer_.Get(); }
     inline ID3D11Buffer* GetConstBufferPS()    const { return pixelBuffer_.Get(); }
 
@@ -65,10 +65,9 @@ private:
     // initializes the HLSL shaders, input layout, sampler state and buffers
     void InitializeShaders(
         ID3D11Device* pDevice,
-        ID3D11DeviceContext* pContext,
-        const std::string& vsFilename,
-        const std::string& psFilename,
-        const DirectX::XMMATRIX& WVO);
+        const DirectX::XMMATRIX& WVO,
+        const char* vsFilePath,
+        const char* psFilePath);
 
 private:
     VertexShader   vs_;
@@ -78,7 +77,7 @@ private:
     ConstantBuffer<BuffTypes::ConstantMatrixBuffer_FontVS> matrixBuffer_;
     ConstantBuffer<BuffTypes::ConstantPixelBuffer_FontPS>  pixelBuffer_;   // text colour for the pixel shader
 
-    std::string className_{ "font_shader_class" };
+    char className_[32]{"FontShader"};
 };
 
 }

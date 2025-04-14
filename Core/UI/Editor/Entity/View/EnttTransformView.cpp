@@ -8,8 +8,9 @@
 #include <UICommon/Color.h>
 #include <UICommon/Vectors.h>
 #include <UICommon/EditorCommands.h>
-
 #include <imgui.h>
+
+#pragma warning (disable : 4996)
 
 
 namespace UI
@@ -44,14 +45,18 @@ void EnttTransformView::Render(const EnttTransformData& data)
 
     // ------------------------------------------
 
-    std::string pitchInfo = std::to_string(data.GetPitchInDeg());
-    std::string yawInfo   = std::to_string(data.GetYawInDeg());
-    std::string rollInfo  = std::to_string(data.GetRollInDeg());
+    char pitchInfo[32];
+    char yawInfo[32];
+    char rollInfo[32];
+
+    sprintf(pitchInfo, "%f", data.GetPitchInDeg());
+    sprintf(yawInfo, "%f", data.GetYawInDeg());
+    sprintf(rollInfo, "%f", data.GetRollInDeg());
 
     ImGui::Text("Rotation in degrees (around axis)");
-    ImGui::InputText("pitch", pitchInfo.data(), pitchInfo.size()+1, ImGuiInputTextFlags_ReadOnly);
-    ImGui::InputText("yaw",   yawInfo.data(),   yawInfo.size()+1,   ImGuiInputTextFlags_ReadOnly);
-    ImGui::InputText("roll",  rollInfo.data(),  rollInfo.size()+1,  ImGuiInputTextFlags_ReadOnly);
+    ImGui::InputText("pitch", pitchInfo, strlen(pitchInfo), ImGuiInputTextFlags_ReadOnly);
+    ImGui::InputText("yaw",   yawInfo,   strlen(yawInfo),   ImGuiInputTextFlags_ReadOnly);
+    ImGui::InputText("roll",  rollInfo,  strlen(rollInfo),  ImGuiInputTextFlags_ReadOnly);
 
     // ------------------------------------------
 

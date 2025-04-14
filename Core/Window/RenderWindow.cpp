@@ -6,7 +6,7 @@
 #include "WindowContainer.h"
 
 #include <CoreCommon/Log.h>
-#include <CoreCommon/StringHelper.h>
+#include <CoreCommon/StrHelper.h>
 
 
 namespace Core
@@ -30,15 +30,19 @@ bool RenderWindow::Initialize(
 	// this function setups the window params,
 	// registers the window class and show us a new window;
 
-	Log::Debug();
+	LogDbg("init");
 	bool RegisterWindowClassResult = false;
 
 	windowWidth_     = width;
 	windowHeight_    = height;
 	windowTitle_     = windowTitle;
-	windowTitleWide_ = StringHelper::StringToWide(windowTitle);
-	windowClass_     = windowClass;
-	windowClassWide_ = StringHelper::StringToWide(windowClass);
+    windowClass_ = windowClass;
+
+    windowTitleWide_.resize(windowTitle.size(), L'\0');
+    windowClassWide_.resize(windowClass.size(), L'\0');
+
+    StrHelper::StrToWide(windowTitle.c_str(), (wchar_t*)windowTitleWide_.c_str());
+    StrHelper::StrToWide(windowClass.c_str(), (wchar_t*)windowClassWide_.c_str());
 
 	// registers the window class
 	RegisterWindowClass(hInstance);  
@@ -55,7 +59,7 @@ bool RenderWindow::Initialize(
 	//SetLayeredWindowAttributes(mainWnd, 0, 1, LWA_ALPHA);
 	//SetLayeredWindowAttributes(mainWnd, 0, RGB(0, 0, 0), LWA_COLORKEY);
 
-	Log::Print("the window is created successfully");
+	LogMsg("the window is created successfully");
 
 	return true;
 }
@@ -74,7 +78,7 @@ void RenderWindow::RegisterWindowClass(const HINSTANCE hInstance)
 {
 	// this function registers the window class
 
-	Log::Debug();
+	LogDbg("register window class");
 
 	// our window class (this has to be filled before our window can be created)
 	WNDCLASSEX wc;  
@@ -96,7 +100,7 @@ void RenderWindow::RegisterWindowClass(const HINSTANCE hInstance)
 	// register the class so that it is usable
 	if (!RegisterClassEx(&wc))
 	{
-		Log::Error("can't register the window class");
+		LogErr("can't register the window class");
 		return;
 	}
 }
@@ -109,7 +113,7 @@ bool RenderWindow::CreateWindowExtended(
 	const bool isFullScreen)
 {
 	// this function creates the window
-	Log::Debug();
+	LogDbg("create wnd");
 	
 	RECT winRect{0,0,0,0};
 
@@ -182,7 +186,7 @@ bool RenderWindow::CreateWindowExtended(
 	if (!hwnd)
 	{
 		// ErrorLogger::Log(GetLastError(), "CreateWindowEx Failed for window: " + this->windowTitle_);
-		Log::Error("can't create the window");
+		LogErr("can't create the window");
 		return false;
 	}
 

@@ -201,12 +201,10 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
   <ItemGroup>
     <ClCompile Include="2D\SpriteClass.cpp" />
     <ClCompile Include="Camera\Camera.cpp" />
-    <ClCompile Include="CoreCommon\MathHelper.cpp" />
     <ClCompile Include="CoreCommon\EngineException.cpp" />
+    <ClCompile Include="CoreCommon\MathHelper.cpp" />
     <ClCompile Include="Engine\EventHandler.cpp" />
-    <ClCompile Include="CoreCommon\StringHelper.cpp" />
     <ClCompile Include="Engine\ProjectSaver.cpp" />
-    <ClCompile Include="Engine\UtilsForDLL.cpp" />
     <ClCompile Include="ImGuizmo\ImGuizmo.cpp" />
     <ClCompile Include="ImGui\ImGuiLayer.cpp" />
     <ClCompile Include="Input\KeyboardEvent.cpp" />
@@ -253,7 +251,6 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClCompile Include="UI\Editor\Terrain\Sky\SkyController.cpp" />
     <ClCompile Include="UI\Editor\Entity\Controller\EnttSpotLightController.cpp" />
     <ClCompile Include="UI\Editor\Entity\Creator\EntityCreatorWnd.cpp" />
-    <ClCompile Include="UI\Editor\Terrain\Sky\SkyEditorModel.cpp" />
     <ClCompile Include="UI\Editor\Entity\View\EnttComponentsEditor.cpp" />
     <ClCompile Include="UI\Editor\Entity\View\EnttTransformView.cpp" />
     <ClCompile Include="UI\Editor\Entity\View\EnttLightView.cpp" />
@@ -282,10 +279,10 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClInclude Include="CoreCommon\Convert.h" />
     <ClInclude Include="CoreCommon\cvector.h" />
     <ClInclude Include="CoreCommon\FileSystemPaths.h" />
+    <ClInclude Include="CoreCommon\EngineException.h" />
     <ClInclude Include="CoreCommon\MathHelper.h" />
     <ClInclude Include="CoreCommon\MemHelpers.h" />
     <ClInclude Include="CoreCommon\Types.h" />
-    <ClInclude Include="CoreCommon\Utils.h" />
     <ClInclude Include="CoreCommon\UtilsFilesystem.h" />
     <ClInclude Include="ECS_Components\MeshComponent.h" />
     <ClInclude Include="ECS_Components\Rendered.h" />
@@ -304,7 +301,6 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClInclude Include="Engine\EventHandler.h" />
     <ClInclude Include="Engine\EventListener.h" />
     <ClInclude Include="Engine\ProjectSaver.h" />
-    <ClInclude Include="Engine\UtilsForDLL.h" />
     <ClInclude Include="ECS_Entity\ECS_Types.h" />
     <ClInclude Include="ImGuizmo\ImGuizmo.h" />
     <ClInclude Include="ImGui\backends\imgui_impl_dx11.h" />
@@ -376,9 +372,8 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClInclude Include="UI\UICommon\FacadeEngineToUI.h" />
     <ClInclude Include="UI\UICommon\IFacadeEngineToUI.h" />
     <ClInclude Include="Texture\TextureTypes.h" />
-    <ClInclude Include="CoreCommon\EngineException.h" />
     <ClInclude Include="Engine\Settings.h" />
-    <ClInclude Include="CoreCommon\StringHelper.h" />
+    <ClInclude Include="CoreCommon\StrHelper.h" />
     <ClInclude Include="Mesh\Material.h" />
     <ClInclude Include="Model\BasicModel.h" />
     <ClInclude Include="Mesh\IndexBuffer.h" />

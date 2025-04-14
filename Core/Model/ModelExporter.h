@@ -10,7 +10,6 @@
 #include "BasicModel.h"
 #include <fstream>
 
-
 namespace Core
 {
 
@@ -22,7 +21,7 @@ public:
 	void ExportIntoDE3D(
 		ID3D11Device* pDevice,
 		const BasicModel& model, 
-		const std::string& path);
+		const char* path);
 
 private:
 	void WriteHeader(std::ofstream& fout, const BasicModel& model);
@@ -31,7 +30,7 @@ private:
 		ID3D11Device* pDevice,
 		std::ofstream& fout, 
 		const BasicModel& model,
-		const std::string& targetDirFullPath);
+		const char* targetDirFullPath);
 
 	void WriteSubsetTable(
 		std::ofstream& fout, 

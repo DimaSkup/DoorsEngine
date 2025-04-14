@@ -10,16 +10,12 @@
 #include <CoreCommon/MemHelpers.h>
 #include <CoreCommon/log.h>
 #include <CoreCommon/Assert.h>
-#include <CoreCommon/StringHelper.h>
+//#include <CoreCommon/StrHelper.h>
 
 #include "ImageReader.h"
-
-#include <stdexcept>
 #include <filesystem>
 
 namespace fs = std::filesystem;
-
-
 
 namespace Core
 {
@@ -48,10 +44,6 @@ TextureMgr::TextureMgr()
         names_.reserve(reserveForTexCount);
         textures_.reserve(reserveForTexCount);
         shaderResourceViews_.reserve(reserveForTexCount);
-
-        // setup the static logger in the image reader module
-        ImgReader::ImageReader imgReader;
-        imgReader.SetupLogger(Log::GetFilePtr(), &Log::GetLogMsgsList());
     }
     else
     {
@@ -83,9 +75,42 @@ void TextureMgr::Initialize(ID3D11Device* pDevice)
 
     // create and store a couple of default textures
     //LoadFromFile(g_TexDirPath + "notexture.dds");
-    AddDefaultTex("unloaded", { pDevice, Colors::UnloadedTextureColor });
+    AddDefaultTex("unloaded",          { pDevice, Colors::UnloadedTextureColor });
     AddDefaultTex("unhandled_texture", { pDevice, Colors::UnhandledTextureColor });
 }
+
+///////////////////////////////////////////////////////////
+
+void TextureMgr::SetTexName(const TexID id, const char* inName)
+{
+    // update a name of the texture by id
+
+    if (IsNameEmpty(inName))
+    {
+        LogErr("input name is empty");
+        return;
+    }
+
+    const index idx = ids_.get_idx(id);
+    const bool exist = (ids_[idx] == id);
+
+    if (!exist)
+    {
+        sprintf(g_String, "there is no texture by ID: %ud", id);
+        LogErr(g_String);
+        return;
+    }
+
+    size_t sz = strlen(inName);
+    sz = (sz > MAX_LENGTH_TEXTURE_NAME) ? MAX_LENGTH_TEXTURE_NAME : sz;  // length of texture name cannot be bigger than MAX_LENGTH_TEXTURE_NAME
+
+    // update name
+    names_[idx] = inName;
+    //strncpy(names_[idx].name, inName, sz);
+
+    textures_[idx].SetName(inName);
+}
+
 
 ///////////////////////////////////////////////////////////
 
@@ -117,7 +142,7 @@ TexID TextureMgr::Add(const TexName& name, Texture& tex)
     }
     catch (EngineException& e)
     {
-        Log::Error(e);
+        LogErr(e);
         throw EngineException("can't add a texture by name: " + name);
     }
 }
@@ -125,24 +150,27 @@ TexID TextureMgr::Add(const TexName& name, Texture& tex)
 
 ///////////////////////////////////////////////////////////
 
-TexID TextureMgr::Add(const TexName& name, Texture&& tex)
+TexID TextureMgr::Add(const char* name, Texture&& tex)
 {
     // add a new texture by name and return its generated ID
     try
     {
-        Assert::NotEmpty(name.empty(), "a texture name (path) cannot be empty");
+        Assert::True(!IsNameEmpty(name), "a texture name cannot be empty");
 
-        // if there is already a texture with such name we just search and return its ID
-        const bool isNotUniqueName = (names_.find(name) != -1);
+        TexID id = INVALID_TEXTURE_ID;
 
-        if (isNotUniqueName)
-            return GetIDByName(name);
+        // if there is already a texture with such name we just return its ID
+        id = GetIDByName(name);
+        if (id != 0)
+            return id;
+
 
         // else we add a new texture
-        const TexID id = GenID();
+        id = GenID();
 
         ids_.push_back(id);
         names_.push_back(name);
+
         textures_.push_back(std::move(tex));
         shaderResourceViews_.push_back(textures_.back().GetTextureResourceView());
 
@@ -151,35 +179,66 @@ TexID TextureMgr::Add(const TexName& name, Texture&& tex)
     }
     catch (EngineException& e)
     {
-        Log::Error(e);
-        throw EngineException("can't add a texture by name: " + name);
+        LogErr(e);
+        sprintf(g_String, "can't add a texture by name: %s", name);
+        throw EngineException(g_String);
     }
 }
 
 ///////////////////////////////////////////////////////////
 
-TexID TextureMgr::LoadFromFile(const TexPath& path)
+TexID TextureMgr::LoadFromFile(const char* dirPath, const char* texturePath)
+{
+    // return an ID to the texture which is loaded from the file by input path
+    //
+    // input: dirPath     -- directory relatively to the project working directory
+    //        texturePath -- path to texture relatively to the dirPath
+
+
+    // check input params
+    if ((dirPath == nullptr) || (dirPath[0] == '\0'))
+    {
+        LogErr("input path to directory is empty!");
+        return INVALID_TEXTURE_ID;
+    }
+
+    if ((texturePath == nullptr) || (texturePath[0] == '\0'))
+    {
+        LogErr("input path to texture is empty!");
+        return INVALID_TEXTURE_ID;
+    }
+
+    // create a full path to the texture (relatively to the project working directory) and load this texture
+    sprintf(g_String, "%s%s", dirPath, texturePath);
+    return LoadFromFile(g_String);
+}
+
+///////////////////////////////////////////////////////////
+
+TexID TextureMgr::LoadFromFile(const char* path)
 {
     // return an ID to the texture which is loaded from the file by input path
 
     try
     {
-        const fs::path texPath = path;
-
         // check if such texture file exists
-        if (!fs::exists(texPath))
+        if (fopen(path, "r+") == nullptr)
         {
-            Log::Error("there is no texture by path: " + path);
+            sprintf(g_String, "there is no texture by path: %s", path);
+            LogErr(g_String);
             return INVALID_TEXTURE_ID;
         }
 
-        // if there is such a texture we just return its ID
-        if (names_.find(path) != -1)
-            return GetIDByName(path);
+        TexID id = INVALID_TEXTURE_ID;
+
+        // if there is already such a texture we just return its ID
+        id = GetIDByName(path);
+        if (id != 0)
+            return id;
 
 
         // else we create a new texture from file
-        const TexID id = GenID();
+        id = GenID();
 
         ids_.push_back(id);
         names_.push_back(path);
@@ -193,8 +252,9 @@ TexID TextureMgr::LoadFromFile(const TexPath& path)
     }
     catch (EngineException& e)
     {
-        Log::Error(e);
-        throw EngineException("can't create a texture from file: " + path);
+        sprintf(g_String, "can't create a texture from file: %s", path);
+        LogErr(e);
+        return INVALID_TEXTURE_ID;
     }
 }
 
@@ -213,23 +273,20 @@ TexID TextureMgr::LoadTextureArray(
         // check if files exist
         for (index i = 0; i < numTextures; ++i)
         {
-            // if such texture file doesn't exist we return an of invalid texture ID
-            if (!fs::exists(fs::path(textureNames[i])))
+            if (fopen(textureNames[i].c_str(), "r+") == nullptr)
             {
-                Log::Error("there is no texture by path: " + textureNames[i]);
+                sprintf(g_String, "there is no texture by path: %s", textureNames[i].c_str());
+                LogErr(g_String);
                 return INVALID_TEXTURE_ID;  
             }
         }
 
         const TexID id = GenID();
-      
+        char texName[32];
+        sprintf(texName, "%s%ud", "texture_array_", id);
+
         // create a texture array object
-        Texture texArr(
-            pDevice_,
-            "texture_array" + std::to_string(id),
-            textureNames,
-            (int)numTextures,
-            format);
+        Texture texArr(pDevice_, texName, textureNames, (int)numTextures, format);
 
 
         // store data into the texture manager
@@ -242,8 +299,9 @@ TexID TextureMgr::LoadTextureArray(
     }
     catch (EngineException& e)
     {
-        Log::Error(e, true);
-        throw EngineException("can't create texture 2D array");
+        LogErr(e, true);
+        LogErr("can't create texture 2D array");
+        return INVALID_TEXTURE_ID;
     }
 }
 
@@ -255,10 +313,10 @@ TexID TextureMgr::CreateWithColor(const Color& color)
     // or in another case we create this texture and return an ID to this new texture;
     
     // generate a name for this texture
-    const std::string name = std::format("color_texture_{}_{}_{}", color.GetR(), color.GetG(), color.GetB());
-    TexID id = GetIDByName(name);
+    sprintf(g_String, "color_texture_%d_%d_%d", color.GetR(), color.GetG(), color.GetB());
+    TexID id = GetIDByName(g_String);
 
-    return (id != INVALID_TEXTURE_ID) ? id : Add(name, Texture(pDevice_, color));
+    return (id != INVALID_TEXTURE_ID) ? id : Add(g_String, Texture(pDevice_, color));
 }
 
 
@@ -287,9 +345,16 @@ Texture* TextureMgr::GetTexPtrByID(const TexID id)
 
 ///////////////////////////////////////////////////////////
 
-Texture* TextureMgr::GetTexPtrByName(const TexName& name)
+Texture* TextureMgr::GetTexPtrByName(const char* name)
 {
     // return a ptr to the texture by name or nullptr if there is no such a texture
+
+    if (IsNameEmpty(name))
+    {
+        LogErr("input name of texture is empty!");
+        return nullptr;
+    }
+
     const index idx = names_.find(name);
     return (idx != -1) ? &textures_[idx] : nullptr;
 }
@@ -298,13 +363,19 @@ Texture* TextureMgr::GetTexPtrByName(const TexName& name)
 // =================================================================================
 // Getters: get texture ID / textures IDs array by name/names
 // =================================================================================
-TexID TextureMgr::GetIDByName(const TexName& name)
+TexID TextureMgr::GetIDByName(const char* inName)
 {
     // return an ID of texture object by input name;
     // if there is no such a textures we return 0;
 
-    const index idx = names_.find(name);
-    return (idx != -1) ? ids_[idx] : INVALID_TEXTURE_ID;
+    for (index i = 0; i < names_.size(); ++i)
+    {
+        if (strcmp(names_[i].c_str(), inName) == 0)
+            return ids_[i];
+    }
+
+    // if we didn't find any ID by name we return 0
+    return INVALID_TEXTURE_ID;
 }
 
 ///////////////////////////////////////////////////////////
@@ -318,7 +389,7 @@ TexID TextureMgr::GetTexIdByIdx(const index idx) const
 }
 
 ///////////////////////////////////////////////////////////
-
+#if 0
 void TextureMgr::GetIDsByNames(
     const TexName* inNames,
     const size numNames,
@@ -344,6 +415,7 @@ void TextureMgr::GetIDsByNames(
         outIDs[i++] = ids_[idx * (size)exist];
     }
 }
+#endif
 
 ///////////////////////////////////////////////////////////
 
@@ -444,31 +516,15 @@ void TextureMgr::GetAllTexturesPathsWithinDirectory(
 // =================================================================================
 //                              PRIVATE HELPERS
 // =================================================================================
-void TextureMgr::AddDefaultTex(const TexName& name, Texture&& tex)
+void TextureMgr::AddDefaultTex(const char* name, Texture&& tex)
 {
     // add some default texture into the TextureMgr and
     // set for it a specified id
 
-    try
-    {
-        Assert::True(!name.empty(), "input name is empty");
-
-        const bool isUniqueName = !names_.has_value(name);
-        Assert::True(isUniqueName, "input name is not unique: " + name);
-
-
-        const TexID id = GenID();
-
-        ids_.push_back(id);
-        names_.push_back(name);
-        textures_.push_back(std::move(tex));
-        shaderResourceViews_.push_back(textures_.back().GetTextureResourceView());
-    }
-    catch (EngineException& e)
-    {
-        Log::Error(e);
-        throw EngineException("can't add a texture by name: " + name);
-    }
+    ids_.push_back(GenID());
+    names_.push_back(name);
+    textures_.push_back(std::move(tex));
+    shaderResourceViews_.push_back(textures_.back().GetTextureResourceView());
 }
 
 } // namespace Core
