@@ -8,12 +8,10 @@
 #pragma once
 
 #include <CoreCommon/Types.h>
-
 #include "Vertex.h"
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"
 
-constexpr int SUBSET_NAME_LENGTH_LIMIT = 32;
 
 namespace Core
 {

@@ -8,6 +8,7 @@
 
 #include <CoreCommon/FileSystemPaths.h>
 #include <CoreCommon/MathHelper.h>
+#include <CoreCommon/FileSystem.h>
 #include "ModelMath.h"
 #include "../Engine/Settings.h"
 
@@ -17,12 +18,7 @@
 #include "ModelImporter.h"
 
 #include "../Model/ModelMgr.h"
-#include "../Texture/TextureMgr.h"
 
-#include <fstream>
-#include <filesystem>
-
-namespace fs = std::filesystem;
 using namespace DirectX;
 
 
@@ -35,39 +31,42 @@ ModelsCreator::ModelsCreator()
 
 // ************************************************************************************
 
-ModelID ModelsCreator::CreateFromDE3D(
-    ID3D11Device* pDevice, 
-    const std::string& path)
+ModelID ModelsCreator::CreateFromDE3D(ID3D11Device* pDevice, const char* modelPath)
 {
     // load model's data from a file in the INTERNAL format .de3d
 
+    char relativePath[256]{ '\0' };             // path relative to the working directory
+    strcat(relativePath, g_RelPathAssetsDir);
+    strcat(relativePath, modelPath);
+
     try
     {
-        const fs::path relativePath = g_RelPathAssetsDir + path;
-        Assert::True(fs::exists(relativePath), "there is no model file by path: " + path);
-
         ModelLoader loader;
         BasicModel model;
 
-        // load a model from file and init its vb/ib
-        loader.Load(path, model);
+        // load a model from file
+        const bool isLoaded = loader.Load(relativePath, model);
+        if (!isLoaded)
+        {
+            sprintf(g_String, "can't load model from file: %s", relativePath);
+            LogErr(g_String);
+            return INVALID_MODEL_ID;
+        }
+
+        // init vertex/index buffers
         model.InitializeBuffers(pDevice);
 
+        // add model into the model manager
         ModelID id = id = model.id_;
         g_ModelMgr.AddModel(std::move(model));
 
         return id;
     }
-    catch (const std::bad_alloc& e)
-    {
-        Log::Error(e.what());
-        Log::Error("can't allocate memory during loading: " + path);
-        return INVALID_MODEL_ID;
-    }
     catch (EngineException& e)
     {
-        Log::Error(e);
-        Log::Error("can't loading model by path: " + path);
+        LogErr(e);
+        sprintf(g_String, "can't load model by path: %s", relativePath);
+        LogErr(g_String);
         return INVALID_MODEL_ID;
     }
 }
@@ -76,23 +75,24 @@ ModelID ModelsCreator::CreateFromDE3D(
 
 ModelID ModelsCreator::ImportFromFile(
     ID3D11Device* pDevice,
-    const std::string& path)
+    const char* modelPath)
 {
     // create a model by loading its vertices/indices/texture data/etc. from a file
     
     try
     {
-        const fs::path pathToModel = path;
-        Assert::True(fs::exists(pathToModel), "there is no model file by path: " + path);
-
         ModelImporter importer;
         BasicModel& model = g_ModelMgr.AddEmptyModel();
 
-        model.name_ = pathToModel.stem().string();
+        // set a name and type for the model
+        FileSys::GetFileStem(modelPath, g_String);
+
+        model.SetName(g_String);
         model.type_ = eModelType::Imported;
-        
+
+
         // import model from a file by path
-        importer.LoadFromFile(pDevice, model, path);
+        importer.LoadFromFile(pDevice, model, modelPath);
 
         // initialize vb/ib
         model.InitializeBuffers(pDevice);
@@ -102,22 +102,16 @@ ModelID ModelsCreator::ImportFromFile(
 
         return model.id_;
     }
-    catch (const std::bad_alloc& e)
-    {
-        Log::Error(e.what());
-        Log::Error("can't allocate memory during import: " + path);
-        return INVALID_MODEL_ID;
-    }
     catch (EngineException& e)
     {
-        Log::Error(e);
-        Log::Error("can't import model by path: " + path);
+        LogErr(e);
+        sprintf(g_String, "can't import a model from file: %s", modelPath);
+        LogErr(g_String);
         return INVALID_MODEL_ID;
     }
 }
 
 ///////////////////////////////////////////////////////////
-
 
 ModelID ModelsCreator::Create(ID3D11Device* pDevice, const eModelType type)
 {
@@ -163,11 +157,8 @@ ModelID ModelsCreator::Create(ID3D11Device* pDevice, const eModelType type)
 
 
 // ************************************************************************************
-// 
 //                                 HELPERS API
-// 
 // ************************************************************************************
-
 ModelID ModelsCreator::CreatePlane(
     ID3D11Device* pDevice,
     const float width,
@@ -187,7 +178,8 @@ ModelID ModelsCreator::CreatePlane(
     model.ComputeSubsetsAABB();
     model.ComputeModelAABB();
 
-    model.name_ = "plane_" + std::to_string(model.GetID());
+    // setup name and type
+    sprintf(model.name_, "plane_%ud", model.GetID());
     model.type_ = eModelType::Plane;
 
     return model.id_;
@@ -211,7 +203,7 @@ ModelID ModelsCreator::CreateBoundingLineBox(ID3D11Device* pDevice)
     model.ComputeSubsetsAABB();
     model.ComputeModelAABB();
 
-    model.name_ = "line_box";
+    model.SetName("line_box");
     model.type_ = eModelType::LineBox;
 
     return model.id_;
@@ -235,7 +227,8 @@ ModelID ModelsCreator::CreateCube(ID3D11Device* pDevice)
     model.ComputeSubsetsAABB();
     model.ComputeModelAABB();
 
-    model.name_ = "cube_" + std::to_string(model.GetID());
+    // setup name and type
+    sprintf(model.name_, "cube_%ud", model.GetID());
     model.type_ = eModelType::Cube;
 
     return model.id_;
@@ -338,7 +331,8 @@ ModelID ModelsCreator::CreateSkyDome(
     // initialize vb/ib
     model.InitializeBuffers(pDevice);
 
-    model.name_ = "sky_dome_" + std::to_string(model.GetID());
+    // setup name and type
+    sprintf(model.name_, "sky_dome_%ud", model.GetID());
     model.type_ = eModelType::Sky;
 
     return model.id_;
@@ -374,7 +368,8 @@ ModelID ModelsCreator::CreateSphere(
     model.SetSubsetAABB(0, aabb);
     model.SetModelAABB(aabb);
 
-    model.name_ = "sphere_" + std::to_string(model.GetID());
+    // setup name and type
+    sprintf(model.name_, "sphere_%ud", model.GetID());
     model.type_ = eModelType::Sphere;
 
     return model.id_;
@@ -409,7 +404,8 @@ ModelID ModelsCreator::CreateGeoSphere(
     model.SetSubsetAABB(0, aabb);
     model.SetModelAABB(aabb);
 
-    model.name_ = "geo_sphere_" + std::to_string(model.GetID());
+    // setup name and type
+    sprintf(model.name_, "geo_sphere_%ud", model.GetID());
     model.type_ = eModelType::GeoSphere;
     
     return model.id_;
@@ -452,59 +448,62 @@ ModelID ModelsCreator::CreateSkull(ID3D11Device* pDevice)
 
 ///////////////////////////////////////////////////////////
 
-void ModelsCreator::ReadSkullMeshFromFile(
-    BasicModel& model,
-    const std::string& filepath)
+void ModelsCreator::ReadSkullMeshFromFile(BasicModel& model, const char* filepath)
 {
     try
     {
-        std::ifstream fin(filepath);
-        if (!fin.is_open())
+        FILE* pFile = nullptr;
+
+        if ((pFile = fopen(filepath, "r+")) == NULL)
         {
-            Log::Error("can't load a skull mesh data: " + filepath + " not found");
+            sprintf(g_String, "can't load a skull model data file: %s", filepath);
+            LogErr(g_String);
             return;
         }
+
+        char buf[64]{ '\0' };
 
         // ---------------------------------
 
         int numVertices = 0;
         int numTriangles = 0;
-        int numSubsets = 1;      // the model has only one mesh (subset)
-        std::string ignore;
+        constexpr int numSubsets = 1;      // the model has only one mesh (subset)
 
-        // read in vertices, textures coords count and skip separators
-        fin >> ignore >> numVertices;
-        fin >> ignore >> numTriangles;
-        fin >> ignore >> ignore >> ignore >> ignore;
+        // read in number of vertices and triangles
+        fscanf(pFile, "%s %d", buf, &numVertices);
+        fscanf(pFile, "%s %d", buf, &numTriangles);
+        fscanf(pFile, "%s %s %s %s", buf, buf, buf, buf);
 
         // allocate memory for the vertices and indices data
         model.AllocateMemory(numVertices, numTriangles * 3, numSubsets);
 
         for (u32 i = 0; i < model.numVertices_; ++i)
         {
-            Vertex3D& v = model.vertices_[i];
+            XMFLOAT3& pos = model.vertices_[i].position;
+            XMFLOAT3& norm = model.vertices_[i].normal;
 
-            fin >> v.position.x >> v.position.y >> v.position.z;
-            fin >> v.normal.x >> v.normal.y >> v.normal.z;
+            fscanf(pFile, "%f %f %f", &pos.x, &pos.y, &pos.z);
+            fscanf(pFile, "%f %f %f", &norm.x, &norm.y, &norm.z);
         }
 
         // skip separators
-        fin >> ignore >> ignore >> ignore;
+        fscanf(pFile, "%s%s%s", &buf, &buf, &buf);
 
         // read in indices
         for (u32 i = 0; i < model.numIndices_; ++i)
-            fin >> model.indices_[i];
-
-        fin.close();
+        {
+            fscanf(pFile, "%ud", &model.indices_[i]);
+        }
+      
+        fclose(pFile);
     }
     catch (const std::bad_alloc& e)
     {
-        Log::Error(e.what());
-        Log::Error("can't allocate memory for mesh skull data");
+        LogErr(e.what());
+        LogErr("can't allocate memory for mesh skull data");
         model.~BasicModel();
     }
 }
-
 
 ///////////////////////////////////////////////////////////
 
@@ -567,8 +566,8 @@ ModelID ModelsCreator::CreateCylinder(
     model.SetSubsetAABB(0, aabb);
     model.SetModelAABB(aabb);
 
-
-    model.name_ = "cylinder_" + std::to_string(model.GetID());
+    // setup name and type
+    sprintf(model.name_, "cylinder_%ud", model.GetID());
     model.type_ = eModelType::Cylinder;
 
     return model.id_;
@@ -670,8 +669,8 @@ void GenerateHeightsForTerrainGrid(BasicModel& grid)
 
 ModelID ModelsCreator::CreateGeneratedTerrain(
     ID3D11Device* pDevice,
-    const float terrainWidth,
-    const float terrainDepth,
+    const int terrainWidth,
+    const int terrainDepth,
     const int verticesCountByX,
     const int verticesCountByZ)
 {
@@ -750,7 +749,8 @@ ModelID ModelsCreator::CreateGeneratedTerrain(
     model.ComputeSubsetsAABB();
     model.ComputeModelAABB();
 
-    model.name_ = std::format("{}_{:d}_{:d}", "terrain_generated", (int)terrainWidth, (int)terrainDepth);
+    // setup name and type
+    sprintf(model.name_, "terrain_gen_%d_%d", terrainWidth, terrainDepth);
     model.type_ = eModelType::Terrain;
 
 #if 0

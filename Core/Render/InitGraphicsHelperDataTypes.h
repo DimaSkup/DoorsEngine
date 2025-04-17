@@ -7,15 +7,6 @@
 // ********************************************************************************
 #pragma once
 
-#include "../Mesh/MeshHelperTypes.h"
-
-#include <DirectXMath.h>
-#include <map>
-#include <vector>
-#include <assimp/material.h>
-
-
-
 struct RGBA_COLOR
 {
 	RGBA_COLOR(
@@ -50,34 +41,4 @@ struct RGBA_COLOR
 		float rgba[4];
 		float r, g, b, a;
 	};
-};
-
-
-
-struct TransformData
-{
-	std::vector<DirectX::XMFLOAT3> positions;
-	std::vector<DirectX::XMVECTOR> dirQuats;
-	std::vector<float> uniformScales;
-
-	void Clear()
-	{
-		positions.clear();
-		dirQuats.clear();
-		uniformScales.clear();
-	}
-};
-
-struct MovementData
-{
-	std::vector<DirectX::XMFLOAT3> translations;
-	std::vector<DirectX::XMVECTOR> rotQuats;      // rotation quaterions
-	std::vector<float> uniformScales;
-
-	void Clear()
-	{
-		translations.clear();
-		rotQuats.clear();
-		uniformScales.clear();
-	}
 };

@@ -55,8 +55,8 @@ public:
 		BasicModel& model);
 
 	void GenerateFlatGrid(
-		const float widht,
-		const float depth,
+		const int widht,
+		const int depth,
 		const int m,
 		const int n,
 		BasicModel& model);

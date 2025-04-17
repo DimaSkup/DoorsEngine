@@ -22,7 +22,6 @@
 #include <mmsystem.h>
 #include <dsound.h>
 #include <stdio.h>
-#include <memory>
 
 
 namespace Core

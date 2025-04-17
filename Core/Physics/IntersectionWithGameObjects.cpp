@@ -192,12 +192,12 @@ GameObject* IntersectionWithGameObjects::TestIntersectionWithGameObject(const in
 
 	if (isIntersectTriangle)
 	{
-		Log::Print("triangle intersection");
+		LogMsg("triangle intersection");
 		return pTriangleModel;
 	}
 	else
 	{
-		Log::Error("MISS");
+		LogErr("MISS");
 	}
 
 #endif
@@ -404,56 +404,56 @@ bool IntersectionWithGameObjects::RayTriangleIntersect(const DirectX::XMVECTOR &
 		<< inter_vector.m128_f32[0] << " "
 		<< inter_vector.m128_f32[1] << " "
 		<< inter_vector.m128_f32[2];
-	Log::Debug(debugMsg.str().c_str());
+	LogDbg(debugMsg.str().c_str());
 	debugMsg.str(std::string());
 
 	debugMsg << std::setprecision(2) << std::fixed << "v0: "
 		<< v0.m128_f32[0] << " "
 		<< v0.m128_f32[1] << " "
 		<< v0.m128_f32[2];
-	Log::Debug(debugMsg.str().c_str());
+	LogDbg(debugMsg.str().c_str());
 	debugMsg.str(std::string());
 
 	debugMsg << std::setprecision(2) << std::fixed << "v1: "
 		<< v1.m128_f32[0] << " "
 		<< v1.m128_f32[1] << " "
 		<< v1.m128_f32[2];
-	Log::Debug(debugMsg.str().c_str());
+	LogDbg(debugMsg.str().c_str());
 	debugMsg.str(std::string());
 
 	debugMsg << std::setprecision(2) << std::fixed << "v2: "
 		<< v2.m128_f32[0] << " "
 		<< v2.m128_f32[1] << " "
 		<< v2.m128_f32[2];
-	Log::Debug(debugMsg.str().c_str());
+	LogDbg(debugMsg.str().c_str());
 	debugMsg.str(std::string());
 
 	debugMsg << std::setprecision(2) << std::fixed << "orig: "
 		<< rayOrigin.m128_f32[0] << " "
 		<< rayOrigin.m128_f32[1] << " "
 		<< rayOrigin.m128_f32[2];
-	Log::Debug(debugMsg.str().c_str());
+	LogDbg(debugMsg.str().c_str());
 	debugMsg.str(std::string());
 
 	debugMsg << std::setprecision(2) << std::fixed << "dir: "
 		<< rayDirection.m128_f32[0] << " "
 		<< rayDirection.m128_f32[1] << " "
 		<< rayDirection.m128_f32[2];
-	Log::Debug(debugMsg.str().c_str());
+	LogDbg(debugMsg.str().c_str());
 	debugMsg.str(std::string());
 
 	debugMsg << std::setprecision(2) << std::fixed << "p norm: "
 		<< planeNormal.m128_f32[0] << " "
 		<< planeNormal.m128_f32[1] << " "
 		<< planeNormal.m128_f32[2];
-	Log::Debug(debugMsg.str().c_str());
+	LogDbg(debugMsg.str().c_str());
 	debugMsg.str(std::string());
 	
 	debugMsg << std::setprecision(2) << "inter2: "
 		<< inter_point.x << " "
 		<< inter_point.y << " "
 		<< inter_point.z;
-	Log::Debug(debugMsg.str().c_str());
+	LogDbg(debugMsg.str().c_str());
 	debugMsg.str(std::string());
 
 	return true;

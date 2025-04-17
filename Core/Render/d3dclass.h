@@ -51,7 +51,7 @@ public:
     
 
     void GetDeviceAndDeviceContext(ID3D11Device*& pDevice, ID3D11DeviceContext*& pContext);
-    void GetVideoCardInfo(char* cardName, const int maxCardNameSize, int& memorySize);
+    void GetVideoCardInfo(char* outCardName, const int maxCardNameSize, int& outMemorySize);
 
     //
     // inline getters

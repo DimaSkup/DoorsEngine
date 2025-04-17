@@ -27,14 +27,14 @@ public:
 
     void GetModelsByIDs(const ModelID* ids, const size numModels, cvector<const BasicModel*>& outModels);
     BasicModel& GetModelByID    (const ModelID id);
-    BasicModel& GetModelByName  (const std::string& name);
-    ModelID     GetModelIdByName(const std::string& name);
+    BasicModel& GetModelByName  (const char* name);
+    ModelID     GetModelIdByName(const char* name);
 
     //inline BasicModel& GetLastModel()       { return models_.back(); }
     inline SkyModel&   GetSky()             { return sky_; }
     inline int         GetNumAssets() const { return (int)std::ssize(ids_); }
 
-    void GetAssetsNamesList(cvector<std::string>& names);
+    void GetModelsNamesList(cvector<ModelName>& names);
 
 private:
     cvector<ModelID>    ids_;

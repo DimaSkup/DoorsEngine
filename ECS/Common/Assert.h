@@ -7,7 +7,6 @@
 // *********************************************************************************
 #pragma once
 
-#include <string>
 #include <source_location>
 #include "LIB_Exception.h"
 
@@ -20,34 +19,34 @@ public:
 
 	inline static void True(
 		const bool boolean,
-		const std::string& msg,
+		const char* msg,
 		const std::source_location& location = std::source_location::current())
 	{
 		// throwable version
 		if (boolean != true)
-			throw LIB_Exception(0, msg, location.file_name(), location.function_name(), location.line());
+			throw LIB_Exception(msg, location, 0);
 	}
 
 	// ----------------------------------------------------
 
 	inline static void NotNullptr(
 		const void* ptr,
-		const std::string& msg,
+		const char* msg,
 		const std::source_location& location = std::source_location::current())
 	{
 		if (ptr == nullptr)
-			throw LIB_Exception(0, msg, location.file_name(), location.function_name(), location.line());
+			throw LIB_Exception(msg, location, 0);
 	}
 
 	// ----------------------------------------------------
 
 	inline static void NotFailed(
 		const HRESULT hr,
-		const std::string& msg,
+		const char* msg,
 		const std::source_location& location = std::source_location::current())
 	{
 		if (FAILED(hr))       
-			throw LIB_Exception(hr, msg, location.file_name(), location.function_name(), location.line());
+			throw LIB_Exception(msg, location, hr);
 	}
 
 	// ----------------------------------------------------
@@ -55,18 +54,18 @@ public:
 	template <class T>
 	inline static void NotZero(
 		const T value,
-		const std::string& msg,
+		const char* msg,
 		const std::source_location& location = std::source_location::current())
 	{
 		if (value == 0)
-			throw LIB_Exception(0, msg, location.file_name(), location.function_name(), location.line());
+			throw LIB_Exception(msg, location, 0);
 	}
 
 	// ----------------------------------------------------
 
 	inline static void NotEmpty(
 		const bool isEmpty,
-		const std::string& msg,
+		const char* msg,
 		const std::source_location& location = std::source_location::current())
 	{
 		True(isEmpty != true, msg, location);

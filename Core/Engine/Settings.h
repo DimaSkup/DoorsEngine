@@ -28,7 +28,7 @@ public:
 	int GetInt(const char* key) const;
 	float GetFloat(const char* key) const;
 	bool GetBool(const char* key) const;
-	std::string GetString(const char* key) const;
+	const char* GetString(const char* key) const;
 
 	// for string source type we use this function for updating some setting by a key
 	void UpdateSettingByKey(const char* key, const std::string & src);
@@ -38,7 +38,7 @@ public:
 	template<typename T>
 	void UpdateSettingByKey(const char* key, T src);
 
-	void LoadSettingsFromFile();
+	bool LoadSettingsFromFile();
 
 private:
 	std::map <std::string, std::string> settingsList_;
@@ -53,7 +53,8 @@ void Settings::UpdateSettingByKey(const char* key, T val)
 
 	if (!settingsList_.contains(key))
 	{
-		Log::Error("there is no such a key in settings: " + std::string(key));
+        sprintf(g_String, "there is no such a key in settings: %s", key);
+        LogErr(g_String);
 		return;
 	}
 
@@ -69,8 +70,9 @@ void Settings::UpdateSettingByKey(const char* key, T val)
 	// we have wrong type
 	else
 	{
-		std::string typeName{ typeid(T).name() };
-		Log::Error("failed to set key (" + std::string(key) + "wrong source type : " + typeName);
+		const char* typeName = typeid(T).name();
+		sprintf(g_String, "failed to set key (%s): wrong source type: %s", key, typeName);
+        LogErr(g_String);
 	}
 }
 

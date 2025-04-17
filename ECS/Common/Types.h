@@ -10,7 +10,7 @@
 #include <string>
 #include <DirectXMath.h>
 
-
+#pragma warning (disable : 4996)
 
 namespace ECS
 {

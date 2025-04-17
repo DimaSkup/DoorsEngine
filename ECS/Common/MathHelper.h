@@ -1,6 +1,5 @@
 #pragma once
 
-//#include <xnamath.h>
 #include <cstdlib>
 #include <DirectXMath.h>
 

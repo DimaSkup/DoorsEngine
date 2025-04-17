@@ -120,34 +120,28 @@ void EntityCreatorWnd::RenderCreationWindow(bool* pOpen, IFacadeEngineToUI* pFac
     // TEMP
     if (*pOpen == false)
     {
-        const Core::eConsoleColor yellow = Core::eConsoleColor::YELLOW;
-
-        Core::Log::SetConsoleColor(yellow);
-
-        Core::Log::Print();
-        Core::Log::Print();
-        Core::Log::Print("Created Entity");
-        Core::Log::Printf("Name: %s", nameData_.enttName);
+        Core::LogMsgf(" ");
+        Core::LogMsgf("%sCreated Entity", YELLOW);
+        Core::LogMsgf("%sName: %s", YELLOW, nameData_.enttName);
 
         // debug: print transformation component info
         const Vec3& pos = transformData_.position;
         const Vec3& dir = transformData_.direction;
         const float uniScale = transformData_.uniformScale;
-        Core::Log::Print("Transform:");
-        Core::Log::Printf("pos: %f %f %f", pos.x, pos.y, pos.z);
-        Core::Log::Printf("pos: %f %f %f", dir.x, dir.y, dir.z);
-        Core::Log::Printf("uniform scale: %d", uniScale);
+        Core::LogMsgf("%sTransform:", YELLOW);
+        Core::LogMsgf("%spos: %f %f %f", YELLOW, pos.x, pos.y, pos.z);
+        Core::LogMsgf("%spos: %f %f %f", YELLOW, dir.x, dir.y, dir.z);
+        Core::LogMsgf("%suniform scale: %d", YELLOW, uniScale);
 
         // debug: print model component info
         if (addedComponents_.isAddedModel)
-            Core::Log::Printf("with model: %s", modelData_.selectedModelName.c_str());
+            Core::LogMsgf("%swith model: %s", YELLOW, modelData_.selectedModelName.c_str());
 
         // debug: print rendered component info
         if (addedComponents_.isAddedRendered)
-            Core::Log::Printf("with rendered");
+            Core::LogMsgf("%swith rendered component", YELLOW);
 
-        Core::Log::Print();
-        Core::Log::Print();
+        Core::LogMsgf("");
 
         EntityID enttID = pFacade->CreateEntity();
         ModelID modelID = pFacade->GetModelIdByName(modelData_.selectedModelName);

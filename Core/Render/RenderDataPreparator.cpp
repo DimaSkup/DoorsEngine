@@ -9,28 +9,21 @@
 namespace Core
 {
 
-RenderDataPreparator::RenderDataPreparator(
-    Render::Render& render,
-    ECS::EntityMgr& enttMgr)
-    :
-    pRender_(&render),
-    pEnttMgr_(&enttMgr)
-{
-}
+RenderDataPreparator::RenderDataPreparator() {}
 
 ///////////////////////////////////////////////////////////
 
 void PrepareInstancesWorldMatrices(
-    ECS::EntityMgr& mgr,
+    ECS::EntityMgr* pEnttMgr,
     const EntityID* enttsSortedByModels,
     const size numEntts,
     Render::InstBuffData& instanceBuffData,         // data for the instances buffer
-    const std::vector<Render::Instance>& instances)       // instances (models) data for rendering
+    const Render::cvector<Render::Instance>& instances)       // instances (models) data for rendering
 {
     // prepare world matrix for each subset (mesh) of each entity
 
     ECS::cvector<DirectX::XMMATRIX> worlds;
-    mgr.transformSystem_.GetWorldMatricesOfEntts(enttsSortedByModels, numEntts, worlds);
+    pEnttMgr->transformSystem_.GetWorldMatricesOfEntts(enttsSortedByModels, numEntts, worlds);
 
     for (int worldIdx = 0, i = 0; const Render::Instance & instance : instances)
     {
@@ -47,17 +40,17 @@ void PrepareInstancesWorldMatrices(
 ///////////////////////////////////////////////////////////
 
 void PrepareInstancesTextureTransformations(
-    ECS::EntityMgr& mgr,
+    ECS::EntityMgr* pEnttMgr,
     const EntityID* enttsSortedByModels,
     const size numEntts,
     Render::InstBuffData& instanceBuffData,         // data for the instances buffer
-    const std::vector<Render::Instance>& instances)       // instances (models) data for rendering
+    const Render::cvector<Render::Instance>& instances)       // instances (models) data for rendering
 {
     // prepare texture transformation matrix for each subset (mesh) of each entity
 
     cvector<DirectX::XMMATRIX> enttsTexTransforms(numEntts);
 
-    mgr.texTransformSystem_.GetTexTransformsForEntts(
+    pEnttMgr->texTransformSystem_.GetTexTransformsForEntts(
         enttsSortedByModels,
         enttsTexTransforms.data(),
         numEntts);
@@ -81,8 +74,9 @@ void PrepareInstancesTextureTransformations(
 void RenderDataPreparator::PrepareEnttsDataForRendering(
     const EntityID* enttsIds,
     const size numEntts,
+    ECS::EntityMgr* pEnttMgr,
     Render::InstBuffData& instanceBuffData,         // data for the instances buffer
-    std::vector<Render::Instance>& instances)       // instances (models) data for rendering
+    Render::cvector<Render::Instance>& instances)       // instances (models) data for rendering
 {
     // prepare instances data and instances buffer for rendering entities by input IDs;
 
@@ -91,7 +85,7 @@ void RenderDataPreparator::PrepareEnttsDataForRendering(
 
     // get data of models which are related to the input entts
     cvector<EntityID> enttsSortedByInstances;
-    PrepareInstancesData(enttsIds, numEntts, instances, enttsSortedByInstances);
+    PrepareInstancesData(enttsIds, numEntts, pEnttMgr, instances, enttsSortedByInstances);
 
     // compute num of instances for the instanced buffer
     int numElems = 0;
@@ -104,7 +98,7 @@ void RenderDataPreparator::PrepareEnttsDataForRendering(
 
     // prepare world matrix for each mesh of each instance
     PrepareInstancesWorldMatrices(
-        *pEnttMgr_,
+        pEnttMgr,
         enttsSortedByInstances.data(),
         numEntts,
         instanceBuffData,
@@ -112,7 +106,7 @@ void RenderDataPreparator::PrepareEnttsDataForRendering(
 
     // prepate texture transformation for each mesh of each instance
     PrepareInstancesTextureTransformations(
-        *pEnttMgr_,
+        pEnttMgr,
         enttsSortedByInstances.data(),
         numEntts,
         instanceBuffData,
@@ -122,18 +116,17 @@ void RenderDataPreparator::PrepareEnttsDataForRendering(
 ///////////////////////////////////////////////////////////
 
 void RenderDataPreparator::PrepareEnttsBoundingLineBox(
-    const EntityID* visibleEntts,
-    const size numEntts,
+    ECS::EntityMgr* pEnttMgr,
     Render::Instance& instance,
     Render::InstBuffData& instanceBuffer)
 {
     // prepare data to render bounding box of each visible entity
     // (BB of the whole model)
 
-    Assert::True(visibleEntts != nullptr, "input ptr to entities IDs arr == nullptr");
-    Assert::True(numEntts > 0,            "input number of entts must be > 0");
+    assert(0 && "FIXME");
 
-    ECS::EntityMgr&                 mgr = *pEnttMgr_;
+#if 0
+    ECS::EntityMgr&                 mgr = *pEnttMgr;
     ECS::cvector<ModelID>           modelsIDs;
     ECS::cvector<EntityID>          enttsSortByModels(numEntts);
     ECS::cvector<size>              numInstancesPerModel;
@@ -168,18 +161,21 @@ void RenderDataPreparator::PrepareEnttsBoundingLineBox(
         for (index j = 0; j < numInstancesPerModel[i]; ++j, ++instIdx)
             instanceBuffer.worlds_[instIdx] = boxLocals[i] * worlds[instIdx];
     }
+#endif
 }
 
 ///////////////////////////////////////////////////////////
 
 void RenderDataPreparator::PrepareEnttsMeshesBoundingLineBox(
-    const EntityID* visibleEntts,
-    const size numEntts,
+    ECS::EntityMgr* pEnttMgr,
     Render::Instance& instance,
     Render::InstBuffData& instanceBuffer)
 {
     // prepare data to render bounding box of each mesh of each visible entity
 
+    assert(0 && "FIXME");
+
+#if 0
     Assert::True(visibleEntts != nullptr, "input ptr to entities IDs arr == nullptr");
     Assert::True(numEntts > 0,            "input number of entts must be > 0");
     
@@ -203,6 +199,7 @@ void RenderDataPreparator::PrepareEnttsMeshesBoundingLineBox(
             ++instanceIdx;
         }
     }
+#endif
 }
 
 
@@ -212,7 +209,8 @@ void RenderDataPreparator::PrepareEnttsMeshesBoundingLineBox(
 void RenderDataPreparator::PrepareInstancesData(
     const EntityID* ids,
     const size numEntts,
-    std::vector<Render::Instance>& instances,
+    ECS::EntityMgr* pEnttMgr,
+    Render::cvector<Render::Instance>& instances,
     cvector<EntityID>& outEnttsSortedByInstances)
 {
     Assert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
@@ -224,7 +222,7 @@ void RenderDataPreparator::PrepareInstancesData(
     cvector<EntityID> enttsWithUniqueMat;
 
     SeparateEnttsByMaterialGroups(
-        *pEnttMgr_,
+        *pEnttMgr,
         ids,
         numEntts,
         enttsWithOrigMat,
@@ -232,7 +230,7 @@ void RenderDataPreparator::PrepareInstancesData(
 
     // prepare instances for entts which materials are based on model
     PrepareInstancesForEntts(
-        *pEnttMgr_,
+        *pEnttMgr,
         enttsWithOrigMat.data(),
         enttsWithOrigMat.size(),
         instances,
@@ -240,7 +238,7 @@ void RenderDataPreparator::PrepareInstancesData(
 
     // prepare instances for entts which materials are unique per each entt
     PrepareInstancesForEnttsWithUniqueMaterials(
-        *pEnttMgr_,
+        *pEnttMgr,
         enttsWithUniqueMat.data(),
         enttsWithUniqueMat.size(),
         instances,
@@ -270,9 +268,9 @@ void RenderDataPreparator::SeparateEnttsByMaterialGroups(
     outEnttsWithUniqueMat.reserve(8);
 
 #if 0
-    Log::Print("list of entts BEFORE grouping: ", eConsoleColor::YELLOW);
+    LogMsg("list of entts BEFORE grouping: ", eConsoleColor::YELLOW);
     for (index i = 0; i < numEntts; ++i)
-        Log::Printf("entity [%s] [%d]", mgr.nameSystem_.GetNameById(ids[i]).c_str(), ids[i]);
+        LogMsgf("entity [%s] [%d]", mgr.nameSystem_.GetNameById(ids[i]).c_str(), ids[i]);
 #endif
 
     // extract entts with materials based on model
@@ -290,15 +288,15 @@ void RenderDataPreparator::SeparateEnttsByMaterialGroups(
     }
 
 #if 0
-    Log::Print("list of entts AFTER grouping: ", eConsoleColor::YELLOW);
+    LogMsg("list of entts AFTER grouping: ", eConsoleColor::YELLOW);
 
-    Log::Error("orig mat: ");
+    LogErr("orig mat: ");
     for (const EntityID id : outEnttsWithOrigMat)
-        Log::Printf("entity [%s] [%d]", mgr.nameSystem_.GetNameById(id).c_str(), id);
+        LogMsgf("entity [%s] [%d]", mgr.nameSystem_.GetNameById(id).c_str(), id);
 
-    Log::Error("unique mat: ");
+    LogErr("unique mat: ");
     for (const EntityID id : outEnttsWithUniqueMat)
-        Log::Printf("entity [%s] [%d]", mgr.nameSystem_.GetNameById(id).c_str(), id);
+        LogMsgf("entity [%s] [%d]", mgr.nameSystem_.GetNameById(id).c_str(), id);
 #endif
 }
 
@@ -308,7 +306,7 @@ void RenderDataPreparator::PrepareInstancesForEntts(
     ECS::EntityMgr& mgr,
     const EntityID* ids,
     const size numEntts,
-    std::vector<Render::Instance>& instances,
+    Render::cvector<Render::Instance>& instances,
     cvector<EntityID>& outEnttsSortedByInstances)
 {
     // prepare instances data for input entities by IDs
@@ -358,7 +356,7 @@ void RenderDataPreparator::PrepareInstancesForEnttsWithUniqueMaterials(
     ECS::EntityMgr& mgr,
     const EntityID* ids,
     const size numEntts,
-    std::vector<Render::Instance>& instances,
+    Render::cvector<Render::Instance>& instances,
     cvector<EntityID>& outEnttsSortedByInstances)
 {
     // prepare instances data for input entities by IDs
@@ -435,7 +433,7 @@ void RenderDataPreparator::PrepareInstanceData(
     // NOTE: we don't write textures shader resource view (!!!) into the instance
     //       we do it in the PrepareTexturesForInstance() method;
 
-    strcpy(instance.name, model.name_.c_str());
+    strcpy(instance.name, model.name_);
 
     // copy buffers data
     const MeshGeometry& meshes = model.meshes_;

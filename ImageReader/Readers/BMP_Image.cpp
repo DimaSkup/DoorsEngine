@@ -8,21 +8,17 @@
 
 #include "../Common/log.h"
 #include "DDS_ImageReader.h"
-#include <fstream>
-
-#include <DirectXColors.h>
-
+#pragma warning (disable : 4996)
 
 namespace ImgReader 
 {
-
 
 // ********************************************************************************
 //                             PUBLIC METHODS
 // ********************************************************************************
 
-void BMP_Image::LoadTextureFromFile(
-	const std::string & bmpFilePath,
+bool BMP_Image::LoadTextureFromFile(
+	const char* bmpFilePath,
 	ID3D11Device* pDevice,
 	ID3D11Resource** ppTexture,
 	ID3D11ShaderResourceView** ppTextureView,
@@ -34,26 +30,25 @@ void BMP_Image::LoadTextureFromFile(
 
 	// because we can use the same loading both for dds and bmp files
 	// we just use the DDS_ImageReader for processing the input file by bmpFilePath
-	try
-	{
-		DDS_ImageReader ddsImage;
 
-		ddsImage.LoadTextureFromFile(
-			bmpFilePath,
-			pDevice,
-			ppTexture,
-			ppTextureView,
-			textureWidth,
-			textureHeight);
-	}
-	catch (LIB_Exception& e)
-	{
-		const std::string errMsg{ "can't load a BMP texture from the file: " + bmpFilePath };
+    DDS_ImageReader ddsImage;
 
-		Log::Error(e);
-		Log::Error(errMsg);
-		throw LIB_Exception(errMsg);
-	}
+	const bool result = ddsImage.LoadTextureFromFile(
+		bmpFilePath,
+		pDevice,
+		ppTexture,
+		ppTextureView,
+		textureWidth,
+		textureHeight);
+
+    if (!result)
+    {
+        sprintf(g_String, "can't load a BMP texture from the file: %s", bmpFilePath);
+        LogErr(g_String);
+        return false;
+    }
+
+    return true;
 }
 
 } // namespace ImgReader

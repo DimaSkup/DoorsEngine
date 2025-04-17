@@ -1,9 +1,9 @@
 // =================================================================================
-// Filename:     Render.cpp
+// Filename:     CRender.cpp
 // Description:  there are functions for rendering graphics;
 // Created:      01.01.23
 // =================================================================================
-#include "Render.h"
+#include "CRender.h"
 
 #include "Common/MathHelper.h"
 #include "Common/log.h"
@@ -17,24 +17,24 @@ using XMMATRIX = DirectX::XMMATRIX;
 namespace Render
 {
 
-Render::Render() {}
-Render::~Render() {}
+CRender::CRender() {}
+CRender::~CRender() {}
 
 // =================================================================================
 //                               public methods
 // =================================================================================
 
-void Render::SetupLogger(FILE* pFile, std::list<std::string>* pMsgsList)
+void CRender::SetupLogger(FILE* pFile)
 {
     // setup a file for writing log msgs into it;
     // also setup a list which will be filled with log messages;
-    Log::Setup(pFile, pMsgsList);
-    Log::Debug("logger is setup successfully");
+    
+    LogDbg("logger is setup successfully");
 }
 
 ///////////////////////////////////////////////////////////
 
-bool Render::Initialize(
+bool CRender::Initialize(
     ID3D11Device* pDevice,
     ID3D11DeviceContext* pContext,
     const InitParams& params) 
@@ -97,11 +97,11 @@ bool Render::Initialize(
         // load rare changed data (default values if we didn't setup any) into GPU 
         cbpsRareChanged_.ApplyChanges(pContext);
 
-        ColorShaderClass& colorShader   = shadersContainer_.colorShader_;
-        LightShaderClass& lightShader   = shadersContainer_.lightShader_;
-        SkyDomeShader&    skyDomeShader = shadersContainer_.skyDomeShader_;
-        FontShaderClass&  fontShader    = shadersContainer_.fontShader_;
-        DebugShader&      debugShader   = shadersContainer_.debugShader_;
+        ColorShader&    colorShader   = shadersContainer_.colorShader_;
+        LightShader&    lightShader   = shadersContainer_.lightShader_;
+        SkyDomeShader&  skyDomeShader = shadersContainer_.skyDomeShader_;
+        FontShader&     fontShader    = shadersContainer_.fontShader_;
+        DebugShader&    debugShader   = shadersContainer_.debugShader_;
         
         // const buffers for vertex shaders (vsCB)
         ID3D11Buffer* vsCBs[3] = 
@@ -136,8 +136,8 @@ bool Render::Initialize(
     }
     catch (LIB_Exception& e)
     {
-        Log::Error(e, true);
-        Log::Error("can't initialize the Render module");
+        LogErr(e, true);
+        LogErr("can't initialize the CRender module");
         return false;
     }
 
@@ -149,7 +149,7 @@ bool Render::Initialize(
 //                               updating methods
 // =================================================================================
 
-void Render::UpdatePerFrame(
+void CRender::UpdatePerFrame(
     ID3D11DeviceContext* pContext,
     const PerFrameData& data)
 {
@@ -185,17 +185,17 @@ void Render::UpdatePerFrame(
     }
     catch (LIB_Exception& e)
     {
-        Log::Error(e);
+        LogErr(e);
     }
     catch (...)
     {
-        Log::Error("something went wrong during updating data for rendering");
+        LogErr("something went wrong during updating data for rendering");
     }
 }
 
 ///////////////////////////////////////////////////////////
 
-void Render::UpdateInstancedBuffer(
+void CRender::UpdateInstancedBuffer(
     ID3D11DeviceContext* pContext,
     const InstBuffData& data)
 {
@@ -210,7 +210,7 @@ void Render::UpdateInstancedBuffer(
 
 ///////////////////////////////////////////////////////////
 
-void Render::UpdateInstancedBuffer(
+void CRender::UpdateInstancedBuffer(
     ID3D11DeviceContext* pContext,
     const DirectX::XMMATRIX* worlds,
     const DirectX::XMMATRIX* texTransforms,
@@ -254,16 +254,16 @@ void Render::UpdateInstancedBuffer(
     }
     catch (LIB_Exception& e)
     {
-        Log::Error(e);
-        Log::Error("can't update instanced buffer for rendering");
+        LogErr(e);
+        LogErr("can't update instanced buffer for rendering");
     }
 }
 
 ///////////////////////////////////////////////////////////
 
-void Render::UpdateInstancedBufferWorlds(
+void CRender::UpdateInstancedBufferWorlds(
     ID3D11DeviceContext* pContext,
-    std::vector<DirectX::XMMATRIX>& worlds)
+    cvector<DirectX::XMMATRIX>& worlds)
 {
     try
     {
@@ -285,20 +285,20 @@ void Render::UpdateInstancedBufferWorlds(
     }
     catch (LIB_Exception& e)
     {
-        Log::Error(e);
-        Log::Error("can't update instanced buffer WORLDS for rendering");
+        LogErr(e);
+        LogErr("can't update instanced buffer WORLDS for rendering");
     }
     catch (...)
     {
-        Log::Error("can't update instanced buffer for rendering for some unknown reason :)");
+        LogErr("can't update instanced buffer for rendering for some unknown reason :)");
     }
 }
 
 ///////////////////////////////////////////////////////////
 
-void Render::UpdateInstancedBufferMaterials(
+void CRender::UpdateInstancedBufferMaterials(
     ID3D11DeviceContext* pContext,
-    std::vector<Material>& materials)
+    cvector<Material>& materials)
 {
     try
     {
@@ -317,12 +317,12 @@ void Render::UpdateInstancedBufferMaterials(
     }
     catch (LIB_Exception& e)
     {
-        Log::Error(e);
-        Log::Error("can't update instanced buffer MATERIALS for rendering");
+        LogErr(e);
+        LogErr("can't update instanced buffer MATERIALS for rendering");
     }
     catch (...)
     {
-        Log::Error("can't update instanced buffer for rendering for some unknown reason :)");
+        LogErr("can't update instanced buffer for rendering for some unknown reason :)");
     }
 }
 
@@ -333,7 +333,7 @@ void Render::UpdateInstancedBufferMaterials(
 //                               rendering methods
 // =================================================================================
 
-void Render::RenderBoundingLineBoxes(
+void CRender::RenderBoundingLineBoxes(
     ID3D11DeviceContext* pContext,
     const Instance* instances,
     const int numModels)
@@ -351,18 +351,18 @@ void Render::RenderBoundingLineBoxes(
     }
     catch (LIB_Exception& e)
     {
-        Log::Error(e);
-        Log::Error("can't render the bounding line boxes onto the screen");
+        LogErr(e);
+        LogErr("can't render the bounding line boxes onto the screen");
     }
     catch (...)
     {
-        Log::Error("can't render the bounding line boxes for some unknown reason :(");
+        LogErr("can't render the bounding line boxes for some unknown reason :(");
     }
 }
 
 ///////////////////////////////////////////////////////////
 
-void Render::RenderInstances(
+void CRender::RenderInstances(
     ID3D11DeviceContext* pContext,
     const ShaderTypes type,
     const Instance* instances,
@@ -410,7 +410,7 @@ void Render::RenderInstances(
 #if 0
             case BILLBOARD:
             {
-                shadersContainer_.billboardShader_.Render(
+                shadersContainer_.billboardShader_.CRender(
                     pContext,
                     pInstancedBuffer_,
                     instances,
@@ -443,24 +443,25 @@ void Render::RenderInstances(
             }
             default:
             {
-                Log::Error("unknown shader type: " + std::to_string(type));
+                sprintf(g_String, "unknown shader type: %d", type);
+                LogErr(g_String);
             }
         }
     }
     catch (LIB_Exception& e)
     {
-        Log::Error(e);
-        Log::Error("can't render the mesh instances onto the screen");
+        LogErr(e);
+        LogErr("can't render the mesh instances onto the screen");
     }
     catch (...)
     {
-        Log::Error("can't render mesh instances for some unknown reason :(");
+        LogErr("can't render mesh instances for some unknown reason :(");
     }
 }
 
 ///////////////////////////////////////////////////////////
 
-void Render::RenderSkyDome(
+void CRender::RenderSkyDome(
     ID3D11DeviceContext* pContext,
     const SkyInstance& sky,
     const XMMATRIX& worldViewProj)
@@ -474,12 +475,12 @@ void Render::RenderSkyDome(
     }
     catch (LIB_Exception& e)
     {
-        Log::Error(e);
-        Log::Error("can't render the sky dome");
+        LogErr(e);
+        LogErr("can't render the sky dome");
     }
     catch (...)
     {
-        Log::Error("can't render the sky dome for some unknown reason :(");
+        LogErr("can't render the sky dome for some unknown reason :(");
     }
 }
 
@@ -489,7 +490,7 @@ void Render::RenderSkyDome(
 //                              effects control
 // =================================================================================
 
-void Render::SwitchFogEffect(ID3D11DeviceContext* pContext, const bool state)
+void CRender::SwitchFogEffect(ID3D11DeviceContext* pContext, const bool state)
 {
     // turn on/off the fog effect
     cbpsRareChanged_.data.fogEnabled = state;
@@ -498,7 +499,7 @@ void Render::SwitchFogEffect(ID3D11DeviceContext* pContext, const bool state)
 
 ///////////////////////////////////////////////////////////
 
-void Render::SwitchFlashLight(ID3D11DeviceContext* pContext, const bool state)
+void CRender::SwitchFlashLight(ID3D11DeviceContext* pContext, const bool state)
 {
     // switch the flashlight state
     cbpsRareChanged_.data.turnOnFlashLight = state;
@@ -507,7 +508,7 @@ void Render::SwitchFlashLight(ID3D11DeviceContext* pContext, const bool state)
 
 ///////////////////////////////////////////////////////////
 
-void Render::SwitchAlphaClipping(ID3D11DeviceContext* pContext, const bool state)
+void CRender::SwitchAlphaClipping(ID3D11DeviceContext* pContext, const bool state)
 {
     // turn on/off alpha clipping
     cbpsRareChanged_.data.alphaClipping = state;
@@ -516,7 +517,7 @@ void Render::SwitchAlphaClipping(ID3D11DeviceContext* pContext, const bool state
 
 ///////////////////////////////////////////////////////////
 
-void Render::SwitchDebugState(ID3D11DeviceContext* pContext, const DebugState state)
+void CRender::SwitchDebugState(ID3D11DeviceContext* pContext, const DebugState state)
 {
     // turn on/off debug rendering;
     // if we turn on debug rendering we setup the debug state as well;
@@ -547,34 +548,32 @@ void Render::SwitchDebugState(ID3D11DeviceContext* pContext, const DebugState st
         default:
         {
             isDebugMode_ = false;
-            Log::Error("unknown debug state:" + std::to_string(state));
+            sprintf(g_String, "unknown rendering debug state: %d", state);
+            LogErr(g_String);
         }
     }
 }
 
 ///////////////////////////////////////////////////////////
 
-void Render::SetDirLightsCount(ID3D11DeviceContext* pContext, int numOfLights)
+void CRender::SetDirLightsCount(ID3D11DeviceContext* pContext, int numOfLights)
 {
     // set how many directional lights we used for lighting of the scene
     // NOTICE: the maximal number of directional light sources is 3
 
-    try
+    if ((numOfLights < 0) || (numOfLights > 3))
     {
-        Assert::True((-1 < numOfLights) || (numOfLights <= 3), "wrong number of dir lights: " + std::to_string(numOfLights));
+        LogErr("wrong number of directed lights (must be in range [0, 3])");
+        return;
+    }
 
-        cbpsRareChanged_.data.numOfDirLights = numOfLights;
-        cbpsRareChanged_.ApplyChanges(pContext);
-    }
-    catch (LIB_Exception& e)
-    {
-        Log::Error(e);
-    }
+    cbpsRareChanged_.data.numOfDirLights = numOfLights;
+    cbpsRareChanged_.ApplyChanges(pContext);
 }
 
 ///////////////////////////////////////////////////////////
 
-void Render::SetFogParams(
+void CRender::SetFogParams(
     ID3D11DeviceContext* pContext,
     const DirectX::XMFLOAT3& fogColor,
     const float fogStart,
@@ -592,9 +591,11 @@ void Render::SetFogParams(
     cbpsRareChanged_.ApplyChanges(pContext);
 }
 
+
+
 ///////////////////////////////////////////////////////////
 
-void Render::SetSkyGradient(
+void CRender::SetSkyGradient(
     ID3D11DeviceContext* pContext,
     const DirectX::XMFLOAT3& colorCenter,
     const DirectX::XMFLOAT3& colorApex)
@@ -605,14 +606,14 @@ void Render::SetSkyGradient(
     }
     catch (LIB_Exception& e)
     {
-        Log::Error(e);
-        Log::Error("can't update the sky gradient");
+        LogErr(e);
+        LogErr("can't update the sky gradient");
     }
 }
 
 ///////////////////////////////////////////////////////////
 
-void Render::SetSkyColorCenter(
+void CRender::SetSkyColorCenter(
     ID3D11DeviceContext* pContext,
     const DirectX::XMFLOAT3& color)
 {
@@ -622,14 +623,14 @@ void Render::SetSkyColorCenter(
     }
     catch (LIB_Exception& e)
     {
-        Log::Error(e);
-        Log::Error("can't update the sky center (horizon) color");
+        LogErr(e);
+        LogErr("can't update the sky center (horizon) color");
     }
 }
 
 ///////////////////////////////////////////////////////////
 
-void Render::SetSkyColorApex(
+void CRender::SetSkyColorApex(
     ID3D11DeviceContext* pContext,
     const DirectX::XMFLOAT3& color)
 {
@@ -639,15 +640,15 @@ void Render::SetSkyColorApex(
     }
     catch (LIB_Exception& e)
     {
-        Log::Error(e);
-        Log::Error("can't update the sky apex (top) color");
+        LogErr(e);
+        LogErr("can't update the sky apex (top) color");
     }
 }
 
 
 ///////////////////////////////////////////////////////////
 
-void Render::UpdateLights(
+void CRender::UpdateLights(
     const DirLight* dirLights,
     const PointLight* pointLights,
     const SpotLight* spotLights,
@@ -681,4 +682,4 @@ void Render::UpdateLights(
         cbpsPerFrame_.data.spotLights[i] = spotLights[i];
 }
 
-}; // namespace Render
+}; // namespace CRender

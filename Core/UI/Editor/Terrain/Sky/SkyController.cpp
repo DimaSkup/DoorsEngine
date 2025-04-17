@@ -9,9 +9,9 @@
 #include <UICommon/EditorCommands.h>
 #include <CoreCommon/Assert.h>
 #include <CoreCommon/log.h>
-#include <format>
 #include <imgui.h>
 
+using namespace Core;
 
 namespace UI
 {
@@ -55,7 +55,7 @@ void SkyController::LoadEnttData(const uint32_t skyEnttID)
 	}
 	else
 	{
-		Core::Log::Error("can't gather data for the sky editor model for unknown reason");
+		Core::LogErr("can't gather data for the sky editor model for unknown reason");
 	}
 }
 
@@ -127,7 +127,8 @@ void SkyController::ExecuteCommand(const ICommand* pCmd, const uint32_t enttID)
 	}
 	default:
 	{
-		Core::Log::Error("Unknown command to execute: " + std::to_string(pCmd->type_));
+        sprintf(g_String, "Unknown command (sky change) to execute (cmd: %d; sky_entt_id: %ld)", pCmd->type_, enttID);
+        LogErr(g_String);
 	}
 	}; // switch
 }

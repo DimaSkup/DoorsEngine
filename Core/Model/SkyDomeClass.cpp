@@ -35,7 +35,7 @@ SkyDomeClass::SkyDomeClass(ID3D11Device* pDevice, ID3D11DeviceContext* pDeviceCo
 SkyDomeClass::~SkyDomeClass()
 {
 	std::string debugMsg{ "destroyment of the sky dome"};
-	Log::Debug(debugMsg.c_str());
+	LogDbg(debugMsg.c_str());
 }
 
 

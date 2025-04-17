@@ -5,172 +5,182 @@
 // Revising:    27.11.22
 ////////////////////////////////////////////////////////////////////
 #include "Settings.h"
-#include <CoreCommon/Assert.h>
 #include <CoreCommon/FileSystemPaths.h>
-#include <fstream>
-#include <filesystem>
 
-namespace fs = std::filesystem;
 
 namespace Core
 {
 
 Settings::Settings()
 {
-	try
-	{
-		LoadSettingsFromFile();
-	}
-	catch (EngineException& e)
-	{
-		const std::string errorMsg = "can't load settings file";
-		Log::Error(e);
-		Log::Error(errorMsg);
-		throw EngineException(errorMsg);
-	}
+    if (!LoadSettingsFromFile())
+    {
+        sprintf(g_String, "can't load settings for the engine");
+        LogErr(g_String);
+        throw EngineException(g_String);
+    }
 }
 
 Settings::~Settings()
 {
-	settingsList_.clear();
+    settingsList_.clear();
 }
 
 ///////////////////////////////////////////////////////////
 
-void Settings::LoadSettingsFromFile()
+bool Settings::LoadSettingsFromFile()
 {
-	// load engine settings from the "settings.txt" file
+    // load engine settings from the "settings.txt" file
 
-	const std::string pathToSettingsFile = "data/settings.txt";
+    const char* pathSettingsFile = "data/settings.txt";
 
-	// check if we have such a file
-	fs::path settingsPath = pathToSettingsFile;
-	Assert::True(fs::exists(settingsPath), "there is no file: " + settingsPath.string());
+    // open file
+    FILE* pFile = nullptr;
+    if ((pFile = fopen(pathSettingsFile, "r")) == nullptr)
+    {
+        sprintf(g_String, "can't open the settings file: %s", pathSettingsFile);
+        LogErr(g_String);
+        return false;
+    }
 
-	// open file
-	std::fstream fin(pathToSettingsFile);
-	Assert::True(fin.is_open(), "can't open the settings file");
+    constexpr int bufsize = 256;
+    char buf[bufsize]{ '\0' };
+    char key[bufsize]{ '\0' };
+    char val[bufsize]{ '\0' };
 
-	// read in all the pairs [setting_key => setting_value]
-	while (!fin.eof())
-	{
-		std::string key;
-		std::string value;
+    // read in all the pairs [setting_key => setting_value]
+    while (fgets(buf, bufsize, pFile))
+    {
+        if (buf[0] == '\n')
+            continue;
 
-		fin >> key >> value;
+        sscanf(buf, "%s %s", key, val);
 
-		// try to insert a pair [key => value]; if we didn't manage to do it we throw an exception
-		if (!settingsList_.insert({ key, value }).second) 
-		{
-			throw EngineException("can't insert a pair [key=>value] into "
-				                  "the settings list: "
-				                  "[key: " + key + " => value: " + value);
-		}
-	}
+        // try to insert a pair [key => value]; if we didn't manage to do it we throw an exception
+        if (!settingsList_.insert({ key, val }).second) 
+        {
+            fclose(pFile);
+            sprintf(g_String, "can't insert a pair [key=>value] into the settings list: [key: %s => value: %s]", key, val);
+            LogErr(g_String);
+            return false;
+        }
+    }
 
-	fin.close();
+    fclose(pFile);
+    return true;
 }
 
 ///////////////////////////////////////////////////////////
 
 int Settings::GetInt(const char* key) const
 {
-	// get an integer setting parameter by the input key
+    // get an integer setting parameter by the input key
 
-	try
-	{
-		const std::string& val = settingsList_.at(key);
-		return stoi(val);
-		
-	}
-	catch (std::out_of_range& e)
-	{
-		Log::Error(e.what());
-		throw EngineException("can't find an integer by key: " + std::string(key));
-	}
+    if (settingsList_.contains(key))
+    {
+        const char* val = settingsList_.at(key).c_str();
+        return atoi(val);
+    }
+    else
+    {
+        sprintf(g_String, "there is no integer value by key: %s", key);
+        LogErr(g_String);
+        exit(-1);
+    }
 }
 
 ///////////////////////////////////////////////////////////
 
 float Settings::GetFloat(const char* key) const 
 {
-	// get a float setting parameter by the input key
+    // get a float setting parameter by the input key
 
-	try
-	{
-		const std::string& val = settingsList_.at(key);
-		return stof(val);
-	}
-	catch (std::out_of_range& e)
-	{
-		Log::Error(e.what());
-		throw EngineException("can't find a float by key: " + std::string(key));
-	}
+    if (settingsList_.contains(key))
+    {
+        return (float)atof(settingsList_.at(key).c_str());
+    }
+    else
+    {
+        sprintf(g_String, "there is no float value by key: %s", key);
+        LogErr(g_String);
+        exit(-1);
+    }
 }
 
 ///////////////////////////////////////////////////////////
 
 bool Settings::GetBool(const char* key) const
 {
-	// get a boolean setting parameter by the input key
+    // get a boolean setting parameter by the input key
 
-	try
-	{
-		const std::string& val = settingsList_.at(key);
+    if (settingsList_.contains(key))
+    {
+        const char* val = settingsList_.at(key).c_str();
 
-		if (val == "true")
-		{
-			return true;
-		}
-		else if (val == "false")
-		{
-			return false;
-		}
-		else
-		{
-			throw EngineException("can't convert value from string into bool by key: " + std::string(key));
-		}
-	}
-	catch (std::out_of_range& e)
-	{
-		Log::Error(e.what());
-		throw EngineException("can't find a boolean by key: " + std::string(key));
-	}
+        if (strcmp(val, "true") == 0)
+        {
+            return true;
+        }
+        else if (strcmp(val, "false") == 0)
+        {
+            return false;
+        }
+
+        sprintf(g_String, "we have some invalid value for setting by key: %s", key);
+        LogErr(g_String);
+        exit(-1);
+    }
+    else
+    {
+        sprintf(g_String, "there is no boolean value by key: %s", key);
+        LogErr(g_String);
+        exit(-1);
+    }
 }
 
 ///////////////////////////////////////////////////////////
 
-std::string Settings::GetString(const char* key) const
+const char* Settings::GetString(const char* key) const
 {
-	// get a string setting parameter by the input key
-
-	try
-	{
-		const std::string& str = settingsList_.at(key);
-		Assert::NotEmpty(str.empty(), "the setting value by key (" + std::string(key) + ") is empty");
-
-		return str;
-	}
-	catch (std::out_of_range& e)
-	{
-		Log::Error(e.what());
-		throw EngineException("can't find a string by key: " + std::string(key));
-	}
+    // get a string setting parameter by the input key
+    if (settingsList_.contains(key))
+    {
+        return settingsList_.at(key).c_str();
+    }
+    else
+    {
+        sprintf(g_String, "there is no string value by key: %s", key);
+        LogErr(g_String);
+        exit(-1);
+    }
 }
 
 ///////////////////////////////////////////////////////////
 
 void Settings::UpdateSettingByKey(const char* key, const std::string& val)
 {
-	try 
-	{
-		settingsList_.at(key) = val;
-	}
-	catch (std::out_of_range& e)
-	{
-		Log::Error(e.what());
-		throw EngineException("can't update a setting by key: " + std::string(key));
-	}
+    if ((key == nullptr) || (key[0] == '\0'))
+    {
+        LogErr("can't update setting (input key is empty)");
+    }
+
+    if (val.empty())
+    {
+        sprintf(g_String, "can't update setting by key (%s): input value is empty", key);
+        LogErr(g_String);
+    }
+
+    // ------------------------------------------
+
+    if (settingsList_.contains(key))
+    {
+        settingsList_[key] = val;
+    }
+    else
+    {
+        sprintf(g_String, "there is no setting by key: %s", key);
+        LogErr(g_String);
+    }
 }
 
 } // namespace Core

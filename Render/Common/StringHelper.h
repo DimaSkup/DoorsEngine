@@ -15,11 +15,11 @@ namespace Render
 class StringHelper
 {
 public:
-	// converters
-	static std::wstring StringToWide(const std::string& str);
-	static std::string ToString(const std::wstring& wstr);
+    // converters
+    static std::wstring StringToWide(const std::string& str);
+    static std::string ToString(const std::wstring& wstr);
 
-	static std::string GetPathFromProjRoot(const std::string& fullpath);
+    static std::string GetPathFromProjRoot(const std::string& fullpath);
 };
 
 };  // namespace Render

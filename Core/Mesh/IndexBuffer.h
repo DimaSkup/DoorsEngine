@@ -8,24 +8,26 @@
 #pragma once
 
 #include <CoreCommon/MemHelpers.h>
-#include <CoreCommon/Assert.h>
 #include <CoreCommon/log.h>
+#include <CoreCommon/Assert.h>
 
 #include <d3d11.h>
+#include <memory>   // for using std::construct_at
+#include <utility>  // for using std::exchange
 
 
 namespace Core
 {
 
 template <typename T>
-class IndexBuffer final
+class IndexBuffer
 {
 public:
 	IndexBuffer() {};
 
 	// ---------------------------------------------
 
-	IndexBuffer(ID3D11Device* pDevice, const T* indices, const int numIndices)
+	inline IndexBuffer(ID3D11Device* pDevice, const T* indices, const int numIndices)
 	{
 		Assert::True((indices != nullptr) && (numIndices > 0), "wrong input data");
 		Initialize(pDevice, indices, numIndices);
@@ -33,15 +35,14 @@ public:
 
 	// ---------------------------------------------
 
-	~IndexBuffer()
+	inline ~IndexBuffer()
 	{
-		SafeRelease(&pBuffer_);
-		indexCount_ = 0;
+        Shutdown();
 	}
 
 	// ---------------------------------------------
 
-	IndexBuffer(IndexBuffer&& rhs) noexcept :
+	inline IndexBuffer(IndexBuffer&& rhs) noexcept :
 		pBuffer_(std::exchange(rhs.pBuffer_, nullptr)),
 		indexCount_(std::exchange(rhs.indexCount_, 0)) 
 	{
@@ -49,12 +50,12 @@ public:
 
 	// ---------------------------------------------
 
-	IndexBuffer& operator=(IndexBuffer&& rhs) noexcept
+	inline IndexBuffer& operator=(IndexBuffer&& rhs) noexcept
 	{
 		// move assignment
 		if (this != &rhs)
 		{
-			this->~IndexBuffer();                    // lifetime of *this ends
+			this->Shutdown();                    // lifetime of *this ends
 			std::construct_at(this, std::move(rhs));
 		}
 
@@ -80,6 +81,12 @@ public:
 		ID3D11Device* pDevice,
 		ID3D11DeviceContext* pDeviceContext,
 		const IndexBuffer& srcBuffer);
+
+    inline void Shutdown()
+    {
+        SafeRelease(&pBuffer_);
+        indexCount_ = 0;
+    }
 
 	// Public query API  
 	inline ID3D11Buffer*        Get()           const { return pBuffer_; }
@@ -202,13 +209,13 @@ void IndexBuffer<T>::CopyBuffer(
 	catch (std::bad_alloc& e)
 	{
 		SafeDeleteArr(indicesArr);
-		Log::Error(e.what());
+		LogErr(e.what());
 		throw EngineException("can't allocate memory for indices of buffer");
 	}
 	catch (EngineException& e)
 	{
 		SafeDeleteArr(indicesArr);
-		Log::Error(e);
+		LogErr(e);
 		throw EngineException("can't copy an index buffer");
 	}
 }

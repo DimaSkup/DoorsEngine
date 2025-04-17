@@ -16,7 +16,7 @@
 #include "Editor/Panels/EditorPanels.h"
 
 #include "../UI/Text/TextStore.h"
-#include "Shaders/fontshaderclass.h"   // from the Render module
+#include "Shaders/FontShader.h"   // from the Render module
 
 
 namespace UI
@@ -53,7 +53,7 @@ public:
 	// Public rendering API
 	void RenderGameUI(
 		ID3D11DeviceContext* pContext,
-		Render::FontShaderClass& fontShader,
+		Render::FontShader& fontShader,
 		Core::SystemState& systemState);
 
 	void RenderEditor(Core::SystemState& systemState);
@@ -94,7 +94,7 @@ private:
 	// debug info for the game mode
 	void RenderDebugInfo(
 		ID3D11DeviceContext* pContext,
-		Render::FontShaderClass& fontShader,
+		Render::FontShader& fontShader,
 		const Core::SystemState& sysState);
 
 	DirectX::XMFLOAT2 ComputePosOnScreen(const POINT& drawAt);

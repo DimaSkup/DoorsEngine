@@ -11,7 +11,6 @@
 #include "../Mesh/IndexBuffer.h"
 
 #include <d3d11.h>
-//#include <DirectXCollision.h>
 
 
 namespace Core
@@ -50,7 +49,7 @@ public:
 
     inline ID3D11Buffer* GetVertexBuffer()   const { return vb_.Get(); }
     inline ID3D11Buffer* GetIndexBuffer()    const { return ib_.Get(); }
-    inline const ModelName& GetName()        const { return name_; }
+    inline const char* GetName()             const { return name_; }
     inline const TexID* GetTexIDs()          const { return texIDs_; }
 
     inline const DirectX::XMFLOAT3& GetColorCenter()  const { return colorCenter_; }
@@ -61,7 +60,7 @@ public:
     // Setters
     //
     void SetTexture(const int idx, const TexID texID);
-    void SetName(const std::string& name);
+    void SetName(const char* name);
 
     inline void SetColorCenter(const DirectX::XMFLOAT3& c) { colorCenter_ = c; }
     inline void SetColorApex  (const DirectX::XMFLOAT3& c) { colorApex_ = c; }
@@ -71,7 +70,7 @@ private:
     const int                 maxTexNum_ = 6;                // how many textures the sky can have
 
     TexID                     texIDs_[6]{0};
-    ModelName                 name_ = "sky_model";
+    char                      name_[32] = "sky_model";
 
     VertexBuffer<Vertex3DPos> vb_;
     IndexBuffer<USHORT>       ib_;

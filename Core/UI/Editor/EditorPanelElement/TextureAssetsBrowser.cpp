@@ -25,7 +25,7 @@ void TextureAssetsBrowser::Initialize(IFacadeEngineToUI* pFacade)
     }
     else
     {
-        Core::Log::Error("can't init textures browser");
+        Core::LogErr("can't init textures browser");
     }
 }
 
@@ -37,12 +37,12 @@ void TextureAssetsBrowser::Render(IFacadeEngineToUI* pFacade, bool* pOpen)
 
     if (!pFacade && !arrShaderResourceViews_)
     {
-        Core::Log::Error("can't render textures browser");
+        Core::LogErr("can't render textures browser");
         return;
     }
 
     ImGui::SetNextWindowContentSize(ImVec2(0.0f, layoutOuterPadding_ + numLayoutLine_ * (layoutItemSize_.y + layoutItemSpacing_)));
-    const int textLineHeight = ImGui::GetTextLineHeightWithSpacing();
+    const float textLineHeight = ImGui::GetTextLineHeightWithSpacing();
 
 
     // menu bar

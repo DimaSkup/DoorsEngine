@@ -11,9 +11,10 @@
 #include <CoreCommon/log.h>
 #include <CoreCommon/Assert.h>
 #include <CoreCommon/MemHelpers.h>
-//#include "Vertex.h"
 
 #include <d3d11.h>
+#include <memory>   // for using std::construct_at
+#include <utility>  // for using std::exchange
 
 
 namespace Core
@@ -27,9 +28,7 @@ public:
 
 	~VertexBuffer() 
 	{
-		SafeRelease(&pBuffer_);
-		stride_ = 0;
-		vertexCount_ = 0;
+        Shutdown();
 	}
 
 	// ------------------------------------------
@@ -96,6 +95,16 @@ public:
 		ID3D11DeviceContext* pContext, 
 		const VertexBuffer& buffer);
 
+    // ------------------------------------------
+
+    inline void Shutdown()
+    {
+        SafeRelease(&pBuffer_);
+        stride_ = 0;
+        vertexCount_ = 0;
+    }
+
+    // ------------------------------------------
 
 	// Public query API  
 	inline void GetBufferAndStride(ID3D11Buffer* pBuffer, UINT*& pStride)
@@ -182,7 +191,7 @@ void VertexBuffer<T>::Initialize(
 		SafeRelease(&pBuffer_);
 		stride_ = 0;
 		vertexCount_ = 0;
-		Log::Error(e);
+		LogErr(e);
 		throw EngineException("can't create a vertex buffer");
 	}
 }
@@ -214,7 +223,7 @@ void VertexBuffer<T>::UpdateDynamic(
 	}
 	catch (EngineException & e)
 	{
-		Log::Error(e);
+		LogErr(e);
 		throw EngineException("can't update the dynamic vertex buffer");
 	}
 } 
@@ -299,14 +308,14 @@ void VertexBuffer<T>::CopyBuffer(
 	{
 		pContext->Unmap(pStagingBuffer, 0U);
 		SafeDeleteArr(vertices);
-		Log::Error(e.what());
+		LogErr(e.what());
 		throw EngineException("can't allocate memory for vertices of buffer");
 	}
 	catch (EngineException & e)
 	{
 		pContext->Unmap(pStagingBuffer, 0U);
 		SafeDeleteArr(vertices);
-		Log::Error(e);
+		LogErr(e);
 		throw EngineException("can't copy a vertex buffer");
 	}
 }

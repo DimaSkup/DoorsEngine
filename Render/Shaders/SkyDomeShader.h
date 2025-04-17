@@ -11,10 +11,8 @@
 #include "SamplerState.h"        // for using the ID3D11SamplerState 
 #include "ConstantBuffer.h"
 
-#include "../Common/MemHelpers.h"
 #include "../Common/ConstBufferTypes.h"
 #include "../Common/RenderTypes.h"
-
 
 #include <d3d11.h>
 
@@ -34,10 +32,10 @@ public:
 
 	// ----------------------------------------------------
 
-	bool Initialize(
+    bool Initialize(
         ID3D11Device* pDevice,
-        ID3D11DeviceContext* pContext,
-        const std::string& pathToShadersDir);
+        const char* vsFilePath,
+        const char* psFilePath);
 
 	void Render(
 		ID3D11DeviceContext* pContext,
@@ -59,7 +57,7 @@ public:
 	//
 	// inline getters
 	//
-	inline const std::string& GetShaderName()                const { return className_; }
+	inline const char* GetShaderName()                       const { return className_; }
 	inline ID3D11Buffer* const GetConstBufferVSPerFrame()    const { return cbvsPerFrame_.Get(); }
 	inline ID3D11Buffer* const GetConstBufferPSRareChanged() const { return cbpsRareChanged_.Get(); }
 
@@ -76,9 +74,8 @@ public:
 private:
 	void InitializeShaders(
 		ID3D11Device* pDevice,
-		ID3D11DeviceContext* pContext,
-		const std::string& vsFilename,
-		const std::string& psFilename);
+        const char* vsFilePath,
+        const char* psFilePath);
 
 private:
 	VertexShader vs_;
@@ -88,7 +85,7 @@ private:
 	ConstantBuffer<BuffTypes::cbvsPerFrame_SkyDome>    cbvsPerFrame_;    // cbvs: const buffer for vertex shader
 	ConstantBuffer<BuffTypes::cbpsRareChanged_SkyDome> cbpsRareChanged_; // cbps: const buffer for pixel shader
 
-	const std::string className_{ "sky_dome_shader" };
+	char className_[32]{"SkyDomeShader"};
 };
 
 

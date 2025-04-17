@@ -11,7 +11,7 @@
 #include "../Model/ModelMgr.h"
 
 #include <CoreCommon/Types.h>  
-#include "Render.h"
+#include "CRender.h"
 #include "Entity/EntityMgr.h"
 #include "../Texture/TextureMgr.h"
 #include "../Mesh/MaterialMgr.h"
@@ -24,9 +24,7 @@ namespace Core
 class RenderDataPreparator
 {
 public:
-    RenderDataPreparator(
-        Render::Render& render,
-        ECS::EntityMgr& enttMgr);
+    RenderDataPreparator();
 
     void PrepareInstanceFromModel(
         BasicModel& model,
@@ -35,15 +33,17 @@ public:
     void PrepareEnttsDataForRendering(
         const EntityID* enttsIds,
         const size numEntts,
+        ECS::EntityMgr* pEnttMgr,
         Render::InstBuffData& instanceBuffData,      // data for the instance buffer
-        std::vector<Render::Instance>& instances);   // instances (models subsets) data for rendering
+        Render::cvector<Render::Instance>& instances);   // instances (models subsets) data for rendering
 
     // ----------------------------------------------------
 
     void PrepareInstancesData(
         const EntityID* ids,
         const size numEntts,
-        std::vector<Render::Instance>& instances,
+        ECS::EntityMgr* pEnttMgr,
+        Render::cvector<Render::Instance>& instances,
         cvector<EntityID>& enttsSortedByModels);
 
     void PrepareInstanceData(const BasicModel& model, Render::Instance& instance);
@@ -51,14 +51,12 @@ public:
     // ----------------------------------------------------
 
     void PrepareEnttsBoundingLineBox(
-        const EntityID* visibleEntts,
-        const size numEntts,
+        ECS::EntityMgr* pEnttMgr,
         Render::Instance& instance,
         Render::InstBuffData& instanceBuffer);
 
     void PrepareEnttsMeshesBoundingLineBox(
-        const EntityID* visibleEntts,
-        const size numEntts,
+        ECS::EntityMgr* pEnttMgr,
         Render::Instance& instance,
         Render::InstBuffData& instanceBuffer);
 
@@ -74,21 +72,17 @@ private:
         ECS::EntityMgr& mgr,
         const EntityID* ids,
         const size numEntts,
-        std::vector<Render::Instance>& instances,
+        Render::cvector<Render::Instance>& instances,
         cvector<EntityID>& outEnttsSortedByInstances);
 
     void PrepareInstancesForEnttsWithUniqueMaterials(
         ECS::EntityMgr& mgr,
         const EntityID* ids,
         const size numEntts,
-        std::vector<Render::Instance>& instances,
+        Render::cvector<Render::Instance>& instances,
         cvector<EntityID>& outEnttsSortedByInstances);
 
     void PrepareTexturesForInstance(Render::Instance& instance);
-
-private:
-    Render::Render* pRender_ = nullptr;    // a ptr to the Render class of the Render module
-    ECS::EntityMgr* pEnttMgr_ = nullptr;   // a ptr to the EntityMgr class of the ECS module
 };
 
 } // namespace Core

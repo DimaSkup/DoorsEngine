@@ -56,7 +56,7 @@ void MoveSysSerDeser::Deserialize(
 	const bool isProperDataBlock = (dataBlockMarker == static_cast<u32>(eComponentType::MoveComponent));
 	if (!isProperDataBlock)
 	{
-		Log::Error("read wrong data during deserialization of the Move component data");
+		LogErr("read wrong data during deserialization of the Move component data");
 		return;
 	}
 

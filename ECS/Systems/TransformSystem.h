@@ -121,7 +121,9 @@ private:
 
 		if (pTransform_->ids[idx] != id)
 		{
-			Log::Error("there is no transform data for entt by id: " + std::to_string(id));
+            char buf[64];
+            sprintf(buf, "there is no transform data for entt by id: %ud", id);
+			LogErr(buf);
 			return 0;
 		}
 

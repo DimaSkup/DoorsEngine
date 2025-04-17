@@ -8,8 +8,8 @@ namespace Core
 void SetupTerrain(BasicModel& terrain)
 {
     // load and set a texture for the terrain model
-    const TexID texTerrainDiff = g_TextureMgr.LoadFromFile(g_RelPathTexDir + "terrain/detail_grnd_grass.dds");
-    const TexID texTerrainNorm = g_TextureMgr.LoadFromFile(g_RelPathTexDir + "terrain/detail_grnd_grass_bump.dds");
+    const TexID texTerrainDiff = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "terrain/detail_grnd_grass.dds");
+    const TexID texTerrainNorm = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "terrain/detail_grnd_grass_bump.dds");
 
     Material terrainMat;
     terrainMat.SetTexture(TEX_TYPE_DIFFUSE, texTerrainDiff);
@@ -25,18 +25,21 @@ void SetupTree(BasicModel& tree)
 {
     // manually setup of tree pine model
 
-    const std::string pathToModelDir = g_RelPathExtModelsDir + "trees/FBX format/";
+    // prepare path to textures directory
+    char pathToTreeModelDir[64]{'\0'};
+    sprintf(pathToTreeModelDir, "%s%s", g_RelPathExtModelsDir, "trees/FBX format/");
 
+    
     // load texture from file for tree bark/branches/caps
-    const TexID texBarkDiffID      = g_TextureMgr.LoadFromFile(pathToModelDir + "Bark_Color.png");
-    const TexID texBarkNormID      = g_TextureMgr.LoadFromFile(pathToModelDir + "Bark_Normal.png");
+    const TexID texBarkDiffID      = g_TextureMgr.LoadFromFile(pathToTreeModelDir, "Bark_Color.png");
+    const TexID texBarkNormID      = g_TextureMgr.LoadFromFile(pathToTreeModelDir, "Bark_Normal.png");
 
-    const TexID texBranchDiffID    = g_TextureMgr.LoadFromFile(pathToModelDir + "conifer_macedonian_pine_Color.png");
-    const TexID texBranchNormID    = g_TextureMgr.LoadFromFile(pathToModelDir + "conifer_macedonian_pine_Normal.png");
-    const TexID texBranchSubsurfID = g_TextureMgr.LoadFromFile(pathToModelDir + "conifer_macedonian_pine_Subsurface.png");
+    const TexID texBranchDiffID    = g_TextureMgr.LoadFromFile(pathToTreeModelDir, "conifer_macedonian_pine_Color.png");
+    const TexID texBranchNormID    = g_TextureMgr.LoadFromFile(pathToTreeModelDir, "conifer_macedonian_pine_Normal.png");
+    const TexID texBranchSubsurfID = g_TextureMgr.LoadFromFile(pathToTreeModelDir, "conifer_macedonian_pine_Subsurface.png");
 
-    const TexID texCapDiffID       = g_TextureMgr.LoadFromFile(pathToModelDir + "Cap_Color.png");
-    const TexID texCapNormID       = g_TextureMgr.LoadFromFile(pathToModelDir + "Cap_Normal.png");
+    const TexID texCapDiffID       = g_TextureMgr.LoadFromFile(pathToTreeModelDir, "Cap_Color.png");
+    const TexID texCapNormID       = g_TextureMgr.LoadFromFile(pathToTreeModelDir, "Cap_Normal.png");
 
 
     // setup materials
@@ -81,10 +84,13 @@ void SetupPowerLine(BasicModel& powerLine)
 {
     // manually setup of power line model
 
+    // prepare path to textures directory
+    char texDirPath[64]{'\0'};
+    sprintf(texDirPath, "%s%s", g_RelPathExtModelsDir, "power_line/");
+
     // load textures from files
-    const std::string texDirPath = g_RelPathExtModelsDir + "power_line/";
-    const TexID texDiffID        = g_TextureMgr.LoadFromFile(texDirPath + "bigpoleiron_co.png");
-    const TexID texNormID        = g_TextureMgr.LoadFromFile(texDirPath + "bigpoleiron_nohq.png");
+    const TexID texDiffID = g_TextureMgr.LoadFromFile(texDirPath, "bigpoleiron_co.png");
+    const TexID texNormID = g_TextureMgr.LoadFromFile(texDirPath, "bigpoleiron_nohq.png");
 
     // setup and create a material
     Material powerLineMat;
@@ -102,11 +108,11 @@ void SetupBuilding9(BasicModel& building)
 {
     // manually setup building model
 
-    // load textures from files
-    const TexID texIdHousePart = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir + "building9/house_part.png");
-    const TexID texIdArka      = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir + "building9/arka.png");
-    const TexID texIdBalcony   = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir + "building9/balcony.png");
-    const TexID texIdr5        = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir + "building9/r5.png");
+    // load textures
+    const TexID texIdHousePart = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "building9/house_part.png");
+    const TexID texIdArka      = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "building9/arka.png");
+    const TexID texIdBalcony   = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "building9/balcony.png");
+    const TexID texIdr5        = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "building9/r5.png");
 
     // setup materials
     Material housePartMat;
@@ -171,35 +177,36 @@ void SetupStalkerAbandonedHouse(BasicModel& house)
 {
     // manually setup materials for the model
 
-    const std::string dirPath     = g_RelPathExtModelsDir + "/stalker/abandoned-house-20/";
+    char dirPath[64]{ '\0' };
+    sprintf(dirPath, "%s%s", g_RelPathExtModelsDir, "/stalker/abandoned-house-20/");
 
     // load textures for the model
-    const TexID texBrickDiff      = g_TextureMgr.LoadFromFile(dirPath + "textures/Brick_BaseColor.jpg");
-    const TexID texConcreteDiff   = g_TextureMgr.LoadFromFile(dirPath + "textures/Concrete_BaseColor.jpg");
-    const TexID texConcrete2Diff  = g_TextureMgr.LoadFromFile(dirPath + "textures/Concrete_2_BaseColor.jpg");
-    const TexID texRoofDiff       = g_TextureMgr.LoadFromFile(dirPath + "textures/Roof_BaseColor.jpg");
-    const TexID texDoorDiff       = g_TextureMgr.LoadFromFile(dirPath + "textures/Door_BaseColor.jpg");
-    const TexID texMetalDiff      = g_TextureMgr.LoadFromFile(dirPath + "textures/Metal_BaseColor.jpg");
-    const TexID texWindowDiff     = g_TextureMgr.LoadFromFile(dirPath + "textures/Windows_BaseColor.jpg");
-    const TexID texGroundDiff     = g_TextureMgr.LoadFromFile(dirPath + "textures/Ground_BaseColor.jpg");
+    const TexID texBrickDiff      = g_TextureMgr.LoadFromFile(dirPath, "textures/Brick_BaseColor.jpg");
+    const TexID texConcreteDiff   = g_TextureMgr.LoadFromFile(dirPath, "textures/Concrete_BaseColor.jpg");
+    const TexID texConcrete2Diff  = g_TextureMgr.LoadFromFile(dirPath, "textures/Concrete_2_BaseColor.jpg");
+    const TexID texRoofDiff       = g_TextureMgr.LoadFromFile(dirPath, "textures/Roof_BaseColor.jpg");
+    const TexID texDoorDiff       = g_TextureMgr.LoadFromFile(dirPath, "textures/Door_BaseColor.jpg");
+    const TexID texMetalDiff      = g_TextureMgr.LoadFromFile(dirPath, "textures/Metal_BaseColor.jpg");
+    const TexID texWindowDiff     = g_TextureMgr.LoadFromFile(dirPath, "textures/Windows_BaseColor.jpg");
+    const TexID texGroundDiff     = g_TextureMgr.LoadFromFile(dirPath, "textures/Ground_BaseColor.jpg");
 
-    const TexID texBrickNorm      = g_TextureMgr.LoadFromFile(dirPath + "textures/Brick_Normal.jpg");
-    const TexID texConcreteNorm   = g_TextureMgr.LoadFromFile(dirPath + "textures/Concrete_Normal.jpg");
-    const TexID texConcrete2Norm  = g_TextureMgr.LoadFromFile(dirPath + "textures/Concrete_2_Normal.jpg");
-    const TexID texRoofNorm       = g_TextureMgr.LoadFromFile(dirPath + "textures/Roof_Normal.jpg");
-    const TexID texDoorNorm       = g_TextureMgr.LoadFromFile(dirPath + "textures/Door_Normal.jpg");
-    const TexID texMetalNorm      = g_TextureMgr.LoadFromFile(dirPath + "textures/Metal_Normal.jpg");
-    const TexID texWindowNorm     = g_TextureMgr.LoadFromFile(dirPath + "textures/Windows_Normal.jpg");
-    const TexID texGroundNorm     = g_TextureMgr.LoadFromFile(dirPath + "textures/Ground_Normal.jpg");
+    const TexID texBrickNorm      = g_TextureMgr.LoadFromFile(dirPath, "textures/Brick_Normal.jpg");
+    const TexID texConcreteNorm   = g_TextureMgr.LoadFromFile(dirPath, "textures/Concrete_Normal.jpg");
+    const TexID texConcrete2Norm  = g_TextureMgr.LoadFromFile(dirPath, "textures/Concrete_2_Normal.jpg");
+    const TexID texRoofNorm       = g_TextureMgr.LoadFromFile(dirPath, "textures/Roof_Normal.jpg");
+    const TexID texDoorNorm       = g_TextureMgr.LoadFromFile(dirPath, "textures/Door_Normal.jpg");
+    const TexID texMetalNorm      = g_TextureMgr.LoadFromFile(dirPath, "textures/Metal_Normal.jpg");
+    const TexID texWindowNorm     = g_TextureMgr.LoadFromFile(dirPath, "textures/Windows_Normal.jpg");
+    const TexID texGroundNorm     = g_TextureMgr.LoadFromFile(dirPath, "textures/Ground_Normal.jpg");
 
-    const TexID texBrickRough     = g_TextureMgr.LoadFromFile(dirPath + "textures/Brick_Roughness.jpg");
-    const TexID texConcreteRough  = g_TextureMgr.LoadFromFile(dirPath + "textures/Concrete_Roughness.jpg");
-    const TexID texConcrete2Rough = g_TextureMgr.LoadFromFile(dirPath + "textures/Concrete_2_Roughness.jpg");
-    const TexID texRoofRough      = g_TextureMgr.LoadFromFile(dirPath + "textures/Roof_Roughness.jpg");
-    const TexID texDoorRough      = g_TextureMgr.LoadFromFile(dirPath + "textures/Door_Roughness.jpg");
-    const TexID texMetalRough     = g_TextureMgr.LoadFromFile(dirPath + "textures/Metal_Roughness.jpg");
-    const TexID texWindowRough    = g_TextureMgr.LoadFromFile(dirPath + "textures/Windows_Roughness.jpg");
-    const TexID texGroundRough    = g_TextureMgr.LoadFromFile(dirPath + "textures/Ground_Roughness.jpg");
+    const TexID texBrickRough     = g_TextureMgr.LoadFromFile(dirPath, "textures/Brick_Roughness.jpg");
+    const TexID texConcreteRough  = g_TextureMgr.LoadFromFile(dirPath, "textures/Concrete_Roughness.jpg");
+    const TexID texConcrete2Rough = g_TextureMgr.LoadFromFile(dirPath, "textures/Concrete_2_Roughness.jpg");
+    const TexID texRoofRough      = g_TextureMgr.LoadFromFile(dirPath, "textures/Roof_Roughness.jpg");
+    const TexID texDoorRough      = g_TextureMgr.LoadFromFile(dirPath, "textures/Door_Roughness.jpg");
+    const TexID texMetalRough     = g_TextureMgr.LoadFromFile(dirPath, "textures/Metal_Roughness.jpg");
+    const TexID texWindowRough    = g_TextureMgr.LoadFromFile(dirPath, "textures/Windows_Roughness.jpg");
+    const TexID texGroundRough    = g_TextureMgr.LoadFromFile(dirPath, "textures/Ground_Roughness.jpg");
 
 
 
@@ -291,7 +298,8 @@ void SetupCube(BasicModel& cube)
 {
     // manually setup the cube model
 
-    const TexID texID = g_TextureMgr.LoadFromFile(g_RelPathTexDir + "box01d.dds");
+    sprintf(g_String, "%s%s", g_RelPathTexDir, "box01d.dds");
+    const TexID texID = g_TextureMgr.LoadFromFile(g_String);
 
     // setup material and add it into the material manager
     Material cubeBox01Mat;
@@ -309,7 +317,8 @@ void SetupSphere(BasicModel& sphere)
 {
     // manually setup the sphere model
 
-    const TexID texID = g_TextureMgr.LoadFromFile(g_RelPathTexDir + "gigachad.dds");
+    sprintf(g_String, "%s%s", g_RelPathTexDir, "gigachad.dds");
+    const TexID texID = g_TextureMgr.LoadFromFile(g_String);
 
     // setup material and add it into the material manager
     Material sphereMat;

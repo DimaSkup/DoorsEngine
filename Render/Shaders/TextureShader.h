@@ -15,14 +15,12 @@
 #include "../Common/RenderTypes.h"
 
 #include <d3d11.h>
-//#include <d3dx11async.h>
 
 namespace Render
 {
 
 class TextureShader final
 {
-	using SRV = ID3D11ShaderResourceView;
 
 public:
 	TextureShader();
@@ -33,10 +31,7 @@ public:
 	TextureShader& operator=(const TextureShader& obj) = delete;
 
 	// Public modification API
-	bool Initialize(
-        ID3D11Device* pDevice,
-        ID3D11DeviceContext* pContext,
-        const std::string& pathToShadersDir);
+	bool Initialize(ID3D11Device* pDevice, const char* vsFilePath, const char* psFilePath);
 
 	// Public rendering API
 	void Render(
@@ -47,21 +42,20 @@ public:
 		const UINT instancedBuffElemSize);
 
 	// Public query API
-	inline const std::string& GetShaderName() const { return className_; }	
+	inline const char* GetShaderName() const { return className_; }	
 
 private:
-	void InitializeShaders(
-		ID3D11Device* pDevice,
-		ID3D11DeviceContext* pContext,
-		const std::string& vsFilename,
-		const std::string& psFilename);
+    void InitializeShaders(
+        ID3D11Device* pDevice,
+        const char* vsFilePath,
+        const char* psFilePath);
 
 private:
-	VertexShader        vs_;
-	PixelShader         ps_;
-	SamplerState        samplerState_;
+	VertexShader vs_;
+	PixelShader  ps_;
+	SamplerState samplerState_;
 
-	const std::string className_{ "texture_shader" };
+	char className_[32]{"TextureShader"};
 };
 
 }  // namespace Render

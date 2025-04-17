@@ -170,13 +170,13 @@
     <ClCompile Include="Common\MathHelper.cpp" />
     <ClCompile Include="Common\StringHelper.cpp" />
     <ClCompile Include="InitRender.cpp" />
-    <ClCompile Include="Render.cpp" />
+    <ClCompile Include="CRender.cpp" />
     <ClCompile Include="Shaders\BillboardShader.cpp" />
-    <ClCompile Include="Shaders\colorshaderclass.cpp" />
+    <ClCompile Include="Shaders\ColorShader.cpp" />
     <ClCompile Include="Shaders\DebugShader.cpp" />
-    <ClCompile Include="Shaders\fontshaderclass.cpp" />
+    <ClCompile Include="Shaders\FontShader.cpp" />
     <ClCompile Include="Shaders\GeometryShader.cpp" />
-    <ClCompile Include="Shaders\LightShaderClass.cpp" />
+    <ClCompile Include="Shaders\LightShader.cpp" />
     <ClCompile Include="Shaders\OutlineShader.cpp" />
     <ClCompile Include="Shaders\PixelShader.cpp" />
     <ClCompile Include="Shaders\SamplerState.cpp" />
@@ -188,6 +188,7 @@
   <ItemGroup>
     <ClInclude Include="Common\Assert.h" />
     <ClInclude Include="Common\ConstBufferTypes.h" />
+    <ClInclude Include="Common\cvector.h" />
     <ClInclude Include="Common\LIB_Exception.h" />
     <ClInclude Include="Common\log.h" />
     <ClInclude Include="Common\MathHelper.h" />
@@ -196,16 +197,16 @@
     <ClInclude Include="Common\StringHelper.h" />
     <ClInclude Include="Common\Types.h" />
     <ClInclude Include="InitRender.h" />
-    <ClInclude Include="Render.h" />
+    <ClInclude Include="CRender.h" />
     <ClInclude Include="Shaders\BillboardShader.h" />
-    <ClInclude Include="Shaders\colorshaderclass.h" />
+    <ClInclude Include="Shaders\ColorShader.h" />
     <ClInclude Include="Shaders\ConstantBuffer.h" />
     <ClInclude Include="Shaders\DebugShader.h" />
-    <ClInclude Include="Shaders\fontshaderclass.h" />
+    <ClInclude Include="Shaders\FontShader.h" />
     <ClInclude Include="Shaders\GeometryShader.h" />
     <ClInclude Include="Shaders\Helpers\CSOLoader.h" />
     <ClInclude Include="Common\MaterialLightTypes.h" />
-    <ClInclude Include="Shaders\LightShaderClass.h" />
+    <ClInclude Include="Shaders\LightShader.h" />
     <ClInclude Include="Shaders\OutlineShader.h" />
     <ClInclude Include="Shaders\PixelShader.h" />
     <ClInclude Include="Shaders\SamplerState.h" />

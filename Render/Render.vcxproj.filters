@@ -15,25 +15,19 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Render.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Common\log.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Common\LIB_Exception.cpp">
+    <ClCompile Include="CRender.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Common\StringHelper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Shaders\colorshaderclass.cpp">
+    <ClCompile Include="Shaders\ColorShader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Shaders\fontshaderclass.cpp">
+    <ClCompile Include="Shaders\FontShader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Shaders\LightShaderClass.cpp">
+    <ClCompile Include="Shaders\LightShader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Shaders\PixelShader.cpp">
@@ -72,33 +66,30 @@
     <ClCompile Include="Shaders\GeometryShader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Common\LIB_Exception.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\log.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Render.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\Assert.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\log.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\LIB_Exception.h">
+    <ClInclude Include="CRender.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Common\StringHelper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Shaders\colorshaderclass.h">
+    <ClInclude Include="Shaders\ColorShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Shaders\ConstantBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Shaders\fontshaderclass.h">
+    <ClInclude Include="Shaders\FontShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Shaders\LightShaderClass.h">
+    <ClInclude Include="Shaders\LightShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Shaders\PixelShader.h">
@@ -156,6 +147,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Shaders\GeometryShader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Assert.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\LIB_Exception.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\log.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\cvector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

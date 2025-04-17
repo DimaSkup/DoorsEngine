@@ -10,6 +10,7 @@
 #include <CoreCommon/Assert.h>
 #include <CoreCommon/log.h>
 
+using namespace Core;
 
 namespace UI
 {
@@ -28,7 +29,13 @@ void EnttPointLightController::LoadEnttData(const EntityID id)
 	// load/reload data of currently selected entity by ID (which is a point light source)
 	EnttPointLightData& model = pointLightModel_;
 
-	if (!pFacade_ || !pFacade_->GetEnttPointLightData(
+    if (pFacade_ == nullptr)
+    {
+        LogErr("ptr to the facade interface == nullptr");
+        return;
+    }
+
+	if (!pFacade_->GetEnttPointLightData(
 		id,
 		model.ambient,
 		model.diffuse,
@@ -36,7 +43,8 @@ void EnttPointLightController::LoadEnttData(const EntityID id)
 		model.attenuation,
 		model.range))
     {
-        Core::Log::Error("can't load data of the point light entity by ID: " + std::to_string(id));
+        sprintf(g_String, "can't load point light component data of entt ID: %ld", id);
+        LogErr(g_String);
     }
 }
 
@@ -73,7 +81,7 @@ void EnttPointLightController::ExecuteCommand(const ICommand* pCmd,	const Entity
 		}
         default:
         {
-            Core::Log::Error("unknown type of command: " + pCmd->type_);
+            Core::LogErr("unknown type of command: " + pCmd->type_);
         }
 	}
 }
@@ -118,7 +126,8 @@ void EnttPointLightController::UndoCommand(const ICommand* pCmd, const EntityID 
 		}
 		default:
 		{
-			Core::Log::Error("unknown undo command for entity (point light): " + std::to_string(id));
+			sprintf(g_String, "unknown undo command (point light) for entity: %ld", id);
+            LogErr(g_String);
 			return;
 		}
 	}
@@ -161,7 +170,7 @@ void EnttPointLightController::ExecChangeAmbient(const EntityID id, const ColorR
 	}
 	else
 	{
-        Core::Log::Error(GenerateErrMsg(id, "ambient"));
+        LogErr(GenerateErrMsg(id, "ambient").c_str());
 	}
 }
 
@@ -184,7 +193,7 @@ void EnttPointLightController::ExecChangeDiffuse(const EntityID id, const ColorR
 	}
 	else
 	{
-        Core::Log::Error(GenerateErrMsg(id, "diffuse"));
+        Core::LogErr(GenerateErrMsg(id, "diffuse").c_str());
 	}
 }
 
@@ -207,7 +216,7 @@ void EnttPointLightController::ExecChangeSpecular(const EntityID id, const Color
 	}
 	else
 	{
-        Core::Log::Error(GenerateErrMsg(id, "specular"));
+        LogErr(GenerateErrMsg(id, "specular").c_str());
 	}
 }
 
@@ -230,7 +239,7 @@ void EnttPointLightController::ExecChangeRange(const EntityID id, const float ra
 	}
 	else
 	{
-        Core::Log::Error(GenerateErrMsg(id, "range"));
+        LogErr(GenerateErrMsg(id, "range").c_str());
 	}
 }
 
@@ -253,7 +262,7 @@ void EnttPointLightController::ExecChangeAttenuation(const EntityID id, const Ve
 	}
 	else
 	{
-        Core::Log::Error(GenerateErrMsg(id, "attenuation"));
+        LogErr(GenerateErrMsg(id, "attenuation").c_str());
 	}
 }
 

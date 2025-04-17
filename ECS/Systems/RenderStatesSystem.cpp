@@ -342,7 +342,8 @@ void RenderStatesSystem::GetBlendingStatesByHashes(
 			}
 			default:
 			{
-				Log::Error("unknown blending state hash: " + std::to_string(hashes[i]));
+                sprintf(g_String, "unknown blending state hash: %ud", hashes[i]);
+				LogErr(g_String);
 				break;
 			}
 		}
@@ -469,7 +470,8 @@ void RenderStatesSystem::UpdateRenderStatesForHashes(
 			}
 			default:
 			{
-				Log::Error("unknown render state: " + std::to_string(state));
+                sprintf(g_String, "unknown render state: %d", state);
+                LogErr(g_String);
 			}
 			} // switch
 		} // for

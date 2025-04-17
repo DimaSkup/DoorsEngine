@@ -27,7 +27,6 @@ RenderStates::~RenderStates()
 // ********************************************************************************
 //                            PUBLIC METHODS
 // ********************************************************************************
-
 void RenderStates::InitAll(ID3D11Device* pDevice, const bool multisampleEnable)
 {
     InitAllRasterParams(pDevice, multisampleEnable);
@@ -70,10 +69,10 @@ ID3D11BlendState* RenderStates::GetBS(const eRenderState state)
     {
         return blendStates_.at(state);
     }
-    catch (const std::out_of_range& e)
+    catch (const std::out_of_range&)
     {
-        Log::Error(e.what());
-        Log::Error("unknown blend state key: " + std::to_string(state));
+        sprintf(g_String, "unknown blend state key: %d", state);
+        LogErr(g_String);
         return nullptr;
     }
 }
@@ -91,15 +90,14 @@ ID3D11RasterizerState* RenderStates::GetRS(const std::set<eRenderState>& states)
 ID3D11DepthStencilState* RenderStates::GetDSS(const eRenderState state)
 {
     // return a ptr to the depth stencil state by state enum key
-
     try
     {
         return depthStencilStates_.at(state);
     }
-    catch (const std::out_of_range& e)
+    catch (const std::out_of_range&)
     {
-        Log::Error(e.what());
-        Log::Error("there is no depth stencil state by key: " + std::to_string(state));
+        sprintf(g_String, "there is no depth stencil state by key: %d", state);
+        LogErr(g_String);
         return nullptr;
     }
 }
@@ -168,15 +166,15 @@ void RenderStates::SetBS(ID3D11DeviceContext* pContext, const eRenderState state
             }
             default:
             {
-                Log::Error("unknown blend state: " + std::to_string(state));
+                sprintf(g_String, "there is no case for handling blend state: %d", state);
+                LogErr(g_String);
             }
         }
     }
-    catch (const std::out_of_range& e)
+    catch (const std::out_of_range&)
     {
-        Log::Error(e.what());
-        Log::Error("unknown key to a blend state: " + std::to_string(state));
-
+        sprintf(g_String, "there is no blend state (BS) by key: %d", state);
+        LogErr(g_String);
         pContext->OMSetBlendState(nullptr, NULL, 0xFFFFFFFF);
     }
 
@@ -189,33 +187,26 @@ void RenderStates::SetDSS(
     const eRenderState state, 
     const UINT stencilRef)
 {
+    // set a depth stencil state by input key
     try
     {
-        // set a depth stencil state by input key
         pContext->OMSetDepthStencilState(depthStencilStates_.at(state), stencilRef);
     }
-    catch (const std::out_of_range& e)
+    catch (const std::out_of_range&)
     {
-        Log::Error(e.what());
-        Log::Error("unknown key to a depth stencil state: " + std::to_string(state));
-
+        sprintf(g_String, "there is no depth stencil state (DSS) by key: %d", state);
+        LogErr(g_String);
         pContext->OMSetDepthStencilState(0, 0);
     }
-    
 }
 
 
-
-
 // ********************************************************************************
-// 
 //                            PRIVATE METHODS
-// 
 // ********************************************************************************
-
 void RenderStates::InitAllRasterParams(ID3D11Device* pDevice, bool multisampleEnable)
 {
-    // THIS FUNCTION creates/sets up the rasterizer state objects
+    // create/set up the rasterizer state objects
     // 
     // firstly we set up a description for a raster state, then we create it
     // after creation we generate a hash for this particular raster state
@@ -363,7 +354,7 @@ void RenderStates::InitAllRasterParams(ID3D11Device* pDevice, bool multisampleEn
     }
     catch (EngineException& e)
     {
-        Log::Error(e, true);
+        LogErr(e, true);
         throw EngineException("can't initialize the rasterizer state");
     }
 }
@@ -376,11 +367,9 @@ void RenderStates::InitAllBlendStates(ID3D11Device* pDevice)
     D3D11_BLEND_DESC blendDesc { 0 };
     D3D11_RENDER_TARGET_BLEND_DESC& rtbd = blendDesc.RenderTarget[0];
 
-
     //
     // No Render Target Writes
     //
-
     blendDesc.AlphaToCoverageEnable  = false;
     blendDesc.IndependentBlendEnable = false;
 
@@ -396,11 +385,9 @@ void RenderStates::InitAllBlendStates(ID3D11Device* pDevice)
     hr = pDevice->CreateBlendState(&blendDesc, &blendStates_[NO_RENDER_TARGET_WRITES]);
     Assert::NotFailed(hr, "can't create a no_render_target_writes blending state");
     
-
     //
     // Disabled blending
     //
-
     blendDesc.AlphaToCoverageEnable = false;
     blendDesc.IndependentBlendEnable = false;
 
@@ -416,11 +403,9 @@ void RenderStates::InitAllBlendStates(ID3D11Device* pDevice)
     hr = pDevice->CreateBlendState(&blendDesc, &blendStates_[ALPHA_DISABLE]);
     Assert::NotFailed(hr, "can't create an alpha disabled blending state");
 
-
     //
     // Enabled blending (for rendering fonts, sky plane, ...)
     //
-
     blendDesc.AlphaToCoverageEnable = false;
     blendDesc.IndependentBlendEnable = false;
 
@@ -436,11 +421,9 @@ void RenderStates::InitAllBlendStates(ID3D11Device* pDevice)
     hr = pDevice->CreateBlendState(&blendDesc, &blendStates_[ALPHA_ENABLE]);
     Assert::NotFailed(hr, "can't create an alpha enabled blending state");
 
-
     //
     // Adding BS
     //
-
     blendDesc.AlphaToCoverageEnable = false;
     blendDesc.IndependentBlendEnable = false;
 
@@ -456,11 +439,9 @@ void RenderStates::InitAllBlendStates(ID3D11Device* pDevice)
     hr = pDevice->CreateBlendState(&blendDesc, &blendStates_[ADDING]);
     Assert::NotFailed(hr, "can't create an adding blend state");
 
-
     //
     // Subtracting BS
     //
-
     blendDesc.AlphaToCoverageEnable = false;
     blendDesc.IndependentBlendEnable = false;
 
@@ -476,11 +457,9 @@ void RenderStates::InitAllBlendStates(ID3D11Device* pDevice)
     hr = pDevice->CreateBlendState(&blendDesc, &blendStates_[SUBTRACTING]);
     Assert::NotFailed(hr, "can't create a subtracting blend state");
 
-
     //
     // Multiplying BS
     //
-
     blendDesc.AlphaToCoverageEnable = false;
     blendDesc.IndependentBlendEnable = false;
 
@@ -496,11 +475,9 @@ void RenderStates::InitAllBlendStates(ID3D11Device* pDevice)
     hr = pDevice->CreateBlendState(&blendDesc, &blendStates_[MULTIPLYING]);
     Assert::NotFailed(hr, "can't create a multiplying blend state");
 
-
     // 
     // Transparent BS
     //
-
     blendDesc.AlphaToCoverageEnable = false;
     blendDesc.IndependentBlendEnable = false;
 
@@ -540,18 +517,15 @@ void RenderStates::InitAllDepthStencilStates(ID3D11Device* pDevice)
     //
     // depth ENABLED
     //
-
     CD3D11_DEPTH_STENCIL_DESC depthStencilDesc(D3D11_DEFAULT);
     depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
 
     hr = pDevice->CreateDepthStencilState(&depthStencilDesc, &depthStencilStates_[DEPTH_ENABLED]);
     Assert::NotFailed(hr, "can't create a depth stencil state");
 
-
     //
     // depth DISABLED (for 2D rendering)
     //
-
     CD3D11_DEPTH_STENCIL_DESC depthDisabledStencilDesc(D3D11_DEFAULT);
     depthDisabledStencilDesc.DepthFunc = D3D11_COMPARISON_LESS;
     depthDisabledStencilDesc.DepthEnable = false;
@@ -670,9 +644,10 @@ ID3D11RasterizerState* RenderStates::GetRasterStateByHash(const uint8_t hash)
     {
         return rasterStates_.at(hash);
     }
-    catch (const std::out_of_range& e)
+    catch (const std::out_of_range&)
     {
-        Log::Error(e.what());
+        sprintf(g_String, "there is no rasterizer state by hash: %x", hash);
+        LogErr(g_String);
         PrintErrAboutRSHash(hash);
         return nullptr;
     }
@@ -720,7 +695,8 @@ void RenderStates::UpdateRSHash(const std::set<eRenderState>& rsParams)
             }
             default:
             {
-                Log::Error("an unknown rasterizer state parameter: " + std::to_string(param));
+                sprintf(g_String, "unknown rasterizer state parameter: %d", param);
+                LogErr(g_String);
                 return;
             }
         }
@@ -763,9 +739,10 @@ void RenderStates::PrintErrAboutRSHash(const uint8_t hash)
             rsNames << rasterParamsNames_.at((eRenderState)i) << "\n";
     }
 
-    Log::Error("can't get a raster state ptr by hash: " + hashStream.str());
-    Log::Error("which is responsible to such params (at the same time):");
-    Log::Error(rsNames.str());
+    LogErr("can't get a raster state ptr by hash:");
+    LogMsgf("%s%s", RED, hashStream.str().c_str());
+    LogMsgf("%s%s", RED, "which is responsible to such params(at the same time) :");
+    LogMsgf("%s%s", RED, rsNames.str().c_str());
 }
 
 } // namespace Core

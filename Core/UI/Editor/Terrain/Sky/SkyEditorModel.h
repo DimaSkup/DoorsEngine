@@ -9,7 +9,6 @@
 #include <UICommon/Vectors.h>
 
 #include <cstdint>
-#include <stdexcept>
 #include <unordered_map>
 
 
@@ -24,8 +23,6 @@ public:
 	//                     setters
 	// ====================================================
 
-	void SetTextureID(const int idx, const uint32_t textureID);
-
 	inline void SetColorCenter(const ColorRGB& newColor) { colorCenter_ = newColor;	}
 	inline void SetColorApex(const ColorRGB& newColor)   { colorApex_ = newColor;	}
 	inline void SetSkyOffset(const Vec3& newOffset)      { offset_ = newOffset; }
@@ -34,8 +31,6 @@ public:
 	// ====================================================
 	//                     getters
 	// ====================================================
-
-	uint32_t GetTextureID(const int idx) const;
 
 	inline void GetColorCenter(ColorRGB& outColor) const { outColor = colorCenter_; }
 	inline void GetColorApex(ColorRGB& outColor)   const { outColor = colorApex_; }

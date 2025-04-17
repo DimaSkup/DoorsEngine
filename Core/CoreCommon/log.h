@@ -1,93 +1,64 @@
 // =================================================================================
 // Filename:    Log.h
-// Description: there is a log system header
+// Description: just logger
 // =================================================================================
 #pragma once
 
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-
-#include <string>
 #include <source_location>
 #include "EngineException.h"
 
-#include <list>
+#pragma warning (disable : 4996)
 
 namespace Core
 {
 
-enum eConsoleColor
-{
-    // text color with a black background
-
-    DEFAULT = 0x0007,
-
-    RED     = 0x0004,
-    WHITE   = 0x0007,
-    GREEN   = 0x000A,
-    YELLOW  = 0x000E,
-};
+// macros to setup console color
+#define RESET       "\033[0m"
+#define BLACK       "\033[30m"              /* Black */
+#define RED         "\033[31m"              /* Red */
+#define GREEN       "\033[32m"              /* Green */
+#define YELLOW      "\033[33m"              /* Yellow */
+#define BLUE        "\033[34m"              /* Blue */
+#define MAGENTA     "\033[35m"              /* Magenta */
+#define CYAN        "\033[36m"              /* Cyan */
+#define WHITE       "\033[37m"              /* White */
+#define BOLDBLACK   "\033[1m\033[30m"       /* Bold Black */
+#define BOLDRED     "\033[1m\033[31m"       /* Bold Red */
+#define BOLDGREEN   "\033[1m\033[32m"       /* Bold Green */
+#define BOLDYELLOW  "\033[1m\033[33m"       /* Bold Yellow */
+#define BOLDBLUE    "\033[1m\033[34m"       /* Bold Blue */
+#define BOLDMAGENTA "\033[1m\033[35m"       /* Bold Magenta */
+#define BOLDCYAN    "\033[1m\033[36m"       /* Bold Cyan */
+#define BOLDWHITE   "\033[1m\033[37m"       /* Bold White */
 
 ///////////////////////////////////////////////////////////
 
-class Log
-{
-public:
-    Log();
-    ~Log();
+// macros for printing info about the caller
+#define LOG_INFO "%s:%s() (line: %d): %s" __FILE__, __func__, __LINE__
 
-    // returns a pointer to the instance of the Log class
-    inline static Log* Get() { return pInstance_; };
+///////////////////////////////////////////////////////////
 
-    inline static FILE* GetFilePtr() { return pFile_; }
-    inline static std::list<std::string>& GetLogMsgsList() { return msgsList_; }
+extern char g_String[256];
 
-    // setup console color
-    inline static void ResetConsoleColor()                        { SetConsoleTextAttribute(Log::handle_, eConsoleColor::DEFAULT); }
-    inline static void SetConsoleColor(const eConsoleColor color) { SetConsoleTextAttribute(Log::handle_, color); }
+extern bool InitLogger();        // call it at the very beginning of the application
+extern void CloseLogger();       // call it at the very end of the application
+
+// for C++20
+extern void LogMsg(const char* msg, const std::source_location& location = std::source_location::current());   // using: LogMsg("your msg");
+extern void LogDbg(const char* msg, const std::source_location& location = std::source_location::current());
+extern void LogErr(const char* msg, const std::source_location& location = std::source_location::current());
+
+// for C and C++ under C++20
+extern void LogMsg(const char* fileName, const char* funcName, const int codeLine, const char* msg);           // using: LogMsg(LOG_INFO, "your msg");
+extern void LogDbg(const char* fileName, const char* funcName, const int codeLine, const char* msg);           
+extern void LogErr(const char* fileName, const char* funcName, const int codeLine, const char* msg);           
 
 
-    static void Print();
-    static void Print(const std::string& msg, eConsoleColor color);
-    static void Debug(const std::source_location& location = std::source_location::current());
+// variadic arguments
+extern void LogMsgf(const char* format, ...);
 
-    // print input message into console/log-file
-    static void Print(const char* msg, const std::source_location& location = std::source_location::current());
-    static void Debug(const char* msg, const std::source_location& location = std::source_location::current());
-    static void Error(const char* msg, const std::source_location& location = std::source_location::current());
-
-    static void Print(const std::string& msg, const std::source_location& location = std::source_location::current());
-    static void Debug(const std::string& msg, const std::source_location& location = std::source_location::current());
-    static void Error(const std::string& msg, const std::source_location& location = std::source_location::current());
-
-    // print input message of some fixed format into console/log-file
-    static void Printf(const std::source_location& location, const char* format, ...);
-    static void Debugf(const std::source_location& location, const char* format, ...);
-    static void Errorf(const std::source_location& location, const char* format, ...);
-
-    static void Printf(const char* format, ...);
-    static void Debugf(const char* format, ...);
-    static void Errorf(const char* format, ...);
-
-    // exception handlers
-    static void Error(EngineException* pException, bool showMsgBox = false);
-    static void Error(EngineException& exception, bool showMsgBox = false);
-
-private:
-    bool InitHelper(); 
-    void CloseHelper();
-
-    static std::string GenerateLogMsg(const std::string& msg, const std::source_location& location);
-
-    static void PrintExceptionErrHelper(EngineException& e, bool showMsgBox);  
-    static void PrintHelper(const char* levtext, const std::string& text);     
-
-private:
-    static HANDLE handle_;    // we need it for changing the text colour in the command prompt
-    static FILE* pFile_;      // a pointer to the Logger file handler
-    static Log* pInstance_;
-
-    static std::list<std::string> msgsList_;
-};
+// exception handlers
+extern void LogErr(const EngineException* pException, const bool showMsgBox = false);
+extern void LogErr(const EngineException& e,          const bool showMsgBox = false);
 
 } // namespace Core

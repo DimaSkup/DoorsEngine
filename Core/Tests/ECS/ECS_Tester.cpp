@@ -13,14 +13,14 @@ namespace Core
 
 ECS_Tester::ECS_Tester()
 {
-    Log::Print();
-    Log::Print("----------------  TESTS: ECS  ------------------", eConsoleColor::YELLOW);
+    LogMsgf(" ");
+    LogMsgf("%s----------------  TESTS: ECS  ------------------", YELLOW);
 }
 
 ECS_Tester::~ECS_Tester()
 {
-    Log::Print("--------------------------------------------------", eConsoleColor::YELLOW);
-    Log::Print();
+    LogMsgf("%s--------------------------------------------------", YELLOW);
+    LogMsgf(" ");
 }
 
 // *********************************************************************************
@@ -40,16 +40,16 @@ void ECS_Tester::Run()
        // testSystems.Run();
 
         // test the EntityManager
-        Log::Print("----------------  TESTS: EntityMgr  -----------------\n", eConsoleColor::YELLOW);
+        LogMsgf("%s----------------  TESTS: EntityMgr  -----------------\n", YELLOW);
 
         //testEntityMgr.TestEntitiesCreation();
         //testEntityMgr.TestSerialDeserial();
 
-        Log::Print("All the tests for ECS are passed!\n\n\n");
+        LogMsg("All the tests for ECS are passed!\n\n\n");
     }
     catch (EngineException& e)
     {
-        Log::Error(e, true);
+        LogErr(e, true);
         exit(-1);
     }
 }

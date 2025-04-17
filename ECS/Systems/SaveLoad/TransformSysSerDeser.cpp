@@ -54,7 +54,7 @@ void TransformSysSerDeser::Deserialize(
 	const bool isProperDataBlock = (dataBlockMarker == static_cast<u32>(eComponentType::TransformComponent));
 	if (!isProperDataBlock)
 	{
-		Log::Error("read wrong data during deserialization of the Transform component data");
+		LogErr("read wrong data during deserialization of the Transform component data");
 		return;
 	}
 

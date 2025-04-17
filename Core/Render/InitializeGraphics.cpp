@@ -10,7 +10,7 @@
 #include <CoreCommon/FileSystemPaths.h>
 #include <CoreCommon/Assert.h>
 #include <CoreCommon/MathHelper.h>
-#include <CoreCommon/StringHelper.h>
+#include <CoreCommon/StrHelper.h>
 #include "Common/LIB_Exception.h"    // ECS exception
 
 #include "../Texture/TextureTypes.h"
@@ -40,16 +40,13 @@ namespace Core
 
 InitializeGraphics::InitializeGraphics()
 {
-    Log::Debug();
+    LogMsg("initialize graphics stuff");
 }
 
 
 // =================================================================================
-//
 //                                PUBLIC FUNCTIONS
-//
 // =================================================================================
-
 bool InitializeGraphics::InitializeDirectX(
     D3DClass& d3d,
     HWND hwnd,
@@ -75,8 +72,8 @@ bool InitializeGraphics::InitializeDirectX(
     }
     catch (EngineException & e)
     {
-        Log::Error(e, true);
-        Log::Error("can't initialize DirectX");
+        LogErr(e, true);
+        LogErr("can't initialize DirectX");
         return false;
     }
 
@@ -113,12 +110,12 @@ bool InitializeGraphics::InitializeScene(
 
         //ShellExecuteA(NULL, "open", "C:\\", NULL, NULL, SW_SHOWDEFAULT);
 
-        Log::Print("is initialized");
+        LogMsg("is initialized");
     }
     catch (EngineException& e)
     {
-        Log::Error(e, true);
-        Log::Error("can't initialize the scene");
+        LogErr(e, true);
+        LogErr("can't initialize the scene");
 
         return false;
     }
@@ -195,8 +192,8 @@ bool InitializeGraphics::InitializeCameras(
     }
     catch (EngineException & e)
     {
-        Log::Error(e, true);
-        Log::Error("can't initialize the cameras objects");
+        LogErr(e, true);
+        LogErr("can't initialize the cameras objects");
         return false;
     }
 
@@ -214,41 +211,48 @@ inline float GetHeightOfGeneratedTerrainAtPoint(const float x, const float z)
 
 void CreateLightPoles(ECS::EntityMgr& mgr, const BasicModel& lightPole)
 {
-    // create and setup light poles entities
-    Log::Debug();
+    LogDbg("create light poles entities");
 
     constexpr size numEntts = 10;
 
     const ECS::cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
 
-    std::vector<XMFLOAT3>   positions(numEntts);
-    std::vector<XMVECTOR>   dirQuats(numEntts);
-    std::vector<float>      uniformScales(numEntts, 1.0f);
-    std::vector<EntityName> names(numEntts, "lightPole_");
+    XMFLOAT3        positions[numEntts];
+    XMVECTOR        dirQuats[numEntts];
+    float           uniformScales[numEntts];
+    ECS::EntityName names[numEntts];
 
-    // generate 2 rows of lightPoles
-    for (int i = 0, z = 0; i < numEntts; z += 30, i += 2)
+    // setup positions: 2 rows of lightPoles
+    for (index i = 0, z = 0; i < numEntts; z += 30, i += 2)
     {
         const float x = 11;
         const float y1 = GetHeightOfGeneratedTerrainAtPoint(-x, (float)z);
         const float y2 = GetHeightOfGeneratedTerrainAtPoint(+x, (float)z);
         positions[i + 0] = { -x, y1, (float)z };
         positions[i + 1] = { +x, y2, (float)z };
+    }
 
+    // setup directions:
+    for (index i = 0; i < numEntts; i += 2)
+    {
         dirQuats[i + 0] = XMQuaternionRotationRollPitchYaw(0, +XM_PIDIV2, 0);
         dirQuats[i + 1] = XMQuaternionRotationRollPitchYaw(0, -XM_PIDIV2, 0);
     }
 
+    // setup scales
+    for (index i = 0; i < numEntts; ++i)
+        uniformScales[i] = 1.0f;
+
     // generate names
-    for (int i = 0; i < numEntts; ++i)
-        names[i] += std::to_string(enttsIDs[i]);
+    for (index i = 0; i < numEntts; ++i)
+        names[i] += "lightPole_" + std::to_string(enttsIDs[i]);
 
     // ----------------------------------------------------
 
     const EntityID* ids = enttsIDs.data();
 
-    mgr.AddTransformComponent(ids, numEntts, positions.data(), dirQuats.data(), uniformScales.data());
-    mgr.AddNameComponent(ids, names.data(), numEntts);
+    mgr.AddTransformComponent(ids, numEntts, positions, dirQuats, uniformScales);
+    mgr.AddNameComponent(ids, names, numEntts);
     mgr.AddModelComponent(ids, lightPole.GetID(), numEntts);
 
     ECS::RenderInitParams renderParams;
@@ -273,10 +277,7 @@ void CreateLightPoles(ECS::EntityMgr& mgr, const BasicModel& lightPole)
 
 void CreateSpheres(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    //
-    // create and setup spheres entities
-    //
-    Log::Debug();
+    LogDbg("create spheres entities");
 
     constexpr size numEntts = 10;
     const ECS::cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
@@ -285,53 +286,35 @@ void CreateSpheres(ECS::EntityMgr& mgr, const BasicModel& model)
     
     // ---------------------------------------------------------
     // setup transform data for entities
-    TransformData transform;
 
-    transform.positions.reserve(numEntts);
-    transform.dirQuats.resize(numEntts, {0,0,0,1});   // no rotation
-    transform.uniformScales.resize(numEntts, 1.0f);
+    XMFLOAT3 positions[numEntts];
+    XMVECTOR dirQuats[numEntts];
+    float uniformScales[numEntts];
 
-    // make two rows of the spheres
-    for (u32 idx = 0; idx < numEntts /2; ++idx)
+    // setup positions: make two rows of the spheres
+    for (index i = 0; i < numEntts /2; i += 2)
     {
-        transform.positions.emplace_back(-5.0f, 5.0f, 10.0f * idx);
-        transform.positions.emplace_back(+5.0f, 5.0f, 10.0f * idx);
+        positions[i + 0] = XMFLOAT3(-5.0f, 5.0f, 10.0f * i);
+        positions[i + 1] = XMFLOAT3(+5.0f, 5.0f, 10.0f * i);
     }
 
-    mgr.AddTransformComponent(
-        ids,
-        numEntts,
-        transform.positions.data(),
-        transform.dirQuats.data(),
-        transform.uniformScales.data());
+    // setup directions
+    for (index i = 0; i < numEntts; ++i)
+        dirQuats[i] = { 0,0,0,1 };        
 
+    // setup uniform scales
+    for (index i = 0; i < numEntts; ++i)
+        uniformScales[i] = 1.0f;
 
-    // ---------------------------------------------------------
-    // setup movement for the spheres
-    MovementData movement;
-
-    movement.translations.resize(numEntts, { 0,0,0 });
-    movement.rotQuats.resize(numEntts, { 0,0,0,1 });  // XMQuaternionRotationRollPitchYaw(0, 0.001f, 0));
-    movement.uniformScales.resize(numEntts, 1.0f);
-    movement.uniformScales[0] = 1.0f;
-
-    mgr.AddMoveComponent(
-        ids,
-        movement.translations.data(),
-        movement.rotQuats.data(),
-        movement.uniformScales.data(),
-        numEntts);
-
-    transform.Clear();
-    movement.Clear();	
+    mgr.AddTransformComponent(ids, numEntts, positions, dirQuats, uniformScales);
 
     // ---------------------------------------------
     
     // generate a name for each sphere entity
-    std::vector<EntityName> enttsNames(numEntts, "sphere_");
+    ECS::EntityName enttsNames[numEntts];
 
     for (int i = 0; const EntityID& id : enttsIDs)
-        enttsNames[i++] += std::to_string(id);
+        enttsNames[i++] = "sphere_" + std::to_string(id);
 
     // setup rendering params
     ECS::RenderInitParams renderParams;
@@ -341,7 +324,7 @@ void CreateSpheres(ECS::EntityMgr& mgr, const BasicModel& model)
     // ---------------------------------------------
 
     mgr.AddModelComponent(ids, model.GetID(), numEntts);
-    mgr.AddNameComponent(ids, enttsNames.data(), numEntts);
+    mgr.AddNameComponent(ids, enttsNames, numEntts);
     mgr.AddRenderingComponent(ids, numEntts, renderParams);
 
     // ---------------------------------------------
@@ -376,10 +359,9 @@ void CreateSpheres(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateSkyBox(ECS::EntityMgr& mgr, SkyModel& sky)
 {
-    // create and setup the sky entity
-    Log::Debug();
+    LogDbg("create sky box entity");
 
-    TexPath skyTexPath;
+    std::string skyTexPath;
     int textureIdx = 0;
     XMFLOAT3 colorCenter;
     XMFLOAT3 colorApex;
@@ -416,7 +398,9 @@ void CreateSkyBox(ECS::EntityMgr& mgr, SkyModel& sky)
         colorApex   = { 0.38f, 0.45f, 0.51f };
     }
 
-    TexID skyMapID = g_TextureMgr.LoadFromFile(g_RelPathTexDir + skyTexPath);
+    // load a texture for the sky
+    sprintf(g_String, "%s%s", g_RelPathTexDir, skyTexPath.c_str());
+    TexID skyMapID = g_TextureMgr.LoadFromFile(g_String);
 
     // setup sky model
     sky.SetTexture(textureIdx, skyMapID);
@@ -433,10 +417,7 @@ void CreateSkyBox(ECS::EntityMgr& mgr, SkyModel& sky)
 
 void CreateCylinders(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    //
-    // create and setup cylinders entities
-    //
-    Log::Debug();
+    LogDbg("create cylinders entities");
 
     constexpr size numEntts = 10;
     const ECS::cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
@@ -445,32 +426,38 @@ void CreateCylinders(ECS::EntityMgr& mgr, const BasicModel& model)
     // ---------------------------------------------------------
     // setup transform data for entities
 
-    TransformData transform;
+     XMFLOAT3 positions[numEntts];
+    XMVECTOR dirQuats[numEntts];
+    float uniformScales[numEntts];
 
-    transform.positions.reserve(numEntts);
-    transform.dirQuats.resize(numEntts, { 0,0,0,1 });  // no rotation
-    transform.uniformScales.resize(numEntts, 1.0f);
-
-    // make two rows of the cylinders
-    for (int idx = 0; idx < numEntts / 2; ++idx)
+    // setup positions: make two rows of the spheres
+    for (index i = 0; i < numEntts / 2; i += 2)
     {
-        transform.positions.emplace_back(-5.0f, 2.0f, 10.0f * idx);
-        transform.positions.emplace_back(+5.0f, 2.0f, 10.0f * idx);
+        positions[i + 0] = XMFLOAT3(-5.0f, 2.0f, 10.0f * i);
+        positions[i + 1] = XMFLOAT3(+5.0f, 2.0f, 10.0f * i);
     }
+
+    // setup directions
+    for (index i = 0; i < numEntts; ++i)
+        dirQuats[i] = { 0,0,0,1 };
+
+    // setup uniform scales
+    for (index i = 0; i < numEntts; ++i)
+        uniformScales[i] = 1.0f;
 
     // ----------------------------------------------------
     // generate names for the entities
 
-    std::vector<std::string> names(numEntts, "cylinder_");
+    std::string names[numEntts];
 
     for (int i = 0; const EntityID id : enttsIDs)
-        names[i++] += std::to_string(id);
+        names[i++] = "cylinder_" + std::to_string(id);
 
     // ----------------------------------------------------
     // set a default texture for the cylinder mesh
-    
-    const TexPath brickTexPath = g_RelPathTexDir + "brick01.dds";
-    const TexID brickTexID     = g_TextureMgr.LoadFromFile(brickTexPath);
+
+    sprintf(g_String, "%s%s", g_RelPathTexDir, "brick01.dds");
+    const TexID brickTexID = g_TextureMgr.LoadFromFile(g_String);
 
     // ----------------------------------------------------
     // setup rendering params
@@ -491,12 +478,7 @@ void CreateCylinders(ECS::EntityMgr& mgr, const BasicModel& model)
 
     // ----------------------------------------------------
 
-    mgr.AddTransformComponent(
-        ids,
-        numEntts,
-        transform.positions.data(),
-        transform.dirQuats.data(),
-        transform.uniformScales.data());
+    mgr.AddTransformComponent(ids, numEntts, positions, dirQuats, uniformScales);
 
     // each cylinder has only one mesh
     constexpr int  numSubmeshes = 1;
@@ -505,7 +487,7 @@ void CreateCylinders(ECS::EntityMgr& mgr, const BasicModel& model)
     for (const EntityID id : enttsIDs)
         mgr.AddMaterialComponent(id, &cylinderMatID, numSubmeshes, areMaterialsMeshBased);
 
-    mgr.AddNameComponent(ids, names.data(), numEntts);
+    mgr.AddNameComponent(ids, names, numEntts);
     mgr.AddRenderingComponent(ids, numEntts, renderParams);
     mgr.AddModelComponent(ids, model.GetID(), numEntts);
 
@@ -521,16 +503,13 @@ void CreateCylinders(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    //
-    // create and setup cubes entities
-    //
+    LogDbg("create cubes entities");
 
     try
     {
-        Log::Debug();
         constexpr int numEntts = 6;
 
-        const std::vector<EntityName> enttsNames =
+        const ECS::EntityName enttsNames[numEntts] =
         {
             "cat",
             "fireflame",
@@ -540,13 +519,13 @@ void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
             "box01",
         };
 
+        // create empty entities
         const ECS::cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
         const EntityID* ids = enttsIDs.data();
 
-        Assert::True(std::ssize(enttsNames) == numEntts, "num of names != num of cubes");
 
         // make a map: 'entt_name' => 'entity_id'
-        std::map<EntityName, EntityID> enttsNameToID;
+        std::map<ECS::EntityName, EntityID> enttsNameToID;
 
         for (int i = 0; i < numEntts; ++i)
             enttsNameToID.insert({ enttsNames[i], enttsIDs[i] });
@@ -562,10 +541,10 @@ void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
             "wireFence",
             "woodCrate01",
             "woodCrate02",
-            "box01",
+            "box01d",
         };
 
-        const TexPath texFilenames[numEntts] =
+        const std::string texFilenames[numEntts] =
         {
             "cat.dds",
             "fire_atlas.dds",
@@ -579,7 +558,10 @@ void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
         TexID texIDs[numEntts];  
 
         for (int i = 0; i < numEntts; ++i)
-            texIDs[i] = g_TextureMgr.LoadFromFile(g_RelPathTexDir + texFilenames[i]);
+        {
+            sprintf(g_String, "%s%s", g_RelPathTexDir, texFilenames[i].c_str());
+            texIDs[i] = g_TextureMgr.LoadFromFile(g_String);
+        }
 
         // ---------------------------------------------
 
@@ -614,7 +596,7 @@ void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
         // setup the cubes entities
 
         mgr.AddTransformComponent(ids, numEntts, positions.data(), dirQuats.data(), uniformScales.data());
-        mgr.AddNameComponent(ids, enttsNames.data(), numEntts);
+        mgr.AddNameComponent(ids, enttsNames, numEntts);
         mgr.AddModelComponent(ids, model.GetID(), numEntts);
 
         // the cube has only one submesh
@@ -720,8 +702,8 @@ void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
     }
     catch (EngineException& e)
     {
-        Log::Error(e);
-        Log::Error("can't create and setup cubes entts");
+        LogErr(e);
+        LogErr("can't create and setup cubes entts");
     }
 }
 
@@ -732,7 +714,7 @@ void CreateTerrain(ECS::EntityMgr& mgr, const BasicModel& model)
     //
     // create and setup terrain elements
     //
-    Log::Debug();
+    LogDbg("create terrain");
 
     // create and setup a terrain entity
     const EntityID enttID = mgr.CreateEntity();
@@ -768,7 +750,7 @@ void CreateTerrain(ECS::EntityMgr& mgr, const BasicModel& model)
     const MaterialID terrainMatID = model.meshes_.subsets_[0].materialID;
     mgr.AddMaterialComponent(enttID, &terrainMatID, numSubsets, areMaterialsMeshBased);
 
-    Log::Debug("Terrain is created");
+    LogDbg("Terrain is created");
 }
 
 ///////////////////////////////////////////////////////////
@@ -780,7 +762,7 @@ void CreateWater(ECS::EntityMgr& mgr)
     // create and setup water model 
     //
 
-    Log::Debug();
+    LogDbg();
 
     try
     {
@@ -821,13 +803,13 @@ void CreateWater(ECS::EntityMgr& mgr)
     }
     catch (EngineException& e)
     {
-        Log::Error(e);
-        Log::Error("can't create a water entity");
+        LogErr(e);
+        LogErr("can't create a water entity");
     }
     catch (ECS::LIB_Exception& e)
     {
-        Log::Error(e.GetStr());
-        Log::Error("can't create a water entity");
+        LogErr(e.GetStr());
+        LogErr("can't create a water entity");
     }
 #endif
 }
@@ -838,7 +820,7 @@ void CreateSkull(ECS::EntityMgr& mgr, const BasicModel& model)
 {
     // create and setup a skull entity
 
-    Log::Debug();
+    LogDbg("create skull");
 
     try
     {
@@ -868,106 +850,16 @@ void CreateSkull(ECS::EntityMgr& mgr, const BasicModel& model)
     }
     catch (EngineException& e)
     {
-        Log::Error(e, true);
-        Log::Error("can't create a skull model");
+        LogErr(e, true);
+        LogErr("can't create a skull model");
     }
-}
-
-///////////////////////////////////////////////////////////
-
-void CreatePlanes(ECS::EntityMgr& mgr, const BasicModel& model)
-{
-    // create planes entities
-
-    Log::Debug();
-
-    try 
-    {
-        constexpr int numEntts = 2;
-        const ECS::cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
-        const EntityID* ids = enttsIDs.data();
-
-        // ---------------------------------------------------------
-        // setup transform data for entities
-
-        TransformData transform;
-
-        transform.positions.resize(numEntts, { 0,0,0 });
-        transform.dirQuats.resize(numEntts, { 0,0,0,1 });  // no rotation
-        transform.uniformScales.resize(numEntts, 1.0f);
-
-        transform.positions[0] = { 4, 1.5f, 6 };
-        transform.positions[1] = { 2, 1.5f, 6 };
-
-        mgr.AddTransformComponent(
-            ids,
-            numEntts,
-            transform.positions.data(),
-            transform.dirQuats.data(),
-            transform.uniformScales.data());
-
-        // ---------------------------------------------------------
-        // setup names for the entities
-
-        std::vector<std::string> names(numEntts, "plane_");
-
-        for (int i = 0; const EntityID id : enttsIDs)
-            names[i++] += std::to_string(id);
-
-        // ---------------------------------------------------------
-        // setup meshes of the entities
-
-        constexpr int numTexPaths = 2;
-        const TexPath texPaths[numTexPaths] =
-        {
-            "data/textures/brick01.dds",
-            "data/textures/sprite01.tga",
-        };
-
-        TexID texIDs[numTexPaths];
-
-        // create textures
-        for (int i = 0; i < numTexPaths; ++i)
-            texIDs[i] = g_TextureMgr.LoadFromFile(texPaths[i]);
-
-
-        // setup rendering params
-        ECS::RenderInitParams renderParams;
-        renderParams.shaderType   = ECS::LIGHT_SHADER;
-        renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-
-        mgr.AddModelComponent(ids, model.GetID(), numEntts);
-        mgr.AddNameComponent(ids, names.data(), numEntts);
-        mgr.AddRenderingComponent(ids, numEntts, renderParams);
-
-        // ---------------------------------------------------------
-        // setup render states of the entities
-        //using enum ECS::eRenderState;
-
-        //mgr.renderStatesSystem_.UpdateStates(enttsIDs[0], ADDING);
-        //mgr.renderStatesSystem_.UpdateStates(enttsIDs[1], SUBTRACTING);
-
-    }
-    catch (EngineException& e)
-    {
-        Log::Error(e);
-        Log::Error("can't create plane entities");
-    }
-    catch (ECS::LIB_Exception& e)
-    {
-        Log::Error(e.GetStr());
-        Log::Error("can't create plane entities");
-    }
-
 }
 
 ///////////////////////////////////////////////////////////
 
 void CreateTreesPine(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    // create tree pine entities
-
-    Log::Debug();
+    LogDbg("create tree pine entities");
 
     using enum ECS::eRenderState;
     constexpr size numEntts = 50;
@@ -976,14 +868,14 @@ void CreateTreesPine(ECS::EntityMgr& mgr, const BasicModel& model)
 
     // ---------------------------------------------
 
-    std::vector<EntityName> names(numEntts, "tree_pine_");
+    std::vector<ECS::EntityName> names(numEntts, "tree_pine_");
     std::vector<XMFLOAT3>   positions(numEntts);
     std::vector<XMVECTOR>   quats(numEntts);
     std::vector<float>      uniScales(numEntts, 1.0f);
 
 
     // generate a name for each tree
-    for (int i = 0; EntityName & name : names)
+    for (int i = 0; ECS::EntityName& name : names)
     {
         name += std::to_string(enttsIDs[i++]);
     }
@@ -1056,9 +948,7 @@ void CreateTreesPine(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateTreesSpruce(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    // create tree spruce entities
-
-    Log::Debug();
+    LogDbg("create tree spruce entities");
 
     using enum ECS::eRenderState;
     constexpr int numEntts = 50;
@@ -1067,14 +957,14 @@ void CreateTreesSpruce(ECS::EntityMgr& mgr, const BasicModel& model)
 
     // ---------------------------------------------
 
-    std::vector<EntityName> names(numEntts, "tree_spruce_");
+    std::vector<ECS::EntityName> names(numEntts, "tree_spruce_");
     std::vector<XMFLOAT3>   positions(numEntts);
     std::vector<XMVECTOR>   quats(numEntts);
     std::vector<float>      uniScales(numEntts, 3.5f);
 
 
     // generate a name for each tree
-    for (int i = 0; EntityName & name : names)
+    for (int i = 0; ECS::EntityName & name : names)
     {
         name += std::to_string(enttsIDs[i++]);
     }
@@ -1134,9 +1024,7 @@ void CreateTreesSpruce(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreatePowerLine(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    // create and setup a power line entities
-
-    Log::Debug();
+    LogDbg("create power line entities");
 
     // create and setup an entity
     constexpr int numEntts = 3;
@@ -1193,9 +1081,7 @@ void CreatePowerLine(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateBarrel(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    // create and setup a barrel entity
-
-    Log::Debug();
+    LogDbg("create a barrel entity");
 
     const EntityID enttID = mgr.CreateEntity();
 
@@ -1227,8 +1113,7 @@ void CreateBarrel(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateStalkerFreedom(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    // create and setup a stalker entity
-    Log::Debug();
+    LogDbg("create a stalker entity");
 
     const EntityID enttID = mgr.CreateEntity();
 
@@ -1274,8 +1159,7 @@ void CreateStalkerFreedom(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateNanoSuit(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    // create and setup a nanosuit entity
-    Log::Debug();
+    LogDbg("create nanosuit entity");
 
     const EntityID enttID = mgr.CreateEntity();
 
@@ -1312,7 +1196,7 @@ void CreateNanoSuit(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateBuilding(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    Log::Debug();
+    LogDbg("create a building entity");
 
     const EntityID enttID = mgr.CreateEntity();
 
@@ -1350,7 +1234,7 @@ void CreateBuilding(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateSovietStatue(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    Log::Debug();
+    LogDbg("create a soviet statue");
     const EntityID enttID = mgr.CreateEntity();
 
     // setup transformation params
@@ -1386,7 +1270,7 @@ void CreateSovietStatue(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateApartment(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    Log::Debug();
+    LogDbg("create an appartment entity");
     const EntityID enttID = mgr.CreateEntity();
 
     // setup transformation params
@@ -1422,7 +1306,7 @@ void CreateApartment(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateAk47(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    Log::Debug();
+    LogDbg("create ak47 entity");
 
     const EntityID enttID = mgr.CreateEntity();
 
@@ -1472,7 +1356,7 @@ void CreateAk47(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateAk74(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    Log::Debug();
+    LogDbg("create ak74 entity");
 
     const EntityID enttID = mgr.CreateEntity();
 
@@ -1509,9 +1393,7 @@ void CreateAk74(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateHouse(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    // create and setup a house entity
-
-    Log::Debug();
+    LogDbg("create a house entity");
 
     const EntityID enttID = mgr.CreateEntity();
 
@@ -1550,8 +1432,7 @@ void CreateHouse(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateHouse2(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    // create and setup a house entity
-    Log::Debug();
+    LogDbg("create a house entity");
 
     const EntityID enttID = mgr.CreateEntity();
 
@@ -1587,7 +1468,7 @@ void CreateHouse2(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateRocks(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    // create and setup rock entities
+    LogDbg("create rock entities");
 
     constexpr int numEntts = 20;
     const ECS::cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
@@ -1646,6 +1527,8 @@ void CreateRocks(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreatePillar(ECS::EntityMgr& mgr, const BasicModel& model)
 {
+    LogDbg("Create pillar entities");
+
     const EntityID enttID = mgr.CreateEntity();
 
     // setup transformation params
@@ -1690,17 +1573,17 @@ void PrintImportTimingInfo()
     const double factor = (1.0 / ModelImporter::s_ImportDuration_) * 100.0;
 
  
-    Log::Print("-------------------------------------------------", eConsoleColor::GREEN);
-    Log::Debug();
+    LogMsgf("%-------------------------------------------------", GREEN);
+    LogMsgf(" ");
 
-    Log::Print("Summary about import process:", eConsoleColor::YELLOW);
-    Log::Printf("time spent to import:        %.3f ms (100 %%)",  ModelImporter::s_ImportDuration_);
-    Log::Printf("time spent to load scene:    %.3f ms (%.2f %%)", ModelImporter::s_SceneLoading_, ModelImporter::s_SceneLoading_ * factor);
-    Log::Printf("time spent to load nodes:    %.3f ms (%.2f %%)", ModelImporter::s_NodesLoading_, ModelImporter::s_NodesLoading_ * factor);
+    LogMsgf("%sSummary about import process:", YELLOW);
+    LogMsgf("time spent to import:        %.3f ms (100 %%)",  ModelImporter::s_ImportDuration_);
+    LogMsgf("time spent to load scene:    %.3f ms (%.2f %%)", ModelImporter::s_SceneLoading_, ModelImporter::s_SceneLoading_ * factor);
+    LogMsgf("time spent to load nodes:    %.3f ms (%.2f %%)", ModelImporter::s_NodesLoading_, ModelImporter::s_NodesLoading_ * factor);
 
-    Log::Printf("time spent to load vertices: %.3f ms (%.2f %%)", ModelImporter::s_VerticesLoading_, ModelImporter::s_VerticesLoading_ * factor);
-    Log::Printf("time spent to load textures: %.3f ms (%.2f %%)", ModelImporter::s_TexLoadingDuration_, ModelImporter::s_TexLoadingDuration_ * factor);
-    Log::Print("-------------------------------------------------\n",  eConsoleColor::GREEN);
+    LogMsgf("time spent to load vertices: %.3f ms (%.2f %%)", ModelImporter::s_VerticesLoading_, ModelImporter::s_VerticesLoading_ * factor);
+    LogMsgf("time spent to load textures: %.3f ms (%.2f %%)", ModelImporter::s_TexLoadingDuration_, ModelImporter::s_TexLoadingDuration_ * factor);
+    LogMsgf("%s-------------------------------------------------\n", GREEN);
 }
 
 ///////////////////////////////////////////////////////////
@@ -1712,35 +1595,41 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
 
     ModelsCreator creator;
 
+#if 0
     // paths to external models
     const std::string lightPolePath             = g_RelPathExtModelsDir + "light_pole/light_pole.obj";
     const std::string treeSprucePath            = g_RelPathExtModelsDir + "trees/tree_spruce/tree_spruce.obj";
-    const std::string treePinePath              = g_RelPathExtModelsDir + "trees/FBX format/tree_pine.fbx";
+    
     //const std::string treeDubPath             = g_RelPathExtModelsDir + "trees/dub/dub.obj";
     const std::string powerHVTowerPath          = g_RelPathExtModelsDir + "power_line/Power_HV_Tower.FBX";
     const std::string barrelPath                = g_RelPathExtModelsDir + "Barrel1/Barrel1.obj";
     const std::string nanosuitPath              = g_RelPathExtModelsDir + "nanosuit/nanosuit.obj";
-    const std::string stalkerFreedom1Path       = g_RelPathExtModelsDir + "stalker_freedom_1/stalker_freedom_1.fbx";
+    
     const std::string stalkerHouseSmallPath     = g_RelPathExtModelsDir + "stalker/stalker-house/source/SmallHouse.fbx";
     const std::string stalkerHouseAbandonedPath = g_RelPathExtModelsDir + "stalker/abandoned-house-20/source/StalkerAbandonedHouse.fbx";
-    const std::string ak47Path                  = g_RelPathExtModelsDir + "aks-74_game_ready/scene.gltf";
+    
     const std::string ak74uPath                 = g_RelPathExtModelsDir + "ak_74u/ak_74u.fbx";
 
     const std::string building9Path             = g_RelPathExtModelsDir + "building9/building9.obj";
     const std::string apartmentPath             = g_RelPathExtModelsDir + "Apartment/Apartment.obj";
     const std::string sovientStatuePath         = g_RelPathExtModelsDir + "sovietstatue_1/sickle&hammer.obj";
-          
+#endif
+    const std::string treePinePath        = std::string(g_RelPathExtModelsDir) + "trees/FBX format/tree_pine.fbx";
+    const std::string stalkerFreedom1Path = std::string(g_RelPathExtModelsDir) + "stalker_freedom_1/stalker_freedom_1.fbx";
+    const std::string ak47Path            = std::string(g_RelPathExtModelsDir) + "aks-74_game_ready/scene.gltf";
+
+#if 1
     // import a model from file by path
-    Log::Debug("Start of models importing");
+    LogDbg("Start of models importing");
 
     //const ModelID lightPoleID      = creator.ImportFromFile(pDevice, lightPolePath);
     //const ModelID treeSpruceID     = creator.ImportFromFile(pDevice, treeSprucePath);
-    const ModelID treePineID       = creator.ImportFromFile(pDevice, treePinePath);
+    const ModelID treePineID       = creator.ImportFromFile(pDevice, treePinePath.c_str());
     //const ModelID nanosuitID       = creator.ImportFromFile(pDevice, nanosuitPath);
-    const ModelID stalkerFreedomID = creator.ImportFromFile(pDevice, stalkerFreedom1Path);
+    const ModelID stalkerFreedomID = creator.ImportFromFile(pDevice, stalkerFreedom1Path.c_str());
     //const ModelID stalkerHouse1ID  = creator.ImportFromFile(pDevice, stalkerHouseSmallPath);
     //const ModelID stalkerHouse2ID  = creator.ImportFromFile(pDevice, stalkerHouseAbandonedPath);
-    const ModelID ak47ID           = creator.ImportFromFile(pDevice, ak47Path);
+    const ModelID ak47ID           = creator.ImportFromFile(pDevice, ak47Path.c_str());
     //const ModelID ak74ID           = creator.ImportFromFile(pDevice, ak74uPath);
     //const ModelID barrelID         = creator.ImportFromFile(pDevice, barrelPath);
     //const ModelID powerHVTowerID   = creator.ImportFromFile(pDevice, powerHVTowerPath);
@@ -1753,7 +1642,7 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
 
     PrintImportTimingInfo();
 
-    Log::Debug("All the models are imported successfully");
+    LogDbg("All the models are imported successfully");
 
     // get models by its ids
     //BasicModel& building        = g_ModelMgr.GetModelByID(buildingID);
@@ -1794,6 +1683,7 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     //CreateBuilding(mgr, building);
     //CreateApartment(mgr, apartment);
     //CreateSovietStatue(mgr, sovietStatue);
+#endif
 }
 
 ///////////////////////////////////////////////////////////
@@ -1921,6 +1811,28 @@ void LoadAssets(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
 
 ///////////////////////////////////////////////////////////
 
+void LoadTreesBillboardsTextures()
+{
+    constexpr int numTreeTexturesPaths = 4;
+
+    // create a texture 2D array for trees billboards
+    std::string treeTexPaths[numTreeTexturesPaths] =
+    {
+            std::string(g_RelPathTexDir) + "tree_pine_diffuse_512.dds",
+            std::string(g_RelPathTexDir) + "tree1.dds",
+            std::string(g_RelPathTexDir) + "tree2.dds",
+            std::string(g_RelPathTexDir) + "tree3.dds"
+    };
+
+    g_TextureMgr.LoadTextureArray(
+        "tree_billboard",
+        treeTexPaths,
+        numTreeTexturesPaths,
+        DXGI_FORMAT_R8G8B8A8_UNORM);
+}
+
+///////////////////////////////////////////////////////////
+
 bool InitializeGraphics::InitializeModels(
     ID3D11Device* pDevice, 
     ID3D11DeviceContext* pDeviceContext,
@@ -1930,36 +1842,22 @@ bool InitializeGraphics::InitializeModels(
 {
     // initialize all the models on the scene
 
-    Log::Print();
-    Log::Print("------------------------------------------------------------", eConsoleColor::YELLOW);
-    Log::Print("                 INITIALIZATION: MODELS                     ", eConsoleColor::YELLOW);
-    Log::Print("------------------------------------------------------------", eConsoleColor::YELLOW);
-    Log::Debug();
+    LogMsgf(" ");
+    LogMsgf("%s------------------------------------------------------------", YELLOW);
+    LogMsgf("%s                 INITIALIZATION: MODELS                     ", YELLOW);
+    LogMsgf("%s------------------------------------------------------------", YELLOW);
+    LogMsgf(" ");
 
     try
     {
         ModelsCreator creator;
 
-        constexpr int numTreeTexturesPaths = 4;
-
-        // create a texture 2D array for trees billboards
-        const std::string treeTexPaths[numTreeTexturesPaths] =
-        {
-                g_RelPathTexDir + "tree_pine_diffuse_512.dds",
-                g_RelPathTexDir + "tree1.dds",
-                g_RelPathTexDir + "tree2.dds",
-                g_RelPathTexDir + "tree3.dds"
-        };
-
-        g_TextureMgr.LoadTextureArray(
-            treeTexPaths,
-            numTreeTexturesPaths,
-            DXGI_FORMAT_R8G8B8A8_UNORM);
-
+       
 
         // load the "no_texture" texture from the file;
         // (this texture will serve us as "invalid")
-        TexID noTextureID = g_TextureMgr.LoadFromFile(g_RelPathTexDir + "notexture.dds");
+        sprintf(g_String, "%s%s", g_RelPathTexDir, "notexture.dds");
+        const TexID noTextureID = g_TextureMgr.LoadFromFile(g_String);
 
         // create and setup an "invalid" material
         Material invalidMaterial;
@@ -2059,20 +1957,20 @@ bool InitializeGraphics::InitializeModels(
     }
     catch (const std::out_of_range& e)
     {
-        Log::Error(e.what());
-        Log::Error("went out of range");
+        LogErr(e.what());
+        LogErr("went out of range");
         return false;
     }
     catch (const std::bad_alloc & e)
     {
-        Log::Error(e.what());
-        Log::Error("can't allocate memory for some element");
+        LogErr(e.what());
+        LogErr("can't allocate memory for some element");
         return false;
     }
     catch (EngineException & e)
     {
-        Log::Error(e);
-        Log::Error("can't initialize models");
+        LogErr(e);
+        LogErr("can't initialize models");
         return false;
     }
 
@@ -2293,7 +2191,7 @@ void InitSpotLightEntities(ECS::EntityMgr& mgr)
         const EntityID flashLightID = spotLightsIds[0];
 
         // setup names
-        EntityName spotLightsNames[numSpotLights];
+        ECS::EntityName spotLightsNames[numSpotLights];
         spotLightsNames[0] = "flashlight";
 
         for (index i = 1; i < numSpotLights; ++i)

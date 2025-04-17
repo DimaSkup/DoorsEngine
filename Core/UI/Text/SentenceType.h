@@ -36,7 +36,7 @@ public:
 			return ptr;
 		}
 
-		Log::Error("can't allocate the memory for the object");
+		LogErr("can't allocate the memory for the object");
 		throw std::bad_alloc{};
 	}
 

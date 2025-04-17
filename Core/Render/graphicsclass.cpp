@@ -7,14 +7,12 @@
 
 #include <CoreCommon/Assert.h>
 #include <CoreCommon/MathHelper.h>
-#include <CoreCommon/Utils.h>
 
 #include "../Input/inputcodes.h"
 #include "RenderDataPreparator.h"
 
-#include <ImGuizmo.h>
-#include <random>
-#include <format>
+//#include <ImGuizmo.h>
+//#include <random>
 
 using namespace DirectX;
 
@@ -22,64 +20,105 @@ using namespace DirectX;
 namespace Core
 {
 
-GraphicsClass::GraphicsClass() : prep_(render_, entityMgr_)
+CGraphics::CGraphics()
 {
-    Log::Debug();
+    LogDbg("constructor");
 }
 
-GraphicsClass::~GraphicsClass() 
+CGraphics::~CGraphics() 
 {
-    Log::Debug("start of destroying");
+    LogDbg("start of destroying");
     Shutdown();
-    Log::Debug("is destroyed");
+    LogDbg("is destroyed");
 }
 
 
 // =================================================================================
 //                             PUBLIC METHODS
 // =================================================================================
-bool GraphicsClass::Initialize(
+bool CGraphics::Initialize(
     HWND hwnd,
     SystemState& systemState,
-    const Settings& settings)
+    const Settings& settings,
+    ECS::EntityMgr* pEnttMgr,
+    Render::CRender* pRender)
 {
-    return InitHelper(hwnd, systemState, settings);
+    return InitHelper(hwnd, systemState, settings, pEnttMgr, pRender);
 }
 
-void GraphicsClass::Update(
+void CGraphics::Update(
     SystemState& sysState,
     const float deltaTime,
-    const float gameTime)
+    const float gameTime,
+    ECS::EntityMgr* pEnttMgr,
+    Render::CRender* pRender)
 {
-    UpdateHelper(sysState, deltaTime, gameTime);
+    UpdateHelper(sysState, deltaTime, gameTime, pEnttMgr, pRender);
 }
-
-void GraphicsClass::Render3D()
-{
-    RenderHelper();
-}
-
 
 ///////////////////////////////////////////////////////////
 
-bool GraphicsClass::InitHelper(
+void CGraphics::Render3D(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
+{
+    RenderHelper(pEnttMgr, pRender);
+}
+
+///////////////////////////////////////////////////////////
+
+void CGraphics::InitRenderModule(
+    const Settings& settings,
+    Render::CRender* pRender)
+{
+    // setup render initial params
+
+    Render::InitParams renderParams;
+
+    renderParams.worldViewOrtho = DirectX::XMMatrixTranspose(WVO_);
+
+    // zaporizha sky box horizon (darker by 0.1f)
+    renderParams.fogColor =
+    {
+        settings.GetFloat("FOG_RED"),
+        settings.GetFloat("FOG_GREEN"),
+        settings.GetFloat("FOG_BLUE"),
+    };
+    renderParams.fogStart = settings.GetFloat("FOG_START");
+    renderParams.fogRange = settings.GetFloat("FOG_RANGE");
+
+    const DirectX::XMFLOAT3 skyColorCenter = g_ModelMgr.GetSky().GetColorCenter();
+    const DirectX::XMFLOAT3 skyColorApex = g_ModelMgr.GetSky().GetColorApex();
+
+    renderParams.fogColor.x *= skyColorCenter.x;
+    renderParams.fogColor.y *= skyColorCenter.y;
+    renderParams.fogColor.z *= skyColorCenter.z;
+
+    fullFogDistance_ = (int)(renderParams.fogStart + renderParams.fogRange);
+    fullFogDistanceSqr_ = (int)(fullFogDistance_ * fullFogDistance_);
+
+    bool result = pRender->Initialize(pDevice_, pDeviceContext_, renderParams);
+    Assert::True(result, "can't init the render module");
+
+    pRender->SetSkyGradient(pDeviceContext_, skyColorCenter, skyColorApex);
+}
+
+///////////////////////////////////////////////////////////
+
+bool CGraphics::InitHelper(
     HWND hwnd, 
     SystemState& systemState,
-    const Settings& settings)
+    const Settings& settings,
+    ECS::EntityMgr* pEnttMgr,
+    Render::CRender* pRender)
 {
-    // Initializes all the main parts of graphics rendering module
-
-
-
     try
     {
         InitializeGraphics initGraphics;
         bool result = false;
 
-        Log::Print();
-        Log::Print("------------------------------------------------------------", eConsoleColor::YELLOW);
-        Log::Print("              INITIALIZATION: GRAPHICS SYSTEM               ", eConsoleColor::YELLOW);
-        Log::Print("------------------------------------------------------------", eConsoleColor::YELLOW);
+        LogMsgf("");
+        LogMsgf("%s------------------------------------------------------------", YELLOW);
+        LogMsgf("%s              INITIALIZATION: GRAPHICS SYSTEM               ", YELLOW);
+        LogMsgf("%s------------------------------------------------------------", YELLOW);
 
         pSysState_ = &systemState;
 
@@ -96,7 +135,7 @@ bool GraphicsClass::InitHelper(
             gameCamera_,
             editorCamera_,
             baseViewMatrix_,           // init the base view matrix which is used for 2D rendering
-            entityMgr_,
+            *pEnttMgr,
             settings);
         Assert::True(result, "can't initialize cameras / view matrices");
 
@@ -121,7 +160,7 @@ bool GraphicsClass::InitHelper(
 #endif
 
         // initialize scene objects: cubes, spheres, trees, etc.
-        result = initGraphics.InitializeScene(settings, d3d_, entityMgr_);
+        result = initGraphics.InitializeScene(settings, d3d_, *pEnttMgr);
         Assert::True(result, "can't initialize the scene elements (models, etc.)");
 
     
@@ -129,67 +168,33 @@ bool GraphicsClass::InitHelper(
         frustums_.push_back(DirectX::BoundingFrustum());
 
         // setup loggers of the modules to make possible writing into the log file
-        entityMgr_.SetupLogger(Log::GetFilePtr(), &Log::GetLogMsgsList());
-        render_.SetupLogger(Log::GetFilePtr(), &Log::GetLogMsgsList());
+        //entityMgr_.SetupLogger(Log::GetFilePtr(), &Log::GetLogMsgsList());
+        //render_.SetupLogger(Log::GetFilePtr(), &Log::GetLogMsgsList());
 
         // matrix for 2D rendering
         WVO_ = worldMatrix_ * baseViewMatrix_ * d3d_.GetOrthoMatrix();
 
-    
-        // setup render initial params
-        Render::InitParams renderParams;
-
-        renderParams.worldViewOrtho = DirectX::XMMatrixTranspose(WVO_); 
-
-        // zaporizha sky box horizon (darker by 0.1f)
-        renderParams.fogColor = 
-        { 
-            settings.GetFloat("FOG_RED"),
-            settings.GetFloat("FOG_GREEN"),
-            settings.GetFloat("FOG_BLUE"),
-        };
-        renderParams.fogStart = settings.GetFloat("FOG_START");
-        renderParams.fogRange = settings.GetFloat("FOG_RANGE");
-
-        const DirectX::XMFLOAT3 skyColorCenter = g_ModelMgr.GetSky().GetColorCenter();
-        const DirectX::XMFLOAT3 skyColorApex   = g_ModelMgr.GetSky().GetColorApex();
-
-        renderParams.fogColor.x *= skyColorCenter.x;
-        renderParams.fogColor.y *= skyColorCenter.y;
-        renderParams.fogColor.z *= skyColorCenter.z;
-
-        fullFogDistance_    = (int)(renderParams.fogStart + renderParams.fogRange);
-        fullFogDistanceSqr_ = (int)(fullFogDistance_ * fullFogDistance_);
-
-        result = render_.Initialize(
-            pDevice_,
-            pDeviceContext_,
-            renderParams);
-        Assert::True(result, "can't init the render module");
-
-
-        render_.SetSkyGradient(pDeviceContext_, skyColorCenter, skyColorApex);
-
+        InitRenderModule(settings, pRender);
         BuildGeometryBuffers();
     }
     catch (EngineException & e)
     {
-        Log::Error(e, true);
-        Log::Error("can't initialize the graphics class");
+        LogErr(e, true);
+        LogErr("can't initialize the graphics class");
         this->Shutdown();
         return false;
     }
 
-    Log::Print(" is successfully initialized");
+    LogMsg(" is successfully initialized");
     return true;
 }
 
 ///////////////////////////////////////////////////////////
 
-void GraphicsClass::Shutdown()
+void CGraphics::Shutdown()
 {
     // Shutdowns all the graphics rendering parts, releases the memory
-    Log::Debug();
+    LogDbg("graphics shutdown");
     d3d_.Shutdown();
 }
 
@@ -198,10 +203,12 @@ void GraphicsClass::Shutdown()
 // Update / prepare scene
 // =================================================================================
 
-void GraphicsClass::UpdateHelper(
+void CGraphics::UpdateHelper(
     SystemState& sysState,
     const float deltaTime,
-    const float totalGameTime)
+    const float totalGameTime,
+    ECS::EntityMgr* pEnttMgr,
+    Render::CRender* pRender)
 {
     // update all the graphics related stuff for this frame
 
@@ -228,25 +235,21 @@ void GraphicsClass::UpdateHelper(
     sysState.cameraView = viewMatrix;
     sysState.cameraProj = projMatrix;
     
-    // update the entities and related data
-    entityMgr_.Update(totalGameTime, deltaTime);
-    //entityMgr_.lightSystem_.UpdateSpotLights(cameraPos, cameraDir);
-    
     // build the frustum from the projection matrix in view space.
     DirectX::BoundingFrustum::CreateFromMatrix(frustums_[0], projMatrix);
 
     // perform frustum culling on all of our currently loaded entities
-    ComputeFrustumCulling(sysState);
-    ComputeFrustumCullingOfLightSources(sysState);
+    ComputeFrustumCulling(sysState, pEnttMgr);
+    ComputeFrustumCullingOfLightSources(sysState, pEnttMgr);
 
     // Update shaders common data for this frame
-    UpdateShadersDataPerFrame();
+    UpdateShadersDataPerFrame(pEnttMgr, pRender);
 
     // prepare all the visible entities data for rendering
-    const ECS::cvector<EntityID>& visibleEntts = entityMgr_.renderSystem_.GetAllVisibleEntts();
+    const ECS::cvector<EntityID>& visibleEntts = pEnttMgr->renderSystem_.GetAllVisibleEntts();
 
     // separate entts into opaque, entts with alpha clipping, blended, etc.
-    entityMgr_.renderStatesSystem_.SeparateEnttsByRenderStates(visibleEntts, rsDataToRender_);
+    pEnttMgr->renderStatesSystem_.SeparateEnttsByRenderStates(visibleEntts, rsDataToRender_);
 
     pSysState_->visibleVerticesCount = 0;
 
@@ -269,7 +272,7 @@ void GraphicsClass::UpdateHelper(
         ECS::cvector<XMFLOAT3> positions;
 
 
-        entityMgr_.transformSystem_.GetPositionsByIDs(alphaClippedEntts.data(), numVisEntts, positions);
+        pEnttMgr->transformSystem_.GetPositionsByIDs(alphaClippedEntts.data(), numVisEntts, positions);
         const XMVECTOR camPos = pCurrCamera_->GetPositionVec();
 
         // check if entity by idx is farther than fog range if so we store its idx
@@ -309,42 +312,33 @@ void GraphicsClass::UpdateHelper(
 
     // ----------------------------------------------------
     // prepare data for each entts set
+   
+    PrepBasicInstancesForRender(pEnttMgr, pRender);
+    PrepAlphaClippedInstancesForRender(pEnttMgr, pRender);
 
-    
-    const EntityID* basicEntts = rsDataToRender_.enttsDefault_.ids_.data();
-    const size numBasicEntts = rsDataToRender_.enttsDefault_.ids_.size();
-    PrepBasicInstancesForRender(basicEntts, numBasicEntts);
-    
-    const EntityID* alphaClippedEnttsIDs = rsDataToRender_.enttsAlphaClipping_.ids_.data();
-    const size numAlphaClippedEntts = rsDataToRender_.enttsAlphaClipping_.ids_.size();
-    PrepAlphaClippedInstancesForRender(alphaClippedEnttsIDs, numAlphaClippedEntts);
-
-    
     /*
-    const EntityID* blendedEntts = rsDataToRender_.enttsBlended_.ids_.data();
-    const size numBlendedEntts = rsDataToRender_.enttsBlended_.ids_.size();
     PrepBlendedInstancesForRender(blendedEntts, numBlendedEntts);
     */
 }
 
 ///////////////////////////////////////////////////////////
 
-void GraphicsClass::PrepBasicInstancesForRender(
-    const EntityID* ids,
-    const size numEntts)
+void CGraphics::PrepBasicInstancesForRender(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
 {
     // prepare rendering data of entts which have default render states
+
+    const EntityID* ids = rsDataToRender_.enttsDefault_.ids_.data();
+    const size numEntts = rsDataToRender_.enttsDefault_.ids_.size();
 
     if (numEntts == 0)
         return;
 
-    Assert::True(ids != nullptr, "input ptr to entts IDs arr == nullptr");
-
-    Render::RenderDataStorage& storage = render_.dataStorage_;
+    Render::RenderDataStorage& storage = pRender->dataStorage_;
 
     prep_.PrepareEnttsDataForRendering(
         ids,
         numEntts,
+        pEnttMgr,
         storage.modelInstBuffer,
         storage.modelInstances);
 
@@ -355,23 +349,22 @@ void GraphicsClass::PrepBasicInstancesForRender(
 
 ///////////////////////////////////////////////////////////
 
-void GraphicsClass::PrepAlphaClippedInstancesForRender(
-    const EntityID* ids,
-    const size numEntts)
+void CGraphics::PrepAlphaClippedInstancesForRender(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
 {
     // prepare rendering data of entts which have alpha clip + cull none
+
+    const EntityID* ids = rsDataToRender_.enttsAlphaClipping_.ids_.data();
+    const size numEntts = rsDataToRender_.enttsAlphaClipping_.ids_.size();
 
     if (numEntts == 0)
         return;
 
-    Assert::True(ids != nullptr, "input ptr to entts IDs arr == nullptr");
-
-
-    Render::RenderDataStorage& storage = render_.dataStorage_;
+    Render::RenderDataStorage& storage = pRender->dataStorage_;
 
     prep_.PrepareEnttsDataForRendering(
         ids,
         numEntts,
+        pEnttMgr,
         storage.alphaClippedModelInstBuffer,
         storage.alphaClippedModelInstances);
 
@@ -382,36 +375,43 @@ void GraphicsClass::PrepAlphaClippedInstancesForRender(
 
 ///////////////////////////////////////////////////////////
 
-void GraphicsClass::PrepBlendedInstancesForRender(
-    const EntityID* ids,
-    const size numEntts)
+void CGraphics::PrepBlendedInstancesForRender(
+    ECS::EntityMgr* pEnttMgr,
+    Render::CRender* pRender)
 {
     // prepare rendering data of entts which have alpha clip + cull none
+
+    const EntityID* ids = rsDataToRender_.enttsBlended_.ids_.data();
+    const size numEntts = rsDataToRender_.enttsBlended_.ids_.size();
 
     if (numEntts == 0)
         return;
 
-    Assert::True(ids != nullptr, "input ptr to entts IDs arr == nullptr");
-
-
-    Render::RenderDataStorage& storage = render_.dataStorage_;
+    Render::RenderDataStorage& storage = pRender->dataStorage_;
 
     prep_.PrepareEnttsDataForRendering(
         ids,
         numEntts,
+        pEnttMgr,
         storage.blendedModelInstBuffer,
         storage.blendedModelInstances);
+
+    // compute how many vertices will we render
+    for (const Render::Instance& inst : storage.alphaClippedModelInstances)
+        pSysState_->visibleVerticesCount += inst.numInstances * inst.GetNumVertices();
 }
 
 ///////////////////////////////////////////////////////////
 
-void GraphicsClass::ComputeFrustumCulling(SystemState& sysState)
+void CGraphics::ComputeFrustumCulling(
+    SystemState& sysState,
+    ECS::EntityMgr* pEnttMgr)
 {
     // reset render counters (do it before frustum culling)
     sysState.visibleObjectsCount = 0;
 
-    ECS::EntityMgr& mgr = entityMgr_;
-    ECS::RenderSystem& renderSys = entityMgr_.renderSystem_;
+    ECS::EntityMgr& mgr = *pEnttMgr;
+    ECS::RenderSystem& renderSys = mgr.renderSystem_;
     renderSys.ClearVisibleEntts();
 
     const ECS::cvector<EntityID>& enttsRenderable = renderSys.GetAllEnttsIDs();
@@ -486,12 +486,15 @@ void GraphicsClass::ComputeFrustumCulling(SystemState& sysState)
 
 ///////////////////////////////////////////////////////////
 
-void GraphicsClass::ComputeFrustumCullingOfLightSources(SystemState& sysState)
+void CGraphics::ComputeFrustumCullingOfLightSources(
+    SystemState& sysState,
+    ECS::EntityMgr* pEnttMgr)
 {
     // store IDs of light sources which are currently visible by camera frustum
+    // (by visibility means the WHOLE area which is lit by this light source)
 
     using namespace DirectX;
-    ECS::EntityMgr& mgr = entityMgr_;
+    ECS::EntityMgr& mgr = *pEnttMgr;
 
     mgr.renderSystem_.ClearVisibleLightSources();
     ECS::cvector<EntityID>& visPointLights = mgr.renderSystem_.GetVisiblePointLights();
@@ -541,29 +544,33 @@ void GraphicsClass::ComputeFrustumCullingOfLightSources(SystemState& sysState)
 
 ///////////////////////////////////////////////////////////
 
-void GraphicsClass::UpdateShadersDataPerFrame()
+void CGraphics::UpdateShadersDataPerFrame(
+    ECS::EntityMgr* pEnttMgr,
+    Render::CRender* pRender)
 {
     // Update shaders common data for this frame: 
     // viewProj matrix, camera position, light sources data, etc.
 
-    Render::PerFrameData& perFrameData = render_.perFrameData_;
+    Render::PerFrameData& perFrameData = pRender->perFrameData_;
 
     perFrameData.viewProj = DirectX::XMMatrixTranspose(viewProj_);
     perFrameData.cameraPos = pCurrCamera_->GetPosition();
 
-    SetupLightsForFrame(entityMgr_.lightSystem_, perFrameData);
+    SetupLightsForFrame(pEnttMgr, perFrameData);
 
     // update lighting data, camera pos, etc. for this frame
-    render_.UpdatePerFrame(pDeviceContext_, perFrameData);
+    pRender->UpdatePerFrame(pDeviceContext_, perFrameData);
 }
 
 ///////////////////////////////////////////////////////////
 
-void GraphicsClass::ClearRenderingDataBeforeFrame()
+void CGraphics::ClearRenderingDataBeforeFrame(
+    ECS::EntityMgr* pEnttMgr,
+    Render::CRender* pRender)
 {
     // clear rendering data from the previous frame / instances set
 
-    render_.dataStorage_.Clear();
+    pRender->dataStorage_.Clear();
     rsDataToRender_.Clear();
 }
 
@@ -572,7 +579,7 @@ void GraphicsClass::ClearRenderingDataBeforeFrame()
 // Render state control
 // =================================================================================
 
-void GraphicsClass::ChangeModelFillMode()
+void CGraphics::ChangeModelFillMode()
 {
     // toggling on / toggling off the fill mode for the models
 
@@ -584,7 +591,7 @@ void GraphicsClass::ChangeModelFillMode()
 
 ///////////////////////////////////////////////////////////
 
-void GraphicsClass::ChangeCullMode()
+void CGraphics::ChangeCullMode()
 {
     // toggling on and toggling off the cull mode for the models
 
@@ -594,7 +601,7 @@ void GraphicsClass::ChangeCullMode()
 
 ///////////////////////////////////////////////////////////
 
-void GraphicsClass::SwitchGameMode(bool enableGameMode)
+void CGraphics::SwitchGameMode(bool enableGameMode)
 {
     // switch btw the game and editor modes and do some other related changes
 
@@ -605,18 +612,18 @@ void GraphicsClass::SwitchGameMode(bool enableGameMode)
 ///////////////////////////////////////////////////////////
 
 // memory allocation and releasing
-void* GraphicsClass::operator new(size_t i)
+void* CGraphics::operator new(size_t i)
 {
     if (void* ptr = _aligned_malloc(i, 16))
         return ptr;
 
-    Log::Error("can't allocate memory for this object");
+    LogErr("can't allocate memory for this object");
     throw std::bad_alloc{};
 }
 
 ///////////////////////////////////////////////////////////
 
-void GraphicsClass::operator delete(void* ptr)
+void CGraphics::operator delete(void* ptr)
 {
     _aligned_free(ptr);
 }
@@ -626,39 +633,61 @@ void GraphicsClass::operator delete(void* ptr)
 // Rendering methods
 // =================================================================================
 
-void GraphicsClass::RenderHelper()
+void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
 {
     try
     {
         pDeviceContext_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        RenderEnttsDefault();
+        RenderEnttsDefault(pRender);
 
-        RenderEnttsAlphaClipCullNone();
-        RenderSkyDome();
+        RenderEnttsAlphaClipCullNone(pRender);
+
+
+        // check if we at least have a sky entity
+        const EntityID skyEnttID = pEnttMgr->nameSystem_.GetIdByName("sky");
+        const XMFLOAT3 skyOffset = pEnttMgr->transformSystem_.GetPositionByID(skyEnttID);
+
+        if (skyEnttID != 0)
+            RenderSkyDome(pRender, skyOffset);
+
+        RenderFoggedBillboards(pRender, pEnttMgr);
 #if 0
         pDeviceContext_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-        RenderBoundingLineBoxes();
+
+
+        const EntityID* visEntts = entityMgr_.renderSystem_.GetAllVisibleEntts().data();
+        const size numVisEntts = entityMgr_.renderSystem_.GetVisibleEnttsCount();
+
+        // check if we are able and need to render bounding line boxes
+        if ((numVisEntts != 0) && (aabbShowMode_ != NONE))
+            return;
+
+        RenderBoundingLineBoxes(pRender, pEnttMgr, visEntts, numVisEntts);
+
+
+
+
         RenderBoundingLineSpheres();
-        RenderBillboards();
+        
         
         RenderEnttsBlended();
 #endif
     }
     catch (const std::out_of_range& e)
     {
-        Log::Error(e.what());
-        Log::Error("there is no such a key to data");
+        LogErr(e.what());
+        LogErr("there is no such a key to data");
     }
     catch (EngineException& e)
     {
-        Log::Error(e);
-        Log::Error("can't render 3D entts onto the scene");
+        LogErr(e);
+        LogErr("can't render 3D entts onto the scene");
     }
 }
 
 ///////////////////////////////////////////////////////////
 
-void GraphicsClass::RenderModel(BasicModel& model, const DirectX::XMMATRIX& world)
+void CGraphics::RenderModel(BasicModel& model, const DirectX::XMMATRIX& world)
 {
     // for specific purposes:
     // just render a single asset/model at the center of the world
@@ -692,34 +721,36 @@ void GraphicsClass::RenderModel(BasicModel& model, const DirectX::XMMATRIX& worl
 
 ///////////////////////////////////////////////////////////
 
-void GraphicsClass::RenderEnttsDefault()
+void CGraphics::RenderEnttsDefault(Render::CRender* pRender)
 {
-    const Render::RenderDataStorage& storage = render_.dataStorage_;
+    const Render::RenderDataStorage& storage = pRender->dataStorage_;
 
     // check if we have any instances to render
     if (storage.modelInstances.empty())
         return;
 
+
     // setup states before rendering
     d3d_.GetRenderStates().ResetRS(pDeviceContext_);
     d3d_.GetRenderStates().ResetBS(pDeviceContext_);
 
-    // load instances data and render them
-    UpdateInstanceBuffAndRenderInstances(
+    pRender->UpdateInstancedBuffer(pDeviceContext_, storage.modelInstBuffer);
+
+    pRender->RenderInstances(
         pDeviceContext_,
         Render::ShaderTypes::LIGHT,
-        storage.modelInstBuffer,
-        storage.modelInstances);
+        storage.modelInstances.data(),
+        (int)storage.modelInstances.size());
 }
 
 ///////////////////////////////////////////////////////////
 
-void GraphicsClass::RenderEnttsAlphaClipCullNone()
+void CGraphics::RenderEnttsAlphaClipCullNone(Render::CRender* pRender)
 {
     // render all the visible entts with cull_none and alpha clipping;
     // (entts for instance: wire fence, bushes, leaves, etc.)
 
-    const Render::RenderDataStorage& storage = render_.dataStorage_;
+    const Render::RenderDataStorage& storage = pRender->dataStorage_;
 
     // check if we have any instances to render
     if (storage.alphaClippedModelInstances.empty())
@@ -729,27 +760,29 @@ void GraphicsClass::RenderEnttsAlphaClipCullNone()
     // setup rendering pipeline
     RenderStates& renderStates = d3d_.GetRenderStates();
     renderStates.SetRS(pDeviceContext_, CULL_NONE);
-    render_.SwitchAlphaClipping(pDeviceContext_, true);
+    pRender->SwitchAlphaClipping(pDeviceContext_, true);
 
     // load instances data and render them
-    UpdateInstanceBuffAndRenderInstances(
+    pRender->UpdateInstancedBuffer(pDeviceContext_, storage.alphaClippedModelInstBuffer);
+
+    pRender->RenderInstances(
         pDeviceContext_,
         Render::ShaderTypes::LIGHT,
-        storage.alphaClippedModelInstBuffer,
-        storage.alphaClippedModelInstances);
+        storage.alphaClippedModelInstances.data(),
+        (int)storage.alphaClippedModelInstances.size());
 
     // reset rendering pipeline
     renderStates.ResetRS(pDeviceContext_);
-    render_.SwitchAlphaClipping(pDeviceContext_, false);
+    pRender->SwitchAlphaClipping(pDeviceContext_, false);
 }
 
 ///////////////////////////////////////////////////////////
 
-void GraphicsClass::RenderEnttsBlended()
+void CGraphics::RenderEnttsBlended(Render::CRender* pRender)
 {
     // render all the visible blended entts
 
-    const Render::RenderDataStorage& storage = render_.dataStorage_;
+    const Render::RenderDataStorage& storage = pRender->dataStorage_;
 
     // check if we have any instances to render
     if (storage.blendedModelInstances.empty())
@@ -762,7 +795,7 @@ void GraphicsClass::RenderEnttsBlended()
     const Render::InstBuffData& instBuffer = storage.blendedModelInstBuffer;
 
     // push data into the instanced buffer
-    render_.UpdateInstancedBuffer(pDeviceContext_, instBuffer);
+    pRender->UpdateInstancedBuffer(pDeviceContext_, instBuffer);
 
     int instanceOffset = 0;
 
@@ -774,35 +807,21 @@ void GraphicsClass::RenderEnttsBlended()
         for (u32 instCount = 0; instCount < numInstancesPerBlendState[bsIdx]; ++instCount)
         {
             const Render::Instance* instance = &(storage.blendedModelInstances[instanceOffset]);
-            render_.RenderInstances(pDeviceContext_, Render::ShaderTypes::LIGHT, instance, 1);
+            pRender->RenderInstances(pDeviceContext_, Render::ShaderTypes::LIGHT, instance, 1);
             ++instanceOffset;
         }
     }
-            
-    // turn off blending after rendering of all the visible blended entities
-    //d3d_.TurnOffBlending();
 }
 
 ///////////////////////////////////////////////////////////
 
-void GraphicsClass::RenderBoundingLineBoxes()
+void CGraphics::RenderBoundingLineBoxes(
+    Render::CRender* pRender,
+    ECS::EntityMgr* pEnttMgr)
 {
-    // if we don't want to show bound boxes just go out
-    if (aabbShowMode_ == NONE)
-        return;
-    
-
-    const EntityID* visEntts = entityMgr_.renderSystem_.GetAllVisibleEntts().data();
-    const size numVisEntts = entityMgr_.renderSystem_.GetVisibleEnttsCount();
-
-    // check if we have any visible entts
-    if (numVisEntts == 0)
-        return;                          
-
-    Render::RenderDataStorage& storage       = render_.dataStorage_;
-    Render::InstBuffData& instancesBuffer    = storage.boundingLineBoxBuffer;
-    std::vector<Render::Instance>& instances = storage.boundingLineBoxInstances;
-    
+    Render::RenderDataStorage& storage           = pRender->dataStorage_;
+    Render::InstBuffData& instancesBuffer        = storage.boundingLineBoxBuffer;
+    Render::cvector<Render::Instance>& instances = storage.boundingLineBoxInstances;
 
     // prepare the line box instance
     const int numInstances = 1;                // how many different line box models we have
@@ -818,21 +837,22 @@ void GraphicsClass::RenderBoundingLineBoxes()
     // choose the bounding box show mode
     // (1: box around the while model, 2: box around each model's mesh)
     if (aabbShowMode_ == MODEL)
-        prep_.PrepareEnttsBoundingLineBox(visEntts, numVisEntts, instance, instancesBuffer);
+        prep_.PrepareEnttsBoundingLineBox(pEnttMgr, instance, instancesBuffer);
     else if (aabbShowMode_ == MESH)
-        prep_.PrepareEnttsMeshesBoundingLineBox(visEntts, numVisEntts, instance, instancesBuffer);
+        prep_.PrepareEnttsMeshesBoundingLineBox(pEnttMgr, instance, instancesBuffer);
 
-
-    pDeviceContext_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 
     // render
-    render_.UpdateInstancedBuffer(pDeviceContext_, instancesBuffer);
-    render_.RenderBoundingLineBoxes(pDeviceContext_, &instance, numInstances);
+    ID3D11DeviceContext* pContext = pDeviceContext_;
+    pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+
+    pRender->UpdateInstancedBuffer(pContext, instancesBuffer);
+    pRender->RenderBoundingLineBoxes(pContext, &instance, numInstances);
 }
 
 ///////////////////////////////////////////////////////////
 
-void GraphicsClass::RenderBoundingLineSpheres()
+void CGraphics::RenderBoundingLineSpheres()
 {
     // render line bound sphere around each visible point light source
 
@@ -879,63 +899,63 @@ void GraphicsClass::RenderBoundingLineSpheres()
 
 ///////////////////////////////////////////////////////////
 
-void GraphicsClass::RenderBillboards()
+void CGraphics::RenderFoggedBillboards(
+    Render::CRender* pRender,
+    ECS::EntityMgr* pEnttMgr)
 {
+    // render billboard of entities which are fully fogged so we see only its silhouette
+
     const EntityID* foggedEntts = rsDataToRender_.enttsFogged_.ids_.data();
     const size numFoggedEntts = rsDataToRender_.enttsFogged_.ids_.size();
 
-    if (numFoggedEntts > 0)
-    {
-        d3d_.TurnOnBlending(ALPHA_TO_COVERAGE);
+    // if we don't have any billboard to render we just go out
+    if (numFoggedEntts == 0)
+        return;
 
-        RenderStates& renderStates = d3d_.GetRenderStates();
-        renderStates.SetRS(pDeviceContext_, CULL_NONE);
-        render_.SwitchAlphaClipping(pDeviceContext_, true);
+    d3d_.TurnOnBlending(ALPHA_TO_COVERAGE);
 
-        //
-        // prepare billboards data for rendering
-        //
-        std::vector<Render::Material> materials(numFoggedEntts);
-        ECS::cvector<DirectX::XMFLOAT3> foggedPositions;
-        std::vector<DirectX::XMFLOAT2> sizes(numFoggedEntts, { 30, 30 });
+    RenderStates& renderStates = d3d_.GetRenderStates();
+    renderStates.SetRS(pDeviceContext_, CULL_NONE);
+    pRender->SwitchAlphaClipping(pDeviceContext_, true);
 
-        entityMgr_.transformSystem_.GetPositionsByIDs(foggedEntts, numFoggedEntts, foggedPositions);
+    //
+    // prepare billboards data for rendering
+    //
+    std::vector<Render::Material> materials(numFoggedEntts);
+    ECS::cvector<DirectX::XMFLOAT3> foggedPositions;
+    std::vector<DirectX::XMFLOAT2> sizes(numFoggedEntts, { 30, 30 });
 
-        render_.shadersContainer_.billboardShader_.UpdateInstancedBuffer(
-            pDeviceContext_,
-            materials.data(),
-            foggedPositions.data(),
-            sizes.data(),
-            (int)numFoggedEntts);
+    pEnttMgr->transformSystem_.GetPositionsByIDs(foggedEntts, numFoggedEntts, foggedPositions);
+
+    pRender->shadersContainer_.billboardShader_.UpdateInstancedBuffer(
+        pDeviceContext_,
+        materials.data(),
+        foggedPositions.data(),
+        sizes.data(),
+        (int)numFoggedEntts);
 
 
-        //
-        // render billboards instances
-        //
-        Render::Instance instance;
-        instance.pVB = pGeomVB_;
-        instance.pIB = pGeomIB_;
-        instance.texSRVs = { g_TextureMgr.GetTexPtrByName("texture_array")->GetTextureResourceView() };
-        instance.vertexStride = sizeof(TreePointSprite);
+    //
+    // render billboards instances
+    //
+    Render::Instance instance;
+    instance.pVB = pGeomVB_;
+    instance.pIB = pGeomIB_;
+    instance.texSRVs = { g_TextureMgr.GetTexPtrByName("tree_billboard")->GetTextureResourceView() };
+    instance.vertexStride = sizeof(TreePointSprite);
 
-        render_.shadersContainer_.billboardShader_.Render(pDeviceContext_, instance);
+    pRender->shadersContainer_.billboardShader_.Render(pDeviceContext_, instance);
 
-        // reset rendering pipeline
-        renderStates.ResetRS(pDeviceContext_);
-        render_.SwitchAlphaClipping(pDeviceContext_, false);
-}
+    // reset rendering pipeline
+    renderStates.ResetRS(pDeviceContext_);
+    pRender->SwitchAlphaClipping(pDeviceContext_, false);
+   
 }
 
 ///////////////////////////////////////////////////////////
 
-void GraphicsClass::RenderSkyDome()
+void CGraphics::RenderSkyDome(Render::CRender* pRender, const XMFLOAT3& skyOffset)
 {
-    const EntityID skyEnttID  = entityMgr_.nameSystem_.GetIdByName("sky");
-
-    // if there is no sky entity
-    if (skyEnttID == 0)
-        return;
-
     const SkyModel& sky = g_ModelMgr.GetSky();
     Render::SkyInstance instance;
 
@@ -960,47 +980,35 @@ void GraphicsClass::RenderSkyDome()
 
 
     // setup rendering pipeline before rendering of the sky dome
+    ID3D11DeviceContext* pContext = pDeviceContext_;
+
     RenderStates& renderStates = d3d_.GetRenderStates();
-    renderStates.ResetRS(pDeviceContext_);
-    renderStates.SetRS(pDeviceContext_, CULL_NONE);
-    renderStates.ResetBS(pDeviceContext_);
-    renderStates.SetDSS(pDeviceContext_, SKY_DOME, 1);
+    renderStates.ResetRS(pContext);
+    renderStates.SetRS(pContext, CULL_NONE);
+    renderStates.ResetBS(pContext);
+    renderStates.SetDSS(pContext, SKY_DOME, 1);
 
     // compute a worldViewProj matrix for the sky instance
     const XMFLOAT3& eyePos = pCurrCamera_->GetPosition();
     const XMMATRIX camOffset        = DirectX::XMMatrixTranslation(eyePos.x, eyePos.y, eyePos.z);
-    const XMMATRIX skyWorld         = entityMgr_.transformSystem_.GetWorldMatrixOfEntt(skyEnttID);
+    const XMMATRIX skyWorld         = DirectX::XMMatrixTranslation(skyOffset.x, skyOffset.y, skyOffset.z);
     const XMMATRIX worldViewProj    = DirectX::XMMatrixTranspose(camOffset * skyWorld * viewProj_);
 
-    render_.RenderSkyDome(pDeviceContext_, instance, worldViewProj);
+    pRender->RenderSkyDome(pContext, instance, worldViewProj);
 }
 
 ///////////////////////////////////////////////////////////
 
-void GraphicsClass::UpdateInstanceBuffAndRenderInstances(
-    ID3D11DeviceContext* pDeviceContext,
-    const Render::ShaderTypes type,
-    const Render::InstBuffData& instanceBuffData,
-    const std::vector<Render::Instance>& instances)
-{
-    render_.UpdateInstancedBuffer(pDeviceContext_, instanceBuffData);
-
-    // render prepared instances using shaders
-    render_.RenderInstances(pDeviceContext_, type, instances.data(), (int)instances.size());
-}
-
-///////////////////////////////////////////////////////////
-
-void GraphicsClass::SetupLightsForFrame(
-    const ECS::LightSystem& lightSys,
+void CGraphics::SetupLightsForFrame(
+    ECS::EntityMgr* pEnttMgr,
     Render::PerFrameData& outData)
 {
     // convert light source data from the ECS into Render format
     // (they are the same so we simply need to copy data)
 
-    const size dirLightSize   = sizeof(ECS::DirLight);
-    const size pointLightSize = sizeof(ECS::PointLight);
-    const size spotLightSize  = sizeof(ECS::SpotLight);
+    const ECS::LightSystem& lightSys         = pEnttMgr->lightSystem_;
+    const ECS::RenderSystem& renderSys       = pEnttMgr->renderSystem_;
+    const ECS::TransformSystem& transformSys = pEnttMgr->transformSystem_;
 
     const ECS::DirLights&  dirLights  = lightSys.GetDirLights();
     const ECS::SpotLights& spotLights = lightSys.GetSpotLights();
@@ -1008,7 +1016,6 @@ void GraphicsClass::SetupLightsForFrame(
     const size numDirLights   = dirLights.data.size();
     const size numSpotLights  = spotLights.data.size();
 
-    const ECS::RenderSystem& renderSys           = entityMgr_.renderSystem_;
     const ECS::cvector<EntityID>& visPointLights = renderSys.GetVisiblePointLights();
     const size numVisPointLightSources           = visPointLights.size();
 
@@ -1052,7 +1059,7 @@ void GraphicsClass::SetupLightsForFrame(
     }
 
     ECS::cvector<XMVECTOR> dirLightsDirections;
-    entityMgr_.transformSystem_.GetDirectionsQuatsByIDs(dirLights.ids.data(), numDirLights, dirLightsDirections);
+    pEnttMgr->transformSystem_.GetDirectionsQuatsByIDs(dirLights.ids.data(), numDirLights, dirLightsDirections);
 
     for (int i = 0; const XMVECTOR& dirQuat : dirLightsDirections)
     {
@@ -1067,7 +1074,7 @@ void GraphicsClass::SetupLightsForFrame(
     ECS::cvector<XMFLOAT3>       spotLightsPositions;
     ECS::cvector<XMFLOAT3>       spotLightsDirections;
 
-    entityMgr_.lightSystem_.GetSpotLightsData(
+    lightSys.GetSpotLightsData(
         spotLights.ids.data(),
         numSpotLights,
         spotLightsData,
@@ -1093,7 +1100,7 @@ void GraphicsClass::SetupLightsForFrame(
 
 ///////////////////////////////////////////////////////////
 
-int GraphicsClass::TestEnttSelection(const int sx, const int sy)
+int CGraphics::TestEnttSelection(const int sx, const int sy, ECS::EntityMgr* pEnttMgr)
 {
     // check if we have any entity by input screen coords;
     // 
@@ -1126,10 +1133,10 @@ int GraphicsClass::TestEnttSelection(const int sx, const int sy)
 
 
     // go through each visible entt and check if we have an intersection with it
-    for (const EntityID enttID : entityMgr_.renderSystem_.GetAllVisibleEntts())
+    for (const EntityID enttID : pEnttMgr->renderSystem_.GetAllVisibleEntts())
     {
         //const EntityID enttID = visEntts[i];
-        const ModelID modelID = entityMgr_.modelSystem_.GetModelIdRelatedToEntt(enttID);
+        const ModelID modelID = pEnttMgr->modelSystem_.GetModelIdRelatedToEntt(enttID);
         const BasicModel& model = g_ModelMgr.GetModelByID(modelID);
 
         if (model.type_ == eModelType::Terrain)
@@ -1138,7 +1145,7 @@ int GraphicsClass::TestEnttSelection(const int sx, const int sy)
         }
     
         // get an inverse world matrix of the current entt
-        const XMMATRIX invWorld = entityMgr_.transformSystem_.GetInverseWorldMatrixOfEntt(enttID);
+        const XMMATRIX invWorld = pEnttMgr->transformSystem_.GetInverseWorldMatrixOfEntt(enttID);
         const XMMATRIX toLocal = DirectX::XMMatrixMultiply(invView, invWorld);
 
         XMVECTOR rayOrigin = XMVector3TransformCoord(rayOrigin_, toLocal);   // supposed to take a point (w == 1)
@@ -1189,10 +1196,10 @@ int GraphicsClass::TestEnttSelection(const int sx, const int sy)
     // print a msg about selection of the entity
     if (selectedEnttID)
     {
-        const EntityName& name = entityMgr_.nameSystem_.GetNameById(selectedEnttID);
-        const std::string msg = std::format("picked entt (id, name): {} {}", selectedEnttID, name);
+        const std::string& name = pEnttMgr->nameSystem_.GetNameById(selectedEnttID);
 
-        Log::Print(msg, eConsoleColor::YELLOW);
+        sprintf(g_String, "picked entt (id: %ud; name: %s)", selectedEnttID, name.c_str());
+        LogMsgf("%s%s", YELLOW, g_String);
     }
 
     // return ID of the selected entt, or 0 if we didn't pick any
@@ -1201,16 +1208,17 @@ int GraphicsClass::TestEnttSelection(const int sx, const int sy)
 
 ///////////////////////////////////////////////////////////
 
-void GraphicsClass::UpdateCameraEntity(
+void CGraphics::UpdateCameraEntity(
     const std::string& cameraEnttName,
     const DirectX::XMMATRIX& view,
     const DirectX::XMMATRIX& proj)
 {
+#if 0
     // load updated camera data into ECS
     
     if (cameraEnttName.empty())
     {
-        Log::Error("input name is empty");
+        LogErr("input name is empty");
         return;
     }
 
@@ -1220,12 +1228,13 @@ void GraphicsClass::UpdateCameraEntity(
     if (cameraID != 0)
     {
         entityMgr_.cameraSystem_.Update(cameraID, view, proj);
-    }	
+    }
+#endif
 }
 
 ///////////////////////////////////////////////////////////
 
-void GraphicsClass::BuildGeometryBuffers()
+void CGraphics::BuildGeometryBuffers()
 {
     HRESULT hr = S_OK;
     TreePointSprite spriteVertex;

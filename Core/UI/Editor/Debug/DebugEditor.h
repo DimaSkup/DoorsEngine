@@ -36,7 +36,7 @@ public:
 	{
 		if (pFacade_ == nullptr)
 		{
-			Core::Log::Error("ptr to the facade interface == nullptr");
+			Core::LogErr("ptr to the facade interface == nullptr");
 			return;
 		}
 

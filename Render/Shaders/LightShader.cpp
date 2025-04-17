@@ -1,11 +1,10 @@
 // =================================================================================
-// Filename:     LightShaderClass.cpp
+// Filename:     LightShader.cpp
 // Description:  this class is needed for rendering 3D models, 
 //               its texture, simple PARRALEL light on it using HLSL shaders.
 // Created:      09.04.23
 // =================================================================================
-#include "LightShaderClass.h"
-#include "../Common/Assert.h"
+#include "LightShader.h"
 #include "../Common/Log.h"
 #include "../Common/Types.h"
 
@@ -13,33 +12,31 @@
 namespace Render
 {
 
-LightShaderClass::LightShaderClass() : className_{ __func__ }
+LightShader::LightShader()
 {
+    strcpy(className_, __func__);
 }
 
-LightShaderClass::~LightShaderClass()
+LightShader::~LightShader()
 {
 }
 
 ///////////////////////////////////////////////////////////
 
-bool LightShaderClass::Initialize(
+bool LightShader::Initialize(
     ID3D11Device* pDevice,
-    const std::string& pathToShadersDir)
+    const char* vsFilePath,
+    const char* psFilePath)
 {
     try
     {
-        InitializeShaders(
-            pDevice,
-            pathToShadersDir + "LightVS.cso",
-            pathToShadersDir + "LightPS.cso");
-
-        Log::Debug("is initialized");
+        InitializeShaders(pDevice, vsFilePath, psFilePath);
+        LogDbg("is initialized");
     }
     catch (LIB_Exception& e)
     {
-        Log::Error(e, true);
-        Log::Error("can't initialize the light shader class");
+        LogErr(e, true);
+        LogErr("can't initialize the light shader class");
         return false;
     }
 
@@ -48,7 +45,7 @@ bool LightShaderClass::Initialize(
 
 ///////////////////////////////////////////////////////////
 
-void LightShaderClass::Render(
+void LightShader::Render(
     ID3D11DeviceContext* pContext,
     ID3D11Buffer* pInstancedBuffer,
     const Instance* instances,
@@ -109,10 +106,10 @@ void LightShaderClass::Render(
 // =================================================================================
 //                              private methods                                       
 // =================================================================================
-void LightShaderClass::InitializeShaders(
+void LightShader::InitializeShaders(
     ID3D11Device* pDevice,
-    const std::string& vsFilePath,
-    const std::string& psFilePath)
+    const char* vsFilePath,
+    const char* psFilePath)
 {
     //
     // helps to initialize the HLSL shaders, layout, sampler state

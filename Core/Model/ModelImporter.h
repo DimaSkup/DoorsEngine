@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////
 // Filename:      ModelImporter.h
-// Description:   loads a new model from the file of type:
+// Description:   imports a new model from the file of type:
 //                .blend, .fbx, .3ds, .obj, etc.
 // 
 // Created:       05.07.23
@@ -25,12 +25,8 @@ class ModelImporter final
 {
 public:
 	ModelImporter() {};
-
 	
-	void LoadFromFile(
-		ID3D11Device* pDevice,
-		BasicModel& model,
-		const std::string & filePath);
+	bool LoadFromFile(ID3D11Device* pDevice, BasicModel& model, const char* filePath);
 
 
     static double s_ImportDuration_;
@@ -51,8 +47,8 @@ private:
 		int& subsetIdx,
 		const aiNode* pNode, 
 		const aiScene* pScene, 
-		const DirectX::XMMATRIX & parentTrasformMatrix,
-		const std::string & filePath);
+		const DirectX::XMMATRIX& parentTrasformMatrix,
+		const char* filePath);
 
 	void ProcessMesh(
 		ID3D11Device* pDevice, 
@@ -61,7 +57,7 @@ private:
 		const aiMesh* pMesh, 
 		const aiScene* pScene, 
 		const DirectX::XMMATRIX & transformMatrix,
-		const std::string & filePath);
+		const char* filePath);
 
 	void LoadMaterialColorsData(
         aiMaterial* pMaterial,
@@ -73,7 +69,7 @@ private:
 		const aiMaterial* pMaterial,
 		const MeshGeometry::Subset& subset,
 		const aiScene* pScene,
-		const std::string& filePath);
+		const char* filePath);
 
 	void GetVerticesIndicesOfMesh(
 		const aiMesh* pMesh,

@@ -6,13 +6,12 @@
 ////////////////////////////////////////////////////////////////////
 #pragma once
 
+#include <cstdint>
 #include <d3d11.h>
-#include <string>
 
 
 namespace Render 
 {
-
 
 class VertexShader
 {
@@ -21,7 +20,7 @@ public:
 
 	bool Initialize(
 		ID3D11Device* pDevice,
-		const std::string& shaderPath,
+		const char* shaderPath,
 		const D3D11_INPUT_ELEMENT_DESC* layoutDesc,
 		const UINT layoutElemNum);
 	
@@ -33,10 +32,8 @@ public:
 
 private:
 	ID3D11VertexShader* pShader_ = nullptr;
-	uint8_t* pShaderBuffer_ = nullptr;
-	ID3D11InputLayout* pInputLayout_ = nullptr;
-	//ID3DBlob*           pShaderBuffer_ = nullptr;
-	
+	uint8_t*            pShaderBuffer_ = nullptr;
+	ID3D11InputLayout*  pInputLayout_ = nullptr;
 };
 
 };  // namespace Render

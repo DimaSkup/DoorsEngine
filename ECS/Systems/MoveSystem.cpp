@@ -133,7 +133,7 @@ void MoveSystem::UpdateAllMoves(
     }
     catch (const std::out_of_range& e)
     {
-        Log::Error(e.what());
+        LogErr(e.what());
         throw LIB_Exception("Went out of range during movement updating");
     }
 }

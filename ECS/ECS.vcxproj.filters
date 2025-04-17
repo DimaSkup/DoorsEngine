@@ -51,9 +51,6 @@
     <ClInclude Include="Common\StringHelper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Common\log.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Common\LIB_Exception.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -147,6 +144,9 @@
     <ClInclude Include="Common\cvector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Common\log.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Entity\EntityMgr.cpp">
@@ -168,9 +168,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Common\StringHelper.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Common\log.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Common\LIB_Exception.cpp">
@@ -213,6 +210,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Systems\CameraSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\log.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

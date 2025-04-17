@@ -2,18 +2,16 @@
 // Filename: TextureShader.cpp
 // ====================================================================================
 #include "TextureShader.h"
-#include "shaderclass.h"
-
 #include "../Common/Log.h"
-#include "../Common/Assert.h"
 #include "../Common/Types.h"
 
 
 namespace Render
 {
 
-TextureShader::TextureShader() : className_{__func__}
+TextureShader::TextureShader()
 {
+    strcpy(className_, __func__);
 }
 
 TextureShader::~TextureShader() 
@@ -25,30 +23,24 @@ TextureShader::~TextureShader()
 //                           PUBLIC MODIFICATION API
 // ====================================================================================
 bool TextureShader::Initialize(
-    ID3D11Device* pDevice, 
-    ID3D11DeviceContext* pContext,
-    const std::string& pathToShadersDir)
+    ID3D11Device* pDevice,
+    const char* vsPath,
+    const char* psPath)
 {
     // initialize the shader class: hlsl for rendering textured objects;
     // also create an instanced buffer;
     try
     {
-        InitializeShaders(
-            pDevice,
-            pContext,
-            pathToShadersDir + "textureVS.cso",
-            pathToShadersDir + "texturePS.cso");
+        InitializeShaders(pDevice, vsPath, psPath);
+        LogDbg("is initialized");
+        return true;
     }
     catch (LIB_Exception& e)
     {
-        Log::Error(e, true);
-        Log::Error("can't initialize the texture shader class");
+        LogErr(e, true);
+        LogErr("can't initialize the texture shader class");
         return false;
     }
-
-    Log::Debug("is initialized");
-
-    return true;
 }
 
 
@@ -62,13 +54,15 @@ void TextureShader::Render(
     const int numModels,
     const UINT instancedBuffElemSize)
 {
+    using SRV = ID3D11ShaderResourceView;
+
     // bind input layout, shaders, samplers
     pContext->IASetInputLayout(vs_.GetInputLayout());
     pContext->VSSetShader(vs_.GetShader(), nullptr, 0);
     pContext->PSSetShader(ps_.GetShader(), nullptr, 0);
     pContext->PSSetSamplers(0, 1, samplerState_.GetAddressOf());
         
-    
+
     // go through each instance and render it
     for (int i = 0, startInstanceLocation = 0; i < numModels; ++i)
     {
@@ -84,9 +78,10 @@ void TextureShader::Render(
 
         // textures arr
         SRV* const* texSRVs = instance.texSRVs.data();
+        const int numSubsets = (int)instance.subsets.size();
 
         // go through each subset (mesh) of this model and render it
-        for (int subsetIdx = 0; subsetIdx < (int)std::ssize(instance.subsets); ++subsetIdx)
+        for (int subsetIdx = 0; subsetIdx < numSubsets; ++subsetIdx)
         {
             // update textures for the current subset
             pContext->PSSetShaderResources(
@@ -104,7 +99,8 @@ void TextureShader::Render(
                 startInstanceLocation + subsetIdx);
         }
 
-        startInstanceLocation += (int)std::ssize(instance.subsets) * instance.numInstances;
+        // offset to the next block of instances to render
+        startInstanceLocation += numSubsets * instance.numInstances;
     }
 }
 
@@ -114,9 +110,8 @@ void TextureShader::Render(
 // ====================================================================================
 void TextureShader::InitializeShaders(
     ID3D11Device* pDevice,
-    ID3D11DeviceContext* pContext,
-    const std::string& vsFilename,
-    const std::string& psFilename)
+    const char* vsFilePath,
+    const char* psFilePath)
 {
     // initialized the vertex shader, pixel shader, input layout, 
     // sampler state, and different constant buffers
@@ -154,10 +149,10 @@ void TextureShader::InitializeShaders(
     const UINT layoutElemNum = sizeof(inputLayoutDesc) / sizeof(D3D11_INPUT_ELEMENT_DESC);
 
     // initialize: VS, PS, sampler state
-    result = vs_.Initialize(pDevice, vsFilename, inputLayoutDesc, layoutElemNum);
+    result = vs_.Initialize(pDevice, vsFilePath, inputLayoutDesc, layoutElemNum);
     Assert::True(result, "can't initialize the vertex shader");
 
-    result = ps_.Initialize(pDevice, psFilename);
+    result = ps_.Initialize(pDevice, psFilePath);
     Assert::True(result, "can't initialize the pixel shader");
 
     result = samplerState_.Initialize(pDevice);

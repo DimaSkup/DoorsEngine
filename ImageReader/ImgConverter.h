@@ -14,9 +14,7 @@
 
 #include <DirectXTex.h>
 #include <filesystem>
-#include <string>
 #include <d3d11.h>
-
 
 namespace fs = std::filesystem;
 
@@ -27,7 +25,7 @@ namespace ImgReader
 class ImgConverter
 {
 public:
-	void LoadFromFile(const fs::path& filepath, DirectX::ScratchImage& srcImg);
+	bool LoadFromFile(const fs::path& filepath, DirectX::ScratchImage& outImage);
 
 	void LoadFromMemory(
 		ID3D11Device* pDevice,
@@ -63,7 +61,7 @@ public:
 		const DXGI_FORMAT dstFormat,
 		DirectX::ScratchImage& dstImage);
 
-	void SaveToFile(
+	bool SaveToFile(
 		const DirectX::ScratchImage& image,
 		const DirectX::DDS_FLAGS flags,
 		const fs::path& dstPath);

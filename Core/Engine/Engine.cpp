@@ -9,14 +9,12 @@
 
 #include "DumpGenerator.h"
 #include "ImGuizmo.h"
-#include "../UI/UICommon/FacadeEngineToUI.h"
-
-#include "../Tests/ECS/ECS_Tester.h"
-
 
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <winuser.h>
+
+#pragma warning (disable : 4996)
 
 //#include <Psapi.h>    // This header is used by Process Status API (PSAPI)
 
@@ -26,25 +24,26 @@ namespace Core
 
 Engine::Engine()
 {
-    Log::Debug();
+    LogDbg("init");
     timer_.Reset();       // reset the engine/game timer
 
-    ECS_Tester tester;
-    tester.Run();
+    //ECS_Tester tester;
+    //tester.Run();
 }
+
+///////////////////////////////////////////////////////////
 
 Engine::~Engine()
 {
-    Log::Print();
-    Log::Print("-------------------------------------------------", eConsoleColor::YELLOW);
-    Log::Print("            START OF THE DESTROYMENT:            ", eConsoleColor::YELLOW);
-    Log::Print("-------------------------------------------------", eConsoleColor::YELLOW);
+    LogMsgf(" ");
+    LogMsgf("%s%s", YELLOW, "-------------------------------------------------");
+    LogMsgf("%s%s", YELLOW, "            START OF THE DESTROYMENT:            ");
+    LogMsgf("%s%s", YELLOW, "-------------------------------------------------");
+    
 
     //ProjectSaver projSaver;
 
     //projSaver.StoreModels(graphics_.GetD3DClass().GetDevice());
-
-    delete pFacadeEngineToUI_;
 
     // unregister the window class, destroys the window,
     // reset the responsible members;
@@ -56,12 +55,12 @@ Engine::~Engine()
         hwnd_ = NULL;
         hInstance_ = NULL;
 
-        Log::Debug("engine desctuctor");
+        LogDbg("engine desctuctor");
     }
 
     imGuiLayer_.Shutdown();
 
-    Log::Print("the engine is shut down successfully");
+    LogMsg("the engine is shut down successfully");
 }
 
 
@@ -73,12 +72,16 @@ bool Engine::Initialize(
     HINSTANCE hInstance,
     HWND mainWnd,
     const Settings& settings,
-    const std::string& windowTitle)
+    const std::string& windowTitle,
+    ECS::EntityMgr* pEnttMgr,
+    UI::UserInterface* pUserInterface,
+    Render::CRender* pRender)
 {
-    // this function initializes all the main parts of the engine
+    //
+    // initializes all the main parts of the engine
+    //
 
-
-    // somewhere in begin of initialization
+    // stuff for debug dumps generation (in case of crash)
     if (!IsDebuggerPresent())
         SetUnhandledExceptionFilter(UnhandleExceptionFilter);
 
@@ -86,20 +89,28 @@ bool Engine::Initialize(
     {
         // check support for SSE2 (Pentium4, AMD K8, and above)
         Assert::True(DirectX::XMVerifyCPUSupport(), "XNA math not supported");
-
+        Assert::True(pEnttMgr != nullptr,       "input ptr to the Entity Manager == nullptr");
+        Assert::True(pUserInterface != nullptr, "input ptr to the User Interface == nullptr");
+        Assert::True(pRender != nullptr,        "input ptr to the Render == nullptr");
 
         // WINDOW: store a handle to the application instance
         hInstance_ = hInstance;  
         hwnd_ = mainWnd;
         windowTitle_ = windowTitle;
 
+        // init pointers
+        pEnttMgr_ = pEnttMgr;
+        pUserInterface_ = pUserInterface;
+        pRender_ = pRender;
 
 
         // GRAPHICS SYSTEM: initialize the graphics system
         bool result = graphics_.Initialize(
             hwnd_,
             systemState_, 
-            settings);
+            settings,
+            pEnttMgr,
+            pRender);
         Assert::True(result, "can't initialize the graphics system");
 
         D3DClass& d3d                 = graphics_.GetD3DClass();
@@ -109,17 +120,6 @@ bool Engine::Initialize(
         systemState_.wndWidth_        = d3d.GetWindowWidth();
         systemState_.wndHeight_       = d3d.GetWindowHeight();
         
-        // create a texture which can be used as a render target
-        FrameBufferSpecification fbSpec;
-
-        fbSpec.width = 600;
-        fbSpec.height = 600;
-        fbSpec.format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM;
-        fbSpec.screenNear = d3d.GetScreenNear();
-        fbSpec.screenDepth = d3d.GetScreenDepth();
-
-        result = frameBuffer_.Initialize(pDevice, fbSpec);
-        Assert::True(result, "can't initialize the render to texture object");
 
 #if 0
         // SOUND SYSTEM: initialize the sound obj
@@ -131,27 +131,14 @@ bool Engine::Initialize(
         timer_.Tick();                 
         cpu_.Initialize();
 
-        // create a facade btw the UI and the engine parts
-        pFacadeEngineToUI_ = new UI::FacadeEngineToUI(
-            pContext,
-            &graphics_.GetRender(),
-            &graphics_.entityMgr_,
-            &graphics_.GetEditorCamera());
-
         imGuiLayer_.Initialize(hwnd_, pDevice, pContext);
         
-        // initialize the main UserInterface class
-        InitializeGUI(d3d, settings);
 
-        // create a str with duration time of the engine initialization process
-        std::string initTimeStr = { "Init time: " + std::to_string(timer_.GetGameTime()) + " s" };
-        userInterface_.CreateConstStr(pDevice, initTimeStr, { 10, 325 });
-
-        Log::Print("is initialized!");
+        LogMsg("is initialized!");
     }
     catch (EngineException& e)
     {
-        Log::Error(e, true);
+        LogErr(e, true);
         return false;
     }
 
@@ -207,49 +194,7 @@ void Engine::RenderModelIntoTexture(
 #endif
 }
 
-/////////////////////////////////////////////////
 
-bool Engine::InitializeGUI(D3DClass& d3d, const Settings& settings)
-{
-    // this function initializes the GUI of the game/engine (interface elements, text, etc.);
-
-    Log::Print();
-    Log::Print("----------------------------------------------------------", eConsoleColor::YELLOW);
-    Log::Print("                   INITIALIZATION: GUI                    ", eConsoleColor::YELLOW);
-    Log::Print("----------------------------------------------------------", eConsoleColor::YELLOW);
-
-    try
-    {
-        const std::string fontDataFullFilePath = g_RelPathUIDataDir + settings.GetString("FONT_DATA_FILE_PATH");
-        const std::string fontTexFullFilePath  = g_RelPathUIDataDir + settings.GetString("FONT_TEXTURE_FILE_PATH");
-        std::string videoCardName(64, '\0');
-        int videoCardMemory = 0;
-
-        d3d.GetVideoCardInfo(
-            videoCardName.data(), 
-            (int)videoCardName.size(), 
-            videoCardMemory);
-    
-        // initialize the user interface
-        userInterface_.Initialize(
-            d3d.GetDevice(),
-            d3d.GetDeviceContext(),
-            pFacadeEngineToUI_,
-            fontDataFullFilePath,
-            fontTexFullFilePath,
-            d3d.GetWindowWidth(),
-            d3d.GetWindowHeight(),
-            videoCardMemory,
-            videoCardName);
-
-        return true;
-    }
-    catch (EngineException& e)
-    {
-        Log::Error(e, true);
-        return false;
-    }
-}
 
 ///////////////////////////////////////////////////////////
 
@@ -270,27 +215,31 @@ void Engine::Update()
     deltaTime_ = timer_.GetDeltaTime();
     deltaTime_ = (deltaTime_ > 16.6f) ? 16.6f : deltaTime_;
 
+    // update the entities and related data
+    pEnttMgr_->Update(timer_.GetGameTime(), deltaTime_);
+    //entityMgr_.lightSystem_.UpdateSpotLights(cameraPos, cameraDir);
+
     // compute fps and frame time (ms)
     CalculateFrameStats();
 
+    pUserInterface_->Update(graphics_.GetD3DClass().GetDeviceContext(), systemState_);
 
     if (keyboard_.IsAnyPressed() || keyboard_.HasReleasedEvents())
     {
         // according to the engine mode we call a respective keyboard handler
         if (systemState_.isEditorMode)
         {
-            HandleEditorEventKeyboard();
+            HandleEditorEventKeyboard(pUserInterface_, pEnttMgr_);
         }
         else
         {
-            HandleGameEventKeyboard();
+            HandleGameEventKeyboard(pUserInterface_, pEnttMgr_);
         }
-
         keyboard_.Update();
     }
 
-    graphics_.Update(systemState_, deltaTime_, timer_.GetGameTime());
-    userInterface_.Update(graphics_.GetD3DClass().GetDeviceContext(), systemState_);
+    graphics_.Update(systemState_, deltaTime_, timer_.GetGameTime(), pEnttMgr_, pRender_);
+    
 }
 
 ///////////////////////////////////////////////////////////
@@ -343,10 +292,60 @@ void Engine::CalculateFrameStats()
 
 ///////////////////////////////////////////////////////////
 
+void Engine::RenderMaterialsIcons(
+    ID3D11ShaderResourceView** outArrShaderResourceViews,
+    const size numShaderResourceViews,
+    const int iconWidth,
+    const int iconHeight)
+{
+    // render material icon (just sphere model with particular material) into
+    // frame buffer and store shader resource view into the input arr;
+    //
+    // outArrShaderResourceViews is supposed to be already allocated to size numShaderResourceViews
+
+    Assert::True(outArrShaderResourceViews != nullptr, "input ptr to arr of shader resource views == nullptr");
+
+    D3DClass&            d3d = graphics_.GetD3DClass();
+    ID3D11Device*        pDevice = d3d.GetDevice();
+    ID3D11DeviceContext* pContext = d3d.GetDeviceContext();
+
+    // setup params for the frame buffer (we will use the same params for each)
+    FrameBufferSpecification frameBufSpec;
+
+    frameBufSpec.width          = (UINT)iconWidth;
+    frameBufSpec.height         = (UINT)iconHeight;
+    frameBufSpec.format         = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM;
+    frameBufSpec.screenNear     = d3d.GetScreenNear();
+    frameBufSpec.screenDepth    = d3d.GetScreenDepth();
+
+    // alloc memory for frame buffers and init each frame buffer
+    materialsFrameBuffers_.resize(numShaderResourceViews);
+
+    for (int i = 0; FrameBuffer& buf : materialsFrameBuffers_)
+    {
+        bool result = buf.Initialize(pDevice, frameBufSpec);
+        if (!result)
+        {
+            sprintf(g_String, "can't initialize a frame buffer (idx: %d)", i);
+            LogErr(g_String);
+        }
+        ++i;
+    }
+
+    // render scene into each frame buffer
+    for (int i = 0; FrameBuffer& buf : materialsFrameBuffers_)
+    {
+        buf.ClearBuffers(pContext, { 0.5f,0.5f,0.5f,1.0f });
+        buf.Bind(pContext);
+        graphics_.Render3D(pEnttMgr_, pRender_);
+    }
+}
+
+///////////////////////////////////////////////////////////
+
 void Engine::RenderFrame()
 {
     // this function executes rendering of each frame;
-
     try
     {
         using namespace DirectX;
@@ -358,14 +357,18 @@ void Engine::RenderFrame()
         if (systemState_.isEditorMode)
         {
             // Clear all the buffers before frame rendering and render our 3D scene
+            d3d.ResetBackBufferRenderTarget();
+            d3d.ResetViewport();
+
             d3d.BeginScene();
-            graphics_.Render3D();
+            graphics_.Render3D(pEnttMgr_, pRender_);
                                 
             //RenderModelIntoTexture(pContext, frameBuffer_);
 
             // begin rendering of the editor elements
             imGuiLayer_.Begin();
 
+            //pFacadeEngineToUI_->pFrameBufTexSRV_ = frameBuffer_.GetSRV();
 #if 0
             if (ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_NoMove))
             {
@@ -374,7 +377,7 @@ void Engine::RenderFrame()
             ImGui::End();
 #endif
 
-            RenderUI();
+            RenderUI(pUserInterface_, pRender_);
 
             ImGui::End();
             imGuiLayer_.End();
@@ -385,20 +388,20 @@ void Engine::RenderFrame()
         {
             // Clear all the buffers before frame rendering and render our 3D scene
             d3d.BeginScene();
-            graphics_.Render3D();
-            RenderUI();
+            graphics_.Render3D(pEnttMgr_, pRender_);
+            RenderUI(pUserInterface_, pRender_);
         }
 
         // Show the rendered stuff on the screen
         d3d.EndScene();
 
         // before next frame
-        graphics_.ClearRenderingDataBeforeFrame();
+        graphics_.ClearRenderingDataBeforeFrame(pEnttMgr_, pRender_);
     }
     catch (EngineException & e)
     {
-        Log::Error(e, true);
-        Log::Error("can't render a frame");
+        LogErr(e, true);
+        LogErr("can't render a frame");
         
         // exit after it
         isExit_ = true;
@@ -407,7 +410,7 @@ void Engine::RenderFrame()
 
 ///////////////////////////////////////////////////////////
 
-void Engine::RenderUI()
+void Engine::RenderUI(UI::UserInterface* pUI, Render::CRender* pRender)
 {
     D3DClass& d3d = graphics_.GetD3DClass();
 
@@ -419,7 +422,7 @@ void Engine::RenderUI()
     if (systemState_.isEditorMode)
     {
         // all render the scene view space and gizmos (if any entt is selected)
-        userInterface_.RenderSceneWnd(systemState_);
+        pUI->RenderSceneWnd(systemState_);
 
         // HACK: we set background color for ImGui elements (except of scene windows)
         //       each fucking time because if we doesn't it we will have 
@@ -429,7 +432,7 @@ void Engine::RenderUI()
         colors[ImGuiCol_WindowBg] = imGuiLayer_.GetBackgroundColor();
 
         
-        userInterface_.RenderEditor(systemState_);
+        pUI->RenderEditor(systemState_);
 
         // reset: ImGui window bg color to fully invisible since we
         //        want to see the scene through the window
@@ -439,9 +442,9 @@ void Engine::RenderUI()
     // we're in the game mode
     else
     {
-        userInterface_.RenderGameUI(
+        pUI->RenderGameUI(
             d3d.GetDeviceContext(),
-            graphics_.GetRender().GetShadersContainer().fontShader_,
+            pRender->GetShadersContainer().fontShader_,
             systemState_);
     }
 
@@ -534,7 +537,7 @@ void Engine::EventWindowSizing(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 // Keyboard events handlers
 // =================================================================================
 
-void Engine::HandleEditorEventKeyboard()
+void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr)
 {
     Camera& cam = graphics_.GetEditorCamera();
 
@@ -546,7 +549,7 @@ void Engine::HandleEditorEventKeyboard()
             case KEY_SHIFT:
             {
                 graphics_.editorCamera_.SetIsRunning(true);
-                userInterface_.UseSnapping(true);
+                pUI->UseSnapping(true);
                 break;
             }
             // case (keys 0-3): switch the number of directional lights
@@ -555,9 +558,13 @@ void Engine::HandleEditorEventKeyboard()
             case KEY_2:
             case KEY_3:
             {
+                assert(0 && "FIXME!");
+
+#if 0
                 ID3D11DeviceContext* pContext = graphics_.GetD3DClass().GetDeviceContext();
                 int numDirLights = code - (int)(KEY_0);
-                graphics_.GetRender().SetDirLightsCount(pContext, numDirLights);
+                pRender->SetDirLightsCount(pContext, numDirLights);
+#endif
                 break;
             }
             case KEY_4:   // turn off showing of bounding boxes around entts
@@ -565,7 +572,7 @@ void Engine::HandleEditorEventKeyboard()
             case KEY_6:   // show bounding box of each mesh of the model
             {
                 int mode = code - (int)(KEY_4);
-                graphics_.SetAABBShowMode(GraphicsClass::AABBShowMode(mode));
+                graphics_.SetAABBShowMode(CGraphics::AABBShowMode(mode));
                 break;
             }
             
@@ -592,7 +599,7 @@ void Engine::HandleEditorEventKeyboard()
                 }
 
                 graphics_.UpdateCameraEntity("editor_camera", cam.View(), cam.Proj());
-                UpdateFlashLightPosition(cam.GetPosition());
+                UpdateFlashLightPosition(cam.GetPosition(), pEnttMgr);
 
                 break;
             }
@@ -608,7 +615,7 @@ void Engine::HandleEditorEventKeyboard()
                 }
 
                 graphics_.UpdateCameraEntity("editor_camera", cam.View(), cam.Proj());
-                UpdateFlashLightPosition(cam.GetPosition());
+                UpdateFlashLightPosition(cam.GetPosition(), pEnttMgr);
 
                 break;
             }
@@ -622,25 +629,28 @@ void Engine::HandleEditorEventKeyboard()
                 {
                     cam.Walk(-cam.GetSpeed() * deltaTime_);  
                 }
-                else if (keyboard_.IsPressed(KEY_CONTROL) && userInterface_.GetSelectedEntt())
+                else if (keyboard_.IsPressed(KEY_CONTROL) && pUI->GetSelectedEntt())
                 {
                     // handle Ctrl+S: turn on scaling with gizmo if any entt is selected
-                    userInterface_.SetGizmoOperation(ImGuizmo::OPERATION::SCALE);
+                    pUI->SetGizmoOperation(ImGuizmo::OPERATION::SCALE);
                 }
                     
                 graphics_.UpdateCameraEntity("editor_camera", cam.View(), cam.Proj());
-                UpdateFlashLightPosition(cam.GetPosition());
+                UpdateFlashLightPosition(cam.GetPosition(), pEnttMgr);
 
                 break;
             }
             case KEY_L:
             {
+                assert(0 && "FIXME!");
+
+#if 0
                 // switch the flashlight
                 if (!keyboard_.WasPressedBefore(KEY_L))
                 {
                     SwitchFlashLight(cam);
                 }
-            
+#endif
                 break;
             }
             case KEY_Z:
@@ -649,12 +659,12 @@ void Engine::HandleEditorEventKeyboard()
                 if (keyboard_.IsPressed(KEY_CONTROL))
                 {
                     if (!keyboard_.WasPressedBefore(KEY_Z))
-                        userInterface_.UndoEditorLastEvent();
+                        pUI->UndoEditorLastEvent();
                 }
                 else
                 {
                     graphics_.editorCamera_.MoveUp(-cam.GetSpeed() * deltaTime_);
-                    UpdateFlashLightPosition(cam.GetPosition());
+                    UpdateFlashLightPosition(cam.GetPosition(), pEnttMgr);
                 }
                 
                 break;
@@ -662,26 +672,26 @@ void Engine::HandleEditorEventKeyboard()
             case KEY_SPACE:
             {
                 graphics_.editorCamera_.MoveUp(cam.GetSpeed() * deltaTime_);
-                UpdateFlashLightPosition(cam.GetPosition());
+                UpdateFlashLightPosition(cam.GetPosition(), pEnttMgr);
                 break;
             }
             case KEY_Q:
             {
                 // guizmo: turn OFF any operation
                 if (keyboard_.IsPressed(KEY_CONTROL))
-                    userInterface_.SetGizmoOperation(ImGuizmo::OPERATION(-1));
+                    pUI->SetGizmoOperation(ImGuizmo::OPERATION(-1));
                 break;
             }
             case KEY_T:
             {
                 if (keyboard_.IsPressed(KEY_CONTROL))
-                    userInterface_.SetGizmoOperation(ImGuizmo::OPERATION::TRANSLATE);
+                    pUI->SetGizmoOperation(ImGuizmo::OPERATION::TRANSLATE);
                 break;
             }
             case KEY_R:
             {
                 if (keyboard_.IsPressed(KEY_CONTROL))
-                    userInterface_.SetGizmoOperation(ImGuizmo::OPERATION::ROTATE);
+                    pUI->SetGizmoOperation(ImGuizmo::OPERATION::ROTATE);
                 break;
             }
             case KEY_F1:
@@ -694,7 +704,7 @@ void Engine::HandleEditorEventKeyboard()
             case VK_ESCAPE:
             {
                 // if we pressed the ESC button we exit from the application
-                Log::Debug("Esc is pressed");
+                LogDbg("Esc is pressed");
                 isExit_ = true;
                 break;
             }
@@ -709,7 +719,7 @@ void Engine::HandleEditorEventKeyboard()
             case KEY_SHIFT:
             {
                 graphics_.editorCamera_.SetIsRunning(false);
-                userInterface_.UseSnapping(false);
+                pUI->UseSnapping(false);
                 break;
             }
         }
@@ -718,7 +728,7 @@ void Engine::HandleEditorEventKeyboard()
 
 ///////////////////////////////////////////////////////////
 
-void Engine::HandleGameEventKeyboard()
+void Engine::HandleGameEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr)
 {
     Camera& cam = graphics_.gameCamera_;
 
@@ -730,7 +740,7 @@ void Engine::HandleGameEventKeyboard()
             case VK_ESCAPE:
             {
                 // if we pressed the ESC button we exit from the application
-                Log::Debug("Esc is pressed");
+                LogDbg("Esc is pressed");
                 isExit_ = true;
                 break;
             }
@@ -743,47 +753,51 @@ void Engine::HandleGameEventKeyboard()
             case KEY_A: 
             {
                 cam.Strafe(-cam.GetSpeed() * deltaTime_);
-                UpdateFlashLightPosition(cam.GetPosition());
+                UpdateFlashLightPosition(cam.GetPosition(), pEnttMgr);
                 break;
             }
             case KEY_D:
             {
                 cam.Strafe(cam.GetSpeed() * deltaTime_);
-                UpdateFlashLightPosition(cam.GetPosition());
+                UpdateFlashLightPosition(cam.GetPosition(), pEnttMgr);
                 break;
             }
             // (keys W/S): handle moving forward/backward
             case KEY_S:
             {
                 cam.Walk(-cam.GetSpeed() * deltaTime_);
-                UpdateFlashLightPosition(cam.GetPosition());
+                UpdateFlashLightPosition(cam.GetPosition(), pEnttMgr);
                 break;
             }
             case KEY_W:
             {
                 cam.Walk(cam.GetSpeed() * deltaTime_);
-                UpdateFlashLightPosition(cam.GetPosition());
+                UpdateFlashLightPosition(cam.GetPosition(), pEnttMgr);
                 break;
             }
             case KEY_Z:
             {
                 cam.MoveUp(-cam.GetSpeed() * deltaTime_);
-                UpdateFlashLightPosition(cam.GetPosition());
+                UpdateFlashLightPosition(cam.GetPosition(), pEnttMgr);
                 break;
             }
             case KEY_SPACE:
             {
                 cam.MoveUp(cam.GetSpeed() * deltaTime_);
-                UpdateFlashLightPosition(cam.GetPosition());
+                UpdateFlashLightPosition(cam.GetPosition(), pEnttMgr);
                 break;
             }
             case KEY_L:
             {
+                assert(0 && "FIXME!");
+
+#if 0
                 // switch the flashlight
                 if (!keyboard_.WasPressedBefore(KEY_L))
                 {
                     SwitchFlashLight(cam);
                 }
+#endif
                 break;
             }
             case KEY_F1:
@@ -840,15 +854,17 @@ void Engine::EventKeyboard(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 // Mouse events handlers
 // =================================================================================
 
-void Engine::SwitchFlashLight(const Camera& camera)
+void Engine::SwitchFlashLight(
+    const Camera& camera,
+    ECS::EntityMgr& mgr,
+    Render::CRender& render)
 {
-    ECS::EntityMgr& mgr           = graphics_.entityMgr_;
     const EntityID flashlightID   = mgr.nameSystem_.GetIdByName("flashlight");
     const bool isFlashlightActive = !mgr.lightSystem_.IsLightActive(flashlightID);   // invert the state
     ID3D11DeviceContext* pContext = graphics_.GetD3DClass().GetDeviceContext();
 
     mgr.lightSystem_.SetLightIsActive(flashlightID, isFlashlightActive);
-    graphics_.GetRender().SwitchFlashLight(pContext, isFlashlightActive);
+    render.SwitchFlashLight(pContext, isFlashlightActive);
 
     // if we just turned on the flashlight we need to update its position and direction
     if (isFlashlightActive)
@@ -870,9 +886,9 @@ void Engine::SwitchFlashLight(const Camera& camera)
 
 ///////////////////////////////////////////////////////////
 
-void Engine::UpdateFlashLightPosition(const DirectX::XMFLOAT3& pos)
+void Engine::UpdateFlashLightPosition(const DirectX::XMFLOAT3& pos, ECS::EntityMgr* pEnttMgr)
 {
-    ECS::EntityMgr& mgr           = graphics_.entityMgr_;
+    ECS::EntityMgr& mgr = *pEnttMgr;
     const EntityID flashlightID   = mgr.nameSystem_.GetIdByName("flashlight");
     const bool isFlashlightActive = mgr.lightSystem_.IsLightActive(flashlightID);
 
@@ -885,9 +901,9 @@ void Engine::UpdateFlashLightPosition(const DirectX::XMFLOAT3& pos)
 
 ///////////////////////////////////////////////////////////
 
-void Engine::UpdateFlashLightDirection(const DirectX::XMFLOAT3& dir)
+void Engine::UpdateFlashLightDirection(const DirectX::XMFLOAT3& dir, ECS::EntityMgr* pEnttMgr)
 {
-    ECS::EntityMgr& mgr           = graphics_.entityMgr_;
+    ECS::EntityMgr& mgr = *pEnttMgr;
     const EntityID flashlightID   = mgr.nameSystem_.GetIdByName("flashlight");
     const bool isFlashlightActive = mgr.lightSystem_.IsLightActive(flashlightID);
 
@@ -901,7 +917,7 @@ void Engine::UpdateFlashLightDirection(const DirectX::XMFLOAT3& dir)
 
 ///////////////////////////////////////////////////////////
 
-void Engine::HandleEditorEventMouse()
+void Engine::HandleEditorEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr)
 {
     using enum MouseEvent::EventType;
 
@@ -939,7 +955,7 @@ void Engine::HandleEditorEventMouse()
                     cam.RotateY(mouseEvent_.GetPosX() * deltaTime_);
 
                     // if flashlight is active we update its direction 
-                    UpdateFlashLightDirection(cam.GetLook());
+                    UpdateFlashLightDirection(cam.GetLook(), pEnttMgr);
                 }
 
                 graphics_.UpdateCameraEntity("editor_camera", cam.View(), cam.Proj());
@@ -951,22 +967,22 @@ void Engine::HandleEditorEventMouse()
         {
             // if we currenly hovering the scene window with our mouse
             // and we don't hover any gizmo we execute entity picking (selection) test
-            if (userInterface_.IsSceneWndHovered() && !userInterface_.IsGizmoHovered())
+            if (pUI->IsSceneWndHovered() && !pUI->IsGizmoHovered())
             {
                 EntityID selectedEnttID = 0;
-                selectedEnttID = graphics_.TestEnttSelection(mouseEvent_.GetPosX(), mouseEvent_.GetPosY());
+                selectedEnttID = graphics_.TestEnttSelection(mouseEvent_.GetPosX(), mouseEvent_.GetPosY(), pEnttMgr_);
 
                 // update the UI about selection of the entity
                 if (selectedEnttID)
                 {
-                    userInterface_.SetSelectedEntt(selectedEnttID);
+                    pUI->SetSelectedEntt(selectedEnttID);
                     //userInterface_.SetGizmoOperation(ImGuizmo::OPERATION::TRANSLATE);
-                    userInterface_.SetGizmoOperation(ImGuizmo::OPERATION(-1));  // turn off the gizmo
+                    pUI->SetGizmoOperation(ImGuizmo::OPERATION(-1));  // turn off the gizmo
                 }
                 else
                 {
-                    userInterface_.SetSelectedEntt(0);
-                    userInterface_.SetGizmoOperation(ImGuizmo::OPERATION(-1));  // turn off the gizmo
+                    pUI->SetSelectedEntt(0);
+                    pUI->SetGizmoOperation(ImGuizmo::OPERATION(-1));  // turn off the gizmo
                 }
 
                 // detach camera from any fixed look_at point
@@ -983,7 +999,7 @@ void Engine::HandleEditorEventMouse()
         case WheelUp:
         case WheelDown:
         {
-            if (userInterface_.IsSceneWndHovered())
+            if (pUI->IsSceneWndHovered())
             {
                 Camera& cam = graphics_.GetEditorCamera();
             
@@ -997,7 +1013,7 @@ void Engine::HandleEditorEventMouse()
                 cam.Walk(step);
 
                 graphics_.UpdateCameraEntity("editor_camera", cam.View(), cam.Proj());
-                UpdateFlashLightPosition(cam.GetPosition());
+                UpdateFlashLightPosition(cam.GetPosition(), pEnttMgr);
             }
             break;
         }
@@ -1014,13 +1030,13 @@ void Engine::HandleEditorEventMouse()
         case LeftDoubleClick:
         {
             // handle double click right on selected entity
-            if (userInterface_.IsSceneWndHovered() && 	(userInterface_.GetSelectedEntt() != 0))
+            if (pUI->IsSceneWndHovered() && (pUI->GetSelectedEntt() != 0))
             {
                 using namespace DirectX;
 
                 Camera& cam = graphics_.editorCamera_;
-                EntityID selectedEnttID = userInterface_.GetSelectedEntt();
-                XMFLOAT3 enttPos = graphics_.entityMgr_.transformSystem_.GetPositionByID(selectedEnttID);
+                EntityID selectedEnttID = pUI->GetSelectedEntt();
+                XMFLOAT3 enttPos = pEnttMgr->transformSystem_.GetPositionByID(selectedEnttID);
 
                 // fix on the entt and move closer to it
                 if (keyboard_.IsPressed(KEY_CONTROL))
@@ -1056,7 +1072,7 @@ void Engine::HandleEditorEventMouse()
 
 ///////////////////////////////////////////////////////////
 
-void Engine::HandleGameEventMouse()
+void Engine::HandleGameEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr)
 {
     mouseEvent_ = mouse_.ReadEvent();
 
@@ -1080,7 +1096,7 @@ void Engine::HandleGameEventMouse()
             cam.RotateY(mouseEvent_.GetPosX() * deltaTime_);
     
             // if flashlight is active we update its direction 
-            UpdateFlashLightDirection(cam.GetLook());
+            UpdateFlashLightDirection(cam.GetLook(), pEnttMgr);
 
             break;
         }
@@ -1099,12 +1115,12 @@ void Engine::EventMouse(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     if (systemState_.isEditorMode)
     {
         while (!mouse_.EventBufferIsEmpty())
-            HandleEditorEventMouse();
+            HandleEditorEventMouse(pUserInterface_, pEnttMgr_);
     }
     else
     {
         while (!mouse_.EventBufferIsEmpty())
-            HandleGameEventMouse();
+            HandleGameEventMouse(pUserInterface_, pEnttMgr_);
     }
 }
 
@@ -1130,8 +1146,8 @@ void Engine::TurnOnEditorMode()
         d3d.GetScreenNear(),
         d3d.GetScreenDepth());
 
-    UpdateFlashLightPosition(cam.GetPosition());
-    UpdateFlashLightDirection(cam.GetLook());
+    UpdateFlashLightPosition(cam.GetPosition(), pEnttMgr_);
+    UpdateFlashLightDirection(cam.GetLook(), pEnttMgr_);
 
     systemState_.isEditorMode = true;
     ShowCursor(TRUE);
@@ -1148,8 +1164,8 @@ void Engine::TurnOnGameMode()
     graphics_.SwitchGameMode(true);
 
     Camera& cam = graphics_.GetGameCamera();
-    UpdateFlashLightPosition(cam.GetPosition());
-    UpdateFlashLightDirection(cam.GetLook());
+    UpdateFlashLightPosition(cam.GetPosition(), pEnttMgr_);
+    UpdateFlashLightDirection(cam.GetLook(), pEnttMgr_);
 
     systemState_.isEditorMode = false;
     ShowCursor(FALSE);

@@ -18,7 +18,7 @@ class ImGuiLayer
 public:
 	ImGuiLayer();
 
-	void Initialize(HWND hwnd, ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
+	bool Initialize(HWND hwnd, ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
 	void Shutdown();
 
 	void Begin();

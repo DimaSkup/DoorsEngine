@@ -4,10 +4,11 @@
 // =================================================================================
 #include "ImageReader.h"
 
-#include "Common/StringHelper.h"
-#include "Common/LIB_Exception.h"
 #include "Common/log.h"
+#include "Common/LIB_Exception.h"
+#include "Common/FileSystem.h"
 #include "Common/Assert.h"
+#include "Common/StrHelper.h"
 
 // image readers for different types
 #include "Readers/DDS_ImageReader.h"
@@ -16,33 +17,17 @@
 #include "Readers/BMP_Image.h"
 
 #include <d3dx11tex.h>
-#include <filesystem>
-
-
-namespace fs = std::filesystem;
 
 
 namespace ImgReader
 {
 
-void ImageReader::SetupLogger(FILE* pFile, std::list<std::string>* pMsgsList)
-{
-	// setup a file for writing log msgs into it;
-	// also setup a list which will be filled with log messages;
-	Log::Setup(pFile, pMsgsList);
-	Log::Debug("logger is setup successfully");
-}
-
-
-
 // =================================================================================
-// 
 //                            PUBLIC METHODS
-// 
 // =================================================================================
-
-
-void ImageReader::LoadTextureFromFile(ID3D11Device* pDevice, DXTextureData& texData)
+bool ImageReader::LoadTextureFromFile(
+    ID3D11Device* pDevice,
+    DXTextureData& texData)
 {
 	// load a texture data from file by texData.filePath;
 	// and fill in the DXTextureData struct with loaded data
@@ -51,53 +36,60 @@ void ImageReader::LoadTextureFromFile(ID3D11Device* pDevice, DXTextureData& texD
 	{	
 		CheckInputParams(texData);
 
-		const fs::path path = texData.filePath;
-		const std::string texExt = path.extension().string();
+        // get texture extension
+        char ext[8]{'\0'};
+        FileSys::GetFileExt(texData.filePath, ext);
 
-		if ((texExt == ".png") || (texExt == ".jpg") || (texExt == ".jpeg"))
+
+		if ((strcmp(ext, ".png")  == 0) ||
+            (strcmp(ext, ".jpg")  == 0) ||
+            (strcmp(ext, ".jpeg") == 0))
 		{
 			LoadPNGTexture(pDevice, texData);
 		}
-		else if (texExt == ".dds")
+		else if (strcmp(ext, ".dds") == 0)
 		{
 			LoadDDSTexture(pDevice, texData);
 		}
-		else if (texExt == ".tga")
+		else if (strcmp(ext, ".tga") == 0)
 		{
 			LoadTGATexture(pDevice, texData);
 		}
-		else if (texExt == ".bmp")
+		else if (strcmp(ext, ".bmp") == 0)
 		{
 			LoadBMPTexture(pDevice, texData);
 		}
 		else
 		{
-			throw LIB_Exception("UNKNOWN IMAGE EXTENSION");
+			sprintf(g_String, "unknown image extension: %s", ext);
+            LogErr(g_String);
+            return false;
 		}
+
+        return true;
 	}
 	catch (LIB_Exception & e)
 	{
-		const std::string errMgs{ "can't load a texture from file: " + texData.filePath };
-
-		Log::Error(e);
-		Log::Error(errMgs);
-		throw LIB_Exception(errMgs);
+        LogErr(e);
+        sprintf(g_String, "can't load a texture from file: %s", texData.filePath);
+		LogErr(g_String);
+        return false;
 	}
 }
 
 ///////////////////////////////////////////////////////////
 
-void ImageReader::LoadTextureFromMemory(
+bool ImageReader::LoadTextureFromMemory(
 	ID3D11Device* pDevice,
 	const uint8_t* pData,
 	const size_t size,
 	DXTextureData& outTexData)
 {
-
 	try
 	{
 		CheckInputParams(outTexData);
-		Assert::True((bool)pDevice && (bool)pData && (size > 0), "some of input params are invalid");
+        Assert::True(pData != nullptr, "input ptr to texture raw data");
+        Assert::True(size > 0,         "input size of texture data must be > 0");
 
 		ID3D11DeviceContext* pContext = nullptr;
 		pDevice->GetImmediateContext(&pContext);
@@ -109,6 +101,7 @@ void ImageReader::LoadTextureFromMemory(
 			size,
 			outTexData.ppTexture,
 			outTexData.ppTextureView);
+
 		Assert::NotFailed(hr, "can't create a texture from memory");
 
 		// initialize the texture width and height values
@@ -118,29 +111,25 @@ void ImageReader::LoadTextureFromMemory(
 		
 		outTexData.textureWidth = desc.Width;
 		outTexData.textureHeight = desc.Height;
-	}
-	catch (LIB_Exception & e)
-	{
-		const std::string errMsg = "can't load texture's data from memory";
-		Log::Error(e);
-		Log::Error(errMsg);
-		throw LIB_Exception(errMsg);
 
+        return true;
+	}
+	catch (LIB_Exception& e)
+	{
+		LogErr(e);
+		LogErr("can't load texture's data from memory");
+        return false;
 	}
 }
 
 
-
 // =================================================================================
-// 
 //                            PRIVATE METHODS
-// 
 // =================================================================================
-
 void ImageReader::CheckInputParams(const DXTextureData& data)
 {
 	Assert::True(
-		(!data.filePath.empty()) && 
+		(data.filePath[0] != '\0') &&
 		data.ppTexture && 
 		data.ppTextureView, "some of input params are invalid");
 }
@@ -149,24 +138,16 @@ void ImageReader::CheckInputParams(const DXTextureData& data)
 
 void ImageReader::LoadPNGTexture(ID3D11Device* pDevice, DXTextureData& data)
 {
-	const std::wstring wFilePath{ StringHelper::StringToWide(data.filePath) };
+    wchar_t wFilePath[256]{ L'\0' };
+    StrHelper::StrToWide(data.filePath, wFilePath);
 
-#if 0
-	const HRESULT hr = DirectX::CreateWICTextureFromFile(
-		pDevice,
-		wFilePath.c_str(),
-		data.ppTexture,
-		data.ppTextureView,
-		0);
-
-#else
 	ID3D11DeviceContext* pContext = nullptr;
 	pDevice->GetImmediateContext(&pContext);
 
 	const HRESULT hr = DirectX::CreateWICTextureFromFileEx(
 		pDevice,
 		pContext,                                              // pass the context to make possible auto-gen of mipmaps
-		wFilePath.c_str(),
+		wFilePath,
 		0,                                                     // max size
 		D3D11_USAGE_DEFAULT, 
 		D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET,
@@ -175,8 +156,12 @@ void ImageReader::LoadPNGTexture(ID3D11Device* pDevice, DXTextureData& data)
 		DirectX::WIC_LOADER_DEFAULT,
 		data.ppTexture,
 		data.ppTextureView);
-#endif
-	Assert::NotFailed(hr, "can't create a PNG texture from file: " + data.filePath);
+
+    if (FAILED(hr))
+    {
+        sprintf(g_String, "can't create a PNG texture from file: %s", data.filePath);
+        LogErr(g_String);
+    }
 
 	// initialize the texture width and height values
 	D3D11_TEXTURE2D_DESC desc;

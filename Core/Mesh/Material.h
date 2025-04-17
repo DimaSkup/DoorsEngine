@@ -6,8 +6,9 @@
 // ********************************************************************************
 #pragma once
 
-#include <CoreCommon/Types.h>
 #include "../Texture/TextureTypes.h"
+#include <CoreCommon/Types.h>
+#include <CoreCommon/log.h>
 #include <CoreCommon/Assert.h>
 
 #pragma warning (disable : 4996)
@@ -45,6 +46,12 @@ struct Material
 
     void SetName(const char* inName)
     {
+        if ((inName == nullptr) || (inName[0] == '\0'))
+        {
+            LogErr("can't set name for material: input name is empty!");
+            return;
+        }
+
         size_t length = strlen(inName);
 
         Assert::True(inName != nullptr, "input ptr to name string == nullptr");

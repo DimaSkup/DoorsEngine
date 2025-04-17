@@ -165,9 +165,6 @@
     <ClCompile Include="Model\SkyPlaneClass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\UtilsForDLL.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="2D\SpriteClass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -179,9 +176,6 @@
     </ClCompile>
     <ClCompile Include="Render\Color.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CoreCommon\StringHelper.cpp">
-      <Filter>Source Files\Engine</Filter>
     </ClCompile>
     <ClCompile Include="Texture\textureclass.cpp">
       <Filter>Source Files\Model</Filter>
@@ -203,9 +197,6 @@
     </ClCompile>
     <ClCompile Include="Timers\GameTimer.cpp">
       <Filter>Source Files\Timers</Filter>
-    </ClCompile>
-    <ClCompile Include="CoreCommon\EngineException.cpp">
-      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Model\GeometryGenerator.cpp">
       <Filter>Source Files</Filter>
@@ -306,9 +297,6 @@
     <ClCompile Include="UI\Editor\Terrain\Sky\SkyEditorView.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UI\Editor\Terrain\Sky\SkyEditorModel.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Model\ModelStorageSerializer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -331,6 +319,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="UI\Editor\EditorPanelElement\TextureAssetsBrowser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CoreCommon\EngineException.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -386,9 +377,6 @@
     <ClInclude Include="Sound\SoundClass.h">
       <Filter>Header Files\Sound</Filter>
     </ClInclude>
-    <ClInclude Include="CoreCommon\EngineException.h">
-      <Filter>Header Files\Engine</Filter>
-    </ClInclude>
     <ClInclude Include="Model\TerrainClass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -407,9 +395,6 @@
     <ClInclude Include="Model\SkyPlaneClass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\UtilsForDLL.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="2D\SpriteClass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -422,7 +407,7 @@
     <ClInclude Include="Render\Color.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CoreCommon\StringHelper.h">
+    <ClInclude Include="CoreCommon\StrHelper.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
     <ClInclude Include="Mesh\Vertex.h">
@@ -525,12 +510,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CoreCommon\Types.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CoreCommon\Utils.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CoreCommon\Assert.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CoreCommon\MemHelpers.h">
@@ -768,6 +747,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\Editor\EditorPanelElement\TextureAssetsBrowser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CoreCommon\EngineException.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CoreCommon\Assert.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CoreCommon\FileSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

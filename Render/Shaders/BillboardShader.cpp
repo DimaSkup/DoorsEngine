@@ -2,18 +2,16 @@
 // Filename: BillboardShader.cpp
 // ====================================================================================
 #include "BillboardShader.h"
-#include "shaderclass.h"
-
 #include "../Common/Log.h"
 #include "../Common/Types.h"
-#include "../Common/Assert.h"
 
 
 namespace Render
 {
 
-BillboardShader::BillboardShader() : className_{ __func__ }
+BillboardShader::BillboardShader()
 {
+    strcpy(className_, __func__);
 }
 
 BillboardShader::~BillboardShader()
@@ -21,35 +19,30 @@ BillboardShader::~BillboardShader()
 	Shutdown();
 }
 
-
 // ====================================================================================
 //                           PUBLIC MODIFICATION API
 // ====================================================================================
-
-bool BillboardShader::Initialize(ID3D11Device* pDevice,	const std::string& pathToShadersDir)
+bool BillboardShader::Initialize(
+    ID3D11Device* pDevice,
+    const char* vsFilePath,
+    const char* psFilePath,
+    const char* gsFilePath)
 {
 	// initialize the shader class: hlsl for rendering textured objects;
 	// also create an instanced buffer;
-
 	try
 	{
-		InitializeShaders(
-			pDevice,
-			pathToShadersDir + "billboardVS.cso",
-			pathToShadersDir + "billboardGS.cso",
-			pathToShadersDir + "billboardPS.cso");
+        InitializeShaders(pDevice, vsFilePath, psFilePath, gsFilePath);
+        LogDbg("is initialized");
+        return true;
 	}
 	catch (LIB_Exception& e)
 	{
 		Shutdown();
-		Log::Error(e, true);
-		Log::Error("can't initialize the texture shader class");
+		LogErr(e, true);
+		LogErr("can't initialize the texture shader class");
 		return false;
 	}
-
-	Log::Debug("is initialized");
-
-	return true;
 }
 
 ///////////////////////////////////////////////////////////
@@ -93,8 +86,8 @@ void BillboardShader::UpdateInstancedBuffer(
 	}
 	catch (LIB_Exception& e)
 	{
-		Log::Error(e);
-		Log::Error("can't update instanced buffer for billboards rendering");
+		LogErr(e);
+		LogErr("can't update instanced buffer for billboards rendering");
 	}
 }
 
@@ -179,16 +172,15 @@ void BillboardShader::Shutdown()
 
 void BillboardShader::InitializeShaders(
 	ID3D11Device* pDevice,
-	const std::string& vsFilename,
-	const std::string& gsFilename,
-	const std::string& psFilename)
+    const char* vsFilePath,
+    const char* psFilePath,
+    const char* gsFilePath)
 {
 	// initialized the vertex shader, pixel shader, input layout, 
 	// sampler state, and different constant buffers
 
 	bool result = false;
 
-	const UINT layoutElemNum = 8;
 	const D3D11_INPUT_ELEMENT_DESC inputLayoutDesc[] =
 	{
 		// per vertex data
@@ -206,17 +198,16 @@ void BillboardShader::InitializeShaders(
 	};
 
 
-	// check yourself
-	Assert::True(layoutElemNum == ARRAYSIZE(inputLayoutDesc), "layout elems num != layout desc array size");
+    const UINT layoutElemNum = sizeof(inputLayoutDesc) / sizeof(D3D11_INPUT_ELEMENT_DESC);
 
 	// initialize: VS, PS, sampler state
-	result = vs_.Initialize(pDevice, vsFilename, inputLayoutDesc, layoutElemNum);
+	result = vs_.Initialize(pDevice, vsFilePath, inputLayoutDesc, layoutElemNum);
 	Assert::True(result, "can't initialize the vertex shader");
 
-	result = gs_.Initialize(pDevice, gsFilename);
+	result = gs_.Initialize(pDevice, gsFilePath);
 	Assert::True(result, "can't initialize the geometry shader");
 
-	result = ps_.Initialize(pDevice, psFilename);
+	result = ps_.Initialize(pDevice, psFilePath);
 	Assert::True(result, "can't initialize the pixel shader");
 
 	result = samplerState_.Initialize(pDevice);

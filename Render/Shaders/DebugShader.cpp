@@ -5,11 +5,15 @@
 #include "DebugShader.h"
 #include "../Common/Types.h"
 
+#pragma warning (disable : 4996)
+
+
 namespace Render
 {
 
-DebugShader::DebugShader() : className_{ __func__ }
+DebugShader::DebugShader()
 {
+    strcpy(className_, __func__);
 }
 
 DebugShader::~DebugShader()
@@ -17,34 +21,25 @@ DebugShader::~DebugShader()
 }
 
 // *********************************************************************************
-//
 //                             PUBLIC METHODS                                       
-//
 // *********************************************************************************
-
 bool DebugShader::Initialize(
 	ID3D11Device* pDevice,
-	ID3D11DeviceContext* pContext,
-    const std::string& pathToShadersDir)
+    const char* vsFilePath,
+    const char* psFilePath)
 {
 	try
 	{
-		InitializeShaders(
-            pDevice,
-            pContext,
-            pathToShadersDir + "DebugVS.cso",
-            pathToShadersDir + "DebugPS.cso");
+        InitializeShaders(pDevice, vsFilePath, psFilePath);
+        LogDbg("is initialized");
+        return true;
 	}
 	catch (LIB_Exception& e)
 	{
-		Log::Error(e, true);
-		Log::Error("can't initialize the debug vector shader");
+		LogErr(e, true);
+		LogErr("can't initialize the debug vector shader");
 		return false;
 	}
-
-	Log::Debug("is initialized");
-
-	return true;
 }
 
 ///////////////////////////////////////////////////////////
@@ -114,16 +109,13 @@ void DebugShader::SetDebugType(ID3D11DeviceContext* pContext, const DebugState s
 }
 
 
-
 // =================================================================================
 //                               private methods                                       
 // =================================================================================
-
 void DebugShader::InitializeShaders(
 	ID3D11Device* pDevice,
-	ID3D11DeviceContext* pContext,
-	const std::string& vsFilename,
-	const std::string& psFilename)
+    const char* vsFilePath,
+    const char* psFilePath)
 {
 	//
 	// helps to initialize the HLSL shaders, layout, sampler state, and buffers
@@ -132,7 +124,7 @@ void DebugShader::InitializeShaders(
 	HRESULT hr = S_OK;
 	bool result = false;
 
-	const UINT layoutElemNum = 21;
+
 	const D3D11_INPUT_ELEMENT_DESC inputLayoutDesc[] =
 	{
 		// per vertex data
@@ -164,17 +156,16 @@ void DebugShader::InitializeShaders(
 		{"MATERIAL", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
 	};
 
-	// check yourself
-	Assert::True(layoutElemNum == ARRAYSIZE(inputLayoutDesc), "layout elems num != layout desc array size");
+    const UINT layoutElemNum = sizeof(inputLayoutDesc) / sizeof(D3D11_INPUT_ELEMENT_DESC);
 
 
 	// --------------------- SHADERS / SAMPLER STATE -------------------------- //
 
-	result = vs_.Initialize(pDevice, vsFilename, inputLayoutDesc, layoutElemNum);
+	result = vs_.Initialize(pDevice, vsFilePath, inputLayoutDesc, layoutElemNum);
 	Assert::True(result, "can't initialize the vertex shader");
 
 	// initialize the DEFAULT pixel shader
-	result = ps_.Initialize(pDevice, psFilename);
+	result = ps_.Initialize(pDevice, psFilePath);
 	Assert::True(result, "can't initialize the pixel shader");
 
 	result = samplerState_.Initialize(pDevice);
@@ -189,7 +180,10 @@ void DebugShader::InitializeShaders(
 
 	// -------------  SETUP CONST BUFFERS WITH DEFAULT PARAMS  ----------------
 
-	// load rare changed data into GPU
+    ID3D11DeviceContext* pContext = nullptr;
+    pDevice->GetImmediateContext(&pContext);
+
+    // load rare changed data into GPU
 	cbpsRareChangedDebug_.ApplyChanges(pContext);
 }
 

@@ -1,8 +1,5 @@
 #include "StringHelper.h"
-
-#include "MemHelpers.h"
 #include "log.h"
-#include <stdexcept>
 
 #pragma warning (disable : 4996) // because we use the wcsrtombs function
 
@@ -33,44 +30,22 @@ std::string StringHelper::ToString(const std::wstring& wstr)
 	if (wstr.empty())
 		return "";
 
-	char* buff = nullptr;
+	char buf[128]{'\0'};
 
-	try
+	// calculating the length of the multibyte string
+	const std::size_t len = wcstombs(nullptr, wstr.c_str(), 0) + 1;
+
+	// convert wstring to string
+	const size_t sz = std::wcstombs(buf, wstr.c_str(), len);
+
+	// if we got some err we clear memory and return an empty line
+	if (sz == (size_t)-1)
 	{
-		// calculating the length of the multibyte string
-		std::size_t len = wcstombs(nullptr, wstr.c_str(), 0) + 1;
-
-		// creating a buffer to hold the multibyte string
-		buff = new char[len] { '\0' };
-
-		// convert wstring to string
-		size_t sz = std::wcstombs(buff, wstr.c_str(), len);
-
-		// if we got some err we clear memory and return an empty line
-		if (sz == (size_t)-1)
-		{
-			Log::Error("didn't manage to convert wstr => str");
-			SafeDeleteArr(buff);
-			return "";
-		}
-
-		// create std::string from char buffer
-		std::string temp = buff;
-
-		// clean up the buffer
-		SafeDeleteArr(buff);
-
-		return temp;
-	}
-	catch (const std::bad_alloc& e)
-	{
-		SafeDeleteArr(buff);
-
-		Log::Error(e.what());
-		Log::Error("can't allocate memory during convertation wstr => str");
-
+		LogErr("didn't manage to convert wstr => str");
 		return "";
 	}
+
+	return std::string(buf);
 }
 
 ///////////////////////////////////////////////////////////

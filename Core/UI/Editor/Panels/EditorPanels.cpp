@@ -8,11 +8,11 @@
 #include <CoreCommon/Assert.h>
 #include <CoreCommon/log.h>
 #include <UICommon/EventsHistory.h>
-
-
 #include <vector>
 #include <string>
 #include <imgui.h>
+
+using namespace Core;
 
 
 namespace UI
@@ -22,7 +22,7 @@ EditorPanels::EditorPanels(StatesGUI* pStatesGUI) :
     enttEditorController_(pStatesGUI),
     pStatesGUI_(pStatesGUI)
 {
-    Core::Assert::NotNullptr(pStatesGUI, "input ptr to the GUI states container == nullptr");
+    Assert::NotNullptr(pStatesGUI, "input ptr to the GUI states container == nullptr");
 }
 
 
@@ -32,7 +32,7 @@ EditorPanels::EditorPanels(StatesGUI* pStatesGUI) :
 
 void EditorPanels::Initialize(IFacadeEngineToUI* pFacade)
 {
-    Core::Assert::NotNullptr(pFacade, "ptr to the facade interface == nullptr");
+    Assert::NotNullptr(pFacade, "ptr to the facade interface == nullptr");
     pFacadeEngineToUI_ = pFacade;
 
     enttEditorController_.Initialize(pFacadeEngineToUI_);
@@ -45,11 +45,11 @@ void EditorPanels::Initialize(IFacadeEngineToUI* pFacade)
 
 ///////////////////////////////////////////////////////////
 
-void EditorPanels::Render(Core::SystemState& sysState)
+void EditorPanels::Render(SystemState& sysState)
 {
     if (pFacadeEngineToUI_ == nullptr)
     {
-        Core::Log::Error("you have to initialize a ptr to the facade interface!");
+        LogErr("you have to initialize a ptr to the facade interface!");
         return;
     }
 
@@ -89,8 +89,8 @@ void EditorPanels::RenderLogPanel()
 
     if (ImGui::Begin("Log"))
     {	
-        for (std::string& logMsg : Core::Log::GetLogMsgsList())
-            ImGui::Text(logMsg.c_str());                    // print each log msg
+        //for (std::string& logMsg : Core::Log::GetLogMsgsList())
+        //    ImGui::Text(logMsg.c_str());                    // print each log msg
     }
     ImGui::End();
 }
@@ -136,6 +136,7 @@ void EditorPanels::RenderMaterialsBrowser()
     if (ImGui::Begin("Materials browser", &pStatesGUI_->showWndMaterialsBrowser, ImGuiWindowFlags_MenuBar))
     {
         ImGui::Text("nothing");
+        //ImGui::Image((ImTextureID)pFacadeEngineToUI_->pFrameBufTexSRV_, { 200, 200 });
     }
     ImGui::End();
 }
@@ -160,7 +161,7 @@ void EditorPanels::RenderEditorEventHistory()
 
 ///////////////////////////////////////////////////////////
 
-void EditorPanels::RenderEntitiesListWnd(Core::SystemState& sysState)
+void EditorPanels::RenderEntitiesListWnd(SystemState& sysState)
 {
     // render editor elements which are responsible for rendering 
     // the scene hierarchy list, etc.
@@ -208,7 +209,7 @@ void EditorPanels::RenderEntitiesListWnd(Core::SystemState& sysState)
                 {
                     pFacadeEngineToUI_->FocusCameraOnEntity(sysState.pickedEntt_);
                     pStatesGUI_->gizmoOperation = 7;   // ImGizmo::OPERATION::TRANSLATE
-                    //Log::Print("double click on: " + enttsNames[i], eConsoleColor::YELLOW);
+                    //LogMsg("double click on: " + enttsNames[i], eConsoleColor::YELLOW);
                 }
             }
         }
@@ -218,7 +219,7 @@ void EditorPanels::RenderEntitiesListWnd(Core::SystemState& sysState)
 
 ///////////////////////////////////////////////////////////
 
-void EditorPanels::RenderDebugPanel(const Core::SystemState& systemState)
+void EditorPanels::RenderDebugPanel(const SystemState& systemState)
 {
     if (ImGui::Begin("Debug"))
     {
@@ -282,10 +283,10 @@ void EditorPanels::RenderWndModelAssetsCreation(bool* pOpen)
 
     ImGuiViewport* pViewport = ImGui::GetMainViewport();
 
-    const ImVec2 wndSize = { 0.5f * pViewport->Size.x, 0.5f * pViewport->Size.y };
+    const ImVec2 wndSize     = { 0.5f * pViewport->Size.x, 0.5f * pViewport->Size.y };
     const ImVec2 halfWndSize = { 0.5f * wndSize.x, 0.5f * wndSize.y };
-    const ImVec2 midPoint = wndSize;
-    const ImVec2 pos = { midPoint.x - halfWndSize.x, midPoint.y - halfWndSize.y };
+    const ImVec2 midPoint    = wndSize;
+    const ImVec2 pos         = { midPoint.x - halfWndSize.x, midPoint.y - halfWndSize.y };
 
     ImGui::SetNextWindowSize(wndSize, ImGuiCond_Once);
     ImGui::SetNextWindowPos(pos, ImGuiCond_Once);
@@ -325,7 +326,7 @@ void EditorPanels::RenderWndEntityCreation(bool* pOpen, IFacadeEngineToUI* pFaca
         if (pEnttCreatorWnd_ == nullptr)
         {
             pEnttCreatorWnd_ = new EntityCreatorWnd;
-            Core::Log::Print("Entity creator window is allocated", Core::eConsoleColor::YELLOW);
+            LogMsgf("%sEntity creator window is allocated", YELLOW);
         }
 
         pEnttCreatorWnd_->RenderCreationWindow(pOpen, pFacade);
@@ -339,7 +340,7 @@ void EditorPanels::RenderWndEntityCreation(bool* pOpen, IFacadeEngineToUI* pFaca
             pEnttCreatorWnd_ = nullptr;
         }
 
-        Core::Log::Print("Entity creator window is DEallocated", Core::eConsoleColor::YELLOW);
+        LogMsgf("%sEntity creator window is DEallocated", YELLOW);
     }
 }
 

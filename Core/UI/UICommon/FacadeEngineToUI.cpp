@@ -21,7 +21,7 @@ namespace UI
 
 FacadeEngineToUI::FacadeEngineToUI(
     ID3D11DeviceContext* pContext,
-    Render::Render* pRender,
+    Render::CRender* pRender,
     ECS::EntityMgr* pEntityMgr,
     //TextureMgr* pTextureMgr,
     //ModelMgr* pModelStorage,
@@ -48,7 +48,7 @@ FacadeEngineToUI::FacadeEngineToUI(
 
 ModelID FacadeEngineToUI::GetModelIdByName(const std::string& name)
 {
-    return g_ModelMgr.GetModelIdByName(name);
+    return g_ModelMgr.GetModelIdByName(name.c_str());
 }
 
 
@@ -78,6 +78,8 @@ void FacadeEngineToUI::FocusCameraOnEntity(const EntityID enttID)
 {
     // focus the editor camera on the selected entity
 
+    assert(0 && "FIXME");
+#if 0
     if (enttID == 0)
         return;
 
@@ -86,6 +88,7 @@ void FacadeEngineToUI::FocusCameraOnEntity(const EntityID enttID)
 
     DirectX::XMFLOAT3 enttPos = mgr.transformSystem_.GetPositionByID(enttID);
     cam.LookAt(cam.GetPosition(), enttPos, { 0, 1, 0 });
+#endif
 }
 
 
@@ -337,7 +340,8 @@ bool FacadeEngineToUI::GetEnttDirectedLightData(
     }
     else
     {
-        Log::Error("can't get data of the directed light entity by ID: " + std::to_string(id));
+        sprintf(g_String, "can't get directed light data of the entity by ID: %ld", id);
+        LogErr(g_String);
         return false;
     }
 }
@@ -368,7 +372,8 @@ bool FacadeEngineToUI::GetEnttPointLightData(
     }
     else
     {
-        Log::Error("can't get data of the point light entity by ID: " + std::to_string(id));
+        sprintf(g_String, "can't get point light data of the entity by ID: %ld", id);
+        LogErr(g_String);
         return false;
     }
 }
@@ -400,7 +405,8 @@ bool FacadeEngineToUI::GetEnttSpotLightData(
     }
     else
     {
-        Log::Error("can't get data of the spotlight entity by ID: " + std::to_string(id));
+        sprintf(g_String, "can't get spotlight data of the entity by ID: %ld", id);
+        LogErr(g_String);
         return false;
     }
 }
@@ -720,7 +726,7 @@ bool FacadeEngineToUI::SetSkyOffset(const Vec3& offset)
         return true;
     }
 
-    Log::Error("there is no entity by such a name: sky");
+    LogErr("there is no entity by such a name: sky");
     return false;
 }
 
@@ -739,11 +745,12 @@ bool FacadeEngineToUI::SetSkyTexture(const int idx, const uint32_t textureID)
 bool FacadeEngineToUI::GetFogData(
     ColorRGB& fogColor,
     float& fogStart,     // distance where the fog starts
-    float& fogRange)     // distance after which the objects are fully fogged
+    float& fogRange,     // distance after which the objects are fully fogged
+    bool& fogEnabled)
 {
     DirectX::XMFLOAT3 color;
 
-    pRender_->GetFogData(color, fogStart, fogRange);
+    pRender_->GetFogData(color, fogStart, fogRange, fogEnabled);
     fogColor = { color.x, color.y, color.z };
 
     return true;
@@ -751,11 +758,26 @@ bool FacadeEngineToUI::GetFogData(
 
 ///////////////////////////////////////////////////////////
 
-bool FacadeEngineToUI::SetFogParams(const ColorRGB& color, const float start, const float range)
+bool FacadeEngineToUI::SetFogStart(const float start)
 {
-    pRender_->SetFogParams(pContext_, color.ToFloat3(), start, range);
     return true;
 }
+
+bool FacadeEngineToUI::SetFogRange(const float range)
+{
+    return true;
+}
+
+bool FacadeEngineToUI::SetFogEnabled(const bool enabled)
+{
+    return true;
+}
+
+bool FacadeEngineToUI::SetFogColor(const ColorRGB& color)
+{
+    return true;
+}
+
 
 
 // =================================================================================
@@ -772,16 +794,16 @@ bool FacadeEngineToUI::SwitchDebugState(const int debugType)
 // =================================================================================
 // For assets manager
 // =================================================================================
-bool FacadeEngineToUI::GetAssetsNamesList(cvector<std::string>& outNames)
+bool FacadeEngineToUI::GetModelsNamesList(cvector<std::string>& outNames)
 {
     // get a name of each loaded model
-    Core::cvector<std::string> modelsNames;
-    g_ModelMgr.GetAssetsNamesList(modelsNames);
+    Core::cvector<Core::ModelName> modelsNames;
+    g_ModelMgr.GetModelsNamesList(modelsNames);
 
     outNames.resize(modelsNames.size());
 
-    for (int i = 0; const std::string & name : modelsNames)
-        outNames[i++] = name;
+    for (int i = 0; const Core::ModelName& name : modelsNames)
+        outNames[i++] = name.name;
 
     return true;
 }
@@ -821,7 +843,7 @@ bool FacadeEngineToUI::GetTextureIdByIdx(const index idx, TexID& outTextureID) c
     {
         char buff[64];
         sprintf(buff, "there is no texture ID by idx: %lld", idx);
-        Log::Error(buff);
+        LogErr(buff);
         return false;
     }
 
@@ -839,6 +861,17 @@ bool FacadeEngineToUI::SetEnttMaterial(
 
     pEntityMgr_->materialSystem_.SetMaterial(enttID, subsetID, matID);
     return true;
+}
+
+///////////////////////////////////////////////////////////
+
+bool FacadeEngineToUI::RenderMaterialsIcons(
+    ID3D11ShaderResourceView** outArrShaderResourceViews,
+    const size numShaderResourceViews,
+    const int iconWidth,
+    const int iconHeight)
+{
+    return false;
 }
 
 } // namespace Core

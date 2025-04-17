@@ -5,17 +5,17 @@
 // Created:      21.12.24
 // =================================================================================
 #include "SkyDomeShader.h"
-#include "shaderclass.h"
-
-#include "../Common/Assert.h"
 #include "../Common/Log.h"
+
+#pragma warning (disable : 4996)
 
 
 namespace Render
 {
 
-SkyDomeShader::SkyDomeShader() : className_ { __func__ }
+SkyDomeShader::SkyDomeShader()
 {
+    strcpy(className_, __func__);
 }
 
 SkyDomeShader::~SkyDomeShader()
@@ -25,32 +25,23 @@ SkyDomeShader::~SkyDomeShader()
 // =================================================================================
 //                             public methods                                      
 // =================================================================================
-
 bool SkyDomeShader::Initialize(
     ID3D11Device* pDevice,
-    ID3D11DeviceContext* pContext,
-    const std::string& pathToShadersDir)
+    const char* vsFilePath,
+    const char* psFilePath)
 {
-	// initialize the shader class: for rendering textured + lit objects;
-	// also create an instanced buffer;
 	try
 	{
-		InitializeShaders(
-            pDevice,
-            pContext,
-            pathToShadersDir + "SkyDomeVS.cso",
-            pathToShadersDir + "SkyDomePS.cso");
-
-		Log::Debug("is initialized");
+        InitializeShaders(pDevice, vsFilePath, psFilePath);
+		LogDbg("is initialized");
+        return true;
 	}
 	catch (LIB_Exception& e)
 	{
-		Log::Error(e, true);
-		Log::Error("can't initialize the sky dome shader class");
+		LogErr(e, true);
+		LogErr("can't initialize the sky dome shader class");
 		return false;
 	}
-
-	return true;
 }
 
 ///////////////////////////////////////////////////////////
@@ -60,7 +51,6 @@ void SkyDomeShader::Render(
 	const SkyInstance& sky,
 	const DirectX::XMMATRIX& worldViewProj)    
 {
-
 	// update constant buffers (cbvs/cbps - const buffer for vertex/pixel shader)
 	cbvsPerFrame_.data.worldViewProj_ = worldViewProj;
 	cbvsPerFrame_.ApplyChanges(pContext);
@@ -112,20 +102,15 @@ void SkyDomeShader::SetSkyColorApex(ID3D11DeviceContext* pContext, const DirectX
 }
 
 
-
 // =================================================================================
 //                              private methods                                       
 // =================================================================================
-
 void SkyDomeShader::InitializeShaders(
 	ID3D11Device* pDevice,
-	ID3D11DeviceContext* pContext,
-	const std::string& vsFilePath,
-	const std::string& psFilePath)
+    const char* vsFilePath,
+    const char* psFilePath)
 {
-	//
 	// helps to initialize the HLSL shaders, layout, sampler state
-	//
 
 	bool result = false;
 	HRESULT hr = S_OK;
@@ -139,10 +124,10 @@ void SkyDomeShader::InitializeShaders(
 
 	// setup description for a sampler state
 	D3D11_SAMPLER_DESC samplerDesc{};
-	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.Filter         = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	samplerDesc.AddressU       = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.AddressV       = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.AddressW       = D3D11_TEXTURE_ADDRESS_WRAP;
 	samplerDesc.BorderColor[0] = 0.0f;
 	samplerDesc.BorderColor[1] = 0.0f;
 	samplerDesc.BorderColor[2] = 0.0f;
@@ -172,6 +157,9 @@ void SkyDomeShader::InitializeShaders(
 
 
 	// setup the constant buffers with default values and load data into GPU
+    ID3D11DeviceContext* pContext = nullptr;
+    pDevice->GetImmediateContext(&pContext);
+
 	cbvsPerFrame_.ApplyChanges(pContext);
 	cbpsRareChanged_.ApplyChanges(pContext);
 }

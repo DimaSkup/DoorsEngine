@@ -36,7 +36,7 @@ TerrainCellClass::TerrainCellClass(ID3D11Device* pDevice, ID3D11DeviceContext* p
 	{
 		this->Shutdown();
 
-		Log::Error(e.what());
+		LogErr(e.what());
 		throw EngineException("can't allocate memory for some terrain cell's parts");
 	}
 }
@@ -44,7 +44,7 @@ TerrainCellClass::TerrainCellClass(ID3D11Device* pDevice, ID3D11DeviceContext* p
 TerrainCellClass::~TerrainCellClass()
 {
 	//std::string debugMsg{ "destroyment of the " + pTerrainCellModel_->GetID() };
-	//Log::Debug(debugMsg.c_str());
+	//LogDbg(debugMsg.c_str());
 	this->Shutdown();
 }
 
@@ -84,8 +84,8 @@ bool TerrainCellClass::Initialize(InitTerrainCellData* pInitData,
 	}
 	catch (EngineException & e)
 	{
-		Log::Error(e, false);
-		Log::Error("can't initialize the terrain cell or bounding line box");
+		LogErr(e, false);
+		LogErr("can't initialize the terrain cell or bounding line box");
 		return false;
 	}
 		
@@ -256,8 +256,8 @@ bool TerrainCellClass::InitializeCellLineBox()
 	}
 	catch (EngineException & e)
 	{
-		Log::Error(e, false);
-		Log::Error("can't initialize a cell's line box");
+		LogErr(e, false);
+		LogErr("can't initialize a cell's line box");
 		return false;
 	}
 
@@ -338,12 +338,12 @@ bool TerrainCellClass::InitializeTerrainCellBuffers(InitTerrainCellData* pInitDa
 	}
 	catch (std::bad_alloc & e)
 	{
-		Log::Error(e.what());
+		LogErr(e.what());
 		throw EngineException("can't allocate memory for the terrain cell vertices/indices/vertex_list");
 	}
 	catch (EngineException & e)
 	{
-		Log::Error(e, false);
+		LogErr(e, false);
 		return false;
 	}
 

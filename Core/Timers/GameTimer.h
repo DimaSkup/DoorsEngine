@@ -1,15 +1,12 @@
-////////////////////////////////////////////////////////////////////
+// =================================================================================
 // Filename:     timerclass.h
 // Description:  this class is a high precision timer that measures
 //               the exact time between frames of execution. It's 
 //               primary use if for synchronizing objects that 
 //               require a standard time frame for movement.
 // Revising:     01.08.22
-////////////////////////////////////////////////////////////////////
+// =================================================================================
 #pragma once
-
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
 
 namespace Core
 {

@@ -20,7 +20,6 @@
 
 #include "../Texture/TextureTypes.h"
 
-#include <string>
 #include <d3d11.h>
 #include <DirectXCollision.h>
 
@@ -80,7 +79,7 @@ public:
 
     // query API
     inline ModelID GetID()                              const { return id_; }
-    inline const ModelName& GetName()                   const { return name_; }
+    inline const char* GetName()                        const { return name_; }
     inline const DirectX::BoundingBox& GetModelAABB()   const { return modelAABB_; }
     inline const DirectX::BoundingBox* GetSubsetsAABB() const { return subsetsAABB_; }
     inline MeshGeometry::Subset* GetSubsets()                 { return meshes_.subsets_; }
@@ -91,8 +90,8 @@ public:
 
 
     // update API
-    inline void SetName(const std::string& name)              { if (!name.empty()) name_ = name; }
-
+    void SetName(const char* newName);
+   
     void SetMaterialForSubset(const SubsetID subsetID, const MaterialID materialID);
     void SetMaterialsForSubsets(
         const SubsetID* subsetIDs,
@@ -111,7 +110,7 @@ public:
     void ComputeSubsetsAABB();
 
 public:
-    ModelName             name_ = "inv";
+    char                  name_[32] = "inv";
     ModelID               id_ = 0;
     uint32_t              numVertices_ = 0;
     uint32_t              numIndices_  = 0;

@@ -10,10 +10,11 @@
 #include "MaterialLightTypes.h"
 #include "Assert.h"
 #include "log.h"
+#include "cvector.h"
 
 #include <d3d11.h>
 #include <DirectXMath.h>
-#include <vector>
+
 
 #pragma warning (disable : 4996)
 
@@ -149,9 +150,13 @@ public:
     {
         try
         {
-            Assert::True(newSize > 0, "wrong value of new size: " + std::to_string(newSize));
+            if (newSize < 0)
+            {
+                sprintf(g_String, "wrong value of new size: %d", newSize);
+                throw LIB_Exception(g_String);
+            }
 
-            // if we need a reallocation (just do nothing if we have enough memory)
+            // if we need a reallocation (or just do nothing if we have enough memory)
             if (newSize > capacity_)
             {
                 // release old memory before allocation of new memory
@@ -170,14 +175,14 @@ public:
         catch (const std::bad_alloc& e)
         {
             Shutdown();
-            Log::Error(e.what());
-            Log::Error("can't allocate memory for the instanced transient data buffer");
+            LogErr(e.what());
+            LogErr("can't allocate memory for the instanced transient data buffer");
         }
         catch (LIB_Exception& e)
         {
             Shutdown();
-            Log::Error(e);
-            Log::Error("can't setup instanced transient data buffer");
+            LogErr(e);
+            LogErr("can't setup instanced transient data buffer");
         }
     }
 
@@ -217,15 +222,15 @@ struct Instance
     // data of a single model instance
     Instance() {}
 
-    char                  name[32]{ '\0' };
-    int                   numInstances = 0;  // how many instances will be rendered
-    UINT                  vertexStride = 0;  // size in bytes of a single vertex
+    char                name[32]{ '\0' };
+    int                 numInstances = 0;  // how many instances will be rendered
+    UINT                vertexStride = 0;  // size in bytes of a single vertex
 
-    ID3D11Buffer*         pVB = nullptr;     // vertex buffer
-    ID3D11Buffer*         pIB = nullptr;     // index buffer
-    std::vector<SRV*>     texSRVs;           // textures arr for each mesh
-    std::vector<Subset>   subsets;           // subInstance (mesh) data
-    std::vector<uint32_t> materialIDs;
+    ID3D11Buffer*       pVB = nullptr;     // vertex buffer
+    ID3D11Buffer*       pIB = nullptr;     // index buffer
+    cvector<SRV*>       texSRVs;           // textures arr for each mesh
+    cvector<Subset>     subsets;           // subInstance (mesh) data
+    cvector<uint32_t>   materialIDs;
     
 
     // --------------------------------
@@ -257,7 +262,7 @@ struct SkyInstance
     UINT              vertexStride = 0;  // size in bytes of a single vertex
     ID3D11Buffer*     pVB = nullptr;     // vertex buffer
     ID3D11Buffer*     pIB = nullptr;     // index buffer
-    std::vector<SRV*> texSRVs;           // textures arr
+    cvector<SRV*>     texSRVs;           // textures arr
     DirectX::XMFLOAT3 colorCenter;       // horizon sky color (for gradient)
     DirectX::XMFLOAT3 colorApex;         // top sky color (for gradient)
 };
@@ -281,10 +286,10 @@ struct RenderDataStorage
     InstBuffData          blendedModelInstBuffer;
     InstBuffData          boundingLineBoxBuffer;
 
-    std::vector<Instance> modelInstances;              // models with default render states
-    std::vector<Instance> alphaClippedModelInstances;
-    std::vector<Instance> blendedModelInstances;
-    std::vector<Instance> boundingLineBoxInstances;
+    cvector<Instance> modelInstances;              // models with default render states
+    cvector<Instance> alphaClippedModelInstances;
+    cvector<Instance> blendedModelInstances;
+    cvector<Instance> boundingLineBoxInstances;
 };
 
 ///////////////////////////////////////////////////////////

@@ -19,12 +19,12 @@ void ModelLoaderM3D::LoadM3d(const std::string& filename, BasicModel& model)
     // read in all data from the .m3d file and
     // fill in the input model with this data
 
-    Log::Debug("load a model from: " + filename);
+    LogDbg("load a model from: " + filename);
 
     std::ifstream fin(filename, std::ios::in | std::ios::binary);
     if (!fin.is_open())
     {
-        Log::Error("can't open .m3d file: " + filename);
+        LogErr("can't open .m3d file: " + filename);
         return;
     }
 
@@ -67,8 +67,8 @@ void ModelLoaderM3D::LoadM3d(const std::string& filename, BasicModel& model)
     }
     catch (std::bad_alloc& e)
     {
-        Log::Error(e.what());
-        Log::Error("can't allocate memory for model's data");
+        LogErr(e.what());
+        LogErr("can't allocate memory for model's data");
         model.~BasicModel();
         SafeDeleteArr(matParams);
     }

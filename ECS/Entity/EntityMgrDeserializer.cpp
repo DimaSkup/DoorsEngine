@@ -7,14 +7,13 @@
 // ********************************************************************************
 #include "EntityMgrDeserializer.h"
 
-#include "../Common/UtilsFilesystem.h"
+#include "../Common/log.h"
 #include "../Common/Assert.h"
+#include "../Common/UtilsFilesystem.h"
+
 
 namespace ECS
 {
-
-
-///////////////////////////////////////////////////////////
 
 void EntityMgrDeserializer::ReadDataHeader(
 	std::ifstream& fin,
@@ -50,12 +49,8 @@ void EntityMgrDeserializer::DeserializeEnttMgrData(
 	// if we read wrong data block
 	if (dataBlockMarker != enttMgrDataBlockMarker)
 	{
-		std::string errMsg;
-		errMsg += "ECS deserialization: read wrong block of data: ";
-		errMsg += "read (" + std::to_string(dataBlockMarker) + ") but must be (";
-		errMsg += std::to_string(enttMgrDataBlockMarker) + ")";
-		
-		throw LIB_Exception(errMsg);
+        sprintf(g_String, "ECS deserialization: read wrong block of dataæ read (%ud) but must be (%ud)", dataBlockMarker, enttMgrDataBlockMarker);
+		throw LIB_Exception(g_String);
 	}
 
 	// --------------------------------

@@ -5,6 +5,7 @@
 #include "ModelExporter.h"
 
 #include <CoreCommon/FileSystemPaths.h>
+#include <CoreCommon/FileSystem.h>
 #include "../Texture/TextureTypes.h"
 #include "ImgConverter.h"
 #include "../Texture/TextureMgr.h"
@@ -14,6 +15,7 @@
 #include <map>
 
 namespace fs = std::filesystem;
+
 
 namespace Core
 {
@@ -30,28 +32,39 @@ ModelExporter::ModelExporter()
 void ModelExporter::ExportIntoDE3D(
 	ID3D11Device* pDevice,
 	const BasicModel& model,
-	const std::string& dstRelativePath)
+	const char* dstRelativePath)
 {
 	// store model's data into a .de3d file by path
 
-	const fs::path fullPath = g_RelPathAssetsDir + dstRelativePath;
-	const fs::path targetDir = fullPath.parent_path().string();
+    if ((dstRelativePath == nullptr) && (dstRelativePath[0] == '\0'))
+    {
+        LogErr("can't export model into internal .de3d format: dst path is empty!");
+        return;
+    }
 
-	// create a directory for this exported model (if not exist)
+    char targetDir[256]{ '\0' };
+    char* fullPath = g_String;
+
+    // generate a full path and target directory path
+    sprintf(fullPath, "%s%s", g_RelPathAssetsDir, dstRelativePath);
+    FileSys::GetParentPath(fullPath, targetDir);
+
+	// create a directory for this exported model (if dir not exist)
 	if (!fs::exists(targetDir))
 		fs::create_directory(targetDir);
 
 	// open .de3d file for writing model's data
-	std::ofstream fout(fullPath.string(), std::ios::out | std::ios::binary);
+	std::ofstream fout(fullPath, std::ios::out | std::ios::binary);
 	if (!fout)
 	{
-		Log::Error("can't open a file for exporting: " + fullPath.string());
+        sprintf(g_String, "can't open a file for model exporting (into .de3d format): %s", fullPath);
+		LogErr(g_String);
 		return;
 	}
 
 	
 	WriteHeader(fout, model);
-	WriteMaterials(pDevice, fout, model, targetDir.string());
+	WriteMaterials(pDevice, fout, model, targetDir);
 	WriteSubsetTable(fout, model.meshes_.subsets_, model.numSubsets_);
 
 	WriteModelSubsetsAABB(fout, model.modelAABB_, model.subsetsAABB_, model.numSubsets_);
@@ -98,9 +111,6 @@ void WriteTextureIntoFile(
 	DXGI_FORMAT targetFormat = DXGI_FORMAT_BC3_UNORM;
 	const DirectX::TEX_FILTER_FLAGS filter = DirectX::TEX_FILTER_DEFAULT;
 
-
-	// ---------------------------------------------
-
 	// defines if we need to rewrite a .dds texture by input path
 	bool needToRewrite = false;
 
@@ -114,7 +124,12 @@ void WriteTextureIntoFile(
 			DirectX::DDS_FLAGS_NONE,
 			metadata);
 
-		Assert::NotFailed(hr, "can't get metadata from file: " + texFullPath.string());
+        if (FAILED(hr))
+        {
+            sprintf(g_String, "can't get metadata from texture file: %s", texFullPath.string().c_str());
+            LogErr(g_String);
+            return;
+        }
 
 		// check if it has proper params
 		needToRewrite |= (metadata.format != targetFormat);
@@ -129,11 +144,9 @@ void WriteTextureIntoFile(
 
 	// load a texture data from memory and store it as .dds file
 	DirectX::ScratchImage srcImage;
-	//DirectX::ScratchImage procImage;
-	
 	DirectX::ScratchImage dstImage;
-
 	ImgReader::ImgConverter converter;
+
 	converter.LoadFromMemory(pDevice, pContext, pTexResource, srcImage);
 
 	// if we need to execute any processing
@@ -160,7 +173,7 @@ void WriteSubsetTextures(
 	ID3D11DeviceContext* pContext,
 	TexID* texIDs, 
 	const int subsetID,
-	const std::string& texDirFullPath)
+	const char* texDirFullPath)
 {
 #if 0
 	const int offset = subsetID * NUM_TEXTURE_TYPES;           // each subset (mesh) has 22 textures types
@@ -227,7 +240,7 @@ void ModelExporter::WriteMaterials(
 	ID3D11Device* pDevice,
 	std::ofstream& fout, 
 	const BasicModel& model,
-	const std::string& targetDirFullPath)
+	const char* targetDirFullPath)
 {
 #if 0
 	// write materials (light properties) and textures data of each model's subset
