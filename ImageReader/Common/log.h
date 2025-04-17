@@ -32,32 +32,30 @@ namespace ImgReader
 #define BOLDBLUE    "\033[1m\033[34m"       /* Bold Blue */
 #define BOLDMAGENTA "\033[1m\033[35m"       /* Bold Magenta */
 #define BOLDCYAN    "\033[1m\033[36m"       /* Bold Cyan */
-#define BOLDWHITE   "\033[1m\033[37m"       /* Bold White */;
+#define BOLDWHITE   "\033[1m\033[37m"       /* Bold White */
 
 ///////////////////////////////////////////////////////////
 
-// macros for printing info about ther caller function
-#define LOG_MSG "%s%s() (line: %d): %s%s",      GREEN, __FILE__, __func__, __LINE__, RESET
-#define LOG_ERR "%sERROR: %s() (line: %d): %s%s", RED, __FILE__, __func__, __LINE__, RESET
-#define LOG_DBG "DEBUG: %s() (line: %d): %s",          __FILE__, __func__, __LINE__
+// macros for printing info about the caller
+#define LOG_INFO "%s:%s() (line: %d): %s" __FILE__, __func__, __LINE__
 
 ///////////////////////////////////////////////////////////
 
 extern char g_String[256];
 
-extern bool InitLogger();
-extern void CloseLogger();
+extern bool InitLogger();        // call it at the very beginning of the application
+extern void CloseLogger();       // call it at the very end of the application
 
-
-extern void LogMsg(const char* msg, const std::source_location& location = std::source_location::current());
+// for C++20
+extern void LogMsg(const char* msg, const std::source_location& location = std::source_location::current());   // using: LogMsg("your msg");
 extern void LogDbg(const char* msg, const std::source_location& location = std::source_location::current());
 extern void LogErr(const char* msg, const std::source_location& location = std::source_location::current());
 
-#if 0
-extern void LogMsg(const std::string& msg, const std::source_location& location = std::source_location::current());
-extern void LogDbg(const std::string& msg, const std::source_location& location = std::source_location::current());
-extern void LogErr(const std::string& msg, const std::source_location& location = std::source_location::current());
-#endif
+// for C and C++ under C++20
+extern void LogMsg(const char* fileName, const char* funcName, const int codeLine, const char* msg);           // using: LogMsg(LOG_INFO, "your msg");
+extern void LogDbg(const char* fileName, const char* funcName, const int codeLine, const char* msg);
+extern void LogErr(const char* fileName, const char* funcName, const int codeLine, const char* msg);
+
 
 // variadic arguments
 extern void LogMsgf(const char* format, ...);

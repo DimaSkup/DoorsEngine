@@ -541,7 +541,7 @@ void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
             "wireFence",
             "woodCrate01",
             "woodCrate02",
-            "box01",
+            "box01d",
         };
 
         const std::string texFilenames[numEntts] =
@@ -1599,32 +1599,37 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     // paths to external models
     const std::string lightPolePath             = g_RelPathExtModelsDir + "light_pole/light_pole.obj";
     const std::string treeSprucePath            = g_RelPathExtModelsDir + "trees/tree_spruce/tree_spruce.obj";
-    const std::string treePinePath              = g_RelPathExtModelsDir + "trees/FBX format/tree_pine.fbx";
+    
     //const std::string treeDubPath             = g_RelPathExtModelsDir + "trees/dub/dub.obj";
     const std::string powerHVTowerPath          = g_RelPathExtModelsDir + "power_line/Power_HV_Tower.FBX";
     const std::string barrelPath                = g_RelPathExtModelsDir + "Barrel1/Barrel1.obj";
     const std::string nanosuitPath              = g_RelPathExtModelsDir + "nanosuit/nanosuit.obj";
-    const std::string stalkerFreedom1Path       = g_RelPathExtModelsDir + "stalker_freedom_1/stalker_freedom_1.fbx";
+    
     const std::string stalkerHouseSmallPath     = g_RelPathExtModelsDir + "stalker/stalker-house/source/SmallHouse.fbx";
     const std::string stalkerHouseAbandonedPath = g_RelPathExtModelsDir + "stalker/abandoned-house-20/source/StalkerAbandonedHouse.fbx";
-    const std::string ak47Path                  = g_RelPathExtModelsDir + "aks-74_game_ready/scene.gltf";
+    
     const std::string ak74uPath                 = g_RelPathExtModelsDir + "ak_74u/ak_74u.fbx";
 
     const std::string building9Path             = g_RelPathExtModelsDir + "building9/building9.obj";
     const std::string apartmentPath             = g_RelPathExtModelsDir + "Apartment/Apartment.obj";
     const std::string sovientStatuePath         = g_RelPathExtModelsDir + "sovietstatue_1/sickle&hammer.obj";
+#endif
+    const std::string treePinePath        = std::string(g_RelPathExtModelsDir) + "trees/FBX format/tree_pine.fbx";
+    const std::string stalkerFreedom1Path = std::string(g_RelPathExtModelsDir) + "stalker_freedom_1/stalker_freedom_1.fbx";
+    const std::string ak47Path            = std::string(g_RelPathExtModelsDir) + "aks-74_game_ready/scene.gltf";
 
+#if 1
     // import a model from file by path
     LogDbg("Start of models importing");
 
     //const ModelID lightPoleID      = creator.ImportFromFile(pDevice, lightPolePath);
     //const ModelID treeSpruceID     = creator.ImportFromFile(pDevice, treeSprucePath);
-    //const ModelID treePineID       = creator.ImportFromFile(pDevice, treePinePath.c_str());
+    const ModelID treePineID       = creator.ImportFromFile(pDevice, treePinePath.c_str());
     //const ModelID nanosuitID       = creator.ImportFromFile(pDevice, nanosuitPath);
-    //const ModelID stalkerFreedomID = creator.ImportFromFile(pDevice, stalkerFreedom1Path.c_str());
+    const ModelID stalkerFreedomID = creator.ImportFromFile(pDevice, stalkerFreedom1Path.c_str());
     //const ModelID stalkerHouse1ID  = creator.ImportFromFile(pDevice, stalkerHouseSmallPath);
     //const ModelID stalkerHouse2ID  = creator.ImportFromFile(pDevice, stalkerHouseAbandonedPath);
-    //const ModelID ak47ID           = creator.ImportFromFile(pDevice, ak47Path);
+    const ModelID ak47ID           = creator.ImportFromFile(pDevice, ak47Path.c_str());
     //const ModelID ak74ID           = creator.ImportFromFile(pDevice, ak74uPath);
     //const ModelID barrelID         = creator.ImportFromFile(pDevice, barrelPath);
     //const ModelID powerHVTowerID   = creator.ImportFromFile(pDevice, powerHVTowerPath);
@@ -1806,6 +1811,28 @@ void LoadAssets(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
 
 ///////////////////////////////////////////////////////////
 
+void LoadTreesBillboardsTextures()
+{
+    constexpr int numTreeTexturesPaths = 4;
+
+    // create a texture 2D array for trees billboards
+    std::string treeTexPaths[numTreeTexturesPaths] =
+    {
+            std::string(g_RelPathTexDir) + "tree_pine_diffuse_512.dds",
+            std::string(g_RelPathTexDir) + "tree1.dds",
+            std::string(g_RelPathTexDir) + "tree2.dds",
+            std::string(g_RelPathTexDir) + "tree3.dds"
+    };
+
+    g_TextureMgr.LoadTextureArray(
+        "tree_billboard",
+        treeTexPaths,
+        numTreeTexturesPaths,
+        DXGI_FORMAT_R8G8B8A8_UNORM);
+}
+
+///////////////////////////////////////////////////////////
+
 bool InitializeGraphics::InitializeModels(
     ID3D11Device* pDevice, 
     ID3D11DeviceContext* pDeviceContext,
@@ -1825,22 +1852,7 @@ bool InitializeGraphics::InitializeModels(
     {
         ModelsCreator creator;
 
-        constexpr int numTreeTexturesPaths = 4;
-
-        // create a texture 2D array for trees billboards
-        std::string treeTexPaths[numTreeTexturesPaths] =
-        {
-                std::string(g_RelPathTexDir) + "tree_pine_diffuse_512.dds",
-                std::string(g_RelPathTexDir) + "tree1.dds",
-                std::string(g_RelPathTexDir) + "tree2.dds",
-                std::string(g_RelPathTexDir) + "tree3.dds"
-        };
-
-        g_TextureMgr.LoadTextureArray(
-            treeTexPaths,
-            numTreeTexturesPaths,
-            DXGI_FORMAT_R8G8B8A8_UNORM);
-
+       
 
         // load the "no_texture" texture from the file;
         // (this texture will serve us as "invalid")

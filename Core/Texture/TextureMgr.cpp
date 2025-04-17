@@ -10,12 +10,10 @@
 #include <CoreCommon/MemHelpers.h>
 #include <CoreCommon/log.h>
 #include <CoreCommon/Assert.h>
-//#include <CoreCommon/StrHelper.h>
+#include <CoreCommon/FileSystem.h>
 
 #include "ImageReader.h"
-#include <filesystem>
 
-namespace fs = std::filesystem;
 
 namespace Core
 {
@@ -75,8 +73,8 @@ void TextureMgr::Initialize(ID3D11Device* pDevice)
 
     // create and store a couple of default textures
     //LoadFromFile(g_TexDirPath + "notexture.dds");
-    AddDefaultTex("unloaded",          { pDevice, Colors::UnloadedTextureColor });
-    AddDefaultTex("unhandled_texture", { pDevice, Colors::UnhandledTextureColor });
+    //AddDefaultTex("unloaded",          { pDevice, Colors::UnloadedTextureColor });
+    //AddDefaultTex("unhandled_texture", { pDevice, Colors::UnhandledTextureColor });
 }
 
 ///////////////////////////////////////////////////////////
@@ -101,8 +99,9 @@ void TextureMgr::SetTexName(const TexID id, const char* inName)
         return;
     }
 
+    // length of texture name cannot be bigger than MAX_LENGTH_TEXTURE_NAME
     size_t sz = strlen(inName);
-    sz = (sz > MAX_LENGTH_TEXTURE_NAME) ? MAX_LENGTH_TEXTURE_NAME : sz;  // length of texture name cannot be bigger than MAX_LENGTH_TEXTURE_NAME
+    sz = (sz > MAX_LENGTH_TEXTURE_NAME) ? MAX_LENGTH_TEXTURE_NAME : sz;  
 
     // update name
     names_[idx] = inName;
@@ -221,13 +220,10 @@ TexID TextureMgr::LoadFromFile(const char* path)
 
     try
     {
-        // check if such texture file exists
-        if (fopen(path, "r+") == nullptr)
-        {
-            sprintf(g_String, "there is no texture by path: %s", path);
-            LogErr(g_String);
+#if DEBUG || _DEBUG
+        if (!FileSys::Exists(path))
             return INVALID_TEXTURE_ID;
-        }
+#endif
 
         TexID id = INVALID_TEXTURE_ID;
 
@@ -261,33 +257,28 @@ TexID TextureMgr::LoadFromFile(const char* path)
 ///////////////////////////////////////////////////////////
 
 TexID TextureMgr::LoadTextureArray(
-    const std::string* textureNames,
+    const char* textureObjName,
+    const std::string* texturePaths,
     const size numTextures,
     const DXGI_FORMAT format)
 {
     try
     {
-        Assert::True(textureNames != nullptr, "input ptr to arr of filenames == nullptr");
-        Assert::True(numTextures > 0,         "input number of texture must be > 0");
+        Assert::True(!IsNameEmpty(textureObjName), "input name for the texture object is empty");
+        Assert::True(texturePaths,                 "input ptr to arr of filenames == nullptr");
+        Assert::True(numTextures > 0,              "input number of texture must be > 0");
 
         // check if files exist
         for (index i = 0; i < numTextures; ++i)
         {
-            if (fopen(textureNames[i].c_str(), "r+") == nullptr)
-            {
-                sprintf(g_String, "there is no texture by path: %s", textureNames[i].c_str());
-                LogErr(g_String);
-                return INVALID_TEXTURE_ID;  
-            }
+            if (!FileSys::Exists(texturePaths[0].c_str()))
+                return INVALID_TEXTURE_ID;
         }
 
-        const TexID id = GenID();
-        char texName[32];
-        sprintf(texName, "%s%ud", "texture_array_", id);
-
         // create a texture array object
-        Texture texArr(pDevice_, texName, textureNames, (int)numTextures, format);
+        Texture texArr(pDevice_, textureObjName, texturePaths, (int)numTextures, format);
 
+        const TexID id = GenID();
 
         // store data into the texture manager
         ids_.push_back(id);
@@ -356,7 +347,7 @@ Texture* TextureMgr::GetTexPtrByName(const char* name)
     }
 
     const index idx = names_.find(name);
-    return (idx != -1) ? &textures_[idx] : nullptr;
+    return (idx != -1) ? &textures_[idx] : &textures_[0];
 }
 
 

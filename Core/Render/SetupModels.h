@@ -298,7 +298,7 @@ void SetupCube(BasicModel& cube)
 {
     // manually setup the cube model
 
-    sprintf(g_String, "%s%s", g_RelPathTexDir, "box01.dds");
+    sprintf(g_String, "%s%s", g_RelPathTexDir, "box01d.dds");
     const TexID texID = g_TextureMgr.LoadFromFile(g_String);
 
     // setup material and add it into the material manager

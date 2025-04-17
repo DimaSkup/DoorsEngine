@@ -138,7 +138,7 @@ SentenceID TextStore::CreateSentence(
     catch (Core::EngineException & e)
     {
         LogErr(e, false);
-        sprintf(g_String, "can't create a sentence with the text: ", textContent.c_str());
+        sprintf(g_String, "can't create a sentence with the text: %s", textContent.c_str());
         LogErr(g_String);
         return 0;
     }

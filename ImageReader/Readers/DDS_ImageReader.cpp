@@ -3,12 +3,34 @@
 #include "../Common/log.h"
 #include "DDSTextureLoader11.h"
 #include <d3dx11tex.h>
+#include <string>
 
 #pragma warning (disable : 4996)
 
 namespace ImgReader
 {
 
+    inline static bool IsEmpty(const char* str) { return ((str == nullptr) || (str[0] == '\0')); }
+
+inline static void StrToWide(const char* str, wchar_t* outWStr)
+{
+    // dummy way (or not?) to convert str => wstr
+
+    if (outWStr == nullptr)
+    {
+        LogErr("in-out wide string == nullptr: so we cannot convert str => wstr");
+        return;
+    }
+
+    if (IsEmpty(str))
+    {
+        outWStr[0] = L'\0';
+        return;
+    }
+
+    const size_t sz = strlen(str) + 1;
+    mbstowcs(outWStr, str, sz);
+}
 
 bool DDS_ImageReader::LoadTextureFromFile(
     const char* filePath,
@@ -28,9 +50,15 @@ bool DDS_ImageReader::LoadTextureFromFile(
     D3DX11_IMAGE_LOAD_INFO loadInfo;
     loadInfo.MipLevels = 0;
 
+
+    //std::wstring wStr(filePath, filePath + strlen(filePath));
+    wchar_t wStr[256]{ L'\0' };
+    StrToWide(filePath, wStr);
+
+
     // create a shader resource view from the texture file
     hr = D3DX11CreateShaderResourceViewFromFile(pDevice,
-        (wchar_t*)filePath,   // src file path
+        wStr,   // src file path
         &loadInfo,            // ptr load info
         nullptr,              // ptr pump
         ppTextureView,        // pp shader resource view
@@ -49,7 +77,7 @@ bool DDS_ImageReader::LoadTextureFromFile(
 
     // load information about the texture
     D3DX11_IMAGE_INFO imageInfo;
-    hr = D3DX11GetImageInfoFromFile((wchar_t*)filePath, nullptr, &imageInfo, nullptr);
+    hr = D3DX11GetImageInfoFromFile(wStr, nullptr, &imageInfo, nullptr);
 
     if (FAILED(hr))
     {

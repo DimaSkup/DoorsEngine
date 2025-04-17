@@ -26,45 +26,47 @@ namespace UI
 class ViewFog
 {
 private:
-	IEditorController* pController_ = nullptr;
+    IEditorController* pController_ = nullptr;
 
 public:
-	ViewFog(IEditorController* pController) : pController_(pController)
-	{
-		Core::Assert::NotNullptr(pController, "ptr to the view listener == nullptr");
-	}
+    ViewFog(IEditorController* pController) : pController_(pController)
+    {
+        Core::Assert::NotNullptr(pController, "ptr to the view listener == nullptr");
+    }
 
-	void Draw(const ModelFog* pData)
-	{
-		//
-		// show the fog editor fields
-		//
+    void Draw(const ModelFog* pData)
+    {
+        //
+        // show the fog editor fields
+        //
 
-		using enum eEditorCmdType;
+        using enum eEditorCmdType;
 
-		ColorRGB fogColor;
-		float    fogStart;
-		float    fogRange;
+        // make local copies of the current model data to use it in the fields
+        FogData data;
+        pData->GetData(data);
 
-		// make local copies of the current model data to use it in the fields
-		pData->GetData(fogColor, fogStart, fogRange);
+        if (ImGui::Checkbox("Enable fog", &data.fogEnabled))
+        {
+            // TODO: enable/disable fog
+        }
 
-		// draw editor fields
-		if (ImGui::ColorEdit3("Fog color", fogColor.rgb))
-		{
-			pController_->Execute(new CmdChangeColor(CHANGE_FOG_COLOR, fogColor));
-		}
+        // draw editor fields
+        if (ImGui::ColorEdit3("Fog color", data.fogColor.rgb))
+        {
+            pController_->Execute(new CmdChangeColor(CHANGE_FOG_COLOR, data.fogColor));
+        }
 
-		if (ImGui::DragFloat("Fog start", &fogStart))
-		{
-			pController_->Execute(new CmdChangeFloat(CHANGE_FOG_START, fogStart));
-		}
+        if (ImGui::DragFloat("Fog start", &data.fogStart))
+        {
+            pController_->Execute(new CmdChangeFloat(CHANGE_FOG_START, data.fogStart));
+        }
 
-		if (ImGui::DragFloat("Fog range", &fogRange))
-		{
-			pController_->Execute(new CmdChangeFloat(CHANGE_FOG_RANGE, fogRange));
-		}
-	}
+        if (ImGui::DragFloat("Fog range", &data.fogRange))
+        {
+            pController_->Execute(new CmdChangeFloat(CHANGE_FOG_RANGE, data.fogRange));
+        }
+    }
 };
 
 } // namespace UI

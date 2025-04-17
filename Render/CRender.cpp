@@ -591,6 +591,8 @@ void CRender::SetFogParams(
     cbpsRareChanged_.ApplyChanges(pContext);
 }
 
+
+
 ///////////////////////////////////////////////////////////
 
 void CRender::SetSkyGradient(

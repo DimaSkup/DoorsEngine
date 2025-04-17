@@ -221,9 +221,13 @@ public:
     // =============================================================================
     // get/set fog props
     // =============================================================================
-    virtual bool GetFogData(ColorRGB& fogColor, float& fogStart, float& fogRange) { return false; }
-    virtual bool SetFogParams(const ColorRGB& color, const float start, const float range) { return false; }
+    virtual bool GetFogData(ColorRGB& fogColor, float& fogStart, float& fogRange, bool& fogEnabled) { return false; }
 
+    virtual bool SetFogStart  (const float start)     { return false; }
+    virtual bool SetFogRange  (const float range)     { return false; }
+    virtual bool SetFogEnabled(const bool enabled)    { return false; }
+    virtual bool SetFogColor  (const ColorRGB& color) { return false; }
+    
 
     // =============================================================================
     // for the debug

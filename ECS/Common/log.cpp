@@ -18,16 +18,16 @@ namespace ECS
 char g_String[256]{ '\0' };
 
 // a buffer for internal using 
-static char s_TmpString[256]{ '\0' };
+static char s_TmpStr[256]{ '\0' };
 
 // a static descriptor of the log file 
 static FILE* s_pLogFile = nullptr;
 
 // helpers prototypes
 std::string GetPathFromProjRoot(const std::string& fullPath);
-void PrintHelper(const char* lvlText, const char* text);
-void PrepareMsg(const char* msg, const std::source_location& loc);
-void PrintExceptionErrHelper(const LIB_Exception& e, const bool showMsgBox);
+void        PrintHelper(const char* lvlText, const char* text);
+const char* PrepareMsg(const char* msg, const std::source_location& loc);
+void        PrintExceptionErrHelper(const LIB_Exception& e, const bool showMsgBox);
 
 // =================================================================================
 
@@ -62,6 +62,9 @@ void CloseLogger()
 {
     // print message about closing of the log file and close it
 
+    if (s_pLogFile == nullptr)
+        return;
+
     char time[9];
     char date[9];
 
@@ -82,8 +85,8 @@ void CloseLogger()
 void LogMsg(const char* msg, const std::source_location& loc)
 {
     printf("%s", GREEN);                                // setup console color
-    PrepareMsg(msg, loc);
-    PrintHelper("", s_TmpString);
+    const char* buf = PrepareMsg(msg, loc);
+    PrintHelper("", buf);
     printf("%s", RESET);                                // reset console color
 }
 
@@ -91,17 +94,17 @@ void LogMsg(const char* msg, const std::source_location& loc)
 
 void LogDbg(const char* msg, const std::source_location& loc)
 {
-    PrepareMsg(msg, loc);
-    PrintHelper("DEBUG: ", s_TmpString);
+    const char* buf = PrepareMsg(msg, loc);
+    PrintHelper("DEBUG: ", buf);
 }
 
 ///////////////////////////////////////////////////////////
 
 void LogErr(const char* msg, const std::source_location& loc)
 {
-    printf("%s", GREEN);                                // setup console color
-    PrepareMsg(msg, loc);
-    PrintHelper("ERROR: ", s_TmpString);
+    printf("%s", RED);                                  // setup console color
+    const char* buf = PrepareMsg(msg, loc);
+    PrintHelper("ERROR: ", buf);
     printf("%s", RESET);                                // reset console color
 }
 
@@ -123,8 +126,8 @@ void LogMsgf(const char* format, ...)
     va_list args;
     va_start(args, format);
 
-    vsprintf(s_TmpString, format, args);
-    PrintHelper("", s_TmpString);
+    vsprintf(s_TmpStr, format, args);
+    PrintHelper("", s_TmpStr);
     printf("%s", RESET);                  // reset console color
 
     va_end(args);
@@ -179,15 +182,17 @@ void PrintHelper(const char* lvlText, const char* text)
 
 ///////////////////////////////////////////////////////////
 
-void PrepareMsg(const char* msg, const std::source_location& loc)
+const char* PrepareMsg(const char* msg, const std::source_location& loc)
 {
     // prepare a message for logger and put it into the global buffer (g_String)
 
-    sprintf(s_TmpString, "%s: %s() (line: %d): %s\n",
+    sprintf(s_TmpStr, "%s: %s() (line: %d): %s\n",
         GetPathFromProjRoot(loc.file_name()).c_str(),   // relative path to the caller file
         loc.function_name(),                            // a function name where we call this log-function
         loc.line(),                                     // at what line
         msg);
+
+    return s_TmpStr;
 }
 
 ///////////////////////////////////////////////////////////
@@ -199,7 +204,7 @@ void PrintExceptionErrHelper(const LIB_Exception& e, const bool showMsgBox)
         MessageBoxW(NULL, e.GetStrWide(), L"Error", MB_ICONERROR);
 
     // print an error msg into the console and log file
-    printf("%s", RED);                                   // setup console color
+    printf("%s", BOLDRED);                                   // setup console color
     PrintHelper("ERROR: ", e.GetConstStr());
     printf("%s", RESET);                                 // reset console color
 }

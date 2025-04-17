@@ -47,7 +47,8 @@ public:
     TexID LoadFromFile(const char* path);
         
     TexID LoadTextureArray(
-        const std::string* textureNames,
+        const char* textureObjName,
+        const std::string* texturePaths,
         const size numTextures,
         const DXGI_FORMAT format);
 
@@ -87,14 +88,14 @@ private:
     inline int GenID() { return lastTexID_++; }
 
 private:
-    static TexID        lastTexID_;
-    static TextureMgr*  pInstance_;
-    ID3D11Device*       pDevice_ = nullptr;
+    static TexID         lastTexID_;
+    static TextureMgr*   pInstance_;
+    ID3D11Device*        pDevice_ = nullptr;
 
-    cvector<TexID>      ids_;                 // SORTED array of unique IDs
-    cvector<SRV*>       shaderResourceViews_;
-    cvector<std::string>    names_;               // name (there can be path) which is used for searching of texture
-    cvector<Texture>    textures_;
+    cvector<TexID>       ids_;                 // SORTED array of unique IDs
+    cvector<SRV*>        shaderResourceViews_;
+    cvector<std::string> names_;               // name (there can be path) which is used for searching of texture
+    cvector<Texture>     textures_;
 };
 
 

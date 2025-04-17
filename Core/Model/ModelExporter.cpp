@@ -5,7 +5,7 @@
 #include "ModelExporter.h"
 
 #include <CoreCommon/FileSystemPaths.h>
-#include <CoreCommon/StrHelper.h>
+#include <CoreCommon/FileSystem.h>
 #include "../Texture/TextureTypes.h"
 #include "ImgConverter.h"
 #include "../Texture/TextureMgr.h"
@@ -46,8 +46,8 @@ void ModelExporter::ExportIntoDE3D(
     char* fullPath = g_String;
 
     // generate a full path and target directory path
-    sprintf(g_String, "%s%s", g_RelPathAssetsDir, dstRelativePath);
-    StrHelper::GetParentPath(fullPath, targetDir);
+    sprintf(fullPath, "%s%s", g_RelPathAssetsDir, dstRelativePath);
+    FileSys::GetParentPath(fullPath, targetDir);
 
 	// create a directory for this exported model (if dir not exist)
 	if (!fs::exists(targetDir))

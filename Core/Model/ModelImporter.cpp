@@ -7,7 +7,7 @@
 
 #include <CoreCommon/log.h>
 #include <CoreCommon/Assert.h>
-#include <CoreCommon/StrHelper.h>
+#include <CoreCommon/FileSystem.h>
 #include "ModelMath.h"
 
 #include "../Mesh/MaterialMgr.h"
@@ -17,8 +17,9 @@
 
 #include <thread>
 #include <chrono>
+#include <map>
 
-namespace fs = std::filesystem;
+//namespace fs = std::filesystem;
 using namespace DirectX;
 
 namespace Core
@@ -55,7 +56,7 @@ bool ModelImporter::LoadFromFile(
     try
     {
         char fileExt[8];
-        StrHelper::GetFileExt(filePath, fileExt);
+        FileSys::GetFileExt(filePath, fileExt);
 
         // define if we want to load (import) .m3d file
         if (strcmp(fileExt, "m3d") == 0)
@@ -325,8 +326,7 @@ void ModelImporter::LoadMaterialTextures(
 
   
 
-    std::pair<aiTextureType, std::string> texTypeToPath[22];
-    int numTexLoadFromFile = 0;
+    std::map<aiTextureType, std::string> texTypeToPath;
 
     // compute the duration of textures loading for this model
     auto start = std::chrono::steady_clock::now();
@@ -360,11 +360,10 @@ void ModelImporter::LoadMaterialTextures(
                 // make and store a pair [texture_type => texture_filepath]
                  // get path to the directory which contains a model's data file
                 char texturePath[256]{ '\0' };
-                StrHelper::GetParentPath(filePath, g_String);
+                FileSys::GetParentPath(filePath, g_String);
                 sprintf(texturePath, "%s%s", g_String, path.C_Str());
 
-                texTypeToPath[numTexLoadFromFile] = { type, texturePath };
-                numTexLoadFromFile++;
+                texTypeToPath.insert_or_assign(type, texturePath);
 
                 break;
             }
@@ -375,7 +374,7 @@ void ModelImporter::LoadMaterialTextures(
                 const aiTexture* pAiTexture = pScene->GetEmbeddedTexture(path.C_Str());
 
                 char textureName[64]{ '\0' };
-                StrHelper::GetFileName(path.C_Str(), textureName);
+                FileSys::GetFileName(path.C_Str(), textureName);
 
                 // add into the tex mgr a new texture
                 const TexID id = g_TextureMgr.Add(textureName, Texture(
@@ -394,7 +393,7 @@ void ModelImporter::LoadMaterialTextures(
             {
                 const UINT index = GetIndexOfEmbeddedCompressedTexture(&path);
                 char textureName[64]{ '\0' };
-                StrHelper::GetFileName(path.C_Str(), textureName);
+                FileSys::GetFileName(path.C_Str(), textureName);
 
                 // add into the tex mgr a new texture
                 const TexID id = g_TextureMgr.Add(textureName, Texture(

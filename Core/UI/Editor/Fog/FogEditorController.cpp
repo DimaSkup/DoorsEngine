@@ -20,11 +20,12 @@ void FogEditorController::Initialize(IFacadeEngineToUI* pFacade)
 
 	// initialize the fog editor model  
 	ColorRGB fogColor;
-	float    fogStart;
-	float    fogRange;
+	float    fogStart = 5.0f;
+	float    fogRange = 100.0f;
+    bool     fogEnabled = true;
 
-	if (pFacade_->GetFogData(fogColor, fogStart, fogRange))
-		fogModel_.Update(fogColor, fogStart, fogRange);
+	if (pFacade_->GetFogData(fogColor, fogStart, fogRange, fogEnabled))
+		fogModel_.Update(fogColor, fogStart, fogRange, fogEnabled);
 	else
 		Core::LogErr("can't gather data for the fog editor :(");
 }
@@ -49,7 +50,7 @@ void FogEditorController::Execute(const ICommand* pCommand)
 		{
 			const ColorRGB newFogColor = pCommand->GetColorRGB();
 
-			if (pFacade_->SetFogParams(newFogColor, data.GetStart(), data.GetRange()))
+			if (pFacade_->SetFogColor(newFogColor))
 			{
 				data.SetColor(newFogColor);
 				// TODO: store the command into the events history
@@ -62,7 +63,7 @@ void FogEditorController::Execute(const ICommand* pCommand)
 		{
 			const float newFogStart = pCommand->GetFloat();
 
-			if (pFacade_->SetFogParams(data.GetColor(), newFogStart, data.GetRange()))
+			if (pFacade_->SetFogStart(newFogStart))
 			{
 				data.SetStart(newFogStart);
 				// TODO: store the command into the events history
@@ -75,7 +76,7 @@ void FogEditorController::Execute(const ICommand* pCommand)
 		{
 			const float newFogRange = pCommand->GetFloat();
 
-			if (pFacade_->SetFogParams(data.GetColor(), data.GetStart(), newFogRange))
+			if (pFacade_->SetFogRange(newFogRange))
 			{
 				data.SetRange(newFogRange);
 				// TODO: store the command into the events history

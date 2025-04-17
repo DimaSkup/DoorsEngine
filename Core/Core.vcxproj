@@ -278,6 +278,7 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClInclude Include="CoreCommon\Assert.h" />
     <ClInclude Include="CoreCommon\Convert.h" />
     <ClInclude Include="CoreCommon\cvector.h" />
+    <ClInclude Include="CoreCommon\FileSystem.h" />
     <ClInclude Include="CoreCommon\FileSystemPaths.h" />
     <ClInclude Include="CoreCommon\EngineException.h" />
     <ClInclude Include="CoreCommon\MathHelper.h" />

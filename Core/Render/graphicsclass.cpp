@@ -649,6 +649,8 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
 
         if (skyEnttID != 0)
             RenderSkyDome(pRender, skyOffset);
+
+        RenderFoggedBillboards(pRender, pEnttMgr);
 #if 0
         pDeviceContext_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 
@@ -666,7 +668,7 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
 
 
         RenderBoundingLineSpheres();
-        RenderBillboards();
+        
         
         RenderEnttsBlended();
 #endif
@@ -907,7 +909,7 @@ void CGraphics::RenderFoggedBillboards(
     const size numFoggedEntts = rsDataToRender_.enttsFogged_.ids_.size();
 
     // if we don't have any billboard to render we just go out
-    if (numFoggedEntts > 0)
+    if (numFoggedEntts == 0)
         return;
 
     d3d_.TurnOnBlending(ALPHA_TO_COVERAGE);
@@ -939,7 +941,7 @@ void CGraphics::RenderFoggedBillboards(
     Render::Instance instance;
     instance.pVB = pGeomVB_;
     instance.pIB = pGeomIB_;
-    instance.texSRVs = { g_TextureMgr.GetTexPtrByName("texture_array")->GetTextureResourceView() };
+    instance.texSRVs = { g_TextureMgr.GetTexPtrByName("tree_billboard")->GetTextureResourceView() };
     instance.vertexStride = sizeof(TreePointSprite);
 
     pRender->shadersContainer_.billboardShader_.Render(pDeviceContext_, instance);

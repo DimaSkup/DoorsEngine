@@ -90,10 +90,8 @@ public:
         InitializeGUI(pDevice, pContext, d3d.GetWindowWidth(), d3d.GetWindowHeight());
 
         // create a str with duration time of the engine initialization process
-        char buf[32] {'\0'};
-        sprintf(buf, "Engine init time: %s s", engine_.GetTimer().GetGameTime());
-        userInterface_.CreateConstStr(pDevice, buf, { 10, 325 });
-
+        sprintf(g_String, "Engine init time: %f s", engine_.GetTimer().GetGameTime());
+        userInterface_.CreateConstStr(pDevice, g_String, { 10, 325 });
     }
 
     /////////////////////////////////////////////////

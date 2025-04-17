@@ -745,11 +745,12 @@ bool FacadeEngineToUI::SetSkyTexture(const int idx, const uint32_t textureID)
 bool FacadeEngineToUI::GetFogData(
     ColorRGB& fogColor,
     float& fogStart,     // distance where the fog starts
-    float& fogRange)     // distance after which the objects are fully fogged
+    float& fogRange,     // distance after which the objects are fully fogged
+    bool& fogEnabled)
 {
     DirectX::XMFLOAT3 color;
 
-    pRender_->GetFogData(color, fogStart, fogRange);
+    pRender_->GetFogData(color, fogStart, fogRange, fogEnabled);
     fogColor = { color.x, color.y, color.z };
 
     return true;
@@ -757,11 +758,26 @@ bool FacadeEngineToUI::GetFogData(
 
 ///////////////////////////////////////////////////////////
 
-bool FacadeEngineToUI::SetFogParams(const ColorRGB& color, const float start, const float range)
+bool FacadeEngineToUI::SetFogStart(const float start)
 {
-    pRender_->SetFogParams(pContext_, color.ToFloat3(), start, range);
     return true;
 }
+
+bool FacadeEngineToUI::SetFogRange(const float range)
+{
+    return true;
+}
+
+bool FacadeEngineToUI::SetFogEnabled(const bool enabled)
+{
+    return true;
+}
+
+bool FacadeEngineToUI::SetFogColor(const ColorRGB& color)
+{
+    return true;
+}
+
 
 
 // =================================================================================

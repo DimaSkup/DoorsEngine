@@ -182,9 +182,13 @@ public:
     // =============================================================================
     // for the fog editor
     // =============================================================================
-    virtual bool GetFogData(ColorRGB& fogColor, float& fogStart, float& fogRange) override;
-    virtual bool SetFogParams(const ColorRGB& color, const float start, const float range) override;
+    virtual bool GetFogData(ColorRGB& fogColor, float& fogStart, float& fogRange, bool& fogEnabled) override;
 
+    virtual bool SetFogStart  (const float start)      override;
+    virtual bool SetFogRange  (const float range)      override;
+    virtual bool SetFogEnabled(const bool enabled)     override;
+    virtual bool SetFogColor  (const ColorRGB& color)  override;
+    
 
     // =============================================================================
     // for debugging

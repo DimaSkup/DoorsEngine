@@ -6,7 +6,9 @@
 
 #include "Common/log.h"
 #include "Common/LIB_Exception.h"
+#include "Common/FileSystem.h"
 #include "Common/Assert.h"
+#include "Common/StrHelper.h"
 
 // image readers for different types
 #include "Readers/DDS_ImageReader.h"
@@ -15,9 +17,6 @@
 #include "Readers/BMP_Image.h"
 
 #include <d3dx11tex.h>
-#include <filesystem>
-
-namespace fs = std::filesystem;
 
 
 namespace ImgReader
@@ -37,27 +36,32 @@ bool ImageReader::LoadTextureFromFile(
 	{	
 		CheckInputParams(texData);
 
-		const std::string texExt = fs::path(texData.filePath).extension().string();
+        // get texture extension
+        char ext[8]{'\0'};
+        FileSys::GetFileExt(texData.filePath, ext);
 
-		if ((texExt == ".png") || (texExt == ".jpg") || (texExt == ".jpeg"))
+
+		if ((strcmp(ext, ".png")  == 0) ||
+            (strcmp(ext, ".jpg")  == 0) ||
+            (strcmp(ext, ".jpeg") == 0))
 		{
 			LoadPNGTexture(pDevice, texData);
 		}
-		else if (texExt == ".dds")
+		else if (strcmp(ext, ".dds") == 0)
 		{
 			LoadDDSTexture(pDevice, texData);
 		}
-		else if (texExt == ".tga")
+		else if (strcmp(ext, ".tga") == 0)
 		{
 			LoadTGATexture(pDevice, texData);
 		}
-		else if (texExt == ".bmp")
+		else if (strcmp(ext, ".bmp") == 0)
 		{
 			LoadBMPTexture(pDevice, texData);
 		}
 		else
 		{
-			sprintf(g_String, "unknown image extension: %s", texExt.c_str());
+			sprintf(g_String, "unknown image extension: %s", ext);
             LogErr(g_String);
             return false;
 		}
@@ -134,7 +138,8 @@ void ImageReader::CheckInputParams(const DXTextureData& data)
 
 void ImageReader::LoadPNGTexture(ID3D11Device* pDevice, DXTextureData& data)
 {
-	const std::wstring wFilePath((wchar_t*)data.filePath);
+    wchar_t wFilePath[256]{ L'\0' };
+    StrHelper::StrToWide(data.filePath, wFilePath);
 
 	ID3D11DeviceContext* pContext = nullptr;
 	pDevice->GetImmediateContext(&pContext);
@@ -142,7 +147,7 @@ void ImageReader::LoadPNGTexture(ID3D11Device* pDevice, DXTextureData& data)
 	const HRESULT hr = DirectX::CreateWICTextureFromFileEx(
 		pDevice,
 		pContext,                                              // pass the context to make possible auto-gen of mipmaps
-		wFilePath.c_str(),
+		wFilePath,
 		0,                                                     // max size
 		D3D11_USAGE_DEFAULT, 
 		D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET,

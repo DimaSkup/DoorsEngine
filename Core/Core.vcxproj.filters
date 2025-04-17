@@ -755,6 +755,9 @@
     <ClInclude Include="CoreCommon\Assert.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CoreCommon\FileSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="ECS_Entity\EntityManagerInlineFunc.inl">

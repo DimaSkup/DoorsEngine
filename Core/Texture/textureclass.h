@@ -55,7 +55,7 @@ public:
     // a constructor for loading textures from the disk
     Texture(ID3D11Device* pDevice, const char* filePath);	
 
-    // a constructor for loading multiple textures to create a Texture2DArray
+    // for multiple textures to create a Texture2DArray
     Texture(
         ID3D11Device* pDevice,
         const char* name,            // a name for this texture object

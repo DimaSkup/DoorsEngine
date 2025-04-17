@@ -34,18 +34,28 @@ void FontClass::Initialize(
 
 	try
 	{
+#if 1
+        FILE* pFile = nullptr;
+
 		// check input params
-        if (fopen(fontDataFilePath.c_str(), "r+") == nullptr)
+        if ((pFile = fopen(fontDataFilePath.c_str(), "r+")) == nullptr)
         {
             sprintf(g_String, "there is no file for font data by path: %s", fontDataFilePath.c_str());
             LogErr(g_String);
         }
 
-        if (fopen(fontTexFilePath.c_str(), "r+") == nullptr)
+        if (pFile)
+            fclose(pFile);
+
+        if ((pFile = fopen(fontTexFilePath.c_str(), "r+")) == nullptr)
         {
             sprintf(g_String, "there is no file for font texture by path: %s", fontTexFilePath.c_str());
             LogErr(g_String);
         }
+
+        if (pFile)
+            fclose(pFile);
+#endif
 
 		// load and initialize a texture for this font
 		fontTexID_ = g_TextureMgr.LoadFromFile(fontTexFilePath.c_str());

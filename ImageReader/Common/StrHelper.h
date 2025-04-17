@@ -1,8 +1,8 @@
 // ================================================================================
 // Filename:     StrHelper.h
-// Description:  - functional for strings convertation;
+// Description:  functional for strings convertation;
 // 
-// Created:      
+// Created:      17.04.2025 by DimaSkup
 // ================================================================================
 #pragma once
 
@@ -11,7 +11,7 @@
 #pragma warning (disable : 4996)
 
 
-namespace Core
+namespace ImgReader
 {
 
 class StrHelper
@@ -35,7 +35,6 @@ public:
 
         if (IsEmpty(str))
         {
-            LogErr("input string is empty");
             outWStr[0] = L'\0';
             return;
         }
@@ -58,6 +57,7 @@ public:
 
         if (IsEmpty(wstr))
         {
+            LogErr("input string is empty");
             outStr[0] = '\0';
             return;
         }

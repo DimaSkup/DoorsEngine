@@ -42,7 +42,7 @@ void TextureAssetsBrowser::Render(IFacadeEngineToUI* pFacade, bool* pOpen)
     }
 
     ImGui::SetNextWindowContentSize(ImVec2(0.0f, layoutOuterPadding_ + numLayoutLine_ * (layoutItemSize_.y + layoutItemSpacing_)));
-    const int textLineHeight = ImGui::GetTextLineHeightWithSpacing();
+    const float textLineHeight = ImGui::GetTextLineHeightWithSpacing();
 
 
     // menu bar

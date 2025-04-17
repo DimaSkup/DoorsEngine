@@ -8,7 +8,7 @@
 
 #include <CoreCommon/FileSystemPaths.h>
 #include <CoreCommon/MathHelper.h>
-#include <CoreCommon/StrHelper.h>
+#include <CoreCommon/FileSystem.h>
 #include "ModelMath.h"
 #include "../Engine/Settings.h"
 
@@ -85,7 +85,7 @@ ModelID ModelsCreator::ImportFromFile(
         BasicModel& model = g_ModelMgr.AddEmptyModel();
 
         // set a name and type for the model
-        StrHelper::GetFileStem(modelPath, g_String);
+        FileSys::GetFileStem(modelPath, g_String);
 
         model.SetName(g_String);
         model.type_ = eModelType::Imported;

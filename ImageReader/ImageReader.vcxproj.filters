@@ -51,6 +51,12 @@
     <ClInclude Include="Common\LIB_Exception.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Common\StrHelper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\FileSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Readers\BMP_Image.cpp">
@@ -80,8 +86,5 @@
     <ClCompile Include="Common\LIB_Exception.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="ClassDiagram.cd" />
   </ItemGroup>
 </Project>

@@ -108,11 +108,13 @@ public:
     inline ShadersContainer& GetShadersContainer() { return shadersContainer_; }
     inline LightShader&      GetLightShader()      { return shadersContainer_.lightShader_; }
 
-    inline void GetFogData(DirectX::XMFLOAT3& color, float& start, float& range)
+    inline void GetFogData(DirectX::XMFLOAT3& color, float& start, float& range, bool& enabled)
     {
-        color = cbpsRareChanged_.data.fogColor;
-        start = cbpsRareChanged_.data.fogStart;
-        range = cbpsRareChanged_.data.fogRange;
+        // cbps - const buffer for pixel shader
+        color   = cbpsRareChanged_.data.fogColor;
+        start   = cbpsRareChanged_.data.fogStart;
+        range   = cbpsRareChanged_.data.fogRange;
+        enabled = cbpsRareChanged_.data.fogEnabled;
     }
 
     // ================================================================================
