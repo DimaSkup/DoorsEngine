@@ -41,6 +41,8 @@ bool CRender::Initialize(
 {
     try
     {
+        pContext_ = pContext;
+
         bool result = true;
         HRESULT hr = S_OK;
         InitRender init;
@@ -91,8 +93,8 @@ bool CRender::Initialize(
         //hr = cbgsFixed_.Initialize(pDevice, pContext);
         //Assert::NotFailed(hr, "can't initialize const buffer for GS");
 
-
-        SetFogParams(pContext, params.fogColor, params.fogStart, params.fogRange);
+        // init fog params
+        InitFogParams(pContext, params.fogColor, params.fogStart, params.fogRange);
 
         // load rare changed data (default values if we didn't setup any) into GPU 
         cbpsRareChanged_.ApplyChanges(pContext);
@@ -490,15 +492,6 @@ void CRender::RenderSkyDome(
 //                              effects control
 // =================================================================================
 
-void CRender::SwitchFogEffect(ID3D11DeviceContext* pContext, const bool state)
-{
-    // turn on/off the fog effect
-    cbpsRareChanged_.data.fogEnabled = state;
-    cbpsRareChanged_.ApplyChanges(pContext);
-}
-
-///////////////////////////////////////////////////////////
-
 void CRender::SwitchFlashLight(ID3D11DeviceContext* pContext, const bool state)
 {
     // switch the flashlight state
@@ -571,9 +564,45 @@ void CRender::SetDirLightsCount(ID3D11DeviceContext* pContext, int numOfLights)
     cbpsRareChanged_.ApplyChanges(pContext);
 }
 
+// =================================================================================
+// Fog control
+// =================================================================================
+void CRender::SetFogEnabled(ID3D11DeviceContext* pContext, const bool state)
+{
+    // turn on/off the fog effect
+    cbpsRareChanged_.data.fogEnabled = state;
+    cbpsRareChanged_.ApplyChanges(pContext);
+}
+
 ///////////////////////////////////////////////////////////
 
-void CRender::SetFogParams(
+void CRender::SetFogStart(ID3D11DeviceContext* pContext, const float start)
+{
+    // setup where the for starts
+    cbpsRareChanged_.data.fogStart = (start > 0) ? start : 0.0f;
+    cbpsRareChanged_.ApplyChanges(pContext);
+}
+
+///////////////////////////////////////////////////////////
+
+void CRender::SetFogRange(ID3D11DeviceContext* pContext, const float range)
+{
+    // setup distance after start where objects will be fully fogged
+    cbpsRareChanged_.data.fogRange = (range > 1) ? range : 1.0f;
+    cbpsRareChanged_.ApplyChanges(pContext);
+}
+
+///////////////////////////////////////////////////////////
+
+void CRender::SetFogColor(ID3D11DeviceContext* pContext, const DirectX::XMFLOAT3 color)
+{
+    cbpsRareChanged_.data.fogColor = color;
+    cbpsRareChanged_.ApplyChanges(pContext);
+}
+
+///////////////////////////////////////////////////////////
+
+void CRender::InitFogParams(
     ID3D11DeviceContext* pContext,
     const DirectX::XMFLOAT3& fogColor,
     const float fogStart,
@@ -582,8 +611,7 @@ void CRender::SetFogParams(
     const float start = (fogStart) ? fogStart : 0.0f;
     const float range = (fogRange) ? fogRange : 10.0f;
 
-    // since fog props is changed very rarely we use this separate function to 
-    // control various fog params
+    // since fog props is changed very rarely we setup rare changed cbps (const buffer for pixel shader)
     cbpsRareChanged_.data.fogColor = fogColor;
     cbpsRareChanged_.data.fogStart = start;
     cbpsRareChanged_.data.fogRange = range;
@@ -592,9 +620,9 @@ void CRender::SetFogParams(
 }
 
 
-
-///////////////////////////////////////////////////////////
-
+// =================================================================================
+// Sky control
+// =================================================================================
 void CRender::SetSkyGradient(
     ID3D11DeviceContext* pContext,
     const DirectX::XMFLOAT3& colorCenter,
@@ -660,16 +688,22 @@ void CRender::UpdateLights(
     // load updated light sources data into const buffers
     //
 
+    // if for some reason we need to update the number of directed light sources
+    if (cbpsRareChanged_.data.numOfDirLights != numDirLights)
+    {
+        cbpsRareChanged_.data.numOfDirLights = numDirLights;
+        cbpsRareChanged_.ApplyChanges(pContext_);
+    }
     
     // update directional light sources
-    for (int i = 0; i < cbpsRareChanged_.data.numOfDirLights; ++i)
+    for (int i = 0; i < numDirLights; ++i)
         cbpsPerFrame_.data.dirLights[i] = dirLights[i];
 
     // we want to copy the proper number of point lights
-    const int pointLightsCountLimit = ARRAYSIZE(cbpsPerFrame_.data.pointLights);
-    const int spotLightsCountLimit = ARRAYSIZE(cbpsPerFrame_.data.spotLights);
+    const int pointLightsCountLimit  = ARRAYSIZE(cbpsPerFrame_.data.pointLights);
+    const int spotLightsCountLimit   = ARRAYSIZE(cbpsPerFrame_.data.spotLights);
     const int numPointLightsToUpdate = (numPointLights >= pointLightsCountLimit) ? pointLightsCountLimit : numPointLights;
-    const int numSpotLightsToUpdate = (numSpotLights >= spotLightsCountLimit) ? spotLightsCountLimit : numSpotLights;
+    const int numSpotLightsToUpdate  = (numSpotLights >= spotLightsCountLimit) ? spotLightsCountLimit : numSpotLights;
 
     cbpsPerFrame_.data.currNumPointLights = numPointLightsToUpdate;
     cbpsPerFrame_.data.currNumSpotLights = numSpotLightsToUpdate;

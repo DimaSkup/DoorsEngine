@@ -4,24 +4,12 @@
 // 
 // Created:       29.06.24
 // ********************************************************************************
+#include "../Common/pch.h"
 #include "TextureTransformSystem.h"
-
-#include "../Common/Assert.h"
-#include "../Common/log.h"
-
-#include <fstream>    // for serialization / deserialization of data
 
 
 namespace ECS
 {
-
-
-// *********************************************************************************
-// 
-//                               PUBLIC METHODS
-// 
-// *********************************************************************************
-
 
 TextureTransformSystem::TextureTransformSystem(TextureTransform* pTexTransformComp)
 {
@@ -29,8 +17,10 @@ TextureTransformSystem::TextureTransformSystem(TextureTransform* pTexTransformCo
     pTexTransformComponent_ = pTexTransformComp;
 }
 
-///////////////////////////////////////////////////////////
 
+// *********************************************************************************
+//                               PUBLIC METHODS
+// *********************************************************************************
 void TextureTransformSystem::AddTexTransformation(
     const EntityID* ids,
     const size numEntts,

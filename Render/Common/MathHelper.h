@@ -62,7 +62,8 @@ namespace DirectX
 			return (vec[0] && vec[1] && vec[2] && vec[3]);
 		}
 	};
-};
+
+}; // namespace DirectX
 
 
 namespace Render
@@ -150,4 +151,4 @@ public:
 };
 
 
-}; // namespace Render
+}; // namespace

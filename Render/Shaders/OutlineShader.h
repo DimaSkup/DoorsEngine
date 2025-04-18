@@ -53,4 +53,4 @@ private:
 };
 
 
-} // namespace Render
+} // namespace

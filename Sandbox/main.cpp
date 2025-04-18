@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Filename: main.cpp
 ///////////////////////////////////////////////////////////////////////////////
-
+#include "pch.h"
 #include "Application.h"
 
 int main()
@@ -10,7 +10,7 @@ int main()
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
-	Application app;
+	Game::Application app;
 
 	app.Initialize();
 	app.Run();

@@ -1,8 +1,11 @@
 // =================================================================================
 // Description:    parts of code which are used during initialization
 // =================================================================================
+#include "Common/FileSystemPaths.h"
 
-namespace Core
+using namespace Core;
+
+namespace Game
 {
 
 void SetupTerrain(BasicModel& terrain)
@@ -330,4 +333,4 @@ void SetupSphere(BasicModel& sphere)
     sphere.SetMaterialForSubset(0, sphereMatID);
 }
 
-} // namespace Core
+} // namespace Game

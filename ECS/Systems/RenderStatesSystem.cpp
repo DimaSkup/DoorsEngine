@@ -4,10 +4,10 @@
 // 
 // Created:      29.08.24
 // =================================================================================
+#include "../Common/pch.h"
 #include "RenderStatesSystem.h"
 
-#include "../Common/Assert.h"
-#include "../Common/log.h"
+#pragma warning (disable : 4996)
 
 
 namespace ECS

@@ -91,8 +91,6 @@ void FacadeEngineToUI::FocusCameraOnEntity(const EntityID enttID)
 #endif
 }
 
-
-
 // =================================================================================
 // For the entity editor
 // =================================================================================
@@ -760,30 +758,32 @@ bool FacadeEngineToUI::GetFogData(
 
 bool FacadeEngineToUI::SetFogStart(const float start)
 {
+    pRender_->SetFogStart(pContext_, start);
     return true;
 }
 
 bool FacadeEngineToUI::SetFogRange(const float range)
 {
+    pRender_->SetFogRange(pContext_, range);
     return true;
 }
 
 bool FacadeEngineToUI::SetFogEnabled(const bool enabled)
 {
+    pRender_->SetFogEnabled(pContext_, enabled);
     return true;
 }
 
 bool FacadeEngineToUI::SetFogColor(const ColorRGB& color)
 {
+    pRender_->SetFogColor(pContext_, color.ToFloat3());
     return true;
 }
-
 
 
 // =================================================================================
 // For the debug editor
 // =================================================================================
-
 bool FacadeEngineToUI::SwitchDebugState(const int debugType)
 {
     pRender_->SwitchDebugState(pContext_, Render::DebugState(debugType));

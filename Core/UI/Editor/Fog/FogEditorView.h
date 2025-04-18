@@ -13,7 +13,7 @@
 
 #include <UICommon/IEditorController.h>
 #include <UICommon/Color.h>
-#include <UICommon/Vectors.h>
+//#include <UICommon/Vectors.h>
 #include <UICommon/EditorCommands.h>
 
 #include "FogEditorModel.h"
@@ -34,37 +34,39 @@ public:
         Core::Assert::NotNullptr(pController, "ptr to the view listener == nullptr");
     }
 
+    ///////////////////////////////////////////////////////
+
     void Draw(const ModelFog* pData)
     {
-        //
         // show the fog editor fields
-        //
-
-        using enum eEditorCmdType;
 
         // make local copies of the current model data to use it in the fields
         FogData data;
         pData->GetData(data);
 
+        // draw editor fields
         if (ImGui::Checkbox("Enable fog", &data.fogEnabled))
         {
-            // TODO: enable/disable fog
+            CmdChangeFloat cmd(CHANGE_FOG_ENABLED, (float)data.fogEnabled);
+            pController_->Execute(&cmd);
         }
-
-        // draw editor fields
+       
         if (ImGui::ColorEdit3("Fog color", data.fogColor.rgb))
         {
-            pController_->Execute(new CmdChangeColor(CHANGE_FOG_COLOR, data.fogColor));
+            CmdChangeColor cmd(CHANGE_FOG_COLOR, data.fogColor);
+            pController_->Execute(&cmd);
         }
 
         if (ImGui::DragFloat("Fog start", &data.fogStart))
         {
-            pController_->Execute(new CmdChangeFloat(CHANGE_FOG_START, data.fogStart));
+            CmdChangeFloat cmd(CHANGE_FOG_START, data.fogStart);
+            pController_->Execute(&cmd);
         }
 
         if (ImGui::DragFloat("Fog range", &data.fogRange))
         {
-            pController_->Execute(new CmdChangeFloat(CHANGE_FOG_RANGE, data.fogRange));
+            CmdChangeFloat cmd(CHANGE_FOG_RANGE, data.fogRange);
+            pController_->Execute(&cmd);
         }
     }
 };

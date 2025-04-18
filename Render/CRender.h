@@ -120,14 +120,19 @@ public:
     // ================================================================================
     //                                   Setters
     // ================================================================================
-    void SwitchFogEffect(ID3D11DeviceContext* pContext, const bool state);
+    void SetFogEnabled(ID3D11DeviceContext* pContext, const bool state);
+    void SetFogStart(ID3D11DeviceContext* pContext, const float start);
+    void SetFogRange(ID3D11DeviceContext* pContext, const float range);
+    void SetFogColor(ID3D11DeviceContext* pContext, const DirectX::XMFLOAT3 color);
+
+
     void SwitchFlashLight(ID3D11DeviceContext* pContext, const bool state);
 
     void SwitchAlphaClipping(ID3D11DeviceContext* pContext, const bool state);
     void SwitchDebugState(ID3D11DeviceContext* pContext, const DebugState state);
     void SetDirLightsCount(ID3D11DeviceContext* pContext, int numOfLights);
 
-    void SetFogParams(
+    void InitFogParams(
         ID3D11DeviceContext* pContext,
         const DirectX::XMFLOAT3& fogColor,
         const float fogStart,
@@ -153,6 +158,8 @@ private:
         const int numSpotLights);
 
 public:
+    ID3D11DeviceContext*                       pContext_ = nullptr;
+
     ID3D11Buffer*                              pInstancedBuffer_ = nullptr;
     cvector<BuffTypes::InstancedData>          instancedData_;    // instances common buffer
 

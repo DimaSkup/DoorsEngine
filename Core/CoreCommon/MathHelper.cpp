@@ -4,6 +4,9 @@
 
 using namespace DirectX;
 
+namespace Core
+{
+
 const float MathHelper::Infinity = FLT_MAX;
 const float MathHelper::Pi = 3.1415926535f;
 
@@ -107,3 +110,5 @@ const XMMATRIX MathHelper::InverseTranspose(const CXMMATRIX& M)
 	// return a transformation matrix B
 	return XMMatrixTranspose(XMMatrixInverse(nullptr, A));
 }
+
+} // namespace Core

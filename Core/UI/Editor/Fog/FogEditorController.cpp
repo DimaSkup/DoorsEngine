@@ -7,6 +7,7 @@
 #include <CoreCommon/Assert.h>
 #include <CoreCommon/log.h>
 
+using namespace Core;
 
 namespace UI
 {
@@ -32,27 +33,44 @@ void FogEditorController::Initialize(IFacadeEngineToUI* pFacade)
 
 ///////////////////////////////////////////////////////////
 
-void FogEditorController::Execute(const ICommand* pCommand)
+void FogEditorController::Execute(const ICommand* pCmd)
 {
-	if ((pCommand == nullptr) || (pFacade_ == nullptr))
-	{
-		Core::LogErr("ptr to command or facade interface == nullptr");
-		return;
-	}
-	
-	//using enum EditorCmdType;   // for not writing "FogEditorCmdType::" before each case
-	ModelFog& data = fogModel_;
+    if (!pCmd)
+    {
+        LogErr("input ptr to command == nullptr");
+        return;
+    }
 
+    if (!pFacade_)
+    {
+        LogErr("ptr to the facade interface == nullptr (you should init it first!)");
+        return;
+    }
+
+	
 	// execute changes according to the command type
-	switch (pCommand->type_)
+	switch (pCmd->type_)
 	{
+        case CHANGE_FOG_ENABLED:
+        {
+            // enable/disable the scene fog
+            const float oldFogState = fogModel_.GetEnabled();
+            const bool newFogState = (bool)pCmd->GetFloat();
+
+            if (pFacade_->SetFogEnabled(newFogState))
+            {
+                fogModel_.SetEnabled(newFogState);
+                // TODO: store the command into the events history
+            }
+            break;
+        }
 		case CHANGE_FOG_COLOR:
 		{
-			const ColorRGB newFogColor = pCommand->GetColorRGB();
+			const ColorRGB newFogColor = pCmd->GetColorRGB();
 
 			if (pFacade_->SetFogColor(newFogColor))
 			{
-				data.SetColor(newFogColor);
+                fogModel_.SetColor(newFogColor);
 				// TODO: store the command into the events history
 			}
 			break;
@@ -61,11 +79,11 @@ void FogEditorController::Execute(const ICommand* pCommand)
 		// distance where for starts
 		case CHANGE_FOG_START:        
 		{
-			const float newFogStart = pCommand->GetFloat();
+			const float newFogStart = pCmd->GetFloat();
 
 			if (pFacade_->SetFogStart(newFogStart))
 			{
-				data.SetStart(newFogStart);
+                fogModel_.SetStart(newFogStart);
 				// TODO: store the command into the events history
 			}
 			break;
@@ -74,11 +92,11 @@ void FogEditorController::Execute(const ICommand* pCommand)
 		// distance after which the objects are fully fogged
 		case CHANGE_FOG_RANGE:         
 		{
-			const float newFogRange = pCommand->GetFloat();
+			const float newFogRange = pCmd->GetFloat();
 
 			if (pFacade_->SetFogRange(newFogRange))
 			{
-				data.SetRange(newFogRange);
+                fogModel_.SetRange(newFogRange);
 				// TODO: store the command into the events history
 			}
 			break;

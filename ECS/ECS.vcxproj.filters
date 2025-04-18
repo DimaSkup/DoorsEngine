@@ -69,15 +69,6 @@
     <ClInclude Include="Systems\NameSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Entity\EntityMgrSerializer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Entity\EntityMgrDeserializer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Entity\SerializationHelperTypes.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Components\Material.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -117,18 +108,6 @@
     <ClInclude Include="Common\UtilsFilesystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Systems\SaveLoad\NameSysSerDeser.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Systems\SaveLoad\ModelSysSerDeser.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Systems\SaveLoad\MoveSysSerDeser.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Systems\SaveLoad\TransformSysSerDeser.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Common\MemHelpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -145,6 +124,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Common\log.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\ConsoleColorMacro.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -176,12 +161,6 @@
     <ClCompile Include="Systems\NameSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Entity\EntityMgrSerializer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Entity\EntityMgrDeserializer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Systems\MaterialSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -197,22 +176,13 @@
     <ClCompile Include="Systems\RenderStatesSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Systems\SaveLoad\NameSysSerDeser.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Systems\SaveLoad\ModelSysSerDeser.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Systems\SaveLoad\MoveSysSerDeser.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Systems\SaveLoad\TransformSysSerDeser.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Systems\CameraSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Common\log.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

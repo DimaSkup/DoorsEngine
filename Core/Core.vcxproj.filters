@@ -551,13 +551,7 @@
     <ClInclude Include="Model\ModelLoader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CoreCommon\FileSystemPaths.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\ProjectSaver.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Render\SetupModels.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Model\SkyModel.h">
@@ -756,6 +750,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CoreCommon\FileSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CoreCommon\FileSystemPaths.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

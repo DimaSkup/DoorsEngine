@@ -41,7 +41,7 @@ public:
 
 	void SetDirection(const Vec4& dirQuat)
 	{ 
-		DirectX::XMFLOAT3 rollPitchYaw = MathHelper::QuatToRollPitchYaw(dirQuat.ToXMVector());
+		DirectX::XMFLOAT3 rollPitchYaw = Core::MathHelper::QuatToRollPitchYaw(dirQuat.ToXMVector());
 		rollInDeg_  = DirectX::XMConvertToDegrees(rollPitchYaw.x);
 		pitchInDeg_ = DirectX::XMConvertToDegrees(rollPitchYaw.y);
 		yawInDeg_   = DirectX::XMConvertToDegrees(rollPitchYaw.z);

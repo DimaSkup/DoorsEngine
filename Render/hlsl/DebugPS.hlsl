@@ -50,9 +50,9 @@ cbuffer cbRareChanged : register(b1)
 
 	int    gNumOfDirLights;      // current number of directional light sources
 
-	bool   gFogEnabled;          // turn on/off the fog effect
-	bool   gTurnOnFlashLight;    // turn on/off the flashlight
-	bool   gAlphaClipping;       // turn on/off alpha clipping
+    int   gFogEnabled;          // turn on/off the fog effect
+    int   gTurnOnFlashLight;    // turn on/off the flashlight
+    int   gAlphaClipping;       // turn on/off alpha clipping
 }
 
 cbuffer cbRareChangedDebug : register(b4)

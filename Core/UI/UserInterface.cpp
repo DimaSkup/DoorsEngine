@@ -5,7 +5,6 @@
 // =================================================================================
 #include "UserInterface.h"
 
-#include <CoreCommon/FileSystemPaths.h>
 #include "../Texture/TextureMgr.h"
 //#include "CRender.h"                     // from the Render module
 
@@ -204,7 +203,7 @@ void UserInterface::LoadDebugInfoStringFromFile(
     // and create some strings manually
 
     char filePath[128]{ '\0' };
-    strcat(filePath, g_RelPathUIDataDir);
+    strcat(filePath, "data/ui");
     strcat(filePath, "ui_debug_info_strings.txt");
 
 

@@ -56,4 +56,4 @@ void LIB_Exception::MakeExceptionMsg(
         location.line());
 }
 
-} // namespace Render
+} // namespace

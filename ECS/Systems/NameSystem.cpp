@@ -1,14 +1,9 @@
+#include "../Common/pch.h"
 #include "NameSystem.h"
-
-#include "../Common/Assert.h"
-#include "../Common/log.h"
-
-#include "SaveLoad/NameSysSerDeser.h"
 
 
 namespace ECS
 {
-
 
 NameSystem::NameSystem(Name* pNameComponent)
 {

@@ -4,12 +4,9 @@
 // 
 // Created:      21.05.24
 // =================================================================================
+#include "../Common/pch.h"
 #include "RenderSystem.h"
 
-#include "../Common/UtilsFilesystem.h"
-#include "../Common/Assert.h"
-
-#include <fstream>
 
 namespace ECS
 {

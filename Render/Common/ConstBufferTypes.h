@@ -134,4 +134,4 @@ namespace BuffTypes
 };
 
 
-} // namespace Render
+} // namespace

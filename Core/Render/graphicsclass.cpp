@@ -11,9 +11,6 @@
 #include "../Input/inputcodes.h"
 #include "RenderDataPreparator.h"
 
-//#include <ImGuizmo.h>
-//#include <random>
-
 using namespace DirectX;
 
 
@@ -418,17 +415,20 @@ void CGraphics::ComputeFrustumCulling(
     const size numRenderableEntts = enttsRenderable.size();
     size numVisEntts = 0;                                     // the number of currently visible entts
 
-    ECS::cvector<size>     numBoxesPerEntt;
+    if (numRenderableEntts == 0)
+        return;
+
+    ECS::cvector<size>      numBoxesPerEntt;
     ECS::cvector<DirectX::BoundingOrientedBox> OBBs;       // bounding box of each mesh of each renderable entt
-    cvector<XMMATRIX> invWorlds(numRenderableEntts);      // inverse world matrix of each renderable entt
-    cvector<XMMATRIX> enttsLocal(numRenderableEntts);     // local space of each renderable entt
-    cvector<index>    idxsToVisEntts(numRenderableEntts);
+    ECS::cvector<XMMATRIX>  invWorlds;                           // inverse world matrix of each renderable entt
+    cvector<XMMATRIX>       enttsLocal(numRenderableEntts);      // local space of each renderable entt
+    cvector<index>          idxsToVisEntts(numRenderableEntts);
 
     // get inverse world matrix of each renderable entt
     mgr.transformSystem_.GetInverseWorldMatricesOfEntts(
         enttsRenderable.data(),
-        invWorlds.data(),
-        (int)numRenderableEntts);
+        numRenderableEntts,
+        invWorlds);
 
     // compute local space matrices for frustum transformations
     for (index i = 0; i < numRenderableEntts; ++i)
@@ -500,14 +500,15 @@ void CGraphics::ComputeFrustumCullingOfLightSources(
     ECS::cvector<EntityID>& visPointLights = mgr.renderSystem_.GetVisiblePointLights();
 
     // get all the point light sources which are in the visibility range
-    const int numPointLights = (int)mgr.lightSystem_.GetNumPointLights();
+    const size numPointLights      = mgr.lightSystem_.GetNumPointLights();
     const EntityID* pointLightsIDs = mgr.lightSystem_.GetPointLights().ids.data();
 
-    std::vector<XMMATRIX> invWorlds(numPointLights);
-    std::vector<XMMATRIX> localSpaces(numPointLights);
+
+    ECS::cvector<XMMATRIX> invWorlds(numPointLights);
+    ECS::cvector<XMMATRIX> localSpaces(numPointLights);
 
     // get inverse world matrix of each point light source
-    mgr.transformSystem_.GetInverseWorldMatricesOfEntts(pointLightsIDs, invWorlds.data(), numPointLights);
+    mgr.transformSystem_.GetInverseWorldMatricesOfEntts(pointLightsIDs, numPointLights, invWorlds);
 
     // compute local space matrices for frustum transformations
     for (int i = 0; i < numPointLights; ++i)

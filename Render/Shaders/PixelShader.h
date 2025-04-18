@@ -33,4 +33,4 @@ private:
 	uint8_t* pShaderBuffer_ = nullptr;
 };
 
-} // namespace Render
+} // namespace

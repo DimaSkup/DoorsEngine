@@ -4,17 +4,12 @@
 // 
 // Created:       20.05.24
 // =================================================================================
+#include "../Common/pch.h"
 #include "TransformSystem.h"
 
-#include "../Common/Assert.h"
-#include "../Common/MathHelper.h"
-#include "SaveLoad/TransformSysSerDeser.h"
-
-#include <stdexcept>
-#include <algorithm>
+#pragma warning (disable : 4996)
 
 using namespace DirectX;
-
 
 namespace ECS
 {
@@ -86,19 +81,6 @@ void TransformSystem::RemoveRecords(const cvector<EntityID>& enttsIDs)
     assert("TODO: IMPLEMENT IT!" && 0);
 }
 
-///////////////////////////////////////////////////////////
-
-void TransformSystem::Serialize(std::ofstream& fout, u32& offset)
-{
-}
-
-///////////////////////////////////////////////////////////
-
-void TransformSystem::Deserialize(std::ifstream& fin, const u32 offset)
-{
-}
-
-
 // =================================================================================
 // GET position/direction/uniform_scale
 // =================================================================================
@@ -137,8 +119,11 @@ void TransformSystem::GetDirectionsQuatsByIDs(
     const size numEntts,
     cvector<XMVECTOR>& outDirQuats) const
 {
-    Assert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
-    Assert::True(numEntts > 0,   "input number of entities must be > 0");
+    if (!ids)
+    {
+        LogErr("input ptr to entities IDs arr == nullptr");
+        return;
+    }
 
     Transform& comp = *pTransform_;
     cvector<index> idxs;
@@ -412,11 +397,13 @@ void TransformSystem::GetWorldMatricesOfEntts(
 
 void TransformSystem::GetInverseWorldMatricesOfEntts(
     const EntityID* ids,
-    DirectX::XMMATRIX* outInvWorlds,
-    const int numEntts)
+    const int numEntts,
+    cvector<DirectX::XMMATRIX>& outInvWorlds)
 {
     // NOTE: size of arrays enttsIDs and outInvWorlds must be equal !!!
-    Assert::True((ids != nullptr) && (outInvWorlds != nullptr) && (numEntts > 0), "invalid input data");
+
+    if (!ids || (numEntts < 0))
+        LogErr("input args are invalid");
 
     const Transform& comp = *pTransform_;
     cvector<index> idxs(numEntts);
@@ -424,8 +411,7 @@ void TransformSystem::GetInverseWorldMatricesOfEntts(
 
     // get data idx by each ID and then get inverse world matrices by these idxs
     comp.ids.get_idxs(ids, numEntts, idxs);
-    comp.invWorlds.get_data_by_idxs(idxs, invWorlds);
-    memcpy(outInvWorlds, invWorlds.data(), invWorlds.size() * sizeof(XMMATRIX));
+    comp.invWorlds.get_data_by_idxs(idxs, outInvWorlds);
 }
 
 ///////////////////////////////////////////////////////////
@@ -586,6 +572,25 @@ void TransformSystem::AddRecordsToTransformComponent(
         comp.worlds.insert_before(idxs[i], world);
         comp.invWorlds.insert_before(idxs[i], XMMatrixInverse(nullptr, world));
     }
+}
+
+///////////////////////////////////////////////////////////
+
+index TransformSystem::GetIdxByID(const EntityID id) const
+{
+    // return valid idx if there is an entity by such ID;
+    // or return 0 if there is no such entity;
+    const index idx = pTransform_->ids.get_idx(id);
+
+    if (pTransform_->ids[idx] != id)
+    {
+        char buf[64];
+        sprintf(buf, "there is no transform data for entt by id: %ud", id);
+        LogErr(buf);
+        return 0;
+    }
+
+    return idx;
 }
 
 } // namespace ECS

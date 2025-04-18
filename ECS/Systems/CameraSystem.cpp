@@ -3,9 +3,10 @@
 // 
 // Created:     14.01.25  by DimaSkup
 // =================================================================================
+#include "../Common/pch.h"
 #include "CameraSystem.h"
-#include "../Common/Assert.h"
-#include "../Common/log.h"
+
+#pragma warning (disable : 4996)
 
 
 namespace ECS
