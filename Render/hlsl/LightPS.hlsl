@@ -191,7 +191,7 @@ float4 PS(PS_IN pin) : SV_Target
 
     // ---------------------  FOG  ----------------------
 
-    if (true)
+    if (gFogEnabled)
     {
         //float distToEye = length(gEyePosW - pin.posW);
         float fogLerp = saturate((distToEye - gFogStart) / gFogRange);

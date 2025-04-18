@@ -5,7 +5,6 @@
 // Revising:    27.11.22
 ////////////////////////////////////////////////////////////////////
 #include "Settings.h"
-#include <CoreCommon/FileSystemPaths.h>
 
 
 namespace Core

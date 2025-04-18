@@ -1,11 +1,8 @@
 // =================================================================================
 // Filename:   ModelSystem.cpp
 // =================================================================================
+#include "../Common/pch.h"
 #include "ModelSystem.h"
-
-#include "../Common/Assert.h"
-#include <map>
-
 
 namespace ECS
 {

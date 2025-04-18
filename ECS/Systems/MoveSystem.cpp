@@ -1,14 +1,12 @@
-// ================================================================================**
+// ================================================================================
 // Filename:      MoveSystem.h
 // Description:   implementation of the MoveSystem's functional
 // 
 // Created:       23.05.24
-// ================================================================================**
+// ================================================================================
+#include "../Common/pch.h"
 #include "MoveSystem.h"
 
-#include "../Common/Assert.h"
-#include "../Common/log.h"
-#include "SaveLoad/MoveSysSerDeser.h"
 
 namespace ECS
 {

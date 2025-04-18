@@ -16,29 +16,29 @@ enum eEditorCmdType
 {
 	INVALID_CMD,
 
-	// entity: model
+	// model
 	CHANGE_ENTITY_POSITION,
 	CHANGE_ENTITY_DIRECTION,
 	CHANGE_ENTITY_SCALE,
 
-	// entity: sky
+	// sky
 	CHANGE_SKY_COLOR_CENTER,    // change the horizon color of the sky gradient
 	CHANGE_SKY_COLOR_APEX,      // change the top color of the sky gradient
 	CHANGE_SKY_OFFSET,          // change offset of the sky mesh
 
-	// entity: directed light
+	// directed light
 	CHANGE_DIR_LIGHT_AMBIENT,
 	CHANGE_DIR_LIGHT_DIFFUSE,
 	CHANGE_DIR_LIGHT_SPECULAR,
 
-	// entity: point light
+	// point light
 	CHANGE_POINT_LIGHT_AMBIENT,
 	CHANGE_POINT_LIGHT_DIFFUSE,
 	CHANGE_POINT_LIGHT_SPECULAR,
 	CHANGE_POINT_LIGHT_ATTENUATION,
 	CHANGE_POINT_LIGHT_RANGE,
 
-	// entity: spot light
+	// spotlight
 	CHANGE_SPOT_LIGHT_AMBIENT,
 	CHANGE_SPOT_LIGHT_DIFFUSE,
 	CHANGE_SPOT_LIGHT_SPECULAR,
@@ -46,6 +46,8 @@ enum eEditorCmdType
 	CHANGE_SPOT_LIGHT_ATTENUATION,
 	CHANGE_SPOT_LIGHT_SPOT_EXPONENT,   // light intensity fallof (for control the spotlight cone)
 
+    // fog
+    CHANGE_FOG_ENABLED,   // enable/disabled the fog on the scene
 	CHANGE_FOG_COLOR,
 	CHANGE_FOG_START,     // distance where for starts
 	CHANGE_FOG_RANGE,     // distance after which the objects are fully fogged

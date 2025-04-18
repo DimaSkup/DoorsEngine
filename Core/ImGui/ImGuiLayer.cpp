@@ -7,7 +7,6 @@
 #include "ImGuiLayer.h"
 
 #include <CoreCommon/log.h>
-#include <CoreCommon/FileSystemPaths.h>
 
 #include <backends/imgui_impl_win32.h>
 #include <backends/imgui_impl_dx11.h>
@@ -46,19 +45,19 @@ bool ImGuiLayer::Initialize(
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
     // setup fonts
-    char defaultFontPath[64]{ '\0' };
-    sprintf(defaultFontPath, "%s%s", g_RelPathUIDataDir, "arial.ttf");
+    //char defaultFontPath[64]{ '\0' };
+    //sprintf(defaultFontPath, "%s%s", g_RelPathUIDataDir, "arial.ttf");
 
     // check if such font file exists
-    if (!fs::exists(defaultFontPath))
+    if (!fs::exists("data/ui/arial.ttf"))
     {
-        sprintf(g_String, "there is no font file: %s", defaultFontPath);
+        sprintf(g_String, "there is no font file: %s", "data/ui/arial.ttf");
         LogErr(g_String);
         return false;
     }
 
-    io.Fonts->AddFontFromFileTTF(defaultFontPath, 16.0f);
-    io.FontDefault = io.Fonts->AddFontFromFileTTF(defaultFontPath, 16.0f);
+    io.Fonts->AddFontFromFileTTF("data/ui/arial.ttf", 16.0f);
+    io.FontDefault = io.Fonts->AddFontFromFileTTF("data/ui/arial.ttf", 16.0f);
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();

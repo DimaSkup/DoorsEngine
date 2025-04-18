@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common\Assert.h" />
+    <ClInclude Include="Common\ConsoleColorMacro.h" />
     <ClInclude Include="Common\FileSystem.h" />
     <ClInclude Include="Common\LIB_Exception.h" />
     <ClInclude Include="Common\log.h" />

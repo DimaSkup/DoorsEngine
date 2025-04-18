@@ -31,11 +31,11 @@ cbuffer cbRarelyChanged   : register(b1)
 	float  gFogStart;            // how far from camera the fog starts?
 	float  gFogRange;            // how far from camera the object is fully fogged?
 
-	int    gNumOfDirLights;      // current number of directional light sources
+    int    gNumOfDirLights;      // current number of directional light sources
 
-	int    gFogEnabled;          // turn on/off the fog effect
-	int    gTurnOnFlashLight;    // turn on/off the flashlight
-	int    gAlphaClipping;       // turn on/off alpha clipping
+    int    gFogEnabled;          // turn on/off the fog effect
+    int    gTurnOnFlashLight;    // turn on/off the flashlight
+    int    gAlphaClipping;       // turn on/off alpha clipping
 };
 
 

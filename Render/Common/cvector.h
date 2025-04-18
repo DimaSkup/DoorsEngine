@@ -9,7 +9,7 @@
 
 #include <algorithm>
 #include <utility>
-//#include <stdarg.h>
+
 
 namespace Render
 {
@@ -973,4 +973,4 @@ inline void cvector<T>::realloc_buffer(const vsize newCapacity)
     }
 }
 
-} // namespace Core
+} // namespace

@@ -9,6 +9,7 @@
 
 
 #include <CoreCommon/SystemState.h>
+
 #include "EventListener.h"
 
 #include "../ImGui/ImGuiLayer.h"
@@ -36,8 +37,11 @@
 #include "../Mesh/MaterialMgr.h"
 #include "../Render/graphicsclass.h"
 
-// from Render module
+// from the Render module
 #include "CRender.h"
+
+// from the ECS module: Entity-Component-System
+#include "Entity/EntityMgr.h"
 
 
 

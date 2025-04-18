@@ -168,7 +168,6 @@
     <ClCompile Include="Common\LIB_Exception.cpp" />
     <ClCompile Include="Common\log.cpp" />
     <ClCompile Include="Common\MathHelper.cpp" />
-    <ClCompile Include="Common\StringHelper.cpp" />
     <ClCompile Include="InitRender.cpp" />
     <ClCompile Include="CRender.cpp" />
     <ClCompile Include="Shaders\BillboardShader.cpp" />
@@ -187,14 +186,16 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common\Assert.h" />
+    <ClInclude Include="Common\ConsoleColorMacro.h" />
     <ClInclude Include="Common\ConstBufferTypes.h" />
     <ClInclude Include="Common\cvector.h" />
+    <ClInclude Include="Common\FileSystem.h" />
     <ClInclude Include="Common\LIB_Exception.h" />
     <ClInclude Include="Common\log.h" />
     <ClInclude Include="Common\MathHelper.h" />
     <ClInclude Include="Common\MemHelpers.h" />
     <ClInclude Include="Common\RenderTypes.h" />
-    <ClInclude Include="Common\StringHelper.h" />
+    <ClInclude Include="Common\StrHelper.h" />
     <ClInclude Include="Common\Types.h" />
     <ClInclude Include="InitRender.h" />
     <ClInclude Include="CRender.h" />

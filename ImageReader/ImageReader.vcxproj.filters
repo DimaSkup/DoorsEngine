@@ -57,6 +57,9 @@
     <ClInclude Include="Common\FileSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Common\ConsoleColorMacro.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Readers\BMP_Image.cpp">

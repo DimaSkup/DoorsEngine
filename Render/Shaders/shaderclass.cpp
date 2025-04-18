@@ -4,7 +4,6 @@
 #include "shaderclass.h"
 
 #include "../Common/Log.h"
-#include "../Common/StringHelper.h"
 #include "../Common/MemHelpers.h"
 
 #include <d3dx11async.h>   // is neccessary for the D3DX11CompileFromFile() function
@@ -62,4 +61,4 @@ HRESULT ShaderClass::CompileShaderFromFile(
 	return hr;
 }
 
-} // namespace Render
+} // namespace

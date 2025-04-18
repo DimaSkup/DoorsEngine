@@ -5,9 +5,7 @@
 // Created:      07.02.25  by DimaSkup
 // =================================================================================
 #include "OutlineShader.h"
-#include "../Common/Log.h"
-
-#pragma warning (disable : 4996)
+#include "../Common/log.h"
 
 
 namespace Render

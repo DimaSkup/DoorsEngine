@@ -48,28 +48,6 @@ public:
 		if (FAILED(hr))       
 			throw LIB_Exception(msg, location, hr);
 	}
-
-	// ----------------------------------------------------
-
-	template <class T>
-	inline static void NotZero(
-		const T value,
-		const char* msg,
-		const std::source_location& location = std::source_location::current())
-	{
-		if (value == 0)
-			throw LIB_Exception(msg, location, 0);
-	}
-
-	// ----------------------------------------------------
-
-	inline static void NotEmpty(
-		const bool isEmpty,
-		const char* msg,
-		const std::source_location& location = std::source_location::current())
-	{
-		True(isEmpty != true, msg, location);
-	}
 };
 
-};  // namespace Render
+};  // namespace

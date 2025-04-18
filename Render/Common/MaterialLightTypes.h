@@ -127,4 +127,4 @@ struct SpotLight
 };
 
 
-} // namespace Render
+} // namespace

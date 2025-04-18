@@ -89,5 +89,4 @@ void PixelShader::Shutdown()
 	SafeDeleteArr(pShaderBuffer_);
 }
 
-
-} // namespace Render
+} // namespace 

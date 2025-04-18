@@ -1,9 +1,5 @@
+#include "../Common/pch.h"
 #include "BoundingSystem.h"
-
-#include "../Common/Assert.h"
-#include "../Common/log.h"
-
-#include <algorithm>
 
 namespace ECS
 {

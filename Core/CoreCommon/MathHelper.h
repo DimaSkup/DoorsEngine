@@ -1,6 +1,5 @@
 #pragma once
 
-//#include <xnamath.h>
 #include <cstdlib>
 #include <DirectXMath.h>
 #include <cstdint>
@@ -79,15 +78,19 @@ namespace DirectX
 	};
 };
 
+
+namespace Core
+{
+
 class MathHelper
 {
-	using u32 = uint32_t;
+	using UINT = unsigned int;
 
 public:
 	static const float Infinity;
 	static const float Pi;
 
-	inline static u32 RandUINT(const u32 min, const u32 max)
+	inline static UINT RandUINT(const UINT min, const UINT max)
 	{
 		// return random unsigned int in range [min, max)
 		return min + (rand()) % (max - min);
@@ -194,3 +197,5 @@ public:
 	// ----------------------------------------------------
 	static const DirectX::XMMATRIX InverseTranspose(const DirectX::CXMMATRIX& M);
 };
+
+} // namespace Core

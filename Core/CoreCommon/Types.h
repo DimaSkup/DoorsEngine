@@ -27,13 +27,10 @@ using index = ptrdiff_t;
 using UINT  = unsigned int;
 
 using EntityID   = uint32_t;
-//using EntityName = std::string;
 
 //
-// MESH/MODEL TYPEDEFS
+// MESH/MODEL TYPEDEFS/CONSTS
 //
-//using MeshName   = std::string;
-//using ModelName  = std::string;
 using ModelID    = uint32_t;
 using SubsetID   = uint16_t;                    // mesh ID
 constexpr ModelID INVALID_MODEL_ID = 0;
@@ -53,18 +50,15 @@ struct TexName
 };
 
 //
-// MATERIAL TYPEDEFS
+// MATERIAL TYPEDEFS/CONSTS
 //
-//using MaterialName = std::string;
 using MaterialID   = uint32_t;
 constexpr MaterialID INVALID_MATERIAL_ID = 0;
 
 //
-// TEXTURES TYPEDEFS
+// TEXTURES TYPEDEFS/CONSTS
 //
-using TexID   = uint32_t;                       // texture ID
-//using TexPath = std::string;                    // texture path
-//using TexName = std::string;                    // texture name
+using     TexID   = uint32_t;                       // texture ID
 constexpr TexID INVALID_TEXTURE_ID = 0;
 constexpr size  NUM_TEXTURE_TYPES  = 21;
 

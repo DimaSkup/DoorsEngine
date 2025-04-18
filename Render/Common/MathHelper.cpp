@@ -60,4 +60,4 @@ const DirectX::XMMATRIX MathHelper::InverseTranspose(const DirectX::CXMMATRIX& M
 }
 
 
-}; // namespace Render
+}; // namespace

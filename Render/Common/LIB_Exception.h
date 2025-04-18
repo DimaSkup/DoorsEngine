@@ -33,4 +33,4 @@ private:
     wchar_t wstrBuf_[256]{L'\0'};
 };
 
-} // namespace Render
+} // namespace

@@ -119,13 +119,11 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;ECS_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>
-      </PrecompiledHeaderFile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>../Common/pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PrecompiledHeaderOutputFile>
-      </PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
       <ForcedIncludeFiles>
       </ForcedIncludeFiles>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -144,8 +142,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;ECS_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>$(SolutionDir)ECS\Common\pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>../Common/pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <ForcedIncludeFiles>$(SolutionDir)ECS\Common\pch.h;</ForcedIncludeFiles>
@@ -160,11 +158,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Common\Assert.h" />
+    <ClInclude Include="Common\ConsoleColorMacro.h" />
     <ClInclude Include="Common\cvector.h" />
     <ClInclude Include="Common\LIB_Exception.h" />
     <ClInclude Include="Common\log.h" />
     <ClInclude Include="Common\MathHelper.h" />
     <ClInclude Include="Common\MemHelpers.h" />
+    <ClInclude Include="Common\pch.h" />
     <ClInclude Include="Common\StringHelper.h" />
     <ClInclude Include="Common\UtilsFilesystem.h" />
     <ClInclude Include="Common\vector.h" />
@@ -182,9 +182,6 @@
     <ClInclude Include="Components\Transform.h" />
     <ClInclude Include="Common\Types.h" />
     <ClInclude Include="Entity\EntityMgr.h" />
-    <ClInclude Include="Entity\EntityMgrDeserializer.h" />
-    <ClInclude Include="Entity\EntityMgrSerializer.h" />
-    <ClInclude Include="Entity\SerializationHelperTypes.h" />
     <ClInclude Include="Systems\BoundingSystem.h" />
     <ClInclude Include="Systems\CameraSystem.h" />
     <ClInclude Include="Systems\RenderStatesSystem.h" />
@@ -193,10 +190,6 @@
     <ClInclude Include="Systems\MoveSystem.h" />
     <ClInclude Include="Systems\NameSystem.h" />
     <ClInclude Include="Systems\RenderSystem.h" />
-    <ClInclude Include="Systems\SaveLoad\ModelSysSerDeser.h" />
-    <ClInclude Include="Systems\SaveLoad\MoveSysSerDeser.h" />
-    <ClInclude Include="Systems\SaveLoad\NameSysSerDeser.h" />
-    <ClInclude Include="Systems\SaveLoad\TransformSysSerDeser.h" />
     <ClInclude Include="Systems\MaterialSystem.h" />
     <ClInclude Include="Systems\TextureTransformSystem.h" />
     <ClInclude Include="Systems\TransformSystem.h" />
@@ -205,13 +198,27 @@
     <ClInclude Include="ECS_Tests\Unit\UnitTestUtils.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Common\LIB_Exception.cpp" />
-    <ClCompile Include="Common\log.cpp" />
-    <ClCompile Include="Common\MathHelper.cpp" />
-    <ClCompile Include="Common\StringHelper.cpp" />
+    <ClCompile Include="Common\LIB_Exception.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Common\log.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Common\MathHelper.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Common\pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Common\StringHelper.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="Entity\EntityMgr.cpp" />
-    <ClCompile Include="Entity\EntityMgrDeserializer.cpp" />
-    <ClCompile Include="Entity\EntityMgrSerializer.cpp" />
     <ClCompile Include="Systems\BoundingSystem.cpp" />
     <ClCompile Include="Systems\CameraSystem.cpp" />
     <ClCompile Include="Systems\RenderStatesSystem.cpp" />
@@ -220,10 +227,6 @@
     <ClCompile Include="Systems\MoveSystem.cpp" />
     <ClCompile Include="Systems\NameSystem.cpp" />
     <ClCompile Include="Systems\RenderSystem.cpp" />
-    <ClCompile Include="Systems\SaveLoad\ModelSysSerDeser.cpp" />
-    <ClCompile Include="Systems\SaveLoad\MoveSysSerDeser.cpp" />
-    <ClCompile Include="Systems\SaveLoad\NameSysSerDeser.cpp" />
-    <ClCompile Include="Systems\SaveLoad\TransformSysSerDeser.cpp" />
     <ClCompile Include="Systems\MaterialSystem.cpp" />
     <ClCompile Include="Systems\TextureTransformSystem.cpp" />
     <ClCompile Include="Systems\TransformSystem.cpp" />

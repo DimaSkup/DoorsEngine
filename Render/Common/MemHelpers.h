@@ -41,4 +41,4 @@ inline void SafeRelease(T** ppT)
 }
 
 
-};  // namespace Render
+};  // namespace

@@ -4,10 +4,8 @@
 // 
 // Created:       28.06.24
 // **********************************************************************************
+#include "../Common/pch.h"
 #include "MaterialSystem.h"
-
-#include "../Common/Assert.h"
-#include "../Common/log.h"
 
 #pragma warning (disable : 4996)
 

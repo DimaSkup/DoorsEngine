@@ -18,9 +18,7 @@
 namespace Render
 {
 
-//////////////////////////////////
-// Class name: ConstantBuffer
-//////////////////////////////////
+
 template<class T>
 class ConstantBuffer final
 {
@@ -52,9 +50,7 @@ private:
 template<class T>
 HRESULT ConstantBuffer<T>::Initialize(ID3D11Device* pDevice)
 {
-	//
 	// initialize a constant buffer
-	//
 
 	D3D11_BUFFER_DESC desc;
 	HRESULT hr = S_OK;
@@ -85,7 +81,11 @@ void ConstantBuffer<T>::ApplyChanges(ID3D11DeviceContext* pContext)
 	D3D11_MAPPED_SUBRESOURCE mappedResource;
 
 	HRESULT hr = pContext->Map(pBuffer_, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-	Assert::NotFailed(hr, "failed to Map the constant buffer");
+    if (FAILED(hr))
+    {
+        LogErr("failed to Map the constant buffer");
+        return;
+    }
 	
 	CopyMemory(mappedResource.pData, &data, sizeof(T));
 	pContext->Unmap(pBuffer_, 0);

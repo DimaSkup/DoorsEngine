@@ -72,5 +72,4 @@ bool SamplerState::Initialize(ID3D11Device* pDevice, D3D11_SAMPLER_DESC* pSample
 	return true;
 }
 
-
-} // namespace Render
+} // namespace

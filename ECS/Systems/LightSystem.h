@@ -66,10 +66,7 @@ public:
     {
         // return valid idx if there is an entity by such ID;
         // or return -1 if there is no such entity;
-        const Light& comp = *pLightComponent_;
-        const index idx = comp.ids.get_idx(id);
-
-        return (comp.ids[idx] == id) ? idx : -1;
+        return pLightComponent_->ids.get_idx(id);
     }
 
     inline index GetIdxByID(const cvector<EntityID>& ids, const EntityID id) const

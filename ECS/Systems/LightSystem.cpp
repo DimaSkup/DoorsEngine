@@ -1,12 +1,10 @@
 // =================================================================================
 // Filename: LightSystem.cpp
 // =================================================================================
+#include "../Common/pch.h"
 #include "LightSystem.h"
 
-#include "../Common/MathHelper.h"
-#include "../Common/log.h"
-#include "../Common/Assert.h"
-#include "../Common/MathHelper.h"
+#pragma warning (disable : 4996)
 
 using namespace DirectX;
 
@@ -392,8 +390,11 @@ void LightSystem::GetSpotLightsData(
     cvector<XMFLOAT3>& outPositions,
     cvector<XMFLOAT3>& outDirections) const
 {
-    Assert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
-    Assert::True(numEntts > 0,   "input number of entities must be > 0");
+    if (!ids)
+    {
+        LogErr("input ptr to entities IDs arr == nullptr");
+        return;
+    }
 
     outData.resize(numEntts);
 

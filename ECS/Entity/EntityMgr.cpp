@@ -1,14 +1,7 @@
+#include "../Common/pch.h"
 #include "EntityMgr.h"
 
-#include "EntityMgrSerializer.h"
-#include "EntityMgrDeserializer.h"
-
-#include <cassert>
-#include <algorithm>
-#include <unordered_map>
-#include <sstream>
-#include <format>
-
+#pragma warning (disable : 4996)
 
 namespace ECS
 {

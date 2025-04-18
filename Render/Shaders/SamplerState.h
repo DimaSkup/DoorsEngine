@@ -18,7 +18,7 @@ public:
 
 	bool Initialize(ID3D11Device* pDevice, D3D11_SAMPLER_DESC* pSamplerDesc = nullptr);
 
-	inline ID3D11SamplerState* GetSampler() { return pSamplerState_; };
+	inline ID3D11SamplerState* GetSampler()          { return pSamplerState_; };
 	inline ID3D11SamplerState* const* GetAddressOf() { return &pSamplerState_; };
 
 private:
@@ -26,4 +26,4 @@ private:
 };
 
 
-} // namespace Render
+} // namespace

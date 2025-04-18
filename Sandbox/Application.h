@@ -11,6 +11,8 @@
 #include <CoreCommon/EngineException.h>
 #include <CoreCommon/FileSystemPaths.h>
 
+#include "SceneInitializer.h"
+
 // UI
 #include "../UI/UICommon/IFacadeEngineToUI.h"
 #include "../UI/UserInterface.h"
@@ -18,6 +20,9 @@
 
 using namespace Core;
 
+
+namespace Game
+{
 
 class Application
 {
@@ -42,11 +47,11 @@ public:
         windowContainer_.SetEventHandler(&eventHandler_);
 
         // get main params for the window initialization
-        const bool isFullScreen = settings_.GetBool("FULL_SCREEN");
-        const std::string wndTitle = settings_.GetString("WINDOW_TITLE");
-        const std::string wndClass = "MyWindowClass";
-        const int wndWidth = settings_.GetInt("WINDOW_WIDTH");
-        const int wndHeight = settings_.GetInt("WINDOW_HEIGHT");
+        const bool isFullScreen     = settings_.GetBool("FULL_SCREEN");
+        const std::string wndTitle  = settings_.GetString("WINDOW_TITLE");
+        const std::string wndClass  = "MyWindowClass";
+        const int wndWidth          = settings_.GetInt("WINDOW_WIDTH");
+        const int wndHeight         = settings_.GetInt("WINDOW_HEIGHT");
 
         // init the main window
         bool result = windowContainer_.renderWindow_.Initialize(
@@ -92,6 +97,9 @@ public:
         // create a str with duration time of the engine initialization process
         sprintf(g_String, "Engine init time: %f s", engine_.GetTimer().GetGameTime());
         userInterface_.CreateConstStr(pDevice, g_String, { 10, 325 });
+
+        SceneInitializer sceneInitializer;
+        sceneInitializer.Initialize(pDevice, entityMgr_);
     }
 
     /////////////////////////////////////////////////
@@ -196,3 +204,5 @@ private:
     EventHandler eventHandler_;
     Core::WindowContainer  windowContainer_;
 };
+
+} // namespace Game

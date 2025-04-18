@@ -209,4 +209,4 @@ void PrintExceptionErrHelper(const LIB_Exception& e, const bool showMsgBox)
     printf("%s", RESET);                                 // reset console color
 }
 
-} // namespace Render
+} // namespace
