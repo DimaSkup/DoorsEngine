@@ -2,6 +2,7 @@
 #include "SceneInitializer.h"
 #include "LightEnttsInitializer.h"
 #include "SetupModels.h"
+#include "../Core/Engine/Settings.h"
 
 using namespace Core;
 
@@ -14,22 +15,30 @@ using XMMATRIX = DirectX::XMMATRIX;
 namespace Game
 {
 
-bool SceneInitializer::Initialize(ID3D11Device* pDevice, ECS::EntityMgr& enttMgr)
+bool SceneInitializer::Initialize(
+    ID3D11Device* pDevice,
+    ECS::EntityMgr& enttMgr,
+    const CameraInitParams& camParams)
 {
     LogMsg("scene initialization (start)");
 
     bool result = false;
 
     // create and init scene elements
-    if (!InitializeModelEntities(pDevice, enttMgr))
+    if (!InitModelEntities(pDevice, enttMgr))
     {
         LogErr("can't initialize models");
     }
 
     // init all the light source on the scene
-    if (!InitializeLightSources(enttMgr))
+    if (!InitLightSources(enttMgr))
     {
         LogErr("can't initialize light sources");
+    }
+
+    if (!InitCameras(enttMgr, camParams))
+    {
+        LogErr("can't initialize cameras");
     }
 
     //ShellExecuteA(NULL, "open", "C:\\", NULL, NULL, SW_SHOWDEFAULT);
@@ -37,6 +46,58 @@ bool SceneInitializer::Initialize(ID3D11Device* pDevice, ECS::EntityMgr& enttMgr
     LogMsg("is initialized");
 
     return false;
+}
+
+/////////////////////////////////////////////////
+
+bool SceneInitializer::InitCameras(
+    ECS::EntityMgr& enttMgr,
+    const CameraInitParams& params)
+{
+    try
+    {
+        const float windowedAspectRatio   = (float)params.windowedSize.cx   / (float)params.windowedSize.cy;
+        const float fullScreenAspectRatio = (float)params.fullscreenSize.cx / (float)params.fullscreenSize.cy;
+
+        ECS::CameraData editorCamData;
+        editorCamData.fovY        = params.fovInRad;
+        editorCamData.aspectRatio = windowedAspectRatio;
+        editorCamData.nearZ       = params.nearZ;
+        editorCamData.farZ        = params.farZ;
+
+        ECS::CameraData gameCamData;
+        gameCamData.fovY          = params.fovInRad;
+        gameCamData.aspectRatio   = fullScreenAspectRatio;
+        gameCamData.nearZ         = params.nearZ;
+        gameCamData.farZ          = params.farZ;
+
+
+        EntityID editorCamID = enttMgr.CreateEntity("editor_camera");
+        EntityID gameCamID   = enttMgr.CreateEntity("game_camera");
+
+        // add transform component: positions and directions
+        const XMFLOAT3 editorCamPos = { -18, 1, -15 };
+        const XMFLOAT3 gameCamPos = { 0, 2, -3 };
+
+        enttMgr.AddTransformComponent(editorCamID, editorCamPos, { 0,0,1,0 });
+        enttMgr.AddTransformComponent(gameCamID, gameCamPos, { 0,0,1,0 });
+
+        // add camera component
+        enttMgr.AddCameraComponent(editorCamID, editorCamData);
+        enttMgr.AddCameraComponent(gameCamID, gameCamData);
+
+        // initialize view matrices of the cameras
+        enttMgr.cameraSystem_.UpdateView(editorCamID);
+        enttMgr.cameraSystem_.UpdateView(gameCamID);
+    }
+    catch (EngineException & e)
+    {
+        LogErr(e, true);
+        LogErr("can't initialize the cameras objects");
+        return false;
+    }
+
+    return true;
 }
 
 ///////////////////////////////////////////////////////////
@@ -1677,7 +1738,7 @@ void LoadTreesBillboardsTextures()
 
 ///////////////////////////////////////////////////////////
 
-bool SceneInitializer::InitializeModelEntities(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
+bool SceneInitializer::InitModelEntities(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
 {
     // initialize all the models on the scene
 
@@ -1715,7 +1776,7 @@ bool SceneInitializer::InitializeModelEntities(ID3D11Device* pDevice, ECS::Entit
         // NOTE: the bounding line box model must be created first of all, before all the other models
         const ModelID boundingBoxID = creator.CreateBoundingLineBox(pDevice);
 
-        LoadTreesBillboardsTextures();
+        //LoadTreesBillboardsTextures();
 #if 1
         if (FileSys::Exists(g_RelPathAssetsDir))
         {
@@ -1723,7 +1784,7 @@ bool SceneInitializer::InitializeModelEntities(ID3D11Device* pDevice, ECS::Entit
         }
         else
         {
-            ImportExternalModels(pDevice, mgr);
+            //ImportExternalModels(pDevice, mgr);
         }
 #else
         ImportExternalModels(pDevice, mgr);
@@ -1813,6 +1874,19 @@ bool SceneInitializer::InitializeModelEntities(ID3D11Device* pDevice, ECS::Entit
         LogErr("can't initialize models");
         return false;
     }
+
+    return true;
+}
+
+///////////////////////////////////////////////////////////
+
+bool SceneInitializer::InitLightSources(ECS::EntityMgr& mgr)
+{
+    // initialize all the light sources (entities) on the scene
+
+    InitDirectedLightEntities(mgr);
+    InitPointLightEntities(mgr);
+    InitSpotLightEntities(mgr);
 
     return true;
 }

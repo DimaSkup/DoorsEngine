@@ -23,7 +23,7 @@ public:
     void AddRecords(
         const EntityID* ids,
         const XMFLOAT3* positions,
-        const XMVECTOR* dirQuats,      // direction quaternions
+        const XMVECTOR* directions,      
         const float* uniformScales,
         const size numElems);
 
@@ -31,31 +31,36 @@ public:
 
     // -------------------------------------------------------
 
-    // GET/SET  position/direction/uniform_scale
+    // GET position/direction/uniform_scale
 
-    void GetPositionsByIDs      (const EntityID* ids, const size numEntts, cvector<XMFLOAT3>& outPositions) const;
-    void GetDirectionsQuatsByIDs(const EntityID* ids, const size numEntts, cvector<XMVECTOR>& outDirQuats) const;
-    void GetUniformScalesByIDs  (const EntityID* ids, const size numEntts, cvector<float>& outScales) const;
+    void GetPositions    (const EntityID* ids, const size numEntts, cvector<XMFLOAT3>& outPositions)  const;
+    void GetDirections   (const EntityID* ids, const size numEntts, cvector<XMVECTOR>& outDirections) const;
+    void GetUniformScales(const EntityID* ids, const size numEntts, cvector<float>& outScales)        const;
 
-    void GetPositionsAndDirectionsByIDs(
+    const XMFLOAT3  GetPosition     (const EntityID id) const;
+    const XMVECTOR  GetPositionVec  (const EntityID id) const;
+    const XMVECTOR& GetDirectionVec (const EntityID id) const;
+    const XMFLOAT3  GetDirection    (const EntityID id) const;
+    const float     GetUniformScale (const EntityID id) const;
+
+    // get position and direction for multiple entities / single entity
+    void GetPositionsAndDirections(
         const EntityID* ids,
         const size numEntts,
         cvector<XMFLOAT3>& outPositions,
-        cvector<XMFLOAT3>& outDirections);
+        cvector<XMFLOAT3>& outDirections) const;
 
-    void GetTransformByID(
+    void GetPosAndDir (
         const EntityID id,
-        XMFLOAT3& outPos,
-        XMVECTOR& outDirQuat,
-        float& outUniformScale);
+        XMVECTOR& outPos,
+        XMVECTOR& outDir) const;
 
-    const XMFLOAT3 GetPositionByID     (const EntityID id) const;
-    const XMVECTOR GetDirectionQuatByID(const EntityID id) const;
-    const float    GetUniformScaleByID (const EntityID id) const;
 
-    bool SetPositionByID     (const EntityID id, const XMFLOAT3& position);
-    bool SetDirectionQuatByID(const EntityID id, const XMVECTOR& dirQuat);
-    bool SetUniScaleByID     (const EntityID id, const float uniformScale);
+    // SET position/direction/uniform_scale
+    bool SetPositionVec(const EntityID id, const XMVECTOR& pos);
+    bool SetPosition   (const EntityID id, const XMFLOAT3& pos);
+    bool SetDirection  (const EntityID id, const XMVECTOR& direction);
+    bool SetUniScale   (const EntityID id, const float uniformScale);
 
     bool RotateWorldByQuat(const EntityID id, const XMVECTOR& quat);
 
@@ -63,43 +68,19 @@ public:
 
     DirectX::XMMATRIX GetWorldMatrixOfEntt(const EntityID id);
 
-    void GetWorldMatricesOfEntts(
+    void GetWorlds(
         const EntityID* ids,
         const size numEntts,
         cvector<DirectX::XMMATRIX>& outWorlds);
 
     // ----------------------------------------------------
 
-    const DirectX::XMMATRIX& GetInverseWorldMatrixOfEntt(const EntityID id);
+    const DirectX::XMMATRIX& GetInverseWorld(const EntityID id);
 
-    void GetInverseWorldMatricesOfEntts(
+    void GetInverseWorlds(
         const EntityID* ids,
-        const int numEntts,
+        const size numEntts,
         cvector<DirectX::XMMATRIX>& outInvWorlds);
-
-    // ---------------------------------------------
-
-    void GetMatricesByIdxs(
-        const index* idxs,
-        const XMMATRIX* inMatrices,
-        XMMATRIX* outMatrices,
-        int numMatrices);
-
-    void SetTransformByID(
-        const EntityID id,
-        const XMVECTOR& newPosition,
-        const XMVECTOR& newDirectionQuat,
-        const float newScale);
-
-    void SetTransformDataByIdxs(
-        const cvector<index>& idxs,
-        const cvector<XMVECTOR>& newPositions,
-        const cvector<XMVECTOR>& newDirQuats,
-        const cvector<float>& newUniformScales);
-
-    void SetWorldMatricesByIdxs(
-        const cvector<index>& dataIdxs,
-        const cvector<XMMATRIX>& newWorldMatrices);
 
 
 private:
@@ -112,14 +93,14 @@ private:
 
     // ---------------------------------------------
 
-    index GetIdxByID(const EntityID id) const;
+    index GetIdx(const EntityID id) const;
 
     inline void RecomputeWorldMatrixByIdx(const index idx)
     {
         // recompute world matrix for the entity by array idx
         pTransform_->worlds[idx] =
             GetMatScaling(pTransform_->posAndUniformScale[idx].w) *
-            GetMatRotation(pTransform_->dirQuats[idx]) *
+            GetMatRotation(pTransform_->directions[idx]) *
             GetMatTranslation(pTransform_->posAndUniformScale[idx]);
     }
 
@@ -130,9 +111,9 @@ private:
         pTransform_->invWorlds[idx] = DirectX::XMMatrixInverse(nullptr, pTransform_->worlds[idx]);
     }
 
-    inline XMMATRIX GetMatTranslation(const XMFLOAT4& pos)  const { return DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z); }
-    inline XMMATRIX GetMatRotation(const XMVECTOR& dirQuat) const { return DirectX::XMMatrixRotationQuaternion(dirQuat); }
-    inline XMMATRIX GetMatScaling(const float uScale)       const { return DirectX::XMMatrixScaling(uScale, uScale, uScale); }
+    inline XMMATRIX GetMatTranslation(const XMFLOAT4& pos)    const { return DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z); }
+    inline XMMATRIX GetMatRotation(const XMVECTOR& direction) const { return DirectX::XMMatrixRotationQuaternion(direction); }
+    inline XMMATRIX GetMatScaling(const float uScale)         const { return DirectX::XMMatrixScaling(uScale, uScale, uScale); }
 
 private:
     Transform* pTransform_ = nullptr;   // a ptr to the Transform component

@@ -5,7 +5,6 @@
 #include "LightSystem.h"
 
 #pragma warning (disable : 4996)
-
 using namespace DirectX;
 
 
@@ -54,11 +53,9 @@ XMFLOAT4 GetLightPropInvalidData()
 }
 
 
-
 // =================================================================================
 // public API: creation
 // =================================================================================
-
 void LightSystem::AddDirLights(
     const EntityID* ids,
     const size numEntts,
@@ -66,7 +63,8 @@ void LightSystem::AddDirLights(
 {
     // add new directional light sources
 
-    Assert::True((ids != nullptr) && (numEntts > 0), "invalid input args");
+    Assert::True(ids,          "input ptr to entities IDs arr == nullptr");
+    Assert::True(numEntts > 0, "input number of entitites must be > 0");
     
     Light& comp = *pLightComponent_;
     cvector<index> idxs;
@@ -291,8 +289,8 @@ bool LightSystem::SetDirLightProp(
     {
         case LightProp::DIRECTION:
         {
-            // the directed light cannot have direction data by itself so we update the related data in Transform component
-            pTransformSys_->SetDirectionQuatByID(id, XMVECTOR{ val.x, val.y, val.z, 1.0f });
+            // light direction is stored in the Transform component
+            pTransformSys_->SetDirection(id, XMVECTOR{ val.x, val.y, val.z, 1.0f });
             break;
         }
         default:
@@ -339,9 +337,9 @@ XMFLOAT4 LightSystem::GetDirLightProp(const EntityID id, const LightProp prop)
         }
         case DIRECTION:
         {
-            // the directed light cannot have direction data by itself so we get the related data from Transform component
+            // get light direction from the Transform component
             XMFLOAT4 dir;
-            DirectX::XMStoreFloat4(&dir, pTransformSys_->GetDirectionQuatByID(id));
+            DirectX::XMStoreFloat4(&dir, pTransformSys_->GetDirectionVec(id));
             return dir;
         }
         default:
@@ -378,7 +376,7 @@ void LightSystem::GetPointLightsData(
         outData[i++] = lights.data[idx];
 
     // get point light positions (are store in the Transform component)
-    pTransformSys_->GetPositionsByIDs(ids, numEntts, outPositions);
+    pTransformSys_->GetPositions(ids, numEntts, outPositions);
 }
 
 ///////////////////////////////////////////////////////////
@@ -407,7 +405,7 @@ void LightSystem::GetSpotLightsData(
         outData[i++] = lights.data[idx];
 
     // get spotlights positions and directions
-    pTransformSys_->GetPositionsAndDirectionsByIDs(ids, numEntts, outPositions, outDirections);
+    pTransformSys_->GetPositionsAndDirections(ids, numEntts, outPositions, outDirections);
 }
 
 ///////////////////////////////////////////////////////////
@@ -465,8 +463,8 @@ XMFLOAT4 LightSystem::GetPointLightProp(const EntityID id, const LightProp prop)
         }
         case POSITION:
         {
-            // the Light component doen't contain position data for the point light, but we can get this data from the Transform component
-            const XMFLOAT3 pos = pTransformSys_->GetPositionByID(id);
+            // get light position from the Transform component
+            const XMFLOAT3 pos = pTransformSys_->GetPosition(id);
             return { pos.x, pos.y, pos.z, 1.0f };
         }
         case RANGE:
@@ -525,8 +523,8 @@ bool LightSystem::SetPointLightProp(
         }
         case LightProp::POSITION:
         {
-            // the Light component doen't contain position data for the point light, but we store this data in the Transform component
-            pTransformSys_->SetPositionByID(id, XMFLOAT3{ value.x, value.y, value.z });
+            // store light position into the Transform component
+            pTransformSys_->SetPosition(id, XMFLOAT3{ value.x, value.y, value.z });
             break;
         }
         case LightProp::ATTENUATION:
@@ -640,17 +638,15 @@ XMFLOAT4 LightSystem::GetSpotLightProp(const EntityID id, const LightProp prop)
         }
         case POSITION:
         {
-            // the Light component doen't contain position data for the spotlight, but we can get this data in the Transform component
-            const XMFLOAT3 pos = pTransformSys_->GetPositionByID(id);
+            // get light position from the Transform component
+            const XMFLOAT3 pos = pTransformSys_->GetPosition(id);
             return { pos.x, pos.y, pos.z, 1.0f };
         }
         case DIRECTION:
         {
-            // the Light component doen't contain position data for the spotlight, but we can get this data in the Transform component
-            const XMVECTOR q = pTransformSys_->GetDirectionQuatByID(id);
-            XMFLOAT4 dir;
-            DirectX::XMStoreFloat4(&dir, q);
-            return dir;
+            // get light direction from the Transform component
+            const XMFLOAT3 dir = pTransformSys_->GetDirection(id);
+            return XMFLOAT4{ dir.x, dir.y, dir.z, 0.0f };
         }
         case RANGE:
         {
@@ -682,7 +678,7 @@ XMFLOAT4 LightSystem::GetSpotLightProp(const EntityID id, const LightProp prop)
 bool LightSystem::SetSpotLightProp(
     const EntityID id,
     const LightProp prop,
-    const XMFLOAT4& value)
+    const XMFLOAT4& val)
 {
     SpotLights& lights = GetSpotLights();
     const index idx    = GetIdxByID(lights.ids, id);
@@ -700,34 +696,34 @@ bool LightSystem::SetSpotLightProp(
     {
         case LightProp::AMBIENT:
         {
-            light.ambient = value;
+            light.ambient = val;
             break;
         }
         case LightProp::DIFFUSE:
         {
-            light.diffuse = value;
+            light.diffuse = val;
             break;
         }
         case LightProp::SPECULAR:
         {
-            light.specular = value;
+            light.specular = val;
             break;
         }
         case LightProp::POSITION:
         {
-            // the Light component doen't contain position data for the spotlight, but we store this data in the Transform component
-            pTransformSys_->SetPositionByID(id, XMFLOAT3{ value.x, value.y, value.z });
+            // store light position into the Transform component
+            pTransformSys_->SetPosition(id, XMFLOAT3{ val.x, val.y, val.z });
             break;
         }
         case LightProp::DIRECTION:
         {
-            // the Light component doen't contain position data for the spotlight, but we store this data in the Transform component
-            pTransformSys_->SetDirectionQuatByID(id, { value.x, value.y, value.z, 1.0f });
+            // store light direction into the Transform component
+            pTransformSys_->SetDirection(id, { val.x, val.y, val.z, 1.0f });
             break;
         }
         case LightProp::ATTENUATION:
         {
-            light.att = { value.x, value.y, value.z };
+            light.att = { val.x, val.y, val.z };
             break;
         }
         default:
@@ -782,7 +778,6 @@ bool LightSystem::SetSpotLightProp(
     // we successfully updated some property of the light entity
     return true;
 }
-
 
 
 // =================================================================================
@@ -843,8 +838,8 @@ void LightSystem::UpdateFlashlight(const EntityID id, const XMFLOAT3& pos, const
     // the spotlight takes on the camera position and is aimed in the same direction 
     // the camera is looking. In this way, it looks like we are holding a flashlight
 
-    pTransformSys_->SetPositionByID(id, pos);
-    pTransformSys_->SetDirectionQuatByID(id, XMVECTOR{ dir.x, dir.y, dir.z, 1.0f });
+    pTransformSys_->SetPosition(id, pos);
+    pTransformSys_->SetDirection(id, XMVECTOR{ dir.x, dir.y, dir.z, 1.0f });
 }
 
 ///////////////////////////////////////////////////////////
@@ -901,7 +896,7 @@ bool LightSystem::GetPointLightsPositionAndRange(
 
    
     // get position of each point light by ID
-    pTransformSys_->GetPositionsByIDs(ids, numEntts, outPositions);
+    pTransformSys_->GetPositions(ids, numEntts, outPositions);
 
     // get range of each point light by ID
     const cvector<PointLight>& lights = GetPointLights().data;

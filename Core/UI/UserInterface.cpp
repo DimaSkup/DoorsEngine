@@ -5,6 +5,7 @@
 // =================================================================================
 #include "UserInterface.h"
 
+#include <CoreCommon/FileSystemPaths.h>
 #include "../Texture/TextureMgr.h"
 //#include "CRender.h"                     // from the Render module
 
@@ -203,22 +204,24 @@ void UserInterface::LoadDebugInfoStringFromFile(
     // and create some strings manually
 
     char filePath[128]{ '\0' };
-    strcat(filePath, "data/ui");
+    strcat(filePath, g_RelPathUIDataDir);
     strcat(filePath, "ui_debug_info_strings.txt");
 
 
     FILE* pFile = fopen(filePath, "r+");
     if (!pFile)
     {
-        sprintf(g_String, "can't open a file: %s", filePath);
+        sprintf(g_String, "can't open a file for reading debug strings: %s", filePath);
         LogErr(g_String);
         return;
     }
 
-    char buffer[64] = { 0 };
-    char str[64] = { 0 };
-    const int bufsize = 64;
-    int posX, posY, maxStrSize;
+    constexpr int bufsize = 64;
+    char buffer[bufsize]{ '\0' };
+    char str[bufsize]{ '\0' };
+    int posX = 0;
+    int posY = 0;
+    int maxStrSize = 0;
 
     while (fgets(buffer, bufsize, pFile))
     {
@@ -257,7 +260,6 @@ void UserInterface::LoadDebugInfoStringFromFile(
 }
 
 
-
 // ====================================================================================
 // Rendering API
 // ====================================================================================
@@ -286,7 +288,7 @@ void UserInterface::RenderEditor(SystemState& systemState)
         // hide the tab bar of this window
         if (ImGui::IsWindowDocked())
         {
-            auto* pWnd = ImGui::FindWindowByName("Run scene");
+            ImGuiWindow* pWnd = ImGui::FindWindowByName("Run scene");
             if (pWnd)
             {
                 ImGuiDockNode* pNode = pWnd->DockNode;

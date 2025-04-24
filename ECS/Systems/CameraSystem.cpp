@@ -7,124 +7,282 @@
 #include "CameraSystem.h"
 
 #pragma warning (disable : 4996)
+using namespace DirectX;
 
 
 namespace ECS
 {
 
-CameraSystem::CameraSystem(Camera* pCameraComponent) 
-	: pCameraComponent_(pCameraComponent)
+CameraSystem::CameraSystem(Camera* pCameraComponent, TransformSystem* pTransformSys) :
+    pCameraComponent_(pCameraComponent),
+    pTransformSys_(pTransformSys)
 {
-	Assert::NotNullptr(pCameraComponent, "ptr to the camera component == nullptr");
+    Assert::NotNullptr(pCameraComponent, "ptr to the camera component == nullptr");
+    Assert::NotNullptr(pTransformSys,    "ptr to the transform system == nullptr");
 }
 
 CameraSystem::~CameraSystem() 
 {
 }
 
-///////////////////////////////////////////////////////////
-
-void CameraSystem::Update(
-	const EntityID id,
-	const DirectX::XMMATRIX& view,
-	const DirectX::XMMATRIX& proj)
-{
-	Camera& comp = *pCameraComponent_;
-
-	const index idx = GetIdxByID(id);
-
-    if (idx == -1)
-    {
-        sprintf(g_String, "can't update camera by id: %ud", id);
-        LogErr(g_String);
-        return;
-    }
-
-	comp.views[idx] = view;
-	comp.projs[idx] = proj;
-	comp.invViews[idx] = DirectX::XMMatrixInverse(nullptr, view);
-}
-
 
 // =================================================================================
 //                        public API: add / remove
 // =================================================================================
-
-void CameraSystem::AddRecord(
-	const EntityID id,
-	const DirectX::XMMATRIX& view,   // camera view matrix
-	const DirectX::XMMATRIX& proj)   // camera projection matrix
+void CameraSystem::AddRecord(const EntityID id, const CameraData& data)
 {
-	Camera& comp = *pCameraComponent_;
+    Camera& comp = *pCameraComponent_;
 
-    const index idx = comp.ids.get_insert_idx(id);
-    const bool exist = (comp.ids[idx] == id);
-
-	// if there is no such record yet we create a new one
-	if (!exist)
-	{
-        comp.ids.insert_before(idx, id);
-        comp.views.insert_before(idx, view);
-        comp.projs.insert_before(idx, proj);
-        comp.invViews.insert_before(idx, DirectX::XMMatrixInverse(nullptr, view));
-	}
-    else
+    if (comp.data.contains(id))
     {
-        sprintf(g_String, "can't add new record there is already such by ID: %ud", id);
+        sprintf(g_String, "can't add a new record; there is already such by ID: %ud", id);
+        LogErr(g_String);
+        return;
+    }
+
+    // make a record and setup proj matrix
+    comp.data.emplace(id, data);
+    SetupProjection(id, data.fovY, data.aspectRatio, data.nearZ, data.farZ);
+}
+
+///////////////////////////////////////////////////////////
+
+void CameraSystem::RemoveRecord(const EntityID id)
+{
+    if (pCameraComponent_->data.erase(id) == 0)
+    {
+        sprintf(g_String, "can't remove (there is no camera by ID: %ld)", id);
         LogErr(g_String);
     }
 }
 
 ///////////////////////////////////////////////////////////
 
-void CameraSystem::AddRecords()
+inline bool CameraSystem::HasEntity(const EntityID id) const
 {
-	assert(0 && "TODO");
+    // return true if there is a camera with ID or false in another case
+    if (pCameraComponent_->data.contains(id))
+    {
+        return true;
+    }
+    else
+    {
+        sprintf(g_String, "there is no camera with ID: %ld", id);
+        LogErr(g_String);
+        return false;
+    }
 }
 
-void CameraSystem::RemoveRecord()
+///////////////////////////////////////////////////////////
+
+void CameraSystem::Strafe(const EntityID id, const float d)
 {
-	assert(0 && "TODO");
+    // move left/right the camera by distance d
+    const XMVECTOR  s     = XMVectorReplicate(d);
+    const XMVECTOR& right = GetRightVec(id);
+    const XMVECTOR& pos   = pTransformSys_->GetPositionVec(id);
+
+    // pos += d * right_vec
+    pTransformSys_->SetPositionVec(id, XMVectorMultiplyAdd(s, right, pos));
 }
 
-void CameraSystem::RemoveRecords()
+///////////////////////////////////////////////////////////
+
+void CameraSystem::Walk(const EntityID id, const float d)
 {
-	assert(0 && "TODO");
+    // move forward/backward the camera by distance d
+    const XMVECTOR s = XMVectorReplicate(d);
+    XMVECTOR pos;
+    XMVECTOR look;
+
+    // pos += d * look_vec
+    pTransformSys_->GetPosAndDir(id, pos, look);
+    pTransformSys_->SetPositionVec(id, XMVectorMultiplyAdd(s, look, pos));
 }
 
+///////////////////////////////////////////////////////////
+
+void CameraSystem::MoveUp(const EntityID id, const float d)
+{
+    // move the camera up by distance d
+    XMVECTOR s         = XMVectorReplicate(d);
+    const XMVECTOR pos = pTransformSys_->GetPositionVec(id);
+
+    // pos_ += d * world_up_vec
+    pTransformSys_->SetPositionVec(id, XMVectorMultiplyAdd(s, { 0,1,0 }, pos));
+}
+
+///////////////////////////////////////////////////////////
+
+void CameraSystem::Pitch(const EntityID id, const float angle)
+{
+    // rotate the look vector about the view space right vector
+    const XMMATRIX R    = XMMatrixRotationAxis(GetRightVec(id), angle);
+    const XMVECTOR look = pTransformSys_->GetDirectionVec(id);
+
+    pTransformSys_->SetDirection(id, XMVector3TransformNormal(look, R));
+}
+
+///////////////////////////////////////////////////////////
+
+void CameraSystem::RotateY(const EntityID id, const float angle)
+{
+    // rotate the basis vectors (right/look) about the world's y-axis
+    const XMMATRIX R = DirectX::XMMatrixRotationY(angle);
+
+    // update right vector of the camera
+    SetRightVec(id, XMVector3TransformNormal(GetRightVec(id), R));
+
+    // update look vector (direction) of the player
+    const XMVECTOR look = pTransformSys_->GetDirectionVec(id);
+    pTransformSys_->SetDirection(id, XMVector3TransformNormal(look, R));
+}
+
+///////////////////////////////////////////////////////////
+
+void CameraSystem::SetupProjection(
+    const EntityID id,
+    const float fovY,
+    const float aspectRatio,
+    const float nearZ,
+    const float farZ)
+{
+    // setup the projection matrix and frustum properties
+
+    if (HasEntity(id))
+    {
+        CameraData& data = pCameraComponent_->data.at(id);
+
+        data.nearZ = nearZ;
+        data.farZ = farZ;
+        data.aspectRatio = aspectRatio;
+        data.fovY = fovY;
+
+        data.nearWndHeight = 2.0f * nearZ * tanf(0.5f * fovY);
+        data.farWndHeight  = 2.0f * farZ  * tanf(0.5f * fovY);
+
+        data.proj = XMMatrixPerspectiveFovLH(fovY, aspectRatio, nearZ, farZ);
+    }
+}
 
 // =================================================================================
 //                           public API: getters
 // =================================================================================
 
-const DirectX::XMMATRIX& CameraSystem::GetViewMatrixByID(const EntityID id)
+void CameraSystem::RotateYAroundFixedLook(const EntityID id, const float angle)
 {
-	return pCameraComponent_->views[GetIdxByID(id)];
-}
+    // move horizontally around fixed look_at point by angle in radians
 
-const DirectX::XMMATRIX& CameraSystem::GetProjMatrixByID(const EntityID id)
-{
-	return pCameraComponent_->projs[GetIdxByID(id)];
+    assert(0 && "FIXME");
+#if 0
+
+    XMMATRIX R = XMMatrixTransformation(
+        lookAtPoint_,
+        { 0,0,0 },
+        { 1,1,1 },
+        lookAtPoint_,
+        XMQuaternionRotationRollPitchYaw(0, angle, 0),
+        { 0,0,0 });
+
+    XMVECTOR newPos = XMVector3Transform(GetPositionVec(), R);
+    LookAt(newPos, lookAtPoint_, { 0,1,0 });
+#endif
 }
 
 ///////////////////////////////////////////////////////////
 
-void CameraSystem::GetViewAndProjByID(
-	const EntityID id,
-	DirectX::XMMATRIX& view,
-	DirectX::XMMATRIX& proj)
+void CameraSystem::PitchAroundFixedLook(const EntityID id, const float angle)
 {
-	const index idx = GetIdxByID(id);
+    // move vertically around fixed look_at point by angle in radians
 
-    if (idx == -1)
-    {
-        sprintf(g_String, "can't get data by id: %ud", id);
-        LogErr(g_String);
+    assert(0 && "FIXME");
+
+#if 0
+    using namespace DirectX;
+
+    // distance from the current position to the fixed look_at point
+    float distToLookAt = XMVectorGetX(XMVector3Length(lookAtPoint_ - GetPositionVec()));
+
+    XMVECTOR horizontalAxis = XMVector3Normalize(XMVector3Cross({ 0, 1, 0 }, look_));
+    XMMATRIX R              = XMMatrixRotationNormal(horizontalAxis, angle);
+    XMVECTOR newLookVec     = XMVector3Normalize(XMVector3TransformCoord(look_, R));
+
+    // p = p0 + v*t
+    XMVECTOR newPos = lookAtPoint_ - (newLookVec * distToLookAt);
+
+    // update position
+    LookAt(newPos, lookAtPoint_, { 0,1,0 });
+#endif
+}
+
+///////////////////////////////////////////////////////////
+
+void CameraSystem::UpdateView(const EntityID id)
+{
+    if (!HasEntity(id))
         return;
-    }
 
-	view = pCameraComponent_->views[idx];
-	proj = pCameraComponent_->projs[idx];
+    CameraData& camData = pCameraComponent_->data[id];
+
+    XMVECTOR P;   // camera's position
+    XMVECTOR L;   // camera's direction
+    
+    pTransformSys_->GetPosAndDir(id, P, L);
+
+    // compute camera's right vector (cross: look X world_up)
+    XMVECTOR R = XMVector3Normalize(XMVector3Cross({ 0,1,0,0 }, L));
+
+    // camera's up vector: L, R already ortho-normal, so no need to normalize cross product
+    XMVECTOR U = XMVector3Cross(L, R);
+
+
+    // fill in the view matrix entries
+    float x = -XMVectorGetX(XMVector3Dot(P, R));
+    float y = -XMVectorGetX(XMVector3Dot(P, U));
+    float z = -XMVectorGetY(XMVector3Dot(P, L));
+
+    XMFLOAT3 right;
+    XMFLOAT3 up;
+    XMFLOAT3 look;
+    XMStoreFloat3(&right, R);
+    XMStoreFloat3(&up, U);
+    XMStoreFloat3(&look, L);
+
+    camData.right = R;
+
+    camData.view =
+    {
+        right.x,   up.x,   look.x,    0,
+        right.y,   up.y,   look.y,    0,
+        right.z,   up.z,   look.z,    0,
+              x,      y,        z,    1
+    };
+
+    // compute inverse view matrix
+    camData.invView = XMMatrixInverse(nullptr, camData.view);
+}
+
+
+// =================================================================================
+// Get camera's position/direction/vectors data
+// =================================================================================
+XMFLOAT3 CameraSystem::GetLook(const EntityID id) const
+{
+    XMFLOAT3 dir;
+    XMStoreFloat3(&dir, pTransformSys_->GetDirectionVec(id));
+    return dir;
+}
+
+///////////////////////////////////////////////////////////
+
+bool CameraSystem::SetRightVec(const EntityID id, const XMVECTOR& right)
+{
+    bool exist = false;
+
+    if (exist = HasEntity(id))
+        pCameraComponent_->data[id].right = right;
+
+    return exist;
 }
 
 

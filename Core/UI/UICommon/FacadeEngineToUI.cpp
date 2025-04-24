@@ -22,26 +22,16 @@ namespace UI
 FacadeEngineToUI::FacadeEngineToUI(
     ID3D11DeviceContext* pContext,
     Render::CRender* pRender,
-    ECS::EntityMgr* pEntityMgr,
-    //TextureMgr* pTextureMgr,
-    //ModelMgr* pModelStorage,
-    Camera* pEditorCamera)
+    ECS::EntityMgr* pEntityMgr)
     :
     pContext_(pContext),
     pRender_(pRender),
-    pEntityMgr_(pEntityMgr),
-   // pTextureMgr_(pTextureMgr),
-    //pModelStorage_(pModelStorage),
-    pEditorCamera_(pEditorCamera)
+    pEntityMgr_(pEntityMgr)
 {
     // set pointers to the subsystems
-
     Assert::NotNullptr(pRender, "ptr to render == nullptr");
     Assert::NotNullptr(pContext, "ptr to device context == nullptr");
     Assert::NotNullptr(pEntityMgr, "ptr to the entt mgr == nullptr");
-    //Assert::NotNullptr(pTextureMgr, "ptr to the texture mgr == nullptr");
-    //Assert::NotNullptr(pModelStorage, "ptr to the model storage == nullptr");
-    Assert::NotNullptr(pEditorCamera, "ptr to the editor camera == nullptr");
 }
 
 ///////////////////////////////////////////////////////////
@@ -60,12 +50,14 @@ void FacadeEngineToUI::GetCameraViewAndProj(
     float* outView,
     float* outProj)
 {
-    assert(outView && outProj && "some of input ptrs == NULL");
+    if (!outView || !outProj)
+    {
+        LogErr("some of input ptrs == NULL");
+        return;
+    }
 
-    DirectX::XMMATRIX view;
-    DirectX::XMMATRIX proj;
-
-    pEntityMgr_->cameraSystem_.GetViewAndProjByID(camEnttID, view, proj);
+    DirectX::XMMATRIX view = pEntityMgr_->cameraSystem_.GetView(camEnttID);
+    DirectX::XMMATRIX proj = pEntityMgr_->cameraSystem_.GetProj(camEnttID);
 
     // copy view and proj matrices into raw array of 16 floats
     memcpy(outView, (void*)view.r->m128_f32, sizeof(float) * 16);
@@ -236,12 +228,12 @@ bool FacadeEngineToUI::GetEnttsOfLightType(const EntityID*& enttsIDs, int& numEn
 bool FacadeEngineToUI::GetEnttTransformData(
     const EntityID enttID,
     Vec3& position,
-    Vec4& rotQuat,
+    Vec3& direction,
     float& uniformScale) const
 {
-    position     = pEntityMgr_->transformSystem_.GetPositionByID(enttID);
-    rotQuat      = pEntityMgr_->transformSystem_.GetDirectionQuatByID(enttID);
-    uniformScale = pEntityMgr_->transformSystem_.GetUniformScaleByID(enttID);
+    position     = pEntityMgr_->transformSystem_.GetPosition(enttID);
+    direction    = pEntityMgr_->transformSystem_.GetDirection(enttID);
+    uniformScale = pEntityMgr_->transformSystem_.GetUniformScale(enttID);
 
     return true;
 }
@@ -260,34 +252,34 @@ bool FacadeEngineToUI::GetEnttWorldMatrix(const EntityID id, DirectX::XMMATRIX& 
 
 Vec3 FacadeEngineToUI::GetEnttPosition(const EntityID id) const
 {
-    return pEntityMgr_->transformSystem_.GetPositionByID(id);
+    return pEntityMgr_->transformSystem_.GetPosition(id);
 }
 
-Vec4 FacadeEngineToUI::GetEnttDirectionQuat(const EntityID id) const
+Vec3 FacadeEngineToUI::GetEnttDirection(const EntityID id) const
 {
-    return pEntityMgr_->transformSystem_.GetDirectionQuatByID(id);
+    return pEntityMgr_->transformSystem_.GetDirection(id);
 }
 
 float FacadeEngineToUI::GetEnttScale(const EntityID id) const
 {
-    return pEntityMgr_->transformSystem_.GetUniformScaleByID(id);
+    return pEntityMgr_->transformSystem_.GetUniformScale(id);
 }
 
 ///////////////////////////////////////////////////////////
 
 bool FacadeEngineToUI::SetEnttPosition(const EntityID id, const Vec3& pos)
 {
-    return pEntityMgr_->transformSystem_.SetPositionByID(id, pos.ToFloat3());
+    return pEntityMgr_->transformSystem_.SetPosition(id, pos.ToFloat3());
 }
 
-bool FacadeEngineToUI::SetEnttDirectionQuat(const EntityID id, const Vec4& rotationQuat)
+bool FacadeEngineToUI::SetEnttDirection(const EntityID id, const Vec3& dir)
 {
-    return pEntityMgr_->transformSystem_.SetDirectionQuatByID(id, rotationQuat.ToXMVector());
+    return pEntityMgr_->transformSystem_.SetDirection(id, dir.ToXMVector());
 }
 
 bool FacadeEngineToUI::SetEnttUniScale(const EntityID id, const float scale)
 {
-    return pEntityMgr_->transformSystem_.SetUniScaleByID(id, scale);
+    return pEntityMgr_->transformSystem_.SetUniScale(id, scale);
 }
 
 bool FacadeEngineToUI::RotateEnttByQuat(const EntityID id, const Vec4& rotQuat)
@@ -637,18 +629,14 @@ ColorRGBA FacadeEngineToUI::GetSpotLightSpecular(const EntityID id) const
 
 Vec3 FacadeEngineToUI::GetSpotLightPos(const EntityID id) const
 {
-    // position values are stored in x,y,z
-    Vec4 pos = pEntityMgr_->lightSystem_.GetSpotLightProp(id, ECS::LightProp::POSITION);
-    return pos.ToVec3();
+    // spotlight position is stored in the Transform component
+    return pEntityMgr_->transformSystem_.GetPosition(id);
 }
 
 Vec3 FacadeEngineToUI::GetSpotLightDirection(const EntityID id) const
 {
-    const DirectX::XMFLOAT4 dir = pEntityMgr_->lightSystem_.GetSpotLightProp(id, ECS::LightProp::DIRECTION);
-    //const XMVECTOR q   = DirectX::XMQuaternionRotationRollPitchYaw(dir.y, dir.x, dir.w);
-    //const XMVECTOR q = pEntityMgr_->transformSystem_.GetRotationQuatByID(id);
-
-    return { dir.x, dir.y, dir.z };
+    // spotlight direction is stored in the Transform component
+    return pEntityMgr_->transformSystem_.GetDirection(id);
 }
 
 Vec3 FacadeEngineToUI::GetSpotLightAttenuation(const EntityID id) const
@@ -692,7 +680,7 @@ bool FacadeEngineToUI::GetSkyData(
 
     center = skyDomeShader.GetColorCenter();
     apex = skyDomeShader.GetColorApex();
-    offset = pEntityMgr_->transformSystem_.GetPositionByID(skyEnttID);
+    offset = pEntityMgr_->transformSystem_.GetPosition(skyEnttID);
 
     return true;
 }
@@ -720,7 +708,7 @@ bool FacadeEngineToUI::SetSkyOffset(const Vec3& offset)
     // if we found the sky entity we change its offset
     if (enttID != 0)
     {
-        pEntityMgr_->transformSystem_.SetPositionByID(enttID, offset.ToFloat3());
+        pEntityMgr_->transformSystem_.SetPosition(enttID, offset.ToFloat3());
         return true;
     }
 

@@ -132,6 +132,12 @@
     <ClInclude Include="Common\pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Components\Player.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Systems\PlayerSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Entity\EntityMgr.cpp">
@@ -183,6 +189,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Common\pch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Systems\PlayerSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

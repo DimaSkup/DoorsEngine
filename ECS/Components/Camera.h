@@ -7,31 +7,46 @@
 #pragma once
 
 #include "../Common/Types.h"
-#include "../Common/cvector.h"
+#include <map>
 
 
 namespace ECS
 {
 
+// camera's data container
+struct CameraData
+{
+    // cache frustum properties
+    float fovY          = -1.0f;
+    float aspectRatio   = -1.0f;
+    float nearZ         = -1.0f;
+    float farZ          = -1.0f;
+
+    float nearWndHeight = -1.0f;
+    float farWndHeight  = -1.0f;
+
+    XMMATRIX view    = DirectX::XMMatrixIdentity();
+    XMMATRIX invView = DirectX::XMMatrixIdentity();
+    XMMATRIX proj    = DirectX::XMMatrixIdentity();
+
+    // camera coordinate system with coordinates relative to world space
+    XMVECTOR right      { 1,0,0 };    // world space right vector of the camera
+    //XMVECTOR up         { 0,1,0 };    // camera's up vector
+    XMVECTOR lookAtPoint{ 0,1,0 };    // world space look_at point (is used when we concentrate camera on some point)
+
+    // defines if camera is fixed at some particular look_at point
+    bool isFixedLook_ = false;
+};
+
+///////////////////////////////////////////////////////////
+
+// ECS component
 struct Camera
 {
-    Camera()
-    {
-        // push empty invalid data
-        ids.push_back(INVALID_ENTITY_ID);
-        views.push_back(DirectX::XMMatrixIdentity());
-        projs.push_back(DirectX::XMMatrixIdentity());
-        invViews.push_back(DirectX::XMMatrixIdentity());
-    }
+    Camera() {}
 
-
-    cvector<EntityID> ids;           // id of entt which has a camera
-    cvector<XMMATRIX> views;         // view matrix of the camera
-    cvector<XMMATRIX> projs;         // projection matrix of the camera
-    cvector<XMMATRIX> invViews;      // current inverse view matrix
-
+    std::map<EntityID, CameraData> data;
     eComponentType type = eComponentType::CameraComponent;
-
 };
 
 }

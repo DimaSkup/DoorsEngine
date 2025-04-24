@@ -17,31 +17,31 @@ namespace Core
 class Settings
 {
 public:
-	Settings();
-	~Settings();
+    Settings();
+    ~Settings();
 
-	Settings(Settings& other) = delete;        // should not be cloneable
-	void operator=(const Settings&) = delete;  // should not be assignable
+    Settings(Settings& other) = delete;        // should not be cloneable
+    void operator=(const Settings&) = delete;  // should not be assignable
 
 
-	// get a setting value in a particular type
-	int GetInt(const char* key) const;
-	float GetFloat(const char* key) const;
-	bool GetBool(const char* key) const;
-	const char* GetString(const char* key) const;
+    // get a setting value in a particular type
+    int         GetInt   (const char* key) const;
+    float       GetFloat (const char* key) const;
+    bool        GetBool  (const char* key) const;
+    const char* GetString(const char* key) const;
 
-	// for string source type we use this function for updating some setting by a key
-	void UpdateSettingByKey(const char* key, const std::string & src);
+    // for string source type we use this function for updating some setting by a key
+    void UpdateSettingByKey(const char* key, const std::string & src);
 
-	// for simple source types (int, float, bool, etc.) we use this function for
-	// updating some setting by a key
-	template<typename T>
-	void UpdateSettingByKey(const char* key, T src);
+    // for simple source types (int, float, bool, etc.) we use this function for
+    // updating some setting by a key
+    template<typename T>
+    void UpdateSettingByKey(const char* key, T src);
 
-	bool LoadSettingsFromFile();
+    bool LoadSettingsFromFile();
 
 private:
-	std::map <std::string, std::string> settingsList_;
+    std::map<std::string, std::string> settingsList_;
 };
 
 ///////////////////////////////////////////////////////////
@@ -49,31 +49,31 @@ private:
 template<typename T>
 void Settings::UpdateSettingByKey(const char* key, T val)
 {
-	// update a setting parameter with new value by a particular key
+    // update a setting parameter with new value by a particular key
 
-	if (!settingsList_.contains(key))
-	{
+    if (!settingsList_.contains(key))
+    {
         sprintf(g_String, "there is no such a key in settings: %s", key);
         LogErr(g_String);
-		return;
-	}
+        return;
+    }
 
-	int valType = typeid(val);
+    int valType = typeid(val);
 
-	// check if the src type is allowed
-	if ((valType == typeid(float)) ||
-		(valType == typeid(bool)) ||
-		(valType == typeid(int)))
-	{
-		settingsList_[key] = std::to_string(val);
-	}
-	// we have wrong type
-	else
-	{
-		const char* typeName = typeid(T).name();
-		sprintf(g_String, "failed to set key (%s): wrong source type: %s", key, typeName);
+    // check if the src type is allowed
+    if ((valType == typeid(float)) ||
+        (valType == typeid(bool)) ||
+        (valType == typeid(int)))
+    {
+        settingsList_[key] = std::to_string(val);
+    }
+    // we have wrong type
+    else
+    {
+        const char* typeName = typeid(T).name();
+        sprintf(g_String, "failed to set key (%s): wrong source type: %s", key, typeName);
         LogErr(g_String);
-	}
+    }
 }
 
 } // namespace Core

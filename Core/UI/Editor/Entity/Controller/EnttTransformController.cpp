@@ -42,7 +42,7 @@ void EnttTransformController::ExecuteCommand(const ICommand* pCmd, const EntityI
         }
         case CHANGE_ENTITY_DIRECTION:
         {
-            ExecChangeDirectionQuat(id, pCmd->GetVec4());
+            ExecChangeDirection(id, pCmd->GetVec3());
             break;
         }
         case CHANGE_ENTITY_SCALE:
@@ -71,7 +71,7 @@ void EnttTransformController::UndoCommand(const ICommand* pCmd, const EntityID i
         }
         case CHANGE_ENTITY_DIRECTION:
         {
-            UndoChangeDirection(id, pCmd->GetVec4());
+            UndoChangeDirection(id, pCmd->GetVec3());
             break;
         }
         case CHANGE_ENTITY_SCALE:
@@ -95,11 +95,11 @@ void EnttTransformController::LoadEnttData(const EntityID id)
     // load/reload data of currently selected entity by ID
     // so we will be able to see refreshed data in the editor
     Vec3 position;
-    Vec4 dirQuat;
+    Vec3 direction;
     float uniScale = 0.0f;
 
-    if (pFacade_->GetEnttTransformData(id, position, dirQuat, uniScale))
-        data_.SetData(position, dirQuat, uniScale);
+    if (pFacade_->GetEnttTransformData(id, position, direction, uniScale))
+        data_.SetData(position, direction, uniScale);
 }
 
 
@@ -116,7 +116,7 @@ void EnttTransformController::ExecChangePosition(const EntityID id, const Vec3& 
     if (pFacade_->SetEnttPosition(id, newPos))
     {
         // update editor fields
-        data_.SetPosition(newPos);
+        data_.position_ = newPos;
 
         // generate an "undo" command and store it into the history
         const CmdChangeVec3 undoCmd(CHANGE_ENTITY_POSITION, oldPos);
@@ -132,7 +132,7 @@ void EnttTransformController::ExecChangePosition(const EntityID id, const Vec3& 
 
 ///////////////////////////////////////////////////////////
 
-void EnttTransformController::ExecChangeDirectionQuat(const EntityID id, const Vec4& dirQuat)
+void EnttTransformController::ExecChangeDirection(const EntityID id, const Vec3& direction)
 {
     // update direction for entity by ID and store this event into the history
 
@@ -154,17 +154,17 @@ void EnttTransformController::ExecChangeDirectionQuat(const EntityID id, const V
         Core::LogErr("can't change direction of entt; id: " + std::to_string(id));
     }
 #elif 1
-    Vec4 oldDirectionQuat = pFacade_->GetEnttDirectionQuat(id);
+    Vec3 oldDirection = pFacade_->GetEnttDirection(id);
 
-    if (pFacade_->RotateEnttByQuat(id, dirQuat))
+    if (pFacade_->SetEnttDirection(id, direction))
     {
         // update editor fields
-        data_.SetDirection(dirQuat);
+        data_.direction_ = direction;
 
         // generate an "undo" command and store it into the history
-        const CmdChangeVec4 undoCmd(CHANGE_ENTITY_DIRECTION, oldDirectionQuat);
-        const std::string msg = "changed direction of entt (id: " + std::to_string(id) + ")";
-        gEventsHistory.Push(undoCmd, msg, id);
+        const CmdChangeVec3 undoCmd(CHANGE_ENTITY_DIRECTION, oldDirection);
+        sprintf(g_String, "changed direction of entt (id: %ld)", id);
+        gEventsHistory.Push(undoCmd, g_String, id);
     }
     else
     {
@@ -209,12 +209,12 @@ void EnttTransformController::ExecChangeUniformScale(const EntityID id, const fl
     if (pFacade_->SetEnttUniScale(id, uniformScale))
     {
         // update editor fields
-        data_.SetUniformScale(uniformScale);
+        data_.uniformScale_ = uniformScale;
 
         // generate an "undo" command and store it into the history
         const CmdChangeFloat undoCmd(CHANGE_ENTITY_SCALE, oldUniformScale);
-        const std::string msg = "changed uniform scale of entt (id: " + std::to_string(id) + ")";
-        gEventsHistory.Push(undoCmd, msg, id);
+        sprintf(g_String, "changed uniform scale of entt (id: %ld)", id);
+        gEventsHistory.Push(undoCmd, g_String, id);
     }
     else
     {
@@ -233,24 +233,24 @@ void EnttTransformController::UndoChangePosition(const EntityID id, const Vec3& 
     // undo change of the entity model position
     // (execute the reverted command - just set the prev position)
 
-    if (pFacade_->SetEnttPosition(id, pos))            // update entity
-        data_.SetPosition(pos);                        // update editor fields
+    if (pFacade_->SetEnttPosition(id, pos))                // update entity
+        data_.position_ = pos;                             // update editor fields
 }
 
 ///////////////////////////////////////////////////////////
 
-void EnttTransformController::UndoChangeDirection(const EntityID id, const Vec4& dirQuat)
+void EnttTransformController::UndoChangeDirection(const EntityID id, const Vec3& dir)
 {
-    if (pFacade_->SetEnttDirectionQuat(id, dirQuat))    // update entity
-        data_.SetDirection(dirQuat);                    // update editor fields
+    if (pFacade_->SetEnttDirection(id, dir))               // update entity
+        data_.direction_ = dir;                            // update editor fields
 }
 
 ///////////////////////////////////////////////////////////
 
 void EnttTransformController::UndoChangeScale(const EntityID id, const float uniformScale)
 {
-    if (pFacade_->SetEnttUniScale(id, uniformScale))   // update entity
-        data_.SetUniformScale(uniformScale);           // update editor fields
+    if (pFacade_->SetEnttUniScale(id, uniformScale))       // update entity
+        data_.uniformScale_ = uniformScale;                // update editor fields
 }
 
 } // namespace UI

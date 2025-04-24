@@ -15,11 +15,11 @@ namespace ECS
 
 __declspec(align(16)) struct Transform
 {
+    cvector<EntityID> ids;
     cvector<XMMATRIX> worlds;
     cvector<XMMATRIX> invWorlds;           // inverse world matrices
     cvector<XMFLOAT4> posAndUniformScale;  // pos (x,y,z); uniform scale (w)
-    cvector<XMVECTOR> dirQuats;            // normalized direction quaternion
-    cvector<EntityID> ids;
+    cvector<XMVECTOR> directions;          // normalized direction vector
 	
 	eComponentType type = eComponentType::TransformComponent;
 };

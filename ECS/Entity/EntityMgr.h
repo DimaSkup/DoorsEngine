@@ -19,6 +19,7 @@
 #include "../Components/RenderStates.h"
 #include "../Components/Bounding.h"
 #include "../Components/Camera.h"
+#include "../Components/Player.h"
 
 // systems (ECS)
 #include "../Systems/TransformSystem.h"
@@ -32,6 +33,7 @@
 #include "../Systems/RenderStatesSystem.h"
 #include "../Systems/BoundingSystem.h"
 #include "../Systems/CameraSystem.h"
+#include "../Systems/PlayerSystem.h"
 
 
 namespace ECS
@@ -60,6 +62,7 @@ public:
     void DestroyEntities(const EntityID* ids, const size numEntts);
 
     EntityID CreateEntity();
+    EntityID CreateEntity(const char* enttName);
     //void DestroyEntity(const EntityName& enttName);
 
     void Update(const float totalGameTime, const float deltaTime);
@@ -201,10 +204,7 @@ public:
 
 
     // add CAMERA component
-    void AddCameraComponent(
-        const EntityID id,
-        const DirectX::XMMATRIX& view,
-        const DirectX::XMMATRIX& proj);
+    void AddCameraComponent(const EntityID id, const CameraData& data);
 
 
     // =============================================================================
@@ -255,17 +255,18 @@ public:
     static const u32 ENTT_MGR_SERIALIZE_DATA_BLOCK_MARKER = 1000;
 
     // SYSTEMS
-    LightSystem            lightSystem_;
-    NameSystem             nameSystem_;
-    TransformSystem        transformSystem_;
-    MoveSystem             moveSystem_;
-    ModelSystem            modelSystem_;
-    RenderSystem           renderSystem_;
-    MaterialSystem         materialSystem_;
-    TextureTransformSystem texTransformSystem_;
-    RenderStatesSystem     renderStatesSystem_;
-    BoundingSystem         boundingSystem_;
-    CameraSystem           cameraSystem_;
+    LightSystem             lightSystem_;
+    NameSystem              nameSystem_;
+    TransformSystem         transformSystem_;
+    MoveSystem              moveSystem_;
+    ModelSystem             modelSystem_;
+    RenderSystem            renderSystem_;
+    MaterialSystem          materialSystem_;
+    TextureTransformSystem  texTransformSystem_;
+    RenderStatesSystem      renderStatesSystem_;
+    BoundingSystem          boundingSystem_;
+    CameraSystem            cameraSystem_;
+    PlayerSystem            playerSystem_;
     
 
     // "ID" of an entity is just a numeral index

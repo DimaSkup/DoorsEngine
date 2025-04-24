@@ -284,17 +284,5 @@ void InitSpotLightEntities(ECS::EntityMgr& mgr)
     }
 }
 
-///////////////////////////////////////////////////////////
-
-bool InitializeLightSources(ECS::EntityMgr& mgr)
-{
-    // initialize all the light sources (entities) on the scene
-
-    InitDirectedLightEntities(mgr);
-    InitPointLightEntities(mgr);
-    InitSpotLightEntities(mgr);
-
-    return true;
-}
 
 } // namespace Game

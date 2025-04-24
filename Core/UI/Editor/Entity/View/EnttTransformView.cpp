@@ -28,11 +28,10 @@ void EnttTransformView::Render(const EnttTransformData& data)
 {
     // show editor fields to control the selected entity model properties
 
-    using enum eEditorCmdType;
-
     // make local copies of the current model data to use it in the fields
-    Vec3     position = data.GetPosition();
-    float    uniformScale = data.GetScale();
+    Vec3  position      = data.position_;
+    Vec3  direction     = data.direction_;
+    float uniformScale  = data.uniformScale_;
     
     //
     // draw editor fields
@@ -43,22 +42,11 @@ void EnttTransformView::Render(const EnttTransformData& data)
         pController_->Execute(&cmd);
     }
 
-    // ------------------------------------------
-
-    char pitchInfo[32];
-    char yawInfo[32];
-    char rollInfo[32];
-
-    sprintf(pitchInfo, "%f", data.GetPitchInDeg());
-    sprintf(yawInfo, "%f", data.GetYawInDeg());
-    sprintf(rollInfo, "%f", data.GetRollInDeg());
-
-    ImGui::Text("Rotation in degrees (around axis)");
-    ImGui::InputText("pitch", pitchInfo, strlen(pitchInfo), ImGuiInputTextFlags_ReadOnly);
-    ImGui::InputText("yaw",   yawInfo,   strlen(yawInfo),   ImGuiInputTextFlags_ReadOnly);
-    ImGui::InputText("roll",  rollInfo,  strlen(rollInfo),  ImGuiInputTextFlags_ReadOnly);
-
-    // ------------------------------------------
+    if (ImGui::DragFloat3("Direction", direction.xyz, 0.005f, -FLT_MAX, +FLT_MAX))
+    {
+        CmdChangeVec3 cmd(CHANGE_ENTITY_DIRECTION, position);
+        pController_->Execute(&cmd);
+    }
 
     if (ImGui::SliderFloat("Uniform scale", &uniformScale, 0.1f, 20))
     {
