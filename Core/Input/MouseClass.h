@@ -30,10 +30,11 @@ public:
 	MouseEvent ReadEvent();
 
 private:
+    float sensitivity_ = 1.0f;
+    int x_ = 0;
+    int y_ = 0;
+    bool leftIsDown_  = false;
+    bool rightIsDown_ = false;
+    bool mbuttonDown_ = false;
 	std::queue<MouseEvent> eventBuffer_;
-	bool leftIsDown_  = false;
-	bool rightIsDown_ = false;
-	bool mbuttonDown_ = false;
-	int x_            = 0;
-	int y_            = 0;
 };

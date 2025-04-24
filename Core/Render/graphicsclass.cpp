@@ -125,20 +125,6 @@ bool CGraphics::InitHelper(
         // after initialization of the DirectX we can use pointers to the device and device context
         d3d_.GetDeviceAndDeviceContext(pDevice_, pDeviceContext_);
 
-
-        // init all the cameras on the scene
-        result = initGraphics.InitializeCameras(
-            d3d_,
-            gameCamera_,
-            editorCamera_,
-            baseViewMatrix_,           // init the base view matrix which is used for 2D rendering
-            *pEnttMgr,
-            settings);
-        Assert::True(result, "can't initialize cameras / view matrices");
-
-        // choose the editor camera as current by default
-        pCurrCamera_ = &editorCamera_;
-
         // initializer the textures global manager (container)
         g_TextureMgr.Initialize(pDevice_);
 
@@ -155,10 +141,6 @@ bool CGraphics::InitHelper(
         result = frameBuffer_.Initialize(pDevice_, fbSpec);
         Assert::True(result, "can't initialize the render to texture object");
 #endif
-
-        // initialize scene objects: cubes, spheres, trees, etc.
-        result = initGraphics.InitializeScene(settings, d3d_, *pEnttMgr);
-        Assert::True(result, "can't initialize the scene elements (models, etc.)");
 
     
         // create frustums for frustum culling
@@ -209,31 +191,29 @@ void CGraphics::UpdateHelper(
 {
     // update all the graphics related stuff for this frame
 
-
-    pCurrCamera_->UpdateViewMatrix();
+    const EntityID currCamID = currCameraID_;
+    pEnttMgr->cameraSystem_.UpdateView(currCamID);
 
     // DIRTY HACK: update the camera height according to the terrain height function
-    DirectX::XMFLOAT3 prevCamPos = pCurrCamera_->GetPosition();
+    DirectX::XMFLOAT3 prevCamPos = pEnttMgr->transformSystem_.GetPosition(currCamID);
 
-    const float strideByY = 0.01f * (prevCamPos.z * sinf(0.1f * prevCamPos.x) +
-                           prevCamPos.x * cosf(0.1f * prevCamPos.z)) + 1.5f;
+    const float strideByY = 0.01f * (prevCamPos.z * sinf(0.1f * prevCamPos.x) + prevCamPos.x * cosf(0.1f * prevCamPos.z)) + 1.5f;
 
     //pCurrCamera_->SetStrideByY(strideByY);
 
     // ---------------------------------------------
 
-    const DirectX::XMMATRIX& viewMatrix = pCurrCamera_->View();
-    const DirectX::XMMATRIX& projMatrix = pCurrCamera_->Proj();
-    viewProj_ = viewMatrix * projMatrix;
+    sysState.cameraPos = pEnttMgr->transformSystem_.GetPosition(currCamID);
+    sysState.cameraDir = pEnttMgr->transformSystem_.GetDirection(currCamID);
+    sysState.cameraView = pEnttMgr->cameraSystem_.GetView(currCamID);
+    sysState.cameraProj = pEnttMgr->cameraSystem_.GetProj(currCamID);
+    
+    viewProj_ = sysState.cameraView * sysState.cameraProj;
 
     // update the cameras states
-    sysState.cameraPos = pCurrCamera_->GetPosition();
-    sysState.cameraDir = pCurrCamera_->GetLook();
-    sysState.cameraView = viewMatrix;
-    sysState.cameraProj = projMatrix;
     
     // build the frustum from the projection matrix in view space.
-    DirectX::BoundingFrustum::CreateFromMatrix(frustums_[0], projMatrix);
+    DirectX::BoundingFrustum::CreateFromMatrix(frustums_[0], sysState.cameraProj);
 
     // perform frustum culling on all of our currently loaded entities
     ComputeFrustumCulling(sysState, pEnttMgr);
@@ -260,24 +240,26 @@ void CGraphics::UpdateHelper(
     ECS::cvector<EntityID>& alphaClippedEntts = rsDataToRender_.enttsAlphaClipping_.ids_;
     const size numVisEntts = alphaClippedEntts.size();
 
-    using namespace DirectX;
-
+  
     if (numVisEntts > 0)
     {
+        using namespace DirectX;
+
+
         size count = 0;
         std::vector<index> idxs(numVisEntts);
         ECS::cvector<XMFLOAT3> positions;
 
 
-        pEnttMgr->transformSystem_.GetPositionsByIDs(alphaClippedEntts.data(), numVisEntts, positions);
-        const XMVECTOR camPos = pCurrCamera_->GetPositionVec();
+        pEnttMgr->transformSystem_.GetPositions(alphaClippedEntts.data(), numVisEntts, positions);
+        const XMVECTOR camPos = XMLoadFloat3(&sysState.cameraPos);
 
         // check if entity by idx is farther than fog range if so we store its idx
         for (index i = 0; i < numVisEntts; ++i)
         {
             const XMVECTOR enttPos      = XMLoadFloat3(&positions[i]);
-            const XMVECTOR camToEnttVec = XMVectorSubtract(enttPos, camPos);
-            const int distSqr           = (int)XMVectorGetX(XMVector3Dot(camToEnttVec, camToEnttVec));
+            const XMVECTOR camToEnttVec = DirectX::XMVectorSubtract(enttPos, camPos);
+            const int distSqr           = (int)DirectX::XMVectorGetX(DirectX::XMVector3Dot(camToEnttVec, camToEnttVec));
 
             if (distSqr > fullFogDistanceSqr_)
             {
@@ -425,15 +407,17 @@ void CGraphics::ComputeFrustumCulling(
     cvector<index>          idxsToVisEntts(numRenderableEntts);
 
     // get inverse world matrix of each renderable entt
-    mgr.transformSystem_.GetInverseWorldMatricesOfEntts(
+    mgr.transformSystem_.GetInverseWorlds(
         enttsRenderable.data(),
         numRenderableEntts,
         invWorlds);
 
+    const XMMATRIX invView = mgr.cameraSystem_.GetInverseView(currCameraID_);
+
     // compute local space matrices for frustum transformations
     for (index i = 0; i < numRenderableEntts; ++i)
     {
-        enttsLocal[i] = DirectX::XMMatrixMultiply(pCurrCamera_->InverseView(), invWorlds[i]);
+        enttsLocal[i] = DirectX::XMMatrixMultiply(invView, invWorlds[i]);
     }
         
     // clear some arrs since we don't need them already
@@ -508,11 +492,13 @@ void CGraphics::ComputeFrustumCullingOfLightSources(
     ECS::cvector<XMMATRIX> localSpaces(numPointLights);
 
     // get inverse world matrix of each point light source
-    mgr.transformSystem_.GetInverseWorldMatricesOfEntts(pointLightsIDs, numPointLights, invWorlds);
+    mgr.transformSystem_.GetInverseWorlds(pointLightsIDs, numPointLights, invWorlds);
+
+    const XMMATRIX invView = mgr.cameraSystem_.GetInverseView(currCameraID_);
 
     // compute local space matrices for frustum transformations
     for (int i = 0; i < numPointLights; ++i)
-        localSpaces[i] = DirectX::XMMatrixMultiply(pCurrCamera_->InverseView(), invWorlds[i]);
+        localSpaces[i] = DirectX::XMMatrixMultiply(invView, invWorlds[i]);
 
     invWorlds.clear();
     visPointLights.reserve(numPointLights);
@@ -528,7 +514,7 @@ void CGraphics::ComputeFrustumCullingOfLightSources(
 
         // transform the camera frustum from view space to the point light local space
         BoundingFrustum LSpaceFrustum;
-        frustums_[0].Transform(LSpaceFrustum, XMVectorGetX(scale), dirQuat, translation);
+        frustums_[0].Transform(LSpaceFrustum, DirectX::XMVectorGetX(scale), dirQuat, translation);
 
         // if we see any part of bound sphere we store an index to related light source
         if (LSpaceFrustum.Intersects(BoundingSphere({ 0,0,0 }, 1)))
@@ -555,7 +541,7 @@ void CGraphics::UpdateShadersDataPerFrame(
     Render::PerFrameData& perFrameData = pRender->perFrameData_;
 
     perFrameData.viewProj = DirectX::XMMatrixTranspose(viewProj_);
-    perFrameData.cameraPos = pCurrCamera_->GetPosition();
+    perFrameData.cameraPos = pEnttMgr->transformSystem_.GetPosition(currCameraID_);
 
     SetupLightsForFrame(pEnttMgr, perFrameData);
 
@@ -602,16 +588,6 @@ void CGraphics::ChangeCullMode()
 
 ///////////////////////////////////////////////////////////
 
-void CGraphics::SwitchGameMode(bool enableGameMode)
-{
-    // switch btw the game and editor modes and do some other related changes
-
-    isGameMode_ = enableGameMode;
-    pCurrCamera_ = (enableGameMode) ? &gameCamera_ : &editorCamera_;
-}
-
-///////////////////////////////////////////////////////////
-
 // memory allocation and releasing
 void* CGraphics::operator new(size_t i)
 {
@@ -644,12 +620,8 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
         RenderEnttsAlphaClipCullNone(pRender);
 
 
-        // check if we at least have a sky entity
-        const EntityID skyEnttID = pEnttMgr->nameSystem_.GetIdByName("sky");
-        const XMFLOAT3 skyOffset = pEnttMgr->transformSystem_.GetPositionByID(skyEnttID);
-
-        if (skyEnttID != 0)
-            RenderSkyDome(pRender, skyOffset);
+   
+        RenderSkyDome(pRender, pEnttMgr);
 
         RenderFoggedBillboards(pRender, pEnttMgr);
 #if 0
@@ -926,7 +898,7 @@ void CGraphics::RenderFoggedBillboards(
     ECS::cvector<DirectX::XMFLOAT3> foggedPositions;
     std::vector<DirectX::XMFLOAT2> sizes(numFoggedEntts, { 30, 30 });
 
-    pEnttMgr->transformSystem_.GetPositionsByIDs(foggedEntts, numFoggedEntts, foggedPositions);
+    pEnttMgr->transformSystem_.GetPositions(foggedEntts, numFoggedEntts, foggedPositions);
 
     pRender->shadersContainer_.billboardShader_.UpdateInstancedBuffer(
         pDeviceContext_,
@@ -955,8 +927,15 @@ void CGraphics::RenderFoggedBillboards(
 
 ///////////////////////////////////////////////////////////
 
-void CGraphics::RenderSkyDome(Render::CRender* pRender, const XMFLOAT3& skyOffset)
+void CGraphics::RenderSkyDome(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr)
 {
+    // check if we at least have a sky entity
+    const EntityID skyEnttID = pEnttMgr->nameSystem_.GetIdByName("sky");
+
+    // if we haven't any sky entity
+    if (skyEnttID == ECS::INVALID_ENTITY_ID)
+        return;
+
     const SkyModel& sky = g_ModelMgr.GetSky();
     Render::SkyInstance instance;
 
@@ -990,10 +969,13 @@ void CGraphics::RenderSkyDome(Render::CRender* pRender, const XMFLOAT3& skyOffse
     renderStates.SetDSS(pContext, SKY_DOME, 1);
 
     // compute a worldViewProj matrix for the sky instance
-    const XMFLOAT3& eyePos = pCurrCamera_->GetPosition();
-    const XMMATRIX camOffset        = DirectX::XMMatrixTranslation(eyePos.x, eyePos.y, eyePos.z);
-    const XMMATRIX skyWorld         = DirectX::XMMatrixTranslation(skyOffset.x, skyOffset.y, skyOffset.z);
-    const XMMATRIX worldViewProj    = DirectX::XMMatrixTranspose(camOffset * skyWorld * viewProj_);
+
+    // TODO: optimize it!
+    const XMFLOAT3 skyOffset     = pEnttMgr->transformSystem_.GetPosition(skyEnttID);
+    const XMFLOAT3 eyePos        = pEnttMgr->cameraSystem_.GetPos(currCameraID_);
+    const XMMATRIX camOffset     = DirectX::XMMatrixTranslation(eyePos.x, eyePos.y, eyePos.z);
+    const XMMATRIX skyWorld      = DirectX::XMMatrixTranslation(skyOffset.x, skyOffset.y, skyOffset.z);
+    const XMMATRIX worldViewProj = DirectX::XMMatrixTranspose(camOffset * skyWorld * viewProj_);
 
     pRender->RenderSkyDome(pContext, instance, worldViewProj);
 }
@@ -1060,7 +1042,7 @@ void CGraphics::SetupLightsForFrame(
     }
 
     ECS::cvector<XMVECTOR> dirLightsDirections;
-    pEnttMgr->transformSystem_.GetDirectionsQuatsByIDs(dirLights.ids.data(), numDirLights, dirLightsDirections);
+    pEnttMgr->transformSystem_.GetDirections(dirLights.ids.data(), numDirLights, dirLightsDirections);
 
     for (int i = 0; const XMVECTOR& dirQuat : dirLightsDirections)
     {
@@ -1111,9 +1093,10 @@ int CGraphics::TestEnttSelection(const int sx, const int sy, ECS::EntityMgr* pEn
 
     using namespace DirectX;
 
-    const XMMATRIX& P = pCurrCamera_->Proj();
-    const XMMATRIX& invView = pCurrCamera_->InverseView();
+    const XMMATRIX& P       = pEnttMgr->cameraSystem_.GetProj(currCameraID_);
+    const XMMATRIX& invView = pEnttMgr->cameraSystem_.GetInverseView(currCameraID_);
 
+    // TODO: optimize it!
     const float xndc = (+2.0f * sx / d3d_.GetWindowWidth() - 1.0f);
     const float yndc = (-2.0f * sy / d3d_.GetWindowHeight() + 1.0f);
 
@@ -1146,7 +1129,7 @@ int CGraphics::TestEnttSelection(const int sx, const int sy, ECS::EntityMgr* pEn
         }
     
         // get an inverse world matrix of the current entt
-        const XMMATRIX invWorld = pEnttMgr->transformSystem_.GetInverseWorldMatrixOfEntt(enttID);
+        const XMMATRIX invWorld = pEnttMgr->transformSystem_.GetInverseWorld(enttID);
         const XMMATRIX toLocal = DirectX::XMMatrixMultiply(invView, invWorld);
 
         XMVECTOR rayOrigin = XMVector3TransformCoord(rayOrigin_, toLocal);   // supposed to take a point (w == 1)
@@ -1205,32 +1188,6 @@ int CGraphics::TestEnttSelection(const int sx, const int sy, ECS::EntityMgr* pEn
 
     // return ID of the selected entt, or 0 if we didn't pick any
     return selectedEnttID;
-}
-
-///////////////////////////////////////////////////////////
-
-void CGraphics::UpdateCameraEntity(
-    const std::string& cameraEnttName,
-    const DirectX::XMMATRIX& view,
-    const DirectX::XMMATRIX& proj)
-{
-#if 0
-    // load updated camera data into ECS
-    
-    if (cameraEnttName.empty())
-    {
-        LogErr("input name is empty");
-        return;
-    }
-
-    const EntityID cameraID = entityMgr_.nameSystem_.GetIdByName("editor_camera");
-
-    // if we found any entt by such name
-    if (cameraID != 0)
-    {
-        entityMgr_.cameraSystem_.Update(cameraID, view, proj);
-    }
-#endif
 }
 
 ///////////////////////////////////////////////////////////

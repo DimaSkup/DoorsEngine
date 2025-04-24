@@ -6,6 +6,7 @@
 // =================================================================================
 #pragma once
 
+#include "../Systems/TransformSystem.h"
 #include "../Components/Camera.h"
 
 
@@ -15,49 +16,72 @@ namespace ECS
 class CameraSystem
 {
 public:
-    CameraSystem(Camera* pCameraComponent);
+    CameraSystem(Camera* pCameraComponent, TransformSystem* pTransformSys);
     ~CameraSystem();
 
-    void Update(
+
+    void UpdateView(const EntityID id);
+
+    void AddRecord   (const EntityID id, const CameraData& data);
+    void RemoveRecord(const EntityID id);
+    bool HasEntity   (const EntityID id) const;
+
+    void Strafe (const EntityID id, const float d);
+    void Walk   (const EntityID id, const float d);
+    void MoveUp (const EntityID id, const float d);
+
+    void Pitch  (const EntityID id, const float angle);
+    void RotateY(const EntityID id, const float angle);
+
+    inline const CameraData& GetCameraData(const EntityID id) const { return pCameraComponent_->data[id]; }
+
+    inline const XMMATRIX GetView       (const EntityID id) const { return (HasEntity(id)) ? pCameraComponent_->data[id].view    : DirectX::XMMatrixIdentity(); }
+    inline const XMMATRIX GetProj       (const EntityID id) const { return (HasEntity(id)) ? pCameraComponent_->data[id].proj    : DirectX::XMMatrixIdentity(); }
+    inline const XMMATRIX GetInverseView(const EntityID id) const { return (HasEntity(id)) ? pCameraComponent_->data[id].invView : DirectX::XMMatrixIdentity(); }
+
+    void SetupProjection(
         const EntityID id,
-        const DirectX::XMMATRIX& view,
-        const DirectX::XMMATRIX& proj);
+        const float fovY,
+        const float aspectRatio,
+        const float nearZ,
+        const float farZ);
+ 
+    // get camera basis vectors
+    inline const XMVECTOR& GetPosVec  (const EntityID id) const { return pTransformSys_->GetPositionVec(id); }
+    inline const XMVECTOR& GetLookVec (const EntityID id) const { return pTransformSys_->GetDirectionVec(id); }
+    inline const XMVECTOR  GetRightVec(const EntityID id) const { return (HasEntity(id)) ? GetCameraData(id).right : XMVECTOR{ 1, 0, 0 }; }
 
-    void AddRecord(
-        const EntityID id,
-        const DirectX::XMMATRIX& view,    // camera view matrix
-        const DirectX::XMMATRIX& proj);   // camera projection matrix
+    inline XMFLOAT3 GetPos (const EntityID id) const { return pTransformSys_->GetPosition(id); }
+    XMFLOAT3        GetLook(const EntityID id) const;
 
-    void AddRecords();
+    bool SetRightVec(const EntityID id, const XMVECTOR& right);
 
-    void RemoveRecord();
-    void RemoveRecords();
+    // get frustum properties
+    inline float GetNearZ (const EntityID id) const { return (HasEntity(id)) ? GetCameraData(id).nearZ : -1.0f; }
+    inline float GetFarZ  (const EntityID id) const { return (HasEntity(id)) ? GetCameraData(id).farZ  : -1.0f; }
+    inline float GetAspect(const EntityID id) const { return (HasEntity(id)) ? GetCameraData(id).aspectRatio : -1.0f; }
+    inline float GetFovY  (const EntityID id) const { return (HasEntity(id)) ? GetCameraData(id).fovY  : -1.0f; }
+    inline float GetFovX  (const EntityID id) const { return 2.0f * atanf(0.5f * GetNearWndWidth(id) / GetNearZ(id)); }
 
-    //
-    // getters
-    //
-    const DirectX::XMMATRIX& GetViewMatrixByID(const EntityID id);
-    const DirectX::XMMATRIX& GetProjMatrixByID(const EntityID id);
+    // get near and far plane dimensions in view space coordinates
+    float GetNearWndWidth (const EntityID id) const { return GetAspect(id) * GetNearWndHeight(id); }
+    float GetFarWndWidth  (const EntityID id) const { return GetAspect(id) * GetFarWndHeight(id); }
+    float GetNearWndHeight(const EntityID id) const { return (HasEntity(id)) ? GetCameraData(id).nearWndHeight : -1.0f; }
+    float GetFarWndHeight (const EntityID id) const { return (HasEntity(id)) ? GetCameraData(id).farWndHeight  : -1.0f; }
 
-    void GetViewAndProjByID(
-        const EntityID id,
-        DirectX::XMMATRIX& view,
-        DirectX::XMMATRIX& proj);
+
+
+    void PitchAroundFixedLook(const EntityID id, const float angle);
+    void RotateYAroundFixedLook(const EntityID id, const float angle);
+
+    // get/set fixed camera properties
+    inline bool IsFixedLook(const EntityID id) const { return (HasEntity(id)) ? GetCameraData(id).isFixedLook_ : false; }
+    //inline void SetFixedLookState(const bool isFixed) { isFixedLook_ = isFixed; }
+    //inline void SetFixedLookAtPoint(const DirectX::XMVECTOR& lookAt) { lookAtPoint_ = lookAt; }
 
 private:
-    inline index GetIdxByID(const EntityID id)
-    {
-        // return valid idx if there is an entity by such ID;
-        // or return -1 if there is no such entity;
-        const Camera& comp  = *pCameraComponent_;
-        const index idx     = comp.ids.get_idx(id);
-        const bool exist    = (comp.ids[idx] == id);
-
-        return (exist) ? idx : -1;
-    }
-
-private:
-    Camera* pCameraComponent_ = nullptr;
+    Camera*          pCameraComponent_ = nullptr;
+    TransformSystem* pTransformSys_    = nullptr;
 };
 
 }

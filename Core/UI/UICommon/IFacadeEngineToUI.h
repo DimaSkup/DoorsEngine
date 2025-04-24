@@ -27,7 +27,7 @@ namespace UI
 enum eEnttComponentType : uint8_t
 {
     NameComponent,                 // REQUIRED: attach some name for the entity
-    TransformComponent,            // REQUIRED: set that entity has properties: position (x,y,z), direction (quaternion), and scale (uniform)
+    TransformComponent,            // REQUIRED: set that entity has properties: position (x,y,z), direction (vec3), and scale (uniform)
     MoveComponent,                 // set that this entity must be transformed over the time using some transformation matrix (for instance rotate around itself and go into some particular direction)
     RenderedComponent,             // set that this entity is renderable (preferably it is a model), set that this entity must be rendered with particular kind of shader, maybe with specific primitive topology
     ModelComponent,                // attach to entity a 2D/3D model by ID
@@ -73,7 +73,7 @@ public:
     // get/set camera properties
     // =============================================================================
     virtual void GetCameraViewAndProj(const EntityID camEnttID, float* view, float* proj) { assert(0 && "TODO: implement this virtual method in children"); }
-    virtual void FocusCameraOnEntity(const EntityID id) { assert(0 && "TODO: implement this virtual method in children"); }
+    virtual void FocusCameraOnEntity(const EntityID id)                                   { assert(0 && "TODO: implement this virtual method in children"); }
     
 
     // =============================================================================
@@ -96,21 +96,21 @@ public:
     virtual bool     GetEnttNameByID  (const EntityID id, std::string& outName)                       const { return false; }
 
     // extract entities with particular component
-    virtual bool GetEnttsOfModelType  (const EntityID*& enttsIDs, int& numEntts)                            { return false; }
-    virtual bool GetEnttsOfCameraType (const EntityID*& enttsIDs, int& numEntts)                            { return false; }
-    virtual bool GetEnttsOfLightType  (const EntityID*& enttsIDs, int& numEntts)                            { return false; }
+    virtual bool GetEnttsOfModelType  (const EntityID*& enttsIDs, int& numEntts)                             { return false; }
+    virtual bool GetEnttsOfCameraType (const EntityID*& enttsIDs, int& numEntts)                             { return false; }
+    virtual bool GetEnttsOfLightType  (const EntityID*& enttsIDs, int& numEntts)                             { return false; }
 
-    virtual bool GetEnttTransformData (const EntityID id, Vec3& pos, Vec4& rotQuat, float& uniScale)  const { return false; }
-    virtual bool GetEnttWorldMatrix   (const EntityID id, DirectX::XMMATRIX& outMat)                  const { return false; }
+    virtual bool GetEnttTransformData (const EntityID id, Vec3& pos, Vec3& direction, float& uniScale) const { return false; }
+    virtual bool GetEnttWorldMatrix   (const EntityID id, DirectX::XMMATRIX& outMat)                   const { return false; }
 
-    // get/set entity position/rotation_quat/uniform_scale
-    virtual Vec3 GetEnttPosition     (const EntityID id)                                               const { return GetInvalidVec3(); }
-    virtual Vec4 GetEnttDirectionQuat(const EntityID id)                                              const { return GetInvalidVec4(); }
-    virtual float GetEnttScale       (const EntityID id)                                               const { return GetInvalidFloat(); }
+    // get/set entity position/direction/uniform_scale
+    virtual Vec3  GetEnttPosition     (const EntityID id)                                               const { return GetInvalidVec3(); }
+    virtual Vec3  GetEnttDirection    (const EntityID id)                                               const { return GetInvalidVec3(); }
+    virtual float GetEnttScale        (const EntityID id)                                               const { return GetInvalidFloat(); }
 
-    virtual bool SetEnttPosition     (const EntityID id, const Vec3& pos)                                    { return false; }
-    virtual bool SetEnttDirectionQuat(const EntityID id, const Vec4& dirQuat)                               { return false; }
-    virtual bool SetEnttUniScale     (const EntityID id, const float scale)                                  { return false; }
+    virtual bool SetEnttPosition  (const EntityID id, const Vec3& pos)                                    { return false; }
+    virtual bool SetEnttDirection (const EntityID id, const Vec3& dir)                                    { return false; }
+    virtual bool SetEnttUniScale  (const EntityID id, const float scale)                                  { return false; }
 
     virtual bool RotateEnttByQuat(const EntityID id, const Vec4& rotQuat) { return false; }
 

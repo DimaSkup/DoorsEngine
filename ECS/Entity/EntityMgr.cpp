@@ -21,7 +21,8 @@ EntityMgr::EntityMgr() :
     lightSystem_        { &light_, &transformSystem_ },
     renderStatesSystem_ { &renderStates_ },
     boundingSystem_     { &bounding_ },
-    cameraSystem_       { &camera_ }
+    cameraSystem_       { &camera_, &transformSystem_ },
+    playerSystem_       { &transformSystem_, &cameraSystem_ }
 {
     LogDbg("start of entity mgr init");
 
@@ -138,6 +139,25 @@ EntityID EntityMgr::CreateEntity()
 
     ids_.push_back(id);
     componentHashes_.push_back(0);
+
+    return id;
+}
+
+///////////////////////////////////////////////////////////
+
+EntityID EntityMgr::CreateEntity(const char* enttName)
+{
+    // create a new entity and set a name for it
+    // return: id of created entity or 0
+
+    if (!enttName || enttName[0] == '\0')
+    {
+        LogErr("input name for entity is empty!");
+        return INVALID_ENTITY_ID;
+    }
+
+    const EntityID id = CreateEntity();
+    AddNameComponent(id, enttName);
 
     return id;
 }
@@ -688,15 +708,12 @@ void EntityMgr::AddBoundingComponent(
 
 ///////////////////////////////////////////////////////////
 
-void EntityMgr::AddCameraComponent(
-    const EntityID id,
-    const DirectX::XMMATRIX& view,
-    const DirectX::XMMATRIX& proj)
+void EntityMgr::AddCameraComponent(const EntityID id, const CameraData& data)
 {
     // add a camera component to the entity by input ID
     try
     {
-        cameraSystem_.AddRecord(id, view, proj);
+        cameraSystem_.AddRecord(id, data);
         SetEnttHasComponent(id, CameraComponent);
     }
     catch (LIB_Exception& e)
@@ -710,11 +727,8 @@ void EntityMgr::AddCameraComponent(
 #pragma endregion
 
 
-
 // ************************************************************************************
-// 
 //                               PRIVATE HELPERS
-// 
 // ************************************************************************************
 
 ComponentHash EntityMgr::GetHashByComponent(const eComponentType component)

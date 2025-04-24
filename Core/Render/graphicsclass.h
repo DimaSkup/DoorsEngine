@@ -24,10 +24,6 @@
 // physics / interaction with user
 //#include "../Physics/IntersectionWithGameObjects.h"
 
-// camera
-//#include "../Camera/BasicCamera.h"
-#include "../Camera/Camera.h"
-
 // render stuff
 #include "CRender.h"
 #include "InitializeGraphics.h"        // for initialization of the graphics
@@ -94,21 +90,24 @@ public:
     // change render states using keyboard
     void ChangeModelFillMode();   
     void ChangeCullMode();
-    void SwitchGameMode(bool enableGameMode);
 
+    inline void SetGameMode(bool enableGameMode) { isGameMode_ = enableGameMode; }
+    inline void SetCurrentCamera(const EntityID cameraID) { currCameraID_ = cameraID; }
     inline void SetAABBShowMode(const AABBShowMode mode) { aabbShowMode_ = mode; }
 
     // ---------------------------------------
-    // INLINE GETTERS
+    // INLINE GETTERS/SETTERS
 
     inline D3DClass&       GetD3DClass()                      { return d3d_; }
-    inline Camera&         GetEditorCamera()                  { return editorCamera_; }
-    inline Camera&         GetGameCamera()                    { return gameCamera_; }
 
     // matrices getters
     inline const DirectX::XMMATRIX& GetWorldMatrix()    const { return worldMatrix_; }
     inline const DirectX::XMMATRIX& GetBaseViewMatrix() const { return baseViewMatrix_; }
     inline const DirectX::XMMATRIX& GetOrthoMatrix()    const { return orthoMatrix_; }
+
+    inline void SetBaseViewMatrix(const DirectX::XMMATRIX& view) { baseViewMatrix_ = view; }
+
+    // ---------------------------------------
 
     // memory allocation (because we have some XM-data structures)
     void* operator new(std::size_t count);                              // a replaceable allocation function
@@ -118,11 +117,6 @@ public:
 
     // check if we have any entity by these coords of the screen
     int TestEnttSelection(const int sx, const int sy, ECS::EntityMgr* pEnttMgr);
-
-    void UpdateCameraEntity(
-        const std::string& cameraEnttName,
-        const DirectX::XMMATRIX& view,
-        const DirectX::XMMATRIX& proj);
 
 private:
     bool InitHelper(
@@ -166,7 +160,7 @@ private:
     // render bounding boxes of models/meshes/light_sources/etc.
     void RenderBoundingLineBoxes(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);
     void RenderBoundingLineSpheres();
-    void RenderSkyDome(Render::CRender* pRender, const DirectX::XMFLOAT3& skyOffset);
+    void RenderSkyDome(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);
 
 #if 0
     void UpdateInstanceBuffAndRenderInstances(
@@ -190,7 +184,6 @@ public:
 
     // for furstum culling and picking
     std::vector<DirectX::XMMATRIX> enttsLocalSpaces_;                 // local space of each currently visible entt
-    
     std::vector<DirectX::BoundingOrientedBox> enttsBoundBoxes_;
 
     ID3D11Device*         pDevice_ = nullptr;
@@ -200,14 +193,9 @@ public:
     std::vector<DirectX::BoundingFrustum> frustums_;
 
     D3DClass              d3d_;
-    
     RenderDataPreparator  prep_;
-    
-    Camera*               pCurrCamera_ = nullptr;                 // a currently chosen camera
-    Camera                gameCamera_;                            // for fullscreen mode
-    Camera                editorCamera_;                          // editor's main camera
-
     FrameBuffer           frameBuffer_;                           // for rendering to some texture
+    ECS::EntityID currCameraID_ = 0;
     
     // for rendering
     ECS::RenderStatesSystem::EnttsRenderStatesData rsDataToRender_;

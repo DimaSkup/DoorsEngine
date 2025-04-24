@@ -23,7 +23,7 @@ void PrepareInstancesWorldMatrices(
     // prepare world matrix for each subset (mesh) of each entity
 
     ECS::cvector<DirectX::XMMATRIX> worlds;
-    pEnttMgr->transformSystem_.GetWorldMatricesOfEntts(enttsSortedByModels, numEntts, worlds);
+    pEnttMgr->transformSystem_.GetWorlds(enttsSortedByModels, numEntts, worlds);
 
     for (int worldIdx = 0, i = 0; const Render::Instance & instance : instances)
     {

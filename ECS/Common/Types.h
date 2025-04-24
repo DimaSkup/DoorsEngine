@@ -68,6 +68,7 @@ enum eComponentType
     RenderStatesComponent,         // for using different render states: blending, alpha clipping, fill mode, cull mode, etc.
     BoundingComponent,             // for using AABB, OBB, bounding spheres
 
+    PlayerComponent,               // to hold First-Person-Shooter (FPS) player's data
 
     // NOT IMPLEMENTED YET
     AIComponent,

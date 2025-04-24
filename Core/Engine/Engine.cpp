@@ -530,15 +530,91 @@ void Engine::EventWindowSizing(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 }
 
 
-
 // =================================================================================
 // Keyboard events handlers
 // =================================================================================
 
+void HandleEditorCameraMovement(
+    const eKeyCodes code,
+    const float deltaTime,
+    ECS::EntityMgr* pEnttMgr)
+{
+    ECS::CameraSystem& camSys = pEnttMgr->cameraSystem_;
+    const EntityID     camID = pEnttMgr->nameSystem_.GetIdByName("editor_camera");
+    constexpr float    editorCameraSpeed = 10.0f;
+    
+    // if camera isn't fixed at some particular point
+    if (!camSys.IsFixedLook(camID))
+    {
+        const float currSpeed = editorCameraSpeed * deltaTime;
+
+        switch (code)
+        {
+            case KEY_SPACE:
+            {
+                camSys.MoveUp(camID, currSpeed);
+                break;
+            }
+            case KEY_A:
+            {
+                camSys.Strafe(camID, -currSpeed);
+                break;
+            }
+            case KEY_D:
+            {
+                camSys.Strafe(camID, +currSpeed);
+                break;
+            }
+            case KEY_S:
+            {
+                camSys.Walk(camID, -currSpeed);
+                break;
+            }
+            case KEY_W:
+            {
+                camSys.Walk(camID, +currSpeed);
+                break;
+            }
+            case KEY_Z:
+            {
+                camSys.MoveUp(camID, -currSpeed);
+                break;
+            }
+        } // switch
+    }
+    // handle moving around some fixed look_at point (if we set any fixed one)
+    else
+    {
+        switch (code)
+        {
+            case KEY_A:
+            {
+                camSys.RotateYAroundFixedLook(camID, deltaTime);
+                break;
+            }
+            case KEY_D:
+            {
+                camSys.RotateYAroundFixedLook(camID, -deltaTime);
+                break;
+            }
+            case KEY_S:
+            {
+                camSys.Walk(camID, -deltaTime);
+                break;
+            }
+            case KEY_W:
+            {
+                camSys.Walk(camID, deltaTime);
+                break;
+            }
+        } // switch
+    }
+}
+
+///////////////////////////////////////////////////////////
+
 void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr)
 {
-    Camera& cam = graphics_.GetEditorCamera();
-
     // go through each currently pressed key and handle related events
     for (const eKeyCodes code : keyboard_.GetPressedKeysList())
     {
@@ -546,7 +622,7 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
         {
             case KEY_SHIFT:
             {
-                graphics_.editorCamera_.SetIsRunning(true);
+                //player.SetIsRunning(true);
                 pUI->UseSnapping(true);
                 break;
             }
@@ -573,83 +649,31 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
                 graphics_.SetAABBShowMode(CGraphics::AABBShowMode(mode));
                 break;
             }
-            
             case KEY_RETURN:   // aka ENTER
             {
                 if (!keyboard_.WasPressedBefore(KEY_RETURN))
                     UI::gEventsHistory.FlushTempHistory();
                 break;
             }
-            case KEY_A:
-            case KEY_D:
-            {
-                if (cam.IsFixedLook())
-                {
-                    // handle moving of the camera around fixed look_at point (if we set any fixed one)
-                    int sign = (code == KEY_A) ? +1 : -1;
-                    cam.RotateYAroundFixedLook(deltaTime_ * sign);
-                }
-                else
-                {
-                    // handle moving left/right
-                    int sign = (code == KEY_D) ? +1 : -1;
-                    cam.Strafe(cam.GetSpeed() * deltaTime_ * sign);
-                }
-
-                graphics_.UpdateCameraEntity("editor_camera", cam.View(), cam.Proj());
-                UpdateFlashLightPosition(cam.GetPosition(), pEnttMgr);
-
-                break;
-            }
-            case KEY_W:
-            {
-                if (!cam.IsFixedLook())                       // handle moving forward
-                {
-                    cam.Walk(cam.GetSpeed() * deltaTime_);
-                }
-                else                                          // handle moving up of the camera around fixed look_at point (if we set any fixed one)
-                {
-                    cam.PitchAroundFixedLook(deltaTime_);
-                }
-
-                graphics_.UpdateCameraEntity("editor_camera", cam.View(), cam.Proj());
-                UpdateFlashLightPosition(cam.GetPosition(), pEnttMgr);
-
-                break;
-            }
             case KEY_S:
             {
-                if (cam.IsFixedLook())                        // handle moving down of the camera around fixed look_at point (if we set any fixed one)
-                {
-                    cam.PitchAroundFixedLook(-deltaTime_);
-                }
-                else if (!keyboard_.IsPressed(KEY_CONTROL))   // handle moving backward
-                {
-                    cam.Walk(-cam.GetSpeed() * deltaTime_);  
-                }
-                else if (keyboard_.IsPressed(KEY_CONTROL) && pUI->GetSelectedEntt())
+                if (keyboard_.IsPressed(KEY_CONTROL) && pUI->GetSelectedEntt())
                 {
                     // handle Ctrl+S: turn on scaling with gizmo if any entt is selected
                     pUI->SetGizmoOperation(ImGuizmo::OPERATION::SCALE);
                 }
-                    
-                graphics_.UpdateCameraEntity("editor_camera", cam.View(), cam.Proj());
-                UpdateFlashLightPosition(cam.GetPosition(), pEnttMgr);
-
+                else
+                {
+                    HandleEditorCameraMovement(code, deltaTime_, pEnttMgr);
+                }
                 break;
             }
-            case KEY_L:
+            case KEY_A:
+            case KEY_D:
+            case KEY_W:
+            case KEY_SPACE:
             {
-                assert(0 && "FIXME!");
-
-#if 0
-                // switch the flashlight
-                if (!keyboard_.WasPressedBefore(KEY_L))
-                {
-                    SwitchFlashLight(cam);
-                }
-#endif
-                break;
+                HandleEditorCameraMovement(code, deltaTime_, pEnttMgr);
             }
             case KEY_Z:
             {
@@ -661,16 +685,8 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
                 }
                 else
                 {
-                    graphics_.editorCamera_.MoveUp(-cam.GetSpeed() * deltaTime_);
-                    UpdateFlashLightPosition(cam.GetPosition(), pEnttMgr);
+                    HandleEditorCameraMovement(code, deltaTime_, pEnttMgr);
                 }
-                
-                break;
-            }
-            case KEY_SPACE:
-            {
-                graphics_.editorCamera_.MoveUp(cam.GetSpeed() * deltaTime_);
-                UpdateFlashLightPosition(cam.GetPosition(), pEnttMgr);
                 break;
             }
             case KEY_Q:
@@ -716,7 +732,7 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
         {
             case KEY_SHIFT:
             {
-                graphics_.editorCamera_.SetIsRunning(false);
+                //player.SetIsRunning(false);
                 pUI->UseSnapping(false);
                 break;
             }
@@ -728,7 +744,8 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
 
 void Engine::HandleGameEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr)
 {
-    Camera& cam = graphics_.gameCamera_;
+    ECS::PlayerSystem& player = pEnttMgr->playerSystem_;
+    bool playerWasMoved = false;
 
     // go through each currently pressed key and handle related events
     for (const eKeyCodes code : keyboard_.GetPressedKeysList())
@@ -744,58 +761,53 @@ void Engine::HandleGameEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* pEn
             }
             case KEY_SHIFT:
             {
-                cam.SetIsRunning(true);
+                player.SetIsRunning(true);
                 break;
             }
             // (keys A/D): handle moving left/right
             case KEY_A: 
             {
-                cam.Strafe(-cam.GetSpeed() * deltaTime_);
-                UpdateFlashLightPosition(cam.GetPosition(), pEnttMgr);
+                player.Strafe(-player.GetSpeed() * deltaTime_);
+                playerWasMoved = true;
                 break;
             }
             case KEY_D:
             {
-                cam.Strafe(cam.GetSpeed() * deltaTime_);
-                UpdateFlashLightPosition(cam.GetPosition(), pEnttMgr);
+                player.Strafe(player.GetSpeed() * deltaTime_);
+                playerWasMoved = true;
                 break;
             }
             // (keys W/S): handle moving forward/backward
             case KEY_S:
             {
-                cam.Walk(-cam.GetSpeed() * deltaTime_);
-                UpdateFlashLightPosition(cam.GetPosition(), pEnttMgr);
+                player.Walk(-player.GetSpeed() * deltaTime_);
+                playerWasMoved = true;
                 break;
             }
             case KEY_W:
             {
-                cam.Walk(cam.GetSpeed() * deltaTime_);
-                UpdateFlashLightPosition(cam.GetPosition(), pEnttMgr);
+                player.Walk(player.GetSpeed() * deltaTime_);
+                playerWasMoved = true;
                 break;
             }
             case KEY_Z:
             {
-                cam.MoveUp(-cam.GetSpeed() * deltaTime_);
-                UpdateFlashLightPosition(cam.GetPosition(), pEnttMgr);
+                player.MoveUp(-player.GetSpeed() * deltaTime_);
+                playerWasMoved = true;
                 break;
             }
             case KEY_SPACE:
             {
-                cam.MoveUp(cam.GetSpeed() * deltaTime_);
-                UpdateFlashLightPosition(cam.GetPosition(), pEnttMgr);
+                player.MoveUp(player.GetSpeed() * deltaTime_);
+                playerWasMoved = true;
                 break;
             }
             case KEY_L:
             {
-                assert(0 && "FIXME!");
-
-#if 0
                 // switch the flashlight
                 if (!keyboard_.WasPressedBefore(KEY_L))
-                {
-                    SwitchFlashLight(cam);
-                }
-#endif
+                    SwitchFlashLight(*pEnttMgr_, *pRender_);
+
                 break;
             }
             case KEY_F1:
@@ -803,15 +815,15 @@ void Engine::HandleGameEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* pEn
                 // switch from game to the editor mode
                 if (!keyboard_.WasPressedBefore(KEY_F1))
                     TurnOnEditorMode();
+
                 break;
             }
             case KEY_F2:
             {
                 // switch btw cameras modes (free / game)
                 if (!keyboard_.WasPressedBefore(KEY_F2))
-                {
-                    cam.SetFreeCamera(!cam.IsFreeCamera());
-                }
+                    player.SetFreeFlyMode(!player.IsFreeFlyMode());
+
                 break;
             }
             case KEY_F3:
@@ -819,10 +831,14 @@ void Engine::HandleGameEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* pEn
                 // show/hide debug info in the game mode
                 if (!keyboard_.WasPressedBefore(KEY_F3))
                     systemState_.isShowDbgInfo = !systemState_.isShowDbgInfo;
+
                 break;
             }
         }
     }
+
+    if (playerWasMoved && player.IsTurnedOnFlashLight())
+        UpdateFlashLightPosition(player.GetPosition(), pEnttMgr);
 
 
     // handle released keys
@@ -832,7 +848,7 @@ void Engine::HandleGameEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* pEn
         {
             case KEY_SHIFT:
             {
-                graphics_.gameCamera_.SetIsRunning(false);
+                player.SetIsRunning(false);
                 break;
             }
         }
@@ -852,33 +868,25 @@ void Engine::EventKeyboard(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 // Mouse events handlers
 // =================================================================================
 
-void Engine::SwitchFlashLight(
-    const Camera& camera,
-    ECS::EntityMgr& mgr,
-    Render::CRender& render)
+void Engine::SwitchFlashLight(ECS::EntityMgr& mgr, Render::CRender& render)
 {
+    // switch on/off the player's flashlight
+
+    ECS::PlayerSystem& player = mgr.playerSystem_;
     const EntityID flashlightID   = mgr.nameSystem_.GetIdByName("flashlight");
     const bool isFlashlightActive = !mgr.lightSystem_.IsLightActive(flashlightID);   // invert the state
     ID3D11DeviceContext* pContext = graphics_.GetD3DClass().GetDeviceContext();
 
     mgr.lightSystem_.SetLightIsActive(flashlightID, isFlashlightActive);
     render.SwitchFlashLight(pContext, isFlashlightActive);
+    player.SwitchFlashLight(isFlashlightActive);
 
-    // if we just turned on the flashlight we need to update its position and direction
+    // if we just turned on the flashlight
     if (isFlashlightActive)
     {
-        graphics_.UpdateCameraEntity("editor_camera", camera.View(), camera.Proj());
-
-        const DirectX::XMFLOAT3 pos = camera.GetPosition();
-        const DirectX::XMFLOAT3 dir = camera.GetLook();
-        const DirectX::XMVECTOR dirQuat = DirectX::XMQuaternionRotationRollPitchYaw(dir.y, dir.x, dir.z);
-
-        // update position
-        mgr.transformSystem_.SetPositionByID(flashlightID, pos);
-        mgr.lightSystem_.SetSpotLightProp(flashlightID, ECS::LightProp::POSITION, { pos.x, pos.y, pos.z, 1.0f });
-
-        // update direction
-        mgr.lightSystem_.SetSpotLightProp(flashlightID, ECS::LightProp::DIRECTION, { dir.x, dir.y, dir.z, 0.0f });
+        // update flashlight's position and direction
+        mgr.transformSystem_.SetPosition(flashlightID, player.GetPosition());
+        mgr.transformSystem_.SetDirection(flashlightID, player.GetDirVec());
     }
 }
 
@@ -886,31 +894,16 @@ void Engine::SwitchFlashLight(
 
 void Engine::UpdateFlashLightPosition(const DirectX::XMFLOAT3& pos, ECS::EntityMgr* pEnttMgr)
 {
-    ECS::EntityMgr& mgr = *pEnttMgr;
-    const EntityID flashlightID   = mgr.nameSystem_.GetIdByName("flashlight");
-    const bool isFlashlightActive = mgr.lightSystem_.IsLightActive(flashlightID);
-
-    if (isFlashlightActive)
-    {
-        mgr.transformSystem_.SetPositionByID(flashlightID, pos);
-        mgr.lightSystem_.SetSpotLightProp(flashlightID, ECS::LightProp::POSITION, { pos.x, pos.y, pos.z, 1.0f });
-    }
+    const EntityID flashlightID = pEnttMgr->nameSystem_.GetIdByName("flashlight");
+    pEnttMgr->transformSystem_.SetPosition(flashlightID, pos);
 }
 
 ///////////////////////////////////////////////////////////
 
 void Engine::UpdateFlashLightDirection(const DirectX::XMFLOAT3& dir, ECS::EntityMgr* pEnttMgr)
 {
-    ECS::EntityMgr& mgr = *pEnttMgr;
-    const EntityID flashlightID   = mgr.nameSystem_.GetIdByName("flashlight");
-    const bool isFlashlightActive = mgr.lightSystem_.IsLightActive(flashlightID);
-
-    if (isFlashlightActive)
-    {
-        const DirectX::XMVECTOR dirQuat = DirectX::XMQuaternionRotationRollPitchYaw(dir.y, dir.x, dir.z);
-        //mgr.transformSystem_.SetDirectionQuatByID(flashlightID, dirQuat);
-        mgr.lightSystem_.SetSpotLightProp(flashlightID, ECS::LightProp::DIRECTION, { dir.x, dir.y, dir.z, 0.0f });
-    }
+    const EntityID flashlightID = pEnttMgr->nameSystem_.GetIdByName("flashlight");
+    pEnttMgr->transformSystem_.SetDirection(flashlightID, DirectX::XMLoadFloat3(&dir));
 }
 
 ///////////////////////////////////////////////////////////
@@ -935,34 +928,32 @@ void Engine::HandleEditorEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnt
         case RAW_MOVE:
         {
             // handle moving of the camera around fixed look_at point (if we set any fixed one)
-            Camera& cam = graphics_.editorCamera_;
-
+           
             // if we want to rotate a camera
             if (isMouseMiddlePressed)
             {
+                const EntityID camID      = pEnttMgr->nameSystem_.GetIdByName("editor_camera");
+                ECS::CameraSystem& camSys = pEnttMgr->cameraSystem_;
+
                 // rotate around some particular point
-                if (cam.IsFixedLook())
+                if (camSys.IsFixedLook(camID))
                 {
-                    cam.RotateYAroundFixedLook(mouseEvent_.GetPosX() * 0.01f);
-                    cam.PitchAroundFixedLook  (mouseEvent_.GetPosY() * 0.01f);
+                    assert(0 && "FIXME");
+                    //cam.RotateYAroundFixedLook(mouseEvent_.GetPosX() * 0.01f);
+                    //cam.PitchAroundFixedLook  (mouseEvent_.GetPosY() * 0.01f);
                 }
                 // rotate around itself
                 else
                 {
-                    cam.Pitch  (mouseEvent_.GetPosY() * deltaTime_);
-                    cam.RotateY(mouseEvent_.GetPosX() * deltaTime_);
-
-                    // if flashlight is active we update its direction 
-                    UpdateFlashLightDirection(cam.GetLook(), pEnttMgr);
+                    camSys.Pitch  (camID, mouseEvent_.GetPosY() * deltaTime_);
+                    camSys.RotateY(camID, mouseEvent_.GetPosX() * deltaTime_);
                 }
-
-                graphics_.UpdateCameraEntity("editor_camera", cam.View(), cam.Proj());
             }
             break;
         }
-
         case LPress:
         {
+
             // if we currenly hovering the scene window with our mouse
             // and we don't hover any gizmo we execute entity picking (selection) test
             if (pUI->IsSceneWndHovered() && !pUI->IsGizmoHovered())
@@ -984,7 +975,7 @@ void Engine::HandleEditorEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnt
                 }
 
                 // detach camera from any fixed look_at point
-                graphics_.editorCamera_.SetFixedLookState(false);
+                //graphics_.SetFixedLookState(false);
             }
             break;
         }
@@ -997,6 +988,8 @@ void Engine::HandleEditorEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnt
         case WheelUp:
         case WheelDown:
         {
+            assert(0 && "FIXME");
+#if 0
             if (pUI->IsSceneWndHovered())
             {
                 Camera& cam = graphics_.GetEditorCamera();
@@ -1013,6 +1006,7 @@ void Engine::HandleEditorEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnt
                 graphics_.UpdateCameraEntity("editor_camera", cam.View(), cam.Proj());
                 UpdateFlashLightPosition(cam.GetPosition(), pEnttMgr);
             }
+#endif
             break;
         }
         case MPress:
@@ -1027,6 +1021,8 @@ void Engine::HandleEditorEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnt
         }
         case LeftDoubleClick:
         {
+            assert(0 && "FIXME");
+#if 0
             // handle double click right on selected entity
             if (pUI->IsSceneWndHovered() && (pUI->GetSelectedEntt() != 0))
             {
@@ -1063,6 +1059,7 @@ void Engine::HandleEditorEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnt
                 
                 //userInterface_.SetGizmoOperation(ImGuizmo::OPERATION::TRANSLATE);
             }
+#endif
             break;
         }
     } // switch
@@ -1089,12 +1086,18 @@ void Engine::HandleGameEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnttM
             // update the rotation data of the camera
             // with the current state of the input devices. The movement function will update
             // the position of the camera to the location for this frame
-            Camera& cam = graphics_.GetGameCamera();
-            cam.Pitch  (mouseEvent_.GetPosY() * deltaTime_);
-            cam.RotateY(mouseEvent_.GetPosX() * deltaTime_);
+
+            ECS::PlayerSystem& player = pEnttMgr->playerSystem_;
+
+            const float rotY  = mouseEvent_.GetPosX() * deltaTime_;
+            const float pitch = mouseEvent_.GetPosY() * deltaTime_;
+           
+            player.RotateY(rotY);
+            player.Pitch  (pitch);
     
-            // if flashlight is active we update its direction 
-            UpdateFlashLightDirection(cam.GetLook(), pEnttMgr);
+            // if flashlight is active we update its direction
+            if (player.IsTurnedOnFlashLight())
+                UpdateFlashLightDirection(player.GetDirection(), pEnttMgr);
 
             break;
         }
@@ -1131,25 +1134,25 @@ void Engine::TurnOnEditorMode()
 {
     // switch from the game to the editor mode
 
-    D3DClass& d3d = graphics_.GetD3DClass();
-    Camera& cam = graphics_.GetEditorCamera();
+    D3DClass&      d3d         = graphics_.GetD3DClass();
+    const EntityID editorCamID = pEnttMgr_->nameSystem_.GetIdByName("editor_camera");
 
     d3d.ToggleFullscreen(hwnd_, false);
-    graphics_.SwitchGameMode(false);
+    graphics_.SetCurrentCamera(editorCamID);
+    graphics_.SetGameMode(false);
 
+#if 0
     // update the camera proj matrix according to new window size
-    cam.SetProjection(
+    pEnttMgr_->cameraSystem_.SetupProjection(
+        editorCamID,
         cam.GetFovY(),
         d3d.GetAspectRatio(),
         d3d.GetScreenNear(),
         d3d.GetScreenDepth());
-
-    UpdateFlashLightPosition(cam.GetPosition(), pEnttMgr_);
-    UpdateFlashLightDirection(cam.GetLook(), pEnttMgr_);
+#endif
 
     systemState_.isEditorMode = true;
     ShowCursor(TRUE);
-
 }
 
 ///////////////////////////////////////////////////////////
@@ -1158,12 +1161,11 @@ void Engine::TurnOnGameMode()
 {
     // switch from the editor to the game mode
 
-    graphics_.GetD3DClass().ToggleFullscreen(hwnd_, true);
-    graphics_.SwitchGameMode(true);
+    const EntityID gameCamID = pEnttMgr_->nameSystem_.GetIdByName("game_camera");
 
-    Camera& cam = graphics_.GetGameCamera();
-    UpdateFlashLightPosition(cam.GetPosition(), pEnttMgr_);
-    UpdateFlashLightDirection(cam.GetLook(), pEnttMgr_);
+    graphics_.GetD3DClass().ToggleFullscreen(hwnd_, true);
+    graphics_.SetCurrentCamera(gameCamID);
+    graphics_.SetGameMode(true);
 
     systemState_.isEditorMode = false;
     ShowCursor(FALSE);

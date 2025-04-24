@@ -8,8 +8,7 @@
 #pragma once
 #include "IFacadeEngineToUI.h"
 
-#include "../../Camera/Camera.h"
-#include "Entity/EntityMgr.h"           // from the ECS module
+#include "Entity/EntityMgr.h"            // from the ECS module
 #include "CRender.h"                     // from the Render module
 
 #include <d3d11.h>
@@ -26,16 +25,12 @@ private:
     ECS::EntityMgr*      pEntityMgr_    = nullptr;
     //Core::TextureMgr*    pTextureMgr_   = nullptr;
     //Core::ModelMgr*  pModelStorage_ = nullptr;
-    Core::Camera*        pEditorCamera_ = nullptr;
 
 public:
     FacadeEngineToUI(
         ID3D11DeviceContext* pContext,
         Render::CRender* pRender,
-        ECS::EntityMgr* pEntityMgr,
-        //Core::TextureMgr* pTextureMgr,
-        //Core::ModelMgr* pModelStorage,
-        Core::Camera* pEditorCamera);
+        ECS::EntityMgr* pEntityMgr);
 
 
     virtual ModelID GetModelIdByName(const std::string& name) override;
@@ -70,16 +65,16 @@ public:
     virtual bool GetEnttsOfCameraType (const EntityID*& enttsIDs, int& numEntts)                                            override;
     virtual bool GetEnttsOfLightType  (const EntityID*& enttsIDs, int& numEntts)                                            override;
 
-    virtual bool GetEnttTransformData (const EntityID id, Vec3& pos, Vec4& rotQuat, float& uniScale)                  const override;
+    virtual bool GetEnttTransformData (const EntityID id, Vec3& pos, Vec3& direction, float& uniScale)                const override;
     virtual bool GetEnttWorldMatrix   (const EntityID id, DirectX::XMMATRIX& outMat)                                  const override;
 
-    virtual Vec3 GetEnttPosition     (const EntityID id)                                                              const override;
-    virtual Vec4 GetEnttDirectionQuat(const EntityID id)                                                              const override;
-    virtual float GetEnttScale       (const EntityID id)                                                              const override;
+    virtual Vec3  GetEnttPosition     (const EntityID id)                                                              const override;
+    virtual Vec3  GetEnttDirection    (const EntityID id)                                                              const override;
+    virtual float GetEnttScale        (const EntityID id)                                                              const override;
 
-    virtual bool SetEnttPosition     (const EntityID entityID, const Vec3& pos)                                             override;
-    virtual bool SetEnttDirectionQuat(const EntityID entityID, const Vec4& rotationQuat)                                    override;
-    virtual bool SetEnttUniScale     (const EntityID entityID, const float scale)                                           override;
+    virtual bool SetEnttPosition (const EntityID entityID, const Vec3& pos)                                             override;
+    virtual bool SetEnttDirection(const EntityID entityID, const Vec3& dir)                                             override;
+    virtual bool SetEnttUniScale (const EntityID entityID, const float scale)                                           override;
 
     virtual bool RotateEnttByQuat(const EntityID id, const Vec4& rotQuat) override;
 

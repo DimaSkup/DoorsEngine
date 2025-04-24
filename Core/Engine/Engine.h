@@ -29,10 +29,6 @@
 #include "../Timers/cpuclass.h"
 #include "../Timers/GameTimer.h"
 
-// camera stuff
-#include "../Camera/Camera.h"
-
-
 // graphics stuff
 #include "../Mesh/MaterialMgr.h"
 #include "../Render/graphicsclass.h"
@@ -42,6 +38,7 @@
 
 // from the ECS module: Entity-Component-System
 #include "Entity/EntityMgr.h"
+#include "../UI/UserInterface.h"
 
 
 
@@ -98,10 +95,7 @@ public:
     void HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr);
     void HandleGameEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr);
 
-    void SwitchFlashLight(
-        const Camera& camera,
-        ECS::EntityMgr& mgr,
-        Render::CRender& render);
+    void SwitchFlashLight(ECS::EntityMgr& mgr, Render::CRender& render);
 
     void UpdateFlashLightPosition(const DirectX::XMFLOAT3& position, ECS::EntityMgr* pEnttMgr);
     void UpdateFlashLightDirection(const DirectX::XMFLOAT3& direction, ECS::EntityMgr* pEnttMgr);
@@ -117,6 +111,8 @@ public:
     void RenderModelIntoTexture(
         ID3D11DeviceContext* pContext,
         FrameBuffer& frameBuffer);
+
+
 
 private:
     void TurnOnEditorMode();

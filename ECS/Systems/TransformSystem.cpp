@@ -22,7 +22,7 @@ TransformSystem::TransformSystem(Transform* pTransform)
     // add invalid data; this data is returned when we ask for wrong entity
     pTransform_->ids.push_back(INVALID_ENTITY_ID);
     pTransform_->posAndUniformScale.push_back(XMFLOAT4{ NAN, NAN, NAN, NAN });
-    pTransform_->dirQuats.push_back(XMVECTOR{ NAN, NAN, NAN, NAN });
+    pTransform_->directions.push_back(XMVECTOR{ NAN, NAN, NAN, NAN });
 
     const cvector<float> nanArray(16, NAN);
     XMMATRIX nanMatrix(nanArray.data());
@@ -37,31 +37,10 @@ TransformSystem::~TransformSystem()
 {
 }
 
+
 // =================================================================================
 // PUBLIC METHODS
 // =================================================================================
-
-#if 0
-void TransformSystem::Initialize(Transform* pTransform)
-{
-    Assert::NotNullptr(pTransform, "ptr to the Transform component == nullptr");
-    pTransform_ = pTransform;
-
-    // add invalid data; this data is returned when we ask for wrong entity
-    pTransform_->ids_.push_back(INVALID_ENTITY_ID);
-    pTransform_->posAndUniformScale.push_back(XMFLOAT4{ NAN, NAN, NAN, NAN });
-    pTransform_->dirQuats.push_back(XMVECTOR{ NAN, NAN, NAN, NAN });
-
-    const cvector<float> nanArray(16, NAN);
-    XMMATRIX nanMatrix(nanArray.data());
-
-    pTransform_->worlds.push_back(nanMatrix);
-    pTransform_->invWorlds.push_back(nanMatrix); // inverse world matrix
-}
-#endif
-
-///////////////////////////////////////////////////////////
-
 void TransformSystem::AddRecords(
     const EntityID* ids,
     const XMFLOAT3* positions,
@@ -85,17 +64,18 @@ void TransformSystem::RemoveRecords(const cvector<EntityID>& enttsIDs)
 // GET position/direction/uniform_scale
 // =================================================================================
 
-void TransformSystem::GetPositionsByIDs(
+void TransformSystem::GetPositions(
     const EntityID* ids,
     const size numEntts,
     cvector<XMFLOAT3>& outPositions) const
 {
     // get positions of entities by input IDs array;
-    // 
-    // NOTE: it is supposed that ids.size() == outPositions.size()
 
-    Assert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
-    Assert::True(numEntts > 0,   "input number of entities must be > 0");
+    if (!ids)
+    {
+        LogErr("input ptr to entities IDs arr == nullptr");
+        return;
+    }
 
     Transform& comp = *pTransform_;
     cvector<index> idxs;
@@ -114,10 +94,10 @@ void TransformSystem::GetPositionsByIDs(
 
 ///////////////////////////////////////////////////////////
 
-void TransformSystem::GetDirectionsQuatsByIDs(
+void TransformSystem::GetDirections(
     const EntityID* ids,
     const size numEntts,
-    cvector<XMVECTOR>& outDirQuats) const
+    cvector<XMVECTOR>& outDirections) const
 {
     if (!ids)
     {
@@ -130,22 +110,25 @@ void TransformSystem::GetDirectionsQuatsByIDs(
 
     comp.ids.get_idxs(ids, numEntts, idxs);
 
-    // get direction quaternions by idxs
-    outDirQuats.resize(numEntts);
+    // get directions by idxs
+    outDirections.resize(numEntts);
 
     for (int i = 0; const index idx : idxs)
-        outDirQuats[i++] = comp.dirQuats[idx];
+        outDirections[i++] = comp.directions[idx];
 }
 
 ///////////////////////////////////////////////////////////
 
-void TransformSystem::GetUniformScalesByIDs(
+void TransformSystem::GetUniformScales(
     const EntityID* ids,
     const size numEntts,
     cvector<float>& outScales) const
 {
-    Assert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
-    Assert::True(numEntts > 0,   "input number of entities must be > 0");
+    if (!ids)
+    {
+        LogErr("input ptr to entities IDs arr == nullptr");
+        return;
+    }
 
     Transform& comp = *pTransform_;
     cvector<index> idxs;
@@ -161,14 +144,19 @@ void TransformSystem::GetUniformScalesByIDs(
 
 ///////////////////////////////////////////////////////////
 
-void TransformSystem::GetPositionsAndDirectionsByIDs(
+void TransformSystem::GetPositionsAndDirections(
     const EntityID* ids,
     const size numEntts,
     cvector<XMFLOAT3>& outPositions,
-    cvector<XMFLOAT3>& outDirections)
+    cvector<XMFLOAT3>& outDirections) const
 {
-    Assert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
-    Assert::True(numEntts > 0,   "input number of entities must be > 0");
+    // get positions and directions as float3 of entities by input ids
+
+    if (!ids)
+    {
+        LogErr("input ptr to entities IDs arr == nullptr");
+        return;
+    }
 
     outPositions.resize(numEntts);
     outDirections.resize(numEntts);
@@ -187,42 +175,82 @@ void TransformSystem::GetPositionsAndDirectionsByIDs(
 
     for (int i = 0; const index idx : idxs)
     {
-        DirectX::XMStoreFloat3(&outDirections[i], comp.dirQuats[idx]);  // we use quaterion rotation axis as direction of light
+        DirectX::XMStoreFloat3(&outDirections[i], comp.directions[idx]);
         ++i;
-    }
-        
+    }       
 }
 
 ///////////////////////////////////////////////////////////
 
-const XMFLOAT3 TransformSystem::GetPositionByID(const EntityID id) const
+void TransformSystem::GetPosAndDir(
+    const EntityID id,
+    XMVECTOR& outPos,
+    XMVECTOR& outDir) const
 {
-    const XMFLOAT4& pos = pTransform_->posAndUniformScale[GetIdxByID(id)];
+    // get position and direction of entity by ID
+    const index idx = GetIdx(id);
+    Transform& comp = *pTransform_;
+    XMFLOAT4& pos = comp.posAndUniformScale[idx];
+
+    outPos = { pos.x, pos.y, pos.z, 1.0f };           // in w-component we store uniform scale, but not we need it to be just 1
+    outDir = comp.directions[idx];
+}
+
+///////////////////////////////////////////////////////////
+
+const XMFLOAT3 TransformSystem::GetPosition(const EntityID id) const
+{
+    const XMFLOAT4& pos = pTransform_->posAndUniformScale[GetIdx(id)];
     return XMFLOAT3(pos.x, pos.y, pos.z);
 }
 
 ///////////////////////////////////////////////////////////
 
-const XMVECTOR TransformSystem::GetDirectionQuatByID(const EntityID id) const
+const XMVECTOR TransformSystem::GetPositionVec(const EntityID id) const
 {
-    return pTransform_->dirQuats[GetIdxByID(id)];
+    const XMFLOAT4& pos = pTransform_->posAndUniformScale[GetIdx(id)];
+    return XMVECTOR{ pos.x, pos.y, pos.z, 1 };
 }
 
 ///////////////////////////////////////////////////////////
 
-const float TransformSystem::GetUniformScaleByID(const EntityID id) const
+const XMVECTOR& TransformSystem::GetDirectionVec(const EntityID id) const
 {
-    return pTransform_->posAndUniformScale[GetIdxByID(id)].w;
+    return pTransform_->directions[GetIdx(id)];
+}
+
+///////////////////////////////////////////////////////////
+
+const XMFLOAT3 TransformSystem::GetDirection(const EntityID id) const
+{
+    XMFLOAT3 dir;
+    XMStoreFloat3(&dir, GetDirectionVec(id));
+    return dir;
+}
+
+///////////////////////////////////////////////////////////
+
+const float TransformSystem::GetUniformScale(const EntityID id) const
+{
+    return pTransform_->posAndUniformScale[GetIdx(id)].w;
 }
 
 
 // =================================================================================
 // SET position/direction/uniform_scale
 // =================================================================================
-
-bool TransformSystem::SetPositionByID(const EntityID id, const XMFLOAT3& pos)
+bool TransformSystem::SetPositionVec(const EntityID id, const XMVECTOR& pos)
 {
-    const index idx = GetIdxByID(id);
+    XMFLOAT3 p;
+    XMStoreFloat3(&p, pos);
+    return SetPosition(id, p);
+}
+
+///////////////////////////////////////////////////////////
+
+bool TransformSystem::SetPosition(const EntityID id, const XMFLOAT3& pos)
+{
+    const index idx = GetIdx(id);
 
     // if there is no transformation data for entity by ID
     if (idx == 0)
@@ -245,17 +273,17 @@ bool TransformSystem::SetPositionByID(const EntityID id, const XMFLOAT3& pos)
 
 ///////////////////////////////////////////////////////////
 
-bool TransformSystem::SetDirectionQuatByID(const EntityID id, const XMVECTOR& dirQuat)
+bool TransformSystem::SetDirection(const EntityID id, const XMVECTOR& direction)
 {
-    // update direction of entity using input direction quaternion
+    // update direction of entity using input direction
 
-    const index idx = GetIdxByID(id);
+    const index idx = GetIdx(id);
 
     // if there is no transformation data for entity by ID
     if (idx == 0)
         return false;
 
-    pTransform_->dirQuats[idx] = XMQuaternionNormalize(dirQuat);
+    pTransform_->directions[idx] = XMVector3Normalize(direction);
 
     // recompute world matrix and inverse world matrix for this entity
     RecomputeWorldMatrixByIdx(idx);
@@ -266,11 +294,11 @@ bool TransformSystem::SetDirectionQuatByID(const EntityID id, const XMVECTOR& di
 
 ///////////////////////////////////////////////////////////
 
-bool TransformSystem::SetUniScaleByID(const EntityID id, const float uniformScale)
+bool TransformSystem::SetUniScale(const EntityID id, const float uniformScale)
 {
     // set the uniform scale value for the entity by ID
 
-    const index idx = GetIdxByID(id);
+    const index idx = GetIdx(id);
 
     // if there is no transformation data for entity by ID
     if (idx == 0)
@@ -292,17 +320,15 @@ bool TransformSystem::RotateWorldByQuat(const EntityID id, const XMVECTOR& quat)
 {
     using namespace DirectX;
 
-    Transform& comp = *pTransform_;
-    const index idx = comp.ids.get_idx(id);
+    const index idx = GetIdx(id);
 
-    if (idx == -1)
-    {
-        char buf[64];
-        sprintf(buf, "there is no transformation for entity by ID: %ud", id);
-        LogErr(buf);
+    if (idx == 0)
         return false;
-    }
 
+
+    Transform& comp = *pTransform_;
+
+    // rotate the world
     const XMMATRIX R = XMMatrixRotationQuaternion(quat);
     XMMATRIX W = comp.worlds[idx];
     XMVECTOR translation = W.r[3];
@@ -311,71 +337,38 @@ bool TransformSystem::RotateWorldByQuat(const EntityID id, const XMVECTOR& quat)
     comp.worlds[idx].r[3] = translation;
     RecomputeInvWorldMatrixByIdx(idx);
 
-    XMVECTOR scale;
-    XMVECTOR rotQuat;
-    //XMVECTOR translation;
-    XMMatrixDecompose(&scale, &rotQuat, &translation, comp.worlds[idx]);
-
-    // store translation in (x,y,z) of float4
-    XMStoreFloat4(&comp.posAndUniformScale[idx], translation);
-
-    // store uniform scale in w-component of float4
-    comp.posAndUniformScale[idx].w = XMVectorGetX(scale);
-
-    // store direction quaternion
-    comp.dirQuats[idx] = rotQuat;
-
-    return true;
-
-#if 0
-    XMVECTOR& origQuat     = comp.dirQuats[idx];
+    // rotate the direction vector using input quaternion
+    XMVECTOR& dir = comp.directions[idx];
     const XMVECTOR invQuat = XMQuaternionInverse(quat);
 
-    // rotated_vec = inv_quat * vec * quat;
-    XMVECTOR newVec = DirectX::XMQuaternionMultiply(invQuat, origQuat);
-    origQuat        = DirectX::XMQuaternionMultiply(newVec, quat);
+    // rotated_direction = inv_quat * orig_direction * quat; 
+    XMVECTOR newVec = DirectX::XMQuaternionMultiply(invQuat, dir);
+    dir = DirectX::XMQuaternionMultiply(newVec, quat);
 
     return true;
-#endif
 }
 
 
 // =================================================================================
 // Get/Set transformation
 // =================================================================================
-void TransformSystem::GetTransformByID(
-    const EntityID id,
-    XMFLOAT3& pos,
-    XMVECTOR& dirQuat,
-    float& uniformScale)
-{
-    const index idx = GetIdxByID(id);
-    const XMFLOAT4& data = pTransform_->posAndUniformScale[idx];
-
-    dirQuat = pTransform_->dirQuats[idx];
-    pos = { data.x, data.y, data.z };
-    uniformScale = data.w;
-}
-
-///////////////////////////////////////////////////////////
-
 DirectX::XMMATRIX TransformSystem::GetWorldMatrixOfEntt(const EntityID id)
 {
     // return a world matrix of entt by ID or return a matrix of NANs if there is no such entt by ID
-    return pTransform_->worlds[GetIdxByID(id)];
+    return pTransform_->worlds[GetIdx(id)];
 }
 
 ///////////////////////////////////////////////////////////
 
-const DirectX::XMMATRIX& TransformSystem::GetInverseWorldMatrixOfEntt(const EntityID id)
+const DirectX::XMMATRIX& TransformSystem::GetInverseWorld(const EntityID id)
 {
     // return an inverse world matrix of entt by ID or return a matrix of NANs if there is no such entt by ID
-    return pTransform_->invWorlds[GetIdxByID(id)];
+    return pTransform_->invWorlds[GetIdx(id)];
 }
 
 ///////////////////////////////////////////////////////////
 
-void TransformSystem::GetWorldMatricesOfEntts(
+void TransformSystem::GetWorlds(
     const EntityID* ids,
     const size numEntts,
     cvector<DirectX::XMMATRIX>& outWorlds)
@@ -395,9 +388,9 @@ void TransformSystem::GetWorldMatricesOfEntts(
 
 ///////////////////////////////////////////////////////////
 
-void TransformSystem::GetInverseWorldMatricesOfEntts(
+void TransformSystem::GetInverseWorlds(
     const EntityID* ids,
-    const int numEntts,
+    const size numEntts,
     cvector<DirectX::XMMATRIX>& outInvWorlds)
 {
     // NOTE: size of arrays enttsIDs and outInvWorlds must be equal !!!
@@ -414,95 +407,6 @@ void TransformSystem::GetInverseWorldMatricesOfEntts(
     comp.invWorlds.get_data_by_idxs(idxs, outInvWorlds);
 }
 
-///////////////////////////////////////////////////////////
-
-void TransformSystem::GetMatricesByIdxs(
-    const index* idxs,
-    const XMMATRIX* inMatrices,
-    XMMATRIX* outMatrices,
-    int numMatrices)
-{
-    // get matrices (world / inverse world / etc.) by input data idxs;
-    // out: array of chosen matrices
-
-    for (int i = 0; i < numMatrices; ++i)
-        outMatrices[i++] = inMatrices[idxs[i]];
-}
-
-// =================================================================================
-
-void TransformSystem::SetTransformByID(
-    const EntityID id,
-    const XMVECTOR& newPosition,
-    const XMVECTOR& newDirectionQuat,
-    const float newScale)
-{
-    Transform& transformComp = *pTransform_;
-
-    const index idx = GetIdxByID(id);
-
-    if (idx == -1)
-    {
-        char buf[64];
-        sprintf(buf, "there is no entity by ID: %ud", id);
-        LogErr(buf);
-        return;
-    }
-
-    XMFLOAT4& posAndScale = transformComp.posAndUniformScale[idx];
-
-    DirectX::XMStoreFloat4(&posAndScale, newPosition);  // xyz - translation
-    posAndScale.w = newScale;                           // w   - contains a uniform scale value
-    transformComp.dirQuats[idx] = newDirectionQuat;
-
-    // recompute world matrix and inverse world matrix for this entity
-    RecomputeWorldMatrixByIdx(idx);
-    RecomputeInvWorldMatrixByIdx(idx);
-}
-
-///////////////////////////////////////////////////////////
-
-void TransformSystem::SetTransformDataByIdxs(
-    const cvector<index>& idxs,
-    const cvector<XMVECTOR>& newPositions,
-    const cvector<XMVECTOR>& newDirQuats,
-    const cvector<float>& newUniformScales)
-{
-    const size numElems = idxs.size();
-    Assert::NotZero(numElems, "data idxs arr is empty");
-    Assert::True(numElems == newPositions.size(), "arr of idxs and arr of positions are not equal");
-    Assert::True(numElems == newDirQuats.size(), "arr of idxs and arr of directions are not equal");
-    Assert::True(numElems == newUniformScales.size(), "arr of idxs and arr of scales are not equal");
-
-    Transform& comp = *pTransform_;
-
-    // set new positions by idxs
-    for (index posIdx = 0; index idx : idxs)
-        DirectX::XMStoreFloat4(&comp.posAndUniformScale[idx], newPositions[posIdx]);
-
-    // set new uniform scales by idxs
-    for (index scaleIdx = 0; index idx : idxs)
-        comp.posAndUniformScale[idx].w = newUniformScales[scaleIdx++];
-
-    // the Transform component stores only normalized direction quaternions so just do it
-    for (index quatIdx = 0; index idx : idxs)
-        comp.dirQuats[idx] = DirectX::XMQuaternionNormalize(newDirQuats[quatIdx]);
-}
-
-///////////////////////////////////////////////////////////
-
-void TransformSystem::SetWorldMatricesByIdxs(
-    const cvector<index>& dataIdxs,
-    const cvector<XMMATRIX>& newWorldMatrices)
-{
-    // store world matrices by input data idxs
-
-    Assert::True(pTransform_->worlds.size() >= std::ssize(newWorldMatrices), "count of new matrices can't be bigger than the number of matrices in the component");
-
-    for (index newMatIdx = 0; const index idx : dataIdxs)
-        pTransform_->worlds[idx] = newWorldMatrices[newMatIdx++];
-}
-
 
 // =================================================================================
 //                            PRIVATE HELPERS
@@ -510,7 +414,7 @@ void TransformSystem::SetWorldMatricesByIdxs(
 void TransformSystem::AddRecordsToTransformComponent(
     const EntityID* ids,
     const XMFLOAT3* positions,
-    const XMVECTOR* dirQuats,      // direction quaternions
+    const XMVECTOR* directions,
     const float* uniformScales,
     const size numElems)
 {
@@ -528,13 +432,6 @@ void TransformSystem::AddRecordsToTransformComponent(
     for (index i = 0; i < idxs.size(); ++i)
         idxs[i] += i;
 
-
-    // normalize all the input direction quaternions
-    cvector<XMVECTOR> normDirQuats(numElems);
-
-    for (int i = 0; i < numElems; ++i)
-        normDirQuats[i] = DirectX::XMQuaternionNormalize(dirQuats[i]);
-
     // store ids
     for (index i = 0; i < numElems; ++i)
         comp.ids.insert_before(idxs[i], ids[i]);
@@ -550,22 +447,28 @@ void TransformSystem::AddRecordsToTransformComponent(
     for (index i = 0; i < numElems; ++i)
         comp.posAndUniformScale[idxs[i]].w = uniformScales[i];
 
-    // store direction quaternions
+    // normalize all the input directions and store them into the component
+    cvector<XMVECTOR> normDirections(numElems);
+
+    for (int i = 0; i < numElems; ++i)
+        normDirections[i] = DirectX::XMVector3Normalize(directions[i]);
+
     for (index i = 0; i < numElems; ++i)
-        comp.dirQuats.insert_before(idxs[i], normDirQuats[i]);
+        comp.directions.insert_before(idxs[i], normDirections[i]);
+
+    // ----------------------------------------------------
 
     // compute a world matrix and store it
     // and also compute an inverse world matrix and store it as well
     for (index i = 0; i < numElems; ++i)
     {
-        const XMFLOAT3 pos     = positions[i];
-        const XMVECTOR dirQuat = normDirQuats[i];
-        const float scale      = uniformScales[i];
+        const XMFLOAT3 pos = positions[i];
+        const float scale  = uniformScales[i];
 
         // compute a world matrix and store it
         // and also compute an inverse world matrix and store it as well
         const XMMATRIX S = XMMatrixScaling(scale, scale, scale);
-        const XMMATRIX R = XMMatrixRotationQuaternion(dirQuat);
+        const XMMATRIX R = XMMatrixRotationQuaternion(normDirections[i]);
         const XMMATRIX T = XMMatrixTranslation(pos.x, pos.y, pos.z);
         const XMMATRIX world = S * R * T;
 
@@ -576,7 +479,7 @@ void TransformSystem::AddRecordsToTransformComponent(
 
 ///////////////////////////////////////////////////////////
 
-index TransformSystem::GetIdxByID(const EntityID id) const
+index TransformSystem::GetIdx(const EntityID id) const
 {
     // return valid idx if there is an entity by such ID;
     // or return 0 if there is no such entity;
@@ -584,9 +487,8 @@ index TransformSystem::GetIdxByID(const EntityID id) const
 
     if (pTransform_->ids[idx] != id)
     {
-        char buf[64];
-        sprintf(buf, "there is no transform data for entt by id: %ud", id);
-        LogErr(buf);
+        sprintf(g_String, "there is no transform data for entt by id: %ud", id);
+        LogErr(g_String);
         return 0;
     }
 

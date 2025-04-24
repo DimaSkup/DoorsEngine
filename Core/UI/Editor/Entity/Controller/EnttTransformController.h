@@ -29,13 +29,13 @@ public:
 	inline const EnttTransformData& GetModel() const { return data_; }
 
 private:
-	void ExecChangePosition     (const EntityID id, const Vec3& pos);
-	void ExecChangeDirectionQuat(const EntityID id, const Vec4& quat);
-	void ExecChangeUniformScale (const EntityID id, const float scale);
+	void ExecChangePosition    (const EntityID id, const Vec3& pos);
+	void ExecChangeDirection   (const EntityID id, const Vec3& direction);
+	void ExecChangeUniformScale(const EntityID id, const float scale);
 	
-	void UndoChangePosition     (const EntityID id, const Vec3& pos);
-	void UndoChangeDirection    (const EntityID id, const Vec4& rotQuat);
-	void UndoChangeScale        (const EntityID id, const float uniformScale);
+	void UndoChangePosition    (const EntityID id, const Vec3& pos);
+	void UndoChangeDirection   (const EntityID id, const Vec3& direction);
+	void UndoChangeScale       (const EntityID id, const float uniformScale);
 
 private:
     EnttTransformData  data_;

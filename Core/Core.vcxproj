@@ -201,7 +201,6 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="2D\SpriteClass.cpp" />
-    <ClCompile Include="Camera\Camera.cpp" />
     <ClCompile Include="CoreCommon\EngineException.cpp" />
     <ClCompile Include="CoreCommon\MathHelper.cpp" />
     <ClCompile Include="Engine\EventHandler.cpp" />
@@ -275,7 +274,6 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="2D\SpriteClass.h" />
-    <ClInclude Include="Camera\Camera.h" />
     <ClInclude Include="CoreCommon\Assert.h" />
     <ClInclude Include="CoreCommon\Convert.h" />
     <ClInclude Include="CoreCommon\cvector.h" />

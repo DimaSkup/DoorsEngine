@@ -12,7 +12,6 @@
 
 #include <exception>
 #include <filesystem>
-#include <map>
 
 namespace fs = std::filesystem;
 
@@ -76,7 +75,6 @@ void ModelExporter::ExportIntoDE3D(
 // =================================================================================
 //                               PRIVATE METHODS
 // =================================================================================
-
 void ModelExporter::WriteHeader(std::ofstream& fout, const BasicModel& model)
 {
     fout << "***************Header***************\n";
