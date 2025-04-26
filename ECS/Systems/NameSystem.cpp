@@ -12,7 +12,7 @@ NameSystem::NameSystem(Name* pNameComponent)
 
     // add invalid data; this data is returned when we ask for wrong entity
     pNameComponent_->ids_.push_back(INVALID_ENTITY_ID);
-    pNameComponent_->names_.push_back(INVALID_ENTITY_NAME);
+    pNameComponent_->names_.push_back("invalid");
 }
 
 ///////////////////////////////////////////////////////////
@@ -31,7 +31,7 @@ void NameSystem::Deserialize(std::ifstream& fin, const u32 offset)
 
 void NameSystem::AddRecords(
     const EntityID* ids,
-    const EntityName* names,
+    const std::string* names,
     const size numEntts)
 {
     // add name for each entity from the input arr (for instance: ids[2] => names[2])
@@ -56,7 +56,7 @@ void NameSystem::AddRecords(
 
 ///////////////////////////////////////////////////////////
 
-EntityID NameSystem::GetIdByName(const EntityName& name)
+EntityID NameSystem::GetIdByName(const std::string& name)
 {
     // if there is such a name in the arr we return a responsible entity ID;
     const Name& comp = *pNameComponent_;
@@ -67,14 +67,15 @@ EntityID NameSystem::GetIdByName(const EntityName& name)
 
 ///////////////////////////////////////////////////////////
 
-const EntityName& NameSystem::GetNameById(const EntityID& id) const
+const std::string& NameSystem::GetNameById(const EntityID& id) const
 {
     // if there is such an ID in the arr we return a responsible entity name;
     const Name& comp = *pNameComponent_;
-    const bool exist = comp.ids_.binary_search(id);
-    const index idx  = comp.ids_.get_idx(id);
 
-    return (exist) ? comp.names_[idx] : INVALID_ENTITY_NAME;
+    const index idx  = comp.ids_.get_idx(id);
+    const bool exist = (comp.ids_[idx] == id);
+
+    return comp.names_[idx * exist];
 }
 
 

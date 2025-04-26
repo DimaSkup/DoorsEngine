@@ -74,18 +74,19 @@ bool Application::InitEngine()
 
 bool Application::InitScene(ID3D11Device* pDevice)
 {
-    CameraInitParams params;
-    params.nearZ          = settings_.GetFloat("NEAR_Z");
-    params.farZ           = settings_.GetFloat("FAR_Z");
-    params.fovInRad       = settings_.GetFloat("FOV_IN_RAD");         // field of view in radians
-
-    params.sensitivity    = settings_.GetFloat("CAMERA_SENSITIVITY"); // camera rotation speed
-    params.walkSpeed      = settings_.GetFloat("CAMERA_WALK_SPEED");
-    params.runSpeed       = settings_.GetFloat("CAMERA_RUN_SPEED");
-
     const Core::D3DClass& d3d = engine_.GetGraphicsClass().GetD3DClass();
-    params.windowedSize   = d3d.GetWindowedWndSize();
-    params.fullscreenSize = d3d.GetFullscreenWndSize();
+    const SIZE fullscreenSize = d3d.GetFullscreenWndSize();
+
+    CameraInitParams params;
+    params.nearZ       = settings_.GetFloat("NEAR_Z");
+    params.farZ        = settings_.GetFloat("FAR_Z");
+    params.fovInRad    = settings_.GetFloat("FOV_IN_RAD");         // field of view in radians
+    params.aspectRatio = (float)fullscreenSize.cx / (float)fullscreenSize.cy;
+
+    //params.sensitivity = settings_.GetFloat("MOUSE_SENSITIVITY"); // camera rotation speed
+    //params.walkSpeed = settings_.GetFloat("PLAYER_WALK_SPEED");
+    //params.runSpeed = settings_.GetFloat("PLAYER_RUN_SPEED");
+
 
     SceneInitializer sceneInitializer;
 

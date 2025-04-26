@@ -7,9 +7,10 @@ FULL_SCREEN                   false
 VSYNC_ENABLED                 false
 ENABLE_4X_MSAA                true
 
-CAMERA_WALK_SPEED             10.0f
-CAMERA_RUN_SPEED              20.0f
-CAMERA_SENSITIVITY            1.0f
+PLAYER_WALK_SPEED             10.0f
+PLAYER_RUN_SPEED              20.0f
+MOUSE_SENSITIVITY             1.0f
+
 CAMERA_HEIGHT_OFFSET          0.6f
 FOV_IN_RAD                    1.30796f
 NEAR_Z                        0.3f

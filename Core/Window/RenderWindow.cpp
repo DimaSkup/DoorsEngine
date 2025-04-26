@@ -14,6 +14,10 @@ namespace Core
 
 RenderWindow::~RenderWindow()
 {
+    // escape from the "clip cursor" mode so that users can choose to interact
+    // with other windows if desired; Note: During the game we may also use such call
+    // when go to a 'pause' to get out of 'mouse-look' behavior like this.
+    ClipCursor(nullptr);
 }
 
 ///////////////////////////////////////////////////////////

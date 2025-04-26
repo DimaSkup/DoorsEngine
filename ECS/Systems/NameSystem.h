@@ -12,7 +12,7 @@
 namespace ECS
 {
 
-class NameSystem final
+class NameSystem
 {
 public:
 	NameSystem(Name* pNameComponent);
@@ -23,7 +23,7 @@ public:
 
     void AddRecords(
         const EntityID* ids,
-        const EntityName* names,
+        const std::string* names,
         const size numEntts);
 	
 #if 0
@@ -38,14 +38,14 @@ public:
 	//
 	// getters
 	//
-	EntityID GetIdByName(const EntityName& name);
-	const EntityName& GetNameById(const EntityID& id) const;
+	EntityID GetIdByName(const std::string& name);
+	const std::string& GetNameById(const EntityID& id) const;
 
 	
 private:
 	void CheckInputData(
 		const cvector<EntityID>& ids,
-		const cvector<EntityName>& names);
+		const cvector<std::string>& names);
 
 	index GetIdxByID(const EntityID id) const;
 

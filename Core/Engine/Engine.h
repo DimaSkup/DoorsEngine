@@ -94,11 +94,14 @@ public:
 
     void HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr);
     void HandleGameEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr);
+    void HandlePlayerActions(
+        const eKeyCodes code,
+        const float deltaTime,
+        ECS::EntityMgr* pEnttMgr,
+        Render::CRender* pRender);
 
     void SwitchFlashLight(ECS::EntityMgr& mgr, Render::CRender& render);
 
-    void UpdateFlashLightPosition(const DirectX::XMFLOAT3& position, ECS::EntityMgr* pEnttMgr);
-    void UpdateFlashLightDirection(const DirectX::XMFLOAT3& direction, ECS::EntityMgr* pEnttMgr);
     void HandleEditorEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr);
     void HandleGameEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr);
 

@@ -6,6 +6,7 @@
 #include "UserInterface.h"
 
 #include <CoreCommon/FileSystemPaths.h>
+#include <CoreCommon/log.h>
 #include "../Texture/TextureMgr.h"
 //#include "CRender.h"                     // from the Render module
 

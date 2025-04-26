@@ -3,6 +3,7 @@
 #include "LightEnttsInitializer.h"
 #include "SetupModels.h"
 #include "../Core/Engine/Settings.h"
+#include <ctime>
 
 using namespace Core;
 
@@ -41,6 +42,11 @@ bool SceneInitializer::Initialize(
         LogErr("can't initialize cameras");
     }
 
+
+    // create and setup a player entity
+    InitPlayer(pDevice, &enttMgr, camParams);
+
+
     //ShellExecuteA(NULL, "open", "C:\\", NULL, NULL, SW_SHOWDEFAULT);
 
     LogMsg("is initialized");
@@ -48,26 +54,90 @@ bool SceneInitializer::Initialize(
     return false;
 }
 
-/////////////////////////////////////////////////
+///////////////////////////////////////////////////////////
 
-bool SceneInitializer::InitCameras(
-    ECS::EntityMgr& enttMgr,
-    const CameraInitParams& params)
+void SceneInitializer::InitPlayer(
+    ID3D11Device* pDevice,
+    ECS::EntityMgr* pEnttMgr,
+    const CameraInitParams& camParams)
+{
+    // create and setup the player's entity
+
+    const ECS::EntityID playerID = pEnttMgr->CreateEntity("player");
+    pEnttMgr->AddTransformComponent(playerID, { 0,0,0 }, { 0,0,1 });
+
+    // ------------------------------------------
+
+    // create and set a model for the player entity
+    const MeshSphereParams sphereParams(1, 10, 10);
+    ModelsCreator creator;
+    const ModelID sphereID = creator.CreateSphere(pDevice, sphereParams);
+    BasicModel& sphere = g_ModelMgr.GetModelByID(sphereID);
+
+    pEnttMgr->AddModelComponent(playerID, sphere.GetID());
+
+    // setup material (light properties + textures) for the player entity
+    MaterialID catMatID = g_MaterialMgr.GetMaterialIdByName("cat");
+    pEnttMgr->AddMaterialComponent(playerID, &catMatID, 1, false);
+
+    // ------------------------------------------
+
+    // setup rendering params
+    ECS::RenderInitParams renderParams;
+    renderParams.shaderType   = ECS::LIGHT_SHADER;
+    renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+    pEnttMgr->AddRenderingComponent(playerID, renderParams);
+
+    // ------------------------------------------
+
+    // setup player's camera
+    ECS::CameraData playerCamData;
+    playerCamData.fovY          = camParams.fovInRad;
+    playerCamData.aspectRatio   = camParams.aspectRatio;
+    playerCamData.nearZ         = camParams.nearZ;
+    playerCamData.farZ          = camParams.farZ;
+
+    pEnttMgr->AddCameraComponent(playerID, playerCamData);
+
+    // ----------------------------------------------------
+
+    ECS::NameSystem&      nameSys      = pEnttMgr->nameSystem_;
+    ECS::HierarchySystem& hierarchySys = pEnttMgr->hierarchySystem_;
+
+    const EntityID stalkerEnttID = nameSys.GetIdByName("stalker_freedom");
+    const EntityID ak47EnttID    = nameSys.GetIdByName("ak_47");
+    const EntityID gameCameraID  = nameSys.GetIdByName("game_camera");
+    const EntityID ak74ID        = nameSys.GetIdByName("ak_74");
+    const EntityID flashlightID  = nameSys.GetIdByName("flashlight");
+
+    // attach some entities to the player
+    hierarchySys.AddChild(playerID, ak74ID);
+    hierarchySys.AddChild(playerID, gameCameraID);
+    hierarchySys.AddChild(playerID, flashlightID);
+
+
+    // ------------------------------------------
+
+    pEnttMgr->AddPlayerComponent(playerID);
+    pEnttMgr->AddBoundingComponent(playerID, ECS::BoundingType::BOUND_BOX, *sphere.GetSubsetsAABB());
+}
+
+///////////////////////////////////////////////////////////
+
+bool SceneInitializer::InitCameras(ECS::EntityMgr& enttMgr, const CameraInitParams& params)
 {
     try
     {
-        const float windowedAspectRatio   = (float)params.windowedSize.cx   / (float)params.windowedSize.cy;
-        const float fullScreenAspectRatio = (float)params.fullscreenSize.cx / (float)params.fullscreenSize.cy;
-
         ECS::CameraData editorCamData;
         editorCamData.fovY        = params.fovInRad;
-        editorCamData.aspectRatio = windowedAspectRatio;
+        editorCamData.aspectRatio = params.aspectRatio;
         editorCamData.nearZ       = params.nearZ;
         editorCamData.farZ        = params.farZ;
 
         ECS::CameraData gameCamData;
         gameCamData.fovY          = params.fovInRad;
-        gameCamData.aspectRatio   = fullScreenAspectRatio;
+        gameCamData.aspectRatio   = params.aspectRatio;
         gameCamData.nearZ         = params.nearZ;
         gameCamData.farZ          = params.farZ;
 
@@ -77,7 +147,7 @@ bool SceneInitializer::InitCameras(
 
         // add transform component: positions and directions
         const XMFLOAT3 editorCamPos = { -18, 1, -15 };
-        const XMFLOAT3 gameCamPos = { 0, 2, -3 };
+        const XMFLOAT3 gameCamPos = { 0, 0, 0 };
 
         enttMgr.AddTransformComponent(editorCamID, editorCamPos, { 0,0,1,0 });
         enttMgr.AddTransformComponent(gameCamID, gameCamPos, { 0,0,1,0 });
@@ -117,10 +187,10 @@ void CreateLightPoles(ECS::EntityMgr& mgr, const BasicModel& lightPole)
 
     const ECS::cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
 
-    XMFLOAT3        positions[numEntts];
-    XMVECTOR        dirQuats[numEntts];
-    float           uniformScales[numEntts];
-    ECS::EntityName names[numEntts];
+    XMFLOAT3    positions[numEntts];
+    XMVECTOR    dirQuats[numEntts];
+    float       uniformScales[numEntts];
+    std::string names[numEntts];
 
     // setup positions: 2 rows of lightPoles
     for (index i = 0, z = 0; i < numEntts; z += 30, i += 2)
@@ -213,7 +283,7 @@ void CreateSpheres(ECS::EntityMgr& mgr, const BasicModel& model)
     // ---------------------------------------------
 
     // generate a name for each sphere entity
-    ECS::EntityName enttsNames[numEntts];
+    std::string enttsNames[numEntts];
 
     for (int i = 0; const EntityID & id : enttsIDs)
         enttsNames[i++] = "sphere_" + std::to_string(id);
@@ -411,7 +481,7 @@ void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
     {
         constexpr int numEntts = 6;
 
-        const ECS::EntityName enttsNames[numEntts] =
+        const std::string enttsNames[numEntts] =
         {
             "cat",
             "fireflame",
@@ -427,7 +497,7 @@ void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
 
 
         // make a map: 'entt_name' => 'entity_id'
-        std::map<ECS::EntityName, EntityID> enttsNameToID;
+        std::map<std::string, EntityID> enttsNameToID;
 
         for (int i = 0; i < numEntts; ++i)
             enttsNameToID.insert({ enttsNames[i], enttsIDs[i] });
@@ -770,14 +840,14 @@ void CreateTreesPine(ECS::EntityMgr& mgr, const BasicModel& model)
 
     // ---------------------------------------------
 
-    std::vector<ECS::EntityName> names(numEntts, "tree_pine_");
-    std::vector<XMFLOAT3>   positions(numEntts);
-    std::vector<XMVECTOR>   quats(numEntts);
-    std::vector<float>      uniScales(numEntts, 1.0f);
+    std::vector<std::string> names(numEntts, "tree_pine_");
+    std::vector<XMFLOAT3>    positions(numEntts);
+    std::vector<XMVECTOR>    quats(numEntts);
+    std::vector<float>       uniScales(numEntts, 1.0f);
 
 
     // generate a name for each tree
-    for (int i = 0; ECS::EntityName & name : names)
+    for (int i = 0; std::string& name : names)
     {
         name += std::to_string(enttsIDs[i++]);
     }
@@ -859,16 +929,15 @@ void CreateTreesSpruce(ECS::EntityMgr& mgr, const BasicModel& model)
 
     // ---------------------------------------------
 
-    std::vector<ECS::EntityName> names(numEntts, "tree_spruce_");
-    std::vector<XMFLOAT3>   positions(numEntts);
-    std::vector<XMVECTOR>   quats(numEntts);
-    std::vector<float>      uniScales(numEntts, 3.5f);
-
+    std::string names[numEntts];
+    XMFLOAT3    positions[numEntts];
+    XMVECTOR    directions[numEntts];
+    float       uniScales[numEntts];
 
     // generate a name for each tree
-    for (int i = 0; ECS::EntityName & name : names)
+    for (int i = 0; std::string& name : names)
     {
-        name += std::to_string(enttsIDs[i++]);
+        name = { "tree_spruce_" + std::to_string(enttsIDs[i++]) };
     }
 
     // generate positions
@@ -885,13 +954,13 @@ void CreateTreesSpruce(ECS::EntityMgr& mgr, const BasicModel& model)
     for (int i = 0; i < numEntts; ++i)
     {
         float angleY = MathHelper::RandF(0, 314) * 0.01f;
-        quats[i] = DirectX::XMQuaternionRotationAxis({ 0,1,0 }, DirectX::XM_PIDIV2);
+        directions[i] = DirectX::XMQuaternionRotationAxis({ 0,1,0 }, DirectX::XM_PIDIV2);
     }
 
     // generate a scale value for each tree
     for (int i = 0; i < numEntts; ++i)
     {
-        uniScales[i] += MathHelper::RandF(0.0f, 50.0f) * 0.01f;
+        uniScales[i] = 3.5f + MathHelper::RandF(0.0f, 50.0f) * 0.01f;
     }
 
     // setup rendering params
@@ -901,8 +970,8 @@ void CreateTreesSpruce(ECS::EntityMgr& mgr, const BasicModel& model)
 
 
     // add components to each tree entity
-    mgr.AddTransformComponent(ids, numEntts, positions.data(), quats.data(), uniScales.data());
-    mgr.AddNameComponent(ids, names.data(), numEntts);
+    mgr.AddTransformComponent(ids, numEntts, positions, directions, uniScales);
+    mgr.AddNameComponent(ids, names, numEntts);
     mgr.AddModelComponent(ids, model.GetID(), numEntts);
     mgr.AddRenderingComponent(ids, numEntts, renderParams);
 
@@ -1019,12 +1088,12 @@ void CreateStalkerFreedom(ECS::EntityMgr& mgr, const BasicModel& model)
 
     LogDbg("create a stalker entity");
     
-    const EntityID enttID = mgr.CreateEntity();
+    const EntityID enttID = mgr.CreateEntity("stalker_freedom");
 
     // setup transformation params
-    float posY = GetHeightOfGeneratedTerrainAtPoint(7, 3);
-    XMFLOAT3 pos = { 7, posY, 3 };
-    XMVECTOR rotQuat = XMQuaternionRotationRollPitchYaw(XM_PIDIV2, XM_PIDIV2, 0);
+    XMFLOAT3 position = { 7, 0, 3 };
+    XMVECTOR direction = { 0, 1, 0, 0 };
+    const float uniformScale = 5.0f;
 
     // setup rendering params
     ECS::RenderInitParams renderParams;
@@ -1037,9 +1106,8 @@ void CreateStalkerFreedom(ECS::EntityMgr& mgr, const BasicModel& model)
     const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
 
 
-    mgr.AddTransformComponent(enttID, pos, { 0,0,1,0 }, 5.0f);
-    mgr.AddNameComponent(enttID, "stalker_freedom");
-    mgr.AddModelComponent(enttID, model.GetID());
+    mgr.AddTransformComponent(enttID, position, direction, uniformScale);
+    mgr.AddModelComponent    (enttID, model.GetID());
     mgr.AddRenderingComponent(enttID, renderParams);
 
     mgr.AddBoundingComponent(
@@ -1216,7 +1284,7 @@ void CreateAk47(ECS::EntityMgr& mgr, const BasicModel& model)
 
     // setup transformation params
     const XMFLOAT3 position = { 10, 2, 10 };
-    const XMVECTOR dirQuat = { 0, 0, 1, 1 };
+    const XMVECTOR direction = { 0, 0, 1, 0 };
     const float uniformScale = 5.0f;
 
     // setup rendering params
@@ -1240,7 +1308,7 @@ void CreateAk47(ECS::EntityMgr& mgr, const BasicModel& model)
 
     // ----------------------------------------------------
 
-    mgr.AddTransformComponent(enttID, position, dirQuat, uniformScale);
+    mgr.AddTransformComponent(enttID, position, direction, uniformScale);
     mgr.AddNameComponent(enttID, "ak_47");
     mgr.AddModelComponent(enttID, model.GetID());
     mgr.AddRenderingComponent(enttID, renderParams);
@@ -1265,9 +1333,9 @@ void CreateAk74(ECS::EntityMgr& mgr, const BasicModel& model)
     const EntityID enttID = mgr.CreateEntity();
 
     // setup transformation params
-    const XMFLOAT3 position = { 10, 2, 6 };
-    const XMVECTOR dirQuat = { 0, 0, 0, 1 };
-    const float uniformScale = 5.0f;
+    const XMFLOAT3 position = { 0.5f,-1.3f,0.7f };
+    const XMVECTOR dirQuat = { 0, 0, 1, 0 };
+    const float uniformScale = 4.0f;
 
     // setup rendering params
     ECS::RenderInitParams renderParams;
@@ -1279,8 +1347,12 @@ void CreateAk74(ECS::EntityMgr& mgr, const BasicModel& model)
     const size numSubsets = model.GetNumSubsets();
     const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
 
-
+    // setup transformation
     mgr.AddTransformComponent(enttID, position, dirQuat, uniformScale);
+    const XMVECTOR q1 = DirectX::XMQuaternionRotationAxis({ 1,0,0 }, DirectX::XM_PIDIV2 - 0.1f);
+    const XMVECTOR q2 = DirectX::XMQuaternionRotationAxis({ 0,1,0 }, 0.1f);
+    mgr.transformSystem_.RotateLocalSpaceByQuat(enttID, DirectX::XMQuaternionMultiply(q1, q2));
+
     mgr.AddNameComponent(enttID, "ak_74");
     mgr.AddModelComponent(enttID, model.GetID());
     mgr.AddRenderingComponent(enttID, renderParams);
@@ -1502,7 +1574,7 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
 #if 0
     // paths to external models
     const std::string lightPolePath = g_RelPathExtModelsDir + "light_pole/light_pole.obj";
-    const std::string treeSprucePath = g_RelPathExtModelsDir + "trees/tree_spruce/tree_spruce.obj";
+    
 
     //const std::string treeDubPath             = g_RelPathExtModelsDir + "trees/dub/dub.obj";
     const std::string powerHVTowerPath = g_RelPathExtModelsDir + "power_line/Power_HV_Tower.FBX";
@@ -1512,29 +1584,32 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     const std::string stalkerHouseSmallPath = g_RelPathExtModelsDir + "stalker/stalker-house/source/SmallHouse.fbx";
     const std::string stalkerHouseAbandonedPath = g_RelPathExtModelsDir + "stalker/abandoned-house-20/source/StalkerAbandonedHouse.fbx";
 
-    const std::string ak74uPath = g_RelPathExtModelsDir + "ak_74u/ak_74u.fbx";
+    
 
     const std::string building9Path = g_RelPathExtModelsDir + "building9/building9.obj";
     const std::string apartmentPath = g_RelPathExtModelsDir + "Apartment/Apartment.obj";
     const std::string sovientStatuePath = g_RelPathExtModelsDir + "sovietstatue_1/sickle&hammer.obj";
 #endif
-    const std::string treePinePath = std::string(g_RelPathExtModelsDir) + "trees/FBX format/tree_pine.fbx";
-    const std::string stalkerFreedom1Path = std::string(g_RelPathExtModelsDir) + "stalker_freedom_1/stalker_freedom_1.fbx";
-    const std::string ak47Path = std::string(g_RelPathExtModelsDir) + "aks-74_game_ready/scene.gltf";
+    const std::string extModelsDir = std::string(g_RelPathExtModelsDir);
+    const std::string treeSprucePath      = extModelsDir + "trees/tree_spruce/tree_spruce.obj";
+    const std::string treePinePath        = extModelsDir + "trees/FBX format/tree_pine.fbx";
+    const std::string stalkerFreedom1Path = extModelsDir + "stalker_freedom_1/stalker_freedom_1.fbx";
+    const std::string ak47Path            = extModelsDir + "aks-74_game_ready/scene.gltf";
+    const std::string ak74uPath           = extModelsDir + "ak_74u/ak_74u.fbx";
 
 #if 1
     // import a model from file by path
     LogDbg("Start of models importing");
 
     //const ModelID lightPoleID      = creator.ImportFromFile(pDevice, lightPolePath);
-    //const ModelID treeSpruceID     = creator.ImportFromFile(pDevice, treeSprucePath);
-    const ModelID treePineID = creator.ImportFromFile(pDevice, treePinePath.c_str());
+    //const ModelID treeSpruceID     = creator.ImportFromFile(pDevice, treeSprucePath.c_str());
+    //const ModelID treePineID = creator.ImportFromFile(pDevice, treePinePath.c_str());
     //const ModelID nanosuitID       = creator.ImportFromFile(pDevice, nanosuitPath);
     const ModelID stalkerFreedomID = creator.ImportFromFile(pDevice, stalkerFreedom1Path.c_str());
     //const ModelID stalkerHouse1ID  = creator.ImportFromFile(pDevice, stalkerHouseSmallPath);
     //const ModelID stalkerHouse2ID  = creator.ImportFromFile(pDevice, stalkerHouseAbandonedPath);
     const ModelID ak47ID = creator.ImportFromFile(pDevice, ak47Path.c_str());
-    //const ModelID ak74ID           = creator.ImportFromFile(pDevice, ak74uPath);
+    const ModelID ak74ID           = creator.ImportFromFile(pDevice, ak74uPath.c_str());
     //const ModelID barrelID         = creator.ImportFromFile(pDevice, barrelPath);
     //const ModelID powerHVTowerID   = creator.ImportFromFile(pDevice, powerHVTowerPath);
 
@@ -1553,7 +1628,7 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     //BasicModel& apartment       = g_ModelMgr.GetModelByID(apartmentID);
     //BasicModel& sovietStatue    = g_ModelMgr.GetModelByID(sovietStatueID);
     //BasicModel& treeSpruce      = g_ModelMgr.GetModelByID(treeSpruceID);
-    BasicModel& treePine = g_ModelMgr.GetModelByID(treePineID);
+    //BasicModel& treePine = g_ModelMgr.GetModelByID(treePineID);
     //BasicModel& powerHVTower    = g_ModelMgr.GetModelByID(powerHVTowerID);
     //BasicModel& nanosuit        = g_ModelMgr.GetModelByID(nanosuitID);
     BasicModel& stalkerFreedom = g_ModelMgr.GetModelByID(stalkerFreedomID);
@@ -1562,17 +1637,17 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     //BasicModel& stalkerHouse1   = g_ModelMgr.GetModelByID(stalkerHouse1ID);
     //BasicModel& stalkerHouse2   = g_ModelMgr.GetModelByID(stalkerHouse2ID);
     BasicModel& ak47 = g_ModelMgr.GetModelByID(ak47ID);
-    //BasicModel& ak74            = g_ModelMgr.GetModelByID(ak74ID);
+    BasicModel& ak74            = g_ModelMgr.GetModelByID(ak74ID);
 
     // setup some models (set textures, setup materials)
     //SetupStalkerSmallHouse(stalkerHouse1);
     //SetupStalkerAbandonedHouse(stalkerHouse2);
-    SetupTree(treePine);
+    //SetupTree(treePine);
     //SetupPowerLine(powerHVTower);
     //SetupBuilding9(building);
     SetupAk47(ak47);
 
-    CreateTreesPine(mgr, treePine);
+    //CreateTreesPine(mgr, treePine);
     //CreateTreesSpruce(mgr, treeSpruce);
     //CreatePowerLine(mgr, powerHVTower);
     //CreateLightPoles(mgr, lightPole);
@@ -1580,7 +1655,7 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     //CreateHouse2(mgr, stalkerHouse2);
 
     CreateAk47(mgr, ak47);
-    //CreateAk74(mgr, ak74);
+    CreateAk74(mgr, ak74);
     //CreateBarrel(mgr, barrel);
     //CreateNanoSuit(mgr, nanosuit);
     CreateStalkerFreedom(mgr, stalkerFreedom);
@@ -1784,7 +1859,7 @@ bool SceneInitializer::InitModelEntities(ID3D11Device* pDevice, ECS::EntityMgr& 
         }
         else
         {
-            //ImportExternalModels(pDevice, mgr);
+            ImportExternalModels(pDevice, mgr);
         }
 #else
         ImportExternalModels(pDevice, mgr);

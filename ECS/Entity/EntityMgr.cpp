@@ -11,6 +11,7 @@ int EntityMgr::lastEntityID_ = 1;
 
 
 EntityMgr::EntityMgr() :
+    hierarchy_{},
     nameSystem_         { &names_ },
     transformSystem_    { &transform_ },
     moveSystem_         { &transform_, &movement_ },
@@ -22,7 +23,9 @@ EntityMgr::EntityMgr() :
     renderStatesSystem_ { &renderStates_ },
     boundingSystem_     { &bounding_ },
     cameraSystem_       { &camera_, &transformSystem_ },
-    playerSystem_       { &transformSystem_, &cameraSystem_ }
+    hierarchySystem_    { &hierarchy_ },
+    playerSystem_       { &transformSystem_, &cameraSystem_, &hierarchySystem_ }
+   
 {
     LogDbg("start of entity mgr init");
 
@@ -270,9 +273,7 @@ void EntityMgr::SetEnttsHaveComponents(
 
 ///////////////////////////////////////////////////////////
 
-void EntityMgr::AddNameComponent(
-    const EntityID& id,
-    const EntityName& name)
+void EntityMgr::AddNameComponent(const EntityID& id, const std::string& name)
 {
     // add the Name component to a single entity in terms of arrays
     AddNameComponent(&id, &name, 1);
@@ -282,7 +283,7 @@ void EntityMgr::AddNameComponent(
 
 void EntityMgr::AddNameComponent(
     const EntityID* ids,
-    const EntityName* names,
+    const std::string* names,
     const size numEntts)
 {
     // add the Name component to all the input entities
@@ -719,6 +720,24 @@ void EntityMgr::AddCameraComponent(const EntityID id, const CameraData& data)
     catch (LIB_Exception& e)
     {
         sprintf(g_String, "can't add camera component to entts: %ud", id);
+        LogErr(e);
+        LogErr(g_String);
+    }
+}
+
+///////////////////////////////////////////////////////////
+
+void EntityMgr::AddPlayerComponent(const EntityID id)
+{
+    // add a player component to the entity by input ID
+    try
+    {
+        playerSystem_.SetPlayer(id);
+        SetEnttHasComponent(id, PlayerComponent);
+    }
+    catch (LIB_Exception& e)
+    {
+        sprintf(g_String, "can't add a player component to entt: %ud", id);
         LogErr(e);
         LogErr(g_String);
     }

@@ -284,7 +284,7 @@ bool FacadeEngineToUI::SetEnttUniScale(const EntityID id, const float scale)
 
 bool FacadeEngineToUI::RotateEnttByQuat(const EntityID id, const Vec4& rotQuat)
 {
-    return pEntityMgr_->transformSystem_.RotateWorldByQuat(id, rotQuat.ToXMVector());
+    return pEntityMgr_->transformSystem_.RotateLocalSpaceByQuat(id, rotQuat.ToXMVector());
 }
 
 ///////////////////////////////////////////////////////////

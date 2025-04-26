@@ -6,11 +6,8 @@
 // *********************************************************************************
 #pragma once
 
-
-#include <string>
 #include <DirectXMath.h>
 
-#pragma warning (disable : 4996)
 
 namespace ECS
 {
@@ -32,24 +29,16 @@ using ModelID        = uint32_t;
 
 // textures/materials related typedefs
 using TexID          = uint32_t;
-using TexPath        = std::string;
 using MaterialID     = uint32_t;
 using SubmeshID      = uint16_t;
 
 using EntityID       = uint32_t;
-using EntityName     = std::string;
-using ComponentName  = std::string;
-using SystemID       = std::string;
-
 
 // common constants
 constexpr EntityID   INVALID_ENTITY_ID   = 0;
 constexpr MaterialID INVALID_MATERIAL_ID = 0;
 constexpr TexID      INVALID_TEXTURE_ID  = 0;
 constexpr size       NUM_TEXTURE_TYPES   = 21;
-
-const EntityName     INVALID_ENTITY_NAME{ "invalid" };
-const TexPath        INVALID_TEXTURE_PATH{ "invalid" };
 
 
 // for detailed description of each component you need to look for responsible component header file

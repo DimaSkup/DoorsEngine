@@ -19,7 +19,7 @@ public:
     CameraSystem(Camera* pCameraComponent, TransformSystem* pTransformSys);
     ~CameraSystem();
 
-
+    //void Update();
     void UpdateView(const EntityID id);
 
     void AddRecord   (const EntityID id, const CameraData& data);
@@ -49,7 +49,7 @@ public:
     // get camera basis vectors
     inline const XMVECTOR& GetPosVec  (const EntityID id) const { return pTransformSys_->GetPositionVec(id); }
     inline const XMVECTOR& GetLookVec (const EntityID id) const { return pTransformSys_->GetDirectionVec(id); }
-    inline const XMVECTOR  GetRightVec(const EntityID id) const { return (HasEntity(id)) ? GetCameraData(id).right : XMVECTOR{ 1, 0, 0 }; }
+    inline const XMVECTOR& GetRightVec(const EntityID id) const { return (HasEntity(id)) ? GetCameraData(id).right : GetCameraData(0).right; }
 
     inline XMFLOAT3 GetPos (const EntityID id) const { return pTransformSys_->GetPosition(id); }
     XMFLOAT3        GetLook(const EntityID id) const;

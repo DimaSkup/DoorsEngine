@@ -16,7 +16,6 @@
 
 //#include <Psapi.h>    // This header is used by Process Status API (PSAPI)
 
-
 namespace Core
 {
 
@@ -742,10 +741,77 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
 
 ///////////////////////////////////////////////////////////
 
-void Engine::HandleGameEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr)
+void Engine::HandlePlayerActions(
+    const eKeyCodes code,
+    const float deltaTime,
+    ECS::EntityMgr* pEnttMgr,
+    Render::CRender* pRender)
 {
     ECS::PlayerSystem& player = pEnttMgr->playerSystem_;
     bool playerWasMoved = false;
+    const float step = player.GetSpeed() * deltaTime;
+
+    switch (code)
+    {
+        case KEY_SHIFT:
+        {
+            player.SetIsRunning(true);
+            break;
+        }
+        // (keys A/D): handle moving left/right
+        case KEY_A:
+        {
+            player.Strafe(-step);
+            playerWasMoved = true;
+            break;
+        }
+        case KEY_D:
+        {
+            player.Strafe(step);
+            playerWasMoved = true;
+            break;
+        }
+        case KEY_L:
+        {
+            // switch the flashlight
+            if (!keyboard_.WasPressedBefore(KEY_L))
+                SwitchFlashLight(*pEnttMgr, *pRender);
+            break;
+        }
+        // (keys W/S): handle moving forward/backward
+        case KEY_S:
+        {
+            player.Walk(-step);
+            playerWasMoved = true;
+            break;
+        }
+        case KEY_W:
+        {
+            player.Walk(step);
+            playerWasMoved = true;
+            break;
+        }
+        case KEY_Z:
+        {
+            player.MoveUp(-step);
+            playerWasMoved = true;
+            break;
+        }
+        case KEY_SPACE:
+        {
+            player.MoveUp(step);
+            playerWasMoved = true;
+            break;
+        }
+    } // switch
+}
+
+///////////////////////////////////////////////////////////
+
+void Engine::HandleGameEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr)
+{
+    ECS::PlayerSystem& player = pEnttMgr->playerSystem_;
+
 
     // go through each currently pressed key and handle related events
     for (const eKeyCodes code : keyboard_.GetPressedKeysList())
@@ -757,57 +823,6 @@ void Engine::HandleGameEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* pEn
                 // if we pressed the ESC button we exit from the application
                 LogDbg("Esc is pressed");
                 isExit_ = true;
-                break;
-            }
-            case KEY_SHIFT:
-            {
-                player.SetIsRunning(true);
-                break;
-            }
-            // (keys A/D): handle moving left/right
-            case KEY_A: 
-            {
-                player.Strafe(-player.GetSpeed() * deltaTime_);
-                playerWasMoved = true;
-                break;
-            }
-            case KEY_D:
-            {
-                player.Strafe(player.GetSpeed() * deltaTime_);
-                playerWasMoved = true;
-                break;
-            }
-            // (keys W/S): handle moving forward/backward
-            case KEY_S:
-            {
-                player.Walk(-player.GetSpeed() * deltaTime_);
-                playerWasMoved = true;
-                break;
-            }
-            case KEY_W:
-            {
-                player.Walk(player.GetSpeed() * deltaTime_);
-                playerWasMoved = true;
-                break;
-            }
-            case KEY_Z:
-            {
-                player.MoveUp(-player.GetSpeed() * deltaTime_);
-                playerWasMoved = true;
-                break;
-            }
-            case KEY_SPACE:
-            {
-                player.MoveUp(player.GetSpeed() * deltaTime_);
-                playerWasMoved = true;
-                break;
-            }
-            case KEY_L:
-            {
-                // switch the flashlight
-                if (!keyboard_.WasPressedBefore(KEY_L))
-                    SwitchFlashLight(*pEnttMgr_, *pRender_);
-
                 break;
             }
             case KEY_F1:
@@ -834,12 +849,20 @@ void Engine::HandleGameEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* pEn
 
                 break;
             }
+            case KEY_SHIFT:
+            case KEY_A:
+            case KEY_D:
+            case KEY_L:
+            case KEY_S:
+            case KEY_W:
+            case KEY_Z:
+            case KEY_SPACE:
+            {
+                HandlePlayerActions(code, deltaTime_, pEnttMgr, pRender_);
+                break;
+            }
         }
     }
-
-    if (playerWasMoved && player.IsTurnedOnFlashLight())
-        UpdateFlashLightPosition(player.GetPosition(), pEnttMgr);
-
 
     // handle released keys
     while (int key = keyboard_.ReadReleasedKey())
@@ -867,24 +890,25 @@ void Engine::EventKeyboard(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 // =================================================================================
 // Mouse events handlers
 // =================================================================================
-
 void Engine::SwitchFlashLight(ECS::EntityMgr& mgr, Render::CRender& render)
 {
     // switch on/off the player's flashlight
 
     ECS::PlayerSystem& player = mgr.playerSystem_;
-    const EntityID flashlightID   = mgr.nameSystem_.GetIdByName("flashlight");
-    const bool isFlashlightActive = !mgr.lightSystem_.IsLightActive(flashlightID);   // invert the state
-    ID3D11DeviceContext* pContext = graphics_.GetD3DClass().GetDeviceContext();
-
-    mgr.lightSystem_.SetLightIsActive(flashlightID, isFlashlightActive);
-    render.SwitchFlashLight(pContext, isFlashlightActive);
+    const bool isFlashlightActive = !player.IsFlashLightActive();;   
     player.SwitchFlashLight(isFlashlightActive);
 
-    // if we just turned on the flashlight
+    // update the state of the flashlight entity
+    const EntityID flashlightID = mgr.nameSystem_.GetIdByName("flashlight");
+    mgr.lightSystem_.SetLightIsActive(flashlightID, isFlashlightActive);
+    
+    // set of flashlight is visible
+    ID3D11DeviceContext* pContext = graphics_.GetD3DClass().GetDeviceContext();
+    render.SwitchFlashLight(pContext, isFlashlightActive);
+
+    // if we just turned on the flashlight we update its position and direction
     if (isFlashlightActive)
     {
-        // update flashlight's position and direction
         mgr.transformSystem_.SetPosition(flashlightID, player.GetPosition());
         mgr.transformSystem_.SetDirection(flashlightID, player.GetDirVec());
     }
@@ -892,177 +916,157 @@ void Engine::SwitchFlashLight(ECS::EntityMgr& mgr, Render::CRender& render)
 
 ///////////////////////////////////////////////////////////
 
-void Engine::UpdateFlashLightPosition(const DirectX::XMFLOAT3& pos, ECS::EntityMgr* pEnttMgr)
-{
-    const EntityID flashlightID = pEnttMgr->nameSystem_.GetIdByName("flashlight");
-    pEnttMgr->transformSystem_.SetPosition(flashlightID, pos);
-}
-
-///////////////////////////////////////////////////////////
-
-void Engine::UpdateFlashLightDirection(const DirectX::XMFLOAT3& dir, ECS::EntityMgr* pEnttMgr)
-{
-    const EntityID flashlightID = pEnttMgr->nameSystem_.GetIdByName("flashlight");
-    pEnttMgr->transformSystem_.SetDirection(flashlightID, DirectX::XMLoadFloat3(&dir));
-}
-
-///////////////////////////////////////////////////////////
-
 void Engine::HandleEditorEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr)
 {
     using enum MouseEvent::EventType;
-
     static bool isMouseMiddlePressed = false;
-    mouseEvent_ = mouse_.ReadEvent();
-    MouseEvent::EventType eventType = mouseEvent_.GetEventType();
 
-    switch (eventType)
+    while (!mouse_.EventBufferIsEmpty())
     {
-        case Move:
+        mouseEvent_ = mouse_.ReadEvent();
+        MouseEvent::EventType eventType = mouseEvent_.GetEventType();
+
+        switch (eventType)
         {
-            // update mouse position data because we need to print mouse position on the screen
-            systemState_.mouseX = mouseEvent_.GetPosX();
-            systemState_.mouseY = mouseEvent_.GetPosY();
-            break;
-        }
-        case RAW_MOVE:
-        {
-            // handle moving of the camera around fixed look_at point (if we set any fixed one)
+            case Move:
+            {
+                // update mouse position data because we need to print mouse position on the screen
+                systemState_.mouseX = mouseEvent_.GetPosX();
+                systemState_.mouseY = mouseEvent_.GetPosY();
+                break;
+            }
+            case RAW_MOVE:
+            {
+                // handle moving of the camera around fixed look_at point (if we set any fixed one)
            
-            // if we want to rotate a camera
-            if (isMouseMiddlePressed)
-            {
-                const EntityID camID      = pEnttMgr->nameSystem_.GetIdByName("editor_camera");
-                ECS::CameraSystem& camSys = pEnttMgr->cameraSystem_;
+                // if we want to rotate a camera
+                if (isMouseMiddlePressed)
+                {
+                    const EntityID camID      = pEnttMgr->nameSystem_.GetIdByName("editor_camera");
+                    ECS::CameraSystem& camSys = pEnttMgr->cameraSystem_;
 
-                // rotate around some particular point
-                if (camSys.IsFixedLook(camID))
-                {
-                    assert(0 && "FIXME");
-                    //cam.RotateYAroundFixedLook(mouseEvent_.GetPosX() * 0.01f);
-                    //cam.PitchAroundFixedLook  (mouseEvent_.GetPosY() * 0.01f);
+                    // rotate around some particular point
+                    if (camSys.IsFixedLook(camID))
+                    {
+                        assert(0 && "FIXME");
+                        //cam.RotateYAroundFixedLook(mouseEvent_.GetPosX() * 0.01f);
+                        //cam.PitchAroundFixedLook  (mouseEvent_.GetPosY() * 0.01f);
+                    }
+                    // rotate around itself
+                    else
+                    {
+                        camSys.Pitch  (camID, mouseEvent_.GetPosY() * deltaTime_);
+                        camSys.RotateY(camID, mouseEvent_.GetPosX() * deltaTime_);
+                    }
                 }
-                // rotate around itself
-                else
-                {
-                    camSys.Pitch  (camID, mouseEvent_.GetPosY() * deltaTime_);
-                    camSys.RotateY(camID, mouseEvent_.GetPosX() * deltaTime_);
-                }
+                break;
             }
-            break;
-        }
-        case LPress:
-        {
-
-            // if we currenly hovering the scene window with our mouse
-            // and we don't hover any gizmo we execute entity picking (selection) test
-            if (pUI->IsSceneWndHovered() && !pUI->IsGizmoHovered())
+            case LPress:
             {
-                EntityID selectedEnttID = 0;
-                selectedEnttID = graphics_.TestEnttSelection(mouseEvent_.GetPosX(), mouseEvent_.GetPosY(), pEnttMgr_);
 
-                // update the UI about selection of the entity
-                if (selectedEnttID)
+                // if we currenly hovering the scene window with our mouse
+                // and we don't hover any gizmo we execute entity picking (selection) test
+                if (pUI->IsSceneWndHovered() && !pUI->IsGizmoHovered())
                 {
-                    pUI->SetSelectedEntt(selectedEnttID);
-                    //userInterface_.SetGizmoOperation(ImGuizmo::OPERATION::TRANSLATE);
-                    pUI->SetGizmoOperation(ImGuizmo::OPERATION(-1));  // turn off the gizmo
-                }
-                else
-                {
-                    pUI->SetSelectedEntt(0);
-                    pUI->SetGizmoOperation(ImGuizmo::OPERATION(-1));  // turn off the gizmo
-                }
+                    EntityID selectedEnttID = 0;
+                    selectedEnttID = graphics_.TestEnttSelection(mouseEvent_.GetPosX(), mouseEvent_.GetPosY(), pEnttMgr_);
 
-                // detach camera from any fixed look_at point
-                //graphics_.SetFixedLookState(false);
+                    // update the UI about selection of the entity
+                    if (selectedEnttID)
+                    {
+                        pUI->SetSelectedEntt(selectedEnttID);
+                        //userInterface_.SetGizmoOperation(ImGuizmo::OPERATION::TRANSLATE);
+                        pUI->SetGizmoOperation(ImGuizmo::OPERATION(-1));  // turn off the gizmo
+                    }
+                    else
+                    {
+                        pUI->SetSelectedEntt(0);
+                        pUI->SetGizmoOperation(ImGuizmo::OPERATION(-1));  // turn off the gizmo
+                    }
+
+                    // detach camera from any fixed look_at point
+                    //graphics_.SetFixedLookState(false);
+                }
+                break;
             }
-            break;
-        }
-        case LRelease:
-        {
-            if (UI::gEventsHistory.HasTempHistory())
-                UI::gEventsHistory.FlushTempHistory();
-            break;
-        }
-        case WheelUp:
-        case WheelDown:
-        {
-            assert(0 && "FIXME");
-#if 0
-            if (pUI->IsSceneWndHovered())
+            case LRelease:
             {
-                Camera& cam = graphics_.GetEditorCamera();
-            
-                // using mouse wheel we move forward or backward along 
-                // the camera direction vector
-                int sign          = (eventType == WheelUp) ? 1 : -1;
-                float cameraSpeed = cam.GetSpeed() * 3.0f;
-                float speed       = (keyboard_.IsPressed(KEY_SHIFT)) ? cameraSpeed * 5.0f : cameraSpeed;
-                float step        = speed * deltaTime_ * sign;
-
-                cam.Walk(step);
-
-                graphics_.UpdateCameraEntity("editor_camera", cam.View(), cam.Proj());
-                UpdateFlashLightPosition(cam.GetPosition(), pEnttMgr);
+                if (UI::gEventsHistory.HasTempHistory())
+                    UI::gEventsHistory.FlushTempHistory();
+                break;
             }
-#endif
-            break;
-        }
-        case MPress:
-        {
-            isMouseMiddlePressed = true;
-            break;
-        }
-        case MRelease:
-        {
-            isMouseMiddlePressed = false;
-            break;
-        }
-        case LeftDoubleClick:
-        {
-            assert(0 && "FIXME");
-#if 0
-            // handle double click right on selected entity
-            if (pUI->IsSceneWndHovered() && (pUI->GetSelectedEntt() != 0))
+            case WheelUp:
+            case WheelDown:
             {
-                using namespace DirectX;
-
-                Camera& cam = graphics_.editorCamera_;
-                EntityID selectedEnttID = pUI->GetSelectedEntt();
-                XMFLOAT3 enttPos = pEnttMgr->transformSystem_.GetPositionByID(selectedEnttID);
-
-                // fix on the entt and move closer to it
-                if (keyboard_.IsPressed(KEY_CONTROL))
+                if (pUI->IsSceneWndHovered())
                 {
-                    // compute new position for the camera
-                    XMVECTOR lookAt = DirectX::XMLoadFloat3(&enttPos);
-                    XMVECTOR camOldPos = cam.GetPositionVec();
-                    XMVECTOR camDir = lookAt - camOldPos;
+                    // using mouse wheel we move forward or backward along 
+                    // the camera direction vector (when hold shift - we move faster)
+                    constexpr int editorCameraSpeed = 10;
+                    const int sign     = (eventType == WheelUp) ? 1 : -1;
+                    const int speedMul = (keyboard_.IsPressed(KEY_SHIFT)) ? 5 : 1;
+                    const float step   = deltaTime_ * (editorCameraSpeed * speedMul * sign);
 
-                    // p = p0 + v*t
-                    XMVECTOR newPos = lookAt - (camDir * 0.1f);
-
-                    // focus camera on entity
-                    cam.LookAt(newPos, lookAt, { 0,1,0 });
-
-                    // set fixed focus on the selected entity so we will move around it
-                    // (to turn off fixed focus just click aside of the entity)
-                    cam.SetFixedLookState(true);
-                    cam.SetFixedLookAtPoint(lookAt);
+                    const EntityID camID = pEnttMgr->nameSystem_.GetIdByName("editor_camera");
+                    pEnttMgr->cameraSystem_.Walk(camID, step);
                 }
-                else
+                break;
+            }
+            case MPress:
+            {
+                isMouseMiddlePressed = true;
+                break;
+            }
+            case MRelease:
+            {
+                isMouseMiddlePressed = false;
+                break;
+            }
+            case LeftDoubleClick:
+            {
+                assert(0 && "FIXME: double click");
+    #if 0
+                // handle double click right on selected entity
+                if (pUI->IsSceneWndHovered() && (pUI->GetSelectedEntt() != 0))
                 {
-                    // focus (but not fix) camera on entity
-                    cam.LookAt(cam.GetPosition(), enttPos, { 0,1,0 });
-                }
+                    using namespace DirectX;
+
+                    Camera& cam = graphics_.editorCamera_;
+                    EntityID selectedEnttID = pUI->GetSelectedEntt();
+                    XMFLOAT3 enttPos = pEnttMgr->transformSystem_.GetPositionByID(selectedEnttID);
+
+                    // fix on the entt and move closer to it
+                    if (keyboard_.IsPressed(KEY_CONTROL))
+                    {
+                        // compute new position for the camera
+                        XMVECTOR lookAt = DirectX::XMLoadFloat3(&enttPos);
+                        XMVECTOR camOldPos = cam.GetPositionVec();
+                        XMVECTOR camDir = lookAt - camOldPos;
+
+                        // p = p0 + v*t
+                        XMVECTOR newPos = lookAt - (camDir * 0.1f);
+
+                        // focus camera on entity
+                        cam.LookAt(newPos, lookAt, { 0,1,0 });
+
+                        // set fixed focus on the selected entity so we will move around it
+                        // (to turn off fixed focus just click aside of the entity)
+                        cam.SetFixedLookState(true);
+                        cam.SetFixedLookAtPoint(lookAt);
+                    }
+                    else
+                    {
+                        // focus (but not fix) camera on entity
+                        cam.LookAt(cam.GetPosition(), enttPos, { 0,1,0 });
+                    }
                 
-                //userInterface_.SetGizmoOperation(ImGuizmo::OPERATION::TRANSLATE);
-            }
-#endif
-            break;
-        }
-    } // switch
+                    //userInterface_.SetGizmoOperation(ImGuizmo::OPERATION::TRANSLATE);
+                }
+    #endif
+                break;
+            } // case LeftDoubleClick:
+        } // switch
+    } // while
 }
 
 ///////////////////////////////////////////////////////////
@@ -1078,7 +1082,7 @@ void Engine::HandleGameEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnttM
             // update mouse position data because we need to print mouse position on the screen
             systemState_.mouseX = mouseEvent_.GetPosX();
             systemState_.mouseY = mouseEvent_.GetPosY();
-
+            SetCursorPos(0, 0);                           // to prevent the cursor to get out of the window
             break;
         }
         case MouseEvent::EventType::RAW_MOVE:
@@ -1095,10 +1099,6 @@ void Engine::HandleGameEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnttM
             player.RotateY(rotY);
             player.Pitch  (pitch);
     
-            // if flashlight is active we update its direction
-            if (player.IsTurnedOnFlashLight())
-                UpdateFlashLightDirection(player.GetDirection(), pEnttMgr);
-
             break;
         }
     }
@@ -1115,7 +1115,7 @@ void Engine::EventMouse(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     // according to the engine mode we call a respective keyboard handler
     if (systemState_.isEditorMode)
     {
-        while (!mouse_.EventBufferIsEmpty())
+        
             HandleEditorEventMouse(pUserInterface_, pEnttMgr_);
     }
     else
@@ -1129,7 +1129,6 @@ void Engine::EventMouse(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 // =================================================================================
 // Private helpers
 // =================================================================================
-
 void Engine::TurnOnEditorMode()
 {
     // switch from the game to the editor mode
@@ -1151,8 +1150,34 @@ void Engine::TurnOnEditorMode()
         d3d.GetScreenDepth());
 #endif
 
+    // escape from the "clip cursor" mode so that users can choose to interact
+    // with other windows if desired; Note: During the game we may also use such call
+    // when go to a 'pause' to get out of 'mouse-look' behavior like this.
+    ClipCursor(nullptr);
+
     systemState_.isEditorMode = true;
     ShowCursor(TRUE);
+}
+
+///////////////////////////////////////////////////////////
+
+void TurnOnMouseLookBehavior(HWND hwnd)
+{
+    // limit the cursor to the be always in the window rectangle
+
+    RECT rect;
+    GetClientRect(hwnd, &rect);
+
+    POINT ul{ rect.left,  rect.top };        // upper left corner
+    POINT lr{ rect.right, rect.bottom};      // lower right corner
+
+    MapWindowPoints(hwnd, nullptr, &ul, 1);
+    MapWindowPoints(hwnd, nullptr, &lr, 1);
+
+    // update: left/top/right/bottom
+    rect = { ul.x, ul.y, lr.x, lr.y };
+
+    ClipCursor(&rect);
 }
 
 ///////////////////////////////////////////////////////////
@@ -1169,6 +1194,7 @@ void Engine::TurnOnGameMode()
 
     systemState_.isEditorMode = false;
     ShowCursor(FALSE);
+    TurnOnMouseLookBehavior(hwnd_);
 }
 
 } // namespace Core

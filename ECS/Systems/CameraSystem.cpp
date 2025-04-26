@@ -117,10 +117,8 @@ void CameraSystem::MoveUp(const EntityID id, const float d)
 void CameraSystem::Pitch(const EntityID id, const float angle)
 {
     // rotate the look vector about the view space right vector
-    const XMMATRIX R    = XMMatrixRotationAxis(GetRightVec(id), angle);
-    const XMVECTOR look = pTransformSys_->GetDirectionVec(id);
-
-    pTransformSys_->SetDirection(id, XMVector3TransformNormal(look, R));
+    const XMVECTOR Q = DirectX::XMQuaternionRotationAxis(GetRightVec(id), angle);
+    pTransformSys_->RotateLocalSpaceByQuat(id, Q);
 }
 
 ///////////////////////////////////////////////////////////
@@ -128,14 +126,15 @@ void CameraSystem::Pitch(const EntityID id, const float angle)
 void CameraSystem::RotateY(const EntityID id, const float angle)
 {
     // rotate the basis vectors (right/look) about the world's y-axis
-    const XMMATRIX R = DirectX::XMMatrixRotationY(angle);
+    const XMVECTOR quat = DirectX::XMQuaternionRotationAxis({ 0,1,0 }, angle);
+    const XMVECTOR invQuat = DirectX::XMQuaternionConjugate(quat);
 
-    // update right vector of the camera
-    SetRightVec(id, XMVector3TransformNormal(GetRightVec(id), R));
+    // update right vector of the camera: rotated_vec = inv_quat * vec * quat
+    const XMVECTOR tmpVec = XMQuaternionMultiply(invQuat, GetRightVec(id));
+    SetRightVec(id, XMQuaternionMultiply(tmpVec, quat));
 
-    // update look vector (direction) of the player
-    const XMVECTOR look = pTransformSys_->GetDirectionVec(id);
-    pTransformSys_->SetDirection(id, XMVector3TransformNormal(look, R));
+    // update look vector (direction)
+    pTransformSys_->RotateLocalSpaceByQuat(id, quat);
 }
 
 ///////////////////////////////////////////////////////////
@@ -217,6 +216,19 @@ void CameraSystem::PitchAroundFixedLook(const EntityID id, const float angle)
 
 ///////////////////////////////////////////////////////////
 
+#if 0
+void CameraSystem::Update()
+{
+    // update view matrix of each existing camera
+    for (auto& [cameraID, data] : pCameraComponent_->data)
+    {
+        UpdateView(cameraID);
+    }
+}
+#endif
+
+///////////////////////////////////////////////////////////
+
 void CameraSystem::UpdateView(const EntityID id)
 {
     if (!HasEntity(id))
@@ -231,6 +243,7 @@ void CameraSystem::UpdateView(const EntityID id)
 
     // compute camera's right vector (cross: look X world_up)
     XMVECTOR R = XMVector3Normalize(XMVector3Cross({ 0,1,0,0 }, L));
+    //XMVECTOR R = camData.right;
 
     // camera's up vector: L, R already ortho-normal, so no need to normalize cross product
     XMVECTOR U = XMVector3Cross(L, R);
@@ -280,7 +293,7 @@ bool CameraSystem::SetRightVec(const EntityID id, const XMVECTOR& right)
     bool exist = false;
 
     if (exist = HasEntity(id))
-        pCameraComponent_->data[id].right = right;
+        pCameraComponent_->data[id].right = DirectX::XMVector3Normalize(right);
 
     return exist;
 }
