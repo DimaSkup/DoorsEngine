@@ -8,16 +8,10 @@ namespace Game
 
 struct CameraInitParams
 {
-    float nearZ    = 1;
-    float farZ     = 100;
-    float fovInRad = 1.30796f;
-
-    float sensitivity = 1.0;     // camera rotation speed
-    float walkSpeed   = 10.0f;
-    float runSpeed    = 20.0f;
-
-    SIZE windowedSize   = {800, 600};
-    SIZE fullscreenSize = {800, 600};
+    float nearZ    = -1;
+    float farZ     = -1;
+    float fovInRad = -1;
+    float aspectRatio = -1;   // screen width / screen height
 };
 
 ///////////////////////////////////////////////////////////
@@ -32,6 +26,7 @@ public:
 
 private:
     bool InitModelEntities(ID3D11Device* pDevice, ECS::EntityMgr& enttMgr);
+    void InitPlayer(ID3D11Device* pDevice, ECS::EntityMgr* pEnttMgr, const CameraInitParams& camParams);
     bool InitLightSources(ECS::EntityMgr& mgr);
     bool InitCameras(ECS::EntityMgr& mgr, const CameraInitParams& camParams);
     

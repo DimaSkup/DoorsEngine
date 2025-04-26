@@ -2,7 +2,7 @@
 // Description:    parts of code which are used during initialization
 // =================================================================================
 #include "Common/FileSystemPaths.h"
-
+#pragma warning (disable : 4996)
 using namespace Core;
 
 namespace Game

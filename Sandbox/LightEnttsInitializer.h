@@ -240,7 +240,7 @@ void InitSpotLightEntities(ECS::EntityMgr& mgr)
         const EntityID flashLightID = spotLightsIds[0];
 
         // setup names
-        ECS::EntityName spotLightsNames[numSpotLights];
+        std::string spotLightsNames[numSpotLights];
         spotLightsNames[0] = "flashlight";
 
         for (index i = 1; i < numSpotLights; ++i)
@@ -249,7 +249,7 @@ void InitSpotLightEntities(ECS::EntityMgr& mgr)
 
         // generate transform data for spotlight sources
         XMFLOAT3 positions[numSpotLights];
-        XMVECTOR dirQuats[numSpotLights];
+        XMVECTOR directions[numSpotLights];
         float uniformScales[numSpotLights];
 
         // generate positions: 2 rows of spot light sources
@@ -259,6 +259,7 @@ void InitSpotLightEntities(ECS::EntityMgr& mgr)
             positions[i + 1] = { +8, 10, (float)z };
         }
 
+      
         // generate directions
         constexpr float PI_DIV6 = DirectX::XM_PI * 0.333f;
         constexpr float dir1 = -DirectX::XM_PIDIV2 - PI_DIV6;
@@ -266,16 +267,21 @@ void InitSpotLightEntities(ECS::EntityMgr& mgr)
 
         for (index i = 0; i < numSpotLights / 2; i += 2)
         {
-            dirQuats[i + 0] = { 0.0f, dir1, 0.0f, 1.0f };
-            dirQuats[i + 1] = { 0.0f, dir2, 0.0f, 1.0f };
+            directions[i + 0] = { 0.0f, dir1, 0.0f, 1.0f };
+            directions[i + 1] = { 0.0f, dir2, 0.0f, 1.0f };
         }
+
+        // setup positon/direction of flashlight in a separate way
+        positions[0]  = { 0,0,1 };
+        directions[0] = { 0,0, -DirectX::XM_PIDIV2 + PI_DIV6 };
+
 
         for (index i = 0; i < numSpotLights; ++i)
             uniformScales[i] = 1.0f;
 
 
         // add components to each spotlight entity
-        mgr.AddTransformComponent(enttsIDs, numSpotLights, positions, dirQuats, uniformScales);
+        mgr.AddTransformComponent(enttsIDs, numSpotLights, positions, directions, uniformScales);
         mgr.AddLightComponent(enttsIDs, numSpotLights, spotLightsParams);
         mgr.AddNameComponent(enttsIDs, spotLightsNames, numSpotLights);
 

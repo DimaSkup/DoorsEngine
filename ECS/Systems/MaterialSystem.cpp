@@ -174,7 +174,7 @@ void MaterialSystem::GetMaterialsFlagsByEntts(
 
     // check if we have valid entities IDs
 #if DEBUG || _DEBUG
-    CheckEnttsHaveMaterialComponent(ids, idxs.data(), numEntts);
+    //CheckEnttsHaveMaterialComponent(ids, idxs.data(), numEntts);
 #endif
 
     outFlags.resize(numEntts);
@@ -213,7 +213,7 @@ void MaterialSystem::CheckEnttsHaveMaterialComponent(
 const char* MaterialSystem::GenerateErrMsgNotHaveComponent(const EntityID id) const
 {
     // a helper to generate a message about the entity doesn't have this component
-    const EntityName& name = pNameSystem_->GetNameById(id);
+    const std::string& name = pNameSystem_->GetNameById(id);
     sprintf(g_String, "entity (ID: %ud; name: %s) doesn't have a material component!", id, name.c_str());
 
     return g_String;

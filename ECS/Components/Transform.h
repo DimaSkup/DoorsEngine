@@ -15,6 +15,21 @@ namespace ECS
 
 __declspec(align(16)) struct Transform
 {
+    Transform()
+    {
+        // add invalid data; this data is returned when we ask for wrong entity
+        ids.push_back(INVALID_ENTITY_ID);
+        posAndUniformScale.push_back(XMFLOAT4{ NAN, NAN, NAN, NAN });
+        directions.push_back(XMVECTOR{ NAN, NAN, NAN, NAN });
+
+        const cvector<float> nanArray(16, NAN);
+        XMMATRIX nanMatrix(nanArray.data());
+
+        worlds.push_back(nanMatrix);
+        invWorlds.push_back(nanMatrix); // inverse world matrix
+    }
+
+
     cvector<EntityID> ids;
     cvector<XMMATRIX> worlds;
     cvector<XMMATRIX> invWorlds;           // inverse world matrices

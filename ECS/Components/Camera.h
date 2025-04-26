@@ -43,7 +43,10 @@ struct CameraData
 // ECS component
 struct Camera
 {
-    Camera() {}
+    Camera()
+    {
+        data.emplace(0, CameraData());
+    }
 
     std::map<EntityID, CameraData> data;
     eComponentType type = eComponentType::CameraComponent;

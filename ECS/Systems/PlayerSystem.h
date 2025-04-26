@@ -9,7 +9,7 @@
 #include "../Components/Player.h"
 #include "../Systems/TransformSystem.h"
 #include "../Systems/CameraSystem.h"
-
+#include "../Systems/HierarchySystem.h"
 
 namespace ECS
 {
@@ -19,8 +19,10 @@ class PlayerSystem
 public:
     PlayerSystem(
         TransformSystem* pTransformSys,
-        CameraSystem* pCameraSys);
+        CameraSystem*    pCameraSys,
+        HierarchySystem* pHierarchySys);
 
+    inline void SetPlayer(const EntityID id) { playerID_ = id; }
 
     inline XMFLOAT3 GetPosition()  const { return pTransformSys_->GetPosition(playerID_); }
     inline XMFLOAT3 GetDirection() const { return pTransformSys_->GetDirection(playerID_); }
@@ -36,8 +38,8 @@ public:
     void MoveUp(const float d);
 
     // rotate the player
-    void Pitch  (const float angle);
-    void RotateY(const float angle);
+    void Pitch  (float angle);
+    void RotateY(float angle);
 
     ///////////////////////////////////////////////////////////
 
@@ -58,11 +60,12 @@ public:
 
     // get/set flashlight state
     inline void SwitchFlashLight(const bool state)       { data_.isTurnedOnFlashlight = state; }
-    inline bool IsTurnedOnFlashLight()             const { return data_.isTurnedOnFlashlight; }
+    inline bool IsFlashLightActive()               const { return data_.isTurnedOnFlashlight; }
 
 private:
     TransformSystem* pTransformSys_ = nullptr;
-    CameraSystem* pCameraSys_ = nullptr;
+    CameraSystem*    pCameraSys_    = nullptr;
+    HierarchySystem* pHierarchySys_ = nullptr;
 
     EntityID   playerID_ = INVALID_ENTITY_ID;
     PlayerData data_;

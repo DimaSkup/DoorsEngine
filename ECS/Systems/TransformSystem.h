@@ -57,14 +57,19 @@ public:
 
 
     // SET position/direction/uniform_scale
-    bool SetPositionVec(const EntityID id, const XMVECTOR& pos);
-    bool SetPosition   (const EntityID id, const XMFLOAT3& pos);
-    bool SetDirection  (const EntityID id, const XMVECTOR& direction);
-    bool SetUniScale   (const EntityID id, const float uniformScale);
+    bool AdjustPositions(const EntityID* ids, const size numEntts, const XMVECTOR& adjustBy);
+    bool AdjustPosition (const EntityID id, const XMVECTOR& adjustBy);
+    bool SetPositionVec (const EntityID id, const XMVECTOR& pos);
+    bool SetPosition    (const EntityID id, const XMFLOAT3& pos);
+    bool SetDirection   (const EntityID id, const XMVECTOR& direction);
+    bool SetUniScale    (const EntityID id, const float uniformScale);
 
-    bool RotateWorldByQuat(const EntityID id, const XMVECTOR& quat);
+    bool RotateLocalSpacesByQuat(const EntityID* ids, const size numEntts, const XMVECTOR& quat);
+    bool RotateLocalSpaceByQuat (const EntityID id, const XMVECTOR& rotQuat);
 
     // ---------------------------------------------
+
+    void TransformWorld(const EntityID id, const XMMATRIX& transformation);
 
     DirectX::XMMATRIX GetWorldMatrixOfEntt(const EntityID id);
 

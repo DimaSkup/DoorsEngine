@@ -433,15 +433,22 @@ void CGraphics::ComputeFrustumCulling(
     // go through each entity and define if it is visible
     for (index idx = 0, obbIdx = 0; idx < numRenderableEntts; ++idx)
     {
+#if 0
         // decompose the matrix into its individual parts
         XMVECTOR scale;
         XMVECTOR dirQuat;
         XMVECTOR translation;
         DirectX::XMMatrixDecompose(&scale, &dirQuat, &translation, enttsLocal[idx]);
+        dirQuat = DirectX::XMQuaternionNormalize(dirQuat);
 
         // transform the camera frustum from view space to the object's local space
         DirectX::BoundingFrustum LSpaceFrustum; 
         frustums_[0].Transform(LSpaceFrustum, DirectX::XMVectorGetX(scale), dirQuat, translation);
+#endif
+
+        // transform the camera frustum from view space to the object's local space
+        DirectX::BoundingFrustum LSpaceFrustum;
+        frustums_[0].Transform(LSpaceFrustum, enttsLocal[idx]);
 
         // if we have any mesh OBB of the entt in view -- we set this entt as visible
         for (index i = 0; i < numBoxesPerEntt[idx]; ++i)

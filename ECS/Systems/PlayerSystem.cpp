@@ -8,13 +8,16 @@ namespace ECS
 
 PlayerSystem::PlayerSystem(
     TransformSystem* pTransformSys,
-    CameraSystem* pCameraSys)
+    CameraSystem*    pCameraSys,
+    HierarchySystem* pHierarchySys)
     :
     pTransformSys_(pTransformSys),
-    pCameraSys_(pCameraSys)
+    pCameraSys_(pCameraSys),
+    pHierarchySys_(pHierarchySys)
 {
     Assert::True(pTransformSys != nullptr, "input ptr to transform system == nullptr");
-    Assert::True(pCameraSys != nullptr,    "input ptr to camera system == nullptr");
+    Assert::True(pCameraSys    != nullptr, "input ptr to camera system == nullptr");
+    Assert::True(pHierarchySys != nullptr, "input ptr to camera system == nullptr");
 }
 
 
@@ -24,12 +27,17 @@ PlayerSystem::PlayerSystem(
 void PlayerSystem::Strafe(const float d)
 {
     // move left/right the player by distance d
-    const XMVECTOR  s     = XMVectorReplicate(d);
-    const XMVECTOR& right = pCameraSys_->GetRightVec(playerID_);
-    const XMVECTOR& pos   = pTransformSys_->GetPositionVec(playerID_);
-
+    const EntityID id = playerID_;
+    
     // pos += d * right_vec
-    pTransformSys_->SetPositionVec(playerID_, XMVectorMultiplyAdd(s, right, pos));
+    const XMVECTOR offset = XMVectorMultiply(XMVectorReplicate(d), data_.rightVec);
+
+    // adjust position of the player and its children
+    cvector<EntityID> ids;
+    pHierarchySys_->GetChildrenArr(id, ids);
+    ids.push_back(id);
+
+    pTransformSys_->AdjustPositions(ids.data(), ids.size(), offset);
 }
 
 ///////////////////////////////////////////////////////////
@@ -37,13 +45,18 @@ void PlayerSystem::Strafe(const float d)
 void PlayerSystem::Walk(const float d)
 {
     // move forward/backward the player by distance d
-    const XMVECTOR  s = XMVectorReplicate(d);
-    XMVECTOR pos;
-    XMVECTOR look;
+    const EntityID id = playerID_;
 
     // pos += d * look_vec
-    pTransformSys_->GetPosAndDir(playerID_, pos, look);
-    pTransformSys_->SetPositionVec(playerID_, XMVectorMultiplyAdd(s, look, pos));   
+    XMVECTOR look         = pTransformSys_->GetDirectionVec(id);
+    const XMVECTOR offset = XMVectorMultiply(XMVectorReplicate(d), look);
+
+    // adjust position of the player and its children
+    cvector<EntityID> ids;
+    pHierarchySys_->GetChildrenArr(id, ids);
+    ids.push_back(id);
+
+    pTransformSys_->AdjustPositions(ids.data(), ids.size(), offset);
 }
 
 ///////////////////////////////////////////////////////////
@@ -58,42 +71,146 @@ void PlayerSystem::MoveUp(const float d)
         const XMVECTOR pos = pTransformSys_->GetPositionVec(playerID_);
 
         // pos_ += d * world_up_vec
-        pTransformSys_->SetPositionVec(playerID_, XMVectorMultiplyAdd(s, {0,1,0}, pos));
+        const XMVECTOR offset = XMVectorMultiply(s, { 0,1,0 });
+        pTransformSys_->AdjustPosition(playerID_, offset);
+
+        const std::set<EntityID>& playerChildren = pHierarchySys_->GetChildren(playerID_);
+
+        for (const EntityID id : playerChildren)
+        {
+            pTransformSys_->AdjustPosition(id, offset);
+        }
     }
+
+ 
 }
 
 
 // =================================================================================
 // Player rotation
 // =================================================================================
-void PlayerSystem::Pitch(const float angle)
+bool ClampPitch(const float angle, float& pitch)
 {
-    // rotate the look vector about the view space right vector
+    // limit the pitch value in range(-PIDIV2+0.1 < yaw < PIDIV2-0.1)
+    // return true if pitch was clamped
 
-    LogDbg("pitch player camera");
-    const XMVECTOR& right = pCameraSys_->GetRightVec(playerID_);
-    const XMMATRIX R = XMMatrixRotationAxis(right, angle);
-    const XMVECTOR look = pTransformSys_->GetDirectionVec(playerID_);
+    pitch += angle;
 
-    pTransformSys_->SetDirection(playerID_, XMVector3TransformNormal(look, R));
+    if (pitch > DirectX::XM_PIDIV2 - 0.1f)
+    {
+        pitch = DirectX::XM_PIDIV2 - 0.1f;
+        return true;                         // we had to clamp the pitch so we can't rotate the player further
+    }
+
+    if (pitch < -DirectX::XM_PIDIV2 + 0.1f)
+    {
+        pitch = -DirectX::XM_PIDIV2 + 0.1f;
+        return true;                         // we had to clamp the pitch so we can't rotate the player further
+    }
+
+    // we didn't have to clamp the pitch
+    return false;
 }
 
 ///////////////////////////////////////////////////////////
 
-void PlayerSystem::RotateY(const float angle)
+inline void ClampYaw(const float angle, float& yaw)
+{
+    // limit the yaw value in range (-2PI < yaw < 2PI)
+    yaw += angle;
+    yaw = (yaw > +DirectX::XM_2PI) ? -DirectX::XM_2PI : yaw;
+    yaw = (yaw < -DirectX::XM_2PI) ? +DirectX::XM_2PI : yaw;
+}
+
+///////////////////////////////////////////////////////////
+
+inline XMVECTOR RotateVecByQuat(const XMVECTOR& vec, const XMVECTOR& rotationQuat)
+{
+    // rotate input vector using quaternion(axis, angle)
+    // 
+    // NOTE!!!: input quat is supposed to be unit length
+
+    // to help you to understand wtf is going on here :)
+    // const XMVECTOR invQuat = XMQuaternionConjugate(rotationQuat);
+    // const XMVECTOR tmpVec = XMQuaternionMultiply(invQuat, vec);
+    // const XMVECTOR resVec = XMQuaternionMultiply(tmpVec, rotationQuat);
+    // return resVec;
+
+    // rotated_vec = inv_quat * orig_vec * quat; 
+    return XMQuaternionMultiply(XMQuaternionMultiply(XMQuaternionConjugate(rotationQuat), vec), rotationQuat);
+}
+
+///////////////////////////////////////////////////////////
+
+void PlayerSystem::Pitch(float angle)
+{
+    // rotate the look vector about the view space right vector
+ 
+    // if we has to clamp pitch values we just do nothing and go out
+    if (ClampPitch(angle, data_.pitch))
+        return;
+
+    // get arr of player's children entities
+    cvector<EntityID> playerChildren;
+    pHierarchySys_->GetChildrenArr(playerID_, playerChildren);
+
+    // adjust position of each child relatively to the player
+    const XMVECTOR playerPosW = pTransformSys_->GetPositionVec(playerID_);
+    const XMVECTOR rotationQuat = DirectX::XMQuaternionRotationAxis(data_.rightVec, angle);
+    const XMMATRIX R = XMMatrixRotationQuaternion(rotationQuat);
+
+    for (int i = 0; const EntityID childID : playerChildren)
+    {
+        XMVECTOR childPosW    = pTransformSys_->GetPositionVec(childID);
+        XMVECTOR relPos       = DirectX::XMVectorSubtract(childPosW, playerPosW);
+        XMVECTOR newRelPos    = XMVector3Transform(relPos, R);
+        XMVECTOR childNewPosW = XMVectorAdd(playerPosW, newRelPos);
+
+        pTransformSys_->SetPositionVec(childID, childNewPosW);
+    }
+
+    // adjust rotation of the player and its each child
+    pTransformSys_->RotateLocalSpaceByQuat(playerID_, rotationQuat);
+    pTransformSys_->RotateLocalSpacesByQuat(playerChildren.data(), playerChildren.size(), rotationQuat);
+}
+
+///////////////////////////////////////////////////////////
+
+void PlayerSystem::RotateY(float angle)
 {
     // rotate the basis vectors about the world's y-axis
 
-    const XMMATRIX R = DirectX::XMMatrixRotationY(angle);
+    ClampYaw(angle, data_.yaw);
+
     const EntityID id = playerID_;
-    
-    // update right vector of the camera
-    const XMVECTOR right = pCameraSys_->GetRightVec(id);
-    pCameraSys_->SetRightVec(id, XMVector3TransformNormal(right, R));
+    const XMVECTOR rotationQuat = DirectX::XMQuaternionRotationAxis({ 0,1,0 }, angle);
+    data_.rightVec = RotateVecByQuat(data_.rightVec, rotationQuat);
 
     // update look vector (direction) of the player
-    const XMVECTOR look = pTransformSys_->GetDirectionVec(id);
-    pTransformSys_->SetDirection(id, XMVector3TransformNormal(look, R));
+    const XMVECTOR playerPosW   = pTransformSys_->GetPositionVec(id);
+
+    // get arr of player's children entities
+    cvector<EntityID> playerChildren;
+    pHierarchySys_->GetChildrenArr(id, playerChildren);
+
+    // adjust position of each child relatively to the player
+    const XMMATRIX R = DirectX::XMMatrixRotationY(angle);
+
+    for (int i = 0; const EntityID childID : playerChildren)
+    {
+        const XMVECTOR childPosW    = pTransformSys_->GetPositionVec(childID);           // get current position of child
+        const XMVECTOR relPos       = DirectX::XMVectorSubtract(childPosW, playerPosW);  // compute child position relatively to the player
+
+        //XMVECTOR newRelPos = RotateVecByQuat(relPos, rotationQuat);
+        XMVECTOR newRelPos    = XMVector3Transform(relPos, R);                     // compute new relative position of child
+        XMVECTOR childNewPosW = XMVectorAdd(playerPosW, newRelPos);                // compute new world position of child
+
+        pTransformSys_->SetPositionVec(childID, childNewPosW);
+    }
+
+    // adjust rotation of the player and its each child
+    pTransformSys_->RotateLocalSpaceByQuat(id, rotationQuat);
+    pTransformSys_->RotateLocalSpacesByQuat(playerChildren.data(), playerChildren.size(), rotationQuat);
 }
 
 }; // namespace ECS

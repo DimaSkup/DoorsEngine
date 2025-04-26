@@ -170,6 +170,7 @@
     <ClInclude Include="Common\vector.h" />
     <ClInclude Include="Components\Bounding.h" />
     <ClInclude Include="Components\Camera.h" />
+    <ClInclude Include="Components\Hierarchy.h" />
     <ClInclude Include="Components\Player.h" />
     <ClInclude Include="Components\RenderStates.h" />
     <ClInclude Include="Components\Light.h" />
@@ -185,6 +186,7 @@
     <ClInclude Include="Entity\EntityMgr.h" />
     <ClInclude Include="Systems\BoundingSystem.h" />
     <ClInclude Include="Systems\CameraSystem.h" />
+    <ClInclude Include="Systems\HierarchySystem.h" />
     <ClInclude Include="Systems\PlayerSystem.h" />
     <ClInclude Include="Systems\RenderStatesSystem.h" />
     <ClInclude Include="Systems\LightSystem.h" />
@@ -223,6 +225,7 @@
     <ClCompile Include="Entity\EntityMgr.cpp" />
     <ClCompile Include="Systems\BoundingSystem.cpp" />
     <ClCompile Include="Systems\CameraSystem.cpp" />
+    <ClCompile Include="Systems\HierarchySystem.cpp" />
     <ClCompile Include="Systems\PlayerSystem.cpp" />
     <ClCompile Include="Systems\RenderStatesSystem.cpp" />
     <ClCompile Include="Systems\LightSystem.cpp" />

@@ -20,6 +20,7 @@
 #include "../Components/Bounding.h"
 #include "../Components/Camera.h"
 #include "../Components/Player.h"
+#include "../Components/Hierarchy.h"
 
 // systems (ECS)
 #include "../Systems/TransformSystem.h"
@@ -34,6 +35,7 @@
 #include "../Systems/BoundingSystem.h"
 #include "../Systems/CameraSystem.h"
 #include "../Systems/PlayerSystem.h"
+#include "../Systems/HierarchySystem.h"
 
 
 namespace ECS
@@ -103,14 +105,8 @@ public:
 
   
     // add NAME component
-    void AddNameComponent(
-        const EntityID& id,
-        const EntityName& name);
-
-    void AddNameComponent(
-        const EntityID* ids,
-        const EntityName* names,
-        const size numEntts);
+    void AddNameComponent(const EntityID& id, const std::string& name);
+    void AddNameComponent(const EntityID* ids, const std::string* names, const size numEntts);
 
     
     // add MODEL component
@@ -203,8 +199,9 @@ public:
         const size numEntts);
 
 
-    // add CAMERA component
     void AddCameraComponent(const EntityID id, const CameraData& data);
+
+    void AddPlayerComponent(const EntityID id);
 
 
     // =============================================================================
@@ -220,7 +217,7 @@ public:
     inline const Light&             GetComponentLight()         const { return light_; }
     inline const Bounding&          GetComponentBounding()      const { return bounding_; }
 
-    inline const std::map<eComponentType, ComponentName> GetMapCompTypeToName() { return componentTypeToName_; }
+    inline const std::map<eComponentType, std::string>& GetMapCompTypeToName() { return componentTypeToName_; }
 
     inline const size      GetNumAllEntts() const { return ids_.size(); }
     inline const EntityID* GetAllEnttsIDs() const { return ids_.data(); }
@@ -267,6 +264,7 @@ public:
     BoundingSystem          boundingSystem_;
     CameraSystem            cameraSystem_;
     PlayerSystem            playerSystem_;
+    HierarchySystem         hierarchySystem_;
     
 
     // "ID" of an entity is just a numeral index
@@ -275,7 +273,7 @@ public:
     // bit flags for every component, indicating whether this object "has it"
     cvector<ComponentHash> componentHashes_;
 
-    std::map<eComponentType, ComponentName> componentTypeToName_;  
+    std::map<eComponentType, std::string> componentTypeToName_;  
 
 
 private:
@@ -294,6 +292,7 @@ private:
     RenderStates     renderStates_;
     Bounding         bounding_;
     Camera           camera_;
+    Hierarchy        hierarchy_;
 };
 
 };
