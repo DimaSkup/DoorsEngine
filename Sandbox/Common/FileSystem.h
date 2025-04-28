@@ -6,7 +6,7 @@
 // *********************************************************************************
 #pragma once
 
-#include "log.h"
+#include <CoreCommon/log.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -24,7 +24,7 @@ public:
 
         if (IsEmpty(filePath))
         {
-            LogErr("input path is empty!");
+            Core::LogErr("input path is empty!");
             return false;
         }
 
@@ -33,8 +33,8 @@ public:
         // check if such file exists
         if ((pFile = fopen(filePath, "r+")) == nullptr)
         {
-            sprintf(g_String, "there is no texture by path: %s", filePath);
-            LogErr(g_String);
+            sprintf(Core::g_String, "there is no texture by path: %s", filePath);
+            Core::LogErr(Core::g_String);
             return false;
         }
 
@@ -50,13 +50,13 @@ public:
 
         if (IsEmpty(fullPath))
         {
-            LogErr("input path is empty!");
+            Core::LogErr("input path is empty!");
             return;
         }
 
         if (!outPath)
         {
-            LogErr("in-out path == nullptr");
+            Core::LogErr("in-out path == nullptr");
             return;
         }
 

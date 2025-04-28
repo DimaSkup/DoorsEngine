@@ -65,11 +65,13 @@ public:
         FontClass& font,
         const Core::SystemState& systemState);
 
+#if 0
     void UpdateSentenceByKey(
         ID3D11DeviceContext* pContext,
         FontClass& font,
-        const std::string& key,            // semantic key
-        const std::string& newStr);
+        const char* key,            // semantic key
+        const char* newStr);
+#endif
 
 private:
 
@@ -86,7 +88,7 @@ private:
         ID3D11DeviceContext* pContext,
         FontClass& font,
         const index idx,
-        const std::string& newStr);
+        const char* newStr);
 
 private:
     static SentenceID staticID_;

@@ -8,10 +8,12 @@ namespace Game
 
 struct CameraInitParams
 {
-    float nearZ    = -1;
-    float farZ     = -1;
-    float fovInRad = -1;
-    float aspectRatio = -1;   // screen width / screen height
+    float nearZ       = -1;
+    float farZ        = -1;
+    float fovInRad    = -1;     // vertical field of view in radians 
+    float aspectRatio = -1;     // screen width / screen height
+    float wndWidth    = 800;
+    float wndHeight   = 600;
 };
 
 ///////////////////////////////////////////////////////////
@@ -22,13 +24,18 @@ public:
     bool Initialize(
         ID3D11Device* pDevice,
         ECS::EntityMgr& enttMgr,
-        const CameraInitParams& camParams);
+        const CameraInitParams& editorCamParams,
+        const CameraInitParams& gameCamParams);
 
 private:
     bool InitModelEntities(ID3D11Device* pDevice, ECS::EntityMgr& enttMgr);
-    void InitPlayer(ID3D11Device* pDevice, ECS::EntityMgr* pEnttMgr, const CameraInitParams& camParams);
+    void InitPlayer(ID3D11Device* pDevice, ECS::EntityMgr* pEnttMgr);
     bool InitLightSources(ECS::EntityMgr& mgr);
-    bool InitCameras(ECS::EntityMgr& mgr, const CameraInitParams& camParams);
+
+    bool InitCameras(
+        ECS::EntityMgr& mgr,
+        const CameraInitParams& editorCamParams,
+        const CameraInitParams& gameCamParams);
     
 };
 

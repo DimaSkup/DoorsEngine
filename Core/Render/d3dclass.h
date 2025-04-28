@@ -70,10 +70,10 @@ public:
     inline float                     GetScreenDepth()      const { return screenDepth_; }
 
     // get world/ortho matrix
-    inline const DirectX::XMMATRIX& GetWorldMatrix()       const { return worldMatrix_; }
-    inline const DirectX::XMMATRIX& GetOrthoMatrix()       const { return orthoMatrix_; }
-    inline void GetWorldMatrix(DirectX::XMMATRIX& worldMatrix)   { worldMatrix = worldMatrix_; }
-    inline void GetOrthoMatrix(DirectX::XMMATRIX& orthoMatrix)   { orthoMatrix = orthoMatrix_; }
+    //inline const DirectX::XMMATRIX& GetWorldMatrix()       const { return worldMatrix_; }
+    //inline const DirectX::XMMATRIX& GetOrthoMatrix()       const { return orthoMatrix_; }
+    //inline void GetWorldMatrix(DirectX::XMMATRIX& worldMatrix)   { worldMatrix = worldMatrix_; }
+    //inline void GetOrthoMatrix(DirectX::XMMATRIX& orthoMatrix)   { orthoMatrix = orthoMatrix_; }
 
     inline RenderStates& GetRenderStates()                       { return renderStates_; }
 
@@ -127,14 +127,13 @@ private:
     void InitializeDepthStencilView();
 
     void InitializeViewport(const UINT width, const UINT height);
-    void InitializeMatrices(const UINT width, const UINT height, const float nearZ, const float farZ);
 
     
 private:
     static D3DClass* pInstance_;
 
-    DirectX::XMMATRIX         worldMatrix_ = DirectX::XMMatrixIdentity();
-    DirectX::XMMATRIX         orthoMatrix_ = DirectX::XMMatrixIdentity();
+    //DirectX::XMMATRIX         worldMatrix_ = DirectX::XMMatrixIdentity();
+    //DirectX::XMMATRIX         orthoMatrix_ = DirectX::XMMatrixIdentity();
 
     IDXGISwapChain*			  pSwapChain_        = nullptr;    
     ID3D11Device*			  pDevice_           = nullptr;    // for creation of buffers, etc.

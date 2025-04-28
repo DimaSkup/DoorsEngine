@@ -57,9 +57,9 @@ public:
     
 
     // Public query API
-    inline const char* GetShaderName() const { return className_; }
-    inline ID3D11Buffer* GetConstBufferVS()    const { return matrixBuffer_.Get(); }
-    inline ID3D11Buffer* GetConstBufferPS()    const { return pixelBuffer_.Get(); }
+    inline const char* GetShaderName()      const { return className_; }
+    inline ID3D11Buffer* GetConstBufferVS() const { return matrixBuffer_.Get(); }
+    inline ID3D11Buffer* GetConstBufferPS() const { return pixelBuffer_.Get(); }
 
 private:
     // initializes the HLSL shaders, input layout, sampler state and buffers

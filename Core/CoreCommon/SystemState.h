@@ -32,7 +32,7 @@ public:
 	u32 numVisiblePointLights = 0;
 	u32 cellsDrawn = 0;                      // the number of rendered terrain cells
 	u32 cellsCulled = 0;                     // the number of culled terrain cells
-	u32 pickedEntt_ = 0;                     // currently chosen entity (its ID)
+	u32 pickedEnttID_ = 0;                   // currently chosen entity (its ID)
 
 	float frameTime = 0.0f;                  // the seconds per frame
 	DirectX::XMFLOAT3 cameraPos;             // the current position of the currently main camera

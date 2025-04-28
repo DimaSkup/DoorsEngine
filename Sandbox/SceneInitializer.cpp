@@ -19,7 +19,8 @@ namespace Game
 bool SceneInitializer::Initialize(
     ID3D11Device* pDevice,
     ECS::EntityMgr& enttMgr,
-    const CameraInitParams& camParams)
+    const CameraInitParams& editorCamParams,
+    const CameraInitParams& gameCamParams)
 {
     LogMsg("scene initialization (start)");
 
@@ -37,29 +38,23 @@ bool SceneInitializer::Initialize(
         LogErr("can't initialize light sources");
     }
 
-    if (!InitCameras(enttMgr, camParams))
+    // init all the cameras
+    if (!InitCameras(enttMgr, editorCamParams, gameCamParams))
     {
         LogErr("can't initialize cameras");
     }
 
-
     // create and setup a player entity
-    InitPlayer(pDevice, &enttMgr, camParams);
-
-
-    //ShellExecuteA(NULL, "open", "C:\\", NULL, NULL, SW_SHOWDEFAULT);
+    InitPlayer(pDevice, &enttMgr);
 
     LogMsg("is initialized");
 
-    return false;
+    return true;
 }
 
 ///////////////////////////////////////////////////////////
 
-void SceneInitializer::InitPlayer(
-    ID3D11Device* pDevice,
-    ECS::EntityMgr* pEnttMgr,
-    const CameraInitParams& camParams)
+void SceneInitializer::InitPlayer(ID3D11Device* pDevice, ECS::EntityMgr* pEnttMgr)
 {
     // create and setup the player's entity
 
@@ -89,17 +84,6 @@ void SceneInitializer::InitPlayer(
 
     pEnttMgr->AddRenderingComponent(playerID, renderParams);
 
-    // ------------------------------------------
-
-    // setup player's camera
-    ECS::CameraData playerCamData;
-    playerCamData.fovY          = camParams.fovInRad;
-    playerCamData.aspectRatio   = camParams.aspectRatio;
-    playerCamData.nearZ         = camParams.nearZ;
-    playerCamData.farZ          = camParams.farZ;
-
-    pEnttMgr->AddCameraComponent(playerID, playerCamData);
-
     // ----------------------------------------------------
 
     ECS::NameSystem&      nameSys      = pEnttMgr->nameSystem_;
@@ -111,7 +95,7 @@ void SceneInitializer::InitPlayer(
     const EntityID ak74ID        = nameSys.GetIdByName("ak_74");
     const EntityID flashlightID  = nameSys.GetIdByName("flashlight");
 
-    // attach some entities to the player
+    // BIND some entities to the player
     hierarchySys.AddChild(playerID, ak74ID);
     hierarchySys.AddChild(playerID, gameCameraID);
     hierarchySys.AddChild(playerID, flashlightID);
@@ -125,45 +109,65 @@ void SceneInitializer::InitPlayer(
 
 ///////////////////////////////////////////////////////////
 
-bool SceneInitializer::InitCameras(ECS::EntityMgr& enttMgr, const CameraInitParams& params)
+bool SceneInitializer::InitCameras(
+    ECS::EntityMgr& enttMgr,
+    const CameraInitParams& editorCamParams,
+    const CameraInitParams& gameCamParams)
 {
     try
     {
-        ECS::CameraData editorCamData;
-        editorCamData.fovY        = params.fovInRad;
-        editorCamData.aspectRatio = params.aspectRatio;
-        editorCamData.nearZ       = params.nearZ;
-        editorCamData.farZ        = params.farZ;
-
-        ECS::CameraData gameCamData;
-        gameCamData.fovY          = params.fovInRad;
-        gameCamData.aspectRatio   = params.aspectRatio;
-        gameCamData.nearZ         = params.nearZ;
-        gameCamData.farZ          = params.farZ;
-
-
         EntityID editorCamID = enttMgr.CreateEntity("editor_camera");
         EntityID gameCamID   = enttMgr.CreateEntity("game_camera");
 
         // add transform component: positions and directions
         const XMFLOAT3 editorCamPos = { -18, 1, -15 };
-        const XMFLOAT3 gameCamPos = { 0, 0, 0 };
+        const XMFLOAT3 gameCamPos   = { 0, 0, 0 };
 
         enttMgr.AddTransformComponent(editorCamID, editorCamPos, { 0,0,1,0 });
         enttMgr.AddTransformComponent(gameCamID, gameCamPos, { 0,0,1,0 });
 
         // add camera component
+        ECS::CameraData editorCamData;
+        editorCamData.fovY        = editorCamParams.fovInRad;
+        editorCamData.aspectRatio = editorCamParams.aspectRatio;
+        editorCamData.nearZ       = editorCamParams.nearZ;
+        editorCamData.farZ        = editorCamParams.farZ;
+
+        ECS::CameraData gameCamData;
+        gameCamData.fovY          = gameCamParams.fovInRad;
+        gameCamData.aspectRatio   = gameCamParams.aspectRatio;
+        gameCamData.nearZ         = gameCamParams.nearZ;
+        gameCamData.farZ          = gameCamParams.farZ;
+
         enttMgr.AddCameraComponent(editorCamID, editorCamData);
         enttMgr.AddCameraComponent(gameCamID, gameCamData);
 
-        // initialize view matrices of the cameras
-        enttMgr.cameraSystem_.UpdateView(editorCamID);
-        enttMgr.cameraSystem_.UpdateView(gameCamID);
+
+        // initialize view/projection matrices of the editor/game camera
+        ECS::CameraSystem& camSys = enttMgr.cameraSystem_;
+
+        const DirectX::XMMATRIX& editorCamView = camSys.UpdateView(editorCamID);
+        camSys.SetBaseViewMatrix(editorCamID, editorCamView);
+        camSys.SetupOrthographicMatrix(
+            editorCamID,
+            editorCamParams.wndWidth,
+            editorCamParams.wndHeight,
+            editorCamParams.nearZ,
+            editorCamParams.farZ);
+
+        const DirectX::XMMATRIX& gameCamView = camSys.UpdateView(gameCamID);
+        camSys.SetBaseViewMatrix(gameCamID, gameCamView);
+        camSys.SetupOrthographicMatrix(
+            gameCamID,
+            gameCamParams.wndWidth,
+            gameCamParams.wndHeight,
+            gameCamParams.nearZ,
+            gameCamParams.farZ);
     }
     catch (EngineException & e)
     {
         LogErr(e, true);
-        LogErr("can't initialize the cameras objects");
+        LogErr("can't initialize the cameras entities");
         return false;
     }
 
@@ -1817,11 +1821,11 @@ bool SceneInitializer::InitModelEntities(ID3D11Device* pDevice, ECS::EntityMgr& 
 {
     // initialize all the models on the scene
 
-    LogMsgf(" ");
-    LogMsgf("%s------------------------------------------------------------", YELLOW);
-    LogMsgf("%s                 INITIALIZATION: MODELS                     ", YELLOW);
-    LogMsgf("%s------------------------------------------------------------", YELLOW);
-    LogMsgf(" ");
+    LogMsgf("\n");
+    LogMsgf("------------------------------------------------------------");
+    LogMsgf("                 INITIALIZATION: MODELS                     ");
+    LogMsgf("------------------------------------------------------------");
+    LogMsgf("\n");
 
     try
     {

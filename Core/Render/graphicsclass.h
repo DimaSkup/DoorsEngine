@@ -91,21 +91,15 @@ public:
     void ChangeModelFillMode();   
     void ChangeCullMode();
 
-    inline void SetGameMode(bool enableGameMode) { isGameMode_ = enableGameMode; }
+    inline void SetGameMode(bool enableGameMode)          { isGameMode_ = enableGameMode; }
     inline void SetCurrentCamera(const EntityID cameraID) { currCameraID_ = cameraID; }
-    inline void SetAABBShowMode(const AABBShowMode mode) { aabbShowMode_ = mode; }
+    inline void SetAABBShowMode(const AABBShowMode mode)  { aabbShowMode_ = mode; }
+    inline void SetFullFogDist(const int dist)            { if (dist > 0) fullFogDistance_ = dist; }  // after this distance we use only billboards (I hope for it)
 
     // ---------------------------------------
     // INLINE GETTERS/SETTERS
 
     inline D3DClass&       GetD3DClass()                      { return d3d_; }
-
-    // matrices getters
-    inline const DirectX::XMMATRIX& GetWorldMatrix()    const { return worldMatrix_; }
-    inline const DirectX::XMMATRIX& GetBaseViewMatrix() const { return baseViewMatrix_; }
-    inline const DirectX::XMMATRIX& GetOrthoMatrix()    const { return orthoMatrix_; }
-
-    inline void SetBaseViewMatrix(const DirectX::XMMATRIX& view) { baseViewMatrix_ = view; }
 
     // ---------------------------------------
 
@@ -216,7 +210,6 @@ public:
     AABBShowMode aabbShowMode_ = NONE;
 
     int fullFogDistance_    = 0;
-    int fullFogDistanceSqr_ = 0;
 };
 
 } // namespace Core

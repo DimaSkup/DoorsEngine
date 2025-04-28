@@ -55,7 +55,7 @@ bool ModelImporter::LoadFromFile(
 
     try
     {
-        char fileExt[8];
+        char fileExt[8]{'\0'};
         FileSys::GetFileExt(filePath, fileExt);
 
         // define if we want to load (import) .m3d file

@@ -36,7 +36,8 @@ public:
 
     bool InitWindow();
     bool InitEngine();
-    bool InitScene(ID3D11Device* pDevice);
+    bool InitScene(ID3D11Device* pDevice, const Settings& settings);
+    bool InitRenderModule(ID3D11Device* pDevice, const Core::Settings& settings, Render::CRender* pRender);
     bool InitGUI(ID3D11Device* pDevice, const int wndWidth, const int wndHeight);
 
 
@@ -48,14 +49,13 @@ private:
     Render::CRender   render_;                                // rendering module
     UI::UserInterface userInterface_;       // UI/GUI: for work with the graphics user interface (GUI)
 
-    UI::IFacadeEngineToUI* pFacadeEngineToUI_ = nullptr;  // a facade interface which are used by UI to contact with some engine's parts 
+    UI::IFacadeEngineToUI* pFacadeEngineToUI_ = nullptr;  // a facade interface which are used by UI to contact with some engine's parts
 
-
-    HWND mainHWND_;
-
-    Core::Settings settings_;
-    EventHandler eventHandler_;
-    Core::WindowContainer  wndContainer_;
+    HWND                  mainHWND_;
+    Core::Settings        settings_;
+    EventHandler          eventHandler_;
+    Core::WindowContainer wndContainer_;
+    bool                  startInGameMode_ = false;
 };
 
 } // namespace Game

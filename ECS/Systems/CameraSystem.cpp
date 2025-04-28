@@ -139,6 +139,14 @@ void CameraSystem::RotateY(const EntityID id, const float angle)
 
 ///////////////////////////////////////////////////////////
 
+void CameraSystem::SetBaseViewMatrix(const EntityID id, const XMMATRIX& baseView)
+{
+    if (HasEntity(id))
+        pCameraComponent_->data[id].baseView = baseView;
+}
+
+///////////////////////////////////////////////////////////
+
 void CameraSystem::SetupProjection(
     const EntityID id,
     const float fovY,
@@ -164,9 +172,26 @@ void CameraSystem::SetupProjection(
     }
 }
 
-// =================================================================================
-//                           public API: getters
-// =================================================================================
+///////////////////////////////////////////////////////////
+
+void CameraSystem::SetupOrthographicMatrix(
+    const EntityID id,
+    const float viewWidth,
+    const float viewHeight,
+    const float nearZ,
+    const float farZ)
+{
+    // Initialize the orthographic matrix for 2D rendering
+
+    if (HasEntity(id))
+    {
+        CameraData& data = pCameraComponent_->data.at(id);
+
+        data.ortho = DirectX::XMMatrixOrthographicLH(viewWidth, viewHeight, nearZ, farZ);
+    }
+}
+
+///////////////////////////////////////////////////////////
 
 void CameraSystem::RotateYAroundFixedLook(const EntityID id, const float angle)
 {
@@ -229,10 +254,10 @@ void CameraSystem::Update()
 
 ///////////////////////////////////////////////////////////
 
-void CameraSystem::UpdateView(const EntityID id)
+const XMMATRIX& CameraSystem::UpdateView(const EntityID id)
 {
     if (!HasEntity(id))
-        return;
+        return pCameraComponent_->data[0].view;
 
     CameraData& camData = pCameraComponent_->data[id];
 
@@ -243,7 +268,6 @@ void CameraSystem::UpdateView(const EntityID id)
 
     // compute camera's right vector (cross: look X world_up)
     XMVECTOR R = XMVector3Normalize(XMVector3Cross({ 0,1,0,0 }, L));
-    //XMVECTOR R = camData.right;
 
     // camera's up vector: L, R already ortho-normal, so no need to normalize cross product
     XMVECTOR U = XMVector3Cross(L, R);
@@ -273,6 +297,8 @@ void CameraSystem::UpdateView(const EntityID id)
 
     // compute inverse view matrix
     camData.invView = XMMatrixInverse(nullptr, camData.view);
+
+    return camData.view;
 }
 
 

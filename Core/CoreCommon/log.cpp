@@ -4,8 +4,7 @@
 #include "Log.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctime>
-#include <cstdarg>
+#include <time.h>
 
 #pragma warning (disable : 4996)
 
@@ -13,14 +12,15 @@
 namespace Core
 {
 
-char g_String[256]{ '\0' };             // global buffer for characters
-char s_TmpStr[256]{ '\0' };             // static buffer for internal using
+char g_String[256]{ '\0' };                 // global buffer for characters
+char s_TmpStr[256]{ '\0' };                 // static buffer for internal using
 
-static FILE* s_pLogFile = nullptr;      // a static descriptor of the log file 
+static LogStorage s_LogStorage;
+static FILE*      s_pLogFile = nullptr;     // a static descriptor of the log file 
 
 // helpers prototypes
 void        GetPathFromProjRoot(const char* fullPath, char* outPath);
-void        PrintHelper(const char* lvlText, const char* text);
+void        PrintHelper(const char* lvlText, const char* text, const LogType type);
 void        PrintExceptionErrHelper(const EngineException& e, const bool showMsgBox);
 
 const char* PrepareMsg(const char* msg, const std::source_location& loc);                                 // for C++20
@@ -31,17 +31,20 @@ const char* PrepareErrMsg(const char* msg, const char* fileName, const char* fun
 
 // =================================================================================
 
-bool InitLogger()
+bool InitLogger(const char* logFileName)
 {
+    if (!logFileName || logFileName[0] == '\0')
+    {
+        LogErr("input name for the log file is empty!");
+        return false;
+    }
+
 #if _WIN32
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
     DWORD mode = 0;
     GetConsoleMode(hConsole, &mode);
     SetConsoleMode(hConsole, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 #endif
-
-    const char* logFileName = "DoorsEngineLog.txt";
-
 
     if ((s_pLogFile = fopen(logFileName, "w")) != nullptr)
     {
@@ -85,6 +88,31 @@ void CloseLogger()
     fclose(s_pLogFile);
 }
 
+///////////////////////////////////////////////////////////
+
+void AddMsgIntoLogStorage(const char* msg, const LogType type)
+{
+    // add a new message into the log storage 
+
+    if (!msg || msg[0] == '\0')
+        return;
+
+    int& numLogs = s_LogStorage.numLogs;
+    LogMessage& log = s_LogStorage.logs[numLogs];
+    char** buf = &log.msg;                          // get a buffer to the text of this log
+    log.type = type;                                // store the type of this log
+    
+    *buf = new char[strlen(msg) + 1]{ '\0' };
+    strcpy(*buf, msg);
+    
+    ++numLogs;
+}
+
+///////////////////////////////////////////////////////////
+
+FILE*             GetLogFile()    { return s_pLogFile; }
+const LogStorage* GetLogStorage() { return &s_LogStorage; }
+
 
 // =================================================================================
 // logger functions which prints info about its caller (file, function, line)
@@ -93,7 +121,7 @@ void LogMsg(const char* msg, const std::source_location& loc)
 {
     printf("%s", GREEN);                                // setup console color
     const char* buf = PrepareMsg(msg, loc);
-    PrintHelper("", buf);
+    PrintHelper("", buf, LOG_TYPE_MESSAGE);
     printf("%s", RESET);                                // reset console color
 }
 
@@ -102,7 +130,7 @@ void LogMsg(const char* msg, const std::source_location& loc)
 void LogDbg(const char* msg, const std::source_location& loc)
 {
     const char* buf = PrepareMsg(msg, loc);
-    PrintHelper("DEBUG", buf);
+    PrintHelper("DEBUG", buf, LOG_TYPE_DEBUG);
 }
 
 ///////////////////////////////////////////////////////////
@@ -111,7 +139,7 @@ void LogErr(const char* msg, const std::source_location& loc)
 {
     printf("%s", RED);                                  // setup console color
     const char* buf = PrepareErrMsg(msg, loc);
-    PrintHelper("ERROR", buf);
+    PrintHelper("ERROR", buf, LOG_TYPE_ERROR);
     printf("%s", RESET);                                // reset console color
 }
 
@@ -121,7 +149,7 @@ void LogMsg(const char* fileName, const char* funcName, const int codeLine, cons
 {
     printf("%s", GREEN);                                // setup console color
     const char* buf = PrepareMsg(msg, fileName, funcName, codeLine);
-    PrintHelper("", buf);
+    PrintHelper("", buf, LOG_TYPE_MESSAGE);
     printf("%s", RESET);                                // reset console color
 }
 
@@ -130,7 +158,7 @@ void LogMsg(const char* fileName, const char* funcName, const int codeLine, cons
 void LogDbg(const char* fileName, const char* funcName, const int codeLine, const char* msg)
 {
     const char* buf = PrepareMsg(msg, fileName, funcName, codeLine);
-    PrintHelper("DEBUG", buf);
+    PrintHelper("DEBUG", buf, LOG_TYPE_DEBUG);
 }
 
 ///////////////////////////////////////////////////////////
@@ -139,7 +167,7 @@ void LogErr(const char* fileName, const char* funcName, const int codeLine, cons
 {
     printf("%s", RED);                                  // setup console color
     const char* buf = PrepareErrMsg(msg, fileName, funcName, codeLine);
-    PrintHelper("ERROR", buf);
+    PrintHelper("ERROR", buf, LOG_TYPE_ERROR);
     printf("%s", RESET);                                // reset console color
 }
 
@@ -153,7 +181,7 @@ void LogMsgf(const char* format, ...)
     va_start(args, format);
 
     vsprintf(s_TmpStr, format, args);
-    PrintHelper("", s_TmpStr);
+    PrintHelper("", s_TmpStr, LOG_TYPE_FORMATTED);
     printf("%s", RESET);                  // reset console color
 
     va_end(args);
@@ -200,29 +228,25 @@ void GetPathFromProjRoot(const char* fullPath, char* outPath)
     const char* found = strstr(fullPath, "DoorsEngine\\");
 
     // if we found the substring we copy all the text after "DoorsEngine\"
-    if (!found)
-    {
+    if (found != nullptr)
         strcpy(outPath, found + strlen("DoorsEngine\\"));
-    }
     else
-    {
         outPath[0] = '\0';
-    }
 }
 
 ///////////////////////////////////////////////////////////
 
-void PrintHelper(const char* lvlText, const char* text)
+void PrintHelper(const char* lvlText, const char* text, const LogType type)
 {
     // a helper for printing messages into the command prompt
     // and into the Logger text file
 
-    const clock_t cl = clock();
-
-    printf("[%05d] %s: %s\n", cl, lvlText, text);
+    sprintf(g_String, "[%05d] %s: %s\n", clock(), lvlText, text);
+    printf(g_String);
+    AddMsgIntoLogStorage(g_String, type);
 
     if (s_pLogFile)
-        fprintf(s_pLogFile, "[%05d] %s: %s\n", cl, lvlText, text);
+        fprintf(s_pLogFile, g_String);
 }
 
 ///////////////////////////////////////////////////////////
@@ -235,9 +259,9 @@ const char* PrepareMsg(const char* msg, const std::source_location& loc)
     GetPathFromProjRoot(loc.file_name(), pathFromProjRoot);
 
     sprintf(s_TmpStr, "%s: %s() (line: %d): %s",
-        pathFromProjRoot,                               // relative path to the caller file
-        loc.function_name(),                            // a function name where we called this log-function
-        loc.line(),                                     // at what line
+        pathFromProjRoot,                           // relative path to the caller file
+        loc.function_name(),                        // a function name where we called this log-function
+        loc.line(),                                 // at what line
         msg);
 
     return s_TmpStr;
@@ -285,6 +309,8 @@ const char* PrepareErrMsg(const char* msg, const std::source_location& loc)
     return s_TmpStr;
 }
 
+///////////////////////////////////////////////////////////
+
 const char* PrepareErrMsg(const char* msg, const char* fileName, const char* funcName, const int codeLine)
 {
     // prepare error message to be printed in specific format
@@ -315,7 +341,7 @@ void PrintExceptionErrHelper(const EngineException& e, const bool showMsgBox)
 
     // print an error msg into the console and log file
     printf("%s", RED);                                   // setup console color
-    PrintHelper("ERROR: ", e.GetConstStr());
+    PrintHelper("ERROR: ", e.GetConstStr(), LOG_TYPE_ERROR);
     printf("%s", RESET);                                 // reset console color
 }
 } // namespace Core

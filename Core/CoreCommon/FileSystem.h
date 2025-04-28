@@ -32,7 +32,7 @@ public:
         // check if such file exists
         if ((pFile = fopen(filePath, "r+")) == nullptr)
         {
-            sprintf(g_String, "there is no texture by path: %s", filePath);
+            sprintf(g_String, "there is no file by path: %s", filePath);
             LogErr(g_String);
             return false;
         }

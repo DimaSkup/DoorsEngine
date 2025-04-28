@@ -6,6 +6,7 @@
 #include <CoreCommon/MemHelpers.h>
 #include <CoreCommon/Assert.h>
 #include <CoreCommon/Log.h>
+#include <CoreCommon/FileSystem.h>
 #include "../../Texture/TextureMgr.h"
 
 #include <fstream>
@@ -34,28 +35,17 @@ void FontClass::Initialize(
 
 	try
 	{
-#if 1
-        FILE* pFile = nullptr;
+        bool canInit = true;
 
 		// check input params
-        if ((pFile = fopen(fontDataFilePath.c_str(), "r+")) == nullptr)
+        canInit &= FileSys::Exists(fontDataFilePath.c_str());
+        canInit &= FileSys::Exists(fontTexFilePath.c_str());
+
+        if (!canInit)
         {
-            sprintf(g_String, "there is no file for font data by path: %s", fontDataFilePath.c_str());
-            LogErr(g_String);
+            LogErr("isn't able to initialize the font class: input args are invalid");
+            return;
         }
-
-        if (pFile)
-            fclose(pFile);
-
-        if ((pFile = fopen(fontTexFilePath.c_str(), "r+")) == nullptr)
-        {
-            sprintf(g_String, "there is no file for font texture by path: %s", fontTexFilePath.c_str());
-            LogErr(g_String);
-        }
-
-        if (pFile)
-            fclose(pFile);
-#endif
 
 		// load and initialize a texture for this font
 		fontTexID_ = g_TextureMgr.LoadFromFile(fontTexFilePath.c_str());

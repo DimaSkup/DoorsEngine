@@ -12,6 +12,28 @@
 namespace Core
 {
 
+enum LogType
+{
+    LOG_TYPE_MESSAGE,
+    LOG_TYPE_DEBUG,
+    LOG_TYPE_ERROR,
+    LOG_TYPE_FORMATTED
+};
+
+struct LogMessage
+{
+    char*   msg = nullptr;
+    LogType type = LOG_TYPE_MESSAGE;
+};
+
+struct LogStorage
+{
+    // here we store log messages (preferably we may use it in the UI log printing)
+
+    LogMessage logs[2048];
+    int        numLogs = 0;   // actual number of log messages
+};
+
 // macros to setup console color
 #define RESET       "\033[0m"
 #define BLACK       "\033[30m"              /* Black */
@@ -40,8 +62,12 @@ namespace Core
 
 extern char g_String[256];
 
-extern bool InitLogger();        // call it at the very beginning of the application
-extern void CloseLogger();       // call it at the very end of the application
+extern bool InitLogger(const char* logFileName);      // call it at the very beginning of the application
+extern void CloseLogger();                            // call it at the very end of the application
+
+extern FILE*             GetLogFile();
+extern const LogStorage* GetLogStorage();
+
 
 // for C++20
 extern void LogMsg(const char* msg, const std::source_location& location = std::source_location::current());   // using: LogMsg("your msg");

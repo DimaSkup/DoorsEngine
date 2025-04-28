@@ -100,7 +100,7 @@ bool D3DClass::Initialize(
 
         vsyncEnabled_ = vsyncEnabled;        // define if VSYNC is enabled or not
         fullScreen_   = fullScreen;          // define if window is full screen or not
-        enable4xMsaa_ =  enable4xMSAA;        // use 4X MSAA?
+        enable4xMsaa_ = enable4xMSAA;        // use 4X MSAA?
         screenNear_   = screenNear;
         screenDepth_  = screenDepth;
 
@@ -223,14 +223,13 @@ void D3DClass::GetVideoCardInfo(
 
 
     // print info about GPU into the console and log file
-    char buf[128]{ '\0' };
-    LogDbg("Video card info:");
+    LogMsg("Video card info:");
 
-    sprintf(buf, "Video card name: %s", outCardName);
-    LogDbg(buf);
+    sprintf(g_String, "Video card name: %s", outCardName);
+    LogMsg(g_String);
 
-    sprintf(buf,  "Video memory: %d MB", outMemorySize);
-    LogDbg(buf);
+    sprintf(g_String,  "Video memory: %d MB", outMemorySize);
+    LogMsg(g_String);
 }
 
 ///////////////////////////////////////////////////////////
@@ -262,8 +261,8 @@ void D3DClass::InitializeDirectX(
         LogMsg("Start initialization of DirectX stuff");
 
         Assert::True((wndWidth & wndHeight), "wrong window dimensions");
-        Assert::True(nearZ > 0, "near wnd plane must be > 0");
-        Assert::True(farZ > nearZ, "far wnd plane must be > near plane");
+        Assert::True(nearZ > 0,              "near window plane must be > 0");
+        Assert::True(farZ > nearZ,           "far frustum plane must be > near plane");
 
         // create the Direct3D 11 device and context
         InitializeDevice();
@@ -272,7 +271,6 @@ void D3DClass::InitializeDirectX(
         InitializeSwapChain(hwnd, wndWidth, wndHeight);
         InitializeRenderTargetView();
         InitializeViewport(wndWidth, wndHeight);
-        InitializeMatrices(wndWidth, wndHeight, nearZ, farZ);
     }
     catch (EngineException & e)
     {
@@ -321,7 +319,6 @@ void D3DClass::InitializeDevice()
 bool D3DClass::ResizeSwapChain(HWND hwnd, SIZE newSize)
 {
     // handle window resizing
-
     try
     {
         // maybe we got an WM_SIZE event after CreateWindowEx and currently our
@@ -334,10 +331,6 @@ bool D3DClass::ResizeSwapChain(HWND hwnd, SIZE newSize)
 
         wndWidth_ = newSize.cx;
         wndHeight_ = newSize.cy;
-
-        //printf("wnd x: %d\n", wndWidth_);
-        //printf("wnd y: %d\n", wndHeight_);
-
 
         // 1. Clear render targets from device context
         //    crear the previous window size specific context
@@ -491,9 +484,8 @@ void D3DClass::InitializeDepthStencilTextureBuffer(const UINT width, const UINT 
 {
     // create a depth/stencil buffer texture
 
-    D3D11_TEXTURE2D_DESC desc;
-
     // describe our Depth/Stencil Buffer
+    D3D11_TEXTURE2D_DESC desc;
     desc.Width          = width;
     desc.Height         = height;
     desc.Format         = DXGI_FORMAT_D24_UNORM_S8_UINT;	// 24 bits for the depth and 8 bits for the stencil
@@ -542,11 +534,7 @@ void D3DClass::InitializeDepthStencilView()
 
 void D3DClass::InitializeViewport(const UINT width, const UINT height)
 {
-    // Setup the viewport
-    SetupViewportParams((float)width, (float)height, 1, 0, 0, 0);
-    
-    // bind the viewport
-    pContext_->RSSetViewports(1, &viewport_);
+    SetupViewportParams((float)width, (float)height, 1, 0, 0, 0); 
 }
 
 ///////////////////////////////////////////////////////////
@@ -559,31 +547,9 @@ void D3DClass::SetupViewportParams(
     const float topLeftX,
     const float topLeftY)
 {
-    // Setup the viewport with specific values
     viewport_ = { topLeftX, topLeftY, width, height, minDepth, maxDepth };
 
-    // bind the viewport
-    pContext_->RSSetViewports(1, &viewport_);
-}
-
-///////////////////////////////////////////////////////////
-
-void D3DClass::InitializeMatrices(
-    const UINT width, 
-    const UINT height,
-    const float nearZ, 
-    const float farZ)
-{
-    // THIS FUNCTION initializes world and ortho matrices to it's default values
- 
-    worldMatrix_ = DirectX::XMMatrixIdentity();
-
-    // Initialize the orthographic matrix for 2D rendering
-    orthoMatrix_ = DirectX::XMMatrixOrthographicLH(
-        (float)width,
-        (float)height,
-        nearZ,
-        farZ);
+    pContext_->RSSetViewports(1, &viewport_); // bind the viewport
 }
 
 ///////////////////////////////////////////////////////////
@@ -593,8 +559,6 @@ bool D3DClass::ToggleFullscreen(HWND hwnd, bool isFullscreen)
     try
     {
         LogDbg("ToggleFullscreen(): " + (isFullscreen) ? "true" : "false");
-
-        HRESULT hr = S_OK;
 
         fullScreen_ = isFullscreen;
 
@@ -606,10 +570,6 @@ bool D3DClass::ToggleFullscreen(HWND hwnd, bool isFullscreen)
             windowedModeWidth_ = wndWidth_;
             windowedModeHeight_ = wndHeight_;
 
-            //printf("windowed x: %d\n", windowedModeWidth_);
-            //printf("windowed y: %d\n", windowedModeHeight_);
-
-            //RECT desctopArea;
             DXGI_MODE_DESC mode;
             ZeroMemory(&mode, sizeof(DXGI_MODE_DESC));
 
@@ -618,11 +578,11 @@ bool D3DClass::ToggleFullscreen(HWND hwnd, bool isFullscreen)
             mode.Height = GetSystemMetrics(SM_CYSCREEN);
 
             
-            hr = pSwapChain_->ResizeTarget(&mode);
+            HRESULT hr = hr = pSwapChain_->ResizeTarget(&mode);
             Assert::NotFailed(hr, "can't resize a target during switching of the fullscreen mode");
 
-            hr = pSwapChain_->SetFullscreenState(TRUE, nullptr);
-            Assert::NotFailed(hr, "can't set full screen state");
+            //hr = pSwapChain_->SetFullscreenState(TRUE, nullptr);
+            //Assert::NotFailed(hr, "can't set full screen state");
 
             // another one for good luck
             hr = pSwapChain_->ResizeTarget(&mode);
@@ -631,21 +591,17 @@ bool D3DClass::ToggleFullscreen(HWND hwnd, bool isFullscreen)
             // resize the swapchain and related parts to the chosen solution
             ResizeSwapChain(hwnd, { (LONG)mode.Width, (LONG)mode.Height });
         }
-
         // switch to WINDOWED mode
         else
         {
             DXGI_MODE_DESC mode;
             ZeroMemory(&mode, sizeof(DXGI_MODE_DESC));
 
-            //printf("restore windowed x: %d\n", windowedModeWidth_);
-            //printf("restore windowed y: %d\n", windowedModeHeight_);
-
             // reset the last size of the window in the windowed mode
             mode.Width  = windowedModeWidth_;
             mode.Height = windowedModeHeight_;
 
-            hr = pSwapChain_->SetFullscreenState(FALSE, nullptr);
+            HRESULT hr = pSwapChain_->SetFullscreenState(FALSE, nullptr);
             Assert::NotFailed(hr, "can't switch to WINDOWED mode");
 
             hr = pSwapChain_->ResizeTarget(&mode);

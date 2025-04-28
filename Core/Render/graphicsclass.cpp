@@ -62,41 +62,7 @@ void CGraphics::Render3D(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
 
 ///////////////////////////////////////////////////////////
 
-void CGraphics::InitRenderModule(
-    const Settings& settings,
-    Render::CRender* pRender)
-{
-    // setup render initial params
 
-    Render::InitParams renderParams;
-
-    renderParams.worldViewOrtho = DirectX::XMMatrixTranspose(WVO_);
-
-    // zaporizha sky box horizon (darker by 0.1f)
-    renderParams.fogColor =
-    {
-        settings.GetFloat("FOG_RED"),
-        settings.GetFloat("FOG_GREEN"),
-        settings.GetFloat("FOG_BLUE"),
-    };
-    renderParams.fogStart = settings.GetFloat("FOG_START");
-    renderParams.fogRange = settings.GetFloat("FOG_RANGE");
-
-    const DirectX::XMFLOAT3 skyColorCenter = g_ModelMgr.GetSky().GetColorCenter();
-    const DirectX::XMFLOAT3 skyColorApex = g_ModelMgr.GetSky().GetColorApex();
-
-    renderParams.fogColor.x *= skyColorCenter.x;
-    renderParams.fogColor.y *= skyColorCenter.y;
-    renderParams.fogColor.z *= skyColorCenter.z;
-
-    fullFogDistance_ = (int)(renderParams.fogStart + renderParams.fogRange);
-    fullFogDistanceSqr_ = (int)(fullFogDistance_ * fullFogDistance_);
-
-    bool result = pRender->Initialize(pDevice_, pDeviceContext_, renderParams);
-    Assert::True(result, "can't init the render module");
-
-    pRender->SetSkyGradient(pDeviceContext_, skyColorCenter, skyColorApex);
-}
 
 ///////////////////////////////////////////////////////////
 
@@ -146,14 +112,6 @@ bool CGraphics::InitHelper(
         // create frustums for frustum culling
         frustums_.push_back(DirectX::BoundingFrustum());
 
-        // setup loggers of the modules to make possible writing into the log file
-        //entityMgr_.SetupLogger(Log::GetFilePtr(), &Log::GetLogMsgsList());
-        //render_.SetupLogger(Log::GetFilePtr(), &Log::GetLogMsgsList());
-
-        // matrix for 2D rendering
-        WVO_ = worldMatrix_ * baseViewMatrix_ * d3d_.GetOrthoMatrix();
-
-        InitRenderModule(settings, pRender);
         BuildGeometryBuffers();
     }
     catch (EngineException & e)
@@ -252,6 +210,7 @@ void CGraphics::UpdateHelper(
 
 
         pEnttMgr->transformSystem_.GetPositions(alphaClippedEntts.data(), numVisEntts, positions);
+        const int fullFogDistSqr = (fullFogDistance_ * fullFogDistance_);
         const XMVECTOR camPos = XMLoadFloat3(&sysState.cameraPos);
 
         // check if entity by idx is farther than fog range if so we store its idx
@@ -261,7 +220,7 @@ void CGraphics::UpdateHelper(
             const XMVECTOR camToEnttVec = DirectX::XMVectorSubtract(enttPos, camPos);
             const int distSqr           = (int)DirectX::XMVectorGetX(DirectX::XMVector3Dot(camToEnttVec, camToEnttVec));
 
-            if (distSqr > fullFogDistanceSqr_)
+            if (distSqr > fullFogDistSqr)
             {
                 idxs[count] = i;
                 ++count;
