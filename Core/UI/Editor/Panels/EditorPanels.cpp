@@ -88,9 +88,22 @@ void EditorPanels::RenderLogPanel()
     // show logger messages
 
     if (ImGui::Begin("Log"))
-    {	
-        //for (std::string& logMsg : Core::Log::GetLogMsgsList())
-        //    ImGui::Text(logMsg.c_str());                    // print each log msg
+    {
+        const LogStorage* pLogStorage = GetLogStorage();
+
+        constexpr ImVec4 textColors[4] = {
+            ImVec4(0, 1, 0, 1),             // color for LOG_TYPE_MESSAGE
+            ImVec4(1, 1, 1, 1),             // color for LOG_TYPE_DEBUG
+            ImVec4(1, 0, 0, 1),             // color for LOG_TYPE_ERROR
+            ImVec4(1, 1, 0, 1)              // color for LOG_TYPE_FORMATTED
+        };
+
+        for (int i = 0; i < pLogStorage->numLogs; ++i)
+        {
+            const LogMessage& log = pLogStorage->logs[i];
+            ImGui::TextColored(textColors[log.type], log.msg);
+        }
+            
     }
     ImGui::End();
 }
@@ -200,14 +213,15 @@ void EditorPanels::RenderEntitiesListWnd(SystemState& sysState)
 
             if (ImGui::Selectable(enttsNames[i].c_str(), isSelected, ImGuiSelectableFlags_AllowDoubleClick))
             {
-                sysState.pickedEntt_ = pEnttsIDs[i];                 // set this ID into the system state
-                enttEditorController_.SetSelectedEntt(sysState.pickedEntt_);  // and update the editor to show data of this entt
+                const EntityID id = pEnttsIDs[i];
+                sysState.pickedEnttID_ = id;                 // set this ID into the system state
+                enttEditorController_.SetSelectedEntt(id);   // and update the editor to show data of this entt
 
                 // if we do double click on the selectable item we move our camera
                 // to this item in world and fix on in
                 if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
                 {
-                    pFacadeEngineToUI_->FocusCameraOnEntity(sysState.pickedEntt_);
+                    pFacadeEngineToUI_->FocusCameraOnEntity(id);
                     pStatesGUI_->gizmoOperation = 7;   // ImGizmo::OPERATION::TRANSLATE
                     //LogMsg("double click on: " + enttsNames[i], eConsoleColor::YELLOW);
                 }

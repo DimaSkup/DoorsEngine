@@ -25,9 +25,11 @@ struct CameraData
     float nearWndHeight = -1.0f;
     float farWndHeight  = -1.0f;
 
-    XMMATRIX view    = DirectX::XMMatrixIdentity();
-    XMMATRIX invView = DirectX::XMMatrixIdentity();
-    XMMATRIX proj    = DirectX::XMMatrixIdentity();
+    XMMATRIX baseView = DirectX::XMMatrixIdentity();
+    XMMATRIX view     = DirectX::XMMatrixIdentity();
+    XMMATRIX invView  = DirectX::XMMatrixIdentity();
+    XMMATRIX proj     = DirectX::XMMatrixIdentity();   // projection matrix
+    XMMATRIX ortho    = DirectX::XMMatrixIdentity();   // orthographic matrix
 
     // camera coordinate system with coordinates relative to world space
     XMVECTOR right      { 1,0,0 };    // world space right vector of the camera

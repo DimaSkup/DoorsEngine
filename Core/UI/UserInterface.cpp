@@ -138,7 +138,6 @@ SentenceID UserInterface::CreateConstStr(
     // create a new GUI string by input data;
     // the content of this string won't be changed;
     // you can only change its position on the screen;
-
     try
     {
         Assert::True(!content.empty(), "wrong input data: str is empty");
@@ -251,9 +250,9 @@ void UserInterface::LoadDebugInfoStringFromFile(
                 LogErr("the input doen't match the format string");
             }
         }
-    }
+    } // while
 
-    // ------------------------------------------
+    fclose(pFile);
 
     // create some strings about the video card
     CreateConstStr(pDevice, videoCardName, { 150, 10 });

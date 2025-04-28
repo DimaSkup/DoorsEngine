@@ -20,7 +20,7 @@ public:
     ~CameraSystem();
 
     //void Update();
-    void UpdateView(const EntityID id);
+    const XMMATRIX& UpdateView(const EntityID id);
 
     void AddRecord   (const EntityID id, const CameraData& data);
     void RemoveRecord(const EntityID id);
@@ -35,14 +35,25 @@ public:
 
     inline const CameraData& GetCameraData(const EntityID id) const { return pCameraComponent_->data[id]; }
 
-    inline const XMMATRIX GetView       (const EntityID id) const { return (HasEntity(id)) ? pCameraComponent_->data[id].view    : DirectX::XMMatrixIdentity(); }
-    inline const XMMATRIX GetProj       (const EntityID id) const { return (HasEntity(id)) ? pCameraComponent_->data[id].proj    : DirectX::XMMatrixIdentity(); }
-    inline const XMMATRIX GetInverseView(const EntityID id) const { return (HasEntity(id)) ? pCameraComponent_->data[id].invView : DirectX::XMMatrixIdentity(); }
+    inline const XMMATRIX& GetBaseView   (const EntityID id) const { return (HasEntity(id)) ? pCameraComponent_->data[id].baseView : pCameraComponent_->data[0].baseView; }
+    inline const XMMATRIX& GetView       (const EntityID id) const { return (HasEntity(id)) ? pCameraComponent_->data[id].view     : pCameraComponent_->data[0].view; }
+    inline const XMMATRIX& GetOrtho      (const EntityID id) const { return (HasEntity(id)) ? pCameraComponent_->data[id].ortho    : pCameraComponent_->data[0].ortho; }
+    inline const XMMATRIX& GetProj       (const EntityID id) const { return (HasEntity(id)) ? pCameraComponent_->data[id].proj     : pCameraComponent_->data[0].proj; }
+    inline const XMMATRIX& GetInverseView(const EntityID id) const { return (HasEntity(id)) ? pCameraComponent_->data[id].invView  : pCameraComponent_->data[0].invView; }
+
+    void SetBaseViewMatrix(const EntityID id, const XMMATRIX& baseView);
 
     void SetupProjection(
         const EntityID id,
         const float fovY,
         const float aspectRatio,
+        const float nearZ,
+        const float farZ);
+
+    void SetupOrthographicMatrix(
+        const EntityID id,
+        const float viewWidth,
+        const float viewHeight,
         const float nearZ,
         const float farZ);
  

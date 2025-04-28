@@ -211,6 +211,7 @@ void Engine::Update()
     // get the time which passed since the previous frame
     deltaTime_ = timer_.GetDeltaTime();
     deltaTime_ = (deltaTime_ > 16.6f) ? 16.6f : deltaTime_;
+    systemState_.frameTime = deltaTime_;
 
     // update the entities and related data
     pEnttMgr_->Update(timer_.GetGameTime(), deltaTime_);
@@ -259,7 +260,7 @@ void Engine::CalculateFrameStats()
     {
         // store the fps value for later using (for example: render this value as text onto the screen)
         systemState_.fps = frameCount;
-        systemState_.frameTime = 1000.0f / (float)frameCount;  // ms per frame
+        //systemState_.frameTime = 1000.0f / (float)frameCount;  // ms per frame
 
         // reset for next average
         frameCount = 0;
@@ -1082,7 +1083,7 @@ void Engine::HandleGameEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnttM
             // update mouse position data because we need to print mouse position on the screen
             systemState_.mouseX = mouseEvent_.GetPosX();
             systemState_.mouseY = mouseEvent_.GetPosY();
-            SetCursorPos(0, 0);                           // to prevent the cursor to get out of the window
+            SetCursorPos(800, 450);                           // to prevent the cursor to get out of the window
             break;
         }
         case MouseEvent::EventType::RAW_MOVE:
@@ -1157,6 +1158,14 @@ void Engine::TurnOnEditorMode()
 
     systemState_.isEditorMode = true;
     ShowCursor(TRUE);
+
+    const DirectX::XMMATRIX  world      = DirectX::XMMatrixIdentity();
+    const DirectX::XMMATRIX& baseView   = pEnttMgr_->cameraSystem_.GetBaseView(editorCamID);
+    const DirectX::XMMATRIX& ortho      = pEnttMgr_->cameraSystem_.GetOrtho(editorCamID);
+    const DirectX::XMMATRIX  WVO        = world * baseView * ortho;
+
+    ID3D11DeviceContext* pContext = GetGraphicsClass().GetD3DClass().GetDeviceContext();
+    pRender_->SetWorldViewOrtho(pContext, WVO);
 }
 
 ///////////////////////////////////////////////////////////
@@ -1193,8 +1202,17 @@ void Engine::TurnOnGameMode()
     graphics_.SetGameMode(true);
 
     systemState_.isEditorMode = false;
+
     ShowCursor(FALSE);
     TurnOnMouseLookBehavior(hwnd_);
+
+    const DirectX::XMMATRIX  world      = DirectX::XMMatrixIdentity();
+    const DirectX::XMMATRIX& baseView   = pEnttMgr_->cameraSystem_.GetBaseView(gameCamID);
+    const DirectX::XMMATRIX& ortho      = pEnttMgr_->cameraSystem_.GetOrtho(gameCamID);
+    const DirectX::XMMATRIX  WVO        = world * baseView * ortho;
+
+    ID3D11DeviceContext* pContext = GetGraphicsClass().GetD3DClass().GetDeviceContext();
+    pRender_->SetWorldViewOrtho(pContext, WVO);
 }
 
 } // namespace Core

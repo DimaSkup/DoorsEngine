@@ -13,6 +13,29 @@
 namespace Render
 {
 
+enum LogType
+{
+    LOG_TYPE_MESSAGE,
+    LOG_TYPE_DEBUG,
+    LOG_TYPE_ERROR,
+    LOG_TYPE_FORMATTED
+};
+
+struct LogMessage
+{
+    char*   msg = nullptr;
+    LogType type = LOG_TYPE_MESSAGE;
+};
+
+struct LogStorage
+{
+    // here we store log messages (preferably we may use it in the UI log printing)
+
+    LogMessage logs[2048];
+    int        numLogs = 0;   // actual number of log messages
+};
+
+
 // macros for printing info about ther caller function
 #define LOG_MSG "%s%s() (line: %d): %s%s",      GREEN, __FILE__, __func__, __LINE__, RESET
 #define LOG_ERR "%sERROR: %s() (line: %d): %s%s", RED, __FILE__, __func__, __LINE__, RESET
@@ -22,8 +45,7 @@ namespace Render
 
 extern char g_String[256];
 
-extern bool InitLogger();
-extern void CloseLogger();
+extern void SetupLogger(FILE* pLogFile, void* pLogStorage);
 
 
 extern void LogMsg(const char* msg, const std::source_location& location = std::source_location::current());

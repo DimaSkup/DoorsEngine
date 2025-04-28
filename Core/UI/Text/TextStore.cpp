@@ -97,7 +97,6 @@ SentenceID TextStore::CreateSentence(
 {
     // the content of this string is supposed to be changed from frame to frame;
     // you can also change its position on the screen;
-
     try
     {
         // check input params
@@ -165,35 +164,26 @@ void TextStore::GetRenderingData(
     cvector<ID3D11Buffer*>& outVbPtrs,
     cvector<ID3D11Buffer*>& outIbPtrs,
     cvector<u32>& outIndexCounts)
-
 {
-    // get VB, IB, and index count of each sentence from the storage
+    // get vertex buffer (VB), index buffer (IB), and index count of each sentence from the storage
 
-    try
-    {
-        const size numBuffers = std::ssize(vertexBuffers_);
+    const size numBuffers = std::ssize(vertexBuffers_);
 
-        outVbPtrs.resize(numBuffers);
-        outIbPtrs.resize(numBuffers);
-        outIndexCounts.resize(numBuffers);
+    outVbPtrs.resize(numBuffers);
+    outIbPtrs.resize(numBuffers);
+    outIndexCounts.resize(numBuffers);
 
-        // go through vertex buffers and get pointers to it
-        for (int i = 0; const auto& vb : vertexBuffers_)
-            outVbPtrs[i++] = vb.Get();
+    // go through vertex buffers and get pointers to it
+    for (int i = 0; const auto& vb : vertexBuffers_)
+        outVbPtrs[i++] = vb.Get();
 
-        // go through index buffers and get pointers to it
-        for (int i = 0; const auto& ib : indexBuffers_)
-            outIbPtrs[i++] = ib.Get();
+    // go through index buffers and get pointers to it
+    for (int i = 0; const auto& ib : indexBuffers_)
+        outIbPtrs[i++] = ib.Get();
 
-        // go through index buffers and get index counts
-        for (int i = 0; const auto& ib : indexBuffers_)
-            outIndexCounts[i++] = ib.GetIndexCount();
-    }
-    catch (Core::EngineException & e)
-    {
-        Core::LogErr(e);
-        throw Core::EngineException("can't render the sentence");
-    }
+    // go through index buffers and get index counts
+    for (int i = 0; const auto& ib : indexBuffers_)
+        outIndexCounts[i++] = ib.GetIndexCount();
 }
 
 
@@ -207,73 +197,83 @@ void TextStore::Update(
 
 {
     // Update() changes the contents of the dynamic vertex buffer for the input text.
-
     try
     {
         constexpr size numDynamicSentences = 13;
 
         // sentences by these keys are supposed to update if its values are
         // differ from the sysState
-        const std::string keys[numDynamicSentences] =
+        const char* keys[numDynamicSentences] =
         {
             "fps", "frame_time",
 
-            // position info
-            "posX",	"posY",	"posZ",
-
-            // rotation info
-            "rotX", "rotY", "rotZ",  
+            "posX",	"posY",	"posZ",   // player's position info
+            "rotX", "rotY", "rotZ",   // player's directions info
 
             // render info
             "models_drawn", "vertices_drawn", "faces_drawn",
             "cells_drawn", "cells_culled",
         };
-
      
         // check yourself
-        Core::Assert::True(numDynamicSentences == ARRAYSIZE(keys), "num of dynamic sentences != size of semantic keys arr");
+        //Core::Assert::True(numDynamicSentences == ARRAYSIZE(keys), "num of dynamic sentences != size of semantic keys arr");
 
-        SentenceID  ids[numDynamicSentences];
-        std::string values[numDynamicSentences];
-        cvector<index> idxs(numDynamicSentences);
-
-        // get ids by keys
-        for (int i = 0; const std::string& key : keys)
-            ids[i++] = keyToID_.at(key);
-
-        // get idxs by ids
-        ids_.get_idxs(ids, numDynamicSentences, idxs);
-
-
+        struct value
+        {
+            char text[32]{'\0'};
+        };
+        value textValues[numDynamicSentences];
+       
         // set values so later we will compare them to the previous ones
-        values[0] = std::to_string(sysState.fps);
-        values[1] = std::to_string(sysState.frameTime);
+        sprintf(textValues[0].text, "%d", sysState.fps);
+        sprintf(textValues[1].text, "%f", sysState.frameTime);
 
         // pos info
-        values[2] = std::to_string(sysState.cameraPos.x);
-        values[3] = std::to_string(sysState.cameraPos.y);
-        values[4] = std::to_string(sysState.cameraPos.z);
+        sprintf(textValues[2].text, "%f", sysState.cameraPos.x);
+        sprintf(textValues[3].text, "%f", sysState.cameraPos.y);
+        sprintf(textValues[4].text, "%f", sysState.cameraPos.z);
 
         // rotation info
-        values[5] = std::to_string(sysState.cameraDir.x);
-        values[6] = std::to_string(sysState.cameraDir.y);
-        values[7] = std::to_string(sysState.cameraDir.z);
+        sprintf(textValues[5].text, "%f", sysState.cameraDir.x);
+        sprintf(textValues[6].text, "%f", sysState.cameraDir.y);
+        sprintf(textValues[7].text, "%f", sysState.cameraDir.z);
 
         // render info
-        values[8]  = std::to_string(sysState.visibleObjectsCount);
-        values[9]  = std::to_string(sysState.visibleVerticesCount);
-        values[10] = std::to_string(sysState.visibleVerticesCount / 3);
-        values[11] = std::to_string(sysState.cellsDrawn);
-        values[12] = std::to_string(sysState.cellsCulled);
-        
+        sprintf(textValues[8].text,  "%d", sysState.visibleObjectsCount);
+        sprintf(textValues[9].text,  "%d", sysState.visibleVerticesCount);
+        sprintf(textValues[10].text, "%d", sysState.visibleVerticesCount / 3);
+        sprintf(textValues[11].text, "%d", sysState.cellsDrawn);
+        sprintf(textValues[12].text, "%d", sysState.cellsCulled);
 
-        // update the sentence if necessary
+        // ------------------------------------------------
+
+        SentenceID ids[numDynamicSentences]{0};
+
+        for (int i = 0; const char* key : keys)         // get ids by keys
+            ids[i++] = keyToID_[key];
+
+        cvector<index> idxs(numDynamicSentences);
+        ids_.get_idxs(ids, numDynamicSentences, idxs);  // get idxs by ids
+
+
+        // check if we need to update the sentence by idx
+        bool updatingFlags[numDynamicSentences]{ 0 };
+
+        for (index i = 0; i < numDynamicSentences; ++i)
+        {
+            const index idx = idxs[i];
+            updatingFlags[i] = (strcmp(textContent_[idx].c_str(), textValues[i].text) != 0);
+        }
+
+        // ------------------------------------------------
+
+        // update the sentences if necessary
         for (index i = 0; i < numDynamicSentences; ++i)
         {
             const index idx = idxs[i];
 
-            if (textContent_[idx] != values[i])
-                UpdateSentenceByIdx(pContext, font, idx, values[i]);
+            if (updatingFlags[i])
+                UpdateSentenceByIdx(pContext, font, idx, textValues[i].text);
         }
     }
     catch (const std::out_of_range& e)
@@ -336,7 +336,7 @@ void TextStore::UpdateSentenceByIdx(
     ID3D11DeviceContext* pContext,
     FontClass& font,
     const index idx,
-    const std::string& newStr)
+    const char* newStr)
 {
     // update the sentence by idx with new content;
     // also we rebuild its vertices according to this new content
@@ -354,10 +354,7 @@ void TextStore::UpdateSentenceByIdx(
         drawAt_[idx]);
 
     // update VB with new vertices
-    vertexBuffers_[idx].UpdateDynamic(
-        pContext,
-        vertices.data(),
-        std::ssize(vertices));
+    vertexBuffers_[idx].UpdateDynamic(pContext, vertices.data(), std::ssize(vertices));
 }
 
 } // namespace UI

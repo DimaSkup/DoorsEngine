@@ -146,9 +146,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Application.cpp" />
-    <ClCompile Include="Common\log.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="Common\MathHelper.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -166,7 +163,6 @@
     <ClInclude Include="Common\ConsoleColorMacro.h" />
     <ClInclude Include="Common\FileSystem.h" />
     <ClInclude Include="Common\FileSystemPaths.h" />
-    <ClInclude Include="Common\log.h" />
     <ClInclude Include="Common\MathHelper.h" />
     <ClInclude Include="Common\Types.h" />
     <ClInclude Include="LightEnttsInitializer.h" />

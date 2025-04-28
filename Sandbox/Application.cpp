@@ -23,6 +23,54 @@ Application::~Application()
 
 ///////////////////////////////////////////////////////////
 
+void Application::Initialize()
+{
+    // compute duration of importing process
+    auto initStartTime = std::chrono::steady_clock::now();
+
+    // ATTENTION: put the declation of logger before all the others; this instance is necessary to create a logger text file
+    Core::InitLogger("DoorsEngineLog.txt");
+    Render::SetupLogger(Core::GetLogFile(), (void*)Core::GetLogStorage());
+
+    // explicitly init Windows Runtime and COM
+    HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+    if (FAILED(hr))
+    {
+        Core::LogErr("can't explicitly initialize Windows Runtime and COM");
+        exit(-1);
+    }
+
+    eventHandler_.AddEventListener(&engine_);         // set engine class as one of the window events listeners
+    wndContainer_.SetEventHandler(&eventHandler_);    // set an event handler for the window container
+
+    InitWindow();
+    InitEngine();
+
+    Core::D3DClass& d3d   = engine_.GetGraphicsClass().GetD3DClass();
+    ID3D11Device* pDevice = d3d.GetDevice();
+
+    InitScene(pDevice, settings_);
+    InitRenderModule(pDevice, settings_, &render_);
+
+    // create a facade btw the UI and the engine parts
+    pFacadeEngineToUI_ = new UI::FacadeEngineToUI(
+        d3d.GetDeviceContext(),
+        &render_,
+        &entityMgr_);
+
+    // initialize the main UserInterface class
+    InitGUI(pDevice, d3d.GetWindowWidth(), d3d.GetWindowHeight());
+
+    auto initEndTime = std::chrono::steady_clock::now();
+    std::chrono::duration<float, std::milli> initDuration = initEndTime - initStartTime;
+
+    // create a str with duration time of the engine initialization process
+    sprintf(g_String, "Init time: %d ms", (int)initDuration.count());
+    userInterface_.CreateConstStr(pDevice, g_String, { 10, 325 });
+}
+
+///////////////////////////////////////////////////////////
+
 bool Application::InitWindow()
 {
      // get main params for the window initialization
@@ -72,80 +120,111 @@ bool Application::InitEngine()
 
 ///////////////////////////////////////////////////////////
 
-bool Application::InitScene(ID3D11Device* pDevice)
+bool Application::InitScene(ID3D11Device* pDevice, const Settings& settings)
 {
     const Core::D3DClass& d3d = engine_.GetGraphicsClass().GetD3DClass();
+    const SIZE windowedSize   = d3d.GetWindowedWndSize();
     const SIZE fullscreenSize = d3d.GetFullscreenWndSize();
 
-    CameraInitParams params;
-    params.nearZ       = settings_.GetFloat("NEAR_Z");
-    params.farZ        = settings_.GetFloat("FAR_Z");
-    params.fovInRad    = settings_.GetFloat("FOV_IN_RAD");         // field of view in radians
-    params.aspectRatio = (float)fullscreenSize.cx / (float)fullscreenSize.cy;
+    CameraInitParams editorCamParams;
+    editorCamParams.nearZ       = settings_.GetFloat("NEAR_Z");
+    editorCamParams.farZ        = settings_.GetFloat("FAR_Z");
+    editorCamParams.fovInRad    = settings_.GetFloat("FOV_IN_RAD");         // field of view in radians
 
-    //params.sensitivity = settings_.GetFloat("MOUSE_SENSITIVITY"); // camera rotation speed
-    //params.walkSpeed = settings_.GetFloat("PLAYER_WALK_SPEED");
-    //params.runSpeed = settings_.GetFloat("PLAYER_RUN_SPEED");
+    editorCamParams.wndWidth    = (float)windowedSize.cx;
+    editorCamParams.wndHeight   = (float)windowedSize.cy;
+    editorCamParams.aspectRatio = editorCamParams.wndWidth / editorCamParams.wndHeight;
+
+    CameraInitParams gameCamParams = editorCamParams;
+    gameCamParams.wndWidth      = (float)fullscreenSize.cx;
+    gameCamParams.wndHeight     = (float)fullscreenSize.cy;
+    gameCamParams.aspectRatio   = editorCamParams.wndWidth / editorCamParams.wndHeight;
 
 
     SceneInitializer sceneInitializer;
 
-    bool result = sceneInitializer.Initialize(pDevice, entityMgr_, params);
+    bool result = sceneInitializer.Initialize(
+        pDevice,
+        entityMgr_,
+        editorCamParams,
+        gameCamParams);
     if (!result)
     {
         LogErr("can't initialize the scene's some stuff");
     }
 
 
-    // initialize a base view matrix with the camera
-    // for 2D user interface rendering (in GAME mode)
-    const EntityID gameCamID = entityMgr_.nameSystem_.GetIdByName("game_camera");
-    DirectX::XMMATRIX baseViewMatrix = entityMgr_.cameraSystem_.GetView(gameCamID);   // is used for 2D rendering
-    engine_.GetGraphicsClass().SetBaseViewMatrix(baseViewMatrix);
+    const std::string cameraEnttName = (startInGameMode_) ? "game_camera" : "editor_camera";
+    const EntityID    cameraID = entityMgr_.nameSystem_.GetIdByName(cameraEnttName);
+    Core::CGraphics&  graphics = engine_.GetGraphicsClass();
 
     // setup the current camera
     const EntityID editorCamID = entityMgr_.nameSystem_.GetIdByName("editor_camera");
-    engine_.GetGraphicsClass().SetCurrentCamera(editorCamID);
+    graphics.SetCurrentCamera(editorCamID);
+
+    // setup distance after which the objects are fully fogged
+    const float fogStart = settings.GetFloat("FOG_START");
+    const float fogRange = settings.GetFloat("FOG_RANGE");
+    const float fullFogDistance = fogStart + fogRange;
+    graphics.SetFullFogDist((int)fullFogDistance);
 
     return true;
 }
 
 ///////////////////////////////////////////////////////////
 
-void Application::Initialize()
+bool Application::InitRenderModule(
+    ID3D11Device* pDevice,
+    const Settings& settings,
+    Render::CRender* pRender)
 {
-    // ATTENTION: put the declation of logger before all the others; this instance is necessary to create a logger text file
-    Core::InitLogger();
+    // setup render initial params
 
-    eventHandler_.AddEventListener(&engine_);
+    // prepare WVO (world * base_view * ortho) matrix for 2D rendering
+    const std::string cameraEnttName  = (startInGameMode_) ? "game_camera" : "editor_camera";
+    const EntityID cameraID           = entityMgr_.nameSystem_.GetIdByName(cameraEnttName);
+ 
+    const DirectX::XMMATRIX  world    = DirectX::XMMatrixIdentity();
+    const DirectX::XMMATRIX& baseView = entityMgr_.cameraSystem_.GetBaseView(cameraID);
+    const DirectX::XMMATRIX& ortho    = entityMgr_.cameraSystem_.GetOrtho(cameraID);
+    const DirectX::XMMATRIX  WVO      = world * baseView * ortho;
 
-    // set an event handler for the window container
-    wndContainer_.SetEventHandler(&eventHandler_);
+    Render::InitParams renderParams;
+    renderParams.worldViewOrtho       = DirectX::XMMatrixTranspose(WVO);
 
-    InitWindow();
-    InitEngine();
+    // zaporizha sky box horizon (darker by 0.1f)
+    renderParams.fogColor =
+    {
+        settings.GetFloat("FOG_RED"),
+        settings.GetFloat("FOG_GREEN"),
+        settings.GetFloat("FOG_BLUE"),
+    };
+    renderParams.fogStart = settings.GetFloat("FOG_START");
+    renderParams.fogRange = settings.GetFloat("FOG_RANGE");
 
+    const DirectX::XMFLOAT3 skyColorCenter = g_ModelMgr.GetSky().GetColorCenter();
+    const DirectX::XMFLOAT3 skyColorApex   = g_ModelMgr.GetSky().GetColorApex();
 
-    // explicitly init Windows Runtime and COM
-    HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-    Core::Assert::NotFailed(hr, "ERROR: can't explicitly initialize Windows Runtime and COM");
+    // setup the fog color according to the sky center color
+    renderParams.fogColor.x *= skyColorCenter.x;
+    renderParams.fogColor.y *= skyColorCenter.y;
+    renderParams.fogColor.z *= skyColorCenter.z;
 
-    // init DirectX stuff
-    Core::D3DClass& d3d = engine_.GetGraphicsClass().GetD3DClass();
-    ID3D11Device* pDevice = d3d.GetDevice();
-    ID3D11DeviceContext* pContext = d3d.GetDeviceContext();
+    
+    ID3D11DeviceContext* pContext = nullptr;
+    pDevice->GetImmediateContext(&pContext);
 
-    InitScene(pDevice);
+    // init the render module
+    bool result = pRender->Initialize(pDevice, pContext, renderParams);
+    if (!result)
+    {
+        LogErr("can't init the render module");
+        return false;
+    }
 
-    // create a facade btw the UI and the engine parts
-    pFacadeEngineToUI_ = new UI::FacadeEngineToUI(pContext, &render_, &entityMgr_);
+    pRender->SetSkyGradient(pContext, skyColorCenter, skyColorApex);
 
-    // initialize the main UserInterface class
-    InitGUI(pDevice, d3d.GetWindowWidth(), d3d.GetWindowHeight());
-
-    // create a str with duration time of the engine initialization process
-    sprintf(g_String, "Engine init time: %f s", engine_.GetTimer().GetGameTime());
-    userInterface_.CreateConstStr(pDevice, g_String, { 10, 325 });
+    return true;
 }
 
 ///////////////////////////////////////////////////////////

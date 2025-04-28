@@ -24,16 +24,6 @@ CRender::~CRender() {}
 //                               public methods
 // =================================================================================
 
-void CRender::SetupLogger(FILE* pFile)
-{
-    // setup a file for writing log msgs into it;
-    // also setup a list which will be filled with log messages;
-    
-    LogDbg("logger is setup successfully");
-}
-
-///////////////////////////////////////////////////////////
-
 bool CRender::Initialize(
     ID3D11Device* pDevice,
     ID3D11DeviceContext* pContext,
@@ -598,6 +588,14 @@ void CRender::SetFogColor(ID3D11DeviceContext* pContext, const DirectX::XMFLOAT3
 {
     cbpsRareChanged_.data.fogColor = color;
     cbpsRareChanged_.ApplyChanges(pContext);
+}
+
+///////////////////////////////////////////////////////////
+
+void CRender::SetWorldViewOrtho(ID3D11DeviceContext* pContext, const DirectX::XMMATRIX& WVO)
+{
+    // update the WVO (world * base_view * orthographic) matrix for 2D rendering
+    shadersContainer_.fontShader_.SetWorldViewOrtho(pContext, WVO);
 }
 
 ///////////////////////////////////////////////////////////

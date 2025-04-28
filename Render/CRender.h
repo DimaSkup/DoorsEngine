@@ -124,7 +124,7 @@ public:
     void SetFogStart(ID3D11DeviceContext* pContext, const float start);
     void SetFogRange(ID3D11DeviceContext* pContext, const float range);
     void SetFogColor(ID3D11DeviceContext* pContext, const DirectX::XMFLOAT3 color);
-
+    void SetWorldViewOrtho(ID3D11DeviceContext* pContext, const DirectX::XMMATRIX& WVO);
 
     void SwitchFlashLight(ID3D11DeviceContext* pContext, const bool state);
 

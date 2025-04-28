@@ -31,9 +31,9 @@ bool InitRender::InitializeShaders(
     try
     {
         bool result = false;
-        char vsPath[64]{ '\0' };            // buffer for path to vertex shader
-        char psPath[64]{ '\0' };            // buffer for path to pixel shader
-        char gsPath[64]{ '\0' };            // buffer for path to geometry shader
+        //char vsPath[64]{ '\0' };            // buffer for path to vertex shader
+        //char psPath[64]{ '\0' };            // buffer for path to pixel shader
+        //char gsPath[64]{ '\0' };            // buffer for path to geometry shader
         const char* pathToDir = "shaders/"; // path to direction with shader files (.cso)
 
 
@@ -47,7 +47,7 @@ bool InitRender::InitializeShaders(
         result = shadersContainer.lightShader_.Initialize(pDevice, "shaders/LightVS.cso", "shaders/LightPS.cso");
         Assert::True(result, "can't initialize the light shader class");
 
-
+        
         result = shadersContainer.fontShader_.Initialize(pDevice, WVO, "shaders/fontVS.cso", "shaders/fontPS.cso");
         Assert::True(result, "can't initialize the font shader class");
 

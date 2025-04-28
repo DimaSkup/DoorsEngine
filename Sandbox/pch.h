@@ -15,7 +15,7 @@
 #include <BasicModel.h>
 
 #include "Common/Types.h"
-#include "Common/log.h"
+//#include "Common/log.h"
 #include "Common/FileSystem.h"
 #include "Common/FileSystemPaths.h"
 #include "Common/MathHelper.h"
