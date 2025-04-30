@@ -24,9 +24,11 @@ public:
     MaterialID AddMaterial(Material&& material);
 
     // getters
-    Material& GetMaterialByID(const MaterialID id);
-    void GetMaterialsByIDs(const MaterialID* ids, const size numMaterials, cvector<Material>& outMaterials) const;
+    Material&  GetMaterialByID    (const MaterialID id);
+    void       GetMaterialsByIDs  (const MaterialID* ids, const size numMaterials, cvector<Material>& outMaterials) const;
     MaterialID GetMaterialIdByName(const char* name);
+
+    inline size GetNumAllMaterials() const { return materials_.size(); }
 
 private:
     cvector<MaterialID> ids_;

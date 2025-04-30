@@ -208,7 +208,7 @@ void PrintExceptionErrHelper(const LIB_Exception& e, const bool showMsgBox)
 {
     // show a message box if we need
     if (showMsgBox)
-        MessageBoxW(NULL, e.GetStrWide(), L"Error", MB_ICONERROR);
+        MessageBoxA(NULL, e.GetConstStr(), "Error", MB_ICONERROR);
 
     // print an error msg into the console and log file
     printf("%s", RED);                                   // setup console color

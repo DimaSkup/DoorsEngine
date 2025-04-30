@@ -82,16 +82,15 @@ void FontShader::Render(
     const uint32_t fontVertexSize,
     SRV* const* ppFontTexSRV)
 {
-    // renders fonts on the screen using HLSL shaders
-
-    Assert::True(vertexBuffers != nullptr, "input ptr to vertex buffers arr == nullptr");
-    Assert::True(indexBuffers != nullptr,  "input ptr to index buffers arr == nullptr");
-    Assert::True(indexCounts != nullptr,   "input ptr to index counts arr == nullptr");
-    Assert::True(numSentences > 0,         "input number of sentences must be > 0");
-
+    // renders text onto the screen
     try
     {
-        // bind vertex and pixel shaders for rendering
+        Assert::True(!vertexBuffers,   "input ptr to vertex buffers arr == nullptr");
+        Assert::True(!indexBuffers,    "input ptr to index buffers arr == nullptr");
+        Assert::True(!indexCounts,     "input ptr to index counts arr == nullptr");
+        Assert::True(numSentences > 0, "input number of sentences must be > 0");
+
+        // bind vertex and pixel shaders
         pContext->VSSetShader(vs_.GetShader(), nullptr, 0U);
         pContext->PSSetShader(ps_.GetShader(), nullptr, 0U);
 
@@ -99,7 +98,7 @@ void FontShader::Render(
         pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         pContext->IASetInputLayout(vs_.GetInputLayout());
 
-        // set the sampler state for the pixel shader
+        // set the sampler state and textures
         pContext->PSSetSamplers(0, 1, samplerState_.GetAddressOf());
         pContext->PSSetShaderResources(0, 1, ppFontTexSRV);
 
@@ -110,7 +109,7 @@ void FontShader::Render(
         {
             // bind vb/ib
             pContext->IASetVertexBuffers(0, 1, &vertexBuffers[idx], &stride, &offset);
-            pContext->IASetIndexBuffer(indexBuffers[idx], DXGI_FORMAT_R32_UINT, 0);
+            pContext->IASetIndexBuffer(indexBuffers[idx], DXGI_FORMAT_R32_UINT, 0U);
 
             // render the fonts on the screen
             pContext->DrawIndexed(indexCounts[idx], 0, 0);
@@ -119,7 +118,8 @@ void FontShader::Render(
     catch (LIB_Exception& e)
     {
         LogErr(e, true);
-        throw LIB_Exception("can't render using the shader");
+        LogErr("can't render using the shader");
+        return;
     }
 }
 

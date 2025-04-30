@@ -118,13 +118,16 @@ bool SceneInitializer::InitCameras(
     {
         EntityID editorCamID = enttMgr.CreateEntity("editor_camera");
         EntityID gameCamID   = enttMgr.CreateEntity("game_camera");
+        EntityID matBrowserCamID = enttMgr.CreateEntity("material_browser_camera");
 
         // add transform component: positions and directions
         const XMFLOAT3 editorCamPos = { -18, 1, -15 };
         const XMFLOAT3 gameCamPos   = { 0, 0, 0 };
+        const XMFLOAT3 matBrowserCamPos = { 0, 0, -2.0f };
 
         enttMgr.AddTransformComponent(editorCamID, editorCamPos, { 0,0,1,0 });
         enttMgr.AddTransformComponent(gameCamID, gameCamPos, { 0,0,1,0 });
+        enttMgr.AddTransformComponent(matBrowserCamID, matBrowserCamPos, { 0,0,1,0 });
 
         // add camera component
         ECS::CameraData editorCamData;
@@ -139,13 +142,20 @@ bool SceneInitializer::InitCameras(
         gameCamData.nearZ         = gameCamParams.nearZ;
         gameCamData.farZ          = gameCamParams.farZ;
 
+        ECS::CameraData matBrowserCamData;
+        matBrowserCamData.fovY        = 1.1f;
+        matBrowserCamData.aspectRatio = 1;
+        matBrowserCamData.nearZ       = 1.0f;
+        matBrowserCamData.farZ        = 100.0f;
+
         enttMgr.AddCameraComponent(editorCamID, editorCamData);
         enttMgr.AddCameraComponent(gameCamID, gameCamData);
-
+        enttMgr.AddCameraComponent(matBrowserCamID, matBrowserCamData);
 
         // initialize view/projection matrices of the editor/game camera
         ECS::CameraSystem& camSys = enttMgr.cameraSystem_;
 
+        // TODO: move initial UpdateView and SetBaseViewMatrix into the CameraSystem::AddRecord()
         const DirectX::XMMATRIX& editorCamView = camSys.UpdateView(editorCamID);
         camSys.SetBaseViewMatrix(editorCamID, editorCamView);
         camSys.SetupOrthographicMatrix(
@@ -163,6 +173,10 @@ bool SceneInitializer::InitCameras(
             gameCamParams.wndHeight,
             gameCamParams.nearZ,
             gameCamParams.farZ);
+
+        const DirectX::XMMATRIX& matBrowserCamView = camSys.UpdateView(matBrowserCamID);
+        //camSys.SetBaseViewMatrix(matBrowserCamID, matBrowserCamView);
+        //camSys.SetupOrthographicMatrix()
     }
     catch (EngineException & e)
     {
@@ -844,16 +858,17 @@ void CreateTreesPine(ECS::EntityMgr& mgr, const BasicModel& model)
 
     // ---------------------------------------------
 
-    std::vector<std::string> names(numEntts, "tree_pine_");
-    std::vector<XMFLOAT3>    positions(numEntts);
-    std::vector<XMVECTOR>    quats(numEntts);
-    std::vector<float>       uniScales(numEntts, 1.0f);
+    std::string names[numEntts];
+    XMFLOAT3    positions[numEntts];
+    XMVECTOR    directions[numEntts];
+    float       uniScales[numEntts];
 
 
     // generate a name for each tree
     for (int i = 0; std::string& name : names)
     {
-        name += std::to_string(enttsIDs[i++]);
+        sprintf(g_String, "tree_pine_%ld", ids[i++]);
+        name = g_String;
     }
 
     // generate positions
@@ -863,22 +878,15 @@ void CreateTreesPine(ECS::EntityMgr& mgr, const BasicModel& model)
         pos.z = MathHelper::RandF(-150, 150);
         pos.y = GetHeightOfGeneratedTerrainAtPoint(pos.x, pos.z);
     }
-
     positions[0] = { 0,0,0 };
 
-    // generate direction quats
+    // generate directions
     for (index i = 0; i < numEntts; ++i)
-    {
-        float angleY = MathHelper::RandF(0, 314) * 0.01f;
-        quats[i] = DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XM_PIDIV2, angleY, 0);
-    }
+        directions[i] = { 0,0,1 };
 
     // generate a scale value for each tree
     for (index i = 0; i < numEntts; ++i)
-    {
-        //uniScales[i] += MathHelper::RandF(0.0f, 50.0f) * 0.01f;
         uniScales[i] = 0.01f;
-    }
 
     // setup rendering params
     ECS::RenderInitParams renderParams;
@@ -886,8 +894,11 @@ void CreateTreesPine(ECS::EntityMgr& mgr, const BasicModel& model)
     renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
     // add components to each tree entity
-    mgr.AddTransformComponent(ids, numEntts, positions.data(), quats.data(), uniScales.data());
-    mgr.AddNameComponent(ids, names.data(), numEntts);
+    mgr.AddTransformComponent(ids, numEntts, positions, directions, uniScales);
+    const DirectX::XMVECTOR rotQuat = DirectX::XMQuaternionRotationAxis({ 1,0,0 }, DirectX::XM_PIDIV2);
+    mgr.transformSystem_.RotateLocalSpacesByQuat(ids, numEntts, rotQuat);
+
+    mgr.AddNameComponent(ids, names, numEntts);
     mgr.AddModelComponent(ids, model.GetID(), numEntts);
     mgr.AddRenderingComponent(ids, numEntts, renderParams);
 
@@ -1607,7 +1618,7 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
 
     //const ModelID lightPoleID      = creator.ImportFromFile(pDevice, lightPolePath);
     //const ModelID treeSpruceID     = creator.ImportFromFile(pDevice, treeSprucePath.c_str());
-    //const ModelID treePineID = creator.ImportFromFile(pDevice, treePinePath.c_str());
+    const ModelID treePineID = creator.ImportFromFile(pDevice, treePinePath.c_str());
     //const ModelID nanosuitID       = creator.ImportFromFile(pDevice, nanosuitPath);
     const ModelID stalkerFreedomID = creator.ImportFromFile(pDevice, stalkerFreedom1Path.c_str());
     //const ModelID stalkerHouse1ID  = creator.ImportFromFile(pDevice, stalkerHouseSmallPath);
@@ -1632,7 +1643,7 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     //BasicModel& apartment       = g_ModelMgr.GetModelByID(apartmentID);
     //BasicModel& sovietStatue    = g_ModelMgr.GetModelByID(sovietStatueID);
     //BasicModel& treeSpruce      = g_ModelMgr.GetModelByID(treeSpruceID);
-    //BasicModel& treePine = g_ModelMgr.GetModelByID(treePineID);
+    BasicModel& treePine = g_ModelMgr.GetModelByID(treePineID);
     //BasicModel& powerHVTower    = g_ModelMgr.GetModelByID(powerHVTowerID);
     //BasicModel& nanosuit        = g_ModelMgr.GetModelByID(nanosuitID);
     BasicModel& stalkerFreedom = g_ModelMgr.GetModelByID(stalkerFreedomID);
@@ -1651,7 +1662,7 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     //SetupBuilding9(building);
     SetupAk47(ak47);
 
-    //CreateTreesPine(mgr, treePine);
+    CreateTreesPine(mgr, treePine);
     //CreateTreesSpruce(mgr, treeSpruce);
     //CreatePowerLine(mgr, powerHVTower);
     //CreateLightPoles(mgr, lightPole);

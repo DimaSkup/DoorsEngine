@@ -60,8 +60,8 @@ public:
 	void RenderSceneWnd(Core::SystemState& systemState);
 
 	
-	
-	inline bool IsSceneWndHovered() const { return isSceneWndHovered_; }
+    inline IFacadeEngineToUI* GetFacade() const { return pFacadeEngineToUI_; }
+	inline bool IsSceneWndHovered()       const { return isSceneWndHovered_; }
 
 	// Public modification API
 	SentenceID CreateConstStr(

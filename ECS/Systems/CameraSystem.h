@@ -37,9 +37,22 @@ public:
 
     inline const XMMATRIX& GetBaseView   (const EntityID id) const { return (HasEntity(id)) ? pCameraComponent_->data[id].baseView : pCameraComponent_->data[0].baseView; }
     inline const XMMATRIX& GetView       (const EntityID id) const { return (HasEntity(id)) ? pCameraComponent_->data[id].view     : pCameraComponent_->data[0].view; }
-    inline const XMMATRIX& GetOrtho      (const EntityID id) const { return (HasEntity(id)) ? pCameraComponent_->data[id].ortho    : pCameraComponent_->data[0].ortho; }
-    inline const XMMATRIX& GetProj       (const EntityID id) const { return (HasEntity(id)) ? pCameraComponent_->data[id].proj     : pCameraComponent_->data[0].proj; }
     inline const XMMATRIX& GetInverseView(const EntityID id) const { return (HasEntity(id)) ? pCameraComponent_->data[id].invView  : pCameraComponent_->data[0].invView; }
+    inline const XMMATRIX& GetProj       (const EntityID id) const { return (HasEntity(id)) ? pCameraComponent_->data[id].proj     : pCameraComponent_->data[0].proj; }
+    inline const XMMATRIX& GetOrtho      (const EntityID id) const { return (HasEntity(id)) ? pCameraComponent_->data[id].ortho    : pCameraComponent_->data[0].ortho; }
+    
+    inline const XMMATRIX  GetViewProj(const EntityID id) const
+    {
+        if (HasEntity(id))
+        {
+            const XMMATRIX& view = GetView(id);
+            const XMMATRIX& proj = GetProj(id);
+            return view * proj;
+        }
+
+        return DirectX::XMMatrixIdentity();
+    }
+    
 
     void SetBaseViewMatrix(const EntityID id, const XMMATRIX& baseView);
 

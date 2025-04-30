@@ -46,7 +46,7 @@ bool InitRender::InitializeShaders(
 
         result = shadersContainer.lightShader_.Initialize(pDevice, "shaders/LightVS.cso", "shaders/LightPS.cso");
         Assert::True(result, "can't initialize the light shader class");
-
+      
         
         result = shadersContainer.fontShader_.Initialize(pDevice, WVO, "shaders/fontVS.cso", "shaders/fontPS.cso");
         Assert::True(result, "can't initialize the font shader class");
@@ -56,13 +56,17 @@ bool InitRender::InitializeShaders(
 
         result = shadersContainer.skyDomeShader_.Initialize(pDevice, "shaders/SkyDomeVS.cso", "shaders/SkyDomePS.cso");
         Assert::True(result, "can't initialize the sky dome shader");
-
+        
 
         result = shadersContainer.outlineShader_.Initialize(pDevice, "shaders/OutlineVS.cso", "shaders/OutlinePS.cso");
         Assert::True(result, "can't initialize the outline shader");
 
         result = shadersContainer.billboardShader_.Initialize(pDevice, "shaders/billboardVS.cso", "shaders/billboardPS.cso", "shaders/billboardGS.cso");
         Assert::True(result, "can't initialize the billboard shader");
+
+        result = shadersContainer.materialIconShader_.Initialize(pDevice, "shaders/MaterialIconVS.cso", "shaders/MaterialIconPS.cso");
+        if (!result)
+            LogErr("can't initialize the material icon shader");
 
         
         LogDbg("shaders initialization: finished successfully");

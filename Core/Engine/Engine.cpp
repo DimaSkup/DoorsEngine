@@ -260,8 +260,7 @@ void Engine::CalculateFrameStats()
     {
         // store the fps value for later using (for example: render this value as text onto the screen)
         systemState_.fps = frameCount;
-        //systemState_.frameTime = 1000.0f / (float)frameCount;  // ms per frame
-
+   
         // reset for next average
         frameCount = 0;
         ++timeElapsed;
@@ -288,56 +287,6 @@ void Engine::CalculateFrameStats()
     }
 }
 
-///////////////////////////////////////////////////////////
-
-void Engine::RenderMaterialsIcons(
-    ID3D11ShaderResourceView** outArrShaderResourceViews,
-    const size numShaderResourceViews,
-    const int iconWidth,
-    const int iconHeight)
-{
-    // render material icon (just sphere model with particular material) into
-    // frame buffer and store shader resource view into the input arr;
-    //
-    // outArrShaderResourceViews is supposed to be already allocated to size numShaderResourceViews
-
-    Assert::True(outArrShaderResourceViews != nullptr, "input ptr to arr of shader resource views == nullptr");
-
-    D3DClass&            d3d = graphics_.GetD3DClass();
-    ID3D11Device*        pDevice = d3d.GetDevice();
-    ID3D11DeviceContext* pContext = d3d.GetDeviceContext();
-
-    // setup params for the frame buffer (we will use the same params for each)
-    FrameBufferSpecification frameBufSpec;
-
-    frameBufSpec.width          = (UINT)iconWidth;
-    frameBufSpec.height         = (UINT)iconHeight;
-    frameBufSpec.format         = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM;
-    frameBufSpec.screenNear     = d3d.GetScreenNear();
-    frameBufSpec.screenDepth    = d3d.GetScreenDepth();
-
-    // alloc memory for frame buffers and init each frame buffer
-    materialsFrameBuffers_.resize(numShaderResourceViews);
-
-    for (int i = 0; FrameBuffer& buf : materialsFrameBuffers_)
-    {
-        bool result = buf.Initialize(pDevice, frameBufSpec);
-        if (!result)
-        {
-            sprintf(g_String, "can't initialize a frame buffer (idx: %d)", i);
-            LogErr(g_String);
-        }
-        ++i;
-    }
-
-    // render scene into each frame buffer
-    for (int i = 0; FrameBuffer& buf : materialsFrameBuffers_)
-    {
-        buf.ClearBuffers(pContext, { 0.5f,0.5f,0.5f,1.0f });
-        buf.Bind(pContext);
-        graphics_.Render3D(pEnttMgr_, pRender_);
-    }
-}
 
 ///////////////////////////////////////////////////////////
 
@@ -360,21 +309,11 @@ void Engine::RenderFrame()
 
             d3d.BeginScene();
             graphics_.Render3D(pEnttMgr_, pRender_);
-                                
-            //RenderModelIntoTexture(pContext, frameBuffer_);
+            
+      
 
             // begin rendering of the editor elements
             imGuiLayer_.Begin();
-
-            //pFacadeEngineToUI_->pFrameBufTexSRV_ = frameBuffer_.GetSRV();
-#if 0
-            if (ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_NoMove))
-            {
-                ImGui::Image((ImTextureID)frameBuffer_.GetSRV(), { 500 * 1.777f, 500 });
-            }
-            ImGui::End();
-#endif
-
             RenderUI(pUserInterface_, pRender_);
 
             ImGui::End();
@@ -1025,6 +964,7 @@ void Engine::HandleEditorEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnt
             }
             case LeftDoubleClick:
             {
+                return;
                 assert(0 && "FIXME: double click");
     #if 0
                 // handle double click right on selected entity

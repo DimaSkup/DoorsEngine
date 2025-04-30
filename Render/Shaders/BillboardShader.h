@@ -35,8 +35,8 @@ public:
         ID3D11DeviceContext* pContext,
         const Material* materials,
         const DirectX::XMFLOAT3* positions,   // positions in world space
-        const DirectX::XMFLOAT2* sizes,       // sizes of billboards
-        const int count);                     // the number of billboards to render
+        const DirectX::XMFLOAT2* sizes,       // sizes of billboards (width, height)
+        const int numBillboards);
 
     void Render(
         ID3D11DeviceContext* pContext,

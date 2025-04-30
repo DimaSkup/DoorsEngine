@@ -22,16 +22,19 @@ namespace UI
 FacadeEngineToUI::FacadeEngineToUI(
     ID3D11DeviceContext* pContext,
     Render::CRender* pRender,
-    ECS::EntityMgr* pEntityMgr)
+    ECS::EntityMgr* pEntityMgr,
+    Core::CGraphics* pGraphics)
     :
     pContext_(pContext),
     pRender_(pRender),
-    pEntityMgr_(pEntityMgr)
+    pEntityMgr_(pEntityMgr),
+    pGraphics_(pGraphics)
 {
     // set pointers to the subsystems
-    Assert::NotNullptr(pRender, "ptr to render == nullptr");
-    Assert::NotNullptr(pContext, "ptr to device context == nullptr");
+    Assert::NotNullptr(pRender,    "ptr to render == nullptr");
+    Assert::NotNullptr(pContext,   "ptr to device context == nullptr");
     Assert::NotNullptr(pEntityMgr, "ptr to the entt mgr == nullptr");
+    Assert::NotNullptr(pGraphics,  "ptr to the graphics class == nullptr");
 }
 
 ///////////////////////////////////////////////////////////
@@ -146,17 +149,23 @@ bool FacadeEngineToUI::AddNameComponent(const EntityID id, const std::string& na
     return true;
 }
 
+///////////////////////////////////////////////////////////
+
 bool FacadeEngineToUI::AddTransformComponent(const EntityID id, const Vec3& pos, const Vec3& direction, const float uniformScale)
 {
     pEntityMgr_->AddTransformComponent(id, pos.ToFloat3(), direction.ToXMVector(), uniformScale);
     return true;
 }
 
+///////////////////////////////////////////////////////////
+
 bool FacadeEngineToUI::AddModelComponent(const EntityID enttID, const uint32_t modelID)
 {
     pEntityMgr_->AddModelComponent(enttID, modelID);
     return true;
 }
+
+///////////////////////////////////////////////////////////
 
 bool FacadeEngineToUI::AddRenderedComponent(const EntityID enttID)
 {
@@ -167,6 +176,8 @@ bool FacadeEngineToUI::AddRenderedComponent(const EntityID enttID)
     pEntityMgr_->AddRenderingComponent(enttID, renderParams);
     return true;
 }
+
+///////////////////////////////////////////////////////////
 
 bool FacadeEngineToUI::AddBoundingComponent(const EntityID id, const int boundType, const DirectX::BoundingBox& aabb)
 {
@@ -679,7 +690,7 @@ bool FacadeEngineToUI::GetSkyData(
     const Render::SkyDomeShader& skyDomeShader = pRender_->GetShadersContainer().skyDomeShader_;
 
     center = skyDomeShader.GetColorCenter();
-    apex = skyDomeShader.GetColorApex();
+    apex   = skyDomeShader.GetColorApex();
     offset = pEntityMgr_->transformSystem_.GetPosition(skyEnttID);
 
     return true;
@@ -718,10 +729,7 @@ bool FacadeEngineToUI::SetSkyOffset(const Vec3& offset)
 
 ///////////////////////////////////////////////////////////
 
-bool FacadeEngineToUI::SetSkyTexture(const int idx, const uint32_t textureID)
-{
-    return true;
-}
+bool FacadeEngineToUI::SetSkyTexture(const int idx, const uint32_t textureID) { return true; }
 
 
 // =================================================================================
@@ -737,36 +745,17 @@ bool FacadeEngineToUI::GetFogData(
     DirectX::XMFLOAT3 color;
 
     pRender_->GetFogData(color, fogStart, fogRange, fogEnabled);
-    fogColor = { color.x, color.y, color.z };
+    fogColor = color;
 
     return true;
 }
 
 ///////////////////////////////////////////////////////////
 
-bool FacadeEngineToUI::SetFogStart(const float start)
-{
-    pRender_->SetFogStart(pContext_, start);
-    return true;
-}
-
-bool FacadeEngineToUI::SetFogRange(const float range)
-{
-    pRender_->SetFogRange(pContext_, range);
-    return true;
-}
-
-bool FacadeEngineToUI::SetFogEnabled(const bool enabled)
-{
-    pRender_->SetFogEnabled(pContext_, enabled);
-    return true;
-}
-
-bool FacadeEngineToUI::SetFogColor(const ColorRGB& color)
-{
-    pRender_->SetFogColor(pContext_, color.ToFloat3());
-    return true;
-}
+bool FacadeEngineToUI::SetFogStart  (const float start)     { pRender_->SetFogStart(pContext_, start); return true; }
+bool FacadeEngineToUI::SetFogRange  (const float range)     { pRender_->SetFogRange(pContext_, range); return true; }
+bool FacadeEngineToUI::SetFogEnabled(const bool enabled)    { pRender_->SetFogEnabled(pContext_, enabled); return true; }
+bool FacadeEngineToUI::SetFogColor  (const ColorRGB& color) { pRender_->SetFogColor(pContext_, color.ToFloat3()); return true; }
 
 
 // =================================================================================
@@ -782,7 +771,7 @@ bool FacadeEngineToUI::SwitchDebugState(const int debugType)
 // =================================================================================
 // For assets manager
 // =================================================================================
-bool FacadeEngineToUI::GetModelsNamesList(cvector<std::string>& outNames)
+bool FacadeEngineToUI::GetModelsNamesList(cvector<std::string>& outNames) const
 {
     // get a name of each loaded model
     Core::cvector<Core::ModelName> modelsNames;
@@ -793,30 +782,6 @@ bool FacadeEngineToUI::GetModelsNamesList(cvector<std::string>& outNames)
     for (int i = 0; const Core::ModelName& name : modelsNames)
         outNames[i++] = name.name;
 
-    return true;
-}
-
-///////////////////////////////////////////////////////////
-
-bool FacadeEngineToUI::GetShaderResourceViewByTexID(
-    const uint32_t textureID,
-    SRV*& pSRV)
-{
-    pSRV = g_TextureMgr.GetSRVByTexID(textureID);
-    return true;
-}
-
-///////////////////////////////////////////////////////////
-
-bool FacadeEngineToUI::GetArrShaderResourceViews(
-    SRV**& outArrShadersResourceViews,
-    size& outNumViews) const
-{
-    // output: 1. array of pointers to shader resource views
-    //         2. size of this array
-
-    outArrShadersResourceViews = (SRV**)g_TextureMgr.GetAllShaderResourceViews();
-    outNumViews = g_TextureMgr.GetNumShaderResourceViews();
     return true;
 }
 
@@ -840,6 +805,46 @@ bool FacadeEngineToUI::GetTextureIdByIdx(const index idx, TexID& outTextureID) c
 
 ///////////////////////////////////////////////////////////
 
+bool FacadeEngineToUI::GetNumMaterials(size& numMaterials) const
+{
+    // get the number of all the currenly loaded materials
+    numMaterials = g_MaterialMgr.GetNumAllMaterials();
+    return true;
+}
+
+///////////////////////////////////////////////////////////
+
+bool FacadeEngineToUI::GetSRVByTexID(const TexID textureID, SRV*& pSRV) const 
+{
+    pSRV = g_TextureMgr.GetSRVByTexID(textureID);
+    return true;
+}
+
+///////////////////////////////////////////////////////////
+
+bool FacadeEngineToUI::GetArrTexturesSRVs(
+    SRV**& outArrShadersResourceViews,
+    size& outNumViews) const
+{
+    // output: 1. array of pointers to shader resource views
+    //         2. size of this array
+
+    outArrShadersResourceViews = (SRV**)g_TextureMgr.GetAllShaderResourceViews();
+    outNumViews = g_TextureMgr.GetNumShaderResourceViews();
+    return true;
+}
+
+///////////////////////////////////////////////////////////
+
+bool FacadeEngineToUI::GetArrMaterialsSRVs(
+    SRV**& outArrShaderResourceViews,
+    size& outNumViews) const
+{
+    return false;
+}
+
+///////////////////////////////////////////////////////////
+
 bool FacadeEngineToUI::SetEnttMaterial(
     const EntityID enttID,
     const SubsetID subsetID,
@@ -854,12 +859,22 @@ bool FacadeEngineToUI::SetEnttMaterial(
 ///////////////////////////////////////////////////////////
 
 bool FacadeEngineToUI::RenderMaterialsIcons(
-    ID3D11ShaderResourceView** outArrShaderResourceViews,
-    const size numShaderResourceViews,
+    const int startMaterialIdx,               // render materials of some particular range [start, start + num_of_views]
+    const size numIcons,
     const int iconWidth,
     const int iconHeight)
 {
-    return false;
+    materialIcons_.resize(numIcons);
+
+    pGraphics_->RenderMaterialsIcons(
+        pEntityMgr_,
+        pRender_,
+        materialIcons_.data(),
+        numIcons,
+        iconWidth,
+        iconHeight);
+
+    return true;
 }
 
 } // namespace Core

@@ -31,7 +31,7 @@
 
 // graphics stuff
 #include "../Mesh/MaterialMgr.h"
-#include "../Render/graphicsclass.h"
+#include "../Render/CGraphics.h"
 
 // from the Render module
 #include "CRender.h"
@@ -105,12 +105,6 @@ public:
     void HandleEditorEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr);
     void HandleGameEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr);
 
-    void RenderMaterialsIcons(
-        ID3D11ShaderResourceView** outArrShaderResourceViews,
-        const size numShaderResourceViews,
-        const int iconWidth,
-        const int iconHeight);
-
     void RenderModelIntoTexture(
         ID3D11DeviceContext* pContext,
         FrameBuffer& frameBuffer);
@@ -149,8 +143,6 @@ private:
     //KeyboardEvent      keyboardEvent_;       // the current keyboard event
     MouseEvent         mouseEvent_;          // the current mouse event
     SoundClass         sound_;
-
-    cvector<FrameBuffer> materialsFrameBuffers_;  // frame buffers which are used to render materials icons (for material browser)
 
     ECS::EntityMgr*    pEnttMgr_ = nullptr;
     UI::UserInterface* pUserInterface_ = nullptr;

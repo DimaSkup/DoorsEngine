@@ -45,14 +45,6 @@ void EngineException::MakeExceptionMsg(
         location.file_name(),
         location.function_name(),
         location.line());
-
-    // wstring
-    wsprintf(wstrBuf_,                                             // dst buffer
-        L"\nErrMsg: %s \nFile: %s \nFunction: %s() \nLine: %d \n\n",
-        msg,
-        location.file_name(),
-        location.function_name(),
-        location.line());
 }
 
 } // namespace Core

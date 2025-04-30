@@ -60,7 +60,8 @@ enum eEnttComponentType : uint8_t
 class IFacadeEngineToUI
 {
 public:
-    ID3D11ShaderResourceView* pFrameBufTexSRV_ = nullptr;
+    ID3D11ShaderResourceView*          pMaterialIconBig_ = nullptr; // big material icon for browsing/editing particular chosen material
+    cvector<ID3D11ShaderResourceView*> materialIcons_;             // list of icons in the editor material browser
 
 
     virtual ~IFacadeEngineToUI() {};
@@ -236,13 +237,16 @@ public:
 
 
     // =============================================================================
-    // for assets: models/textures/sounds/etc.
+    // for assets managers: models/textures/materials/sounds/etc.
     // =============================================================================
-    virtual bool GetModelsNamesList(cvector<std::string>& names) { return false; }
-
-    virtual bool GetShaderResourceViewByTexID(const TexID textureID, SRV*& pSRV) { return false; }
-    virtual bool GetArrShaderResourceViews(SRV**& outArrShadersResourceViews, size& outNumViews)  const { return false; }
+    virtual bool GetModelsNamesList(cvector<std::string>& names)         const { return false; }
     virtual bool GetTextureIdByIdx(const index idx, TexID& outTextureID) const { return false; }
+    virtual bool GetNumMaterials(size& numMaterials)                     const { return false; }
+
+    // get SRV (shader resource view)
+    virtual bool GetSRVByTexID      (const TexID textureID, SRV*& pSRV)                   const { return false; }  // get SRV of a single texture by its ID
+    virtual bool GetArrTexturesSRVs (SRV**& outArrShaderResourceViews, size& outNumViews) const { return false; }  // get array of all the textures SRVs
+    virtual bool GetArrMaterialsSRVs(SRV**& outArrShaderResourceViews, size& outNumViews) const { return false; }  // get array of SRVs which contains visualization of materials (sphere + material)
 
     virtual bool SetEnttMaterial(
         const EntityID enttID,
@@ -250,8 +254,8 @@ public:
         const MaterialID matID) { return false; }
 
     virtual bool RenderMaterialsIcons(
-        ID3D11ShaderResourceView** outArrShaderResourceViews,
-        const size numShaderResourceViews,
+        const int startMaterialIdx,            // render materials of some particular range [start, start + num_of_views]
+        const size numIcons,
         const int iconWidth,
         const int iconHeight) { return false; }
 

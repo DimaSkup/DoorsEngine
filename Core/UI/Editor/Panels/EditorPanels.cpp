@@ -40,7 +40,8 @@ void EditorPanels::Initialize(IFacadeEngineToUI* pFacade)
 
     debugEditor_.Initialize(pFacadeEngineToUI_);
 
-    texAssetsBrowser_.Initialize(pFacadeEngineToUI_);
+    texturesBrowser_.Initialize(pFacadeEngineToUI_);
+    materialsBrowser_.Initialize(pFacadeEngineToUI_);
 }
 
 ///////////////////////////////////////////////////////////
@@ -124,17 +125,21 @@ void EditorPanels::RenderModelsBrowser()
 
 void EditorPanels::RenderTexturesBrowser()
 {
-    ImGui::SetNextWindowSize(texAssetsBrowser_.GetBrowserWndSize(), ImGuiCond_FirstUseEver);
+    // render the textures browser: in browser we can add/remove/observe currently loaded textures
+
+    ImGui::SetNextWindowSize(texturesBrowser_.GetBrowserWndSize(), ImGuiCond_FirstUseEver);
 
     if (ImGui::Begin("Textures browser", &pStatesGUI_->showWndTexturesBrowser, ImGuiWindowFlags_MenuBar))
     {
-        texAssetsBrowser_.Render(pFacadeEngineToUI_, &pStatesGUI_->showWndTexturesBrowser);
+        // render the textures icons (visualize the texture)
+        texturesBrowser_.Render(pFacadeEngineToUI_, &pStatesGUI_->showWndTexturesBrowser);
 
-        if (texAssetsBrowser_.TexWasChanged())
+        if (texturesBrowser_.TexWasChanged())
         {
-            // TODO: this is temporal to simply test functional
-            TexID texID = texAssetsBrowser_.GetSelectedTexID();
-            pFacadeEngineToUI_->SetEnttMaterial(enttEditorController_.GetSelectedEnttID(), 0, texID);
+            // TODO: this is temporal to simply test functional (for changing texture of the entity)
+            const TexID currSelectedTex = texturesBrowser_.GetSelectedTexID();
+            const EntityID currSelectedEntt = enttEditorController_.GetSelectedEnttID();
+            pFacadeEngineToUI_->SetEnttMaterial(currSelectedEntt, 0, currSelectedTex);
         }
     }
     ImGui::End();
@@ -144,14 +149,16 @@ void EditorPanels::RenderTexturesBrowser()
 
 void EditorPanels::RenderMaterialsBrowser()
 {
-    ImGui::SetNextWindowSize(ImVec2(100, 100), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(texturesBrowser_.GetBrowserWndSize(), ImGuiCond_FirstUseEver);
 
     if (ImGui::Begin("Materials browser", &pStatesGUI_->showWndMaterialsBrowser, ImGuiWindowFlags_MenuBar))
     {
-        ImGui::Text("nothing");
-        //ImGui::Image((ImTextureID)pFacadeEngineToUI_->pFrameBufTexSRV_, { 200, 200 });
+        materialsBrowser_.Render(pFacadeEngineToUI_, &pStatesGUI_->showWndMaterialsBrowser);
+
+        //for (ID3D11ShaderResourceView* pIconTex : pFacade->pMaterialIcons_)
+        //    ImGui::Image((ImTextureID)pIconTex, { 200, 200 });
     }
-    ImGui::End();
+    ImGui::End();    
 }
 
 ///////////////////////////////////////////////////////////

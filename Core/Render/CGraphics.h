@@ -1,5 +1,5 @@
 // =================================================================================
-// Filename:     graphicsclass.h
+// Filename:     CGraphics.h
 // Description:  controls all the main parts of rendering process:
 //               mainly update frame data and prepare data for the rendering
 // Revising:     07.11.22
@@ -79,11 +79,20 @@ public:
     // ------------------------------------
     // render related methods
 
-    void ComputeFrustumCulling(SystemState& sysState, ECS::EntityMgr* pEnttMgr);
+    void ComputeFrustumCulling              (SystemState& sysState, ECS::EntityMgr* pEnttMgr);
     void ComputeFrustumCullingOfLightSources(SystemState& sysState, ECS::EntityMgr* pEnttMgr);
-    void ClearRenderingDataBeforeFrame(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender);
-    void Render3D(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender);
-    void RenderModel(BasicModel& model, const DirectX::XMMATRIX& world);
+    void ClearRenderingDataBeforeFrame      (ECS::EntityMgr* pEnttMgr, Render::CRender* pRender);
+    void Render3D                           (ECS::EntityMgr* pEnttMgr, Render::CRender* pRender);
+    void RenderModel                        (BasicModel& model, const DirectX::XMMATRIX& world);
+    
+    void RenderMaterialsIcons(
+        ECS::EntityMgr* pEnttMgr,
+        Render::CRender* pRender,
+        ID3D11ShaderResourceView** outArrShaderResourceViews,
+        const size numIcons,
+        const int iconWidth,
+        const int iconHeight);
+
 
     // ----------------------------------
 
@@ -91,10 +100,12 @@ public:
     void ChangeModelFillMode();   
     void ChangeCullMode();
 
-    inline void SetGameMode(bool enableGameMode)          { isGameMode_ = enableGameMode; }
-    inline void SetCurrentCamera(const EntityID cameraID) { currCameraID_ = cameraID; }
-    inline void SetAABBShowMode(const AABBShowMode mode)  { aabbShowMode_ = mode; }
-    inline void SetFullFogDist(const int dist)            { if (dist > 0) fullFogDistance_ = dist; }  // after this distance we use only billboards (I hope for it)
+    inline void SetGameMode(bool enableGameMode)                    { isGameMode_ = enableGameMode; }
+    inline void SetAABBShowMode(const AABBShowMode mode)            { aabbShowMode_ = mode; }
+    inline void SetFullFogDist(const int dist)                      { if (dist > 0) fullFogDistance_ = dist; }  // after this distance we use only billboards (I hope for it)
+
+    inline void     SetCurrentCamera(const EntityID cameraID)       { currCameraID_ = cameraID; }
+    inline EntityID GetCurrentCamera()                        const { return currCameraID_; }
 
     // ---------------------------------------
     // INLINE GETTERS/SETTERS
@@ -113,6 +124,7 @@ public:
     int TestEnttSelection(const int sx, const int sy, ECS::EntityMgr* pEnttMgr);
 
 private:
+
     bool InitHelper(
         HWND hwnd,
         SystemState& systemState,
@@ -132,7 +144,7 @@ private:
         Render::CRender* pRender);
 
     void RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender);
-
+  
     void UpdateShadersDataPerFrame(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender);
 
     // ------------------------------------------
@@ -148,6 +160,7 @@ private:
     void RenderEnttsAlphaClipCullNone(Render::CRender* pRender);
     void RenderEnttsBlended          (Render::CRender* pRender);
     void RenderFoggedBillboards      (Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);
+    void RenderMaterialSphere        (const int matIdx, Render::CRender* pRender);
 
     // ------------------------------------------
 
@@ -193,6 +206,9 @@ public:
     
     // for rendering
     ECS::RenderStatesSystem::EnttsRenderStatesData rsDataToRender_;
+
+
+    cvector<FrameBuffer> materialsFrameBuffers_;  // frame buffers which are used to render materials icons (for editor's material browser)
 
 
     // temp for geometry buffer testing
