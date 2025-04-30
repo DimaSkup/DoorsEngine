@@ -149,10 +149,6 @@ float GameTimer::GetGameTime() const
 
 	const float subFrom = (float)((stopTime_ * (int)isStopped_) + (currTime_ * (int)(!isStopped_)));
 	return (float)(subFrom - pausedTime_ - baseTime_) * (float)secondsPerCount_;
-
-	//return (isStopped_) ?
-		//static_cast<float>((stopTime_ - pausedTime_) - baseTime_) * (float)secondsPerCount_ :
-		//static_cast<float>((currTime_ - pausedTime_) - baseTime_) * (float)secondsPerCount_;
 }
 
 } // namespace Core

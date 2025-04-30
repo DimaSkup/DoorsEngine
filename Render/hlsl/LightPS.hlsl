@@ -66,16 +66,7 @@ struct PS_OUT
 //
 float4 PS(PS_IN pin) : SV_Target
 {
-    float4 textureColor;
-
-    //if (pin.instanceID == 0)
-     //   textureColor = gTextures[1].Sample(gSampleType, pin.tex);
-    //else if (pin.instanceID == 1)
-    //    textureColor = gTextures[23].Sample(gSampleType, pin.tex);
-    //else if (pin.instanceID == 2)
-    //    textureColor = gTextures[44].Sample(gSampleType, pin.tex);
-    //else
-        textureColor = gTextures[1].Sample(gSampleType, pin.tex);
+    float4 textureColor = gTextures[1].Sample(gSampleType, pin.tex);
     
     // execute alpha clipping
     if (gAlphaClipping)
@@ -186,7 +177,7 @@ float4 PS(PS_IN pin) : SV_Target
     float4 litColor = textureColor * (ambient + diffuse) + spec;
 
     // common to take alpha from diffuse material and texture
-    litColor.a = ((Material)pin.material).diffuse.a;// *textureColor.a;
+    litColor.a = ((Material)pin.material).diffuse.a * textureColor.a;
 
 
     // ---------------------  FOG  ----------------------

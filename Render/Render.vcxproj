@@ -176,6 +176,7 @@
     <ClCompile Include="Shaders\FontShader.cpp" />
     <ClCompile Include="Shaders\GeometryShader.cpp" />
     <ClCompile Include="Shaders\LightShader.cpp" />
+    <ClCompile Include="Shaders\MaterialIconShader.cpp" />
     <ClCompile Include="Shaders\OutlineShader.cpp" />
     <ClCompile Include="Shaders\PixelShader.cpp" />
     <ClCompile Include="Shaders\SamplerState.cpp" />
@@ -208,6 +209,7 @@
     <ClInclude Include="Shaders\Helpers\CSOLoader.h" />
     <ClInclude Include="Common\MaterialLightTypes.h" />
     <ClInclude Include="Shaders\LightShader.h" />
+    <ClInclude Include="Shaders\MaterialIconShader.h" />
     <ClInclude Include="Shaders\OutlineShader.h" />
     <ClInclude Include="Shaders\PixelShader.h" />
     <ClInclude Include="Shaders\SamplerState.h" />
@@ -323,6 +325,24 @@
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)build\$(IntDir)shaders\%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)build\$(IntDir)shaders\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="hlsl\MaterialIconPS.hlsl">
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PS</EntryPointName>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PS</EntryPointName>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)build\$(IntDir)shaders\%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)build\$(IntDir)shaders\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="hlsl\MaterialIconVS.hlsl">
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">VS</EntryPointName>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">VS</EntryPointName>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)build\$(IntDir)shaders\%(Filename).cso</ObjectFileOutput>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)build\$(IntDir)shaders\%(Filename).cso</ObjectFileOutput>
     </FxCompile>

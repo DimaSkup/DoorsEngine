@@ -47,20 +47,40 @@ bool BillboardShader::Initialize(
 
 ///////////////////////////////////////////////////////////
 
+inline void CheckInputParams(
+    const Material* materials,
+    const DirectX::XMFLOAT3* positions,   // positions in world space
+    const DirectX::XMFLOAT2* sizes,       // sizes of billboards
+    const int numBillboards,
+    const int numMaxInstances)            // maximal limit for billboards number
+{
+    Assert::True(materials, "input ptr to materials arr == nullptr");
+    Assert::True(positions, "input ptr to positions arr == nullptr");
+    Assert::True(sizes,     "input ptr to sizes arr == nullptr");
+
+    if ((numBillboards <= 0) || (numBillboards > numMaxInstances))
+    {
+        sprintf(g_String, "input number of instances must be in the range (0, %d]", numMaxInstances);
+        throw LIB_Exception(g_String);
+    }
+}
+
+///////////////////////////////////////////////////////////
+
 void BillboardShader::UpdateInstancedBuffer(
 	ID3D11DeviceContext* pContext,
 	const Material* materials,
 	const DirectX::XMFLOAT3* positions,   // positions in world space
-	const DirectX::XMFLOAT2* sizes,       // sizes of billboards
-	const int count)                      // the number of billboards to render
+	const DirectX::XMFLOAT2* sizes,       // sizes of billboards (width, height)
+    const int numBillboards)
 {
-	//
 	// fill in the instanced buffer with data (call it before Render() method for multiple instances)
-	//
-
 	try
 	{
-		Assert::True(materials && positions && sizes && (count > 0) && (count < numMaxInstances_), "input data is invalid");
+#if _DEBUG || DEBUG
+        CheckInputParams(materials, positions, sizes, numBillboards, numMaxInstances_);
+        Assert::True(pInstancedBuffer_, "ptr to instanced buffer == nullptr (you have to initialize it!)");
+#endif
 
 		// map the instanced buffer to write into it
 		D3D11_MAPPED_SUBRESOURCE mappedData;
@@ -70,18 +90,16 @@ void BillboardShader::UpdateInstancedBuffer(
 		BuffTypes::InstancedDataBillboards* dataView = (BuffTypes::InstancedDataBillboards*)mappedData.pData;
 
 		// write data into the subresource
-		for (int i = 0; i < count; ++i)
+		for (int i = 0; i < numBillboards; ++i)
 			dataView[i].material = materials[i];
 
-		for (int i = 0; i < count; ++i)
+		for (int i = 0; i < numBillboards; ++i)
 			dataView[i].posW = positions[i];
 
-		for (int i = 0; i < count; ++i)
+		for (int i = 0; i < numBillboards; ++i)
 			dataView[i].size = sizes[i];
 
-
-		numCurrentInstances_ = count;
-
+		numCurrentInstances_ = numBillboards;
 		pContext->Unmap(pInstancedBuffer_, 0);
 	}
 	catch (LIB_Exception& e)

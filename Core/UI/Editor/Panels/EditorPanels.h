@@ -12,6 +12,7 @@
 
 #include "../EditorPanelElement/ModelsAssetsList.h"
 #include "../EditorPanelElement/TextureAssetsBrowser.h"
+#include "../EditorPanelElement/MaterialAssetsBrowser.h"
 
 #include "../Debug/DebugEditor.h"
 #include "../Entity/Controller/EnttEditorController.h"
@@ -55,8 +56,9 @@ private:
     StatesGUI*         pStatesGUI_        = nullptr;
     EntityCreatorWnd* pEnttCreatorWnd_ = nullptr;
 
-    TextureAssetsBrowser texAssetsBrowser_;
-    ModelsAssetsList     modelsAssetsList_;
+    TextureAssetsBrowser  texturesBrowser_;
+    MaterialAssetsBrowser materialsBrowser_;
+    ModelsAssetsList      modelsAssetsList_;
 };
 
 } // namespace UI

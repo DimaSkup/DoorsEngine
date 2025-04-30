@@ -140,7 +140,6 @@ bool CRender::Initialize(
 // =================================================================================
 //                               updating methods
 // =================================================================================
-
 void CRender::UpdatePerFrame(
     ID3D11DeviceContext* pContext,
     const PerFrameData& data)
@@ -196,7 +195,6 @@ void CRender::UpdateInstancedBuffer(
         data.worlds_,
         data.texTransforms_,
         data.materials_,
-        data.textureSubsetIdxs_,
         data.GetSize());     // get the number of elements to render
 }
 
@@ -207,7 +205,6 @@ void CRender::UpdateInstancedBuffer(
     const DirectX::XMMATRIX* worlds,
     const DirectX::XMMATRIX* texTransforms,
     const Material* materials,
-    const uint8_t* textureSubsetIdxs,
     const int count)
 {
     // fill in the instanced buffer with data
@@ -216,7 +213,6 @@ void CRender::UpdateInstancedBuffer(
         Assert::True(worlds != nullptr,            "input arr of world matrices == nullptr");
         Assert::True(texTransforms != nullptr,     "input arr of texture transformations == nullptr");
         Assert::True(materials != nullptr,         "input arr of materials == nullptr");
-        Assert::True(textureSubsetIdxs != nullptr, "input arr of texture subset indices == nullptr");
         Assert::True(count > 0,                    "input number of elements must be > 0");
 
         // map the instanced buffer to write into it
@@ -238,9 +234,6 @@ void CRender::UpdateInstancedBuffer(
 
         for (int i = 0; i < count; ++i)
             dataView[i].material = materials[i];
-
-        for (int i = 0; i < count; ++i)
-            dataView[i].textureSubsetIdx = textureSubsetIdxs[i];
 
         pContext->Unmap(pInstancedBuffer_, 0);
     }
@@ -713,5 +706,16 @@ void CRender::UpdateLights(
     for (int i = 0; i < numSpotLightsToUpdate; ++i)
         cbpsPerFrame_.data.spotLights[i] = spotLights[i];
 }
+
+///////////////////////////////////////////////////////////
+
+void CRender::SetViewProj(ID3D11DeviceContext* pContext, const DirectX::XMMATRIX& viewProj)
+{
+    // view * proj matrix must be already transposed
+    cbvsPerFrame_.data.viewProj = viewProj;
+    cbvsPerFrame_.ApplyChanges(pContext);
+}
+
+
 
 }; // namespace CRender

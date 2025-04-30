@@ -139,7 +139,6 @@ public:
         SafeDeleteArr(worlds_);
         SafeDeleteArr(texTransforms_);
         SafeDeleteArr(materials_);
-        SafeDeleteArr(textureSubsetIdxs_);
         capacity_ = 0;
         size_ = 0;
     }
@@ -165,7 +164,6 @@ public:
                 worlds_             = new DirectX::XMMATRIX[newSize];
                 texTransforms_      = new DirectX::XMMATRIX[newSize];
                 materials_          = new Material[newSize];
-                textureSubsetIdxs_  = new uint8_t[newSize];
                 capacity_           = newSize;	
             }
 
@@ -194,7 +192,6 @@ public:
     DirectX::XMMATRIX* worlds_ = nullptr;
     DirectX::XMMATRIX* texTransforms_ = nullptr;
     Material*          materials_ = nullptr;
-    uint8_t*           textureSubsetIdxs_ = nullptr;
 
 private:
     int                capacity_ = 0;   // how many elements we can put into this buffer

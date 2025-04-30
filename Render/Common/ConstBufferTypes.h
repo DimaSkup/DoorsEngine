@@ -19,7 +19,6 @@ namespace BuffTypes
         DirectX::XMMATRIX  worldInvTranspose;
         DirectX::XMMATRIX  texTransform;
         Material           material;
-        uint8_t            textureSubsetIdx = 0;
     };
 
     __declspec(align(16)) struct InstancedDataBillboards

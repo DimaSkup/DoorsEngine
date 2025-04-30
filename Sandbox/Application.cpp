@@ -56,7 +56,8 @@ void Application::Initialize()
     pFacadeEngineToUI_ = new UI::FacadeEngineToUI(
         d3d.GetDeviceContext(),
         &render_,
-        &entityMgr_);
+        &entityMgr_,
+        &engine_.GetGraphicsClass());
 
     // initialize the main UserInterface class
     InitGUI(pDevice, d3d.GetWindowWidth(), d3d.GetWindowHeight());
@@ -64,7 +65,7 @@ void Application::Initialize()
     auto initEndTime = std::chrono::steady_clock::now();
     std::chrono::duration<float, std::milli> initDuration = initEndTime - initStartTime;
 
-    // create a str with duration time of the engine initialization process
+    // create a str with duration time about the engine initialization process
     sprintf(g_String, "Init time: %d ms", (int)initDuration.count());
     userInterface_.CreateConstStr(pDevice, g_String, { 10, 325 });
 }

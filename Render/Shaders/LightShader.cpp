@@ -32,6 +32,7 @@ bool LightShader::Initialize(
     {
         InitializeShaders(pDevice, vsFilePath, psFilePath);
         LogDbg("is initialized");
+        return true;
     }
     catch (LIB_Exception& e)
     {
@@ -39,8 +40,6 @@ bool LightShader::Initialize(
         LogErr("can't initialize the light shader class");
         return false;
     }
-
-    return true;
 }
 
 ///////////////////////////////////////////////////////////
@@ -114,9 +113,7 @@ void LightShader::InitializeShaders(
     //
     // helps to initialize the HLSL shaders, layout, sampler state
     //
-    
-    bool result = false;
-    
+
     const D3D11_INPUT_ELEMENT_DESC inputLayoutDesc[] =
     {
         // per vertex data
@@ -146,13 +143,12 @@ void LightShader::InitializeShaders(
         {"MATERIAL", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
         {"MATERIAL", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
         {"MATERIAL", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-
-        {"TEX_SUBSET_IDX", 0, DXGI_FORMAT_R8_UINT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
     };
 
     const UINT layoutElemNum = sizeof(inputLayoutDesc) / sizeof(D3D11_INPUT_ELEMENT_DESC);
 
     // initialize: VS, PS, sampler state
+    bool result = false;
     result = vs_.Initialize(pDevice, vsFilePath, inputLayoutDesc, layoutElemNum);
     Assert::True(result, "can't initialize the vertex shader");
 

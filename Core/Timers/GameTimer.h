@@ -17,7 +17,7 @@ public:
 	GameTimer();
 
 	// get time in seconds
-	float GetGameTime() const;   
+	float        GetGameTime()  const;   
 	inline float GetDeltaTime() const { return (float)deltaTime_; }
 
 	void Reset();  // is called before message loop
@@ -35,7 +35,7 @@ private:
 	__int64 stopTime_ = 0;
 
 	double secondsPerCount_ = 0.0f;  // 1.0 / counts_per_sec
-	double deltaTime_ = -1.0f;
+	double deltaTime_       = -1.0f;
 };
 
 }

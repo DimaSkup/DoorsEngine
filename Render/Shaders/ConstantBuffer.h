@@ -78,6 +78,12 @@ void ConstantBuffer<T>::ApplyChanges(ID3D11DeviceContext* pContext)
 {
 	// update the constant buffer data
 
+    if (!pBuffer_)
+    {
+        LogErr("ptr to buffer == nullptr");
+        return;
+    }
+
 	D3D11_MAPPED_SUBRESOURCE mappedResource;
 
 	HRESULT hr = pContext->Map(pBuffer_, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);

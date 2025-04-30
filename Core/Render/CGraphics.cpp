@@ -1,8 +1,8 @@
 // =================================================================================
-// Filename: graphicsclass.cpp
+// Filename: CGraphics.cpp
 // Created:  14.10.22
 // =================================================================================
-#include "graphicsclass.h"
+#include "CGraphics.h"
 
 
 #include <CoreCommon/Assert.h>
@@ -582,17 +582,11 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
     {
         pDeviceContext_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         RenderEnttsDefault(pRender);
-
         RenderEnttsAlphaClipCullNone(pRender);
-
-
-   
         RenderSkyDome(pRender, pEnttMgr);
-
         RenderFoggedBillboards(pRender, pEnttMgr);
 #if 0
         pDeviceContext_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-
 
         const EntityID* visEntts = entityMgr_.renderSystem_.GetAllVisibleEntts().data();
         const size numVisEntts = entityMgr_.renderSystem_.GetVisibleEnttsCount();
@@ -602,13 +596,7 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
             return;
 
         RenderBoundingLineBoxes(pRender, pEnttMgr, visEntts, numVisEntts);
-
-
-
-
         RenderBoundingLineSpheres();
-        
-        
         RenderEnttsBlended();
 #endif
     }
@@ -656,6 +644,127 @@ void CGraphics::RenderModel(BasicModel& model, const DirectX::XMMATRIX& world)
         Render::ShaderTypes::LIGHT,
         &instance, 1);
 #endif
+}
+
+///////////////////////////////////////////////////////////
+#if 0
+void CGraphics::RenderMaterialSphere(
+    const int matIdx,
+    ID3D11DeviceContext* pContext,
+    Render::CRender* pRender)
+{
+    // render a sphere with material by matIdx
+
+
+}
+#endif
+
+///////////////////////////////////////////////////////////
+
+void CGraphics::RenderMaterialsIcons(
+    ECS::EntityMgr* pEnttMgr,
+    Render::CRender* pRender,
+    ID3D11ShaderResourceView** outArrShaderResourceViews,
+    const size numIcons,
+    const int iconWidth,
+    const int iconHeight)
+{
+    // render material icon (just sphere model with particular material) into
+    // frame buffer and store shader resource view into the input arr;
+    //
+    // NOTE: outArrShaderResourceViews.size() must == numShaderResourceViews
+
+    if (!pRender)
+    {
+        LogErr("input ptr to render == nullptr");
+        return;
+    }
+
+    if (!outArrShaderResourceViews)
+    {
+        LogErr("input arr of shader resource views == nullptr");
+        return;
+    }
+
+    D3DClass& d3d = GetD3DClass();
+    ID3D11Device* pDevice = d3d.GetDevice();
+    ID3D11DeviceContext* pContext = d3d.GetDeviceContext();
+
+    // setup params for the frame buffer (we will use the same params for each)
+    FrameBufferSpecification frameBufSpec;
+
+    frameBufSpec.width       = (UINT)iconWidth;
+    frameBufSpec.height      = (UINT)iconHeight;
+    frameBufSpec.format      = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM;
+    frameBufSpec.screenNear  = d3d.GetScreenNear();
+    frameBufSpec.screenDepth = d3d.GetScreenDepth();
+
+    // release memory from the previous set of frame buffers
+    for (FrameBuffer& buf : materialsFrameBuffers_)
+        buf.Shutdown();
+
+    // alloc memory for frame buffers and init each frame buffer
+    materialsFrameBuffers_.resize(numIcons);
+
+    for (int i = 0; FrameBuffer& buf : materialsFrameBuffers_)
+    {
+        if (!buf.Initialize(pDevice, frameBufSpec))
+        {
+            sprintf(g_String, "can't initialize a frame buffer (idx: %d)", i);
+            LogErr(g_String);
+        }
+        ++i;
+    }
+
+    // get sphere model
+    BasicModel& sphere = g_ModelMgr.GetModelByID(10);
+    const MeshGeometry& sphereMesh = sphere.meshes_;
+
+    ID3D11Buffer* vb = sphereMesh.vb_.Get();
+    ID3D11Buffer* ib = sphereMesh.ib_.Get();
+    const int indexCount    = (int)sphereMesh.ib_.GetIndexCount();
+    const int vertexSize    = (int)sphereMesh.vb_.GetStride();
+    
+
+    // change camera so we will be able to render material icons properly
+    const EntityID matBrowserCamID = pEnttMgr->nameSystem_.GetIdByName("material_browser_camera");
+    const XMMATRIX viewProj = pEnttMgr->cameraSystem_.GetViewProj(matBrowserCamID);
+    pRender->SetViewProj(pContext, DirectX::XMMatrixTranspose(viewProj));
+    
+    //const EntityID prevCamID = GetCurrentCamera();
+    //SetCurrentCamera(matBrowserCamID);
+
+    //d3d_.SetRS(eRenderState::CULL_NONE);
+
+    // render material by idx into responsible frame buffer
+    for (int matIdx = 0; FrameBuffer& buf : materialsFrameBuffers_)
+    {
+        buf.ClearBuffers(pContext, { 0,0,0,0 });
+        buf.Bind(pContext);
+
+        Material& mat = g_MaterialMgr.GetMaterialByID(matIdx);
+        cvector<ID3D11ShaderResourceView*> texSRVs;
+        g_TextureMgr.GetSRVsByTexIDs(mat.textureIDs, NUM_TEXTURE_TYPES, texSRVs);
+
+        pRender->shadersContainer_.materialIconShader_.Render(
+            pContext,
+            vb,
+            ib,
+            indexCount,
+            texSRVs.data(),
+            vertexSize);
+
+        ++matIdx;
+    }
+
+    //d3d_.SetRS(eRenderState::CULL_BACK);
+
+    // reset camera's viewProj to the previous one (it can be game or editor camera)
+    pRender->SetViewProj(pContext, DirectX::XMMatrixTranspose(viewProj_));
+
+    // copy frame buffers textures into the input array of SRVs
+    for (int i = 0; FrameBuffer& buf : materialsFrameBuffers_)
+        outArrShaderResourceViews[i++] = buf.GetSRV();
 }
 
 ///////////////////////////////////////////////////////////

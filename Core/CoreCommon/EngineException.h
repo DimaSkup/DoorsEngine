@@ -19,8 +19,7 @@ public:
         const std::source_location& location = std::source_location::current(),
         const HRESULT hr = S_OK);
 
-    inline const char*    GetConstStr() const { return strBuf_; }
-    inline const wchar_t* GetStrWide()  const { return wstrBuf_; }
+    inline const char* GetConstStr() const { return strBuf_; }
 
 private:
     void MakeExceptionMsg(
@@ -30,7 +29,6 @@ private:
 
 private:
     char    strBuf_[256]{'\0'};
-    wchar_t wstrBuf_[256]{L'\0'};
 };
 
 } // namespace Core

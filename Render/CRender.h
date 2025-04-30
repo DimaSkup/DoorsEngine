@@ -67,7 +67,6 @@ public:
         const DirectX::XMMATRIX* worlds,
         const DirectX::XMMATRIX* texTransforms,
         const Material* materials,
-        const uint8_t* textureSubsetIdxs,
         const int count);
 
     void UpdateInstancedBufferWorlds(
@@ -117,20 +116,21 @@ public:
         enabled = cbpsRareChanged_.data.fogEnabled;
     }
 
+
     // ================================================================================
     //                                   Setters
     // ================================================================================
-    void SetFogEnabled(ID3D11DeviceContext* pContext, const bool state);
-    void SetFogStart(ID3D11DeviceContext* pContext, const float start);
-    void SetFogRange(ID3D11DeviceContext* pContext, const float range);
-    void SetFogColor(ID3D11DeviceContext* pContext, const DirectX::XMFLOAT3 color);
-    void SetWorldViewOrtho(ID3D11DeviceContext* pContext, const DirectX::XMMATRIX& WVO);
+    void SetFogEnabled      (ID3D11DeviceContext* pContext, const bool state);
+    void SetFogStart        (ID3D11DeviceContext* pContext, const float start);
+    void SetFogRange        (ID3D11DeviceContext* pContext, const float range);
+    void SetFogColor        (ID3D11DeviceContext* pContext, const DirectX::XMFLOAT3 color);
+    void SetWorldViewOrtho  (ID3D11DeviceContext* pContext, const DirectX::XMMATRIX& WVO);
 
-    void SwitchFlashLight(ID3D11DeviceContext* pContext, const bool state);
+    void SwitchFlashLight   (ID3D11DeviceContext* pContext, const bool state);
 
     void SwitchAlphaClipping(ID3D11DeviceContext* pContext, const bool state);
-    void SwitchDebugState(ID3D11DeviceContext* pContext, const DebugState state);
-    void SetDirLightsCount(ID3D11DeviceContext* pContext, int numOfLights);
+    void SwitchDebugState   (ID3D11DeviceContext* pContext, const DebugState state);
+    void SetDirLightsCount  (ID3D11DeviceContext* pContext, int numOfLights);
 
     void InitFogParams(
         ID3D11DeviceContext* pContext,
@@ -146,7 +146,7 @@ public:
     void SetSkyColorCenter(ID3D11DeviceContext* pContext, const DirectX::XMFLOAT3& color);
     void SetSkyColorApex  (ID3D11DeviceContext* pContext, const DirectX::XMFLOAT3& color);
 
-
+    void SetViewProj      (ID3D11DeviceContext* pContext, const DirectX::XMMATRIX& viewProj);
 
 private:
     void UpdateLights(

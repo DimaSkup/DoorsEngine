@@ -242,6 +242,7 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClCompile Include="Sound\SoundClass.cpp" />
     <ClCompile Include="Timers\cpuclass.cpp" />
     <ClCompile Include="Engine\Engine.cpp" />
+    <ClCompile Include="UI\Editor\EditorPanelElement\MaterialAssetsBrowser.cpp" />
     <ClCompile Include="UI\Editor\EditorPanelElement\ModelsAssetsList.cpp" />
     <ClCompile Include="UI\Editor\EditorPanelElement\TextureAssetsBrowser.cpp" />
     <ClCompile Include="UI\Editor\Entity\Controller\EnttDirLightController.cpp" />
@@ -261,7 +262,7 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClCompile Include="UI\UICommon\EventsHistory.cpp" />
     <ClCompile Include="UI\UICommon\FacadeEngineToUI.cpp" />
     <ClCompile Include="UI\Text\fontclass.cpp" />
-    <ClCompile Include="Render\graphicsclass.cpp" />
+    <ClCompile Include="Render\CGraphics.cpp" />
     <ClCompile Include="Input\inputmanager.cpp" />
     <ClCompile Include="CoreCommon\log.cpp" />
     <ClCompile Include="Input\MouseClass.cpp" />
@@ -337,6 +338,7 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClInclude Include="Tests\ECS\HelperTypes.h" />
     <ClInclude Include="Texture\TextureTypesNames.h" />
     <ClInclude Include="UI\Editor\Debug\DebugEditor.h" />
+    <ClInclude Include="UI\Editor\EditorPanelElement\MaterialAssetsBrowser.h" />
     <ClInclude Include="UI\Editor\EditorPanelElement\ModelsAssetsList.h" />
     <ClInclude Include="UI\Editor\EditorPanelElement\TextureAssetsBrowser.h" />
     <ClInclude Include="UI\Editor\Entity\Controller\EnttDirLightController.h" />
@@ -399,7 +401,7 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClInclude Include="Sound\SoundClass.h" />
     <ClInclude Include="Timers\cpuclass.h" />
     <ClInclude Include="UI\Text\fontclass.h" />
-    <ClInclude Include="Render\graphicsclass.h" />
+    <ClInclude Include="Render\CGraphics.h" />
     <ClInclude Include="Input\inputcodes.h" />
     <ClInclude Include="Input\inputlistener.h" />
     <ClInclude Include="Input\inputmanager.h" />

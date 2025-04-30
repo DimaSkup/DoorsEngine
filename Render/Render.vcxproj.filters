@@ -69,6 +69,9 @@
     <ClCompile Include="Common\log.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Shaders\MaterialIconShader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CRender.h">
@@ -164,6 +167,9 @@
     <ClInclude Include="Common\StrHelper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Shaders\MaterialIconShader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="hlsl\_README_ABOUT_SHADERS.txt" />
@@ -188,6 +194,8 @@
     <FxCompile Include="hlsl\billboardVS.hlsl" />
     <FxCompile Include="hlsl\billboardPS.hlsl" />
     <FxCompile Include="hlsl\billboardGS.hlsl" />
+    <FxCompile Include="hlsl\MaterialIconVS.hlsl" />
+    <FxCompile Include="hlsl\MaterialIconPS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="hlsl\LightHelper.hlsli" />

@@ -23,9 +23,9 @@ public:
 	LightShader();
 	~LightShader();
 
-	// restrict a copying of this class instance
-	LightShader(const LightShader& obj) = delete;
-	LightShader& operator=(const LightShader& obj) = delete;
+	// restrict copying of this class instance
+	LightShader(const LightShader&) = delete;
+	LightShader& operator=(const LightShader&) = delete;
 
 	// ----------------------------------------------------
 
@@ -52,7 +52,7 @@ private:
 private:
 	VertexShader vs_;
 	PixelShader  ps_;
-	SamplerState samplerState_;                     // a sampler for texturing
+	SamplerState samplerState_;          // a sampler for texturing
 
 	char className_[32]{"LightShader"};
 };
