@@ -23,12 +23,21 @@ public:
     // adders/setters
     MaterialID AddMaterial(Material&& material);
 
+    bool SetMaterialColorData(
+        const MaterialID id,
+        const Float4& ambient,
+        const Float4& diffuse,
+        const Float4& specular,
+        const Float4& reflect);
+
     // getters
     Material&  GetMaterialByID    (const MaterialID id);
     void       GetMaterialsByIDs  (const MaterialID* ids, const size numMaterials, cvector<Material>& outMaterials) const;
-    MaterialID GetMaterialIdByName(const char* name);
+    MaterialID GetMaterialIdByName(const char* name) const;
+    MaterialID GetMaterialIdByIdx (const index idx) const;
 
     inline size GetNumAllMaterials() const { return materials_.size(); }
+
 
 private:
     cvector<MaterialID> ids_;

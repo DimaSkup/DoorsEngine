@@ -59,9 +59,7 @@ private:
     int     numLayoutColumn_         = 0;
     int     numLayoutLine_           = 0;
 
-    bool    showTypeOverlay_     = true;
     bool    stretchSpacing_      = false;
-    bool    allowBoxSelect_      = true;
     bool    textureWasChanged_   = false;
 };
 

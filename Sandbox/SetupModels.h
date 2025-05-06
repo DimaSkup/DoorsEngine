@@ -2,6 +2,9 @@
 // Description:    parts of code which are used during initialization
 // =================================================================================
 #include "Common/FileSystemPaths.h"
+#include <Material.h>
+#include <MaterialMgr.h>
+
 #pragma warning (disable : 4996)
 using namespace Core;
 
@@ -14,9 +17,11 @@ void SetupTerrain(BasicModel& terrain)
     const TexID texTerrainDiff = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "terrain/detail_grnd_grass.dds");
     const TexID texTerrainNorm = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "terrain/detail_grnd_grass_bump.dds");
 
+    // create and setup material
     Material terrainMat;
     terrainMat.SetTexture(TEX_TYPE_DIFFUSE, texTerrainDiff);
     terrainMat.SetTexture(TEX_TYPE_NORMALS, texTerrainNorm);
+    strcpy(terrainMat.name, "terrain_mat_1");
     const MaterialID terrainMatID = g_MaterialMgr.AddMaterial(std::move(terrainMat));
 
     terrain.meshes_.SetMaterialForSubset(0, terrainMatID);
@@ -52,6 +57,8 @@ void SetupTree(BasicModel& tree)
     barkMat.SetTexture(TEX_TYPE_NORMALS, texBarkNormID);
     barkMat.SetAmbient(0.3f, 0.3f, 0.3f, 1.0f);
     barkMat.SetDiffuse(0.6f, 0.6f, 0.6f, 1.0f);
+    barkMat.SetSpecular(0.1f, 0.1f, 0.1f);
+    barkMat.SetSpecularPower(1.0f);
 
     Material branchMat;
     branchMat.SetName("tree_pine_branch");
@@ -60,6 +67,8 @@ void SetupTree(BasicModel& tree)
     branchMat.SetTexture(TEX_TYPE_OPACITY, texBranchSubsurfID);
     branchMat.SetAmbient(0.3f, 0.3f, 0.3f, 1.0f);
     branchMat.SetDiffuse(0.6f, 0.6f, 0.6f, 1.0f);
+    branchMat.SetSpecular(0.1f, 0.1f, 0.1f);
+    branchMat.SetSpecularPower(1.0f);
     branchMat.SetAlphaClip(true);
 
     Material capMat;
@@ -150,9 +159,41 @@ void SetupBuilding9(BasicModel& building)
 
 ///////////////////////////////////////////////////////////
 
+void SetupStalkerFreedom(BasicModel& stalkerFreedom)
+{
+    // setup some params of the stalker_freedom model
+
+    MeshGeometry::Subset* subsets = stalkerFreedom.meshes_.subsets_;
+
+    for (int i = 0; i < stalkerFreedom.numSubsets_; ++i)
+    {
+        // get a material by ID from the manager and setup it
+        Material& mat = g_MaterialMgr.GetMaterialByID(subsets[i].materialID);
+
+        mat.ambient = { 0.3f, 0.3f, 0.3f, 1.0f };
+        mat.diffuse = { 0.8f, 0.8f, 0.8f, 1.0f };
+        mat.specular = { 0,0,0,1 };
+    }
+}
+
+///////////////////////////////////////////////////////////
+
 void SetupAk47(BasicModel& ak47)
 {
+    // setup some params of the ak-47 model
     ak47.SetName("ak_47");
+
+    MeshGeometry::Subset* subsets = ak47.meshes_.subsets_;
+
+    for (int i = 0; i < ak47.numSubsets_; ++i)
+    {
+        // get a material by ID from the manager and setup it
+        Material& mat = g_MaterialMgr.GetMaterialByID(subsets[i].materialID);
+
+        mat.ambient  = { 0.3f, 0.3f, 0.3f, 1.0f };
+        mat.diffuse  = { 0.8f, 0.8f, 0.8f, 1.0f };
+        mat.specular = { 0,0,0,1 };
+    }
 }
 
 ///////////////////////////////////////////////////////////
@@ -170,7 +211,7 @@ void SetupStalkerSmallHouse(BasicModel& house)
 
         mat.ambient  = { 0.3f, 0.3f, 0.3f, 1.0f };
         mat.diffuse  = { 0.8f, 0.8f, 0.8f, 1.0f };
-        mat.specular = { 0,0,0,1 };
+        mat.specular = { 0,0,0,2 };
     }
 }
 

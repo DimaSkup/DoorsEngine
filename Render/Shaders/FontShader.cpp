@@ -52,8 +52,8 @@ void FontShader::SetWorldViewOrtho(
     ID3D11DeviceContext* pContext,
     const DirectX::XMMATRIX& WVO)
 {
-    // prepare matrices for using in the vertex shader
-    // (the WVO matrix must be already transposed)
+    // setup matrix for 2D rendering
+    // NOTE: the WVO matrix must be already transposed
     matrixBuffer_.data.worldViewProj = WVO;
     matrixBuffer_.ApplyChanges(pContext);
 }
@@ -85,9 +85,9 @@ void FontShader::Render(
     // renders text onto the screen
     try
     {
-        Assert::True(!vertexBuffers,   "input ptr to vertex buffers arr == nullptr");
-        Assert::True(!indexBuffers,    "input ptr to index buffers arr == nullptr");
-        Assert::True(!indexCounts,     "input ptr to index counts arr == nullptr");
+        Assert::True(vertexBuffers,    "input ptr to vertex buffers arr == nullptr");
+        Assert::True(indexBuffers,     "input ptr to index buffers arr == nullptr");
+        Assert::True(indexCounts,      "input ptr to index counts arr == nullptr");
         Assert::True(numSentences > 0, "input number of sentences must be > 0");
 
         // bind vertex and pixel shaders
@@ -109,7 +109,7 @@ void FontShader::Render(
         {
             // bind vb/ib
             pContext->IASetVertexBuffers(0, 1, &vertexBuffers[idx], &stride, &offset);
-            pContext->IASetIndexBuffer(indexBuffers[idx], DXGI_FORMAT_R32_UINT, 0U);
+            pContext->IASetIndexBuffer(indexBuffers[idx], DXGI_FORMAT_R32_UINT, 0);
 
             // render the fonts on the screen
             pContext->DrawIndexed(indexCounts[idx], 0, 0);

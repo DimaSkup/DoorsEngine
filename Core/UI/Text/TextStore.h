@@ -21,12 +21,13 @@
 
 #include <map>
 #include <DirectXMath.h>
+#include <string>
 
 
 namespace UI
 {
 
-class TextStore final
+class TextStore
 {
 public:
 
@@ -65,14 +66,6 @@ public:
         FontClass& font,
         const Core::SystemState& systemState);
 
-#if 0
-    void UpdateSentenceByKey(
-        ID3D11DeviceContext* pContext,
-        FontClass& font,
-        const char* key,            // semantic key
-        const char* newStr);
-#endif
-
 private:
 
     void BuildTextVerticesIndices(
@@ -106,8 +99,6 @@ private:
 
     cvector<Core::VertexBuffer<Core::VertexFont>> vertexBuffers_;
     cvector<Core::IndexBuffer<UINT>>              indexBuffers_;
-
-    //std::unique_ptr<TextDetails::TextStoreTransientData> pDataToUpdate_;
 };
 
 } // namespace UI

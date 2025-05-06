@@ -72,15 +72,16 @@ float4 PS(PS_IN pin) : SV_Target
     if (gAlphaClipping)
         clip(textureColor.a - 0.1f);
 
-    float4 specularMap = gTextures[2].Sample(gSampleType, pin.tex);
-    float3 normalMap = gTextures[6].Sample(gSampleType, pin.tex).rgb;
-    float4 roughnessMap = gTextures[16].Sample(gSampleType, pin.tex);
+    //float4 specularMap = gTextures[2].Sample(gSampleType, pin.tex);
+    //float4 roughnessMap = gTextures[16].Sample(gSampleType, pin.tex);
 
+    float3 normalMap = gTextures[6].Sample(gSampleType, pin.tex).rgb;
+
+    // normalize the normal vector after interpolation
     float3 normalW = normalize(pin.normalW);
 
-    normalMap = (normalMap * 2.0f) - 1.0f;
+    // compute the bumped normal in the world space
     float3 bumpedNormalW = NormalSampleToWorldSpace(normalMap, normalW, pin.tangentW);
-    bumpedNormalW = normalize(bumpedNormalW);
     
 
     // --------------------  LIGHT   --------------------
@@ -108,9 +109,9 @@ float4 PS(PS_IN pin) : SV_Target
         ComputeDirectionalLight(
             (Material)pin.material,
             gDirLights[i],
-            normalW,
+            bumpedNormalW,
             toEyeW,
-            specularMap.x,
+            0.0f,             // specular map value
             A, D, S);
 
         ambient += A;
@@ -126,9 +127,9 @@ float4 PS(PS_IN pin) : SV_Target
             (Material)pin.material,
             gPointLights[i],
             pin.posW,
-            normalW,
+            bumpedNormalW,
             toEyeW,
-            specularMap.x,
+            0.0f,           // specular map value
             A, D, S);
 
         ambient += A;
@@ -144,9 +145,9 @@ float4 PS(PS_IN pin) : SV_Target
             (Material)pin.material,
             gSpotLights[0],
             pin.posW,
-            normalW, //bumpedNormalW, // pin.normalW,
+            bumpedNormalW, //bumpedNormalW, // pin.normalW,
             toEyeW,
-            specularMap.x,
+            0.0f,      // specular map value
             A, D, S);
 
         ambient += A;
@@ -162,9 +163,9 @@ float4 PS(PS_IN pin) : SV_Target
             (Material)pin.material, 
             gSpotLights[i],
             pin.posW,
-            normalW, //bumpedNormalW, // pin.normalW,
+            bumpedNormalW, //bumpedNormalW, // pin.normalW,
             toEyeW,
-            specularMap.x,
+            0.0f,   // specular map value
             A, D, S);
 
         ambient += A;

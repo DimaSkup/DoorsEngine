@@ -35,6 +35,8 @@ public:
 	u32 pickedEnttID_ = 0;                   // currently chosen entity (its ID)
 
 	float frameTime = 0.0f;                  // the seconds per frame
+    float updateTime = 0.0f;                 // duration time of the whole update process
+    float renderTime = 0.0f;                 // duration time of the whole rendering process
 	DirectX::XMFLOAT3 cameraPos;             // the current position of the currently main camera
 	DirectX::XMFLOAT3 cameraDir;             // the current rotation of the currently main camera
 	DirectX::XMMATRIX cameraView;            // view matrix of the currently main camera

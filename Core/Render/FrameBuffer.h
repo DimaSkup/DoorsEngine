@@ -61,6 +61,8 @@ public:
     //
     // inline getters
     //
+    inline bool IsInit()                                      const { return isInit_; }
+
     inline ID3D11ShaderResourceView*  GetSRV()                const { return pShaderResourceView_; }
     inline ID3D11ShaderResourceView** GetAddressOfSRV()             { return &pShaderResourceView_; }
 
@@ -88,6 +90,7 @@ private:
     D3D11_VIEWPORT            viewport_             = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
     DirectX::XMMATRIX         projection_           = DirectX::XMMatrixIdentity();
     DirectX::XMMATRIX         orthoMatrix_          = DirectX::XMMatrixIdentity();
+    bool                      isInit_               = false;
 };
 
 } // namespace Core

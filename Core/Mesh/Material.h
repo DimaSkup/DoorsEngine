@@ -17,13 +17,10 @@
 namespace Core
 {
 
-static constexpr int MATERIAL_NAME_LENGTH_LIMIT = 32;
-
 // flags to define specific property of the material
 enum eMaterialProp : uint32_t
 {
     ALPHA_CLIPPING,
-
     NUM_PROPERTIES,
 };
 
@@ -36,7 +33,7 @@ struct Material
     Float4   specular = { 0,0,0,1 };                              // w-component is a specPower (specular power)
     Float4   reflect  = { .5f, .5f, .5f, 1 };
 
-    char     name[32]{ '\0' };
+    char     name[MAX_LENGTH_MATERIAL_NAME]{ '\0' };
     TexID    textureIDs[NUM_TEXTURE_TYPES]{ INVALID_TEXTURE_ID };
     uint32_t properties = 0;                                      // bitfield for materials properties
 
@@ -57,8 +54,8 @@ struct Material
         Assert::True(inName != nullptr, "input ptr to name string == nullptr");
         Assert::True(length > 0,        "length of input name string must be > 0");
 
-        if (length > MATERIAL_NAME_LENGTH_LIMIT)
-            length = MATERIAL_NAME_LENGTH_LIMIT;
+        if (length > MAX_LENGTH_MATERIAL_NAME)
+            length = MAX_LENGTH_MATERIAL_NAME;
 
         strncpy(name, inName, length);
     }

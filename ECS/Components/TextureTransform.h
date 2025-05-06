@@ -22,13 +22,27 @@ enum TexTransformType
 
 
 // ************************************************************************************
-//
 //                                 COMPONENT
-// 
 // ************************************************************************************
 struct TextureTransform
 {
     // NOTE: we get responsible texture transformation by data idx of ID
+
+    TextureTransform()
+    {
+        // setup transfromation for "invalid" entity so if we will query for not
+        // existent entity we will receive data of entity by ID == 0 
+        ids.push_back(0);
+        transformTypes.push_back(STATIC);
+
+        const DirectX::XMMATRIX I = DirectX::XMMatrixIdentity();
+        texTransforms.push_back(I);
+
+        StaticTexTransInitParams params(1, I, I);
+        texStaticTrans.ids.push_back(0);
+        texStaticTrans.transformations.push_back(I);
+
+    }
 
     cvector<EntityID>           ids;
     cvector<TexTransformType>   transformTypes;
@@ -38,7 +52,7 @@ struct TextureTransform
     TexAtlasAnimations          texAtlasAnim;
     TexRotationsAroundCoords    texRotations;
 
-    eComponentType               type = eComponentType::TextureTransformComponent;
+    eComponentType              type = eComponentType::TextureTransformComponent;
 };
 
 

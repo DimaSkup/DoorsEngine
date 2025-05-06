@@ -11,6 +11,7 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <winuser.h>
+#include <chrono>
 
 #pragma warning (disable : 4996)
 
@@ -23,9 +24,6 @@ Engine::Engine()
 {
     LogDbg("init");
     timer_.Reset();       // reset the engine/game timer
-
-    //ECS_Tester tester;
-    //tester.Run();
 }
 
 ///////////////////////////////////////////////////////////
@@ -36,15 +34,10 @@ Engine::~Engine()
     LogMsgf("%s%s", YELLOW, "-------------------------------------------------");
     LogMsgf("%s%s", YELLOW, "            START OF THE DESTROYMENT:            ");
     LogMsgf("%s%s", YELLOW, "-------------------------------------------------");
-    
 
-    //ProjectSaver projSaver;
-
-    //projSaver.StoreModels(graphics_.GetD3DClass().GetDevice());
 
     // unregister the window class, destroys the window,
     // reset the responsible members;
-
     if (hwnd_ != NULL)
     {
         ChangeDisplaySettings(NULL, 0);  // before destroying the window we need to set it to the windowed mode
@@ -64,7 +57,6 @@ Engine::~Engine()
 // =================================================================================
 //                            public methods
 // =================================================================================
-
 bool Engine::Initialize(
     HINSTANCE hInstance,
     HWND mainWnd,
@@ -74,9 +66,7 @@ bool Engine::Initialize(
     UI::UserInterface* pUserInterface,
     Render::CRender* pRender)
 {
-    //
     // initializes all the main parts of the engine
-    //
 
     // stuff for debug dumps generation (in case of crash)
     if (!IsDebuggerPresent())
@@ -91,14 +81,14 @@ bool Engine::Initialize(
         Assert::True(pRender != nullptr,        "input ptr to the Render == nullptr");
 
         // WINDOW: store a handle to the application instance
-        hInstance_ = hInstance;  
-        hwnd_ = mainWnd;
-        windowTitle_ = windowTitle;
+        hInstance_      = hInstance;  
+        hwnd_           = mainWnd;
+        windowTitle_    = windowTitle;
 
         // init pointers
-        pEnttMgr_ = pEnttMgr;
+        pEnttMgr_       = pEnttMgr;
         pUserInterface_ = pUserInterface;
-        pRender_ = pRender;
+        pRender_        = pRender;
 
 
         // GRAPHICS SYSTEM: initialize the graphics system
@@ -117,7 +107,6 @@ bool Engine::Initialize(
         systemState_.wndWidth_        = d3d.GetWindowWidth();
         systemState_.wndHeight_       = d3d.GetWindowHeight();
         
-
 #if 0
         // SOUND SYSTEM: initialize the sound obj
         result = sound_.Initialize(hwnd_);
@@ -127,9 +116,7 @@ bool Engine::Initialize(
         // TIMERS: (game timer, CPU)
         timer_.Tick();                 
         cpu_.Initialize();
-
         imGuiLayer_.Initialize(hwnd_, pDevice, pContext);
-        
 
         LogMsg("is initialized!");
     }
@@ -142,61 +129,11 @@ bool Engine::Initialize(
     return true;
 }
 
-/////////////////////////////////////////////////
-
-void Engine::RenderModelIntoTexture(
-    ID3D11DeviceContext* pContext,
-    FrameBuffer& frameBuffer)
-{
-#if 0
-    using namespace DirectX;
-
-    frameBuffer.ClearBuffers(pContext, {0.5f,0.5f,0.5f,1.0f});
-    frameBuffer.Bind(pContext);
-
-    Camera& cam = graphics_.GetEditorCamera();
-    cam.SetFixedLookAt({ 0,0,0 });
-    cam.SetDistanceToFixedLookAt(2.0f);
-
-
-    BasicModel& model = graphics_.GetModelsStorage().GetModelByName("Barrel1");
-
-    const BoundingBox& aabb = model.GetModelAABB();
-    const XMVECTOR extents  = XMLoadFloat3(&aabb.Extents);
-    const XMVECTOR center   = XMLoadFloat3(&aabb.Center);
-
-    XMVECTOR length = XMVector3Length(extents);
-    float scaleFactor = 1.0f / XMVectorGetX(length);
-
-    XMVECTOR scaledCenter = center * scaleFactor;
-    XMFLOAT3 camCenter;
-    XMStoreFloat3(&camCenter, scaledCenter);
-
-    const float piDiv3 = DirectX::XM_PI / 3.0f;
-    const float piDiv6 = DirectX::XM_PI / 6.0f;
-    const float piDiv4 = DirectX::XM_PIDIV4;
-
-    XMFLOAT3 camPos;
-
-    
-    XMMATRIX world = 
-        DirectX::XMMatrixScaling(scaleFactor, scaleFactor, scaleFactor) *
-        DirectX::XMMatrixTranslation(-aabb.Center.x * scaleFactor, -aabb.Center.y * scaleFactor, -aabb.Center.z * scaleFactor);
-
-
-    graphics_.RenderModel(model, world);
-
-    graphics_.GetD3DClass().ResetBackBufferRenderTarget();
-    graphics_.GetD3DClass().ResetViewport();
-#endif
-}
-
-
-
 ///////////////////////////////////////////////////////////
 
 void Engine::Update()
 {
+    auto updateStartTime = std::chrono::steady_clock::now();
     timer_.Tick();
     
 #if 0
@@ -210,34 +147,36 @@ void Engine::Update()
 
     // get the time which passed since the previous frame
     deltaTime_ = timer_.GetDeltaTime();
-    deltaTime_ = (deltaTime_ > 16.6f) ? 16.6f : deltaTime_;
-    systemState_.frameTime = deltaTime_;
+    constexpr float maxDeltaTime = (1000.0f / 60.0f);
+    deltaTime_ = (deltaTime_ > maxDeltaTime) ? maxDeltaTime : deltaTime_;
+    systemState_.frameTime = deltaTime_ * 1000.0f;
 
     // update the entities and related data
     pEnttMgr_->Update(timer_.GetGameTime(), deltaTime_);
-    //entityMgr_.lightSystem_.UpdateSpotLights(cameraPos, cameraDir);
 
     // compute fps and frame time (ms)
     CalculateFrameStats();
 
     pUserInterface_->Update(graphics_.GetD3DClass().GetDeviceContext(), systemState_);
 
+    // handle keyboard imput
     if (keyboard_.IsAnyPressed() || keyboard_.HasReleasedEvents())
     {
-        // according to the engine mode we call a respective keyboard handler
+        // according to the engine mode (editor/game) we call a respective keyboard handler
         if (systemState_.isEditorMode)
-        {
             HandleEditorEventKeyboard(pUserInterface_, pEnttMgr_);
-        }
         else
-        {
             HandleGameEventKeyboard(pUserInterface_, pEnttMgr_);
-        }
+
         keyboard_.Update();
     }
 
     graphics_.Update(systemState_, deltaTime_, timer_.GetGameTime(), pEnttMgr_, pRender_);
-    
+
+    // compute the duration of the engine's update process
+    auto updateEndTime = std::chrono::steady_clock::now();
+    std::chrono::duration<float, std::milli> updateDuration = updateEndTime - updateStartTime;
+    systemState_.updateTime = updateDuration.count();
 }
 
 ///////////////////////////////////////////////////////////
@@ -287,7 +226,6 @@ void Engine::CalculateFrameStats()
     }
 }
 
-
 ///////////////////////////////////////////////////////////
 
 void Engine::RenderFrame()
@@ -297,6 +235,7 @@ void Engine::RenderFrame()
     {
         using namespace DirectX;
 
+        auto renderStartTime = std::chrono::steady_clock::now();
         D3DClass& d3d = graphics_.GetD3DClass();
         ID3D11DeviceContext* pContext = d3d.GetDeviceContext();
 
@@ -310,8 +249,6 @@ void Engine::RenderFrame()
             d3d.BeginScene();
             graphics_.Render3D(pEnttMgr_, pRender_);
             
-      
-
             // begin rendering of the editor elements
             imGuiLayer_.Begin();
             RenderUI(pUserInterface_, pRender_);
@@ -326,6 +263,8 @@ void Engine::RenderFrame()
             // Clear all the buffers before frame rendering and render our 3D scene
             d3d.BeginScene();
             graphics_.Render3D(pEnttMgr_, pRender_);
+
+            // render game UI
             RenderUI(pUserInterface_, pRender_);
         }
 
@@ -334,14 +273,17 @@ void Engine::RenderFrame()
 
         // before next frame
         graphics_.ClearRenderingDataBeforeFrame(pEnttMgr_, pRender_);
+
+        // compute the duration of the engine's rendering process
+        auto renderEndTime = std::chrono::steady_clock::now();
+        std::chrono::duration<float, std::milli> renderDuration = renderEndTime - renderStartTime;
+        systemState_.renderTime = renderDuration.count();
     }
     catch (EngineException & e)
     {
         LogErr(e, true);
         LogErr("can't render a frame");
-        
-        // exit after it
-        isExit_ = true;
+        isExit_ = true;                   // exit after it (shutdown the engine)
     }
 }
 
@@ -392,11 +334,9 @@ void Engine::RenderUI(UI::UserInterface* pUI, Render::CRender* pRender)
 }
 
 
-
 // =================================================================================
 // Window events handlers 
 // =================================================================================
-
 void Engine::EventActivate(const APP_STATE state)
 {
     // define that the app is curretly running or paused
@@ -472,20 +412,24 @@ void Engine::EventWindowSizing(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 // =================================================================================
 // Keyboard events handlers
 // =================================================================================
-
 void HandleEditorCameraMovement(
     const eKeyCodes code,
     const float deltaTime,
-    ECS::EntityMgr* pEnttMgr)
+    ECS::EntityMgr* pEnttMgr,
+    const KeyboardClass& keyboard)
 {
     ECS::CameraSystem& camSys = pEnttMgr->cameraSystem_;
     const EntityID     camID = pEnttMgr->nameSystem_.GetIdByName("editor_camera");
-    constexpr float    editorCameraSpeed = 10.0f;
+    constexpr int      editorCameraSpeed = 10;
     
-    // if camera isn't fixed at some particular point
+    // if camera look isn't fixed at some particular point
     if (!camSys.IsFixedLook(camID))
     {
-        const float currSpeed = editorCameraSpeed * deltaTime;
+        // double the speed if we press shift
+        const bool  isRunning = keyboard.IsPressed(KEY_SHIFT);
+        const int   speedMul  = 1 + 1 * (isRunning);
+
+        const float currSpeed = deltaTime * (speedMul * editorCameraSpeed);
 
         switch (code)
         {
@@ -571,13 +515,10 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
             case KEY_2:
             case KEY_3:
             {
-                assert(0 && "FIXME!");
-
-#if 0
                 ID3D11DeviceContext* pContext = graphics_.GetD3DClass().GetDeviceContext();
                 int numDirLights = code - (int)(KEY_0);
-                pRender->SetDirLightsCount(pContext, numDirLights);
-#endif
+                pRender_->SetDirLightsCount(pContext, numDirLights);
+
                 break;
             }
             case KEY_4:   // turn off showing of bounding boxes around entts
@@ -588,7 +529,7 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
                 graphics_.SetAABBShowMode(CGraphics::AABBShowMode(mode));
                 break;
             }
-            case KEY_RETURN:   // aka ENTER
+            case KEY_RETURN:   // ENTER
             {
                 if (!keyboard_.WasPressedBefore(KEY_RETURN))
                     UI::gEventsHistory.FlushTempHistory();
@@ -603,7 +544,8 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
                 }
                 else
                 {
-                    HandleEditorCameraMovement(code, deltaTime_, pEnttMgr);
+                    // move backward
+                    HandleEditorCameraMovement(code, deltaTime_, pEnttMgr, keyboard_);
                 }
                 break;
             }
@@ -612,7 +554,7 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
             case KEY_W:
             case KEY_SPACE:
             {
-                HandleEditorCameraMovement(code, deltaTime_, pEnttMgr);
+                HandleEditorCameraMovement(code, deltaTime_, pEnttMgr, keyboard_);
             }
             case KEY_Z:
             {
@@ -624,7 +566,8 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
                 }
                 else
                 {
-                    HandleEditorCameraMovement(code, deltaTime_, pEnttMgr);
+                    // move down
+                    HandleEditorCameraMovement(code, deltaTime_, pEnttMgr, keyboard_);
                 }
                 break;
             }
@@ -845,6 +788,7 @@ void Engine::SwitchFlashLight(ECS::EntityMgr& mgr, Render::CRender& render)
     // set of flashlight is visible
     ID3D11DeviceContext* pContext = graphics_.GetD3DClass().GetDeviceContext();
     render.SwitchFlashLight(pContext, isFlashlightActive);
+
 
     // if we just turned on the flashlight we update its position and direction
     if (isFlashlightActive)
@@ -1099,10 +1043,9 @@ void Engine::TurnOnEditorMode()
     systemState_.isEditorMode = true;
     ShowCursor(TRUE);
 
-    const DirectX::XMMATRIX  world      = DirectX::XMMatrixIdentity();
     const DirectX::XMMATRIX& baseView   = pEnttMgr_->cameraSystem_.GetBaseView(editorCamID);
     const DirectX::XMMATRIX& ortho      = pEnttMgr_->cameraSystem_.GetOrtho(editorCamID);
-    const DirectX::XMMATRIX  WVO        = world * baseView * ortho;
+    const DirectX::XMMATRIX  WVO        = baseView * ortho;
 
     ID3D11DeviceContext* pContext = GetGraphicsClass().GetD3DClass().GetDeviceContext();
     pRender_->SetWorldViewOrtho(pContext, WVO);
@@ -1146,13 +1089,12 @@ void Engine::TurnOnGameMode()
     ShowCursor(FALSE);
     TurnOnMouseLookBehavior(hwnd_);
 
-    const DirectX::XMMATRIX  world      = DirectX::XMMatrixIdentity();
+    //const DirectX::XMMATRIX  world      = DirectX::XMMatrixIdentity();
     const DirectX::XMMATRIX& baseView   = pEnttMgr_->cameraSystem_.GetBaseView(gameCamID);
     const DirectX::XMMATRIX& ortho      = pEnttMgr_->cameraSystem_.GetOrtho(gameCamID);
-    const DirectX::XMMATRIX  WVO        = world * baseView * ortho;
 
     ID3D11DeviceContext* pContext = GetGraphicsClass().GetD3DClass().GetDeviceContext();
-    pRender_->SetWorldViewOrtho(pContext, WVO);
+    pRender_->SetWorldViewOrtho(pContext, baseView * ortho);
 }
 
 } // namespace Core

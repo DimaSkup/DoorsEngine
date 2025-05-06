@@ -98,6 +98,15 @@ public:
 		*this = rhs;
 	}
 
+    Vec4(const float* arr)
+    {
+        // init vec4 with array of 4 floats
+        if (arr)
+        {
+            *this = Vec4(arr[0], arr[1], arr[2], arr[3]);
+        }
+    }
+
 	// ----------------------------------------------------
 
 	inline Vec3              ToVec3()     const { return { x, y, z }; }

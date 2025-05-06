@@ -17,8 +17,8 @@ void PrepareInstancesWorldMatrices(
     ECS::EntityMgr* pEnttMgr,
     const EntityID* enttsSortedByModels,
     const size numEntts,
-    Render::InstBuffData& instanceBuffData,         // data for the instances buffer
-    const Render::cvector<Render::Instance>& instances)       // instances (models) data for rendering
+    Render::InstBuffData& instanceBuffData,                 // data for the instances buffer
+    const Render::cvector<Render::Instance>& instances)     // instances (models) data for rendering
 {
     // prepare world matrix for each subset (mesh) of each entity
 
@@ -48,12 +48,12 @@ void PrepareInstancesTextureTransformations(
 {
     // prepare texture transformation matrix for each subset (mesh) of each entity
 
-    cvector<DirectX::XMMATRIX> enttsTexTransforms(numEntts);
+    ECS::cvector<DirectX::XMMATRIX> enttsTexTransforms;
 
     pEnttMgr->texTransformSystem_.GetTexTransformsForEntts(
         enttsSortedByModels,
-        enttsTexTransforms.data(),
-        numEntts);
+        numEntts,
+        enttsTexTransforms);
 
     for (int transformIdx = 0, i = 0; const Render::Instance & instance : instances)
     {
@@ -66,6 +66,31 @@ void PrepareInstancesTextureTransformations(
         }
 
         transformIdx += instance.numInstances;
+    }
+}
+
+void PrepareInstancesMaterials(
+    Render::InstBuffData& instanceBuffData,
+    const Render::cvector<Render::Instance>& instances,
+    const cvector<Render::Material>& materialsSortedByInstances)
+{
+    int materialIdx = 0;
+    //const Render::Material& mat : materialsSortedByInstances
+
+
+    // for each instance
+    for (int i = 0; const Render::Instance& instance : instances)
+    {
+        // for each subset
+        for (index subsetIdx = 0; subsetIdx < instance.subsets.size(); ++subsetIdx)
+        {
+            // set the same material numInstances times (arr of the same geometry and material)
+            for (int j = 0; j < instance.numInstances; ++j)
+            {
+                instanceBuffData.materials_[i++] = materialsSortedByInstances[materialIdx];
+            }
+            materialIdx++;
+        }
     }
 }
 
@@ -84,8 +109,16 @@ void RenderDataPreparator::PrepareEnttsDataForRendering(
     Assert::True(numEntts > 0,        "input number of entities must be > 0");
 
     // get data of models which are related to the input entts
-    cvector<EntityID> enttsSortedByInstances;
-    PrepareInstancesData(enttsIds, numEntts, pEnttMgr, instances, enttsSortedByInstances);
+    cvector<EntityID>         enttsSortedByInstances;
+    cvector<Render::Material> materialsSortedByInstances;
+
+    PrepareInstancesData(
+        enttsIds,
+        numEntts,
+        pEnttMgr,
+        instances,
+        enttsSortedByInstances,
+        materialsSortedByInstances);
 
     // compute num of instances for the instanced buffer
     int numElems = 0;
@@ -111,6 +144,16 @@ void RenderDataPreparator::PrepareEnttsDataForRendering(
         numEntts,
         instanceBuffData,
         instances);
+
+#if 1
+    PrepareInstancesMaterials(
+        //pEnttMgr,
+        //enttsSortedByInstances.data(),
+        //numEntts,
+        instanceBuffData,
+        instances,
+        materialsSortedByInstances);
+#endif
 }
 
 ///////////////////////////////////////////////////////////
@@ -211,13 +254,13 @@ void RenderDataPreparator::PrepareInstancesData(
     const size numEntts,
     ECS::EntityMgr* pEnttMgr,
     Render::cvector<Render::Instance>& instances,
-    cvector<EntityID>& outEnttsSortedByInstances)
+    cvector<EntityID>& outEnttsSortedByInstances,
+    cvector<Render::Material>& outMaterials)      // one material per mesh of each instance
 {
     Assert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
     Assert::True(numEntts > 0,   "input number of entities must be > 0");
 
-
-    // separate entities by entts with mesh based materials and unique materials
+    // separate entities into 2 groups: entts with mesh based materials / with its unique materials
     cvector<EntityID> enttsWithOrigMat;
     cvector<EntityID> enttsWithUniqueMat;
 
@@ -247,6 +290,10 @@ void RenderDataPreparator::PrepareInstancesData(
     // prepare textures shader resource view (SRV) for each instance
     for (Render::Instance& instance : instances)
         PrepareTexturesForInstance(instance);
+
+    // prepare materials data for each instance
+    for (int i = 0; Render::Instance& instance : instances)
+        PrepareMaterialForInstance(instance, outMaterials);
 }
 
 ///////////////////////////////////////////////////////////
@@ -310,6 +357,7 @@ void RenderDataPreparator::PrepareInstancesForEntts(
     cvector<EntityID>& outEnttsSortedByInstances)
 {
     // prepare instances data for input entities by IDs
+    // NOTE: each input instance has materials which are the same as its model's materials
 
     Assert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
 
@@ -359,7 +407,9 @@ void RenderDataPreparator::PrepareInstancesForEnttsWithUniqueMaterials(
     Render::cvector<Render::Instance>& instances,
     cvector<EntityID>& outEnttsSortedByInstances)
 {
-    // prepare instances data for input entities by IDs
+    // prepare instances data for input entities by IDs;
+    // NOTE: each input entity has its own set of materials
+    //       so here we create unique instance per each entity
 
     Assert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
 
@@ -477,11 +527,10 @@ void RenderDataPreparator::PrepareTexturesForInstance(Render::Instance& instance
     // prepare textures for the instance which are based on original related model
 
     using SRV = ID3D11ShaderResourceView;
-
     const size numSubsets = (int)instance.subsets.size();
 
     // prepare valid textures (SRVs) for this instance
-    MaterialID        materialsIDs[256]{ INVALID_MATERIAL_ID };
+    //MaterialID        materialsIDs[256]{ INVALID_MATERIAL_ID };
     TexID             texturesIDs[256]{ INVALID_TEXTURE_ID };
     cvector<Material> materials(numSubsets);
     cvector<SRV*>     textureSRVs(256, nullptr);
@@ -508,7 +557,39 @@ void RenderDataPreparator::PrepareTexturesForInstance(Render::Instance& instance
 
 ///////////////////////////////////////////////////////////
 
+void RenderDataPreparator::PrepareMaterialForInstance(
+    const Render::Instance& instance,
+    cvector<Render::Material>& outMaterials)
+{
+    // prepare one material data per each mesh of the input instance and
+    // push them back into the outMaterials array
+
+    const size numSubsets = (int)instance.subsets.size();
+    cvector<Material> materials(numSubsets);
+    MaterialID materialsIDs[256]{ INVALID_MATERIAL_ID };
+
+    // prepare more memory for the materials
+    index outMatIdx = outMaterials.size();
+    const size numMaterials = outMatIdx + numSubsets;
+    outMaterials.resize(numMaterials);
+
+    // get materials data by materials IDs (one material per one subset)
+    g_MaterialMgr.GetMaterialsByIDs(instance.materialIDs.data(), numSubsets, materials);
+
+    // go through each material and convert it into the Render::Material
+    for (index i = 0; outMatIdx < numMaterials; ++outMatIdx, ++i)
+    {
+        outMaterials[outMatIdx].ambient_  = DirectX::XMFLOAT4(&materials[i].ambient.x);
+        outMaterials[outMatIdx].diffuse_  = DirectX::XMFLOAT4(&materials[i].diffuse.x);
+        outMaterials[outMatIdx].specular_ = DirectX::XMFLOAT4(&materials[i].specular.x);
+        outMaterials[outMatIdx].reflect_  = DirectX::XMFLOAT4(&materials[i].reflect.x);
+    }
+}
+
+///////////////////////////////////////////////////////////
+
 #if 0
+// TODO:
 void RenderDataPreparator::PrepareInstanceFromModel(
     BasicModel& model,
     Render::Instance& instance)

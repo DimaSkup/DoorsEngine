@@ -3,7 +3,7 @@
 #include "LightEnttsInitializer.h"
 #include "SetupModels.h"
 #include "../Core/Engine/Settings.h"
-#include <ctime>
+//#include <time.h>
 
 using namespace Core;
 
@@ -64,7 +64,7 @@ void SceneInitializer::InitPlayer(ID3D11Device* pDevice, ECS::EntityMgr* pEnttMg
     // ------------------------------------------
 
     // create and set a model for the player entity
-    const MeshSphereParams sphereParams(1, 10, 10);
+    const MeshSphereParams sphereParams(1, 20, 20);
     ModelsCreator creator;
     const ModelID sphereID = creator.CreateSphere(pDevice, sphereParams);
     BasicModel& sphere = g_ModelMgr.GetModelByID(sphereID);
@@ -192,7 +192,7 @@ bool SceneInitializer::InitCameras(
 
 inline float GetHeightOfGeneratedTerrainAtPoint(const float x, const float z)
 {
-    return 0.01f * (z * sinf(0.1f * x) + x * cosf(0.1f * z));
+    return 0.1f * (z * sinf(0.1f * x) + x * cosf(0.1f * z));
 }
 
 ///////////////////////////////////////////////////////////
@@ -334,7 +334,7 @@ void CreateSpheres(ECS::EntityMgr& mgr, const BasicModel& model)
     // add material for each sphere entity
     const MaterialID matID = model.meshes_.subsets_[0].materialID;
     const MaterialID catMatID = g_MaterialMgr.GetMaterialIdByName("cat");
-    const MaterialID woodCrateMatID = g_MaterialMgr.GetMaterialIdByName("wood_crate_1");
+    const MaterialID woodCrateMatID = g_MaterialMgr.GetMaterialIdByName("brick_01");
     constexpr bool areMaterialsMeshBased = true;
 
 
@@ -343,6 +343,11 @@ void CreateSpheres(ECS::EntityMgr& mgr, const BasicModel& model)
 
     for (index i = 2; i < numEntts; ++i)
         mgr.AddMaterialComponent(enttsIDs[i], &matID, numSubsets, areMaterialsMeshBased);
+
+    // setup a texture transformation for the sphere
+    ECS::StaticTexTransInitParams sphereTexTransform;
+    sphereTexTransform.Push(DirectX::XMMatrixScaling(3, 3, 0));
+    mgr.AddTextureTransformComponent(enttsIDs[1], ECS::TexTransformType::STATIC, sphereTexTransform);
 }
 
 ///////////////////////////////////////////////////////////
@@ -381,6 +386,8 @@ void CreateSkyBox(ECS::EntityMgr& mgr, SkyModel& sky)
     {
         // load only one texture by idx 0 for the sky
         skyTexPath = "cubemaps/cubemap_1.dds";
+        skyTexPath = "cubemaps/deep_space_hdr.jpg";
+        
         textureIdx = 0;
 
         // very cool dark gradient:
@@ -444,12 +451,6 @@ void CreateCylinders(ECS::EntityMgr& mgr, const BasicModel& model)
         names[i++] = "cylinder_" + std::to_string(id);
 
     // ----------------------------------------------------
-    // set a default texture for the cylinder mesh
-
-    sprintf(g_String, "%s%s", g_RelPathTexDir, "brick01.dds");
-    const TexID brickTexID = g_TextureMgr.LoadFromFile(g_String);
-
-    // ----------------------------------------------------
     // setup rendering params
     ECS::RenderInitParams renderParams;
     renderParams.shaderType = ECS::LIGHT_SHADER;
@@ -461,11 +462,6 @@ void CreateCylinders(ECS::EntityMgr& mgr, const BasicModel& model)
     const ECS::BoundingType boundTypes[1] = { ECS::BoundingType::BOUND_BOX };
     const DirectX::BoundingBox* enttAABBs = model.GetSubsetsAABB();
 
-    // setup material params
-    Material cylinderMat;
-    cylinderMat.SetTexture(TEX_TYPE_DIFFUSE, brickTexID);
-    const MaterialID cylinderMatID = g_MaterialMgr.AddMaterial(std::move(cylinderMat));
-
     // ----------------------------------------------------
 
     mgr.AddTransformComponent(ids, numEntts, positions, dirQuats, uniformScales);
@@ -474,19 +470,16 @@ void CreateCylinders(ECS::EntityMgr& mgr, const BasicModel& model)
     constexpr int  numSubmeshes = 1;
     constexpr bool areMaterialsMeshBased = false;
 
+    const MaterialID brickMatID = g_MaterialMgr.GetMaterialIdByName("brick_01");
+
     for (const EntityID id : enttsIDs)
-        mgr.AddMaterialComponent(id, &cylinderMatID, numSubmeshes, areMaterialsMeshBased);
+        mgr.AddMaterialComponent(id, &brickMatID, numSubmeshes, areMaterialsMeshBased);
 
     mgr.AddNameComponent(ids, names, numEntts);
     mgr.AddRenderingComponent(ids, numEntts, renderParams);
     mgr.AddModelComponent(ids, model.GetID(), numEntts);
+    mgr.AddBoundingComponent(ids, numEntts, numSubsets, boundTypes, enttAABBs);
 
-    mgr.AddBoundingComponent(
-        ids,
-        numEntts,
-        numSubsets,
-        boundTypes,
-        enttAABBs);
 }
 
 ///////////////////////////////////////////////////////////
@@ -576,8 +569,8 @@ void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
         // ---------------------------------------------------------
         // prepare textures transformations
 
-        ECS::AtlasAnimParams atlasTexAnimParams;
-        ECS::RotationAroundCoordParams rotAroundCoordsParams;
+        ECS::AtlasAnimInitParams atlasTexAnimParams;
+        ECS::RotationAroundCoordInitParams rotAroundCoordsParams;
 
         atlasTexAnimParams.Push(15, 8, 4);
         rotAroundCoordsParams.Push(0.5f, 0.5f, 0.1f);
@@ -710,7 +703,7 @@ void CreateTerrain(ECS::EntityMgr& mgr, const BasicModel& model)
     const EntityID enttID = mgr.CreateEntity();
 
     // setup a transformation for the terrain's texture (scale it)
-    ECS::StaticTexTransParams terrainTexTransform;
+    ECS::StaticTexTransInitParams terrainTexTransform;
     terrainTexTransform.Push(DirectX::XMMatrixScaling(50, 50, 0));
 
     // setup rendering params
@@ -1596,8 +1589,7 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     const std::string barrelPath = g_RelPathExtModelsDir + "Barrel1/Barrel1.obj";
     const std::string nanosuitPath = g_RelPathExtModelsDir + "nanosuit/nanosuit.obj";
 
-    const std::string stalkerHouseSmallPath = g_RelPathExtModelsDir + "stalker/stalker-house/source/SmallHouse.fbx";
-    const std::string stalkerHouseAbandonedPath = g_RelPathExtModelsDir + "stalker/abandoned-house-20/source/StalkerAbandonedHouse.fbx";
+  
 
     
 
@@ -1606,6 +1598,10 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     const std::string sovientStatuePath = g_RelPathExtModelsDir + "sovietstatue_1/sickle&hammer.obj";
 #endif
     const std::string extModelsDir = std::string(g_RelPathExtModelsDir);
+
+    const std::string stalkerHouseSmallPath = extModelsDir + "stalker/stalker-house/source/SmallHouse.fbx";
+    const std::string stalkerHouseAbandonedPath = extModelsDir + "stalker/abandoned-house-20/source/StalkerAbandonedHouse.fbx";
+   
     const std::string treeSprucePath      = extModelsDir + "trees/tree_spruce/tree_spruce.obj";
     const std::string treePinePath        = extModelsDir + "trees/FBX format/tree_pine.fbx";
     const std::string stalkerFreedom1Path = extModelsDir + "stalker_freedom_1/stalker_freedom_1.fbx";
@@ -1621,8 +1617,8 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     const ModelID treePineID = creator.ImportFromFile(pDevice, treePinePath.c_str());
     //const ModelID nanosuitID       = creator.ImportFromFile(pDevice, nanosuitPath);
     const ModelID stalkerFreedomID = creator.ImportFromFile(pDevice, stalkerFreedom1Path.c_str());
-    //const ModelID stalkerHouse1ID  = creator.ImportFromFile(pDevice, stalkerHouseSmallPath);
-    //const ModelID stalkerHouse2ID  = creator.ImportFromFile(pDevice, stalkerHouseAbandonedPath);
+    const ModelID stalkerHouse1ID  = creator.ImportFromFile(pDevice, stalkerHouseSmallPath.c_str());
+    const ModelID stalkerHouse2ID  = creator.ImportFromFile(pDevice, stalkerHouseAbandonedPath.c_str());
     const ModelID ak47ID = creator.ImportFromFile(pDevice, ak47Path.c_str());
     const ModelID ak74ID           = creator.ImportFromFile(pDevice, ak74uPath.c_str());
     //const ModelID barrelID         = creator.ImportFromFile(pDevice, barrelPath);
@@ -1649,17 +1645,18 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     BasicModel& stalkerFreedom = g_ModelMgr.GetModelByID(stalkerFreedomID);
     //BasicModel& lightPole       = g_ModelMgr.GetModelByID(lightPoleID);
     //BasicModel& barrel          = g_ModelMgr.GetModelByID(barrelID);
-    //BasicModel& stalkerHouse1   = g_ModelMgr.GetModelByID(stalkerHouse1ID);
-    //BasicModel& stalkerHouse2   = g_ModelMgr.GetModelByID(stalkerHouse2ID);
+    BasicModel& stalkerHouse1   = g_ModelMgr.GetModelByID(stalkerHouse1ID);
+    BasicModel& stalkerHouse2   = g_ModelMgr.GetModelByID(stalkerHouse2ID);
     BasicModel& ak47 = g_ModelMgr.GetModelByID(ak47ID);
     BasicModel& ak74            = g_ModelMgr.GetModelByID(ak74ID);
 
     // setup some models (set textures, setup materials)
-    //SetupStalkerSmallHouse(stalkerHouse1);
-    //SetupStalkerAbandonedHouse(stalkerHouse2);
-    //SetupTree(treePine);
+    SetupStalkerSmallHouse(stalkerHouse1);
+    SetupStalkerAbandonedHouse(stalkerHouse2);
+    SetupTree(treePine);
     //SetupPowerLine(powerHVTower);
     //SetupBuilding9(building);
+    SetupStalkerFreedom(stalkerFreedom);
     SetupAk47(ak47);
 
     CreateTreesPine(mgr, treePine);
@@ -1686,18 +1683,14 @@ void GenerateAssets(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
 {
     ModelsCreator creator;
 
-    //
-    // create sky
-    //
+    // create sky model
     creator.CreateSkyCube(pDevice, 2000);
     //creator.CreateSkySphere(pDevice, 2000, 30, 30);
     //MeshSphereParams skyDomeSphereParams(2000, 30, 30);
     //const ModelID skyBoxID = creator.CreateSphere(pDevice, skyDomeSphereParams);
     SkyModel& skyBox = g_ModelMgr.GetSky();
 
-    //
     // create terrain
-    //
     const ModelID terrainID = creator.CreateGeneratedTerrain(pDevice, 500, 500, 501, 501);
     BasicModel& terrain = g_ModelMgr.GetModelByID(terrainID);
     SetupTerrain(terrain);
@@ -1706,18 +1699,38 @@ void GenerateAssets(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     // generate some models manually
     const MeshSphereParams    boundSphereParams(1, 8, 8);
     const MeshGeosphereParams boundGeoSphereParams(1, 1);
-    const MeshSphereParams    sphereParams(1, 10, 10);
+    const MeshSphereParams    sphereParams(1, 20, 20);
+    const MeshCylinderParams  cylParams(1, 1, 5, 20, 2);
 
-    const ModelID cubeID = creator.CreateCube(pDevice);
+    const ModelID cubeID        = creator.CreateCube(pDevice);
     const ModelID boundSphereID = creator.CreateGeoSphere(pDevice, boundGeoSphereParams);
-    const ModelID sphereID = creator.CreateSphere(pDevice, sphereParams);
+    const ModelID sphereID      = creator.CreateSphere(pDevice, sphereParams);
+    const ModelID cylinderID    = creator.CreateCylinder(pDevice, cylParams);
 
     // get actual model by its ID
-    BasicModel& cube = g_ModelMgr.GetModelByID(cubeID);
-    BasicModel& sphere = g_ModelMgr.GetModelByID(sphereID);
+    BasicModel& cube        = g_ModelMgr.GetModelByID(cubeID);
+    BasicModel& sphere      = g_ModelMgr.GetModelByID(sphereID);
     BasicModel& boundSphere = g_ModelMgr.GetModelByID(boundSphereID);
+    BasicModel& cylinder    = g_ModelMgr.GetModelByID(cylinderID);
 
+    sphere.SetName("basic_sphere");
     boundSphere.SetName("bound_sphere");
+    cylinder.SetName("basic_cylinder");
+
+    // ----------------------------------------------------
+    // create some materials:
+
+    // 1. create brick_01 material
+    const TexID texIdStoneDiff = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "brick01d.dds");
+    const TexID texIdStoneNorm = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "brick01n.dds");
+
+    Material cylinderMat;
+    cylinderMat.SetName("brick_01");
+    cylinderMat.SetTexture(TEX_TYPE_DIFFUSE, texIdStoneDiff);
+    cylinderMat.SetTexture(TEX_TYPE_NORMALS, texIdStoneNorm);
+    g_MaterialMgr.AddMaterial(std::move(cylinderMat));
+
+    // ----------------------------------------------------
 
     // manual setup of some models
     SetupCube(cube);
@@ -1727,6 +1740,7 @@ void GenerateAssets(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     CreateSkyBox(mgr, skyBox);
     CreateCubes(mgr, cube);
     CreateSpheres(mgr, sphere);
+    CreateCylinders(mgr, cylinder);
 }
 
 ///////////////////////////////////////////////////////////
@@ -1866,11 +1880,11 @@ bool SceneInitializer::InitModelEntities(ID3D11Device* pDevice, ECS::EntityMgr& 
         // NOTE: the bounding line box model must be created first of all, before all the other models
         const ModelID boundingBoxID = creator.CreateBoundingLineBox(pDevice);
 
-        //LoadTreesBillboardsTextures();
+        LoadTreesBillboardsTextures();
 #if 1
         if (FileSys::Exists(g_RelPathAssetsDir))
         {
-            //LoadAssets(pDevice, mgr);
+            LoadAssets(pDevice, mgr);
         }
         else
         {

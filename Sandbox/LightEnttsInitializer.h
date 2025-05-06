@@ -36,18 +36,24 @@ void InitDirectedLightEntities(ECS::EntityMgr& mgr)
         ECS::DirLight& dirLight2 = dirLightsParams.data[2];
 
         // setup main directed light source
-        dirLight0.ambient = { 0.6f, 0.6f, 0.6f, 1.0f };
-        dirLight0.diffuse = { 0.8f, 0.8f, 0.8f, 1.0f };
+        //dirLight0.ambient = { 0.6f, 0.6f, 0.6f, 1.0f };
+        //dirLight0.diffuse = { 0.8f, 0.8f, 0.8f, 1.0f };
+        dirLight0.ambient = { 0,0,0,1 };
+        dirLight0.diffuse = { 0,0,0,1 };
         dirLight0.specular = { 0.3f, 0.3f, 0.3f, 1.0f };
 
         // setup 2nd directed light source
-        dirLight1.ambient = { 0.0f, 0.0f, 0.0f, 1.0f };
-        dirLight1.diffuse = { 0.2f, 0.2f, 0.2f, 1.0f };
+        //dirLight1.ambient = { 0.0f, 0.0f, 0.0f, 1.0f };
+        //dirLight1.diffuse = { 0.2f, 0.2f, 0.2f, 1.0f };
+        dirLight1.ambient = { 0,0,0,1 };
+        dirLight1.diffuse = { 0,0,0,1 };
         dirLight1.specular = { 0.25f, 0.25f, 0.25f, 1.0f };
 
         // setup 3rd directed light source
-        dirLight2.ambient = { 0.0f, 0.0f, 0.0f, 1.0f };
-        dirLight2.diffuse = { 0.2f, 0.2f, 0.2f, 1.0f };
+        //dirLight2.ambient = { 0.0f, 0.0f, 0.0f, 1.0f };
+        //dirLight2.diffuse = { 0.2f, 0.2f, 0.2f, 1.0f };
+        dirLight2.ambient = { 0,0,0,1 };
+        dirLight2.diffuse = { 0,0,0,1 };
         dirLight2.specular = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 

@@ -48,20 +48,18 @@ void TextureTransformSystem::AddTexTransformation(
 
 void TextureTransformSystem::GetTexTransformsForEntts(
     const EntityID* ids,
-    XMMATRIX* outTexTransforms,
-    const size numEntts)
+    const size numEntts,
+    cvector<XMMATRIX>& outTexTransforms)
 {
     // what we do here:
     // go through each input entity and define if it has some tex transformation 
     // if so we store this transformation or in another case we store an identity matrix;
     //
-    // NOTE:  outTexTransforms arr already must have size == numEntts
-    // 
     // in:    arr of entities IDs
     // out:   arr of texture transformations for these entities
 
-    Assert::True((ids != nullptr) && (outTexTransforms != nullptr) && (numEntts > 0), "invalid input args");
-    
+    Assert::True((ids != nullptr) && (numEntts > 0), "invalid input args");
+
     const TextureTransform& comp = *pTexTransformComponent_;
     cvector<bool> exist(numEntts);
     cvector<index> idxs(numEntts);
@@ -73,6 +71,8 @@ void TextureTransformSystem::GetTexTransformsForEntts(
         exist[i] = (comp.ids[idxs[i]] == ids[i]);
 
     // fill in the output arr with texture transformation matrices
+    outTexTransforms.resize(numEntts);
+
     for (index i = 0; i < numEntts; ++i)
         outTexTransforms[i] = (exist[i]) ? comp.texTransforms[idxs[i]] : DirectX::XMMatrixIdentity();
 }
@@ -104,7 +104,7 @@ void TextureTransformSystem::AddStaticTexTransform(
 
     TextureTransform& comp = *pTexTransformComponent_;
     TexStaticTransformations& staticTransf = comp.texStaticTrans;
-    const StaticTexTransParams& params = static_cast<const StaticTexTransParams&>(inParams);
+    const StaticTexTransInitParams& params = static_cast<const StaticTexTransInitParams&>(inParams);
 
     cvector<index> idxs;
     comp.ids.get_insert_idxs(ids, numEntts, idxs);
@@ -144,7 +144,7 @@ void TextureTransformSystem::AddStaticTexTransform(
 
 void PrepareAtlasAnimationInitData(
     const size numEntts,
-    const AtlasAnimParams& params,
+    const AtlasAnimInitParams& params,
     cvector<TexAtlasAnimationData>& outData)
 {
     outData.resize(numEntts);
@@ -176,7 +176,7 @@ void TextureTransformSystem::AddAtlasTextureAnimation(
 
 
     TextureTransform& comp = *pTexTransformComponent_;
-    const AtlasAnimParams& params = static_cast<const AtlasAnimParams&>(inParams);
+    const AtlasAnimInitParams& params = static_cast<const AtlasAnimInitParams&>(inParams);
 
     // prepare animation data for storing
     cvector<TexAtlasAnimationData> animData(numEntts);
@@ -227,7 +227,7 @@ void TextureTransformSystem::AddRotationAroundTexCoord(
 
     TextureTransform& comp = *pTexTransformComponent_;
     TexRotationsAroundCoords& rotations = comp.texRotations;
-    const RotationAroundCoordParams& rotationParams = static_cast<const RotationAroundCoordParams&>(inParams);
+    const RotationAroundCoordInitParams& rotationParams = static_cast<const RotationAroundCoordInitParams&>(inParams);
 
     cvector<index> idxs;
     comp.ids.get_insert_idxs(ids, numEntts, idxs);

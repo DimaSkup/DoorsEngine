@@ -80,7 +80,6 @@ SentenceID TextStore::CreateConstSentence(
         LogErr(e, false);
         sprintf(g_String, "can't create a sentence with the text: %s", textContent.c_str());
         LogErr(g_String);
-
         return 0;
     }
 }
@@ -153,7 +152,7 @@ void TextStore::SetKeyByID(const std::string& key, const SentenceID id)
 
     if (!result.second)
     {
-        sprintf(g_String, "can't set a key (%s) by sentence ID (%ud)", key.c_str(), id);
+        sprintf(g_String, "can't set a key (%s) by sentence ID (%ld)", key.c_str(), id);
         LogErr(g_String);
     }
 }
@@ -199,13 +198,13 @@ void TextStore::Update(
     // Update() changes the contents of the dynamic vertex buffer for the input text.
     try
     {
-        constexpr size numDynamicSentences = 13;
+        constexpr size numDynamicSentences = 15;
 
         // sentences by these keys are supposed to update if its values are
         // differ from the sysState
         const char* keys[numDynamicSentences] =
         {
-            "fps", "frame_time",
+            "fps", "frame_time", "update_time", "render_time",
 
             "posX",	"posY",	"posZ",   // player's position info
             "rotX", "rotY", "rotZ",   // player's directions info
@@ -215,35 +214,38 @@ void TextStore::Update(
             "cells_drawn", "cells_culled",
         };
      
-        // check yourself
-        //Core::Assert::True(numDynamicSentences == ARRAYSIZE(keys), "num of dynamic sentences != size of semantic keys arr");
 
-        struct value
+        struct value 
         {
             char text[32]{'\0'};
         };
         value textValues[numDynamicSentences];
        
         // set values so later we will compare them to the previous ones
-        sprintf(textValues[0].text, "%d", sysState.fps);
-        sprintf(textValues[1].text, "%f", sysState.frameTime);
+        constexpr size_t maxStrSize = 16;
+        int i = 0;
+        
+        snprintf(textValues[i++].text, maxStrSize, "%d", sysState.fps);
+        snprintf(textValues[i++].text, maxStrSize, "%05.2fms", sysState.frameTime);
+        snprintf(textValues[i++].text, maxStrSize, "%05.2fms", sysState.updateTime);
+        snprintf(textValues[i++].text, maxStrSize, "%05.2fms", sysState.renderTime);
 
         // pos info
-        sprintf(textValues[2].text, "%f", sysState.cameraPos.x);
-        sprintf(textValues[3].text, "%f", sysState.cameraPos.y);
-        sprintf(textValues[4].text, "%f", sysState.cameraPos.z);
+        sprintf(textValues[i++].text, "%.2f", sysState.cameraPos.x);
+        sprintf(textValues[i++].text, "%.2f", sysState.cameraPos.y);
+        sprintf(textValues[i++].text, "%.2f", sysState.cameraPos.z);
 
         // rotation info
-        sprintf(textValues[5].text, "%f", sysState.cameraDir.x);
-        sprintf(textValues[6].text, "%f", sysState.cameraDir.y);
-        sprintf(textValues[7].text, "%f", sysState.cameraDir.z);
+        sprintf(textValues[i++].text, "%.2f", sysState.cameraDir.x);
+        sprintf(textValues[i++].text, "%.2f", sysState.cameraDir.y);
+        sprintf(textValues[i++].text, "%.2f", sysState.cameraDir.z);
 
         // render info
-        sprintf(textValues[8].text,  "%d", sysState.visibleObjectsCount);
-        sprintf(textValues[9].text,  "%d", sysState.visibleVerticesCount);
-        sprintf(textValues[10].text, "%d", sysState.visibleVerticesCount / 3);
-        sprintf(textValues[11].text, "%d", sysState.cellsDrawn);
-        sprintf(textValues[12].text, "%d", sysState.cellsCulled);
+        sprintf(textValues[i++].text, "%d", sysState.visibleObjectsCount);
+        sprintf(textValues[i++].text, "%d", sysState.visibleVerticesCount);
+        sprintf(textValues[i++].text, "%d", sysState.visibleVerticesCount / 3);
+        sprintf(textValues[i++].text, "%d", sysState.cellsDrawn);
+        sprintf(textValues[i++].text, "%d", sysState.cellsCulled);
 
         // ------------------------------------------------
 
@@ -319,7 +321,7 @@ void TextStore::BuildTextVerticesIndices(
         indices.resize(numIndices, 0);
         
         // fill in vertex and index arrays with initial data
-        font.BuildVertexArray(vertices.data(), numVertices, textContent, drawAt);
+        font.BuildVertexArray(vertices.data(), numVertices, textContent.c_str(), drawAt.x, drawAt.y);
         font.BuildIndexArray(indices.data(), numIndices);
     }
     catch (Core::EngineException & e)
@@ -351,7 +353,8 @@ void TextStore::UpdateSentenceByIdx(
         vertices.data(),
         std::ssize(vertices),
         newStr,
-        drawAt_[idx]);
+        drawAt_[idx].x,
+        drawAt_[idx].y);
 
     // update VB with new vertices
     vertexBuffers_[idx].UpdateDynamic(pContext, vertices.data(), std::ssize(vertices));

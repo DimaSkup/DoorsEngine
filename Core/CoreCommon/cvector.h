@@ -448,9 +448,7 @@ inline void cvector<T>::push_back(T&& rvalue)
         reserve(newCapacity);
     }
 
-    data_[size_]
-        =
-        std::move(rvalue);
+    data_[size_] = std::move(rvalue);
     size_++;
 }
 

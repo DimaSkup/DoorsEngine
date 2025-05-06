@@ -341,7 +341,7 @@ bool FacadeEngineToUI::GetEnttDirectedLightData(
     }
     else
     {
-        sprintf(g_String, "can't get directed light data of the entity by ID: %ld", id);
+        snprintf(g_String, g_StrLim, "can't get directed light data of the entity by ID: %ld", id);
         LogErr(g_String);
         return false;
     }
@@ -373,7 +373,7 @@ bool FacadeEngineToUI::GetEnttPointLightData(
     }
     else
     {
-        sprintf(g_String, "can't get point light data of the entity by ID: %ld", id);
+        snprintf(g_String, g_StrLim, "can't get point light data of the entity by ID: %ld", id);
         LogErr(g_String);
         return false;
     }
@@ -406,7 +406,7 @@ bool FacadeEngineToUI::GetEnttSpotLightData(
     }
     else
     {
-        sprintf(g_String, "can't get spotlight data of the entity by ID: %ld", id);
+        snprintf(g_String, g_StrLim, "can't get spotlight data of the entity by ID: %ld", id);
         LogErr(g_String);
         return false;
     }
@@ -794,13 +794,28 @@ bool FacadeEngineToUI::GetTextureIdByIdx(const index idx, TexID& outTextureID) c
     // if we got an "invalid" texture ID
     if (outTextureID == 0)
     {
-        char buff[64];
-        sprintf(buff, "there is no texture ID by idx: %lld", idx);
-        LogErr(buff);
+        snprintf(g_String, g_StrLim, "there is no texture ID by idx: %lld", idx);
+        LogErr(g_String);
         return false;
     }
 
     return true;
+}
+
+///////////////////////////////////////////////////////////
+
+bool FacadeEngineToUI::GetMaterialIdByIdx(const index idx, MaterialID& outMatID) const
+{
+    outMatID = g_MaterialMgr.GetMaterialIdByIdx(idx);
+    return true;
+}
+
+///////////////////////////////////////////////////////////
+
+bool FacadeEngineToUI::GetMaterialNameById(const MaterialID id, char** outName, const int nameMaxLength) const
+{
+    const char* matName = g_MaterialMgr.GetMaterialByID(id).name;
+    return (bool)strncpy(*outName, matName, nameMaxLength);
 }
 
 ///////////////////////////////////////////////////////////
@@ -810,6 +825,41 @@ bool FacadeEngineToUI::GetNumMaterials(size& numMaterials) const
     // get the number of all the currenly loaded materials
     numMaterials = g_MaterialMgr.GetNumAllMaterials();
     return true;
+}
+
+///////////////////////////////////////////////////////////
+
+bool FacadeEngineToUI::GetMaterialDataById(const MaterialID id, MaterialData& outData) const
+{
+    Core::Material& mat = g_MaterialMgr.GetMaterialByID(id);
+
+    outData.id       = id;
+    outData.ambient  = Vec4(&mat.ambient.x);
+    outData.diffuse  = Vec4(&mat.diffuse.x);
+    outData.specular = Vec4(&mat.specular.x);
+    outData.reflect  = Vec4(&mat.reflect.x);
+
+    strncpy(outData.name, mat.name, MAX_LENGTH_MATERIAL_NAME);
+    memcpy(outData.textureIDs, mat.textureIDs, sizeof(TexID) * NUM_TEXTURE_TYPES);
+
+    outData.properties = mat.properties;
+
+    return true;
+}
+
+bool FacadeEngineToUI::SetMaterialColorData(
+    const MaterialID id,
+    const Vec4& amb,           // ambient
+    const Vec4& diff,          // diffuse
+    const Vec4& spec,          // specular = vec3(specular_color) + float(specular_power)
+    const Vec4& refl)          // reflect
+{
+    return g_MaterialMgr.SetMaterialColorData(
+        id,
+        Core::Float4(amb.x, amb.y, amb.z, amb.w),
+        Core::Float4(diff.x, diff.y, diff.z, diff.w),
+        Core::Float4(spec.x, spec.y, spec.z, spec.w),
+        Core::Float4(refl.x, refl.y, refl.z, refl.w));
 }
 
 ///////////////////////////////////////////////////////////
@@ -876,5 +926,19 @@ bool FacadeEngineToUI::RenderMaterialsIcons(
 
     return true;
 }
+
+///////////////////////////////////////////////////////////
+
+bool FacadeEngineToUI::RenderMaterialBigIconByID(
+    const MaterialID matID,
+    const int iconWidth,
+    const int iconHeight)
+{
+    // in the material browser we can select editing of the chosen material;
+    // in the editor window we need to visualize the current state of the material so
+    // we render this big material icon
+    return pGraphics_->RenderBigMaterialIcon(matID, iconWidth, iconHeight, pRender_, &pMaterialBigIcon_);
+}
+
 
 } // namespace Core

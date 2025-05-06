@@ -13,6 +13,9 @@ namespace Core
 
 struct Float4
 {
+    Float4(const float _x, const float _y, const float _z, const float _w) :
+        x(_x), y(_y), z(_z), w(_w) {}
+
     float x = 0.0f;
     float y = 0.0f;
     float z = 0.0f;
@@ -34,10 +37,11 @@ using EntityID   = uint32_t;
 using ModelID    = uint32_t;
 using SubsetID   = uint16_t;                    // mesh ID
 constexpr ModelID INVALID_MODEL_ID = 0;
-constexpr int SUBSET_NAME_LENGTH_LIMIT = 32;    // max length for a model subset's name
 
-constexpr int MAX_LENGTH_MODEL_NAME   = 32;
-constexpr int MAX_LENGTH_TEXTURE_NAME = 32;
+constexpr int SUBSET_NAME_LENGTH_LIMIT = 32;    // max length for a model subset's (mesh) name
+constexpr int MAX_LENGTH_MODEL_NAME    = 32;
+constexpr int MAX_LENGTH_TEXTURE_NAME  = 32;
+constexpr int MAX_LENGTH_MATERIAL_NAME = 32;
 
 struct ModelName
 {

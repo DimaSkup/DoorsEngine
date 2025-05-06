@@ -116,45 +116,45 @@ private:
     void TurnOnGameMode();
 
 private:
-    HWND      hwnd_ = NULL;                     // main window handle
-    HINSTANCE hInstance_ = NULL;                // application instance handle
+    HWND      hwnd_         = NULL;             // main window handle
+    HINSTANCE hInstance_    = NULL;             // application instance handle
 
-    bool      isPaused_ = false;                // defines if the engine/game is currently paused
-    bool      isExit_ = false;                  // are we going to exit?
-    bool      isMinimized_ = false;             // is the window minimized?
-    bool      isMaximized_ = true;              // is the window maximized?
-    bool      isResizing_ = false;              // are we resizing the window?
-    float     deltaTime_ = 0.0f;                // the time since the previous frame
+    bool      isPaused_     = false;            // defines if the engine/game is currently paused
+    bool      isExit_       = false;            // are we going to exit?
+    bool      isMinimized_  = false;            // is the window minimized?
+    bool      isMaximized_  = true;             // is the window maximized?
+    bool      isResizing_   = false;            // are we resizing the window?
+    float     deltaTime_    = 0.0f;             // the time since the previous frame
 
     std::string windowTitle_{ "" };             // window title/caption
 
-    //Settings           settings_;            // settings container							   
-    SystemState        systemState_;         // contains different info about the state of the engine
-    CpuClass           cpu_;                 // cpu usage counter
-    GameTimer          timer_;               // used to keep track of the "delta-time" and game time
+    //Settings           settings_;             // settings container							   
+    SystemState         systemState_;           // contains different info about the state of the engine
+    CpuClass            cpu_;                   // cpu usage counter
+    GameTimer           timer_;                 // used to keep track of the "delta-time" and game time
 
-    InputManager       inputMgr_;
-    KeyboardClass      keyboard_;            // represents a keyboard device
-    MouseClass         mouse_;               // represents a mouse device
-    CGraphics      graphics_;            // rendering system
+    InputManager        inputMgr_;
+    KeyboardClass       keyboard_;              // represents a keyboard device
+    MouseClass          mouse_;                 // represents a mouse device
+    CGraphics           graphics_;              // rendering system
 
-    ImGuiLayer         imGuiLayer_;
+    ImGuiLayer          imGuiLayer_;
 
     //KeyboardEvent      keyboardEvent_;       // the current keyboard event
-    MouseEvent         mouseEvent_;          // the current mouse event
-    SoundClass         sound_;
+    MouseEvent          mouseEvent_;          // the current mouse event
+    SoundClass          sound_;
 
-    ECS::EntityMgr*    pEnttMgr_ = nullptr;
-    UI::UserInterface* pUserInterface_ = nullptr;
-    Render::CRender*   pRender_ = nullptr;
+    ECS::EntityMgr*     pEnttMgr_ = nullptr;
+    UI::UserInterface*  pUserInterface_ = nullptr;
+    Render::CRender*    pRender_ = nullptr;
 
     // window's zone width/height
-    UINT windowWidth_ = 0;
-    UINT windowHeight_ = 0;
+    UINT windowWidth_   = 0;
+    UINT windowHeight_  = 0;
 
     // client's zone width/height
-    UINT clientWidth_ = 0;
-    UINT clientHeight_ = 0;
+    UINT clientWidth_   = 0;
+    UINT clientHeight_  = 0;
 
 };
 

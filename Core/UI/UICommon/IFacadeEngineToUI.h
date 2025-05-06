@@ -16,12 +16,17 @@
 #include "Vectors.h"
 #include <UICommon/cvector.h>
 
+#include <string>
 #include <d3d11.h>
 #include <DirectXCollision.h>
 
 
 namespace UI
 {
+//
+// TYPEDEFS
+// 
+using SRV = ID3D11ShaderResourceView;
 
 
 enum eEnttComponentType : uint8_t
@@ -57,12 +62,27 @@ enum eEnttComponentType : uint8_t
 
 ///////////////////////////////////////////////////////////
 
+struct MaterialData
+{
+    MaterialID id = 0;
+
+    Vec4   ambient  = { 1,1,1,1 };
+    Vec4   diffuse  = { 1,1,1,1 };
+    Vec4   specular = { 0,0,0,1 };                              // w-component is a specPower (specular power)
+    Vec4   reflect  = { .5f, .5f, .5f, 1 };
+
+    char     name[MAX_LENGTH_MATERIAL_NAME]{ '\0' };
+    TexID    textureIDs[NUM_TEXTURE_TYPES]{ INVALID_TEXTURE_ID };
+    uint32_t properties = 0;                                      // bitfield for materials properties
+};
+
+///////////////////////////////////////////////////////////
+
 class IFacadeEngineToUI
 {
 public:
-    ID3D11ShaderResourceView*          pMaterialIconBig_ = nullptr; // big material icon for browsing/editing particular chosen material
-    cvector<ID3D11ShaderResourceView*> materialIcons_;             // list of icons in the editor material browser
-
+    ID3D11ShaderResourceView*          pMaterialBigIcon_ = nullptr; // big material icon for browsing/editing particular chosen material
+    cvector<ID3D11ShaderResourceView*> materialIcons_;              // list of icons in the editor material browser
 
     virtual ~IFacadeEngineToUI() {};
 
@@ -239,9 +259,20 @@ public:
     // =============================================================================
     // for assets managers: models/textures/materials/sounds/etc.
     // =============================================================================
-    virtual bool GetModelsNamesList(cvector<std::string>& names)         const { return false; }
-    virtual bool GetTextureIdByIdx(const index idx, TexID& outTextureID) const { return false; }
-    virtual bool GetNumMaterials(size& numMaterials)                     const { return false; }
+    virtual bool GetModelsNamesList  (cvector<std::string>& names)                                  const { return false; }
+    virtual bool GetTextureIdByIdx   (const index idx, TexID& outTextureID)                         const { return false; }
+    virtual bool GetMaterialIdByIdx  (const index idx, MaterialID& outMatID)                        const { return false; }
+    virtual bool GetMaterialNameById (const MaterialID id, char** outName, const int nameMaxLength) const { return false; }
+    virtual bool GetNumMaterials     (size& numMaterials)                                           const { return false; }
+
+    virtual bool GetMaterialDataById(const MaterialID id, MaterialData& outData) const { return false; }
+
+    virtual bool SetMaterialColorData(
+        const MaterialID id,
+        const Vec4& ambient,
+        const Vec4& diffuse,
+        const Vec4& specular,                      // vec3(specular_color) + float(specular_power)
+        const Vec4& reflect) { return false; }
 
     // get SRV (shader resource view)
     virtual bool GetSRVByTexID      (const TexID textureID, SRV*& pSRV)                   const { return false; }  // get SRV of a single texture by its ID
@@ -259,6 +290,10 @@ public:
         const int iconWidth,
         const int iconHeight) { return false; }
 
+    virtual bool RenderMaterialBigIconByID(
+        const MaterialID matID,
+        const int iconWidth,
+        const int iconHeight) { return false; }
 
 private:
     inline float GetInvalidFloat()    const { return NAN; }

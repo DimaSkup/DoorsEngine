@@ -33,7 +33,7 @@ VS_OUT VS(VS_INPUT vin)
 
 	// calculate the vertex position against the world, view, and projection matrices
 	vout.pos = mul(float4(vin.pos, 0.0f, 1.0f), gWorldViewProj);
-
+   
 	// set the texture coordinates for the pixel shader
 	vout.tex = vin.tex;
 

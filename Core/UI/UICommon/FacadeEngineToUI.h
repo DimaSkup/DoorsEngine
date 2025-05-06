@@ -18,6 +18,7 @@
 namespace UI
 {
 
+
 class FacadeEngineToUI : public IFacadeEngineToUI
 {
 private:
@@ -25,8 +26,6 @@ private:
     Render::CRender*     pRender_       = nullptr;
     ECS::EntityMgr*      pEntityMgr_    = nullptr;
     Core::CGraphics*     pGraphics_ = nullptr;
-    //Core::TextureMgr*    pTextureMgr_   = nullptr;
-    //Core::ModelMgr*  pModelStorage_ = nullptr;
 
 public:
     FacadeEngineToUI(
@@ -197,14 +196,25 @@ public:
     // =============================================================================
     // for assets: models/textures/sounds/etc.
     // =============================================================================
-    virtual bool GetModelsNamesList(cvector<std::string>& names)         const override;
-    virtual bool GetTextureIdByIdx(const index idx, TexID& outTextureID) const override;
-    virtual bool GetNumMaterials(size& numMaterials)                     const override;
+    virtual bool GetModelsNamesList (cvector<std::string>& names)                                   const override;
+    virtual bool GetTextureIdByIdx  (const index idx, TexID& outTextureID)                          const override;
+    virtual bool GetMaterialIdByIdx (const index idx, MaterialID& outMatID)                         const override;
+    virtual bool GetMaterialNameById(const MaterialID id, char** outName, const int nameMaxLength)  const override;
+    virtual bool GetNumMaterials    (size& numMaterials)                                            const override;
+
+    virtual bool GetMaterialDataById(const MaterialID id, MaterialData& outData)                    const override;
+
+    virtual bool SetMaterialColorData(
+        const MaterialID id,
+        const Vec4& ambient,
+        const Vec4& diffuse,
+        const Vec4& specular,                      // vec3(specular_color) + float(specular_power)
+        const Vec4& reflect) override;
 
     // get SRV (shader resource view)
-    virtual bool GetSRVByTexID(const TexID textureID, SRV*& pSRV)                         const override;  // get SRV of a single texture by its ID
-    virtual bool GetArrTexturesSRVs(SRV**& outArrShaderResourceViews, size& outNumViews)  const override;  // get array of all the textures SRVs
-    virtual bool GetArrMaterialsSRVs(SRV**& outArrShaderResourceViews, size& outNumViews) const override;  // get array of SRVs which contains visualization of materials (sphere + material)
+    virtual bool GetSRVByTexID      (const TexID textureID, SRV*& pSRV)                             const override;  // get SRV of a single texture by its ID
+    virtual bool GetArrTexturesSRVs (SRV**& outArrShaderResourceViews, size& outNumViews)           const override;  // get array of all the textures SRVs
+    virtual bool GetArrMaterialsSRVs(SRV**& outArrShaderResourceViews, size& outNumViews)           const override;  // get array of SRVs which contains visualization of materials (sphere + material)
 
     virtual bool SetEnttMaterial(
         const EntityID enttID,
@@ -214,6 +224,11 @@ public:
     virtual bool RenderMaterialsIcons(
         const int startMaterialIdx,        // render materials of some particular range [start, start + num_of_views]
         const size numIcons,
+        const int iconWidth,
+        const int iconHeight) override;
+
+    virtual bool RenderMaterialBigIconByID(
+        const MaterialID matID,
         const int iconWidth,
         const int iconHeight) override;
 

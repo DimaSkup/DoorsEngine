@@ -61,7 +61,7 @@ VS_OUT VS(VS_IN vin)
     vout.tangentW = normalize(mul(vin.tangentL, (float3x3)vin.worldInvTranspose));
 
     // calculate the binormal and normalize it
-    vout.binormalW = normalize(mul(vin.binormalL, (float3x3)vin.worldInvTranspose));
+    //vout.binormalW = normalize(mul(vin.binormalL, (float3x3)vin.worldInvTranspose));
 
     // output vertex texture attributes for interpolation across triangle
     vout.tex = mul(float4(vin.tex, 0.0f, 1.0f), vin.texTransform).xy;
