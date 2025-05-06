@@ -157,9 +157,7 @@ void CRender::UpdatePerFrame(
         cbpsPerFrame_.data.cameraPos = data.cameraPos;
         cbgsPerFrame_.data.cameraPosW = data.cameraPos;
 
-
-        // ---------------------------------------------
-
+        // update light sources data
         UpdateLights(
             data.dirLights,
             data.pointLights,
@@ -210,10 +208,10 @@ void CRender::UpdateInstancedBuffer(
     // fill in the instanced buffer with data
     try
     {
-        Assert::True(worlds != nullptr,            "input arr of world matrices == nullptr");
-        Assert::True(texTransforms != nullptr,     "input arr of texture transformations == nullptr");
-        Assert::True(materials != nullptr,         "input arr of materials == nullptr");
-        Assert::True(count > 0,                    "input number of elements must be > 0");
+        Assert::True(worlds != nullptr,        "input arr of world matrices == nullptr");
+        Assert::True(texTransforms != nullptr, "input arr of texture transformations == nullptr");
+        Assert::True(materials != nullptr,     "input arr of materials == nullptr");
+        Assert::True(count > 0,                "input number of elements must be > 0");
 
         // map the instanced buffer to write into it
         D3D11_MAPPED_SUBRESOURCE mappedData;
@@ -535,9 +533,10 @@ void CRender::SwitchDebugState(ID3D11DeviceContext* pContext, const DebugState s
 void CRender::SetDirLightsCount(ID3D11DeviceContext* pContext, int numOfLights)
 {
     // set how many directional lights we used for lighting of the scene
-    // NOTICE: the maximal number of directional light sources is 3
 
-    if ((numOfLights < 0) || (numOfLights > 3))
+    constexpr int maxNumDirLights = 3;
+
+    if ((numOfLights < 0) || (numOfLights > maxNumDirLights))
     {
         LogErr("wrong number of directed lights (must be in range [0, 3])");
         return;
@@ -675,9 +674,7 @@ void CRender::UpdateLights(
     const int numPointLights,
     const int numSpotLights)
 {
-    //
     // load updated light sources data into const buffers
-    //
 
     // if for some reason we need to update the number of directed light sources
     if (cbpsRareChanged_.data.numOfDirLights != numDirLights)

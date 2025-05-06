@@ -42,6 +42,7 @@ bool Settings::LoadSettingsFromFile()
         return false;
     }
 
+
     constexpr int bufsize = 256;
     char buf[bufsize]{ '\0' };
     char key[bufsize]{ '\0' };
@@ -96,7 +97,8 @@ float Settings::GetFloat(const char* key) const
 
     if (settingsList_.contains(key))
     {
-        return (float)atof(settingsList_.at(key).c_str());
+        const std::string& str = settingsList_.at(key);
+        return (float)atof(str.c_str());
     }
     else
     {

@@ -6,21 +6,17 @@
 Texture2D    gTextures[128] : register(t0);
 SamplerState gSampleType    : register(s0);
 
-#if 0
+
 //
 // CONSTANT BUFFERS
 //
-cbuffer cbPerFrame : register(b0)
+cbuffer cbMaterialPerObj : register(b5)
 {
-    // light sources data
-    DirectionalLight gDirLights[3];
-    PointLight       gPointLights[25];
-    SpotLight        gSpotLights[25];
-    float3           gEyePosW;             // eye (camera) position in world space
-    int              gCurrNumPointLights;
-    int              gCurrNumSpotLights;
+    float4 gAmbient;
+    float4 gDiffuse;
+    float4 gSpecular;
+    float4 gReflect;
 };
-#endif
 
 
 //
@@ -61,22 +57,31 @@ float4 PS(PS_IN pin) : SV_Target
     // start with a sum of zero
     float4 ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
     float4 diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);
-    float4 spec = float4(0.0f, 0.0f, 0.0f, 0.0f);
+    float4 spec    = float4(0.0f, 0.0f, 0.0f, 0.0f);
 
     // sum the light contribution from each light source (ambient, diffuse, specular)
     float4 A, D, S;
 
+
+    /*
     Material mat;
     mat.ambient  = float4(0.3f, 0.3f, 0.3f, 1.0f);
     mat.diffuse  = float4(1.0f, 1.0f, 1.0f, 1.0f);
     mat.specular = float4(0.0f, 0.0f, 0.0f, 2.0f);
     mat.reflect  = float4(.5f, .5f, .5f, 1.0f);
+    */
 
     DirectionalLight dirLight;
-    dirLight.ambient  = float4(0.6f, 0.6f, 0.6f, 1.0f);
-    dirLight.diffuse  = float4(0.8f, 0.8f, 0.8f, 1.0f);
-    dirLight.specular = float4(0.3f, 0.3f, 0.3f, 1.0f);
+    dirLight.ambient  = float4(1,1,1,1);
+    dirLight.diffuse  = float4(1,1,1,1);
+    dirLight.specular = float4(1,1,1,1);
     dirLight.direction = float3(-1.0f, -1.0f, 1.0f);
+
+    Material mat;
+    mat.ambient = gAmbient;
+    mat.diffuse = gDiffuse;
+    mat.specular = gSpecular;
+    mat.reflect = gReflect;
 
     ComputeDirectionalLight(
         mat,

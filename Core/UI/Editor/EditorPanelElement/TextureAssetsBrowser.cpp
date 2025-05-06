@@ -190,18 +190,14 @@ void TextureAssetsBrowser::DrawTextureIcons(const ImVec2 startPos, IFacadeEngine
                     char buf[32]{'\0'};
                     const bool isSelected = (itemIdx == selectedItemIdx_);
 
-                    sprintf(buf, "##texture_item %d", itemIdx);
+                    snprintf(buf, 32, "##texture_item %d", itemIdx);
 
                     // we can select a texture when click on some icon
                     if (ImGui::Selectable(buf, isSelected, ImGuiSelectableFlags_None, layoutItemSize_))
                     {
-                        selectedItemIdx_ = itemIdx;
-
                         // try to get a texture ID by index
-                        if (pFacade->GetTextureIdByIdx(itemIdx, selectedTexItemID_))
-                        {
-                            textureWasChanged_ = true;
-                        }
+                        selectedItemIdx_   = itemIdx;
+                        textureWasChanged_ = pFacade->GetTextureIdByIdx(itemIdx, selectedTexItemID_);
                     }
 
                     // draw background
@@ -220,7 +216,7 @@ void TextureAssetsBrowser::DrawTextureIcons(const ImVec2 startPos, IFacadeEngine
                     const ImU32 labelColor = ImGui::GetColorU32(ImGuiCol_Text);
                     char label[16]{'\0'};
 
-                    sprintf(label, "%d", itemIdx);
+                    snprintf(label, 16, "%d", itemIdx);
                     pDrawList->AddText(ImVec2(boxMin.x, boxMax.y - ImGui::GetFontSize()), labelColor, label);
                 }
 
@@ -286,7 +282,7 @@ void TextureAssetsBrowser::ComputeZooming(const ImVec2 startPos, const float ava
 
             // zoom
             iconSize_ *= powf(1.1f, zoomWheelAccum_);
-            iconSize_ = std::clamp(iconSize_, 16.0f, 128.0f);
+            iconSize_ = std::clamp(iconSize_, 16.0f, 512.0f);
             zoomWheelAccum_ -= (int)zoomWheelAccum_;
             UpdateLayoutSizes(availWidth);
 

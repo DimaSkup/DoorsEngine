@@ -78,7 +78,7 @@ bool ModelImporter::LoadFromFile(
 
         const aiScene* pScene = importer.ReadFile(
             filePath,
-            aiProcess_GenNormals |
+            //aiProcess_GenNormals |
             aiProcess_CalcTangentSpace |
             //aiProcess_ImproveCacheLocality |
             aiProcess_Triangulate |
@@ -254,7 +254,9 @@ void ModelImporter::ProcessMesh(
         LoadMaterialTextures(pDevice, material.textureIDs, pAiMat, subset, pScene, filePath);
 
         // store a material into the material manager and also store its material ID into the subset (mesh)
+        strncpy(material.name, pAiMat->GetName().C_Str(), MAX_LENGTH_MATERIAL_NAME);
         subset.materialID = g_MaterialMgr.AddMaterial(std::move(material));
+        
     }
     catch (EngineException& e)
     {
@@ -271,16 +273,16 @@ void ModelImporter::LoadMaterialColorsData(aiMaterial* pMaterial, Material& mat)
     // read material properties for this mesh
 
     // global default materials for this .cpp
-    constexpr Float4 defaultAmbient (0.3f, 0.3f, 0.3f, 1);
-    constexpr Float4 defaultDiffuse (0.8f, 0.8f, 0.8f, 1);
-    constexpr Float4 defaultSpecular(0.0f, 0.0f, 0.0f, 1);           // w == spec power
-    constexpr Float4 defaultReflect (0.5f, 0.5f, 0.5f, 1);
+    const Float4 defaultAmbient (0.3f, 0.3f, 0.3f, 1);
+    const Float4 defaultDiffuse (0.8f, 0.8f, 0.8f, 1);
+    const Float4 defaultSpecular(0.0f, 0.0f, 0.0f, 1);           // w == spec power
+    const Float4 defaultReflect (0.5f, 0.5f, 0.5f, 1);
 
     aiColor4D ambient;
     aiColor4D diffuse;
     aiColor4D specular;
     float shininess;
-
+    
     // load materials from the aiMaterial
     const aiReturn isAmbientLoaded   = pMaterial->Get(AI_MATKEY_COLOR_AMBIENT, ambient);
     const aiReturn isDiffuseLoaded   = pMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, diffuse);
@@ -456,6 +458,7 @@ void ComputeMeshVertices(
         vertices[vIdx].normal.y = pMesh->mNormals[i].y;
         vertices[vIdx].normal.z = pMesh->mNormals[i].z;
     }
+
 
     for (int i = 0, vIdx = vertexStart; i < numVertices; i++, ++vIdx)
     {

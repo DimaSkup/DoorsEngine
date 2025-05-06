@@ -12,8 +12,8 @@
 namespace Core
 {
 
-char g_String[256]{ '\0' };                 // global buffer for characters
-char s_TmpStr[256]{ '\0' };                 // static buffer for internal using
+char g_String[g_StrLim]{ '\0' };                 // global buffer for characters
+char s_TmpStr[g_StrLim]{ '\0' };                 // static buffer for internal using
 
 static LogStorage s_LogStorage;
 static FILE*      s_pLogFile = nullptr;     // a static descriptor of the log file 
@@ -180,7 +180,7 @@ void LogMsgf(const char* format, ...)
     va_list args;
     va_start(args, format);
 
-    vsprintf(s_TmpStr, format, args);
+    vsnprintf(s_TmpStr, g_StrLim, format, args);
     PrintHelper("", s_TmpStr, LOG_TYPE_FORMATTED);
     printf("%s", RESET);                  // reset console color
 
@@ -241,7 +241,7 @@ void PrintHelper(const char* lvlText, const char* text, const LogType type)
     // a helper for printing messages into the command prompt
     // and into the Logger text file
 
-    sprintf(g_String, "[%05d] %s: %s\n", clock(), lvlText, text);
+    snprintf(g_String, g_StrLim, "[%05d] %s: %s\n", clock(), lvlText, text);
     printf(g_String);
     AddMsgIntoLogStorage(g_String, type);
 
@@ -258,7 +258,7 @@ const char* PrepareMsg(const char* msg, const std::source_location& loc)
     char pathFromProjRoot[128]{ '\0' };
     GetPathFromProjRoot(loc.file_name(), pathFromProjRoot);
 
-    sprintf(s_TmpStr, "%s: %s() (line: %d): %s",
+    snprintf(s_TmpStr, g_StrLim, "%s: %s() (line: %d): %s",
         pathFromProjRoot,                           // relative path to the caller file
         loc.function_name(),                        // a function name where we called this log-function
         loc.line(),                                 // at what line
@@ -278,7 +278,7 @@ const char* PrepareMsg(
     char pathFromProjRoot[128]{ '\0' };
     GetPathFromProjRoot(fileName, pathFromProjRoot);
 
-    sprintf(s_TmpStr, "%s: %s() (line: %d): %s",
+    snprintf(s_TmpStr, g_StrLim, "%s: %s() (line: %d): %s",
         pathFromProjRoot,                               // relative path to the caller file
         funcName,                                       // a function name where we called this log-function
         codeLine,                                       // at what line
@@ -296,7 +296,9 @@ const char* PrepareErrMsg(const char* msg, const std::source_location& loc)
     char pathFromProjRoot[128]{ '\0' };
     GetPathFromProjRoot(loc.file_name(), pathFromProjRoot);
 
-    sprintf(s_TmpStr,
+    snprintf(
+        s_TmpStr,
+        g_StrLim,
         "\nFILE:  %s\n"
         "FUNC:  %s()\n"
         "LINE:  %d\n"
@@ -318,7 +320,9 @@ const char* PrepareErrMsg(const char* msg, const char* fileName, const char* fun
     char pathFromProjRoot[128]{ '\0' };
     GetPathFromProjRoot(fileName, pathFromProjRoot);
 
-    sprintf(s_TmpStr,
+    snprintf(
+        s_TmpStr,
+        g_StrLim,
         "\nFILE:  %s\n"
         "FUNC:  %s()\n"
         "LINE:  %d\n"

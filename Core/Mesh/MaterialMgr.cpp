@@ -57,6 +57,36 @@ MaterialID MaterialMgr::AddMaterial(Material&& material)
 
 ///////////////////////////////////////////////////////////
 
+bool MaterialMgr::SetMaterialColorData(
+    const MaterialID id,
+    const Float4& ambient,
+    const Float4& diffuse,
+    const Float4& specular,
+    const Float4& reflect)
+{
+    // setup color properties of the material by ID
+
+    const index idx = ids_.get_idx(id);
+    const bool exist = (ids_[idx] == id);   // check if we got a valid index
+
+    if (!exist)
+    {
+        sprintf(g_String, "there is no material by ID: %ld", id);
+        LogErr(g_String);
+        return false;
+    }
+
+    Material& mat = materials_[idx];
+    mat.ambient   = ambient;
+    mat.diffuse   = diffuse;
+    mat.specular  = specular;
+    mat.reflect   = reflect;
+
+    return true;
+}
+
+///////////////////////////////////////////////////////////
+
 Material& MaterialMgr::GetMaterialByID(const MaterialID id)
 {
     // check if such model exist if so we get its index,
@@ -102,9 +132,15 @@ void MaterialMgr::GetMaterialsByIDs(
 
 ///////////////////////////////////////////////////////////
 
-MaterialID MaterialMgr::GetMaterialIdByName(const char* name)
+MaterialID MaterialMgr::GetMaterialIdByName(const char* name) const
 {
     // TODO: optimize me, shithead!
+
+    if (!name || name[0] == '\0')
+    {
+        LogErr("input name is empty");
+        return INVALID_MATERIAL_ID;
+    }
 
     for (int i = 0; const Material & mat : materials_)
     {
@@ -116,6 +152,15 @@ MaterialID MaterialMgr::GetMaterialIdByName(const char* name)
 
     // if we didn't found any material by name, we just return an invalid ID (0)
     return INVALID_MATERIAL_ID;
+}
+
+///////////////////////////////////////////////////////////
+
+MaterialID MaterialMgr::GetMaterialIdByIdx(const index idx) const
+{
+    // if we have valid idx we return an ID by it or return ID by idx 0 (INVALID_MATERIAL_ID == 0)
+    const bool isValid = ((idx > 0) && (idx < ids_.size()));
+    return ids_[idx * isValid];
 }
 
 } // namespace Core

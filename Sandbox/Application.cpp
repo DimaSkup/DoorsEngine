@@ -67,7 +67,7 @@ void Application::Initialize()
 
     // create a str with duration time about the engine initialization process
     sprintf(g_String, "Init time: %d ms", (int)initDuration.count());
-    userInterface_.CreateConstStr(pDevice, g_String, { 10, 325 });
+    userInterface_.CreateConstStr(pDevice, g_String, { 10, 350 });
 }
 
 ///////////////////////////////////////////////////////////
@@ -185,10 +185,9 @@ bool Application::InitRenderModule(
     const std::string cameraEnttName  = (startInGameMode_) ? "game_camera" : "editor_camera";
     const EntityID cameraID           = entityMgr_.nameSystem_.GetIdByName(cameraEnttName);
  
-    const DirectX::XMMATRIX  world    = DirectX::XMMatrixIdentity();
     const DirectX::XMMATRIX& baseView = entityMgr_.cameraSystem_.GetBaseView(cameraID);
     const DirectX::XMMATRIX& ortho    = entityMgr_.cameraSystem_.GetOrtho(cameraID);
-    const DirectX::XMMATRIX  WVO      = world * baseView * ortho;
+    const DirectX::XMMATRIX  WVO      = baseView * ortho;
 
     Render::InitParams renderParams;
     renderParams.worldViewOrtho       = DirectX::XMMatrixTranspose(WVO);

@@ -28,7 +28,7 @@ namespace Core
 
 void GeometryGenerator::GenerateCube(BasicModel& model)
 {
-    // MANUALLY CREATE A CUBE
+    // manually generate cube data 
 
     const int numFaces    = 6;
     const int numVertices = 24;
@@ -45,14 +45,13 @@ void GeometryGenerator::GenerateCube(BasicModel& model)
     //
 
     // define positions:
-
-    // right side
+    // - right side
     XMFLOAT3 pos0 = { 1,  1, -1 };  // near top
     XMFLOAT3 pos1 = { 1, -1, -1 };  // near bottom
     XMFLOAT3 pos2 = { 1,  1,  1 };  // far top
     XMFLOAT3 pos3 = { 1, -1,  1 };  // far bottom
 
-    // left side
+    // - left side
     XMFLOAT3 pos4 = { -1,  1, -1 }; // near top
     XMFLOAT3 pos5 = { -1, -1, -1 }; // near bottom
     XMFLOAT3 pos6 = { -1,  1,  1 }; // far top 
@@ -187,7 +186,6 @@ void BuildSkySphereVertices(
 
     // make the lowest vertex of the sphere
     vertices[vIdx++].position = { 0, -radius, 0 };
-
 
     // release memory from the transient data
     SafeDeleteArr(thetaSines);
@@ -340,93 +338,6 @@ void GeometryGenerator::GenerateSkyBoxForCubeMap(
 
     // initialize vb/ib
     sky.InitializeBuffers(pDevice, vertices, indices, numVertices, numIndices);
-}
-
-///////////////////////////////////////////////////////////
-
-void GeometryGenerator::GenerateSkyBoxForAtlasTex(BasicModel& model, const float height)
-{
-    // generate a sky box model for the sky atlas texture ("cross texture");
-    // each side of the box has size of height;
-
-
-    // ---------------------------------------------
-
-    // 
-    // create vertices of the cube 
-    //
-
-    // define positions:
-
-    const float hh = 0.5f * height;   // half height
-
-#if 0
-// right side
-    XMFLOAT3 pos0 = { hh,  2 * hh, -hh };  // near top
-    XMFLOAT3 pos1 = { hh,  0,  -hh };
-    XMFLOAT3 pos2 = { hh, 0, -hh };  // near bottom
-    XMFLOAT3 pos3 = { hh,  2 * hh,  hh };  // far top
-    XMFLOAT3 pos4 = { hh,  0,   hh };
-    XMFLOAT3 pos5 = { hh, 0,  hh };  // far bottom
-
-    // left side
-    XMFLOAT3 pos6 = { -hh,  2 * hh, -hh }; // near top
-    XMFLOAT3 pos7 = { -hh,  0,  -hh };
-    XMFLOAT3 pos8 = { -hh, 0, -hh }; // near bottom
-    XMFLOAT3 pos9 = { -hh,  2 * hh,  hh }; // far top 
-    XMFLOAT3 pos10 = { -hh,  0,   hh };
-    XMFLOAT3 pos11 = { -hh, 0,  hh }; // far bottom
-
-    constexpr float tu[3] = { 0.2500f, 0.5000f, 0.7500f };
-    constexpr float tv[2] = { 0.3333f, 0.6666f };
-
-    // top
-    vertices[0] = { pos0, {tu[1], tv[0]} };
-    vertices[1] = { pos3, {tu[1], 0} };
-    vertices[2] = { pos6, {tu[0], tv[0]} };
-    vertices[3] = { pos9, {tu[0], 0} };
-
-    // upper front  (pos; tex)
-    vertices[4] = { pos0, { tu[1], tv[0]} };
-    vertices[5] = { pos1, { tu[1], tv[1]} };
-    vertices[6] = { pos6, { tu[0], tv[0]} };
-    vertices[7] = { pos7, { tu[0], tv[1]} };
-
-    // upper right
-    vertices[8] = { pos1,  {tu[1], tv[1]} };
-    vertices[9] = { pos0, {tu[1], tv[0]} };
-    vertices[10] = { pos3, {tu[2], tv[0]} };
-    vertices[11] = { pos4, {tu[2], tv[1]} };
-
-    // upper back
-    vertices[12] = { pos4,  {tu[2], tv[1]} };
-    vertices[13] = { pos3,  {tu[2], tv[0]} };
-    vertices[14] = { pos9,  {1, tv[0]} };
-    vertices[15] = { pos10, {1, tv[1]} };
-
-    // left
-    vertices[16] = { pos10, {0, tv[1]} };
-    vertices[17] = { pos9, {0,tv[0]} };
-    vertices[18] = { pos6, {tu[0], tv[0]} };
-    vertices[19] = { pos7, {tu[0], tv[1]} };
-
-    // bottom
-    vertices[20] = { pos9, {0,0} };
-    vertices[21] = { pos7, {0,0} };
-    vertices[22] = { pos1, {0,0} };
-    vertices[23] = { pos3, {0,0} };
-
-    const UINT indicesData[numIndices] =
-    {
-        2,3,1,  2,1,0,   // top
-        7,6,4,  7,4,5,   //  front
-
-        8,9,10, 8,10,11,    // right
-        12,13,14, 12,14,15, // back
-        16,17,18, 16,18,19, // left
-        20,21,22, 20,22,23, // bottom
-    };
-#endif
 }
 
 ///////////////////////////////////////////////////////////
@@ -733,7 +644,7 @@ void GeometryGenerator::GenerateFlatGrid(
     const int verticesByZ,
     BasicModel& model)
 {
-    // THIS FUNCTION builds the grid in the XZ-plane. A grid of (m * n) vertices includes
+    // build the grid in the XZ-plane. A grid of (m * n) vertices includes
     // (m - 1) * (n - 1) quads (or cells). Each cell will be covered by two triangles, 
     // so there is total of 2 * (m - 1) * (n - 1) triangles. 
     //
@@ -791,7 +702,7 @@ void GeometryGenerator::GeneratePyramid(
     const float baseDepth,                             // depth (length by Z) of one of the base side
     BasicModel& model)
 {
-    // THIS FUNCTION constructs a pyramid by the input height, baseWidth, baseDepth,
+    // construct a pyramid by the input height, baseWidth, baseDepth,
     // and stores its vertices and indices into the meshData variable;
 
     const int verticesOfSides = 12;
@@ -930,116 +841,11 @@ void GeometryGenerator::GeneratePyramid(
 
 //////////////////////////////////////////////////////////
 
-#if 0
-void GeometryGenerator::GenerateWavesMesh(
-    const UINT numRows,
-    const UINT numColumns,
-    const float spatialStep,
-    const float timeStep,
-    const float speed,
-    const float damping,
-    Waves & waves, 
-    Mesh::MeshData & wavesMesh)
-{
-    const UINT numOfDisturbs = 100;
-
-    // ---------------------------------------------
-
-    // generate positions/normals/tangentX for waves vertices
-    waves.Init(numRows,
-        numColumns,
-        spatialStep,
-        timeStep,
-        speed,
-        damping);
-    
-    // make disturbs of the wave
-    for (UINT idx = 0; idx < numOfDisturbs; ++idx)
-    {
-        // generate random ijth indices of some wave's vertex which will be disturbed
-        DWORD i = 5 + rand() % 190;
-        DWORD j = 5 + rand() % 190;
-
-        // random magnitude of the disturb
-        float magnitude = MathHelper::RandF(1.0f, 2.0f);
-
-        waves.Disturb(i, j, magnitude);
-    }
-
-    waves.Update(0.04f);
-
-    // ---------------------------------------------
-
-    const std::vector<DirectX::XMFLOAT3>& positions = waves.GetPositions();
-    const std::vector<DirectX::XMFLOAT3>& normals = waves.GetNormals();
-    const float wavesWidth_inv = 1.0f / waves.GetWidth();
-    const float wavedDepth_inv = 1.0f / waves.GetDepth();
-
-    const UINT vertexCount = waves.GetVertexCount();
-    wavesMesh.vertices.resize(vertexCount);
-    wavesMesh.indices.resize(vertexCount);
-
-    // setup vertices of the wave
-    for (UINT idx = 0; idx < vertexCount; ++idx)
-    {
-        wavesMesh.vertices[idx].position = positions[idx];
-        wavesMesh.vertices[idx].normal = normals[idx];
-
-        // derive tex-coords in [0,1] from position.
-        wavesMesh.vertices[idx].texture.x = 0.5f + wavesMesh.vertices[idx].position.x * wavesWidth_inv;
-        wavesMesh.vertices[idx].texture.y = 0.5f - wavesMesh.vertices[idx].position.z * wavedDepth_inv;
-
-    }
-
-    // -----------------------------------------------------------------------------
-    // Create the indices of the wave's vertices (3 indices per face)
-
-    std::vector<UINT> indices(3 * waves.GetTriangleCount());
-
-    // Iterate over each quad.
-    UINT m = waves.GetRowCount();
-    UINT n = waves.GetColumnCount();
-    int k = 0;
-
-    for (UINT i = 0; i < m - 1; ++i)
-    {
-        const UINT temp_idx_1 = i*n;
-        const UINT temp_idx_2 = (i + 1)*n;
-
-        for (DWORD j = 0; j < n - 1; ++j)
-        {
-            const UINT idx_1 = temp_idx_1 + j;
-            const UINT idx_2 = temp_idx_2 + j;
-
-            // first triangle
-            indices[k + 0] = idx_1;
-            indices[k + 1] = idx_1 + 1;
-            indices[k + 2] = idx_2;
-
-            // second triangle
-            indices[k + 3] = idx_2;
-            indices[k + 4] = idx_1 + 1;
-            indices[k + 5] = idx_2 + 1;
-
-            k += 6; // next quad
-        }
-    }
-
-    // store indices of the wave
-    wavesMesh.indices = indices;
-
-    // setup default material for the mesh
-    SetDefaultMaterial(wavesMesh.material);
-}
-#endif
-
-//////////////////////////////////////////////////////////
-
 void GeometryGenerator::GenerateCylinder(
     const MeshCylinderParams& params,
     BasicModel& model)
 {
-    // THIS FUNCTION generates a cylinder centered at the origin, parallel to the Y-axis.
+    // generate a cylinder centered at the origin, parallel to the Y-axis.
     // All the vertices lie on the "rings" of the cylinder, where there are stackCount + 1
     // rings, and each ring has sliceCount unique vertices. The difference in radius between
     // consecutive rings is 
@@ -1267,7 +1073,7 @@ void GeometryGenerator::GenerateSphere(
     const MeshSphereParams& params,
     BasicModel& model)
 {
-    // THIS FUNCTION creates data for the sphere mesh by specifying its radius, and
+    // create data for the sphere mesh by specifying its radius, and
     // the slice and stack count. The algorithm for generation the sphere is very similar to 
     // that of the cylinder, except that the radius per ring changes is a nonlinear way
     // based on trigonometric functions
@@ -1291,6 +1097,65 @@ void GeometryGenerator::GenerateSphere(
 
     BuildSphereVertices(model.vertices_, vertexIdx, params, numVertices);
     BuildSphereIndices(model.indices_, vertexIdx - 1, sliceCount, stackCount);
+
+    // compute tangent for each vertex
+    for (int i = 0; i < numIndices;)
+    {
+        // get indices
+        const UINT i0 = model.indices_[i++];
+        const UINT i1 = model.indices_[i++];
+        const UINT i2 = model.indices_[i++];
+
+        // get vertices by indices
+        Vertex3D& v0 = model.vertices_[i0];
+        Vertex3D& v1 = model.vertices_[i1];
+        Vertex3D& v2 = model.vertices_[i2];
+
+
+        // compute edge vectors of the triangle
+        const XMFLOAT3 e0 = {
+            v1.position.x - v0.position.x,
+            v1.position.y - v0.position.y,
+            v1.position.z - v0.position.z };
+
+        const XMFLOAT3 e1 = {
+            v2.position.x - v0.position.x,
+            v2.position.y - v0.position.y,
+            v2.position.z - v0.position.z };
+
+        // compute deltas of texture coords
+        const float du0 = v1.texture.x - v0.texture.x;
+        const float dv0 = v1.texture.y - v0.texture.y;
+        const float du1 = v2.texture.x - v0.texture.x;
+        const float dv1 = v2.texture.y - v0.texture.y;
+
+        // compute interse matrix of texture coords
+        const float invDet = 1.0f / (du0*dv1 - dv0*du1);
+
+        //  | m00 m01 |
+        //  | m10 m11 |
+        const float m00 = invDet * +dv1;   
+        const float m01 = invDet * -dv0;   
+        const float m10 = invDet * -du1;
+        const float m11 = invDet * +du0;
+
+        // compute tangent coords
+        float Tx = (m00 * e0.x) + (m01 * e1.x);
+        float Ty = (m00 * e0.y) + (m01 * e1.y);
+        float Tz = (m00 * e0.z) + (m01 * e0.z);
+
+        const float invTangLen = 1.0f / sqrtf(Tx*Tx + Ty*Ty + Tz*Tz);
+        Tx *= invTangLen;
+        Ty *= invTangLen;
+        Tz *= invTangLen;
+
+        v0.tangent = { Tx, Ty, Tz };
+        v1.tangent = { Tx, Ty, Tz };
+        v2.tangent = { Tx, Ty, Tz };
+
+        // compute bitangent coords
+        //const float Bx = (m10 * e0.x) + (m11 * e1.x);
+    }
 }
 
 ///////////////////////////////////////////////////////////
@@ -1448,7 +1313,7 @@ void GeometryGenerator::GenerateGeosphere(
     int numSubdivisions,
     BasicModel& model)
 {
-    // THIS FUNCTION creates a geosphere. A geosphere approximates a sphere using 
+    // A geosphere approximates a sphere using 
     // triangles with almost equal areas as well as equal side length.
     // To generate a geosphere, we start with an icosahedron, subdivide the triangles, and
     // then project the new vertices onto the sphere with the given radius. We can repeat
@@ -1797,7 +1662,7 @@ void GeometryGenerator::BuildCylinderTopCap(
     CylinderTempData& tempData,
     BasicModel& model)
 {
-    // THIS FUNCTION generates the cylinder cap geometry amounts to generating the slice
+    // generate the cylinder cap geometry amounts to generating the slice
     // triangles of the top/bottom rings to approximate a circle
 
     const int baseIndex = tempData.lastVertexIdx;
@@ -1827,7 +1692,7 @@ void GeometryGenerator::BuildCylinderBottomCap(
     CylinderTempData& tempData,
     BasicModel& model)
 {
-    // THIS FUNCTION generates the cylinder cap geometry amounts to generating the slice
+    // generate the cylinder cap geometry amounts to generating the slice
     // triangles of the top/bottom rings to approximate a circle
 
     const int baseIndex = tempData.lastVertexIdx;

@@ -99,6 +99,8 @@ bool FrameBuffer::Initialize(ID3D11Device* pDevice, const FrameBufferSpecificati
         CreateDepthStencilBuffer(pDevice);
         CreateDepthStencilView(pDevice);
         SetupViewportAndMatrices();
+
+        isInit_ = true;
     }
     catch (EngineException & e)
     {

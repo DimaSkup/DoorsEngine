@@ -6,46 +6,43 @@
 // *********************************************************************************
 #pragma once
 
-#include <cstdint>
-#include <string>
-#include <d3d11.h>
-
+#include <stdint.h>
 
 namespace UI
 {
 
-using u32 = uint32_t;
-using size = ptrdiff_t;
+using u32   = uint32_t;
+using size  = ptrdiff_t;
 using index = ptrdiff_t;
-using UINT = unsigned int;
+using UINT  = unsigned int;
 
-using EntityID = uint32_t;
-using ModelID = uint32_t;
-using SRV = ID3D11ShaderResourceView;
+using EntityID  = uint32_t;
+using ModelID   = uint32_t;
+//using SRV       = ID3D11ShaderResourceView;
 
 
 //
 // MESH/MODEL TYPEDEFS
 //
-using MeshName = std::string;
-using ModelName = std::string;
-using ModelID = uint32_t;
-using SubsetID = uint16_t;                    // mesh ID
+using ModelID   = uint32_t;
+using SubsetID  = uint16_t;                    // mesh ID
 constexpr ModelID INVALID_MODEL_ID = 0;
 
 //
 // MATERIAL TYPEDEFS
 //
-using MaterialName = std::string;
 using MaterialID = uint32_t;
 constexpr MaterialID INVALID_MATERIAL_ID = 0;
+
+constexpr int SUBSET_NAME_LENGTH_LIMIT = 32;    // max length for a model subset's (mesh) name
+constexpr int MAX_LENGTH_MODEL_NAME    = 32;
+constexpr int MAX_LENGTH_TEXTURE_NAME  = 32;
+constexpr int MAX_LENGTH_MATERIAL_NAME = 32;
 
 //
 // TEXTURES TYPEDEFS
 //
-using TexID = uint32_t;                       // texture ID
-using TexPath = std::string;                    // texture path
-using TexName = std::string;                    // texture name
+using TexID     = uint32_t;                       // texture ID
 constexpr TexID INVALID_TEXTURE_ID = 0;
 constexpr size  NUM_TEXTURE_TYPES = 21;
 

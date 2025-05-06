@@ -73,7 +73,8 @@ void MaterialIconShader::Render(
     ID3D11Buffer* indexBuffer,
     const int indexCount,
     ID3D11ShaderResourceView* const* ppTextures,
-    const int vertexSize)
+    const int vertexSize,
+    const Render::Material& mat)
 {
     // render a model (preferably sphere) with a single material
     try
@@ -102,6 +103,14 @@ void MaterialIconShader::Render(
         // bind vb/ib
         pContext->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
         pContext->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0U);
+
+        // setup the material
+        cbpsMaterialData_.data.ambient  = mat.ambient_;
+        cbpsMaterialData_.data.diffuse  = mat.diffuse_;
+        cbpsMaterialData_.data.specular = mat.specular_;
+        cbpsMaterialData_.data.reflect  = mat.reflect_;
+        cbpsMaterialData_.ApplyChanges(pContext);
+        pContext->PSSetConstantBuffers(5, 1, cbpsMaterialData_.GetAddressOf());
 
         // render geometry
         pContext->DrawIndexed(indexCount, 0U, 0U);
@@ -152,6 +161,14 @@ void MaterialIconShader::InitializeHelper(
 
     result = samplerState_.Initialize(pDevice);
     Assert::True(result, "can't initialize the sampler state");
+
+    HRESULT hr = cbpsMaterialData_.Initialize(pDevice);
+    Assert::NotFailed(hr, "can't initialize the const buffer (for material in PS)");
+
+    // apply the default params for the constant buffer
+    ID3D11DeviceContext* pContext = nullptr;
+    pDevice->GetImmediateContext(&pContext);
+    cbpsMaterialData_.ApplyChanges(pContext);
 }
 
 } // namespace Render

@@ -56,11 +56,11 @@ void UserInterface::Initialize(
 
     try
     {
-        Assert::NotNullptr(pFacadeEngineToUI, "a ptr to the facade interface == nullptr");
-        Assert::True((wndWidth > 0) && (wndHeight > 0), "wrong window dimensions");
+        Assert::True(pFacadeEngineToUI,                                 "a ptr to the facade interface == nullptr");
+        Assert::True((wndWidth > 0) && (wndHeight > 0),                 "wrong window dimensions");
         Assert::True((!videoCardName.empty()) && (videoCardMemory > 0), "wrong video card data");
-        Assert::True((!fontDataFilePath.empty()), "wrong path to font data file");
-        Assert::True((!fontTextureFilePath.empty()), "wrong path to font texture file");
+        Assert::True((!fontDataFilePath.empty()),                       "wrong path to font data file");
+        Assert::True((!fontTextureFilePath.empty()),                    "wrong path to font texture file");
 
         // initialize the window dimensions members for internal using
         windowWidth_ = wndWidth;
@@ -69,7 +69,7 @@ void UserInterface::Initialize(
         // --------------------------------------------
 
         // initialize the first font object
-        font1_.Initialize(pDevice, fontDataFilePath, fontTextureFilePath);
+        font1_.Initialize(pDevice, fontDataFilePath.c_str(), fontTextureFilePath.c_str());
 
         // initialize the editor parts and interfaces
         pFacadeEngineToUI_ = pFacadeEngineToUI;
@@ -96,7 +96,6 @@ void UserInterface::Update(
     const SystemState& systemState)
 {
     // each frame we call this function for updating the UI
-    
     try
     {
         textStorage_.Update(pContext, font1_, systemState);
@@ -168,7 +167,6 @@ SentenceID UserInterface::CreateDynamicStr(
     // create a new GUI string by input data;
     // the content of this string is supposed to be changed from frame to frame;
     // you can also change its position on the screen;
-
     try
     {
         Assert::True((!content.empty()) && (maxStrSize > 0), "wrong input data");
@@ -203,7 +201,8 @@ void UserInterface::LoadDebugInfoStringFromFile(
     // load debug info string params from the file and create these strings;
     // and create some strings manually
 
-    char filePath[128]{ '\0' };
+    // generate a path to the file
+    char filePath[256]{ '\0' };
     strcat(filePath, g_RelPathUIDataDir);
     strcat(filePath, "ui_debug_info_strings.txt");
 
@@ -278,9 +277,7 @@ void UserInterface::RenderGameUI(
 
 void UserInterface::RenderEditor(SystemState& systemState)
 {
-    //
     // Render the editor's panels and related stuff
-    //
 
     // "Run scene" docked window
     if (ImGui::Begin("Run scene"))
@@ -327,7 +324,6 @@ void UserInterface::RenderSceneWnd(SystemState& sysState)
         // scene screen space or clicked on some editor panel
         isSceneWndHovered_ = ImGui::IsWindowHovered();
 
-
         //
         // Gizmos
         //
@@ -357,24 +353,12 @@ void UserInterface::RenderSceneWnd(SystemState& sysState)
 
             // handle directed and spot lights in a separate way for correct change
             // of its direction using gizmo
-#if 1
-            //if (editorPanels_.enttEditorController_.selectedEnttData_.IsSelectedEnttLightSource())
-            //{
-                const Vec3 pos = pFacadeEngineToUI_->GetEnttPosition(selectedEntt);
 
-                world       = DirectX::XMMatrixIdentity();
-                world.r[3]  = {pos.x, pos.y, pos.z, 1.0f};
-                rawWorld    = world.r->m128_f32;
-            //}
-            //else
-            //{
-                //pFacadeEngineToUI_->GetEnttWorldMatrix(selectedEntt, world);
-                //rawWorld = world.r->m128_f32;
-           // }
-#else
-            pFacadeEngineToUI_->GetEnttWorldMatrix(selectedEntt, world);
-            rawWorld = world.r->m128_f32;
-#endif
+            const Vec3 pos = pFacadeEngineToUI_->GetEnttPosition(selectedEntt);
+
+            world       = DirectX::XMMatrixIdentity();
+            world.r[3]  = {pos.x, pos.y, pos.z, 1.0f};
+            rawWorld    = world.r->m128_f32;
 
 
             if (guiStates_.useSnapping)

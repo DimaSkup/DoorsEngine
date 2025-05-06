@@ -44,7 +44,8 @@ public:
         const size numEntts,
         ECS::EntityMgr* pEnttMgr,
         Render::cvector<Render::Instance>& instances,
-        cvector<EntityID>& enttsSortedByModels);
+        cvector<EntityID>&        outEnttsSortedByModels,
+        cvector<Render::Material>& outMaterialsSortedByInstances);
 
     void PrepareInstanceData(const BasicModel& model, Render::Instance& instance);
       
@@ -83,6 +84,7 @@ private:
         cvector<EntityID>& outEnttsSortedByInstances);
 
     void PrepareTexturesForInstance(Render::Instance& instance);
+    void PrepareMaterialForInstance(const Render::Instance& instance, cvector<Render::Material>& outMat);
 };
 
 } // namespace Core

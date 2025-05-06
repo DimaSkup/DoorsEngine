@@ -84,7 +84,14 @@ public:
     void ClearRenderingDataBeforeFrame      (ECS::EntityMgr* pEnttMgr, Render::CRender* pRender);
     void Render3D                           (ECS::EntityMgr* pEnttMgr, Render::CRender* pRender);
     void RenderModel                        (BasicModel& model, const DirectX::XMMATRIX& world);
-    
+
+    bool RenderBigMaterialIcon(
+        const MaterialID matID,
+        const int iconWidth,
+        const int iconHeight,
+        Render::CRender* pRender,
+        ID3D11ShaderResourceView** outMaterialImg);
+
     void RenderMaterialsIcons(
         ECS::EntityMgr* pEnttMgr,
         Render::CRender* pRender,
@@ -208,6 +215,7 @@ public:
     ECS::RenderStatesSystem::EnttsRenderStatesData rsDataToRender_;
 
 
+    FrameBuffer          materialBigIconFrameBuf_;
     cvector<FrameBuffer> materialsFrameBuffers_;  // frame buffers which are used to render materials icons (for editor's material browser)
 
 

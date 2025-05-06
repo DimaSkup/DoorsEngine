@@ -26,8 +26,8 @@ FontClass::~FontClass() {}
 // ************************************************************************************
 void FontClass::Initialize(
 	ID3D11Device* pDevice,
-	const std::string& fontDataFilePath,
-	const std::string& fontTexFilePath)
+	const char* fontDataFilePath,
+	const char* fontTexFilePath)
 {
 	// this function will load the font data and the font texture
 
@@ -38,8 +38,8 @@ void FontClass::Initialize(
         bool canInit = true;
 
 		// check input params
-        canInit &= FileSys::Exists(fontDataFilePath.c_str());
-        canInit &= FileSys::Exists(fontTexFilePath.c_str());
+        canInit &= FileSys::Exists(fontDataFilePath);
+        canInit &= FileSys::Exists(fontTexFilePath);
 
         if (!canInit)
         {
@@ -48,7 +48,7 @@ void FontClass::Initialize(
         }
 
 		// load and initialize a texture for this font
-		fontTexID_ = g_TextureMgr.LoadFromFile(fontTexFilePath.c_str());
+		fontTexID_ = g_TextureMgr.LoadFromFile(fontTexFilePath);
 
 		// we need to have a height of the font texture for proper building of the vertices data
 		fontHeight_ = g_TextureMgr.GetTexPtrByID(fontTexID_)->GetHeight();
@@ -69,24 +69,26 @@ void FontClass::Initialize(
 void FontClass::BuildVertexArray(
 	Core::VertexFont* vertices,
 	const size numVertices,
-	const std::string& sentence,
-	const DirectX::XMFLOAT2& drawAt)
+	const char* sentence,
+	const float drawAtX,
+    const float drawAtY)
 {
 	// BuildVertexIndexArrays() builds a vertices array by texture data which is based on 
 	// input sentence and upper-left position
 	// (this function is called by a TextStore object)
 
-	Assert::True((vertices != nullptr) & (numVertices > 0), "wrong input vertices buffer");
-	Assert::True(std::ssize(sentence) <= numVertices, "input vertices buffer is too small");
+	Assert::True(vertices && (numVertices > 0),             "wrong input vertices buffer");
+    Assert::True(sentence && (sentence[0] != '\0'),         "input sentence is empty");
+	Assert::True((size)strlen(sentence) <= (numVertices/4), "input vertices buffer is too small");
 
-	float drawX = drawAt.x;
-	const float topY = drawAt.y;
+	float       drawX   = drawAtX;
+	const float topY    = drawAtY;
 	const float bottomY = topY - fontHeight_;
 
 	// go through each character of the input sentence
-	for (int index = 0; const int ch : sentence)
+	for (int i = 0, symbolIdx = 0; symbolIdx < strlen(sentence); ++symbolIdx)
 	{
-		const int symbol = ch - 32;
+		const int symbol = sentence[symbolIdx] - 32;
 
 		// if there is a space (symbol == 0)
 		if (!symbol) 
@@ -98,37 +100,16 @@ void FontClass::BuildVertexArray(
 		else  
 		{
 			// the symbol texture params
-			const float texLeft = fontDataArr_[symbol].left;
+			const float texLeft  = fontDataArr_[symbol].left;
 			const float texRight = fontDataArr_[symbol].right;
-			const float width = static_cast<float>(fontDataArr_[symbol].size);
+			const float width    = (float)(fontDataArr_[symbol].size);
 
 			// set pos(x,y) and texture(tu,tv) for each font vertex:
 			// top left, bottom right, bottom left, top right
-			vertices[index++] = { { drawX, topY },            { texLeft, 0.0f } };
-			vertices[index++] = { { drawX + width, bottomY }, { texRight, 1.0f } };
-			vertices[index++] = { { drawX, bottomY },         { texLeft, 1.0f } };
-			vertices[index++] = { { drawX + width, topY },    { texRight, 0.0f } };
-
-#if 0       // OLD CODE
-
-			// top left
-			vertices[index].position     = { drawX, topY };
-			vertices[index].texture      = { texLeft, 0.0f };
-
-			// bottom right
-			vertices[index + 1].position = { drawX + width, bottomY };
-			vertices[index + 1].texture  = { texRight, 1.0f };
-
-			// bottom left
-			vertices[index + 2].position = { drawX, bottomY };
-			vertices[index + 2].texture  = { texLeft, 1.0f };
-
-			// top right
-			vertices[index + 3].position = { drawX + width, topY };
-			vertices[index + 3].texture  = { texRight, 0.0f };
-
-			index += 4;
-#endif
+			vertices[i++] = { { drawX, topY },            { texLeft, 0.0f } };
+			vertices[i++] = { { drawX + width, bottomY }, { texRight, 1.0f } };
+			vertices[i++] = { { drawX, bottomY },         { texLeft, 1.0f } };
+			vertices[i++] = { { drawX + width, topY },    { texRight, 0.0f } };
 			
 			// shift the drawing position by (char width + 1) pixel
 			drawX += (width + 1.0f);
@@ -157,14 +138,6 @@ void FontClass::BuildIndexArray(UINT* indices, const size numIndices)
 		indices[arrIdx++] = vIdx + 0;
 		indices[arrIdx++] = vIdx + 3;
 		indices[arrIdx++] = vIdx + 1;
-
-#if 0
-		indices.insert(indices.end(),  
-		{
-			v_idx, v_idx+1, v_idx+2,  
-			v_idx, v_idx+3, v_idx+1, 
-		});
-#endif
 
 		vIdx += 4;  // stride by 4 (the number of vertices in a symbol)
 	}
@@ -210,9 +183,8 @@ ID3D11ShaderResourceView* const* FontClass::GetTextureResourceViewAddress()
 // ************************************************************************************
 //                             PRIVATE MODIFICATION API 
 // ************************************************************************************
-
 void FontClass::LoadFontData(
-	const std::string& fontDataFilePath,
+	const char* fontDataFilePath,
 	const int numOfFontChars,
 	FontType* fontData)
 {

@@ -44,6 +44,15 @@ namespace BuffTypes
 
     // ----------------------------------------------------
 
+    struct cbpsMaterialData
+    {
+        // material data for the pixel shaders
+        DirectX::XMFLOAT4 ambient;
+        DirectX::XMFLOAT4 diffuse;
+        DirectX::XMFLOAT4 specular;
+        DirectX::XMFLOAT4 reflect;
+    };
+
     struct cbpsPerFrame
     {
         // a structure for pixel shader data which is changed each frame

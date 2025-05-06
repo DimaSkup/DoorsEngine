@@ -626,7 +626,7 @@ void GenerateHeightsForTerrainGrid(BasicModel& grid)
         DirectX::XMFLOAT3& pos = vertices[i].position;
 
         // a function for making hills for the terrain
-        pos.y = 0.01f * (pos.z * sinf(0.1f * pos.x) + pos.x * cosf(0.1f * pos.z));
+        pos.y = 0.1f * (pos.z * sinf(0.1f * pos.x) + pos.x * cosf(0.1f * pos.z));
 
         // get hill normal
         // n = (-df/dx, 1, -df/dz)

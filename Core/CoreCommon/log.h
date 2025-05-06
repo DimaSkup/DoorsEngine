@@ -60,7 +60,8 @@ struct LogStorage
 
 ///////////////////////////////////////////////////////////
 
-extern char g_String[256];
+constexpr int g_StrLim = 256;
+extern char   g_String[g_StrLim];
 
 extern bool InitLogger(const char* logFileName);      // call it at the very beginning of the application
 extern void CloseLogger();                            // call it at the very end of the application

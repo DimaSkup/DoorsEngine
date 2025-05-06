@@ -17,15 +17,12 @@ void MaterialAssetsBrowser::Initialize(IFacadeEngineToUI* pFacade)
 {
     if (pFacade)
     {
-        // get a pointer to the array of framebuffers (which contains images of material: sphere model + material)
-        //size numItems = 0;
-        //pFacade->GetArrMaterialsSRVs(materialsIcons_.data(), materialsIcons_.size())
 
         size numMaterials = 0;
         pFacade->GetNumMaterials(numMaterials);
-        numItems_ = (int)numMaterials;
+        numItems_ = (int)numMaterials + 1;
 
-        pFacade->RenderMaterialsIcons(0, numItems_, iconSize_, iconSize_);
+        pFacade->RenderMaterialsIcons(0, numItems_, (int)iconSize_, (int)iconSize_);
     }
 }
 
@@ -54,13 +51,14 @@ void MaterialAssetsBrowser::Render(IFacadeEngineToUI* pFacade, bool* pOpen)
         const int availWidth = (int)ImGui::GetContentRegionAvail().x;
 
         // if we changed the width of the browser's window
-        if (prevAvailWidth_ != availWidth)
+        if ((prevAvailWidth_ != availWidth) || isNeedUpdateIcons_)
         {
             UpdateLayoutSizes(availWidth);
             prevAvailWidth_ = availWidth;
+            isNeedUpdateIcons_ = false;
 
             // update icons images
-            pFacade->RenderMaterialsIcons(0, numItems_, iconSize_, iconSize_);
+            pFacade->RenderMaterialsIcons(0, numItems_, (int)iconSize_, (int)iconSize_);
         }
 
         // setup start position for debug info rendering
@@ -77,16 +75,39 @@ void MaterialAssetsBrowser::Render(IFacadeEngineToUI* pFacade, bool* pOpen)
         DrawMaterialIcons(startPos, pFacade);
         ComputeZooming(startPos, availWidth);
 
-        // context menu
-        if (ImGui::BeginPopupContextWindow())
+        // context menu when press RMB over some icon
+        if (showIconContextMenu_)
         {
-            ImGui::Text("TODO: print here a material ID + name + operations");
-            ImGui::EndPopup();
+            if (ImGui::BeginPopupContextWindow())
+            {
+                showMaterialEditorWnd_ = ImGui::MenuItem("Edit", "");
+                showMaterialDeleteWnd_ = ImGui::MenuItem("Delete", "");
+
+                // if any option in the context menu was chosed we hide the context menu
+                if (showMaterialEditorWnd_ || showMaterialDeleteWnd_)
+                    showIconContextMenu_ = false;
+
+                ImGui::EndPopup();
+            }
         }
+
+        if (showMaterialEditorWnd_)
+            RenderMaterialEditWnd(pFacade);
+
+        if (showMaterialDeleteWnd_)
+            RenderMaterialDeleteWnd();
     }
     ImGui::EndChild();
 }
 
+///////////////////////////////////////////////////////////
+
+bool MaterialAssetsBrowser::WasMaterialChanged()
+{
+    bool tmp = materialWasChanged_;
+    materialWasChanged_ = false;
+    return tmp;
+}
 
 // =================================================================================
 // Private methods
@@ -106,7 +127,7 @@ void MaterialAssetsBrowser::RenderMenuBar(bool* pOpen)
 
         if (ImGui::Button("Add"))
         {
-            // TODO: creation of a new material (open a window for it)
+            // TODO: open a window for creation of a new material
         }
         if (ImGui::Button("Search"))
         {
@@ -149,7 +170,9 @@ void MaterialAssetsBrowser::UpdateLayoutSizes(int availWidth)
 
 void MaterialAssetsBrowser::RenderDebugInfo(const int availWidth)
 {
-    ImGui::Text("material ID: %d; ", selectedMaterialItemID_);
+    ImGui::Text("ID: %d; ", selectedMaterialItemID_);
+    ImGui::SameLine();
+    ImGui::Text("Name: %s", selectedMaterialName_);
     ImGui::SameLine();
     ImGui::Text("selected item idx: %d; ", selectedItemIdx_);
     ImGui::SameLine();
@@ -178,8 +201,7 @@ void MaterialAssetsBrowser::DrawMaterialIcons(const ImVec2 startPos, IFacadeEngi
     ImGui::PushStyleColor(ImGuiCol_HeaderHovered, { 1,1,1,1 });
     ImGui::PushStyleColor(ImGuiCol_HeaderActive, { 1,1,1,1 });
 
-    const int columnCount         = numLayoutColumn_;
-    //const int currSelectedItemIdx = selectedItemIdx_;
+    const int columnCount = numLayoutColumn_;
 
     ImGuiListClipper clipper;
     clipper.Begin(numLayoutLine_, layoutItemStep_.y);
@@ -210,38 +232,35 @@ void MaterialAssetsBrowser::DrawMaterialIcons(const ImVec2 startPos, IFacadeEngi
                 {
                     char buf[32]{ '\0' };
                     const bool isSelected = (itemIdx == selectedItemIdx_);
+                    snprintf(buf, 32, "##material_item %d", itemIdx);
 
-                    sprintf(buf, "##material_item %d", itemIdx);
 
-                    // we can select a material when click on some icon
+                    // select a material when click LMB on some icon
                     if (ImGui::Selectable(buf, isSelected, ImGuiSelectableFlags_None, layoutItemSize_))
                     {
-                        selectedItemIdx_ = itemIdx;
+                        GetMaterialDataByIdx(itemIdx, pFacade);
+                    }
 
-                        // try to get a material ID by idx
-                       //materialWasChanged_ = pFacade->GetMaterialIdByIdx(itemIdx, selectedMaterialItemID_);
+                    // select a material when click RMB on some icon and open context menu
+                    if (ImGui::IsItemHovered(ImGuiHoveredFlags_RectOnly) &&
+                        ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+                    {
+                        GetMaterialDataByIdx(itemIdx, pFacade);
+                        showIconContextMenu_ = true;
                     }
                
-                    // draw background
-                    const ImVec2 boxMin(pos.x - 1, pos.y - 1);
-                    const ImVec2 boxMax = boxMin + layoutItemSize_ + ImVec2(2, 2);
-                    const ImU32  iconBgColor = ImGui::GetColorU32({ 0,0,0,0 });
-
-                    ImDrawList* pDrawList = ImGui::GetWindowDrawList();
-                    
-                   // pDrawList->AddRectFilled(boxMin, boxMax, iconBgColor);
-                    //const ImVec2 circleCenter = (boxMin + boxMax) / 2;
-                    //const float circleRadius = layoutItemSize_.x / 2 - 2;
-                    //pDrawList->AddCircleFilled(circleCenter, circleRadius, iconBgColor);
                     // draw texture image icon
                     ImGui::SetCursorScreenPos(pos);
                     ImGui::Image((ImTextureID)pFacade->materialIcons_[itemIdx], { iconSize_, iconSize_ });
 
                     // draw label (just index)
-                    const ImU32 labelColor = ImGui::GetColorU32(ImGuiCol_Text);
+                    const ImVec2 boxMin(pos.x - 1, pos.y - 1);
+                    const ImVec2 boxMax     = boxMin + layoutItemSize_ + ImVec2(2, 2);
+                    const ImU32  labelColor = ImGui::GetColorU32(ImGuiCol_Text);
                     char label[16]{ '\0' };
 
-                    sprintf(label, "%d", itemIdx);
+                    snprintf(label, 16, "%d", itemIdx);
+                    ImDrawList* pDrawList = ImGui::GetWindowDrawList();
                     pDrawList->AddText(ImVec2(boxMin.x, boxMax.y - ImGui::GetFontSize()), labelColor, label);
                 }
 
@@ -252,6 +271,36 @@ void MaterialAssetsBrowser::DrawMaterialIcons(const ImVec2 startPos, IFacadeEngi
 
     clipper.End();
     ImGui::PopStyleColor(3);
+}
+
+///////////////////////////////////////////////////////////
+
+void MaterialAssetsBrowser::GetMaterialDataByIdx(const int matIdx, IFacadeEngineToUI* pFacade)
+{
+    // load data of the material by index
+
+    if ((matIdx < 0) || (matIdx >= numItems_))
+    {
+        Core::LogErr("can't get data for material by idx: %d (is invalid)", matIdx);
+        return;
+    }
+
+    if (pFacade->GetMaterialIdByIdx(matIdx, selectedMaterialItemID_))
+    {
+        selectedItemIdx_ = matIdx;                        // update index so the icon of this material will be shown as selected
+        materialWasChanged_ = true;                       // material was changed since the prev frame
+        constexpr int maxLen = MAX_LENGTH_MATERIAL_NAME;
+        char* name = new char[maxLen] {'\0'};
+
+        pFacade->GetMaterialNameById(selectedMaterialItemID_, &name, maxLen);
+        strncpy(selectedMaterialName_, name, maxLen);
+
+        if (name)
+        {
+            delete[] name;
+            name = nullptr;
+        }
+    }
 }
 
 ///////////////////////////////////////////////////////////
@@ -283,9 +332,11 @@ void MaterialAssetsBrowser::ComputeZooming(const ImVec2 startPos, const int avai
 
             // zoom
             iconSize_ *= powf(1.1f, zoomWheelAccum_);
-            iconSize_ = std::clamp(iconSize_, 16.0f, 128.0f);
+            iconSize_ = std::clamp(iconSize_, 16.0f, 512.0f);
             zoomWheelAccum_ -= (int)zoomWheelAccum_;
+            isNeedUpdateIcons_ = true;
             UpdateLayoutSizes(availWidth);
+            
 
             // manipulate scroll to that we will land at the same Y location of currently hovered item
             // - calculate next frame position of item under mouse
@@ -296,6 +347,116 @@ void MaterialAssetsBrowser::ComputeZooming(const ImVec2 startPos, const int avai
             float mouseLocalY = io.MousePos.y - ImGui::GetWindowPos().y;
             ImGui::SetScrollY(hoveredItemRelPosY - mouseLocalY);
         }
+    }
+}
+
+///////////////////////////////////////////////////////////
+
+void MaterialAssetsBrowser::RenderMaterialEditWnd(IFacadeEngineToUI* pFacade)
+{
+    // show a window which is used to edit a material
+
+    // always center this window when appearing
+    const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    const ImVec2 size = ImGui::GetMainViewport()->Size / 2;
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSize(size, ImGuiCond_Appearing);
+
+
+    if (ImGui::Begin("Material editor", &showMaterialEditorWnd_))
+    {
+        ImGui::Text("Edit material:");
+        ImGui::Text("ID:   %ld", selectedMaterialItemID_);
+        ImGui::Text("Name: %s", selectedMaterialName_);
+        ImGui::Separator();
+
+        // if we selected another material we need to reload its data
+        if (matData_.id != selectedMaterialItemID_)
+            pFacade->GetMaterialDataById(selectedMaterialItemID_, matData_);
+
+        // render material image (sphere + single material)
+        pFacade->RenderMaterialBigIconByID(selectedMaterialItemID_, 256, 256);
+        ImGui::Image((ImTextureID)pFacade->pMaterialBigIcon_, { 256, 256 });
+
+        static bool matChanged = false;
+        matChanged |= ImGui::DragFloat4("Ambient",        matData_.ambient.xyzw, 0.01f, 0.0f, 1.0f);
+        matChanged |= ImGui::DragFloat4("Diffuse",        matData_.diffuse.xyzw,  0.01f, 0.0f, 1.0f);
+        matChanged |= ImGui::DragFloat3("Specular",       matData_.specular.xyzw, 0.01f, 0.0f, 1.0f);
+        matChanged |= ImGui::DragFloat("Specular power", &matData_.specular.w, 0.1f, 0.0f, 128.0f);
+        matChanged |= ImGui::DragFloat4("Reflect",        matData_.reflect.xyzw,  0.01f, 0.0f, 1.0f);
+
+        if (matChanged)
+        {
+            pFacade->SetMaterialColorData(
+                matData_.id,
+                matData_.ambient,
+                matData_.diffuse,
+                matData_.specular,
+                matData_.reflect);
+
+            matChanged = false;
+        }
+            
+        
+
+        // apply changes (if we have any)
+        if (ImGui::Button("Apply", ImVec2(120, 0)))
+        {
+           
+
+            matChanged = false;
+
+            // TODO: update material icons
+
+            showMaterialEditorWnd_ = false;
+        }
+        if (ImGui::Button("Cancel", ImVec2(120, 0)))
+        {
+            // TODO: reset fields
+
+            showMaterialEditorWnd_ = false;
+            matChanged = false;
+        }
+    }
+    ImGui::End();
+}
+
+///////////////////////////////////////////////////////////
+
+void MaterialAssetsBrowser::RenderMaterialDeleteWnd()
+{
+    // show a modal window which is used to delete a material
+
+    ImGui::OpenPopup("Delete?");
+
+    // always center this window when appearing
+    const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+
+    if (ImGui::BeginPopupModal("Delete?", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        ImGui::Text("Do you really want to delete currenly selected material?");
+        ImGui::Text("ID:   %ld", selectedMaterialItemID_);
+        ImGui::Text("Name: %s", selectedMaterialName_);
+        ImGui::Separator();
+
+        if (ImGui::Button("OK", ImVec2(120, 0)))
+        {
+            // TODO: actually remove this material from the materials manager
+            // TODO: update materials icons after deleting this one
+
+            showMaterialDeleteWnd_ = false;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine();
+
+        if (ImGui::Button("Cancel", ImVec2(120, 0)))
+        {
+            showMaterialDeleteWnd_ = false;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
     }
 }
 

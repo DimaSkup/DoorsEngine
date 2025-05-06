@@ -29,7 +29,6 @@ EditorPanels::EditorPanels(StatesGUI* pStatesGUI) :
 // =================================================================================
 //                              public methods
 // =================================================================================
-
 void EditorPanels::Initialize(IFacadeEngineToUI* pFacade)
 {
     Assert::NotNullptr(pFacade, "ptr to the facade interface == nullptr");
@@ -136,10 +135,7 @@ void EditorPanels::RenderTexturesBrowser()
 
         if (texturesBrowser_.TexWasChanged())
         {
-            // TODO: this is temporal to simply test functional (for changing texture of the entity)
-            const TexID currSelectedTex = texturesBrowser_.GetSelectedTexID();
-            const EntityID currSelectedEntt = enttEditorController_.GetSelectedEnttID();
-            pFacadeEngineToUI_->SetEnttMaterial(currSelectedEntt, 0, currSelectedTex);
+            
         }
     }
     ImGui::End();
@@ -155,6 +151,13 @@ void EditorPanels::RenderMaterialsBrowser()
     {
         materialsBrowser_.Render(pFacadeEngineToUI_, &pStatesGUI_->showWndMaterialsBrowser);
 
+        if (materialsBrowser_.WasMaterialChanged())
+        {
+            // TODO: this is temporal to simply test functional (for changing texture of the entity)
+            //const MaterialID currSelectedMat = materialsBrowser_.GetSelectedMaterialID();
+            //const EntityID currSelectedEntt = enttEditorController_.GetSelectedEnttID();
+            //pFacadeEngineToUI_->SetEnttMaterial(currSelectedEntt, 0, currSelectedMat);
+        }
         //for (ID3D11ShaderResourceView* pIconTex : pFacade->pMaterialIcons_)
         //    ImGui::Image((ImTextureID)pIconTex, { 200, 200 });
     }
