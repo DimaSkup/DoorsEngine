@@ -25,9 +25,9 @@ cbuffer cbMaterialPerObj : register(b5)
 struct PS_IN
 {
     float4 posH      : SV_POSITION;   // homogeneous position
+    float3 posW      : POSITION;      // position in world
     float3 normalW   : NORMAL;        // normal in world
     float3 tangentW  : TANGENT;       // tangent in world
-    float3 binormalW : BINORMAL;      // binormal in world
     float2 tex       : TEXCOORD;      
 };
 
@@ -36,11 +36,24 @@ struct PS_IN
 //
 float4 PS(PS_IN pin) : SV_Target
 {
+    //return float4(pin.normalW, 1.0f);
+
     float4 textureColor = gTextures[1].Sample(gSampleType, pin.tex);
+    //return textureColor;
 
     // execute alpha clipping
     if (true)
         clip(textureColor.a - 0.1f);
+
+    // --------------------  NORMAL MAP   --------------------
+
+    float3 normalMap = gTextures[6].Sample(gSampleType, pin.tex).rgb;
+
+    // normalize the normal vector after interpolation
+    float3 normalW = normalize(pin.normalW);
+
+    // compute the bumped normal in the world space
+    float3 bumpedNormalW = NormalSampleToWorldSpace(normalMap, normalW, pin.tangentW);
 
     
     // --------------------  LIGHT   --------------------
@@ -62,19 +75,10 @@ float4 PS(PS_IN pin) : SV_Target
     // sum the light contribution from each light source (ambient, diffuse, specular)
     float4 A, D, S;
 
-
-    /*
-    Material mat;
-    mat.ambient  = float4(0.3f, 0.3f, 0.3f, 1.0f);
-    mat.diffuse  = float4(1.0f, 1.0f, 1.0f, 1.0f);
-    mat.specular = float4(0.0f, 0.0f, 0.0f, 2.0f);
-    mat.reflect  = float4(.5f, .5f, .5f, 1.0f);
-    */
-
     DirectionalLight dirLight;
-    dirLight.ambient  = float4(1,1,1,1);
-    dirLight.diffuse  = float4(1,1,1,1);
-    dirLight.specular = float4(1,1,1,1);
+    dirLight.ambient   = float4(1,1,1,1);
+    dirLight.diffuse   = float4(1,1,1,1);
+    dirLight.specular  = float4(1,1,1,1);
     dirLight.direction = float3(-1.0f, -1.0f, 1.0f);
 
     Material mat;
@@ -86,7 +90,7 @@ float4 PS(PS_IN pin) : SV_Target
     ComputeDirectionalLight(
         mat,
         dirLight,
-        pin.normalW,
+        bumpedNormalW,
         toEyeW,
         0.0f,
         A, D, S);

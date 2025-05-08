@@ -67,22 +67,17 @@ bool MaterialIconShader::Initialize(
 
 ///////////////////////////////////////////////////////////
 
-void MaterialIconShader::Render(
+void MaterialIconShader::PrepareRendering(
     ID3D11DeviceContext* pContext,
     ID3D11Buffer* vertexBuffer,
     ID3D11Buffer* indexBuffer,
-    const int indexCount,
-    ID3D11ShaderResourceView* const* ppTextures,
-    const int vertexSize,
-    const Render::Material& mat)
+    const int vertexSize)
 {
-    // render a model (preferably sphere) with a single material
+    // bind buffers/shaders/input layout
     try
     {
         Assert::True(vertexBuffer,   "input ptr to vertex buffer == nullptr");
         Assert::True(indexBuffer,    "input ptr to index buffer == nullptr");
-        Assert::True(indexCount > 0, "input number of indices must be > 0");
-        Assert::True(ppTextures,     "input ptr to arr of textures == nullptr");
         Assert::True(vertexSize > 0, "input size of vertex must be > 0");
 
         // bind vertex and pixel shaders
@@ -95,7 +90,6 @@ void MaterialIconShader::Render(
 
         // set the sampler state and textures
         pContext->PSSetSamplers(0, 1, samplerState_.GetAddressOf());
-        pContext->PSSetShaderResources(0, NUM_TEXTURE_TYPES, ppTextures);
 
         const UINT stride = vertexSize;
         const UINT offset = 0;
@@ -103,6 +97,34 @@ void MaterialIconShader::Render(
         // bind vb/ib
         pContext->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
         pContext->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0U);
+
+        // bind the constant buffer for vertex shader
+        pContext->VSSetConstantBuffers(10, 1, cbvsWorldViewProj_.GetAddressOf());
+    }
+    catch (LIB_Exception& e)
+    {
+        LogErr(e, true);
+        LogErr("can't render using the shader");
+        return;
+    }
+}
+
+///////////////////////////////////////////////////////////
+
+void MaterialIconShader::Render(
+    ID3D11DeviceContext* pContext,
+    const int indexCount,
+    ID3D11ShaderResourceView* const* ppTextures,
+    const Render::Material& mat)
+{
+    // render a model (preferably sphere) with a single material
+    try
+    {
+        Assert::True(indexCount > 0, "input number of indices must be > 0");
+        Assert::True(ppTextures,     "input ptr to arr of textures == nullptr");
+
+        // setup textures
+        pContext->PSSetShaderResources(0, NUM_TEXTURE_TYPES, ppTextures);
 
         // setup the material
         cbpsMaterialData_.data.ambient  = mat.ambient_;
@@ -123,6 +145,19 @@ void MaterialIconShader::Render(
     }
 }
 
+///////////////////////////////////////////////////////////
+
+void MaterialIconShader::SetMatrix(
+    ID3D11DeviceContext* pContext,
+    const DirectX::XMMATRIX& world,
+    const DirectX::XMMATRIX& view,
+    const DirectX::XMMATRIX& proj)
+{
+    cbvsWorldViewProj_.data.world = world;
+    cbvsWorldViewProj_.data.viewProj = DirectX::XMMatrixTranspose(view * proj);
+    cbvsWorldViewProj_.ApplyChanges(pContext);
+}
+
 // =================================================================================
 //                              private methods                                       
 // =================================================================================
@@ -140,13 +175,6 @@ void MaterialIconShader::InitializeHelper(
         {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
         {"NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
         {"TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-
-        // per instance data
-        //{"MATERIAL", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        //{"MATERIAL", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        //{"MATERIAL", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        //{"MATERIAL", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
     };
 
     const UINT layoutElemNum = sizeof(inputLayoutDesc) / sizeof(D3D11_INPUT_ELEMENT_DESC);
@@ -162,12 +190,19 @@ void MaterialIconShader::InitializeHelper(
     result = samplerState_.Initialize(pDevice);
     Assert::True(result, "can't initialize the sampler state");
 
-    HRESULT hr = cbpsMaterialData_.Initialize(pDevice);
+    // initialize: constant buffers
+    HRESULT hr = cbvsWorldViewProj_.Initialize(pDevice);
+    Assert::NotFailed(hr, "can't initialize the const buffer (for world/view/proj in VS)");
+
+    hr = cbpsMaterialData_.Initialize(pDevice);
     Assert::NotFailed(hr, "can't initialize the const buffer (for material in PS)");
 
-    // apply the default params for the constant buffer
+
+    // apply the default params for the constant buffers
     ID3D11DeviceContext* pContext = nullptr;
     pDevice->GetImmediateContext(&pContext);
+
+    cbvsWorldViewProj_.ApplyChanges(pContext);
     cbpsMaterialData_.ApplyChanges(pContext);
 }
 

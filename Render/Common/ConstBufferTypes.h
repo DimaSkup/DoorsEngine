@@ -11,7 +11,7 @@
 namespace Render
 {
 
-namespace BuffTypes
+namespace ConstBufType
 {
     struct InstancedData
     {
@@ -44,9 +44,15 @@ namespace BuffTypes
 
     // ----------------------------------------------------
 
-    struct cbpsMaterialData
+    struct WorldViewProj
     {
-        // material data for the pixel shaders
+        DirectX::XMMATRIX world    = DirectX::XMMatrixIdentity();
+        DirectX::XMMATRIX viewProj = DirectX::XMMatrixIdentity();
+    };
+
+    struct MaterialData
+    {
+        // material data for the pixel shader
         DirectX::XMFLOAT4 ambient;
         DirectX::XMFLOAT4 diffuse;
         DirectX::XMFLOAT4 specular;
@@ -101,8 +107,9 @@ namespace BuffTypes
         float             padding2_ = 1.0f;
     };
 
-    // ----------------------------------------------------
 
+
+    // ----------------------------------------------------
     
     struct ConstantMatrixBuffer_FontVS
     {

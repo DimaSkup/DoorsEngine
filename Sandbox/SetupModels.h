@@ -198,6 +198,25 @@ void SetupAk47(BasicModel& ak47)
 
 ///////////////////////////////////////////////////////////
 
+void SetupAk74(BasicModel& ak74)
+{
+    // manually setup a model of ak-74
+
+    const MaterialID matID = ak74.meshes_.subsets_[0].materialID;
+    Material& mat          = g_MaterialMgr.GetMaterialByID(matID);
+
+    const TexID texDiff = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "ak_74u/texture/wpn_aksu.png");
+    const TexID texNorm = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "ak_74u/texture/wpn_aksu_NRM.dds");
+
+    mat.SetTexture(eTexType::TEX_TYPE_DIFFUSE, texDiff);
+    mat.SetTexture(eTexType::TEX_TYPE_NORMALS, texNorm);
+
+    mat.ambient  = { 0.3f, 0.3f, 0.3f, 1.0f };
+    mat.specular = { 0.1f, 0.1f, 0.1f, 32.0f };
+}
+
+///////////////////////////////////////////////////////////
+
 void SetupStalkerSmallHouse(BasicModel& house)
 {
     // manually setup materials for the model

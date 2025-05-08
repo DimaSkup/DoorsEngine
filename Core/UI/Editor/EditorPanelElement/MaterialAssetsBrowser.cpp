@@ -365,60 +365,100 @@ void MaterialAssetsBrowser::RenderMaterialEditWnd(IFacadeEngineToUI* pFacade)
 
     if (ImGui::Begin("Material editor", &showMaterialEditorWnd_))
     {
-        ImGui::Text("Edit material:");
-        ImGui::Text("ID:   %ld", selectedMaterialItemID_);
-        ImGui::Text("Name: %s", selectedMaterialName_);
-        ImGui::Separator();
+        const ImVec2 wndPos = ImGui::GetWindowPos();
+        const ImVec2 availReg = ImGui::GetContentRegionAvail();
+        const float halfWidth = availReg.x / 2;
+        constexpr float padding = 40.0f;
 
-        // if we selected another material we need to reload its data
-        if (matData_.id != selectedMaterialItemID_)
-            pFacade->GetMaterialDataById(selectedMaterialItemID_, matData_);
+        // render material preview sphere
+        ImGui::SetNextWindowPos(ImVec2(wndPos.x + padding, wndPos.y + padding));
 
-        // render material image (sphere + single material)
-        pFacade->RenderMaterialBigIconByID(selectedMaterialItemID_, 256, 256);
-        ImGui::Image((ImTextureID)pFacade->pMaterialBigIcon_, { 256, 256 });
-
-        static bool matChanged = false;
-        matChanged |= ImGui::DragFloat4("Ambient",        matData_.ambient.xyzw, 0.01f, 0.0f, 1.0f);
-        matChanged |= ImGui::DragFloat4("Diffuse",        matData_.diffuse.xyzw,  0.01f, 0.0f, 1.0f);
-        matChanged |= ImGui::DragFloat3("Specular",       matData_.specular.xyzw, 0.01f, 0.0f, 1.0f);
-        matChanged |= ImGui::DragFloat("Specular power", &matData_.specular.w, 0.1f, 0.0f, 128.0f);
-        matChanged |= ImGui::DragFloat4("Reflect",        matData_.reflect.xyzw,  0.01f, 0.0f, 1.0f);
-
-        if (matChanged)
+        if (ImGui::BeginChild("Material preview", ImVec2(halfWidth, availReg.y)))
         {
-            pFacade->SetMaterialColorData(
-                matData_.id,
-                matData_.ambient,
-                matData_.diffuse,
-                matData_.specular,
-                matData_.reflect);
-
-            matChanged = false;
+            RenderMaterialPreview(pFacade);
         }
-            
-        
+        ImGui::EndChild();
 
-        // apply changes (if we have any)
-        if (ImGui::Button("Apply", ImVec2(120, 0)))
+
+        // render material properties fields
+        ImGui::SetNextWindowPos(ImVec2(wndPos.x + halfWidth, wndPos.y + padding));
+
+        if (ImGui::BeginChild("Material props", ImVec2(halfWidth, availReg.y)))
         {
-           
-
-            matChanged = false;
-
-            // TODO: update material icons
-
-            showMaterialEditorWnd_ = false;
-        }
-        if (ImGui::Button("Cancel", ImVec2(120, 0)))
-        {
-            // TODO: reset fields
-
-            showMaterialEditorWnd_ = false;
-            matChanged = false;
-        }
+            RenderMaterialPropsFields(pFacade);
+        } 
+        ImGui::EndChild();
     }
     ImGui::End();
+}
+
+///////////////////////////////////////////////////////////
+
+void MaterialAssetsBrowser::RenderMaterialPreview(IFacadeEngineToUI* pFacade)
+{
+    ImGui::Text("Edit material:");
+    ImGui::Text("ID:   %ld", selectedMaterialItemID_);
+    ImGui::Text("Name: %s", selectedMaterialName_);
+    ImGui::Separator();
+
+    // if we selected another material we need to reload its data
+    if (matData_.id != selectedMaterialItemID_)
+        pFacade->GetMaterialDataById(selectedMaterialItemID_, matData_);
+
+    if (rotateMaterialBigIcon_)
+        materialSphereRotationY_ += pFacade->deltaTime;
+
+    // render material image (sphere + single material)
+    pFacade->RenderMaterialBigIconByID(selectedMaterialItemID_, 256, 256, materialSphereRotationY_);
+    ImGui::Image((ImTextureID)pFacade->pMaterialBigIcon_, { 256, 256 });
+
+    // rotate a preview sphere when mouse is over image and LMB is down
+    if (ImGui::IsItemHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Left))
+    {
+        ImGuiIO& io = ImGui::GetIO();
+        materialSphereRotationY_ += (io.MouseDelta.x * pFacade->deltaTime);
+    }
+}
+
+///////////////////////////////////////////////////////////
+
+void MaterialAssetsBrowser::RenderMaterialPropsFields(IFacadeEngineToUI* pFacade)
+{
+    ImGui::Checkbox("Rotate preview", &rotateMaterialBigIcon_);
+
+    static bool matChanged = false;
+    matChanged |= ImGui::DragFloat4("Ambient",        matData_.ambient.xyzw, 0.01f, 0.0f, 1.0f);
+    matChanged |= ImGui::DragFloat4("Diffuse",        matData_.diffuse.xyzw, 0.01f, 0.0f, 1.0f);
+    matChanged |= ImGui::DragFloat3("Specular",       matData_.specular.xyzw, 0.01f, 0.0f, 1.0f);
+    matChanged |= ImGui::DragFloat("Specular power", &matData_.specular.w, 0.1f, 0.0f, 128.0f);
+    matChanged |= ImGui::DragFloat4("Reflect",        matData_.reflect.xyzw, 0.01f, 0.0f, 1.0f);
+
+    if (matChanged)
+    {
+        pFacade->SetMaterialColorData(
+            matData_.id,
+            matData_.ambient,
+            matData_.diffuse,
+            matData_.specular,
+            matData_.reflect);
+
+        matChanged = false;
+    }
+
+    // apply changes (if we have any)
+    if (ImGui::Button("Apply", ImVec2(120, 0)))
+    {
+        matChanged = false;
+        isNeedUpdateIcons_ = true;
+        showMaterialEditorWnd_ = false;
+    }
+    if (ImGui::Button("Cancel", ImVec2(120, 0)))
+    {
+        // TODO: reset fields
+
+        showMaterialEditorWnd_ = false;
+        matChanged = false;
+    }
 }
 
 ///////////////////////////////////////////////////////////

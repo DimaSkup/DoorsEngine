@@ -685,6 +685,7 @@ bool CGraphics::RenderBigMaterialIcon(
     const MaterialID matID,
     const int iconWidth,
     const int iconHeight,
+    const float yRotationAngle,
     Render::CRender* pRender,
     ID3D11ShaderResourceView** outMaterialImg)
 {
@@ -720,9 +721,12 @@ bool CGraphics::RenderBigMaterialIcon(
     const int vertexSize = (int)sphereMesh.vb_.GetStride();
 
     // change view*proj matrix so we will be able to render material icons properly
-    const XMMATRIX view  = XMMatrixTranslation(0, 0, 2);
-    const XMMATRIX proj  = XMMatrixPerspectiveFovLH(1.1f, 1.0f, 1.0f, 100.0f);
-    pRender->SetViewProj(pContext, DirectX::XMMatrixTranspose(view * proj));
+    const XMMATRIX world    = XMMatrixRotationY(yRotationAngle);
+    const XMMATRIX view     = XMMatrixTranslation(0, 0, 1.1f);
+    const XMMATRIX proj     = XMMatrixPerspectiveFovLH(1.0f, 1.0f, 0.1f, 100.0f);
+
+    Render::MaterialIconShader& matIconShader = pRender->shadersContainer_.materialIconShader_;
+    matIconShader.SetMatrix(pContext, world, view, proj);
 
 
     // prepare responsible frame buffer for rendering
@@ -741,15 +745,9 @@ bool CGraphics::RenderBigMaterialIcon(
     cvector<ID3D11ShaderResourceView*> texSRVs;
     g_TextureMgr.GetSRVsByTexIDs(mat.textureIDs, NUM_TEXTURE_TYPES, texSRVs);
 
-    // render material into responsible frame buffer 
-    pRender->shadersContainer_.materialIconShader_.Render(
-        pContext,
-        vb, ib,
-        indexCount,
-        texSRVs.data(),
-        vertexSize,
-        renderMat);
-
+    // render material into responsible frame buffer
+    matIconShader.PrepareRendering(pContext, vb, ib, vertexSize);
+    matIconShader.Render(pContext, indexCount, texSRVs.data(), renderMat);
 
     // reset camera's viewProj to the previous one (it can be game or editor camera)
     pRender->SetViewProj(pContext, DirectX::XMMatrixTranspose(viewProj_));
@@ -808,10 +806,14 @@ void CGraphics::RenderMaterialsIcons(
     const int vertexSize = (int)sphereMesh.vb_.GetStride();
 
     // change view*proj matrix so we will be able to render material icons properly
-    const XMMATRIX view  = XMMatrixTranslation(0, 0, 2);
-    const XMMATRIX proj  = XMMatrixPerspectiveFovLH(1.1f, 1.0f, 1.0f, 100.0f);
-    pRender->SetViewProj(pContext, DirectX::XMMatrixTranspose(view * proj));
+    const XMMATRIX world = XMMatrixRotationY(0.0f);
+    const XMMATRIX view  = XMMatrixTranslation(0, 0, 1.1f);
+    const XMMATRIX proj  = XMMatrixPerspectiveFovLH(1.0f, 1.0f, 0.1f, 100.0f);
 
+    Render::MaterialIconShader& matIconShader = pRender->shadersContainer_.materialIconShader_;
+
+    matIconShader.SetMatrix(pContext, world, view, proj);
+    matIconShader.PrepareRendering(pContext, vb, ib, vertexSize);
 
     // render material by idx into responsible frame buffer
     for (int matIdx = 0; FrameBuffer& buf : materialsFrameBuffers_)
@@ -830,15 +832,8 @@ void CGraphics::RenderMaterialsIcons(
 
         cvector<ID3D11ShaderResourceView*> texSRVs;
         g_TextureMgr.GetSRVsByTexIDs(mat.textureIDs, NUM_TEXTURE_TYPES, texSRVs);
-
-        pRender->shadersContainer_.materialIconShader_.Render(
-            pContext,
-            vb,
-            ib,
-            indexCount,
-            texSRVs.data(),
-            vertexSize,
-            renderMat);
+        
+        matIconShader.Render(pContext, indexCount, texSRVs.data(), renderMat);
 
         ++matIdx;
     }

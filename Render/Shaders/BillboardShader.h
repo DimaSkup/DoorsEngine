@@ -68,7 +68,7 @@ private:
     SamplerState        samplerState_;
 
     ID3D11Buffer*                               pInstancedBuffer_ = nullptr;
-    cvector<BuffTypes::InstancedDataBillboards> instancedData_;
+    cvector<ConstBufType::InstancedDataBillboards> instancedData_;
 
     char className_[32]{"BillboardShader"};
     const int numMaxInstances_ = 500;                     // limit of instances

@@ -304,7 +304,7 @@ void TextStore::BuildTextVerticesIndices(
     cvector<Core::VertexFont>& vertices,
     cvector<UINT>& indices)
 { 
-    // THIS FUNC builds a vertex and index buffer for the input string by its 
+    // build a vertex and index buffer for the input string by its 
     // textContent and places its vertices at the drawAt position;
 
     try

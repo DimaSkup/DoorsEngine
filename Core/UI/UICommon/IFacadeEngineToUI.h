@@ -83,6 +83,7 @@ class IFacadeEngineToUI
 public:
     ID3D11ShaderResourceView*          pMaterialBigIcon_ = nullptr; // big material icon for browsing/editing particular chosen material
     cvector<ID3D11ShaderResourceView*> materialIcons_;              // list of icons in the editor material browser
+    float                              deltaTime = 0.0f;
 
     virtual ~IFacadeEngineToUI() {};
 
@@ -293,7 +294,8 @@ public:
     virtual bool RenderMaterialBigIconByID(
         const MaterialID matID,
         const int iconWidth,
-        const int iconHeight) { return false; }
+        const int iconHeight,
+        const float yAxisRotation) { return false; }
 
 private:
     inline float GetInvalidFloat()    const { return NAN; }

@@ -36,6 +36,8 @@ private:
     void RenderMaterialEditWnd(IFacadeEngineToUI* pFacade);
     void RenderMaterialDeleteWnd();
 
+    void RenderMaterialPreview    (IFacadeEngineToUI* pFacade);
+    void RenderMaterialPropsFields(IFacadeEngineToUI* pFacade);
 
 private:
     MaterialData matData_;      // material data of chosen material (this data is used for the material editor)
@@ -43,6 +45,7 @@ private:
     MaterialID selectedMaterialItemID_ = -1;
     char       selectedMaterialName_[MAX_LENGTH_MATERIAL_NAME]{ '\0' };
 
+    float   materialSphereRotationY_ = 0.0f;  // current rotation angle for the material big icon (is used in the material editor)
     float   iconSize_        = 96.0f;
     float   zoomWheelAccum_  = 0.0f;      // Mouse wheel accumulator to handle smooth wheels better
     int     prevAvailWidth_  = 0;         // if curr and prev available wnd width aren't equal - we call UpdateLayoutSizes()
@@ -66,6 +69,7 @@ private:
     bool    showMaterialEditorWnd_  = false;     // show a window for editing a single material (opens through contex menu when hit RMB over some icon) 
     bool    showMaterialDeleteWnd_  = false;     // show a window for deleting a single material (opens through contex menu when hit RMB over some icon)
     bool    showIconContextMenu_    = false;
+    bool    rotateMaterialBigIcon_  = false;
     cvector<ID3D11ShaderResourceView*> materialsIcons_;
 };
 

@@ -17,6 +17,7 @@
 
 #include <d3d11.h>
 
+
 namespace Render
 {
 
@@ -37,14 +38,23 @@ public:
         const char* vsFilePath,
         const char* psFilePath);
 
-    void Render(
+    void PrepareRendering(
         ID3D11DeviceContext* pContext,
         ID3D11Buffer* vertexBuffer,
         ID3D11Buffer* indexBuffer,
+        const int vertexSize);
+
+    void Render(
+        ID3D11DeviceContext* pContext,
         const int indexCount,
         ID3D11ShaderResourceView* const* ppTextures,
-        const int vertexSize,
         const Render::Material& mat);
+
+    void SetMatrix(
+        ID3D11DeviceContext* pContext,
+        const DirectX::XMMATRIX& world,
+        const DirectX::XMMATRIX& view,
+        const DirectX::XMMATRIX& proj);
 
     inline const char* GetShaderName() const { return className_; }
 
@@ -55,10 +65,11 @@ private:
         const char* psFilePath);
 
 private:
-    VertexShader vs_;
-    PixelShader  ps_;
-    SamplerState samplerState_;                                     // a sampler for texturing
-    ConstantBuffer<BuffTypes::cbpsMaterialData> cbpsMaterialData_;  // constant buffer for data of material 
+    VertexShader                                vs_;
+    PixelShader                                 ps_;
+    SamplerState                                samplerState_;      // a sampler for texturing
+    ConstantBuffer<ConstBufType::WorldViewProj> cbvsWorldViewProj_; // cbvs -- const buffer for vertex shader
+    ConstantBuffer<ConstBufType::MaterialData>  cbpsMaterialData_;  // cbps -- const buffer for pixel shader
 
     char className_[32]{ "MaterialIconShader" };
 };

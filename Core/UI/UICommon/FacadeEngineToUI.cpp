@@ -932,12 +932,19 @@ bool FacadeEngineToUI::RenderMaterialsIcons(
 bool FacadeEngineToUI::RenderMaterialBigIconByID(
     const MaterialID matID,
     const int iconWidth,
-    const int iconHeight)
+    const int iconHeight,
+    const float yAxisRotation)
 {
     // in the material browser we can select editing of the chosen material;
     // in the editor window we need to visualize the current state of the material so
     // we render this big material icon
-    return pGraphics_->RenderBigMaterialIcon(matID, iconWidth, iconHeight, pRender_, &pMaterialBigIcon_);
+    return pGraphics_->RenderBigMaterialIcon(
+        matID,
+        iconWidth,
+        iconHeight,
+        yAxisRotation,
+        pRender_,
+        &pMaterialBigIcon_);
 }
 
 

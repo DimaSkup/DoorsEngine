@@ -82,8 +82,8 @@ private:
 	PixelShader  ps_;
 	SamplerState samplerState_;                                          // a sampler for texturing
 
-	ConstantBuffer<BuffTypes::cbvsPerFrame_SkyDome>    cbvsPerFrame_;    // cbvs: const buffer for vertex shader
-	ConstantBuffer<BuffTypes::cbpsRareChanged_SkyDome> cbpsRareChanged_; // cbps: const buffer for pixel shader
+	ConstantBuffer<ConstBufType::cbvsPerFrame_SkyDome>    cbvsPerFrame_;    // cbvs: const buffer for vertex shader
+	ConstantBuffer<ConstBufType::cbpsRareChanged_SkyDome> cbpsRareChanged_; // cbps: const buffer for pixel shader
 
 	char className_[32]{"SkyDomeShader"};
 };
