@@ -94,15 +94,18 @@ float4 PS_DebugVectors(PS_IN pin, int debugType) : SV_Target
 	{
 		case SHOW_NORMALS:
 		{
-			return float4(pin.normalW, 1.0f);
+            float3 color = 0.5f * pin.normalW + 0.5f;
+			return float4(color, 1.0f);
 		}
 		case SHOW_TANGENTS:
 		{
-			return float4(pin.tangentW, 1.0f);
+            float3 color = 0.5f * pin.tangentW + 0.5f;
+            return float4(color, 1.0f);
 		}
 		case SHOW_BINORMALS:
 		{
-			return float4(pin.binormalW, 1.0f);
+            float3 color = 0.5f * pin.binormalW + 0.5f;
+            return float4(color, 1.0f);
 		}
 		case SHOW_BUMPED_NORMALS:
 		{
@@ -110,7 +113,8 @@ float4 PS_DebugVectors(PS_IN pin, int debugType) : SV_Target
 			normalMap = (normalMap * 2.0f) - 1.0f;
 			float3 bumpedNormalW = NormalSampleToWorldSpace(normalMap, pin.normalW, pin.tangentW);
 
-			return float4(bumpedNormalW, 1.0f);
+            float3 color = 0.5f * bumpedNormalW + 0.5f;
+			return float4(color, 1.0f);
 		}
 	}
 

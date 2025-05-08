@@ -59,6 +59,8 @@ bool ImGuiLayer::Initialize(
     io.Fonts->AddFontFromFileTTF("data/ui/arial.ttf", 16.0f);
     io.FontDefault = io.Fonts->AddFontFromFileTTF("data/ui/arial.ttf", 16.0f);
 
+    io.ConfigWindowsMoveFromTitleBarOnly = true;
+
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
 

@@ -98,6 +98,7 @@ void UserInterface::Update(
     // each frame we call this function for updating the UI
     try
     {
+        pFacadeEngineToUI_->deltaTime = systemState.deltaTime;
         textStorage_.Update(pContext, font1_, systemState);
     }
     catch (EngineException & e)

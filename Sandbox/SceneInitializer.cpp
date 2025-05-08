@@ -1658,6 +1658,7 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     //SetupBuilding9(building);
     SetupStalkerFreedom(stalkerFreedom);
     SetupAk47(ak47);
+    SetupAk74(ak74);
 
     CreateTreesPine(mgr, treePine);
     //CreateTreesSpruce(mgr, treeSpruce);
@@ -1699,7 +1700,7 @@ void GenerateAssets(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     // generate some models manually
     const MeshSphereParams    boundSphereParams(1, 8, 8);
     const MeshGeosphereParams boundGeoSphereParams(1, 1);
-    const MeshSphereParams    sphereParams(1, 20, 20);
+    const MeshSphereParams    sphereParams(0.5f, 20, 20);
     const MeshCylinderParams  cylParams(1, 1, 5, 20, 2);
 
     const ModelID cubeID        = creator.CreateCube(pDevice);
@@ -1861,8 +1862,6 @@ bool SceneInitializer::InitModelEntities(ID3D11Device* pDevice, ECS::EntityMgr& 
         sprintf(g_String, "%s%s", g_RelPathTexDir, "notexture.dds");
         const TexID noTextureID = g_TextureMgr.LoadFromFile(g_String);
 
-
-
         // create and setup an "invalid" material
         Material invalidMaterial;
         invalidMaterial.SetTexture(TEX_TYPE_DIFFUSE, noTextureID);
@@ -1888,7 +1887,7 @@ bool SceneInitializer::InitModelEntities(ID3D11Device* pDevice, ECS::EntityMgr& 
         }
         else
         {
-            ImportExternalModels(pDevice, mgr);
+            //ImportExternalModels(pDevice, mgr);
         }
 #else
         ImportExternalModels(pDevice, mgr);

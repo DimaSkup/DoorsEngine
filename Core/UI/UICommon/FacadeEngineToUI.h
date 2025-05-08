@@ -230,7 +230,8 @@ public:
     virtual bool RenderMaterialBigIconByID(
         const MaterialID matID,
         const int iconWidth,
-        const int iconHeight) override;
+        const int iconHeight,
+        const float yAxisRotation) override;
 
 };
 

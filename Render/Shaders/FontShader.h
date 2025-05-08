@@ -74,8 +74,8 @@ private:
     PixelShader    ps_;
     SamplerState   samplerState_;
 
-    ConstantBuffer<BuffTypes::ConstantMatrixBuffer_FontVS> matrixBuffer_;
-    ConstantBuffer<BuffTypes::ConstantPixelBuffer_FontPS>  pixelBuffer_;   // text colour for the pixel shader
+    ConstantBuffer<ConstBufType::ConstantMatrixBuffer_FontVS> matrixBuffer_;
+    ConstantBuffer<ConstBufType::ConstantPixelBuffer_FontPS>  pixelBuffer_;   // text colour for the pixel shader
 
     char className_[32]{"FontShader"};
 };

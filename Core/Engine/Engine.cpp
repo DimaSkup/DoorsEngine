@@ -149,6 +149,8 @@ void Engine::Update()
     deltaTime_ = timer_.GetDeltaTime();
     constexpr float maxDeltaTime = (1000.0f / 60.0f);
     deltaTime_ = (deltaTime_ > maxDeltaTime) ? maxDeltaTime : deltaTime_;
+
+    systemState_.deltaTime = deltaTime_;
     systemState_.frameTime = deltaTime_ * 1000.0f;
 
     // update the entities and related data
@@ -896,16 +898,8 @@ void Engine::HandleEditorEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnt
                 }
                 break;
             }
-            case MPress:
-            {
-                isMouseMiddlePressed = true;
-                break;
-            }
-            case MRelease:
-            {
-                isMouseMiddlePressed = false;
-                break;
-            }
+            case MPress:             isMouseMiddlePressed = true;  break;
+            case MRelease:           isMouseMiddlePressed = false; break;
             case LeftDoubleClick:
             {
                 return;

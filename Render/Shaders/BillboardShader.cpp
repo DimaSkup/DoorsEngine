@@ -87,7 +87,7 @@ void BillboardShader::UpdateInstancedBuffer(
 		HRESULT hr = pContext->Map(pInstancedBuffer_, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData);
 		Assert::NotFailed(hr, "can't map the instanced buffer");
 
-		BuffTypes::InstancedDataBillboards* dataView = (BuffTypes::InstancedDataBillboards*)mappedData.pData;
+		ConstBufType::InstancedDataBillboards* dataView = (ConstBufType::InstancedDataBillboards*)mappedData.pData;
 
 		// write data into the subresource
 		for (int i = 0; i < numBillboards; ++i)
@@ -160,7 +160,7 @@ void BillboardShader::Render(ID3D11DeviceContext* pContext, const Instance& inst
 	pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	// bind vertex/index buffer and textures 2D array as well
-	const UINT instanceBufElemSize = sizeof(BuffTypes::InstancedDataBillboards);
+	const UINT instanceBufElemSize = sizeof(ConstBufType::InstancedDataBillboards);
 	ID3D11Buffer* const vbs[2]     = { instance.pVB, pInstancedBuffer_ };
 	const UINT stride[2]           = { instance.vertexStride, instanceBufElemSize };
 	const UINT offset[2]           = { 0,0 };
@@ -238,7 +238,7 @@ void BillboardShader::InitializeShaders(
 
 	// setup buffer's description
 	desc.Usage               = D3D11_USAGE_DYNAMIC;
-	desc.ByteWidth           = static_cast<UINT>(sizeof(BuffTypes::InstancedDataBillboards) * numMaxInstances_);
+	desc.ByteWidth           = static_cast<UINT>(sizeof(ConstBufType::InstancedDataBillboards) * numMaxInstances_);
 	desc.BindFlags           = D3D11_BIND_VERTEX_BUFFER;
 	desc.CPUAccessFlags      = D3D11_CPU_ACCESS_WRITE;
 	desc.MiscFlags           = 0;

@@ -161,19 +161,19 @@ public:
     ID3D11DeviceContext*                       pContext_ = nullptr;
 
     ID3D11Buffer*                              pInstancedBuffer_ = nullptr;
-    cvector<BuffTypes::InstancedData>          instancedData_;    // instances common buffer
+    cvector<ConstBufType::InstancedData>          instancedData_;    // instances common buffer
 
     // const buffers for vertex shaders
-    ConstantBuffer<BuffTypes::cbvsPerFrame>    cbvsPerFrame_;     
-    ConstantBuffer<BuffTypes::cbpsPerFrame>    cbpsPerFrame_;    
+    ConstantBuffer<ConstBufType::cbvsPerFrame>    cbvsPerFrame_;     
+    ConstantBuffer<ConstBufType::cbpsPerFrame>    cbpsPerFrame_;    
 
     // const buffers for pixel shaders
-    ConstantBuffer<BuffTypes::cbpsRareChanged> cbpsRareChanged_; 
+    ConstantBuffer<ConstBufType::cbpsRareChanged> cbpsRareChanged_; 
 
     // const buffers for geometry shaders
-    //ConstantBuffer<BuffTypes::GeomertyShaderConstBuf_PerObject> cbgsPerObject_;
-    //ConstantBuffer<BuffTypes::GeometryShaderConstBuf_Fixed>     cbgsFixed_;
-    ConstantBuffer<BuffTypes::GeometryShaderConstBuf_PerFrame>  cbgsPerFrame_;
+    //ConstantBuffer<ConstBufType::GeomertyShaderConstBuf_PerObject> cbgsPerObject_;
+    //ConstantBuffer<ConstBufType::GeometryShaderConstBuf_Fixed>     cbgsFixed_;
+    ConstantBuffer<ConstBufType::GeometryShaderConstBuf_PerFrame>  cbgsPerFrame_;
 
 
 

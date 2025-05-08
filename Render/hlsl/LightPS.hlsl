@@ -75,6 +75,8 @@ float4 PS(PS_IN pin) : SV_Target
     //float4 specularMap = gTextures[2].Sample(gSampleType, pin.tex);
     //float4 roughnessMap = gTextures[16].Sample(gSampleType, pin.tex);
 
+    // --------------------  NORMAL MAP   --------------------
+
     float3 normalMap = gTextures[6].Sample(gSampleType, pin.tex).rgb;
 
     // normalize the normal vector after interpolation

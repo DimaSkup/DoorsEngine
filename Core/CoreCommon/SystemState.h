@@ -34,7 +34,8 @@ public:
 	u32 cellsCulled = 0;                     // the number of culled terrain cells
 	u32 pickedEnttID_ = 0;                   // currently chosen entity (its ID)
 
-	float frameTime = 0.0f;                  // the seconds per frame
+    float deltaTime = 0.0f;                  // seconds per last frame
+	float frameTime = 0.0f;                  // ms per last frame
     float updateTime = 0.0f;                 // duration time of the whole update process
     float renderTime = 0.0f;                 // duration time of the whole rendering process
 	DirectX::XMFLOAT3 cameraPos;             // the current position of the currently main camera

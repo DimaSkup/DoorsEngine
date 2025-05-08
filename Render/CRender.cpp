@@ -52,7 +52,7 @@ bool CRender::Initialize(
 
         // setup buffer's description
         vbd.Usage               = D3D11_USAGE_DYNAMIC;
-        vbd.ByteWidth           = static_cast<UINT>(sizeof(BuffTypes::InstancedData) * maxInstancesNum);
+        vbd.ByteWidth           = static_cast<UINT>(sizeof(ConstBufType::InstancedData) * maxInstancesNum);
         vbd.BindFlags           = D3D11_BIND_VERTEX_BUFFER;
         vbd.CPUAccessFlags      = D3D11_CPU_ACCESS_WRITE;
         vbd.MiscFlags           = 0;
@@ -218,7 +218,7 @@ void CRender::UpdateInstancedBuffer(
         HRESULT hr = pContext->Map(pInstancedBuffer_, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData);
         Assert::NotFailed(hr, "can't map the instanced buffer");
 
-        BuffTypes::InstancedData* dataView = (BuffTypes::InstancedData*)mappedData.pData;
+        ConstBufType::InstancedData* dataView = (ConstBufType::InstancedData*)mappedData.pData;
 
         // write data into the subresource
         for (int i = 0; i < count; ++i)
@@ -255,7 +255,7 @@ void CRender::UpdateInstancedBufferWorlds(
         HRESULT hr = pContext->Map(pInstancedBuffer_, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData);
         Assert::NotFailed(hr, "can't map the instanced buffer");
 
-        BuffTypes::InstancedData* dataView = (BuffTypes::InstancedData*)mappedData.pData;
+        ConstBufType::InstancedData* dataView = (ConstBufType::InstancedData*)mappedData.pData;
 
         // write data into the subresource
         for (index i = 0; i < std::ssize(worlds); ++i)
@@ -290,7 +290,7 @@ void CRender::UpdateInstancedBufferMaterials(
         HRESULT hr = pContext->Map(pInstancedBuffer_, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData);
         Assert::NotFailed(hr, "can't map the instanced buffer");
 
-        BuffTypes::InstancedData* dataView = (BuffTypes::InstancedData*)mappedData.pData;
+        ConstBufType::InstancedData* dataView = (ConstBufType::InstancedData*)mappedData.pData;
 
         // write data into the subresource
         for (index i = 0; i < std::ssize(materials); ++i)
@@ -323,7 +323,7 @@ void CRender::RenderBoundingLineBoxes(
 {
     try
     {
-        const UINT instancedBuffElemSize = static_cast<UINT>(sizeof(BuffTypes::InstancedData));
+        const UINT instancedBuffElemSize = static_cast<UINT>(sizeof(ConstBufType::InstancedData));
 
         shadersContainer_.colorShader_.Render(
             pContext,
@@ -353,7 +353,7 @@ void CRender::RenderInstances(
 {
     try
     {
-        const UINT instancedBuffElemSize = static_cast<UINT>(sizeof(BuffTypes::InstancedData));
+        const UINT instancedBuffElemSize = static_cast<UINT>(sizeof(ConstBufType::InstancedData));
 
         if (isDebugMode_)
         {

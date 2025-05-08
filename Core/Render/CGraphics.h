@@ -89,6 +89,7 @@ public:
         const MaterialID matID,
         const int iconWidth,
         const int iconHeight,
+        const float yRotationAngle,
         Render::CRender* pRender,
         ID3D11ShaderResourceView** outMaterialImg);
 
