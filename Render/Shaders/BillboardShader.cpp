@@ -131,7 +131,6 @@ void BillboardShader::Render(
 	pContext->GSSetShader(gs_.GetShader(), nullptr, 0);
 	pContext->PSSetShader(ps_.GetShader(), nullptr, 0);
 	pContext->PSSetSamplers(0, 1, samplerState_.GetAddressOf());
-	pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	UINT offset = 0;
 

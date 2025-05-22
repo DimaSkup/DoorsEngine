@@ -32,7 +32,7 @@ public:
 
 
     // initialize vb/ib with input data
-    void InitializeBuffers(
+    bool InitializeBuffers(
         ID3D11Device* pDevice,
         const Vertex3DPos* vertices,
         const USHORT* indices,

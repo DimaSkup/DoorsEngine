@@ -36,10 +36,10 @@ void InitDirectedLightEntities(ECS::EntityMgr& mgr)
         ECS::DirLight& dirLight2 = dirLightsParams.data[2];
 
         // setup main directed light source
-        dirLight0.ambient = { 0.6f, 0.6f, 0.6f, 1.0f };
-        dirLight0.diffuse = { 0.8f, 0.8f, 0.8f, 1.0f };
-        //dirLight0.ambient = { 0,0,0,1 };
-        //dirLight0.diffuse = { 0,0,0,1 };
+        //dirLight0.ambient = { 0.6f, 0.6f, 0.6f, 1.0f };
+        //dirLight0.diffuse = { 0.8f, 0.8f, 0.8f, 1.0f };
+        dirLight0.ambient = { 0.8f, 0.8f, 0.8f, 1 };
+        dirLight0.diffuse = { 1,1,1,1 };
         dirLight0.specular = { 0.3f, 0.3f, 0.3f, 1.0f };
 
         // setup 2nd directed light source
@@ -74,7 +74,8 @@ void InitDirectedLightEntities(ECS::EntityMgr& mgr)
 
         const DirectX::XMFLOAT3 directions[numDirLights] =
         {
-            { 0.57735f, -0.9f, 0.57735f },
+            //{ 0.57735f, -0.9f, 0.57735f },
+            { -0.57735f, -0.9f, -0.57735f },
             { -0.57735f, -0.57735f, 0.57735f },
             { 0.0f, -0.707f, -0.707f }
         };
@@ -124,7 +125,7 @@ void GenerateLightColors(
 
 void InitPointLightEntities(ECS::EntityMgr& mgr)
 {
-    constexpr size numPointLights = 20;
+    constexpr size numPointLights = 10;
 
     if (numPointLights > 0)
     {
@@ -160,6 +161,7 @@ void InitPointLightEntities(ECS::EntityMgr& mgr)
             positions[i].y = 4.0f;
             positions[i].z = MathHelper::RandF(-100, 100);
         }
+        positions[1] = { -5, 5, 0 };
 
         for (index i = 0; i < numPointLights; ++i)
             dirQuats[i] = { 0,0,0,1 };

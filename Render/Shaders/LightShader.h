@@ -41,6 +41,11 @@ public:
 		const int numUniqueGeometry,
 		const UINT instancesBuffElemSize);
 
+    void ShaderHotReload(
+        ID3D11Device* pDevice,
+        const char* vsFilePath,
+        const char* psFilePath);
+
 	inline const char* GetShaderName() const { return className_; }
 
 private:

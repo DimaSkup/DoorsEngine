@@ -168,6 +168,7 @@
     <ClCompile Include="Common\LIB_Exception.cpp" />
     <ClCompile Include="Common\log.cpp" />
     <ClCompile Include="Common\MathHelper.cpp" />
+    <ClCompile Include="Common\StrHelper.cpp" />
     <ClCompile Include="InitRender.cpp" />
     <ClCompile Include="CRender.cpp" />
     <ClCompile Include="Shaders\BillboardShader.cpp" />
@@ -180,7 +181,7 @@
     <ClCompile Include="Shaders\OutlineShader.cpp" />
     <ClCompile Include="Shaders\PixelShader.cpp" />
     <ClCompile Include="Shaders\SamplerState.cpp" />
-    <ClCompile Include="Shaders\shaderclass.cpp" />
+    <ClCompile Include="Shaders\Helpers\ShaderCompiler.cpp" />
     <ClCompile Include="Shaders\SkyDomeShader.cpp" />
     <ClCompile Include="Shaders\TextureShader.cpp" />
     <ClCompile Include="Shaders\VertexShader.cpp" />
@@ -208,12 +209,13 @@
     <ClInclude Include="Shaders\GeometryShader.h" />
     <ClInclude Include="Shaders\Helpers\CSOLoader.h" />
     <ClInclude Include="Common\MaterialLightTypes.h" />
+    <ClInclude Include="Shaders\InputLayouts.h" />
     <ClInclude Include="Shaders\LightShader.h" />
     <ClInclude Include="Shaders\MaterialIconShader.h" />
     <ClInclude Include="Shaders\OutlineShader.h" />
     <ClInclude Include="Shaders\PixelShader.h" />
     <ClInclude Include="Shaders\SamplerState.h" />
-    <ClInclude Include="Shaders\shaderclass.h" />
+    <ClInclude Include="Shaders\Helpers\ShaderCompiler.h" />
     <ClInclude Include="Shaders\ShadersContainer.h" />
     <ClInclude Include="Shaders\SkyDomeShader.h" />
     <ClInclude Include="Shaders\TextureShader.h" />

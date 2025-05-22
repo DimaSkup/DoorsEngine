@@ -53,10 +53,8 @@ const DirectX::XMMATRIX MathHelper::InverseTranspose(const DirectX::CXMMATRIX& M
 	// to transform vectors, and translations only apply to points
 	A.r[3] = { 0, 0, 0, 1 };
 
-	XMVECTOR det;  // = DirectX::XMMatrixDeterminant(A);
-
 	// return a transformation matrix B
-	return XMMatrixTranspose(XMMatrixInverse(&det, A));
+	return XMMatrixTranspose(XMMatrixInverse(nullptr, A));
 }
 
 

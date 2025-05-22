@@ -9,28 +9,31 @@
 #include <cstdint>
 #include <d3d11.h>
 
-
 namespace Render
 {
 
 class PixelShader
 {
 public:
-	PixelShader();
-	~PixelShader();
+    PixelShader();
+    ~PixelShader();
 
-	bool Initialize(
-		ID3D11Device* pDevice,
-		const char* shaderPath,
-		const char* funcName = "PS");
+    bool Initialize(
+        ID3D11Device* pDevice,
+        const char* shaderPath);
 
-	void Shutdown();
+    bool CompileShaderFromFile(
+        ID3D11Device* pDevice,
+        const char* shaderPath,
+        const char* funcName,
+        const char* shaderProfile);
 
-	inline ID3D11PixelShader* GetShader() { return pShader_; };
+    void Shutdown();
+
+    inline ID3D11PixelShader* GetShader() { return pShader_; };
 
 private:
-	ID3D11PixelShader* pShader_ = nullptr;
-	uint8_t* pShaderBuffer_ = nullptr;
+    ID3D11PixelShader* pShader_ = nullptr;
 };
 
 } // namespace

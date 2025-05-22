@@ -271,7 +271,7 @@ void BasicModel::CopyIndices(const UINT* indices, const int numIndices)
 {
     // check input data and check if we have enough allocated memory
     Assert::True(indices != nullptr, "input ptr to indices == nullptr");
-    Assert::True(numIndices > 0, "input number of indices must be > 0");
+    Assert::True(numIndices > 0,     "input number of indices must be > 0");
 
     std::copy(indices, indices + numIndices, indices_);
 }

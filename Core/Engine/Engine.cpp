@@ -370,7 +370,22 @@ void Engine::EventWindowResize(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 
     // try to resize the window
     if (!graphics_.GetD3DClass().ResizeSwapChain(hwnd, newSize))
+    {
         PostQuitMessage(0);
+    }
+
+    // update cameras according to new dimensions
+    if (pEnttMgr_)
+    {
+        //const EntityID editorCamID = pEnttMgr_->nameSystem_.GetIdByName("editor_camera");
+        const float    aspectRatio = (float)newSize.cx / (float)newSize.cy;
+        ECS::cvector<EntityID> ids;
+        pEnttMgr_->cameraSystem_.GetAllCamerasIds(ids);
+
+        // update each camera
+        for (const EntityID id : ids)
+            pEnttMgr_->cameraSystem_.SetAspectRatio(id, aspectRatio);
+    }
 }
 
 ///////////////////////////////////////////////////////////
@@ -534,7 +549,7 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
             case KEY_RETURN:   // ENTER
             {
                 if (!keyboard_.WasPressedBefore(KEY_RETURN))
-                    UI::gEventsHistory.FlushTempHistory();
+                    UI::g_EventsHistory.FlushTempHistory();
                 break;
             }
             case KEY_S:
@@ -597,6 +612,13 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
                 // switch to the game mode
                 if (!keyboard_.WasPressedBefore(KEY_F1))
                     TurnOnGameMode();
+                break;
+            }
+            case KEY_F3:
+            {
+                // shaders hot reload
+                if (!keyboard_.WasPressedBefore(KEY_F3))
+                    pRender_->ShadersHotReload(graphics_.GetD3DClass().GetDevice());
                 break;
             }
             case VK_ESCAPE:
@@ -877,8 +899,8 @@ void Engine::HandleEditorEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnt
             }
             case LRelease:
             {
-                if (UI::gEventsHistory.HasTempHistory())
-                    UI::gEventsHistory.FlushTempHistory();
+                if (UI::g_EventsHistory.HasTempHistory())
+                    UI::g_EventsHistory.FlushTempHistory();
                 break;
             }
             case WheelUp:

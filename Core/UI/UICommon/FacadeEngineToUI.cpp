@@ -763,7 +763,7 @@ bool FacadeEngineToUI::SetFogColor  (const ColorRGB& color) { pRender_->SetFogCo
 // =================================================================================
 bool FacadeEngineToUI::SwitchDebugState(const int debugType)
 {
-    pRender_->SwitchDebugState(pContext_, Render::DebugState(debugType));
+    pRender_->SwitchDebugState(pContext_, Render::eDebugState(debugType));
     return true;
 }
 

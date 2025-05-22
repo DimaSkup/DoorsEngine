@@ -163,7 +163,7 @@ void EnttSpotLightController::ExecChangeAmbient(const EntityID id, const ColorRG
         spotLightModel_.ambient = ambient;
 
         // generate an "undo" command and store it into the history
-        gEventsHistory.Push(
+        g_EventsHistory.Push(
             CmdChangeColor(CHANGE_SPOT_LIGHT_AMBIENT, oldAmbient),
             GenerateMsgForHistory(id, "ambient"),
             id);
@@ -186,7 +186,7 @@ void EnttSpotLightController::ExecChangeDiffuse(const EntityID id, const ColorRG
         spotLightModel_.diffuse = diffuse;
 
         // generate an "undo" command and store it into the history
-        gEventsHistory.Push(
+        g_EventsHistory.Push(
             CmdChangeColor(CHANGE_SPOT_LIGHT_DIFFUSE, oldDiffuse),
             GenerateMsgForHistory(id, "diffuse"),
             id);
@@ -209,7 +209,7 @@ void EnttSpotLightController::ExecChangeSpecular(const EntityID id, const ColorR
         spotLightModel_.specular = specular;
 
         // generate an "undo" command and store it into the history
-        gEventsHistory.Push(
+        g_EventsHistory.Push(
             CmdChangeColor(CHANGE_SPOT_LIGHT_SPECULAR, oldSpecular),
             GenerateMsgForHistory(id, "specular"),
             id);
@@ -293,7 +293,7 @@ void EnttSpotLightController::ExecChangeRange(const EntityID id, const float ran
         spotLightModel_.range = range;
 
         // generate an "undo" command and store it into the history
-        gEventsHistory.Push(
+        g_EventsHistory.Push(
             CmdChangeFloat(CHANGE_SPOT_LIGHT_RANGE, oldRange),
             GenerateMsgForHistory(id, "range"),
             id);
@@ -318,7 +318,7 @@ void EnttSpotLightController::ExecChangeAttenuation(const EntityID id, const Vec
         spotLightModel_.attenuation = att;
 
         // generate an "undo" command and store it into the history
-        gEventsHistory.Push(
+        g_EventsHistory.Push(
             CmdChangeVec3(CHANGE_SPOT_LIGHT_ATTENUATION, oldAttenuation),
             GenerateMsgForHistory(id, "attenuation"),
             id);
@@ -339,7 +339,7 @@ void EnttSpotLightController::ExecChangeSpotExponent(const EntityID id, const fl
         spotLightModel_.spotExp = spotExponent;
 
         // generate an "undo" command and store it into the history
-        gEventsHistory.Push(
+        g_EventsHistory.Push(
             CmdChangeFloat(CHANGE_SPOT_LIGHT_SPOT_EXPONENT, oldSpotExponent),
             GenerateMsgForHistory(id, "spot exponent"),
             id);

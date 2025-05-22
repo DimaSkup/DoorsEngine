@@ -5,6 +5,7 @@
 // Created:      09.04.23
 // =================================================================================
 #include "LightShader.h"
+#include "InputLayouts.h"
 #include "../Common/Log.h"
 #include "../Common/Types.h"
 
@@ -110,46 +111,13 @@ void LightShader::InitializeShaders(
     const char* vsFilePath,
     const char* psFilePath)
 {
-    //
     // helps to initialize the HLSL shaders, layout, sampler state
-    //
 
-    const D3D11_INPUT_ELEMENT_DESC inputLayoutDesc[] =
-    {
-        // per vertex data
-        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,                            0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-
-        // per instance data
-        {"WORLD", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0,  D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        {"WORLD", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 16, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        {"WORLD", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 32, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        {"WORLD", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 48, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-
-        {"WORLD_INV_TRANSPOSE", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 64, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        {"WORLD_INV_TRANSPOSE", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 80, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        {"WORLD_INV_TRANSPOSE", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 96, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        {"WORLD_INV_TRANSPOSE", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 112, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-
-        {"TEX_TRANSFORM", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 128, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        {"TEX_TRANSFORM", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 144, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        {"TEX_TRANSFORM", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 160, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        {"TEX_TRANSFORM", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 176, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-
-        {"MATERIAL", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        {"MATERIAL", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        {"MATERIAL", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        {"MATERIAL", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-    };
-
-    const UINT layoutElemNum = sizeof(inputLayoutDesc) / sizeof(D3D11_INPUT_ELEMENT_DESC);
+    const InputLayoutLight inputLayout;
 
     // initialize: VS, PS, sampler state
     bool result = false;
-    result = vs_.Initialize(pDevice, vsFilePath, inputLayoutDesc, layoutElemNum);
+    result = vs_.Initialize(pDevice, vsFilePath, inputLayout.desc, inputLayout.numElem);
     Assert::True(result, "can't initialize the vertex shader");
 
     result = ps_.Initialize(pDevice, psFilePath);
@@ -157,6 +125,30 @@ void LightShader::InitializeShaders(
 
     result = samplerState_.Initialize(pDevice);
     Assert::True(result, "can't initialize the sampler state");
+}
+
+///////////////////////////////////////////////////////////
+
+void LightShader::ShaderHotReload(
+    ID3D11Device* pDevice,
+    const char* vsFilePath,
+    const char* psFilePath)
+{
+    // recompile hlsl shaders from file and reinit shader class object
+
+    bool result = false;
+    const InputLayoutLight inputLayout;
+
+    result = vs_.CompileShaderFromFile(
+        pDevice,
+        vsFilePath,
+        "VS", "vs_5_0",
+        inputLayout.desc,
+        inputLayout.numElem);
+    Assert::True(result, "can't hot reload the vertex shader");
+
+    result = ps_.CompileShaderFromFile(pDevice, psFilePath, "PS", "ps_5_0");
+    Assert::True(result, "can't hot reload the vertex shader");
 }
 
 } // namespace Render

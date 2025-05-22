@@ -27,6 +27,12 @@
 namespace UI
 {
 
+// setup some limitations for the debug text
+constexpr size maxNumDbgSentences      = 32;
+constexpr size maxNumCharsPerSentence  = 32;
+constexpr size maxNumCharsInDbgText    = maxNumDbgSentences * maxNumCharsPerSentence;
+constexpr size maxNumVerticesInDbgText = maxNumCharsInDbgText * 4;   // 4 vertices per symbol
+
 class TextStore
 {
 public:
@@ -39,6 +45,8 @@ public:
     TextStore& operator=(const TextStore& obj) = delete;
 
     // ---------------------------------------------
+
+    void InitDebugText(ID3D11Device* pDevice, FontClass& font);
 
     SentenceID CreateConstSentence(
         ID3D11Device* pDevice,
@@ -54,12 +62,24 @@ public:
         const DirectX::XMFLOAT2& drawAt,
         const bool isDynamic);
 
-    void SetKeyByID(const std::string& key, const SentenceID id);
+    void AddDebugConstSentence(
+        const char* key,
+        const char* text,
+        const float drawAtX,
+        const float drawAtY);
+
+    void AddDebugDynamicSentence(
+        const char* key,
+        const char* text,
+        const float drawAtX,
+        const float drawAtY);
 
     void GetRenderingData(
-        cvector<ID3D11Buffer*>& outVbPtrs,
-        cvector<ID3D11Buffer*>& outIbPtrs,
-        cvector<u32>& outIndexCounts);
+        ID3D11Buffer** outConstVbPtr,
+        ID3D11Buffer** outDynamicVbPtr,
+        ID3D11Buffer** outIbPtr,
+        u32& outConstIndexCount,    // index count for debug const sentences
+        u32& outDynamicIndexCount); // index count for debug dynamic sentences
 
     void Update(
         ID3D11DeviceContext* pContext,
@@ -77,11 +97,26 @@ private:
         cvector<Core::VertexFont>& vertices,
         cvector<UINT>& indices);
 
+    void UpdateDebugText(
+        ID3D11DeviceContext* pContext,
+        FontClass& font,
+        const Core::SystemState& sysState);
+    
     void UpdateSentenceByIdx(
         ID3D11DeviceContext* pContext,
         FontClass& font,
         const index idx,
         const char* newStr);
+
+    void UpdateDebugSentences(ID3D11DeviceContext* pContext, FontClass& font);
+
+private:
+    struct DbgSentence
+    {
+        char  text[maxNumCharsPerSentence]{'\0'};
+        float drawAtX = 0;
+        float drawAtY = 0;
+    };
 
 private:
     static SentenceID staticID_;
@@ -99,6 +134,20 @@ private:
 
     cvector<Core::VertexBuffer<Core::VertexFont>> vertexBuffers_;
     cvector<Core::IndexBuffer<UINT>>              indexBuffers_;
+
+
+    size                numDbgConstSentences_ = 0;
+    size                numDbgDynamicSentences_ = 0;
+    DbgSentence         dbgConstSentences_[maxNumDbgSentences];
+    DbgSentence         dbgDynamicSentences_[maxNumDbgSentences];
+    Core::VertexFont    dbgTextRawVertices_[maxNumVerticesInDbgText];
+
+    Core::VertexBuffer<Core::VertexFont> vbDbgConstText_;
+    Core::VertexBuffer<Core::VertexFont> vbDbgDynamicText_;
+    Core::IndexBuffer<UINT>              ibDbgText_;  // we use the same index buffer for const and dynamic debug sentences since vertex order is the same for both
+    u32 indexCountDbgConstText_ = 0;
+    u32 indexCountDbgDynamicText_ = 0;
+
 };
 
 } // namespace UI

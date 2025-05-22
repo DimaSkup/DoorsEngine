@@ -4,6 +4,7 @@
 // Created       30.04.2025 by DimaSkup
 // =================================================================================
 #include "MaterialIconShader.h"
+#include "InputLayouts.h"
 #include "../Common/Log.h"
 #include "../Common/FileSystem.h"
 #include "../Common/Assert.h"
@@ -168,20 +169,11 @@ void MaterialIconShader::InitializeHelper(
 {
     // helps to init the HLSL shaders, input layout, texture sampler
 
-    const D3D11_INPUT_ELEMENT_DESC inputLayoutDesc[] =
-    {
-        // per vertex data
-        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,                            0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-    };
-
-    const UINT layoutElemNum = sizeof(inputLayoutDesc) / sizeof(D3D11_INPUT_ELEMENT_DESC);
+    const InputLayoutMaterialIcon inputLayout;
 
     // initialize: VS, PS, texture sampler
     bool result = false;
-    result = vs_.Initialize(pDevice, vsFilePath, inputLayoutDesc, layoutElemNum);
+    result = vs_.Initialize(pDevice, vsFilePath, inputLayout.desc, inputLayout.numElem);
     Assert::True(result, "can't initialize the vertex shader");
 
     result = ps_.Initialize(pDevice, psFilePath);
@@ -204,6 +196,30 @@ void MaterialIconShader::InitializeHelper(
 
     cbvsWorldViewProj_.ApplyChanges(pContext);
     cbpsMaterialData_.ApplyChanges(pContext);
+}
+
+///////////////////////////////////////////////////////////
+
+void MaterialIconShader::ShaderHotReload(
+    ID3D11Device* pDevice,
+    const char* vsFilePath,
+    const char* psFilePath)
+{
+    // recompile hlsl shaders from file and reinit shader class object
+
+    bool result = false;
+    const InputLayoutMaterialIcon inputLayout;
+
+    result = vs_.CompileShaderFromFile(
+        pDevice,
+        vsFilePath,
+        "VS", "vs_5_0",
+        inputLayout.desc,
+        inputLayout.numElem);
+    Assert::True(result, "can't hot reload the vertex shader");
+
+    result = ps_.CompileShaderFromFile(pDevice, psFilePath, "PS", "ps_5_0");
+    Assert::True(result, "can't hot reload the vertex shader");
 }
 
 } // namespace Render

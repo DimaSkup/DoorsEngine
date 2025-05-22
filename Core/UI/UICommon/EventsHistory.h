@@ -67,6 +67,6 @@ struct EventsHistory
 };
 
 
-extern EventsHistory gEventsHistory;
+extern EventsHistory g_EventsHistory;
 
 } // namespace UI

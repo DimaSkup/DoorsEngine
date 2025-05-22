@@ -241,7 +241,7 @@ void D3DClass::TurnOnRSfor2Drendering()
     // NOTE: we store a hash of the previous RS so later we can set it back
 
     prevRasterStateHash_ = renderStates_.GetCurrentRSHash();
-    renderStates_.SetRS(pContext_, { FILL_SOLID, CULL_BACK });
+    renderStates_.SetRS(pContext_, { FILL_SOLID, CULL_BACK, FRONT_CLOCKWISE });
 }
 
 

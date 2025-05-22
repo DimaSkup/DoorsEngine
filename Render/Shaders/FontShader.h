@@ -44,9 +44,9 @@ public:
     // Public rendering API
     void Render(
         ID3D11DeviceContext* pContext,
-        ID3D11Buffer* const* vertexBuffers,            // array of text vertex buffers
-        ID3D11Buffer* const* indexBuffers,             // array of text indices buffers
-        const uint32_t* indexCounts,                  // array of index counts in each index buffer
+        ID3D11Buffer* const* vertexBuffers,            
+        ID3D11Buffer* pIndexBuffer,
+        const uint32_t* indexCounts,
         const size numSentences,
         const uint32_t fontVertexSize,
         SRV* const* ppFontTexSRV);

@@ -1,0 +1,4 @@
+Terrain Filename: data/terrain/heightmap.bmp
+Terrain Depth: 256
+Terrain Width: 256
+Terrain Scaling: 0.2

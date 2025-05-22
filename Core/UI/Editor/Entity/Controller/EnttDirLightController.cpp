@@ -135,7 +135,7 @@ void EnttDirLightController::ExecChangeAmbient(const EntityID id, const ColorRGB
         dirLightModel_.ambient = ambient;
 
         // generate an "undo" command and store it into the history
-        gEventsHistory.Push(
+        g_EventsHistory.Push(
             CmdChangeColor(CHANGE_DIR_LIGHT_AMBIENT, oldAmbient),
             GenerateMsgForHistory(id, "ambient"),
             id);
@@ -158,7 +158,7 @@ void EnttDirLightController::ExecChangeDiffuse(const EntityID id, const ColorRGB
         dirLightModel_.diffuse = diffuse;
 
         // generate an "undo" command and store it into the history
-        gEventsHistory.Push(
+        g_EventsHistory.Push(
             CmdChangeColor(CHANGE_DIR_LIGHT_DIFFUSE, oldDiffuse),
             GenerateMsgForHistory(id, "diffuse"),
             id);
@@ -181,7 +181,7 @@ void EnttDirLightController::ExecChangeSpecular(const EntityID id, const ColorRG
         dirLightModel_.specular = specular;
 
         // generate an "undo" command and store it into the history
-        gEventsHistory.Push(
+        g_EventsHistory.Push(
             CmdChangeColor(CHANGE_DIR_LIGHT_SPECULAR, oldSpecular),
             GenerateMsgForHistory(id, "specular"),
             id);

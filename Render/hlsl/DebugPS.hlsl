@@ -16,14 +16,14 @@ SamplerState gSampleType   : register(s0);
 // debug states/flags
 static const int SHOW_NORMALS = 1;
 static const int SHOW_TANGENTS = 2;
-static const int SHOW_BINORMALS = 3;
-static const int SHOW_BUMPED_NORMALS = 4;
-static const int SHOW_ONLY_LIGHTING = 5;   // together: directed, point and spot lighting
-static const int SHOW_ONLY_DIRECTED_LIGHTING = 6;
-static const int SHOW_ONLY_POINT_LIGHTING = 7;
-static const int SHOW_ONLY_SPOT_LIGHTING = 8;
-static const int SHOW_ONLY_DIFFUSE_MAP = 9;
-static const int SHOW_ONLY_NORMAL_MAP = 10;
+static const int SHOW_BUMPED_NORMALS = 3;
+static const int SHOW_ONLY_LIGHTING = 4;   // together: directed, point and spot lighting
+static const int SHOW_ONLY_DIRECTED_LIGHTING = 5;
+static const int SHOW_ONLY_POINT_LIGHTING = 6;
+static const int SHOW_ONLY_SPOT_LIGHTING = 7;
+static const int SHOW_ONLY_DIFFUSE_MAP = 8;
+static const int SHOW_ONLY_NORMAL_MAP = 9;
+static const int WIREFRAME = 10;
 
 
 //
@@ -33,7 +33,7 @@ cbuffer cbPerFrame : register(b0)
 {
 	DirectionalLight  gDirLights[3];
 	PointLight        gPointLights[25];
-	SpotLight         gSpotLights;
+	SpotLight         gSpotLights[25];
 	float3            gEyePosW;             // eye position in world space
 	int               gCurrNumPointLights;
 	int               gCurrNumSpotLights;
@@ -48,7 +48,7 @@ cbuffer cbRareChanged : register(b1)
 	float  gFogStart;            // how far from camera the fog starts?
 	float  gFogRange;            // how far from camera the object is fully fogged?
 
-	int    gNumOfDirLights;      // current number of directional light sources
+	int    gNumDirLights;       // current number of directional light sources
 
     int   gFogEnabled;          // turn on/off the fog effect
     int   gTurnOnFlashLight;    // turn on/off the flashlight
@@ -71,7 +71,6 @@ struct PS_IN
 	float3   posW      : POSITION;     // position in world
 	float3   normalW   : NORMAL;       // normal in world
 	float3   tangentW  : TANGENT;      // tangent in world
-	float3   binormalW : BINORMAL;     // binormal in world
 	float2   tex       : TEXCOORD;
 };
 
@@ -90,11 +89,15 @@ struct PS_OUT
 float4 PS_DebugVectors(PS_IN pin, int debugType) : SV_Target
 {
 	// visualize normals(1) / tangents(2) / binormals(3) / bumped normal(4) as colors
+
+    // normalize the normal vector after interpolation
+    float3 normalW = normalize(pin.normalW);
+
 	switch (debugType)
 	{
 		case SHOW_NORMALS:
 		{
-            float3 color = 0.5f * pin.normalW + 0.5f;
+            float3 color = 0.5f * normalW + 0.5f;
 			return float4(color, 1.0f);
 		}
 		case SHOW_TANGENTS:
@@ -102,16 +105,12 @@ float4 PS_DebugVectors(PS_IN pin, int debugType) : SV_Target
             float3 color = 0.5f * pin.tangentW + 0.5f;
             return float4(color, 1.0f);
 		}
-		case SHOW_BINORMALS:
-		{
-            float3 color = 0.5f * pin.binormalW + 0.5f;
-            return float4(color, 1.0f);
-		}
 		case SHOW_BUMPED_NORMALS:
 		{
 			float3 normalMap = gTextures[6].Sample(gSampleType, pin.tex).rgb;
-			normalMap = (normalMap * 2.0f) - 1.0f;
-			float3 bumpedNormalW = NormalSampleToWorldSpace(normalMap, pin.normalW, pin.tangentW);
+
+            // compute the bumped normal in the world space
+            float3 bumpedNormalW = NormalSampleToWorldSpace(normalMap, normalW, pin.tangentW);
 
             float3 color = 0.5f * bumpedNormalW + 0.5f;
 			return float4(color, 1.0f);
@@ -130,15 +129,18 @@ float4 PS_DebugTextures(PS_IN pin, int debugType) : SV_Target
 	// paint geometry only with texture of chosen type
 	switch (debugType)
 	{
-		case SHOW_ONLY_DIFFUSE_MAP:
+		case SHOW_ONLY_DIFFUSE_MAP:   // diffuse map color
 		{
-			// diffuse map color
 			color = gTextures[1].Sample(gSampleType, pin.tex);
+
+            // execute alpha clipping
+            if (gAlphaClipping)
+                clip(color.a - 0.1f);
+
 			break;
-		}
-		case SHOW_ONLY_NORMAL_MAP:
+		} 
+		case SHOW_ONLY_NORMAL_MAP:    // normal map color
 		{
-			// normal map color
 			color = gTextures[6].Sample(gSampleType, pin.tex);
 			break;
 		}
@@ -148,10 +150,6 @@ float4 PS_DebugTextures(PS_IN pin, int debugType) : SV_Target
 			break;
 		}
 	}
-
-	// execute alpha clipping
-	if (gAlphaClipping)
-		clip(color.a - 0.1f);
 
 	return color;
 }
@@ -164,8 +162,8 @@ float4 PS_DebugTextures(PS_IN pin, int debugType) : SV_Target
 
 void ComputeSumDirectionalLights(
 	Material mat,
-	float3 normal,
-	float3 toEyeW,
+	float3 normal,                   // normal vector of the pixel
+	float3 toEyeW,                   // a vector from a vertex to the camera (eye) position
 	float specularPower,
 	inout float4 ambient,            // sum ambient light contribution for this pixel
 	inout float4 diffuse,            // sum diffuse light contribution
@@ -177,7 +175,7 @@ void ComputeSumDirectionalLights(
 	float4 S = float4(0.0f, 0.0f, 0.0f, 0.0f);
 
 	// compute a sum the light contribution from each directional light source
-	for (int i = 0; i < gNumOfDirLights; ++i)
+	for (int i = 0; i < gNumDirLights; ++i)
 	{
 		ComputeDirectionalLight(
 			mat,
@@ -198,7 +196,7 @@ void ComputeSumDirectionalLights(
 void ComputeSumPointLights(
 	Material mat,
 	float3 pos,          // a position of the vertex
-	float3 normal,
+	float3 normal,       // normal vector of the pixel
 	float3 toEye,        // a vector from a vertex to the camera (eye) position
 	float specPower,     // specular power
 	inout float4 ambient,
@@ -234,7 +232,7 @@ void ComputeSumPointLights(
 void ComputeSumSpotLights(
 	Material mat,
 	float3 pos,           // a position of the vertex
-	float3 normal,
+	float3 normal,        // normal vector of the pixel
 	float3 toEye,         // a vector from a vertex to the camera (eye) position
 	float specPower,      // specular power
 	inout float4 ambient,
@@ -248,14 +246,25 @@ void ComputeSumSpotLights(
 	float4 D = float4(0.0f, 0.0f, 0.0f, 0.0f);
 	float4 S = float4(0.0f, 0.0f, 0.0f, 0.0f);
 
+    // it is supposed that player's flashlight is a spot light by idx 0
 	if (gTurnOnFlashLight)
 	{
-		ComputeSpotLight(mat, gSpotLights, pos, normal, toEye, specPower, A, D, S);
+        ComputeSpotLight(mat, gSpotLights[0], pos, normal, toEye, specPower, A, D, S);
 
-		ambient += A;
-		diffuse += D;
-		spec += S;
+        ambient += A;
+        diffuse += D;
+        spec += S;
 	}
+
+    // ...compute the rest of spotlights
+    for (int i = 1; i < gCurrNumSpotLights; ++i)
+    {
+        ComputeSpotLight(mat, gSpotLights[i], pos, normal, toEye, specPower, A, D, S);
+
+        ambient += A;
+        diffuse += D;
+        spec += S;
+    }
 }
 
 ///////////////////////////////////////////////////////////
@@ -265,25 +274,26 @@ float4 PS_DebugLight(PS_IN pin, int debugType) : SV_Target
 	// lit geometry only with light sources of chosen type
 
 	float4 textureColor = gTextures[1].Sample(gSampleType, pin.tex);
-
+    
 	// execute alpha clipping
 	if (gAlphaClipping)
 		clip(textureColor.a - 0.1f);
 
-	float4 specColor = gTextures[2].Sample(gSampleType, pin.tex); // specular map
+	//float4 specColor = gTextures[2].Sample(gSampleType, pin.tex); // specular map
 	float3 normalMap = gTextures[6].Sample(gSampleType, pin.tex).rgb;
-	float4 roughnessMap = gTextures[16].Sample(gSampleType, pin.tex);
+	//float4 roughnessMap = gTextures[16].Sample(gSampleType, pin.tex);
 
+    float specFactor = 0.0f; // specColor.x;
 
-	normalMap = (normalMap * 2.0f) - 1.0f;
-	float3 bumpedNormalW = NormalSampleToWorldSpace(normalMap, pin.normalW, pin.tangentW);
+    // normalize the normal vector after interpolation
+    float3 normalW = normalize(pin.normalW);
 
-	// normal vector for this pixel
-	float3 normalW = pin.normalW; // old: bumbedNormalW;
+    // compute the bumped normal in the world space
+	float3 bumpedNormalW = NormalSampleToWorldSpace(normalMap, normalW, pin.tangentW);
 
 	// --------------------  LIGHT   --------------------
 
-// a vector in the world space from vertex to eye pos
+    // a vector in the world space from vertex to eye pos
 	float3 toEyeW = normalize(gEyePosW - pin.posW);
 
 	// start with a sum of zero
@@ -293,30 +303,28 @@ float4 PS_DebugLight(PS_IN pin, int debugType) : SV_Target
 
 	Material mat = (Material)pin.material;
 
-
-
 	switch (debugType)
 	{
-		case SHOW_ONLY_LIGHTING:                // all: directed + point + spot
+		case SHOW_ONLY_LIGHTING:   // all: directed + point + spot
 		{
-
-			ComputeSumDirectionalLights(mat, normalW, toEyeW, specColor.x, ambient, diffuse, spec);
-			ComputeSumPointLights(mat, pin.posW, normalW, toEyeW, specColor.x, ambient, diffuse, spec);
+			ComputeSumDirectionalLights(mat,           bumpedNormalW, toEyeW, specFactor, ambient, diffuse, spec);
+			ComputeSumPointLights      (mat, pin.posW, bumpedNormalW, toEyeW, specFactor, ambient, diffuse, spec);
+            ComputeSumSpotLights       (mat, pin.posW, bumpedNormalW, toEyeW, specFactor, ambient, diffuse, spec);
 			break;
 		}
 		case SHOW_ONLY_DIRECTED_LIGHTING:
 		{
-			ComputeSumDirectionalLights(mat, normalW, toEyeW, specColor.x, ambient, diffuse, spec);
+			ComputeSumDirectionalLights(mat, bumpedNormalW, toEyeW, specFactor, ambient, diffuse, spec);
 			break;
 		}
 		case SHOW_ONLY_POINT_LIGHTING:
 		{
-			ComputeSumPointLights(mat, pin.posW, normalW, toEyeW, specColor.x, ambient, diffuse, spec);
+			ComputeSumPointLights(mat, pin.posW, bumpedNormalW, toEyeW, specFactor, ambient, diffuse, spec);
 			break;
 		}
 		case SHOW_ONLY_SPOT_LIGHTING:
 		{
-			ComputeSumSpotLights(mat, pin.posW, normalW, toEyeW, specColor.x, ambient, diffuse, spec);
+			ComputeSumSpotLights(mat, pin.posW, bumpedNormalW, toEyeW, specFactor, ambient, diffuse, spec);
 			break;
 		}
 		default:
@@ -326,48 +334,7 @@ float4 PS_DebugLight(PS_IN pin, int debugType) : SV_Target
 		}
 	}
 
-/*
-
-	if (debugType == )
-	{
-
-	}
-	else if (debugType == )
-	{
-
-	}
-	else if (debugType == )
-	{
-
-	}
-	else if (debugType == )
-	{
-
-	}
-	else
-	{
-
-	}
-
-*/
-
-	// modulate with late add
-	float4 litColor = ambient + diffuse + spec;
-
-	litColor *= roughnessMap;
-
-	// ---------------------  FOG  ----------------------
-
-	if (gFogEnabled)
-	{
-		float distToEye = length(gEyePosW - pin.posW);
-		float fogLerp = saturate((distToEye - gFogStart) / gFogRange);
-
-		// blend the fog color and the lit color
-		litColor = lerp(litColor, float4(gFogColor, 1.0f), fogLerp);
-	}
-
-	return litColor;
+	return ambient + diffuse + spec;
 }
 
 ///////////////////////////////////////////////////////////
@@ -380,11 +347,9 @@ float4 PS_DebugMaterial(PS_IN pin) : SV_Target
 }
 
 
-
 // =================================================================================
 // PIXEL SHADERS (AN ENTRY POINT)
 // =================================================================================
-//float4 PS(PS_IN pin) : SV_Target
 PS_OUT PS(PS_IN pin)
 {
 	PS_OUT pout;
@@ -394,10 +359,9 @@ PS_OUT PS(PS_IN pin)
 	{
 		case SHOW_NORMALS:
 		case SHOW_TANGENTS:
-		case SHOW_BINORMALS:
 		case SHOW_BUMPED_NORMALS:
 		{
-			// show normals/tangents/binormals
+			// show normals/tangents/bumped_normals
 			pout.color = PS_DebugVectors(pin, gDebugType);
 			break;
 		}
@@ -415,10 +379,14 @@ PS_OUT PS(PS_IN pin)
 			pout.color = PS_DebugTextures(pin, gDebugType);
 			break;
 		}
+        case WIREFRAME:
+        {
+            pout.color = float4(1, 1, 1, 1);
+            break;
+        }
 	}
 
-	//pout.color = float4(pin.posH.z - 0.3f, pin.posH.z - 0.3f, pin.posH.z - 0.3f, 1.0f);
-	pout.depth = pin.posH.z;// -0.05f;
+	pout.depth = pin.posH.z;
 
 	return pout;
 }

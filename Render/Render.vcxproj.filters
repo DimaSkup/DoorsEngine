@@ -33,7 +33,7 @@
     <ClCompile Include="Shaders\SamplerState.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Shaders\shaderclass.cpp">
+    <ClCompile Include="Shaders\Helpers\ShaderCompiler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Shaders\TextureShader.cpp">
@@ -72,6 +72,9 @@
     <ClCompile Include="Shaders\MaterialIconShader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Common\StrHelper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CRender.h">
@@ -95,7 +98,7 @@
     <ClInclude Include="Shaders\SamplerState.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Shaders\shaderclass.h">
+    <ClInclude Include="Shaders\Helpers\ShaderCompiler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Shaders\ShadersContainer.h">
@@ -168,6 +171,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Shaders\MaterialIconShader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Shaders\InputLayouts.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -8,9 +8,7 @@
 // =================================================================================
 #pragma once
 
-#include <d3d11.h>
 #include <DirectXMath.h>
-#include <DirectXPackedVector.h>
 
 
 namespace Core
@@ -58,7 +56,6 @@ struct Vertex3DPos
 
 // =================================================================================
 
-
 class Vertex3D
 {
 	//
@@ -81,9 +78,7 @@ public:
 		const float posX,          const float posY,          const float posZ,
 		const float texX = 0,      const float texY = 0,
 		const float normalX = 0,   const float normalY = 0,   const float normalZ = 0,
-		const float tangentX = 0,  const float tangentY = 0,  const float tangentZ = 0,
-		const float binormalX = 0, const float binormalY = 0, const float binormalZ = 0,
-		const float red = 1,       const float green = 1,     const float blue = 1, const float alpha = 1);
+		const float tangentX = 0,  const float tangentY = 0,  const float tangentZ = 0);
 
 
 	// a constructor with XM-type input params
@@ -91,28 +86,19 @@ public:
 		const DirectX::XMFLOAT3& pos,
 		const DirectX::XMFLOAT2& tex = {0,0},
 		const DirectX::XMFLOAT3& nor = {0,0,0},
-		const DirectX::XMFLOAT3& tang = {0,0,0},
-		const DirectX::XMFLOAT3& binorm = {0,0,0},
-		const DirectX::PackedVector::XMCOLOR& col = {1,0,0,1});    // ARGB
+		const DirectX::XMFLOAT3& tang = {0,0,0});
 
 	Vertex3D(
 		DirectX::XMFLOAT3&& pos,
 		DirectX::XMFLOAT2&& tex,
 		DirectX::XMFLOAT3&& nor,
-		DirectX::XMFLOAT3&& tang = { 0,0,0 },
-		DirectX::XMFLOAT3&& binorm = { 0,0,0 },
-		DirectX::PackedVector::XMCOLOR&& col = { 1,0,0,1 });    // ARGB
+		DirectX::XMFLOAT3&& tang = { 0,0,0 });    // ARGB
 
-	// ---------------------------------------------------- //
-
+public:
 	DirectX::XMFLOAT3 position;
 	DirectX::XMFLOAT2 texture;
 	DirectX::XMFLOAT3 normal;
-	
 	DirectX::XMFLOAT3 tangent;
-	DirectX::XMFLOAT3 binormal;
-	DirectX::PackedVector::XMCOLOR color;   // 32-bit ARGB packed color
-	//DirectX::XMFLOAT4 color;
 };
 
 } // namespace Core

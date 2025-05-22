@@ -73,23 +73,23 @@ void ComputeDirectionalLight(
 
     
     // the light vector aims opposite the direction the light rays travel
-    float3 lightDir = -normalize(L.direction);
+    float3 lightVec = -normalize(L.direction);
 
     // add ambient term
     ambient = mat.ambient * L.ambient;
 
     // use Lambert's cosine law to define a magnitude of the light intensity
-    float diffuseFactor = dot(lightDir, normal);
+    float diffuseFactor = dot(lightVec, normal);
 
     // flatten to avoit dynamic branching
     [flatten]
     if (diffuseFactor > 0.0f)
     {
-        float3 v = reflect(L.direction, normal);
-        float specFactor = pow(max(dot(v, toEye), 0.0f), mat.specular.w + specularPower);
+        //float3 R = reflect(lightVec, normal);
+        //float specFactor = pow(saturate(dot(R, toEye)), mat.specular.w);
 
         diffuse = diffuseFactor * mat.diffuse * L.diffuse;
-        spec    = specFactor * mat.specular * L.specular;
+        //spec = specFactor * mat.specular * L.specular;
     }
 
     

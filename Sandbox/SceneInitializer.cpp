@@ -118,7 +118,7 @@ bool SceneInitializer::InitCameras(
     {
         EntityID editorCamID = enttMgr.CreateEntity("editor_camera");
         EntityID gameCamID   = enttMgr.CreateEntity("game_camera");
-        EntityID matBrowserCamID = enttMgr.CreateEntity("material_browser_camera");
+       // EntityID matBrowserCamID = enttMgr.CreateEntity("material_browser_camera");
 
         // add transform component: positions and directions
         const XMFLOAT3 editorCamPos = { -18, 1, -15 };
@@ -127,7 +127,6 @@ bool SceneInitializer::InitCameras(
 
         enttMgr.AddTransformComponent(editorCamID, editorCamPos, { 0,0,1,0 });
         enttMgr.AddTransformComponent(gameCamID, gameCamPos, { 0,0,1,0 });
-        enttMgr.AddTransformComponent(matBrowserCamID, matBrowserCamPos, { 0,0,1,0 });
 
         // add camera component
         ECS::CameraData editorCamData;
@@ -142,15 +141,8 @@ bool SceneInitializer::InitCameras(
         gameCamData.nearZ         = gameCamParams.nearZ;
         gameCamData.farZ          = gameCamParams.farZ;
 
-        ECS::CameraData matBrowserCamData;
-        matBrowserCamData.fovY        = 1.1f;
-        matBrowserCamData.aspectRatio = 1;
-        matBrowserCamData.nearZ       = 1.0f;
-        matBrowserCamData.farZ        = 100.0f;
-
         enttMgr.AddCameraComponent(editorCamID, editorCamData);
         enttMgr.AddCameraComponent(gameCamID, gameCamData);
-        enttMgr.AddCameraComponent(matBrowserCamID, matBrowserCamData);
 
         // initialize view/projection matrices of the editor/game camera
         ECS::CameraSystem& camSys = enttMgr.cameraSystem_;
@@ -173,10 +165,6 @@ bool SceneInitializer::InitCameras(
             gameCamParams.wndHeight,
             gameCamParams.nearZ,
             gameCamParams.farZ);
-
-        const DirectX::XMMATRIX& matBrowserCamView = camSys.UpdateView(matBrowserCamID);
-        //camSys.SetBaseViewMatrix(matBrowserCamID, matBrowserCamView);
-        //camSys.SetupOrthographicMatrix()
     }
     catch (EngineException & e)
     {
@@ -278,7 +266,7 @@ void CreateSpheres(ECS::EntityMgr& mgr, const BasicModel& model)
     // setup transform data for entities
 
     XMFLOAT3 positions[numEntts];
-    XMVECTOR dirQuats[numEntts];
+    XMVECTOR directions[numEntts];
     float uniformScales[numEntts];
 
     // setup positions: make two rows of the spheres
@@ -290,13 +278,13 @@ void CreateSpheres(ECS::EntityMgr& mgr, const BasicModel& model)
 
     // setup directions
     for (index i = 0; i < numEntts; ++i)
-        dirQuats[i] = { 0,0,0,1 };
+        directions[i] = { 0,0,0,1 };
 
     // setup uniform scales
     for (index i = 0; i < numEntts; ++i)
         uniformScales[i] = 1.0f;
 
-    mgr.AddTransformComponent(ids, numEntts, positions, dirQuats, uniformScales);
+    mgr.AddTransformComponent(ids, numEntts, positions, directions, uniformScales);
 
     // ---------------------------------------------
 
@@ -347,6 +335,8 @@ void CreateSpheres(ECS::EntityMgr& mgr, const BasicModel& model)
     // setup a texture transformation for the sphere
     ECS::StaticTexTransInitParams sphereTexTransform;
     sphereTexTransform.Push(DirectX::XMMatrixScaling(3, 3, 0));
+
+    mgr.AddTextureTransformComponent(enttsIDs[0], ECS::TexTransformType::STATIC, sphereTexTransform);
     mgr.AddTextureTransformComponent(enttsIDs[1], ECS::TexTransformType::STATIC, sphereTexTransform);
 }
 
@@ -426,12 +416,20 @@ void CreateCylinders(ECS::EntityMgr& mgr, const BasicModel& model)
     XMFLOAT3 positions[numEntts];
     XMVECTOR dirQuats[numEntts];
     float uniformScales[numEntts];
+    constexpr float halfHeight = 2.5f;
 
     // setup positions: make two rows of the spheres
     for (index i = 0; i < numEntts / 2; i += 2)
     {
-        positions[i + 0] = XMFLOAT3(-5.0f, 2.0f, 10.0f * i);
-        positions[i + 1] = XMFLOAT3(+5.0f, 2.0f, 10.0f * i);
+        float posY = 0.0f;
+        XMFLOAT3& pos0 = positions[i + 0];
+        XMFLOAT3& pos1 = positions[i + 1];
+
+        pos0 = XMFLOAT3(-5.0f, 0.0f, 10.0f * i);
+        pos0.y = GetHeightOfGeneratedTerrainAtPoint(pos0.x, pos0.z) + halfHeight;
+
+        pos1 = XMFLOAT3(+5.0f, 2.0f, 10.0f * i);
+        pos1.y = GetHeightOfGeneratedTerrainAtPoint(pos1.x, pos1.z) + halfHeight;
     }
 
     // setup directions
@@ -480,6 +478,9 @@ void CreateCylinders(ECS::EntityMgr& mgr, const BasicModel& model)
     mgr.AddModelComponent(ids, model.GetID(), numEntts);
     mgr.AddBoundingComponent(ids, numEntts, numSubsets, boundTypes, enttAABBs);
 
+    ECS::StaticTexTransInitParams texTransform;
+    texTransform.Push(DirectX::XMMatrixScaling(3, 3, 0));
+    mgr.AddTextureTransformComponent(ids[1], ECS::TexTransformType::STATIC, texTransform);
 }
 
 ///////////////////////////////////////////////////////////
@@ -662,11 +663,12 @@ void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
 
         mgr.AddRenderingComponent(ids, numEntts, renderParams);
 
-#if 0
         // setup blending params of the entities
         using enum ECS::eRenderState;
         mgr.renderStatesSystem_.UpdateStates(enttsNameToID.at("wireFence"), { ALPHA_CLIPPING, CULL_NONE });
 
+#if 0
+        
         mgr.renderStatesSystem_.UpdateStates(enttsNameToID.at("cat"), ADDING);
         //enttMgr.renderStatesSystem_.UpdateStates(enttsNameToID.at("woodCrate01"), ADDING);
         //enttMgr.renderStatesSystem_.UpdateStates(enttsNameToID.at("woodCrate02"), MULTIPLYING);
@@ -733,68 +735,10 @@ void CreateTerrain(ECS::EntityMgr& mgr, const BasicModel& model)
     const MaterialID terrainMatID = model.meshes_.subsets_[0].materialID;
     mgr.AddMaterialComponent(enttID, &terrainMatID, numSubsets, areMaterialsMeshBased);
 
+    //const DirectX::XMVECTOR rotQuat = DirectX::XMQuaternionRotationAxis({ 1,0,0 }, DirectX::XM_PI);
+    //mgr.transformSystem_.RotateLocalSpacesByQuat(&enttID, numEntts, rotQuat);
+
     LogDbg("Terrain is created");
-}
-
-///////////////////////////////////////////////////////////
-
-void CreateWater(ECS::EntityMgr& mgr)
-{
-#if 0
-    //
-    // create and setup water model 
-    //
-
-    LogDbg();
-
-    try
-    {
-
-        // create and setup a water mesh
-        ModelsCreator modelCreator;
-
-        const float width = 500;
-        const float depth = 500;
-
-        const MeshID waterMeshID = modelCreator.CreateWater(pDevice, width, depth);
-
-
-        // setup a texture transformation
-        ECS::StaticTexTransParams waterTexTransform;
-        waterTexTransform.Push(DirectX::XMMatrixScaling(50, 50, 0), DirectX::XMMatrixTranslation(0.1f, 0.1f, 0.0f));
-
-        // get BOUNDING for the entt
-        DirectX::BoundingBox aabb;
-        MeshStorage::Get()->GetBoundingDataByID(waterMeshID, aabb);
-
-
-
-        using enum ECS::eRenderState;
-
-        // create and setup a water entity
-        EntityID waterEnttID = mgr.CreateEntity();
-
-        mgr.AddTransformComponent(waterEnttID, { 0, 0, 0 }, DirectX::XMQuaternionRotationRollPitchYaw(XM_PIDIV2, 0.0f, 0.0f));
-        mgr.AddNameComponent(waterEnttID, "water");
-        mgr.AddMeshComponent(waterEnttID, { waterMeshID });
-        //mgr.AddRenderingComponent({ waterEnttID });
-
-        mgr.renderStatesSystem_.UpdateStates(waterEnttID, { TRANSPARENCY, REFLECTION_PLANE });
-        mgr.AddTextureTransformComponent(ECS::TexTransformType::STATIC, waterEnttID, waterTexTransform);
-        mgr.AddBoundingComponent(waterEnttID, aabb, ECS::BoundingType::BOUND_BOX);
-
-    }
-    catch (EngineException& e)
-    {
-        LogErr(e);
-        LogErr("can't create a water entity");
-    }
-    catch (ECS::LIB_Exception& e)
-    {
-        LogErr(e.GetStr());
-        LogErr("can't create a water entity");
-    }
-#endif
 }
 
 ///////////////////////////////////////////////////////////
@@ -869,9 +813,9 @@ void CreateTreesPine(ECS::EntityMgr& mgr, const BasicModel& model)
     {
         pos.x = MathHelper::RandF(-150, 150);
         pos.z = MathHelper::RandF(-150, 150);
-        pos.y = GetHeightOfGeneratedTerrainAtPoint(pos.x, pos.z);
+        pos.y = 0.0f; // GetHeightOfGeneratedTerrainAtPoint(pos.x, pos.z);
     }
-    positions[0] = { 0,0,0 };
+    //positions[0] = { 0,0,0 };
 
     // generate directions
     for (index i = 0; i < numEntts; ++i)
@@ -1009,14 +953,10 @@ void CreatePowerLine(ECS::EntityMgr& mgr, const BasicModel& model)
     constexpr int numEntts = 3;
     const ECS::cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
     const EntityID* ids = enttsIDs.data();
+   
 
-    // apply the same rotation and scale for each entt
-    XMVECTOR rotQuat = DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XM_PIDIV2, 0, 0);
-    const std::vector<XMVECTOR> quats(numEntts, rotQuat);
-    const std::vector<float>    scales(numEntts, 0.5f);
-
-    // a position for each power line
-    std::vector<XMFLOAT3> positions =
+    // setup transformation data for each entity
+    XMFLOAT3 positions[numEntts] =
     {
         { -200, 0, 8 },
         { 0,    0, 8 },
@@ -1026,6 +966,14 @@ void CreatePowerLine(ECS::EntityMgr& mgr, const BasicModel& model)
     for (XMFLOAT3& pos : positions)
         pos.y = GetHeightOfGeneratedTerrainAtPoint(pos.x, pos.z) + 2.0f;
 
+    const XMVECTOR directions[numEntts] =
+    {
+        {0,0,1},
+        {0,0,1},
+        {0,0,1}
+    };
+
+    const float uniformScales[numEntts] = { 0.5f, 0.5f, 0.5f };
 
     // generate a name for each entt
     std::string names[numEntts];
@@ -1043,7 +991,12 @@ void CreatePowerLine(ECS::EntityMgr& mgr, const BasicModel& model)
     const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
 
 
-    mgr.AddTransformComponent(ids, numEntts, positions.data(), quats.data(), scales.data());
+    mgr.AddTransformComponent(ids, numEntts, positions, directions, uniformScales);
+
+    const XMVECTOR rotQuat = DirectX::XMQuaternionRotationAxis({ 1,0,0 }, DirectX::XM_PIDIV2);
+    for (const EntityID id : enttsIDs)
+        mgr.transformSystem_.RotateLocalSpaceByQuat(id, rotQuat);
+
     mgr.AddNameComponent(ids, names, numEntts);
     mgr.AddModelComponent(ids, model.GetID(), numEntts);
     mgr.AddRenderingComponent(ids, numEntts, renderParams);
@@ -1054,52 +1007,27 @@ void CreatePowerLine(ECS::EntityMgr& mgr, const BasicModel& model)
         numSubsets,
         boundTypes.data(),
         model.GetSubsetsAABB());             // AABB data (center, extents)
+
+    // ----------------------------------------------------
+
+    const MaterialID matID = model.meshes_.subsets_[0].materialID;
+    constexpr size numSubmeshes = 1;
+    constexpr bool isMatMeshBased = true;
+
+    for (const EntityID enttID : enttsIDs)
+        mgr.AddMaterialComponent(enttID, &matID, numSubmeshes, isMatMeshBased);
 }
 
 ///////////////////////////////////////////////////////////
 
-void CreateBarrel(ECS::EntityMgr& mgr, const BasicModel& model)
+void CreateRadar(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    LogDbg("create a barrel entity");
+    LogDbg("create a radar entity");
 
-    const EntityID enttID = mgr.CreateEntity();
-
-    // setup rendering params
-    ECS::RenderInitParams renderParams;
-    renderParams.shaderType = ECS::LIGHT_SHADER;
-    renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-
-    // setup bounding params
-    const size numEntts = 1;
-    const size numSubsets = model.GetNumSubsets();
-    const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
-
-
-    mgr.AddTransformComponent(enttID, { 0, 2, -5 });
-    mgr.AddNameComponent(enttID, "barrel");
-    mgr.AddModelComponent(enttID, model.GetID());
-    mgr.AddRenderingComponent(enttID, renderParams);
-
-    mgr.AddBoundingComponent(
-        &enttID,
-        numEntts,
-        numSubsets,
-        boundTypes.data(),
-        model.GetSubsetsAABB());             // AABB data (center, extents)
-}
-
-///////////////////////////////////////////////////////////
-
-void CreateStalkerFreedom(ECS::EntityMgr& mgr, const BasicModel& model)
-{
-    using namespace DirectX;
-
-    LogDbg("create a stalker entity");
-    
-    const EntityID enttID = mgr.CreateEntity("stalker_freedom");
+    const EntityID enttID = mgr.CreateEntity("stalker_radar");
 
     // setup transformation params
-    XMFLOAT3 position = { 7, 0, 3 };
+    XMFLOAT3 position = { 7, 20, -10 };
     XMVECTOR direction = { 0, 1, 0, 0 };
     const float uniformScale = 5.0f;
 
@@ -1113,7 +1041,70 @@ void CreateStalkerFreedom(ECS::EntityMgr& mgr, const BasicModel& model)
     const size numSubsets = model.GetNumSubsets();
     const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
 
+    // setup materials params
+    constexpr bool areMaterialsMeshBased = true;
+    cvector<MaterialID> materialIDs(numSubsets);
 
+    for (index i = 0; i < numSubsets; ++i)
+        materialIDs[i] = model.meshes_.subsets_[i].materialID;
+
+
+    // add components
+    mgr.AddTransformComponent(enttID, position, direction, uniformScale);
+    mgr.AddModelComponent(enttID, model.GetID());
+    mgr.AddRenderingComponent(enttID, renderParams);
+
+    mgr.AddBoundingComponent(
+        &enttID,
+        numEntts,
+        numSubsets,
+        boundTypes.data(),
+        model.GetSubsetsAABB());             // AABB data (center, extents)
+
+    mgr.AddMaterialComponent(enttID, materialIDs.data(), numSubsets, areMaterialsMeshBased);
+
+    // rotate the stalker entity
+    const XMVECTOR rotQuat = DirectX::XMQuaternionRotationAxis({ 1,0,0 }, DirectX::XM_PIDIV2);
+    mgr.transformSystem_.RotateLocalSpaceByQuat(enttID, rotQuat);
+
+    // apply alpha_clipping and cull_none to each tree entt
+    using enum ECS::eRenderState;
+    mgr.renderStatesSystem_.UpdateStates(enttID, { ALPHA_CLIPPING, CULL_NONE });
+
+}
+
+///////////////////////////////////////////////////////////
+
+void CreateStalkerFreedom(ECS::EntityMgr& mgr, const BasicModel& model)
+{
+    LogDbg("create a stalker entity");
+    
+    const EntityID enttID = mgr.CreateEntity("stalker_freedom");
+
+    // setup transformation params
+    XMFLOAT3 position        = { 7, GetHeightOfGeneratedTerrainAtPoint(7, -10), -10};
+    XMVECTOR direction       = { 0, 1, 0, 0 };
+    const float uniformScale = 5.0f;
+
+    // setup rendering params
+    ECS::RenderInitParams renderParams;
+    renderParams.shaderType = ECS::LIGHT_SHADER;
+    renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+    // setup bounding params
+    const size numEntts = 1;
+    const size numSubsets = model.GetNumSubsets();
+    const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
+
+    // setup materials params
+    constexpr bool areMaterialsMeshBased = true;
+    cvector<MaterialID> materialIDs(numSubsets);
+
+    for (index i = 0; i < numSubsets; ++i)
+        materialIDs[i] = model.meshes_.subsets_[i].materialID;
+
+
+    // add components
     mgr.AddTransformComponent(enttID, position, direction, uniformScale);
     mgr.AddModelComponent    (enttID, model.GetID());
     mgr.AddRenderingComponent(enttID, renderParams);
@@ -1125,14 +1116,65 @@ void CreateStalkerFreedom(ECS::EntityMgr& mgr, const BasicModel& model)
         boundTypes.data(),
         model.GetSubsetsAABB());             // AABB data (center, extents)
 
+    mgr.AddMaterialComponent(enttID, materialIDs.data(), numSubsets, areMaterialsMeshBased);
 
+    // rotate the stalker entity
+    const XMVECTOR rotQuat = DirectX::XMQuaternionRotationAxis({ 1,0,0 }, DirectX::XM_PIDIV2);
+    mgr.transformSystem_.RotateLocalSpaceByQuat(enttID, rotQuat);
+}
+
+///////////////////////////////////////////////////////////
+
+void CreateTraktor13(ECS::EntityMgr& mgr, const BasicModel& model)
+{
+    LogDbg("create a traktor (tr-13) entity");
+    
+    const EntityID enttID = mgr.CreateEntity("traktor_13");
+
+    // setup transformation params
+    XMFLOAT3 position        = { 40, GetHeightOfGeneratedTerrainAtPoint(40, 3), 3};
+    XMVECTOR direction       = { 0, 1, 0, 0 };
+    const float uniformScale = 5.0f;
+
+    // setup rendering params
+    ECS::RenderInitParams renderParams;
+    renderParams.shaderType   = ECS::LIGHT_SHADER;
+    renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+    // setup bounding params
+    const size numEntts = 1;
+    const size numSubsets = model.GetNumSubsets();
+    const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
+
+    // setup materials params
     constexpr bool areMaterialsMeshBased = true;
     cvector<MaterialID> materialIDs(numSubsets);
 
     for (index i = 0; i < numSubsets; ++i)
         materialIDs[i] = model.meshes_.subsets_[i].materialID;
 
+
+    // add components
+    mgr.AddTransformComponent(enttID, position, direction, uniformScale);
+    mgr.AddModelComponent    (enttID, model.GetID());
+    mgr.AddRenderingComponent(enttID, renderParams);
+
+    mgr.AddBoundingComponent(
+        &enttID,
+        numEntts,
+        numSubsets,
+        boundTypes.data(),
+        model.GetSubsetsAABB());             // AABB data (center, extents)
+
     mgr.AddMaterialComponent(enttID, materialIDs.data(), numSubsets, areMaterialsMeshBased);
+
+    // setup blending params of the entities
+    using enum ECS::eRenderState;
+    mgr.renderStatesSystem_.UpdateStates(enttID, ALPHA_CLIPPING);
+
+    // rotate the stalker entity
+    const XMVECTOR rotQuat = DirectX::XMQuaternionRotationAxis({ 1,0,0 }, DirectX::XM_PIDIV2);
+    mgr.transformSystem_.RotateLocalSpaceByQuat(enttID, rotQuat);
 }
 
 ///////////////////////////////////////////////////////////
@@ -1371,6 +1413,10 @@ void CreateAk74(ECS::EntityMgr& mgr, const BasicModel& model)
         numSubsets,
         boundTypes.data(),
         model.GetSubsetsAABB());      // AABB data (center, extents)
+
+    constexpr bool areMaterialsMeshBased = true;
+    const MaterialID matID = model.meshes_.subsets_[0].materialID;
+    mgr.AddMaterialComponent(enttID, &matID, numSubsets, areMaterialsMeshBased);
 }
 
 ///////////////////////////////////////////////////////////
@@ -1579,34 +1625,28 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
 
     ModelsCreator creator;
 
-#if 0
     // paths to external models
-    const std::string lightPolePath = g_RelPathExtModelsDir + "light_pole/light_pole.obj";
-    
-
-    //const std::string treeDubPath             = g_RelPathExtModelsDir + "trees/dub/dub.obj";
-    const std::string powerHVTowerPath = g_RelPathExtModelsDir + "power_line/Power_HV_Tower.FBX";
-    const std::string barrelPath = g_RelPathExtModelsDir + "Barrel1/Barrel1.obj";
-    const std::string nanosuitPath = g_RelPathExtModelsDir + "nanosuit/nanosuit.obj";
-
-  
-
-    
-
-    const std::string building9Path = g_RelPathExtModelsDir + "building9/building9.obj";
-    const std::string apartmentPath = g_RelPathExtModelsDir + "Apartment/Apartment.obj";
-    const std::string sovientStatuePath = g_RelPathExtModelsDir + "sovietstatue_1/sickle&hammer.obj";
-#endif
     const std::string extModelsDir = std::string(g_RelPathExtModelsDir);
 
-    const std::string stalkerHouseSmallPath = extModelsDir + "stalker/stalker-house/source/SmallHouse.fbx";
+    const std::string barrelPath                = extModelsDir + "Barrel1/Barrel1.obj";
+    const std::string nanosuitPath              = extModelsDir + "nanosuit/nanosuit.obj";
+    const std::string building9Path             = extModelsDir + "building9/building9.obj";
+    const std::string apartmentPath             = extModelsDir + "Apartment/Apartment.obj";
+    const std::string sovientStatuePath         = extModelsDir + "sovietstatue_1/sickle&hammer.obj";
+    const std::string lightPolePath             = extModelsDir + "light_pole/light_pole.obj";
+    const std::string treeDubPath               = extModelsDir + "trees/dub/dub.obj";
+
+    const std::string powerHVTowerPath          = extModelsDir + "power_line/Power_HV_Tower.FBX";
+    const std::string stalkerHouseSmallPath     = extModelsDir + "stalker/stalker-house/source/SmallHouse.fbx";
     const std::string stalkerHouseAbandonedPath = extModelsDir + "stalker/abandoned-house-20/source/StalkerAbandonedHouse.fbx";
-   
-    const std::string treeSprucePath      = extModelsDir + "trees/tree_spruce/tree_spruce.obj";
-    const std::string treePinePath        = extModelsDir + "trees/FBX format/tree_pine.fbx";
-    const std::string stalkerFreedom1Path = extModelsDir + "stalker_freedom_1/stalker_freedom_1.fbx";
-    const std::string ak47Path            = extModelsDir + "aks-74_game_ready/scene.gltf";
-    const std::string ak74uPath           = extModelsDir + "ak_74u/ak_74u.fbx";
+    const std::string stalkerTraktor13Path      = extModelsDir + "tr13/tr13.fbx";
+    const std::string stalkerFreedom1Path       = extModelsDir + "stalker_freedom_1/stalker_freedom_1.fbx";
+    const std::string ak47Path                  = extModelsDir + "aks-74_game_ready/scene.gltf";
+    const std::string ak74uPath                 = extModelsDir + "ak_74u/ak_74u.fbx";
+
+    const std::string treeSprucePath            = extModelsDir + "trees/tree_spruce/tree_spruce.obj";
+    const std::string treePinePath              = extModelsDir + "trees/FBX format/tree_pine.fbx";
+    const std::string radarPath                 = extModelsDir + "radar/radar.fbx";
 
 #if 1
     // import a model from file by path
@@ -1616,14 +1656,15 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     //const ModelID treeSpruceID     = creator.ImportFromFile(pDevice, treeSprucePath.c_str());
     const ModelID treePineID = creator.ImportFromFile(pDevice, treePinePath.c_str());
     //const ModelID nanosuitID       = creator.ImportFromFile(pDevice, nanosuitPath);
-    const ModelID stalkerFreedomID = creator.ImportFromFile(pDevice, stalkerFreedom1Path.c_str());
-    const ModelID stalkerHouse1ID  = creator.ImportFromFile(pDevice, stalkerHouseSmallPath.c_str());
-    const ModelID stalkerHouse2ID  = creator.ImportFromFile(pDevice, stalkerHouseAbandonedPath.c_str());
-    const ModelID ak47ID = creator.ImportFromFile(pDevice, ak47Path.c_str());
+    //const ModelID stalkerFreedomID = creator.ImportFromFile(pDevice, stalkerFreedom1Path.c_str());
+    //const ModelID traktorID        = creator.ImportFromFile(pDevice, stalkerTraktor13Path.c_str());
+    //const ModelID stalkerHouse1ID  = creator.ImportFromFile(pDevice, stalkerHouseSmallPath.c_str());
+    //const ModelID stalkerHouse2ID  = creator.ImportFromFile(pDevice, stalkerHouseAbandonedPath.c_str());
+    //const ModelID ak47ID = creator.ImportFromFile(pDevice, ak47Path.c_str());
     const ModelID ak74ID           = creator.ImportFromFile(pDevice, ak74uPath.c_str());
     //const ModelID barrelID         = creator.ImportFromFile(pDevice, barrelPath);
-    //const ModelID powerHVTowerID   = creator.ImportFromFile(pDevice, powerHVTowerPath);
-
+    //const ModelID powerHVTowerID   = creator.ImportFromFile(pDevice, powerHVTowerPath.c_str());
+    //const ModelID radarID = creator.ImportFromFile(pDevice, radarPath.c_str());
 
     //const ModelID buildingID       = creator.ImportFromFile(pDevice, building9Path);
     //const ModelID apartmentID      = creator.ImportFromFile(pDevice, apartmentPath);
@@ -1639,39 +1680,41 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     //BasicModel& apartment       = g_ModelMgr.GetModelByID(apartmentID);
     //BasicModel& sovietStatue    = g_ModelMgr.GetModelByID(sovietStatueID);
     //BasicModel& treeSpruce      = g_ModelMgr.GetModelByID(treeSpruceID);
-    BasicModel& treePine = g_ModelMgr.GetModelByID(treePineID);
+    BasicModel& treePine        = g_ModelMgr.GetModelByID(treePineID);
     //BasicModel& powerHVTower    = g_ModelMgr.GetModelByID(powerHVTowerID);
-    //BasicModel& nanosuit        = g_ModelMgr.GetModelByID(nanosuitID);
-    BasicModel& stalkerFreedom = g_ModelMgr.GetModelByID(stalkerFreedomID);
-    //BasicModel& lightPole       = g_ModelMgr.GetModelByID(lightPoleID);
-    //BasicModel& barrel          = g_ModelMgr.GetModelByID(barrelID);
-    BasicModel& stalkerHouse1   = g_ModelMgr.GetModelByID(stalkerHouse1ID);
-    BasicModel& stalkerHouse2   = g_ModelMgr.GetModelByID(stalkerHouse2ID);
-    BasicModel& ak47 = g_ModelMgr.GetModelByID(ak47ID);
+    //BasicModel& stalkerFreedom  = g_ModelMgr.GetModelByID(stalkerFreedomID);
+    //BasicModel& traktor13       = g_ModelMgr.GetModelByID(traktorID);
+    //BasicModel& stalkerHouse1   = g_ModelMgr.GetModelByID(stalkerHouse1ID);
+    //BasicModel& stalkerHouse2   = g_ModelMgr.GetModelByID(stalkerHouse2ID);
+    //BasicModel& ak47            = g_ModelMgr.GetModelByID(ak47ID);
     BasicModel& ak74            = g_ModelMgr.GetModelByID(ak74ID);
+    //BasicModel& radar           = g_ModelMgr.GetModelByID(radarID);
 
     // setup some models (set textures, setup materials)
-    SetupStalkerSmallHouse(stalkerHouse1);
-    SetupStalkerAbandonedHouse(stalkerHouse2);
+    //SetupStalkerSmallHouse(stalkerHouse1);
+    //SetupStalkerAbandonedHouse(stalkerHouse2);
     SetupTree(treePine);
     //SetupPowerLine(powerHVTower);
     //SetupBuilding9(building);
-    SetupStalkerFreedom(stalkerFreedom);
-    SetupAk47(ak47);
+    //SetupStalkerFreedom(stalkerFreedom);
+    //SetupAk47(ak47);
     SetupAk74(ak74);
+    //SetupTraktor(traktor13);
 
-    CreateTreesPine(mgr, treePine);
+    //CreateTreesPine(mgr, treePine);
     //CreateTreesSpruce(mgr, treeSpruce);
     //CreatePowerLine(mgr, powerHVTower);
     //CreateLightPoles(mgr, lightPole);
     //CreateHouse(mgr, stalkerHouse1);
     //CreateHouse2(mgr, stalkerHouse2);
 
-    CreateAk47(mgr, ak47);
+    //CreateAk47(mgr, ak47);
     CreateAk74(mgr, ak74);
     //CreateBarrel(mgr, barrel);
     //CreateNanoSuit(mgr, nanosuit);
-    CreateStalkerFreedom(mgr, stalkerFreedom);
+    //CreateRadar(mgr, radar);
+    //CreateStalkerFreedom(mgr, stalkerFreedom);
+    //CreateTraktor13(mgr, traktor13);
     //CreateBuilding(mgr, building);
     //CreateApartment(mgr, apartment);
     //CreateSovietStatue(mgr, sovietStatue);
@@ -1691,17 +1734,21 @@ void GenerateAssets(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     //const ModelID skyBoxID = creator.CreateSphere(pDevice, skyDomeSphereParams);
     SkyModel& skyBox = g_ModelMgr.GetSky();
 
+#if 1
     // create terrain
-    const ModelID terrainID = creator.CreateGeneratedTerrain(pDevice, 500, 500, 501, 501);
+    //const ModelID terrainID = creator.CreateGeneratedTerrain(pDevice, 500, 500, 501, 501);
+
+    const ModelID terrainID = creator.CreateTerrainFromHeightmap(pDevice, "data/terrain/terrain_setup.txt");
     BasicModel& terrain = g_ModelMgr.GetModelByID(terrainID);
     SetupTerrain(terrain);
     CreateTerrain(mgr, terrain);
+#endif
 
     // generate some models manually
     const MeshSphereParams    boundSphereParams(1, 8, 8);
     const MeshGeosphereParams boundGeoSphereParams(1, 1);
     const MeshSphereParams    sphereParams(0.5f, 20, 20);
-    const MeshCylinderParams  cylParams(1, 1, 5, 20, 2);
+    const MeshCylinderParams  cylParams(1, 1, 5, 15, 1);
 
     const ModelID cubeID        = creator.CreateCube(pDevice);
     const ModelID boundSphereID = creator.CreateGeoSphere(pDevice, boundGeoSphereParams);
@@ -1729,6 +1776,7 @@ void GenerateAssets(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     cylinderMat.SetName("brick_01");
     cylinderMat.SetTexture(TEX_TYPE_DIFFUSE, texIdStoneDiff);
     cylinderMat.SetTexture(TEX_TYPE_NORMALS, texIdStoneNorm);
+    cylinderMat.ambient = { 0.4f, 0.4f, 0.4f, 1.0f };
     g_MaterialMgr.AddMaterial(std::move(cylinderMat));
 
     // ----------------------------------------------------
@@ -1840,7 +1888,6 @@ void LoadTreesBillboardsTextures()
         DXGI_FORMAT_R8G8B8A8_UNORM);
 }
 
-
 ///////////////////////////////////////////////////////////
 
 bool SceneInitializer::InitModelEntities(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
@@ -1887,7 +1934,7 @@ bool SceneInitializer::InitModelEntities(ID3D11Device* pDevice, ECS::EntityMgr& 
         }
         else
         {
-            //ImportExternalModels(pDevice, mgr);
+            ImportExternalModels(pDevice, mgr);
         }
 #else
         ImportExternalModels(pDevice, mgr);

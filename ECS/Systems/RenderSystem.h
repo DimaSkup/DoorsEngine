@@ -52,7 +52,7 @@ public:
     
 
     inline void SetVisibleEntts(const cvector<EntityID>& inEntts)       { pRenderComponent_->visibleEnttsIDs = inEntts; }
-    inline const cvector<EntityID>& GetAllVisibleEntts()          const { return pRenderComponent_->visibleEnttsIDs; }
+    inline cvector<EntityID>& GetAllVisibleEntts()                const { return pRenderComponent_->visibleEnttsIDs; }
     inline size GetVisibleEnttsCount()                            const { return pRenderComponent_->visibleEnttsIDs.size(); }
 
 private:

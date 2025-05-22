@@ -42,8 +42,6 @@ void MaterialAssetsBrowser::Render(IFacadeEngineToUI* pFacade, bool* pOpen)
 
     RenderMenuBar(pOpen);
 
-    // ------------------------------------------
-
     const float textLineHeight = ImGui::GetTextLineHeightWithSpacing();
 
     if (ImGui::BeginChild("MaterialAssets", ImVec2(0.0f, -textLineHeight), ImGuiChildFlags_None, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground))
@@ -62,8 +60,7 @@ void MaterialAssetsBrowser::Render(IFacadeEngineToUI* pFacade, bool* pOpen)
         }
 
         // setup start position for debug info rendering
-        ImVec2 startPos = ImGui::GetCursorScreenPos();
-        startPos = ImVec2(startPos.x + layoutOuterPadding_, startPos.y + layoutOuterPadding_);
+        ImVec2 startPos = ImGui::GetCursorScreenPos() + ImVec2(layoutOuterPadding_, layoutOuterPadding_);
 
         ImGui::SetCursorScreenPos(startPos);
         RenderDebugInfo(availWidth);
@@ -265,9 +262,10 @@ void MaterialAssetsBrowser::DrawMaterialIcons(const ImVec2 startPos, IFacadeEngi
                 }
 
                 ImGui::PopID();
-            }
-        }
-    }
+
+            } // for elems in line
+        } // for 
+    } // while 
 
     clipper.End();
     ImGui::PopStyleColor(3);

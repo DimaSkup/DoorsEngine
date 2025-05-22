@@ -72,7 +72,7 @@ public:
 	// ---------------------------------------------
 
 	// Public modification API 
-	void Initialize(
+	bool Initialize(
 		ID3D11Device* pDevice,
 		const T* pIndices,
 		const int numIndices);
@@ -111,29 +111,40 @@ private:
 // =================================================================================
 
 template <typename T>
-void IndexBuffer<T>::Initialize(
+bool IndexBuffer<T>::Initialize(
 	ID3D11Device* pDevice,
 	const T* pIndices,
 	const int numIndices)
 {
 	// initialize this index buffer with indices data
 
-	Assert::True((pIndices != nullptr) && (numIndices > 0), "wrong input data");
+    try
+    {
+        Assert::True((pIndices != nullptr) && (numIndices > 0), "wrong input data");
 
-	// initialize the number of indices
-	indexCount_ = (UINT)numIndices;
+        // initialize the number of indices
+        indexCount_ = (UINT)numIndices;
 
-	// setup the index buffer description
-	D3D11_BUFFER_DESC desc;
-	desc.ByteWidth           = sizeof(T) * indexCount_;
-	desc.Usage               = D3D11_USAGE_IMMUTABLE;   // D3D11_USAGE_DEFAULT;
-	desc.BindFlags           = D3D11_BIND_INDEX_BUFFER;
-	desc.CPUAccessFlags      = 0;
-	desc.MiscFlags           = 0;
-	desc.StructureByteStride = 0;
+        // setup the index buffer description
+        D3D11_BUFFER_DESC desc;
+        desc.ByteWidth           = sizeof(T) * indexCount_;
+        desc.Usage               = D3D11_USAGE_IMMUTABLE;   // D3D11_USAGE_DEFAULT;
+        desc.BindFlags           = D3D11_BIND_INDEX_BUFFER;
+        desc.CPUAccessFlags      = 0;
+        desc.MiscFlags           = 0;
+        desc.StructureByteStride = 0;
 
-	// create and initialize a buffer with data
-	InitializeHelper(pDevice, desc, pIndices);
+        // create and initialize a buffer with data
+        InitializeHelper(pDevice, desc, pIndices);
+
+        return true;
+    }
+    catch (EngineException& e)
+    {
+        LogErr(e);
+        Shutdown();
+        return false;
+    }
 }
 
 ///////////////////////////////////////////////////////////

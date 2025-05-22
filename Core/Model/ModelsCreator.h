@@ -42,6 +42,8 @@ public:
 	ModelID CreateGrid(ID3D11Device* pDevice, const u32 width, const u32 depth);
 	ModelID CreateWater(ID3D11Device* pDevice, const float width, const float depth);
 
+    ModelID CreateTerrainFromHeightmap(ID3D11Device* pDevice, const char* setupFilename);
+
 	ModelID CreateGeneratedTerrain(
 		ID3D11Device* pDevice,
 		const int terrainWidth,

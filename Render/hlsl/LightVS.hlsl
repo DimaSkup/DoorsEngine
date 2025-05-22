@@ -24,7 +24,6 @@ struct VS_IN
     float2   tex        : TEXCOORD;
     float3   normalL    : NORMAL;       // vertex normal in local space
     float3   tangentL   : TANGENT;      // tangent in local space
-    float3   binormalL  : BINORMAL;     // binormal in local space
 };
 
 struct VS_OUT
@@ -34,7 +33,6 @@ struct VS_OUT
     float3   posW       : POSITION;     // position in world
     float3   normalW    : NORMAL;       // normal in world
     float3   tangentW   : TANGENT;      // tangent in world
-    float3   binormalW  : BINORMAL;     // binormal in world
     float2   tex        : TEXCOORD;
     uint     instanceID : SV_InstanceID;
 };

@@ -420,7 +420,8 @@ ID3D11ShaderResourceView* TextureMgr::GetSRVByTexID(const TexID texID)
 
 ///////////////////////////////////////////////////////////
 
-void TextureMgr::GetSRVsByTexIDs(
+# if 0
+void TextureMgr::GetSRVsByTexIDsOld(
     const TexID* texIDs,
     const size numTex,
     cvector<ID3D11ShaderResourceView*>& outSRVs)
@@ -464,6 +465,54 @@ void TextureMgr::GetSRVsByTexIDs(
 
     for (index i = 0; const index idx : idxsToNotZero)
         outSRVs[idx] = preparedSRVs[i++];
+}
+#endif
+
+
+void TextureMgr::GetSRVsByTexIDs(
+    const TexID* texIDs,
+    const size numTex,
+    cvector<ID3D11ShaderResourceView*>& outSRVs)
+{
+    // here get SRV (shader resource view) of each input texture by its ID
+
+    Assert::True(texIDs != nullptr, "input ptr to textures IDs arr == nullptr");
+    Assert::True(numTex > 0, "input number of textures must be > 0");
+
+    // get idxs to textures IDs which != 0
+    idxsToNotZero_.resize(numTex);
+    int pos = 0;
+
+    for (index idx = 0; idx < numTex; ++idx)
+    {
+        idxsToNotZero_[pos] = idx;
+        pos += bool(texIDs[idx]);
+    }
+
+    idxsToNotZero_.resize(pos + 1);
+
+    // ---------------------------------------------
+
+    // get SRVs
+    ID3D11ShaderResourceView* unloadedTexSRV = shaderResourceViews_[0];
+    outSRVs.resize(numTex, unloadedTexSRV);
+
+    const size numPreparedTextures = std::ssize(idxsToNotZero_);
+    texIds_.resize(numPreparedTextures);
+    tempIdxs_.resize(numPreparedTextures);
+    preparedSRVs_.resize(numPreparedTextures);
+
+    for (index i = 0; const index idx : idxsToNotZero_)
+        texIds_[i++] = texIDs[idx];
+
+    // get idxs of searched textures ids
+    ids_.get_idxs(texIds_.data(), numPreparedTextures, tempIdxs_);
+
+    for (int i = 0; const index idx : tempIdxs_)
+        preparedSRVs_[i++] = shaderResourceViews_[idx];
+
+    for (index i = 0; const index idx : idxsToNotZero_)
+        outSRVs[idx] = preparedSRVs_[i++];
 }
 
 ///////////////////////////////////////////////////////////

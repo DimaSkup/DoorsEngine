@@ -123,7 +123,7 @@ void EnttTransformController::ExecChangePosition(const EntityID id, const Vec3& 
         // generate an "undo" command and store it into the history
         const CmdChangeVec3 undoCmd(CHANGE_ENTITY_POSITION, oldPos);
         const std::string msg = "changed posisition of entt (id: " + std::to_string(id) + ")";
-        gEventsHistory.Push(undoCmd, msg, id);
+        g_EventsHistory.Push(undoCmd, msg, id);
     }
     else
     {
@@ -149,7 +149,7 @@ void EnttTransformController::ExecChangeDirection(const EntityID id, const Vec4&
         // generate an "undo" command and store it into the history
         const CmdChangeVec3 undoCmd(CHANGE_ENTITY_DIRECTION, oldDirection);
         sprintf(g_String, "changed direction of entt (id: %ld)", id);
-        gEventsHistory.Push(undoCmd, g_String, id);
+        g_EventsHistory.Push(undoCmd, g_String, id);
     }
     else
     {
@@ -174,7 +174,7 @@ void EnttTransformController::ExecChangeUniformScale(const EntityID id, const fl
         // generate an "undo" command and store it into the history
         const CmdChangeFloat undoCmd(CHANGE_ENTITY_SCALE, oldUniformScale);
         sprintf(g_String, "changed uniform scale of entt (id: %ld)", id);
-        gEventsHistory.Push(undoCmd, g_String, id);
+        g_EventsHistory.Push(undoCmd, g_String, id);
     }
     else
     {

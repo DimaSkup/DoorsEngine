@@ -67,9 +67,7 @@ void ModelMath::CalculateModelVectors(
 		for (int backIndex = 3; backIndex > 0; backIndex--)
 		{
 			const int vIdx = (int)dataIdx - backIndex;  // an index of the vertex
-
 			XMStoreFloat3(&vertices[vIdx].tangent, tangent);
-			XMStoreFloat3(&vertices[vIdx].binormal, binormal);
 		}
 	}
 }

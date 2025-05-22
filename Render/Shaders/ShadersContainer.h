@@ -10,8 +10,6 @@
 //
 // INCLUDES
 //
-#include "shaderclass.h"                // shaders helper class
-
 #include "LightShader.h"                // for light effect on models
 #include "DebugShader.h"
 

@@ -32,7 +32,7 @@ public:
 
     // getters
     Material&  GetMaterialByID    (const MaterialID id);
-    void       GetMaterialsByIDs  (const MaterialID* ids, const size numMaterials, cvector<Material>& outMaterials) const;
+    void       GetMaterialsByIDs  (const MaterialID* ids, const size numMaterials, cvector<Material>& outMaterials);
     MaterialID GetMaterialIdByName(const char* name) const;
     MaterialID GetMaterialIdByIdx (const index idx) const;
 
@@ -42,6 +42,8 @@ public:
 private:
     cvector<MaterialID> ids_;
     cvector<Material>   materials_;
+
+    cvector<index>      idxs_;
 
     static MaterialMgr* pInstance_;
     static MaterialID   lastMaterialID_;

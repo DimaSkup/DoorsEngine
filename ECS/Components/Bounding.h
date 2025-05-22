@@ -34,10 +34,11 @@ struct BoundingData
     BoundingData() {};
 
 	BoundingData(
+        DirectX::BoundingSphere sphere,        // around the whole entity
 		const size numData,
 		const BoundingType* types,             // AABB type per mesh
 		const DirectX::BoundingBox* AABBs) :
-		numData(numData),
+        boundSphere(sphere),
 		types(types, types + numData)
 	{
 		obbs.resize(numData);
@@ -47,9 +48,11 @@ struct BoundingData
 			DirectX::BoundingOrientedBox::CreateFromBoundingBox(obbs[i], AABBs[i]);
 	}
 
-	size numData = 0;
-    cvector<BoundingType> types;                   // types: AABB/sphere
-	cvector<DirectX::BoundingOrientedBox> obbs;    // center, extents, rotation
+    DirectX::BoundingSphere boundSphere;           // around the whole entity
+
+
+    cvector<BoundingType> types;                   // type per mesh: AABB/sphere
+	cvector<DirectX::BoundingOrientedBox> obbs;    // per mesh: center, extents, rotation
 }; 
 
 

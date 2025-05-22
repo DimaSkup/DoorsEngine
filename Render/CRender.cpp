@@ -47,7 +47,7 @@ bool CRender::Initialize(
         // --------------------------------------------
 
         // create instances buffer
-        const UINT maxInstancesNum = 500;
+        const UINT maxInstancesNum = 9000;
         D3D11_BUFFER_DESC vbd;
 
         // setup buffer's description
@@ -134,6 +134,25 @@ bool CRender::Initialize(
     }
 
     return true;
+}
+
+///////////////////////////////////////////////////////////
+
+bool CRender::ShadersHotReload(ID3D11Device* pDevice)
+{
+    try
+    {
+        shadersContainer_.lightShader_.ShaderHotReload(pDevice, "shaders/hlsl/LightVS.hlsl", "shaders/hlsl/LightPS.hlsl");
+        shadersContainer_.materialIconShader_.ShaderHotReload(pDevice, "shaders/hlsl/MaterialIconVS.hlsl", "shaders/hlsl/MaterialIconPS.hlsl");
+        LogDbg("shaders are hot reloaded");
+
+        return true;
+    }
+    catch (LIB_Exception& e)
+    {
+        LogErr(e, true);
+        return false;
+    }
 }
 
 
@@ -369,6 +388,8 @@ void CRender::RenderInstances(
 
         switch (type)
         {
+            pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
             case COLOR:
             {
                 shadersContainer_.colorShader_.Render(
@@ -491,29 +512,29 @@ void CRender::SwitchAlphaClipping(ID3D11DeviceContext* pContext, const bool stat
 
 ///////////////////////////////////////////////////////////
 
-void CRender::SwitchDebugState(ID3D11DeviceContext* pContext, const DebugState state)
+void CRender::SwitchDebugState(ID3D11DeviceContext* pContext, const eDebugState state)
 {
     // turn on/off debug rendering;
     // if we turn on debug rendering we setup the debug state as well;
     switch (state)
     {
         // use default basic shader
-        case TURN_OFF:
+        case DBG_TURN_OFF:
         {
             isDebugMode_ = false;
             break;
         }
         // use debug shader with particular debug state
-        case SHOW_NORMALS:
-        case SHOW_TANGENTS:
-        case SHOW_BINORMALS:
-        case SHOW_BUMPED_NORMALS:
-        case SHOW_ONLY_LIGTHING:
-        case SHOW_ONLY_DIRECTED_LIGHTING:
-        case SHOW_ONLY_POINT_LIGHTING:
-        case SHOW_ONLY_SPOT_LIGHTING:
-        case SHOW_ONLY_DIFFUSE_MAP:
-        case SHOW_ONLY_NORMAL_MAP:
+        case DBG_SHOW_NORMALS:
+        case DBG_SHOW_TANGENTS:
+        case DBG_SHOW_BUMPED_NORMALS:
+        case DBG_SHOW_ONLY_LIGTHING:
+        case DBG_SHOW_ONLY_DIRECTED_LIGHTING:
+        case DBG_SHOW_ONLY_POINT_LIGHTING:
+        case DBG_SHOW_ONLY_SPOT_LIGHTING:
+        case DBG_SHOW_ONLY_DIFFUSE_MAP:
+        case DBG_SHOW_ONLY_NORMAL_MAP:
+        case DBG_WIREFRAME:
         {
             isDebugMode_ = true;
             shadersContainer_.debugShader_.SetDebugType(pContext, state);

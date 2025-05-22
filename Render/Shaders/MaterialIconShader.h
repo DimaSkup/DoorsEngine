@@ -38,6 +38,11 @@ public:
         const char* vsFilePath,
         const char* psFilePath);
 
+    void ShaderHotReload(
+        ID3D11Device* pDevice,
+        const char* vsFilePath,
+        const char* psFilePath);
+
     void PrepareRendering(
         ID3D11DeviceContext* pContext,
         ID3D11Buffer* vertexBuffer,

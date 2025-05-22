@@ -7,9 +7,7 @@
 
 #include <CoreCommon/Assert.h>
 #include <CoreCommon/MathHelper.h>
-
 #include "../Input/inputcodes.h"
-#include "RenderDataPreparator.h"
 
 using namespace DirectX;
 
@@ -89,21 +87,6 @@ bool CGraphics::InitHelper(
 
         // initializer the textures global manager (container)
         g_TextureMgr.Initialize(pDevice_);
-
-#if 0
-        // create a texture which can be used as a render target
-        FrameBufferSpecification fbSpec;
-
-        fbSpec.width = 480;
-        fbSpec.height = 320;
-        fbSpec.format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM;
-        fbSpec.screenNear = d3d_.GetScreenNear();
-        fbSpec.screenDepth = d3d_.GetScreenDepth();
-
-        result = frameBuffer_.Initialize(pDevice_, fbSpec);
-        Assert::True(result, "can't initialize the render to texture object");
-#endif
-
     
         // create frustums for frustum culling
         frustums_.push_back(DirectX::BoundingFrustum());
@@ -346,7 +329,6 @@ void CGraphics::ComputeFrustumCulling(
 
     ECS::EntityMgr& mgr = *pEnttMgr;
     ECS::RenderSystem& renderSys = mgr.renderSystem_;
-    renderSys.ClearVisibleEntts();
 
     const ECS::cvector<EntityID>& enttsRenderable = renderSys.GetAllEnttsIDs();
     const size numRenderableEntts = enttsRenderable.size();
@@ -355,11 +337,19 @@ void CGraphics::ComputeFrustumCulling(
     if (numRenderableEntts == 0)
         return;
 
-    ECS::cvector<size>      numBoxesPerEntt;
-    ECS::cvector<DirectX::BoundingOrientedBox> OBBs;       // bounding box of each mesh of each renderable entt
-    ECS::cvector<XMMATRIX>  invWorlds;                           // inverse world matrix of each renderable entt
-    cvector<XMMATRIX>       enttsLocal(numRenderableEntts);      // local space of each renderable entt
-    cvector<index>          idxsToVisEntts(numRenderableEntts);
+    static ECS::cvector<BoundingSphere> boundSpheres;                   // bounding sphere of the whole entity
+    
+    static cvector<index>               idxsToVisEntts(numRenderableEntts);
+    static cvector<XMMATRIX>            enttsLocal(numRenderableEntts);
+
+    // get arr of bounding spheres for each renderable entt
+    mgr.boundingSystem_.GetBoundSpheres(
+        enttsRenderable.data(),
+        numRenderableEntts,
+        boundSpheres);
+
+#if 1
+    static ECS::cvector<XMMATRIX>       invWorlds;                           // inverse world matrix of each renderable entt
 
     // get inverse world matrix of each renderable entt
     mgr.transformSystem_.GetInverseWorlds(
@@ -371,62 +361,92 @@ void CGraphics::ComputeFrustumCulling(
 
     // compute local space matrices for frustum transformations
     for (index i = 0; i < numRenderableEntts; ++i)
-    {
         enttsLocal[i] = DirectX::XMMatrixMultiply(invView, invWorlds[i]);
-    }
-        
-    // clear some arrs since we don't need them already
-    invWorlds.clear();
-
-    // get arr of AABB / bounding spheres for each renderable entt
-    mgr.boundingSystem_.GetOBBs(
-        enttsRenderable.data(),
-        numRenderableEntts,
-        numBoxesPerEntt,
-        OBBs);
 
     // go through each entity and define if it is visible
-    for (index idx = 0, obbIdx = 0; idx < numRenderableEntts; ++idx)
+    for (index idx = 0; idx < numRenderableEntts; ++idx)
     {
-#if 0
-        // decompose the matrix into its individual parts
-        XMVECTOR scale;
-        XMVECTOR dirQuat;
-        XMVECTOR translation;
-        DirectX::XMMatrixDecompose(&scale, &dirQuat, &translation, enttsLocal[idx]);
-        dirQuat = DirectX::XMQuaternionNormalize(dirQuat);
-
-        // transform the camera frustum from view space to the object's local space
-        DirectX::BoundingFrustum LSpaceFrustum; 
-        frustums_[0].Transform(LSpaceFrustum, DirectX::XMVectorGetX(scale), dirQuat, translation);
-#endif
-
         // transform the camera frustum from view space to the object's local space
         DirectX::BoundingFrustum LSpaceFrustum;
         frustums_[0].Transform(LSpaceFrustum, enttsLocal[idx]);
 
-        // if we have any mesh OBB of the entt in view -- we set this entt as visible
-        for (index i = 0; i < numBoxesPerEntt[idx]; ++i)
-        {
-            if (LSpaceFrustum.Intersects(OBBs[obbIdx + i]))
-            {
-                idxsToVisEntts[numVisEntts++] = idx;
-                i = numBoxesPerEntt[idx];              // go out from the for-loop
-            }
-        }
-
-        obbIdx += numBoxesPerEntt[idx];
+        if (LSpaceFrustum.Intersects(boundSpheres[idx]))
+            idxsToVisEntts[numVisEntts++] = idx;
     }
+
+#else
+    static ECS::cvector<XMMATRIX> worlds;
+
+    mgr.transformSystem_.GetWorlds(
+        enttsRenderable.data(),
+        numRenderableEntts,
+        worlds);
+
+    // offset of entity in local space relatively to the Origin
+    for (index i = 0; i < numRenderableEntts; ++i)
+    {
+        // change radius
+        boundSpheres[i].Radius *= worlds[i].r[0].m128_f32[0];
+
+        // change position
+        float* pos = worlds[i].r[3].m128_f32;
+        boundSpheres[i].Center.x += pos[0];
+        boundSpheres[i].Center.y += pos[1];
+        boundSpheres[i].Center.z += pos[2];
+    }
+
+    // transform camera's frustum to world space
+    DirectX::BoundingFrustum WSpaceFrustum;
+    frustums_[0].Transform(WSpaceFrustum, mgr.cameraSystem_.GetInverseView(currCameraID_));
+
+    // Load origin and orientation of the frustum.
+    XMVECTOR vOrigin = XMLoadFloat3(&WSpaceFrustum.Origin);
+    XMVECTOR vOrientation = XMLoadFloat4(&WSpaceFrustum.Orientation);
+
+    // Create 6 planes (do it inline to encourage use of registers)
+    XMVECTOR NearPlane = XMVectorSet(0.0f, 0.0f, -1.0f, WSpaceFrustum.Near);
+    NearPlane = DirectX::Internal::XMPlaneTransform(NearPlane, vOrientation, vOrigin);
+    NearPlane = XMPlaneNormalize(NearPlane);
+
+    XMVECTOR FarPlane = XMVectorSet(0.0f, 0.0f, 1.0f, -WSpaceFrustum.Far);
+    FarPlane = DirectX::Internal::XMPlaneTransform(FarPlane, vOrientation, vOrigin);
+    FarPlane = XMPlaneNormalize(FarPlane);
+
+    XMVECTOR RightPlane = XMVectorSet(1.0f, 0.0f, -WSpaceFrustum.RightSlope, 0.0f);
+    RightPlane = DirectX::Internal::XMPlaneTransform(RightPlane, vOrientation, vOrigin);
+    RightPlane = XMPlaneNormalize(RightPlane);
+
+    XMVECTOR LeftPlane = XMVectorSet(-1.0f, 0.0f, WSpaceFrustum.LeftSlope, 0.0f);
+    LeftPlane = DirectX::Internal::XMPlaneTransform(LeftPlane, vOrientation, vOrigin);
+    LeftPlane = XMPlaneNormalize(LeftPlane);
+
+    XMVECTOR TopPlane = XMVectorSet(0.0f, 1.0f, -WSpaceFrustum.TopSlope, 0.0f);
+    TopPlane = DirectX::Internal::XMPlaneTransform(TopPlane, vOrientation, vOrigin);
+    TopPlane = XMPlaneNormalize(TopPlane);
+
+    XMVECTOR BottomPlane = XMVectorSet(0.0f, -1.0f, WSpaceFrustum.BottomSlope, 0.0f);
+    BottomPlane = DirectX::Internal::XMPlaneTransform(BottomPlane, vOrientation, vOrigin);
+    BottomPlane = XMPlaneNormalize(BottomPlane);
+
+
+    // go through each entity and define if it is visible
+    for (index idx = 0; idx < numRenderableEntts; ++idx)
+    {
+        const DirectX::ContainmentType type = boundSpheres[idx].ContainedBy(NearPlane, FarPlane, RightPlane, LeftPlane, TopPlane, BottomPlane);
+        idxsToVisEntts[numVisEntts] = idx;
+        numVisEntts += ((type == INTERSECTS) | (type == CONTAINS));
+    }
+#endif
 
     // ------------------------------------------
 
     // store ids of visible entts
-    ECS::cvector<EntityID> visibleEntts(numVisEntts);
+    ECS::cvector<EntityID>& visibleEntts = renderSys.GetAllVisibleEntts();
+    visibleEntts.resize(numVisEntts);
 
     for (index i = 0; i < numVisEntts; ++i)
         visibleEntts[i] = enttsRenderable[idxsToVisEntts[i]];
 
-    renderSys.SetVisibleEntts(visibleEntts);
     sysState.visibleObjectsCount = (u32)numVisEntts;
 }
 
@@ -450,8 +470,8 @@ void CGraphics::ComputeFrustumCullingOfLightSources(
     const EntityID* pointLightsIDs = mgr.lightSystem_.GetPointLights().ids.data();
 
 
-    ECS::cvector<XMMATRIX> invWorlds(numPointLights);
-    ECS::cvector<XMMATRIX> localSpaces(numPointLights);
+    static ECS::cvector<XMMATRIX> invWorlds(numPointLights);
+    static ECS::cvector<XMMATRIX> localSpaces(numPointLights);
 
     // get inverse world matrix of each point light source
     mgr.transformSystem_.GetInverseWorlds(pointLightsIDs, numPointLights, invWorlds);
@@ -462,33 +482,26 @@ void CGraphics::ComputeFrustumCullingOfLightSources(
     for (int i = 0; i < numPointLights; ++i)
         localSpaces[i] = DirectX::XMMatrixMultiply(invView, invWorlds[i]);
 
-    invWorlds.clear();
-    visPointLights.reserve(numPointLights);
+    visPointLights.resize(numPointLights);
+    u32 numVisPointLights = 0;
+    constexpr DirectX::BoundingSphere defaultBoundSphere({ 0,0,0 }, 1);
 
     // go through each point light source and define if it is visible
     for (int idx = 0; idx < numPointLights; ++idx)
     {
-        // decompose the matrix into its individual parts
-        XMVECTOR scale;
-        XMVECTOR dirQuat;
-        XMVECTOR translation;
-        DirectX::XMMatrixDecompose(&scale, &dirQuat, &translation, localSpaces[idx]);
-
         // transform the camera frustum from view space to the point light local space
         BoundingFrustum LSpaceFrustum;
-        frustums_[0].Transform(LSpaceFrustum, DirectX::XMVectorGetX(scale), dirQuat, translation);
+        frustums_[0].Transform(LSpaceFrustum, localSpaces[idx]);
 
         // if we see any part of bound sphere we store an index to related light source
-        if (LSpaceFrustum.Intersects(BoundingSphere({ 0,0,0 }, 1)))
-        {
-            visPointLights.push_back(pointLightsIDs[idx]);
-        }
+        if (LSpaceFrustum.Intersects(defaultBoundSphere))
+            visPointLights[numVisPointLights++] = pointLightsIDs[idx];
     }
 
-    visPointLights.shrink_to_fit();
+    visPointLights.resize(numVisPointLights);
 
     // we'll use these values to render counts onto the screen
-    sysState.numVisiblePointLights = (u32)std::ssize(visPointLights);
+    sysState.numVisiblePointLights = numVisPointLights;
 }
 
 ///////////////////////////////////////////////////////////
@@ -523,31 +536,6 @@ void CGraphics::ClearRenderingDataBeforeFrame(
     rsDataToRender_.Clear();
 }
 
-
-// =================================================================================
-// Render state control
-// =================================================================================
-
-void CGraphics::ChangeModelFillMode()
-{
-    // toggling on / toggling off the fill mode for the models
-
-    isWireframeMode_ = !isWireframeMode_;
-    const eRenderState fillParam = (isWireframeMode_) ? FILL_WIREFRAME : FILL_SOLID;
-
-    d3d_.SetRS(fillParam);
-};
-
-///////////////////////////////////////////////////////////
-
-void CGraphics::ChangeCullMode()
-{
-    // toggling on and toggling off the cull mode for the models
-
-    isCullBackMode_ = !isCullBackMode_;
-    d3d_.SetRS((isCullBackMode_) ? CULL_BACK : CULL_FRONT);
-}
-
 ///////////////////////////////////////////////////////////
 
 // memory allocation and releasing
@@ -571,16 +559,14 @@ void CGraphics::operator delete(void* ptr)
 // =================================================================================
 // Rendering methods
 // =================================================================================
-
 void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
 {
     try
     {
-        pDeviceContext_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         RenderEnttsDefault(pRender);
         RenderEnttsAlphaClipCullNone(pRender);
         RenderSkyDome(pRender, pEnttMgr);
-        RenderFoggedBillboards(pRender, pEnttMgr);
+        //RenderFoggedBillboards(pRender, pEnttMgr);
 #if 0
         pDeviceContext_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 
@@ -858,8 +844,17 @@ void CGraphics::RenderEnttsDefault(Render::CRender* pRender)
 
 
     // setup states before rendering
-    d3d_.GetRenderStates().ResetRS(pDeviceContext_);
-    d3d_.GetRenderStates().ResetBS(pDeviceContext_);
+    if (pRender->shadersContainer_.debugShader_.GetDebugType() == Render::eDebugState::DBG_WIREFRAME)
+    {
+        RenderStates& renderStates = d3d_.GetRenderStates();
+        renderStates.SetRS(pDeviceContext_, { FILL_WIREFRAME, CULL_BACK, FRONT_CLOCKWISE });
+    }
+    else
+    {
+        d3d_.GetRenderStates().ResetRS(pDeviceContext_);
+        d3d_.GetRenderStates().ResetBS(pDeviceContext_);
+    }
+    
 
     pRender->UpdateInstancedBuffer(pDeviceContext_, storage.modelInstBuffer);
 
@@ -883,11 +878,22 @@ void CGraphics::RenderEnttsAlphaClipCullNone(Render::CRender* pRender)
     if (storage.alphaClippedModelInstances.empty())
         return;
 
-
-    // setup rendering pipeline
     RenderStates& renderStates = d3d_.GetRenderStates();
-    renderStates.SetRS(pDeviceContext_, CULL_NONE);
-    pRender->SwitchAlphaClipping(pDeviceContext_, true);
+
+    // setup states before rendering
+    if (pRender->shadersContainer_.debugShader_.GetDebugType() == Render::eDebugState::DBG_WIREFRAME)
+    {
+        renderStates.SetRS(pDeviceContext_, { FILL_WIREFRAME, CULL_BACK, FRONT_CLOCKWISE });
+    }
+    else
+    {
+        renderStates.SetRS(pDeviceContext_, { FILL_SOLID, CULL_NONE, FRONT_CLOCKWISE });
+        d3d_.GetRenderStates().ResetBS(pDeviceContext_);
+        pRender->SwitchAlphaClipping(pDeviceContext_, true);
+    }
+
+
+    
 
     // load instances data and render them
     pRender->UpdateInstancedBuffer(pDeviceContext_, storage.alphaClippedModelInstBuffer);
@@ -1117,8 +1123,8 @@ void CGraphics::RenderSkyDome(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr
     ID3D11DeviceContext* pContext = pDeviceContext_;
 
     RenderStates& renderStates = d3d_.GetRenderStates();
-    renderStates.ResetRS(pContext);
-    renderStates.SetRS(pContext, CULL_NONE);
+    //renderStates.ResetRS(pContext);
+    renderStates.SetRS(pContext, { FILL_SOLID, CULL_NONE, FRONT_COUNTER_CLOCKWISE });
     renderStates.ResetBS(pContext);
     renderStates.SetDSS(pContext, SKY_DOME, 1);
 

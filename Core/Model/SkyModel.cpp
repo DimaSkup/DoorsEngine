@@ -20,7 +20,7 @@ SkyModel::~SkyModel()
 
 ///////////////////////////////////////////////////////////
 
-void SkyModel::InitializeBuffers(
+bool SkyModel::InitializeBuffers(
 	ID3D11Device* pDevice,
 	const Vertex3DPos* vertices,
 	const USHORT* indices,
@@ -28,12 +28,24 @@ void SkyModel::InitializeBuffers(
 	const int numIndices)
 {
 	// initialize vertex and index buffers with input data
+    try
+    {
+        Assert::True(vertices, "input ptr to arr of vertices == nullptr");
+        Assert::True(indices, "input ptr to arr of indices == nullptr");
+        Assert::True(numVertices > 0, "input number of vertices must be > 0");
+        Assert::True(numIndices > 0, "input number of indices must be > 0");
 
-	Assert::True((vertices != nullptr) && (indices != nullptr), "wrong pointers");
-	Assert::True((numVertices > 0) && (numIndices > 0), "wrong number of array elemets");
+        constexpr bool isDynamic = false;
+	    vb_.Initialize(pDevice, vertices, numVertices, isDynamic);
+	    ib_.Initialize(pDevice, indices, numIndices);
 
-	vb_.Initialize(pDevice, vertices, numVertices, false);
-	ib_.Initialize(pDevice, indices, numIndices);
+        return true;
+    }
+    catch (EngineException& e)
+    {
+        LogErr(e);
+        return false;
+    }
 }
 
 ///////////////////////////////////////////////////////////

@@ -79,6 +79,10 @@ bool CreateTexturesFromFiles(
 
         if (FAILED(hr))
         {
+            // if we got any error we release all the previously created textures
+            for (index idx = 0; idx < i; ++idx)
+                SafeRelease(&outTextures[idx]);
+
             sprintf(g_String, "can't create a texture from file: %s", texturesNames[i].c_str());
             LogErr(g_String);
             return false;

@@ -52,6 +52,8 @@ public:
         ID3D11DeviceContext* pContext,
         const InitParams& params);
 
+    bool ShadersHotReload(ID3D11Device* pDevice);
+
 
     // ================================================================================
     //                                   Updating 
@@ -129,7 +131,7 @@ public:
     void SwitchFlashLight   (ID3D11DeviceContext* pContext, const bool state);
 
     void SwitchAlphaClipping(ID3D11DeviceContext* pContext, const bool state);
-    void SwitchDebugState   (ID3D11DeviceContext* pContext, const DebugState state);
+    void SwitchDebugState   (ID3D11DeviceContext* pContext, const eDebugState state);
     void SetDirLightsCount  (ID3D11DeviceContext* pContext, int numOfLights);
 
     void InitFogParams(

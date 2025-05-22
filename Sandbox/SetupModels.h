@@ -14,9 +14,18 @@ namespace Game
 void SetupTerrain(BasicModel& terrain)
 {
     // load and set a texture for the terrain model
-    const TexID texTerrainDiff = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "terrain/detail_grnd_grass.dds");
-    const TexID texTerrainNorm = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "terrain/detail_grnd_grass_bump.dds");
 
+#if 0
+    // use stone textures
+    const TexID texTerrainDiff = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "stone02d.jpg");
+    const TexID texTerrainNorm = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "stone02n.png");
+#else
+    // use ground textures
+    const TexID texTerrainDiff = g_TextureMgr.LoadFromFile(g_RelPathDataDir, "terrain/detail_grnd_grass.dds");
+    const TexID texTerrainNorm = g_TextureMgr.LoadFromFile(g_RelPathDataDir, "terrain/detail_grnd_grass_bump.dds");
+#endif
+
+  
     // create and setup material
     Material terrainMat;
     terrainMat.SetTexture(TEX_TYPE_DIFFUSE, texTerrainDiff);
@@ -105,12 +114,14 @@ void SetupPowerLine(BasicModel& powerLine)
     const TexID texNormID = g_TextureMgr.LoadFromFile(texDirPath, "bigpoleiron_nohq.png");
 
     // setup and create a material
-    Material powerLineMat;
-    powerLineMat.SetName("power_line");
-    powerLineMat.SetTexture(TEX_TYPE_DIFFUSE, texDiffID);
-    powerLineMat.SetTexture(TEX_TYPE_NORMALS, texNormID);
-    const MaterialID powerLineMatID = g_MaterialMgr.AddMaterial(std::move(powerLineMat));
+    Material mat;
+    mat.SetName("power_line");
+    mat.SetTexture(TEX_TYPE_DIFFUSE, texDiffID);
+    mat.SetTexture(TEX_TYPE_NORMALS, texNormID);
+    mat.ambient  = { 0.4f, 0.4f, 0.4f, 1.0f };
+    mat.specular = { 0.3f, 0.3f, 0.3f, 1.0f };
 
+    const MaterialID powerLineMatID = g_MaterialMgr.AddMaterial(std::move(mat));
     powerLine.SetMaterialForSubset(0, powerLineMatID);
 }
 
@@ -163,17 +174,26 @@ void SetupStalkerFreedom(BasicModel& stalkerFreedom)
 {
     // setup some params of the stalker_freedom model
 
+    const TexID texIdBodyNorm = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "stalker_freedom_1/texture/act_stalker_freedom_1_NRM.dds");
+    const TexID texIdHeadNorm = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "stalker_freedom_1/texture/act_stalker_head_mask_NRM.dds");
+    
     MeshGeometry::Subset* subsets = stalkerFreedom.meshes_.subsets_;
 
-    for (int i = 0; i < stalkerFreedom.numSubsets_; ++i)
-    {
-        // get a material by ID from the manager and setup it
-        Material& mat = g_MaterialMgr.GetMaterialByID(subsets[i].materialID);
+    // get a material by ID from the manager and setup it
+    Material& mat0 = g_MaterialMgr.GetMaterialByID(subsets[0].materialID);
 
-        mat.ambient = { 0.3f, 0.3f, 0.3f, 1.0f };
-        mat.diffuse = { 0.8f, 0.8f, 0.8f, 1.0f };
-        mat.specular = { 0,0,0,1 };
-    }
+    mat0.SetTexture(eTexType::TEX_TYPE_NORMALS, texIdHeadNorm);
+    mat0.ambient = { 0.3f, 0.3f, 0.3f, 1.0f };
+    mat0.diffuse = { 0.8f, 0.8f, 0.8f, 1.0f };
+    mat0.specular = { 0,0,0,1 };
+
+
+    Material& mat1 = g_MaterialMgr.GetMaterialByID(subsets[1].materialID);
+
+    mat1.SetTexture(eTexType::TEX_TYPE_NORMALS, texIdBodyNorm);
+    mat1.ambient = { 0.3f, 0.3f, 0.3f, 1.0f };
+    mat1.diffuse = { 0.8f, 0.8f, 0.8f, 1.0f };
+    mat1.specular = { 0,0,0,1 };
 }
 
 ///////////////////////////////////////////////////////////
@@ -213,6 +233,23 @@ void SetupAk74(BasicModel& ak74)
 
     mat.ambient  = { 0.3f, 0.3f, 0.3f, 1.0f };
     mat.specular = { 0.1f, 0.1f, 0.1f, 32.0f };
+}
+
+///////////////////////////////////////////////////////////
+
+void SetupTraktor(BasicModel& traktor)
+{
+    // manually setup a traktor model
+
+    const int numSubsets = (int)traktor.meshes_.numSubsets_;
+    for (int i = 0; i < numSubsets; ++i)
+    {
+        const MaterialID matID = traktor.meshes_.subsets_[i].materialID;
+        Material& mat = g_MaterialMgr.GetMaterialByID(matID);
+
+        mat.ambient = { 0.5f, 0.5f, 0.5f, 1.0f };
+        mat.specular = { 0.0f, 0.0f, 0.0f, 32.0f };
+    }
 }
 
 ///////////////////////////////////////////////////////////
@@ -361,17 +398,18 @@ void SetupCube(BasicModel& cube)
 {
     // manually setup the cube model
 
-    sprintf(g_String, "%s%s", g_RelPathTexDir, "box01d.dds");
-    const TexID texID = g_TextureMgr.LoadFromFile(g_String);
+    const TexID texIdDiff = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "box01d.dds");
+    const TexID texIdNorm = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "box01n.dds");
 
-    // setup material and add it into the material manager
-    Material cubeBox01Mat;
-    cubeBox01Mat.SetName("cube_box01");
-    cubeBox01Mat.SetTexture(TEX_TYPE_DIFFUSE, texID);
-    const MaterialID cubeBox01MatID = g_MaterialMgr.AddMaterial(std::move(cubeBox01Mat));
+    // create and setup a material and add it into the material manager
+    Material mat;
+    mat.SetName("cube_box01");
+    mat.SetTexture(TEX_TYPE_DIFFUSE, texIdDiff);
+    mat.SetTexture(TEX_TYPE_NORMALS, texIdNorm);
+    const MaterialID matID = g_MaterialMgr.AddMaterial(std::move(mat));
 
     // cube has only one subset (mesh) by ID == 0
-    cube.SetMaterialForSubset(0, cubeBox01MatID);
+    cube.SetMaterialForSubset(0, matID);
 }
 
 ///////////////////////////////////////////////////////////
@@ -380,17 +418,16 @@ void SetupSphere(BasicModel& sphere)
 {
     // manually setup the sphere model
 
-    sprintf(g_String, "%s%s", g_RelPathTexDir, "gigachad.dds");
-    const TexID texID = g_TextureMgr.LoadFromFile(g_String);
+    const TexID texID = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "gigachad.dds");
 
     // setup material and add it into the material manager
-    Material sphereMat;
-    sphereMat.SetName("gigachad");
-    sphereMat.SetTexture(TEX_TYPE_DIFFUSE, texID);
-    const MaterialID sphereMatID = g_MaterialMgr.AddMaterial(std::move(sphereMat));
+    Material mat;
+    mat.SetName("gigachad");
+    mat.SetTexture(TEX_TYPE_DIFFUSE, texID);
+    const MaterialID matID = g_MaterialMgr.AddMaterial(std::move(mat));
 
     // setup material for a single mesh of the sphere model
-    sphere.SetMaterialForSubset(0, sphereMatID);
+    sphere.SetMaterialForSubset(0, matID);
 }
 
 } // namespace Game

@@ -532,17 +532,12 @@ void TransformSystem::GetWorlds(
     const size numEntts,
     cvector<DirectX::XMMATRIX>& outWorlds)
 {
-    // NOTE: size of arrays ids and outWorlds must be equal !!!
     Assert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
     Assert::True(numEntts > 0,   "input number of entities must be > 0");
 
-    const Transform& comp = *pTransform_;
-    cvector<index> idxs(numEntts);
-    cvector<DirectX::XMMATRIX> worlds(numEntts);
-
     // get data idx by each ID and then get world matrices by these idxs
-    comp.ids.get_idxs(ids, numEntts, idxs);
-    comp.worlds.get_data_by_idxs(idxs, outWorlds);
+    pTransform_->ids.get_idxs(ids, numEntts, s_Idxs);
+    pTransform_->worlds.get_data_by_idxs(s_Idxs, outWorlds);
 }
 
 ///////////////////////////////////////////////////////////
@@ -552,18 +547,12 @@ void TransformSystem::GetInverseWorlds(
     const size numEntts,
     cvector<DirectX::XMMATRIX>& outInvWorlds)
 {
-    // NOTE: size of arrays enttsIDs and outInvWorlds must be equal !!!
-
     if (!ids || (numEntts < 0))
         LogErr("input args are invalid");
 
-    const Transform& comp = *pTransform_;
-    cvector<index> idxs(numEntts);
-    cvector<XMMATRIX> invWorlds(numEntts);
-
     // get data idx by each ID and then get inverse world matrices by these idxs
-    comp.ids.get_idxs(ids, numEntts, idxs);
-    comp.invWorlds.get_data_by_idxs(idxs, outInvWorlds);
+    pTransform_->ids.get_idxs(ids, numEntts, s_Idxs);
+    pTransform_->invWorlds.get_data_by_idxs(s_Idxs, outInvWorlds);
 }
 
 
