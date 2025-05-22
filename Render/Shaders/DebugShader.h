@@ -13,7 +13,7 @@
 #include "ConstantBuffer.h"
 
 #include <d3d11.h>
-#include <DirectXMath.h>
+//#include <DirectXMath.h>
 
 namespace Render
 {
@@ -27,7 +27,7 @@ namespace BuffTypesDebug
 	struct cbpsRareChanged
 	{
 		// a structure for specific DEBUG PIXEL shader data which is rarely changed
-		int debugType = DebugState::SHOW_NORMALS;
+		int debugType = eDebugState::DBG_SHOW_NORMALS;
 	};
 };
 
@@ -57,8 +57,9 @@ public:
 		const UINT instancedBuffElemSize);
 
 	// change debug type (show normals, tangents, only diffuse map, etc.)
-	void SetDebugType(ID3D11DeviceContext* pContext, const DebugState state);
+	void SetDebugType(ID3D11DeviceContext* pContext, const eDebugState state);
 
+    inline int           GetDebugType()                const { return cbpsRareChangedDebug_.data.debugType; }
 	inline const char*   GetShaderName()               const { return className_; }
 	inline ID3D11Buffer* GetConstBufferPSRareChanged() const { return cbpsRareChangedDebug_.Get(); }
 

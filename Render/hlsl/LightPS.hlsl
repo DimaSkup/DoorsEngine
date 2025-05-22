@@ -48,7 +48,6 @@ struct PS_IN
     float3   posW               : POSITION;     // position in world
     float3   normalW            : NORMAL;       // normal in world
     float3   tangentW           : TANGENT;      // tangent in world
-    float3   binormalW          : BINORMAL;     // binormal in world
     float2   tex                : TEXCOORD;
     uint     textureSubsetIdx   : TEX_SUBSET_IDX;
     uint     instanceID         : SV_InstanceID;
@@ -66,10 +65,11 @@ struct PS_OUT
 //
 float4 PS(PS_IN pin) : SV_Target
 {
+    
     float4 textureColor = gTextures[1].Sample(gSampleType, pin.tex);
     
     // execute alpha clipping
-    if (gAlphaClipping)
+    //if (gAlphaClipping)
         clip(textureColor.a - 0.1f);
 
     //float4 specularMap = gTextures[2].Sample(gSampleType, pin.tex);
@@ -84,8 +84,8 @@ float4 PS(PS_IN pin) : SV_Target
 
     // compute the bumped normal in the world space
     float3 bumpedNormalW = NormalSampleToWorldSpace(normalMap, normalW, pin.tangentW);
-    
 
+  
     // --------------------  LIGHT   --------------------
 
     // a vector in the world space from vertex to eye pos
@@ -180,7 +180,7 @@ float4 PS(PS_IN pin) : SV_Target
     float4 litColor = textureColor * (ambient + diffuse) + spec;
 
     // common to take alpha from diffuse material and texture
-    litColor.a = ((Material)pin.material).diffuse.a * textureColor.a;
+    //litColor.a = ((Material)pin.material).diffuse.a * textureColor.a;
 
 
     // ---------------------  FOG  ----------------------
@@ -198,4 +198,5 @@ float4 PS(PS_IN pin) : SV_Target
     //return float4(pin.posH.z, pin.posH.z, pin.posH.z, 1.0f);
 
     return litColor;
+    
 }

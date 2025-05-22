@@ -3,7 +3,7 @@ const_str: Video_memory 10 30
 const_str: Fps 10 50
 const_str: Frame_time 10 70
 const_str: Update 10 90
-const str: Render 10 110
+const_str: Render 10 110
 const_str: X: 10 130
 const_str: Y: 10 150
 const_str: Z: 10 170

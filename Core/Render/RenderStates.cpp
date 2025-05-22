@@ -204,6 +204,13 @@ void RenderStates::SetDSS(
 // ********************************************************************************
 //                            PRIVATE METHODS
 // ********************************************************************************
+
+void InitFillRasterParams()
+{
+
+}
+void InitCullRasterParams();
+
 void RenderStates::InitAllRasterParams(ID3D11Device* pDevice, bool multisampleEnable)
 {
     // create/set up the rasterizer state objects
@@ -220,7 +227,7 @@ void RenderStates::InitAllRasterParams(ID3D11Device* pDevice, bool multisampleEn
         ZeroMemory(&desc, sizeof(D3D11_RASTERIZER_DESC));
 
         //
-        // DEFAULT: fill solid + cull back + front cw
+        // 1. DEFAULT: fill solid + cull back + front cw
         //
         desc.FillMode = D3D11_FILL_SOLID;
         desc.CullMode = D3D11_CULL_BACK;
@@ -231,12 +238,12 @@ void RenderStates::InitAllRasterParams(ID3D11Device* pDevice, bool multisampleEn
         hr = pDevice->CreateRasterizerState(&desc, &pRasterState);
         Assert::NotFailed(hr, "can't create a raster state");
 
-        UpdateRSHash({ FILL_SOLID, CULL_BACK, FRONT_COUNTER_CLOCKWISE });
+        UpdateRSHash({ FILL_SOLID, CULL_BACK, FRONT_CLOCKWISE });
         rasterStates_.insert({ GetCurrentRSHash(), pRasterState });
 
 
         //
-        // fill_solid + cull_back + cw
+        // 2. fill_solid + cull_back + front ccw
         //
         desc.FillMode = D3D11_FILL_SOLID;
         desc.CullMode = D3D11_CULL_BACK;
@@ -247,16 +254,31 @@ void RenderStates::InitAllRasterParams(ID3D11Device* pDevice, bool multisampleEn
         Assert::NotFailed(hr, "can't create a raster state");
 
         ResetRasterStateHash();
-        UpdateRSHash({ FILL_SOLID, CULL_BACK, FRONT_CLOCKWISE });
+        UpdateRSHash({ FILL_SOLID, CULL_BACK, FRONT_COUNTER_CLOCKWISE });
         rasterStates_.insert({ GetCurrentRSHash(), pRasterState });
 
 
         //
-        // fill_solid + cull_none + cw
+        // 3. fill_solid + cull_none + front ccw
         //
         desc.FillMode = D3D11_FILL_SOLID;
         desc.CullMode = D3D11_CULL_NONE;
         desc.FrontCounterClockwise = true;
+        desc.DepthClipEnable = true;
+
+        hr = pDevice->CreateRasterizerState(&desc, &pRasterState);
+        Assert::NotFailed(hr, "can't create a raster state");
+
+        ResetRasterStateHash();
+        UpdateRSHash({ FILL_SOLID, CULL_NONE, FRONT_COUNTER_CLOCKWISE });
+        rasterStates_.insert({ GetCurrentRSHash(), pRasterState });
+
+        //
+        // 4. fill_solid + cull_none + front cw
+        //
+        desc.FillMode = D3D11_FILL_SOLID;
+        desc.CullMode = D3D11_CULL_NONE;
+        desc.FrontCounterClockwise = false;
         desc.DepthClipEnable = true;
 
         hr = pDevice->CreateRasterizerState(&desc, &pRasterState);
@@ -268,7 +290,7 @@ void RenderStates::InitAllRasterParams(ID3D11Device* pDevice, bool multisampleEn
 
 
         //
-        // fill solid + cull front + ccw
+        // 5. fill solid + cull front + front cw
         //
         desc.FillMode = D3D11_FILL_SOLID;
         desc.CullMode = D3D11_CULL_FRONT;
@@ -279,12 +301,12 @@ void RenderStates::InitAllRasterParams(ID3D11Device* pDevice, bool multisampleEn
         Assert::NotFailed(hr, "can't create a raster state");
 
         ResetRasterStateHash();
-        UpdateRSHash({ FILL_SOLID, CULL_FRONT });
+        UpdateRSHash({ FILL_SOLID, CULL_FRONT, FRONT_CLOCKWISE });
         rasterStates_.insert({ GetCurrentRSHash(), pRasterState });
 
 
         //
-        // fill wireframe + cull back + ccw
+        // 6. fill wireframe + cull back + front cw
         //
         desc.FillMode = D3D11_FILL_WIREFRAME;
         desc.CullMode = D3D11_CULL_BACK;
@@ -295,12 +317,12 @@ void RenderStates::InitAllRasterParams(ID3D11Device* pDevice, bool multisampleEn
         Assert::NotFailed(hr, "can't create a raster state");
 
         ResetRasterStateHash();
-        UpdateRSHash({ FILL_WIREFRAME, CULL_BACK, FRONT_COUNTER_CLOCKWISE });
+        UpdateRSHash({ FILL_WIREFRAME, CULL_BACK, FRONT_CLOCKWISE });
         rasterStates_.insert({ GetCurrentRSHash(), pRasterState });
 
 
         //
-        // fill wireframe + cull front + ccw
+        // 7. fill wireframe + cull front + front cw
         //
         desc.FillMode = D3D11_FILL_WIREFRAME;
         desc.CullMode = D3D11_CULL_FRONT;
@@ -311,12 +333,12 @@ void RenderStates::InitAllRasterParams(ID3D11Device* pDevice, bool multisampleEn
         Assert::NotFailed(hr, "can't create a raster state");
 
         ResetRasterStateHash();
-        UpdateRSHash({ FILL_WIREFRAME, CULL_FRONT, FRONT_COUNTER_CLOCKWISE });
+        UpdateRSHash({ FILL_WIREFRAME, CULL_FRONT, FRONT_CLOCKWISE });
         rasterStates_.insert({ GetCurrentRSHash(), pRasterState });
 
 
         //
-        // fill wireframe + cull none + ccw
+        // 8. fill wireframe + cull none + front cw
         //
         desc.FillMode = D3D11_FILL_WIREFRAME;
         desc.CullMode = D3D11_CULL_NONE;
@@ -327,22 +349,7 @@ void RenderStates::InitAllRasterParams(ID3D11Device* pDevice, bool multisampleEn
         Assert::NotFailed(hr, "can't create a raster state");
 
         ResetRasterStateHash();
-        UpdateRSHash({ FILL_WIREFRAME, CULL_NONE, FRONT_COUNTER_CLOCKWISE });
-        rasterStates_.insert({ GetCurrentRSHash(), pRasterState });
-
-        //
-        // fill solid + cull none + ccw
-        //
-        desc.FillMode = D3D11_FILL_SOLID;
-        desc.CullMode = D3D11_CULL_NONE;
-        desc.FrontCounterClockwise = false;
-        desc.DepthClipEnable = true;
-
-        hr = pDevice->CreateRasterizerState(&desc, &pRasterState);
-        Assert::NotFailed(hr, "can't create a raster state");
-
-        ResetRasterStateHash();
-        UpdateRSHash({ FILL_SOLID, CULL_NONE, FRONT_COUNTER_CLOCKWISE });
+        UpdateRSHash({ FILL_WIREFRAME, CULL_NONE, FRONT_CLOCKWISE });
         rasterStates_.insert({ GetCurrentRSHash(), pRasterState });
 
 
@@ -350,7 +357,7 @@ void RenderStates::InitAllRasterParams(ID3D11Device* pDevice, bool multisampleEn
         // AFTER ALL: reset the rasterizer state hash after initialization
         //            and set the default params
         ResetRasterStateHash();
-        UpdateRSHash({ FILL_SOLID, CULL_BACK, FRONT_COUNTER_CLOCKWISE });
+        UpdateRSHash({ FILL_SOLID, CULL_BACK, FRONT_CLOCKWISE });
     }
     catch (EngineException& e)
     {
@@ -684,13 +691,13 @@ void RenderStates::UpdateRSHash(const std::set<eRenderState>& rsParams)
             {
                 // &= ~(1 << rsParam);
                 rasterStateHash_ &= ~(1 << FRONT_COUNTER_CLOCKWISE); // turn off
-                rasterStateHash_ |= (1 << FRONT_CLOCKWISE);         // turn on
+                rasterStateHash_ |= (1 << FRONT_CLOCKWISE);          // turn on
                 break;
             }
             case FRONT_COUNTER_CLOCKWISE:
             {
                 rasterStateHash_ &= ~(1 << FRONT_CLOCKWISE);         // turn off
-                rasterStateHash_ |= (1 << FRONT_COUNTER_CLOCKWISE); // turn on
+                rasterStateHash_ |= (1 << FRONT_COUNTER_CLOCKWISE);  // turn on
                 break;
             }
             default:
@@ -705,16 +712,15 @@ void RenderStates::UpdateRSHash(const std::set<eRenderState>& rsParams)
 
 ///////////////////////////////////////////////////////////
 
-void RenderStates::PrintErrAboutRSHash(const uint8_t hash)
+void RenderStates::PrintErrAboutRSHash(const uint8_t bitfield)
 {
     // if we got somewhere some wrong hash we call this method to 
     // print an error message about it
 
-    std::stringstream hashStream;
-    std::stringstream rsNames;
-    rsNames << '\n';
+    char bitfieldChars[8]{ '\0' };
+    char rasterStatesNamesBuf[256] {'\0'};
 
-    std::map<eRenderState, std::string> rasterParamsNames_ =
+    const std::map<eRenderState, const char*> rasterParamsNames =
     {
         {FILL_SOLID,              "FILL_SOLID"},
         {FILL_WIREFRAME,          "FILL_WIREFRAME"},
@@ -725,24 +731,25 @@ void RenderStates::PrintErrAboutRSHash(const uint8_t hash)
         {FRONT_CLOCKWISE,         "FRONT_CLOCKWISE"},
     };
 
-    // print the hash
-    int symbol = 0;
+    // convert bitfield into string
+    itoa(bitfield, bitfieldChars, 2);
+
+    // go through each bitflag
     for (int i = 7; i >= 0; i--)
     {
-        // generate a string with the hash in binary view
-        symbol = (hash >> i) & 1;
-        hashStream << symbol << " ";
-
-        // if the current symbol == 1 we get its shift in the hash (value of i)
-        // and get a name of the rasterizer state parameter from the map
-        if (symbol == 1)
-            rsNames << rasterParamsNames_.at((eRenderState)i) << "\n";
+        // get a name for this bigflag if it == 1
+        if (bitfieldChars[i] == '1')
+        {
+            strcat(rasterStatesNamesBuf, rasterParamsNames.at((eRenderState)i));
+            strcat(rasterStatesNamesBuf, ", ");
+        }
     }
 
+    // print error info about not existent rasterizer state
     LogErr("can't get a raster state ptr by hash:");
-    LogMsgf("%s%s", RED, hashStream.str().c_str());
+    LogMsgf("%s%s", RED, bitfieldChars);
     LogMsgf("%s%s", RED, "which is responsible to such params(at the same time) :");
-    LogMsgf("%s%s", RED, rsNames.str().c_str());
+    LogMsgf("%s%s", RED, rasterStatesNamesBuf);
 }
 
 } // namespace Core

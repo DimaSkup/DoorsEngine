@@ -9,7 +9,9 @@
 namespace Core
 {
 
-RenderDataPreparator::RenderDataPreparator() {}
+RenderDataPreparator::RenderDataPreparator() :
+    textureSRVs_(1028, nullptr)
+{}
 
 ///////////////////////////////////////////////////////////
 
@@ -526,33 +528,33 @@ void RenderDataPreparator::PrepareTexturesForInstance(Render::Instance& instance
 {
     // prepare textures for the instance which are based on original related model
 
-    using SRV = ID3D11ShaderResourceView;
+    
     const size numSubsets = (int)instance.subsets.size();
 
     // prepare valid textures (SRVs) for this instance
-    //MaterialID        materialsIDs[256]{ INVALID_MATERIAL_ID };
-    TexID             texturesIDs[256]{ INVALID_TEXTURE_ID };
-    cvector<Material> materials(numSubsets);
-    cvector<SRV*>     textureSRVs(256, nullptr);
-
+    //constexpr int     numElems = 180000;
+    
+    materials_.resize(numSubsets);
     
     // get materials data by materials IDs (one material per one subset)
-    g_MaterialMgr.GetMaterialsByIDs(instance.materialIDs.data(), numSubsets, materials);
+    g_MaterialMgr.GetMaterialsByIDs(instance.materialIDs.data(), numSubsets, materials_);
 
     // go through each material and store related textures IDs
     for (index i = 0, texIdx = 0; i < numSubsets; ++i)
     {
         for (index j = 0; j < NUM_TEXTURE_TYPES; ++j)
-            texturesIDs[texIdx++] = materials[i].textureIDs[j];
+        {
+            texturesIDs_[texIdx++] = materials_[i].textureIDs[j]; // TODO: memcpy
+        }
     }
 
-    g_TextureMgr.GetSRVsByTexIDs(texturesIDs, NUM_TEXTURE_TYPES * numSubsets, textureSRVs);
+    g_TextureMgr.GetSRVsByTexIDs(texturesIDs_, NUM_TEXTURE_TYPES * numSubsets, textureSRVs_);
 
     // store texture SRVs into the instance
     instance.texSRVs.resize(numSubsets * NUM_TEXTURE_TYPES);
 
     for (index i = 0; i < NUM_TEXTURE_TYPES * numSubsets; ++i)
-        instance.texSRVs[i] = textureSRVs[i];
+        instance.texSRVs[i] = textureSRVs_[i];
 }
 
 ///////////////////////////////////////////////////////////
@@ -565,8 +567,7 @@ void RenderDataPreparator::PrepareMaterialForInstance(
     // push them back into the outMaterials array
 
     const size numSubsets = (int)instance.subsets.size();
-    cvector<Material> materials(numSubsets);
-    MaterialID materialsIDs[256]{ INVALID_MATERIAL_ID };
+    materials_.resize(numSubsets);
 
     // prepare more memory for the materials
     index outMatIdx = outMaterials.size();
@@ -574,15 +575,15 @@ void RenderDataPreparator::PrepareMaterialForInstance(
     outMaterials.resize(numMaterials);
 
     // get materials data by materials IDs (one material per one subset)
-    g_MaterialMgr.GetMaterialsByIDs(instance.materialIDs.data(), numSubsets, materials);
+    g_MaterialMgr.GetMaterialsByIDs(instance.materialIDs.data(), numSubsets, materials_);
 
     // go through each material and convert it into the Render::Material
     for (index i = 0; outMatIdx < numMaterials; ++outMatIdx, ++i)
     {
-        outMaterials[outMatIdx].ambient_  = DirectX::XMFLOAT4(&materials[i].ambient.x);
-        outMaterials[outMatIdx].diffuse_  = DirectX::XMFLOAT4(&materials[i].diffuse.x);
-        outMaterials[outMatIdx].specular_ = DirectX::XMFLOAT4(&materials[i].specular.x);
-        outMaterials[outMatIdx].reflect_  = DirectX::XMFLOAT4(&materials[i].reflect.x);
+        outMaterials[outMatIdx].ambient_  = DirectX::XMFLOAT4(&materials_[i].ambient.x);
+        outMaterials[outMatIdx].diffuse_  = DirectX::XMFLOAT4(&materials_[i].diffuse.x);
+        outMaterials[outMatIdx].specular_ = DirectX::XMFLOAT4(&materials_[i].specular.x);
+        outMaterials[outMatIdx].reflect_  = DirectX::XMFLOAT4(&materials_[i].reflect.x);
     }
 }
 

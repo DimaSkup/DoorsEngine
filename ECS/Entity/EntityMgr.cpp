@@ -693,11 +693,12 @@ void EntityMgr::AddBoundingComponent(
     const DirectX::BoundingSphere* spheres,
     const size numEntts)
 {
+    assert(0 && "FIXME");
     // add bounding spheres to each input entity by ID (input arrays are supposed to be equal)
     try
     {
-        boundingSystem_.Add(ids, numEntts, spheres);
-        SetEnttsHaveComponent(ids, numEntts, BoundingComponent);
+        //boundingSystem_.Add(ids, numEntts, spheres);
+        //SetEnttsHaveComponent(ids, numEntts, BoundingComponent);
     }
     catch (LIB_Exception& e)
     {

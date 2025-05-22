@@ -170,7 +170,7 @@ void EditorPanels::RenderEditorEventHistory()
 {
     if (ImGui::Begin("Events history"))
     {
-        const std::deque<HistoryItem>& eventsHistory = gEventsHistory.history_;
+        const std::deque<HistoryItem>& eventsHistory = g_EventsHistory.history_;
         int idx = 0;
 
         for (auto it = eventsHistory.begin(); it != eventsHistory.end(); ++it)

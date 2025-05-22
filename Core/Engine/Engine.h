@@ -154,8 +154,7 @@ private:
 
     // client's zone width/height
     UINT clientWidth_   = 0;
-    UINT clientHeight_  = 0;
-
+    UINT clientHeight_ = 0;
 };
 
 } // namespace Core

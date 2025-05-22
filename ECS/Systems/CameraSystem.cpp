@@ -139,6 +139,34 @@ void CameraSystem::RotateY(const EntityID id, const float angle)
 
 ///////////////////////////////////////////////////////////
 
+void CameraSystem::GetAllCamerasIds(cvector<EntityID>& outIds) const
+{
+    Camera& comp = *pCameraComponent_;
+    outIds.resize(comp.data.size() - 1);   // -1 because we don't want to get id == 0 (INVALID_ENTITY_ID)
+
+    for (int i = 0; const auto & it : comp.data)
+    {
+        if (it.first != INVALID_ENTITY_ID)
+            outIds[i++] = it.first;
+    }
+}
+
+///////////////////////////////////////////////////////////
+
+void CameraSystem::SetAspectRatio(const EntityID id, const float aspect)
+{
+    // update aspect ration and perspective projection of camera by ID
+    if (HasEntity(id))
+    {
+        CameraData& data = pCameraComponent_->data.at(id);
+
+        data.aspectRatio = aspect;
+        data.proj = XMMatrixPerspectiveFovLH(data.fovY, aspect, data.nearZ, data.farZ);
+    }
+}
+
+///////////////////////////////////////////////////////////
+
 void CameraSystem::SetBaseViewMatrix(const EntityID id, const XMMATRIX& baseView)
 {
     if (HasEntity(id))

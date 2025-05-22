@@ -43,11 +43,9 @@ bool GeometryShader::Initialize(ID3D11Device* pDevice, const char* shaderPath)
 #endif
 
 
-    std::streampos len = 0;
-
     // load in shader bytecode
-    const bool result = LoadCSO(shaderPath, &pShaderBuffer_, len);
-    if (!result)
+    const size_t len = LoadCSO(shaderPath, pShaderBuffer_);
+    if (!len)
     {
         sprintf(g_String, "Failed to load .CSO-file of geometry shader: %s", shaderPath);
         LogErr(g_String);

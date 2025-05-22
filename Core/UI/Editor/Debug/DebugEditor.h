@@ -32,19 +32,18 @@ public:
 		pFacade_ = pFacade;
 	}
 
+    ///////////////////////////////////////////////////////
+
 	void Draw()
 	{
+        // render options to control the debug visualization properties;
+        // when choose some option we switch shader debug state (or turn it off)
+
 		if (pFacade_ == nullptr)
 		{
 			Core::LogErr("ptr to the facade interface == nullptr");
 			return;
 		}
-
-		//ImGui::SeparatorText("Debug");
-
-		// switch shader debug state (or turn it off)
-		bool anyBtnWasPressed = false;
-		static int debugOption = 0;
 
 		ImGui::Text("show as colors:");
 
@@ -53,7 +52,6 @@ public:
 			"default", 
 			"normals",
 			"tangents",
-			"binormals",
 			"bumped normals",
 			"only lighting",
 			"only directed lighting",   // for instance: sun
@@ -61,18 +59,17 @@ public:
 			"only spot lighting",       // for instance: flashlight
 			"only diffuse map",
 			"only normal map",
+            "wireframe"
 		};
 
-		const int numItems_ = ARRAYSIZE(items);
-
-		for (int i = 0; i < numItems_; ++i)
+        static int debugOption = 0;
+        bool anyBtnWasPressed = false;
+        
+		for (int i = 0; i < (int)ARRAYSIZE(items); ++i)
 			anyBtnWasPressed |= ImGui::RadioButton(items[i], &debugOption, i);
 
 		if (anyBtnWasPressed)
-		{
 			pFacade_->SwitchDebugState(debugOption);
-		}
-
 	}
 };
 

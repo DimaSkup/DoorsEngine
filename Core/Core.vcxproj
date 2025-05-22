@@ -209,6 +209,8 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClCompile Include="ImGui\ImGuiLayer.cpp" />
     <ClCompile Include="Input\KeyboardEvent.cpp" />
     <ClCompile Include="Mesh\MaterialMgr.cpp" />
+    <ClCompile Include="Mesh\Vertex3dTerrain.cpp" />
+    <ClCompile Include="Model\BruteForceTerrain.cpp" />
     <ClCompile Include="Model\GeometryGenerator.cpp" />
     <ClCompile Include="Model\ModelExporter.cpp" />
     <ClCompile Include="Model\ModelLoader.cpp" />
@@ -224,6 +226,7 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClCompile Include="Model\SkyDomeClass.cpp" />
     <ClCompile Include="Model\SkyModel.cpp" />
     <ClCompile Include="Model\SkyPlaneClass.cpp" />
+    <ClCompile Include="Model\TerrainBase.cpp" />
     <ClCompile Include="Model\TerrainCellClass.cpp" />
     <ClCompile Include="Model\TerrainClass.cpp" />
     <ClCompile Include="Tests\ECS\ECS_Tester.cpp" />
@@ -324,6 +327,8 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClInclude Include="ImGui\misc\single_file\imgui_single_file.h" />
     <ClInclude Include="Input\KeyboardEvent.h" />
     <ClInclude Include="Mesh\MaterialMgr.h" />
+    <ClInclude Include="Mesh\Vertex3dTerrain.h" />
+    <ClInclude Include="Model\BruteForceTerrain.h" />
     <ClInclude Include="Model\GeometryGenerator.h" />
     <ClInclude Include="Mesh\MeshGeometry.h" />
     <ClInclude Include="Mesh\MeshHelperTypes.h" />
@@ -334,6 +339,7 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClInclude Include="Model\ModelsCreator.h" />
     <ClInclude Include="Model\ModelStorageSerializer.h" />
     <ClInclude Include="Model\SkyModel.h" />
+    <ClInclude Include="Model\TerrainBase.h" />
     <ClInclude Include="Tests\ECS\ECS_Tester.h" />
     <ClInclude Include="Tests\ECS\HelperTypes.h" />
     <ClInclude Include="Texture\TextureTypesNames.h" />

@@ -31,7 +31,6 @@ struct VS_IN
 	float2 tex         : TEXCOORD;
 	float3 normalL     : NORMAL;       // vertex normal in local space
 	float3 tangentL    : TANGENT;      // tangent in local space
-	float3 binormalL   : BINORMAL;     // binormal in local space
 };
 
 struct VS_OUT
@@ -41,7 +40,6 @@ struct VS_OUT
 	float3   posW      : POSITION;     // position in world
 	float3   normalW   : NORMAL;       // normal in world
 	float3   tangentW  : TANGENT;      // tangent in world
-	float3   binormalW : BINORMAL;     // binormal in world
 	float2   tex       : TEXCOORD;
 };
 
@@ -66,9 +64,6 @@ VS_OUT VS(VS_IN vin)
 
 	// calculate the tangent and normalize it
 	vout.tangentW = normalize(mul(vin.tangentL, (float3x3)vin.worldInvTranspose));
-
-	// calculate the binormal and normalize it
-	vout.binormalW = normalize(mul(vin.binormalL, (float3x3)vin.worldInvTranspose));
 
 	// output vertex texture attributes for interpolation across triangle
 	vout.tex = mul(float4(vin.tex, 0.0f, 1.0f), vin.texTransform).xy;

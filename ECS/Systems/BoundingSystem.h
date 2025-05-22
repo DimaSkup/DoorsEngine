@@ -35,20 +35,14 @@ public:
         const BoundingType* types,              // AABB type per mesh
         const DirectX::BoundingBox* AABBs);     // AABB per mesh
 
-    void Add(
+    // ----------------------------------------------------
+
+    void GetBoundSpheres(
         const EntityID* ids,
         const size numEntts,
-        const DirectX::BoundingSphere* spheres);
+        cvector<DirectX::BoundingSphere>& outBoundSpheres);
 
-#if 0
-    const BoundingData& GetBoundingDataByID(const EntityID id);
-
-    void GetBoundingDataByIDs(
-        const std::vector<EntityID>& ids,
-        std::vector<BoundingData>& outData);
-#endif
-
-    void GetEnttAABB(const EntityID id, DirectX::BoundingBox& outAABB);
+    void GetAABB(const EntityID id, DirectX::BoundingBox& outAABB);
 
     void GetOBBs(
         const EntityID* ids,
@@ -84,6 +78,7 @@ private:
     }
 
 private:
+    cvector<index> s_Idxs;                   // static array of idxs to elements in array
     Bounding* pBoundingComponent_ = nullptr;
 };
 

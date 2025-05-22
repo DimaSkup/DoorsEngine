@@ -15,7 +15,7 @@ namespace UI
 // static
 SentenceID TextStore::staticID_ = 0;
 
-TextStore::TextStore() 
+TextStore::TextStore()
 {
 }
 
@@ -25,10 +25,73 @@ TextStore::~TextStore()
 }
 
 
+// =================================================================================
+// public modification API
+// =================================================================================
+void TextStore::InitDebugText(ID3D11Device* pDevice, FontClass& font)
+{
+    constexpr size      vbSize = maxNumVerticesInDbgText;
+    constexpr size      ibSize = maxNumCharsInDbgText * 6;  // 6 indices per symbol
+    const cvector<UINT> indices(ibSize, 0);
+    const bool          isDynamic = true;
 
-// =================================================================================
-//                             public modification API
-// =================================================================================
+    // ----------------------------------------------------
+   
+    // offset in the buf of raw vertices
+    index vOffset = 0;  
+
+    // build vertices for the whole debug const text
+    Core::VertexFont rawVertices[maxNumVerticesInDbgText];
+
+    for (index idx = 0; idx < numDbgConstSentences_; ++idx)
+    {
+        // number of vertices for the current sentence
+        const size numVertices = (size)strlen(dbgConstSentences_[idx].text) * 4;
+
+        // rebuild vertices for this sentence
+        font.BuildVertexArray(
+            rawVertices + vOffset,
+            numVertices,
+            dbgConstSentences_[idx].text,
+            dbgConstSentences_[idx].drawAtX,
+            dbgConstSentences_[idx].drawAtY);
+
+        vOffset += numVertices;
+
+        if (vOffset >= maxNumVerticesInDbgText)
+        {
+            LogErr("too much vertices for the vertex buffer of debug const sentences");
+            idx = numDbgConstSentences_;   // go out from the for-loop
+        }
+    }
+    // compute actual number of indices (vOffset / vertices_per_sym * indices_per_sym)
+    indexCountDbgConstText_ = (u32)(vOffset / 4 * 6);
+
+    // ----------------------------------------------------
+
+    // init vertex buffer for debug const and dynamic sentences
+    if (!vbDbgConstText_.Initialize(pDevice, rawVertices, (int)vOffset, !isDynamic))
+    {
+        LogErr("can't create a const vertex buffer for debug text");
+        return;
+    }
+    if (!vbDbgDynamicText_.Initialize(pDevice, dbgTextRawVertices_, vbSize, isDynamic))
+    {
+        LogErr("can't create a dynamic vertex buffer for debug text");
+        return;
+    }
+
+    // init common index buffer (is used by both debug const and dynamic sentences)
+    font.BuildIndexArray(indices.data(), ibSize);
+
+    if (!ibDbgText_.Initialize(pDevice, indices.data(), ibSize))
+    {
+        LogErr("can't create an index buffer for debug (dynamic) text");
+        return;
+    }
+}
+
+///////////////////////////////////////////////////////////
 
 SentenceID TextStore::CreateConstSentence(
     ID3D11Device* pDevice,
@@ -64,6 +127,7 @@ SentenceID TextStore::CreateConstSentence(
             font,
             vertices,
             indices);
+
 
         // initialize the VB/IB for this text string
         constexpr bool isDynamic = false;
@@ -144,151 +208,103 @@ SentenceID TextStore::CreateSentence(
 
 ///////////////////////////////////////////////////////////
 
-void TextStore::SetKeyByID(const std::string& key, const SentenceID id)
+void TextStore::AddDebugConstSentence(
+    const char* key,
+    const char* text,
+    const float drawAtX,
+    const float drawAtY)
 {
-    // create a semantic text key for the input sentence ID;
-    // so we will be able to get this ID by key;
-    const auto result = keyToID_.insert({ key, id });
+    const index idx = numDbgConstSentences_;
+    ++numDbgConstSentences_;
 
-    if (!result.second)
-    {
-        sprintf(g_String, "can't set a key (%s) by sentence ID (%ld)", key.c_str(), id);
-        LogErr(g_String);
-    }
+    if (text)
+        strcpy(dbgConstSentences_[idx].text, text);
+
+    dbgConstSentences_[idx].drawAtX = drawAtX;
+    dbgConstSentences_[idx].drawAtY = drawAtY;
+}
+
+///////////////////////////////////////////////////////////
+
+void TextStore::AddDebugDynamicSentence(
+    const char* key,
+    const char* text,
+    const float drawAtX,
+    const float drawAtY)
+{
+    const index idx = numDbgDynamicSentences_;
+    ++numDbgDynamicSentences_;
+
+    if (text)
+        strcpy(dbgDynamicSentences_[idx].text, text);
+
+    dbgDynamicSentences_[idx].drawAtX = drawAtX;
+    dbgDynamicSentences_[idx].drawAtY = drawAtY;
 }
 
 ///////////////////////////////////////////////////////////
 
 void TextStore::GetRenderingData(
-    cvector<ID3D11Buffer*>& outVbPtrs,
-    cvector<ID3D11Buffer*>& outIbPtrs,
-    cvector<u32>& outIndexCounts)
+    ID3D11Buffer** outConstVbPtr,    // a ptr to the const vertex buf of const debug text
+    ID3D11Buffer** outDynamicVbPtr,  // a ptr to the dynamic vertex buf of dynamic debug text
+    ID3D11Buffer** outIbPtr,
+    u32& outConstIndexCount,         // index count for debug const sentences
+    u32& outDynamicIndexCount)       // index count for debug dynamic sentences
 {
-    // get vertex buffer (VB), index buffer (IB), and index count of each sentence from the storage
-
-    const size numBuffers = std::ssize(vertexBuffers_);
-
-    outVbPtrs.resize(numBuffers);
-    outIbPtrs.resize(numBuffers);
-    outIndexCounts.resize(numBuffers);
-
-    // go through vertex buffers and get pointers to it
-    for (int i = 0; const auto& vb : vertexBuffers_)
-        outVbPtrs[i++] = vb.Get();
-
-    // go through index buffers and get pointers to it
-    for (int i = 0; const auto& ib : indexBuffers_)
-        outIbPtrs[i++] = ib.Get();
-
-    // go through index buffers and get index counts
-    for (int i = 0; const auto& ib : indexBuffers_)
-        outIndexCounts[i++] = ib.GetIndexCount();
+    *outConstVbPtr       = vbDbgConstText_.Get();
+    *outDynamicVbPtr     = vbDbgDynamicText_.Get();
+    *outIbPtr            = ibDbgText_.Get();
+    outConstIndexCount   = indexCountDbgConstText_;
+    outDynamicIndexCount = indexCountDbgDynamicText_;
 }
 
 
 // ====================================================================================
 //                               PUBLIC UPDATE API
 // ====================================================================================
+void TextStore::UpdateDebugText(
+    ID3D11DeviceContext* pContext,
+    FontClass& font,
+    const Core::SystemState& sysState)
+{
+    // update text content of each debug string
+    int i = 0;
+
+    sprintf(dbgDynamicSentences_[i++].text, "%d",       sysState.fps);
+    sprintf(dbgDynamicSentences_[i++].text, "%05.2fms", sysState.frameTime);
+    sprintf(dbgDynamicSentences_[i++].text, "%05.2fms", sysState.updateTime);
+    sprintf(dbgDynamicSentences_[i++].text, "%05.2fms", sysState.renderTime);
+
+    // pos info
+    sprintf(dbgDynamicSentences_[i++].text, "%.2f", sysState.cameraPos.x);
+    sprintf(dbgDynamicSentences_[i++].text, "%.2f", sysState.cameraPos.y);
+    sprintf(dbgDynamicSentences_[i++].text, "%.2f", sysState.cameraPos.z);
+
+    // rotation info
+    sprintf(dbgDynamicSentences_[i++].text, "%.2f", sysState.cameraDir.x);
+    sprintf(dbgDynamicSentences_[i++].text, "%.2f", sysState.cameraDir.y);
+    sprintf(dbgDynamicSentences_[i++].text, "%.2f", sysState.cameraDir.z);
+
+    // render info
+    sprintf(dbgDynamicSentences_[i++].text, "%d", sysState.visibleObjectsCount);
+    sprintf(dbgDynamicSentences_[i++].text, "%d", sysState.visibleVerticesCount);
+    sprintf(dbgDynamicSentences_[i++].text, "%d", sysState.visibleVerticesCount / 3);
+    sprintf(dbgDynamicSentences_[i++].text, "%d", sysState.cellsDrawn);
+    sprintf(dbgDynamicSentences_[i++].text, "%d", sysState.cellsCulled);
+
+    UpdateDebugSentences(pContext, font);
+}
+
+///////////////////////////////////////////////////////////
+
 void TextStore::Update(
     ID3D11DeviceContext* pContext,
     FontClass& font,
     const Core::SystemState& sysState)
 
 {
-    // Update() changes the contents of the dynamic vertex buffer for the input text.
-    try
-    {
-        constexpr size numDynamicSentences = 15;
-
-        // sentences by these keys are supposed to update if its values are
-        // differ from the sysState
-        const char* keys[numDynamicSentences] =
-        {
-            "fps", "frame_time", "update_time", "render_time",
-
-            "posX",	"posY",	"posZ",   // player's position info
-            "rotX", "rotY", "rotZ",   // player's directions info
-
-            // render info
-            "models_drawn", "vertices_drawn", "faces_drawn",
-            "cells_drawn", "cells_culled",
-        };
-     
-
-        struct value 
-        {
-            char text[32]{'\0'};
-        };
-        value textValues[numDynamicSentences];
-       
-        // set values so later we will compare them to the previous ones
-        constexpr size_t maxStrSize = 16;
-        int i = 0;
-        
-        snprintf(textValues[i++].text, maxStrSize, "%d", sysState.fps);
-        snprintf(textValues[i++].text, maxStrSize, "%05.2fms", sysState.frameTime);
-        snprintf(textValues[i++].text, maxStrSize, "%05.2fms", sysState.updateTime);
-        snprintf(textValues[i++].text, maxStrSize, "%05.2fms", sysState.renderTime);
-
-        // pos info
-        sprintf(textValues[i++].text, "%.2f", sysState.cameraPos.x);
-        sprintf(textValues[i++].text, "%.2f", sysState.cameraPos.y);
-        sprintf(textValues[i++].text, "%.2f", sysState.cameraPos.z);
-
-        // rotation info
-        sprintf(textValues[i++].text, "%.2f", sysState.cameraDir.x);
-        sprintf(textValues[i++].text, "%.2f", sysState.cameraDir.y);
-        sprintf(textValues[i++].text, "%.2f", sysState.cameraDir.z);
-
-        // render info
-        sprintf(textValues[i++].text, "%d", sysState.visibleObjectsCount);
-        sprintf(textValues[i++].text, "%d", sysState.visibleVerticesCount);
-        sprintf(textValues[i++].text, "%d", sysState.visibleVerticesCount / 3);
-        sprintf(textValues[i++].text, "%d", sysState.cellsDrawn);
-        sprintf(textValues[i++].text, "%d", sysState.cellsCulled);
-
-        // ------------------------------------------------
-
-        SentenceID ids[numDynamicSentences]{0};
-
-        for (int i = 0; const char* key : keys)         // get ids by keys
-            ids[i++] = keyToID_[key];
-
-        cvector<index> idxs(numDynamicSentences);
-        ids_.get_idxs(ids, numDynamicSentences, idxs);  // get idxs by ids
-
-
-        // check if we need to update the sentence by idx
-        bool updatingFlags[numDynamicSentences]{ 0 };
-
-        for (index i = 0; i < numDynamicSentences; ++i)
-        {
-            const index idx = idxs[i];
-            updatingFlags[i] = (strcmp(textContent_[idx].c_str(), textValues[i].text) != 0);
-        }
-
-        // ------------------------------------------------
-
-        // update the sentences if necessary
-        for (index i = 0; i < numDynamicSentences; ++i)
-        {
-            const index idx = idxs[i];
-
-            if (updatingFlags[i])
-                UpdateSentenceByIdx(pContext, font, idx, textValues[i].text);
-        }
-    }
-    catch (const std::out_of_range& e)
-    {
-        Core::LogErr(e.what());
-        Core::LogErr("can't find an dynamic sentences of UI");
-    }
-    catch (Core::EngineException& e)
-    {
-        Core::LogErr(e);
-        Core::LogErr("failed to update the text vertex buffer with new data");
-        throw Core::EngineException("can't update the sentence");
-    }
+    // update the content of the dynamic text and dynamic vertex buffers
+    UpdateDebugText(pContext, font, sysState);
 }
 
 
@@ -306,16 +322,15 @@ void TextStore::BuildTextVerticesIndices(
 { 
     // build a vertex and index buffer for the input string by its 
     // textContent and places its vertices at the drawAt position;
-
     try
     {
         Core::Assert::True(!textContent.empty(), "the input str is empty");
         Core::Assert::True(maxStrSize >= std::ssize(textContent), "maxStrSize must be >= sentence size");
 
-        const size numVerticesInSymbol = 4;
-        const size numIndicesInSymbol  = 6;
-        const size numVertices         = maxStrSize * numVerticesInSymbol;
-        const size numIndices          = maxStrSize * numIndicesInSymbol;
+        constexpr size numVerticesPerChar = 4;
+        constexpr size numIndicesPerChar  = 6;
+        const     size numVertices        = maxStrSize * numVerticesPerChar;
+        const     size numIndices         = maxStrSize * numIndicesPerChar;
 
         vertices.resize(numVertices);
         indices.resize(numIndices, 0);
@@ -346,18 +361,53 @@ void TextStore::UpdateSentenceByIdx(
 
     textContent_[idx] = newStr;
 
-    cvector<Core::VertexFont> vertices(maxStrSize_[idx] * 4);
+    constexpr size numMaxVertices = 256;             // suppose max 64 symbols * 4 vertex per each symbol
+    Core::VertexFont vertices[numMaxVertices];
+    constexpr size verticesPerChar = 4;
+    const size maxNumVerticesInSentence = maxStrSize_[idx] * verticesPerChar;
 
     // rebuild vertices for this sentence
     font.BuildVertexArray(
-        vertices.data(),
-        std::ssize(vertices),
+        vertices,
+        maxNumVerticesInSentence,
         newStr,
         drawAt_[idx].x,
         drawAt_[idx].y);
 
     // update VB with new vertices
-    vertexBuffers_[idx].UpdateDynamic(pContext, vertices.data(), std::ssize(vertices));
+    vertexBuffers_[idx].UpdateDynamic(pContext, vertices, maxNumVerticesInSentence);
+}
+
+///////////////////////////////////////////////////////////
+
+void TextStore::UpdateDebugSentences(ID3D11DeviceContext* pContext, FontClass& font)
+{
+    // update text content of the debug dynamic strings, rebuild vertices,
+    // and also update the vertex buffer with these new vertices
+
+    constexpr size verticesPerChar = 4;
+    index vOffset = 0;                    // offset in the buf of raw vertices
+
+    for (index idx = 0; idx < numDbgDynamicSentences_; ++idx)
+    {
+        // number of vertices for the current sentence
+        const size numVertices = (size)strlen(dbgDynamicSentences_[idx].text) * verticesPerChar;
+
+        // rebuild vertices for this sentence
+        font.BuildVertexArray(
+            dbgTextRawVertices_ + vOffset,
+            numVertices,
+            dbgDynamicSentences_[idx].text,
+            dbgDynamicSentences_[idx].drawAtX,
+            dbgDynamicSentences_[idx].drawAtY);
+
+        vOffset += numVertices;
+    }
+
+    // compute actual number of indices (vOffset / vertices_per_sym * indices_per_sym)
+    indexCountDbgDynamicText_ = (u32)(vOffset / 4 * 6);  
+
+    vbDbgDynamicText_.UpdateDynamic(pContext, dbgTextRawVertices_, vOffset);
 }
 
 } // namespace UI

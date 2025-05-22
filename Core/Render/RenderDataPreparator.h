@@ -16,13 +16,16 @@
 #include "../Texture/TextureMgr.h"
 #include "../Mesh/MaterialMgr.h"
 
-#include <vector>
+//#include <vector>
 
 namespace Core
 {
 
 class RenderDataPreparator
 {
+private:
+    using SRV = ID3D11ShaderResourceView;
+
 public:
     RenderDataPreparator();
 
@@ -85,6 +88,12 @@ private:
 
     void PrepareTexturesForInstance(Render::Instance& instance);
     void PrepareMaterialForInstance(const Render::Instance& instance, cvector<Render::Material>& outMat);
+
+private:
+    //constexpr int     numElems = 1028;
+    TexID             texturesIDs_[1028]{ INVALID_TEXTURE_ID };
+    cvector<SRV*>     textureSRVs_;
+    cvector<Material> materials_;
 };
 
 } // namespace Core

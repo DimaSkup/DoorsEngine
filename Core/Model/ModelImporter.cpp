@@ -80,7 +80,7 @@ bool ModelImporter::LoadFromFile(
             filePath,
             //aiProcess_GenNormals |
             aiProcess_CalcTangentSpace |
-            //aiProcess_ImproveCacheLocality |
+            aiProcess_ImproveCacheLocality |
             aiProcess_Triangulate |
             aiProcess_ConvertToLeftHanded);
 
@@ -459,13 +459,18 @@ void ComputeMeshVertices(
         vertices[vIdx].normal.z = pMesh->mNormals[i].z;
     }
 
-
+#if 1
     for (int i = 0, vIdx = vertexStart; i < numVertices; i++, ++vIdx)
     {
         vertices[vIdx].tangent.x = pMesh->mTangents[i].x;
         vertices[vIdx].tangent.y = pMesh->mTangents[i].y;
         vertices[vIdx].tangent.z = pMesh->mTangents[i].z;
     }
+#endif
+
+#if 0
+
+  
 
     for (int i = 0, vIdx = vertexStart; i < numVertices; i++, ++vIdx)
     {
@@ -473,6 +478,7 @@ void ComputeMeshVertices(
         vertices[vIdx].binormal.y = pMesh->mBitangents[i].y;
         vertices[vIdx].binormal.z = pMesh->mBitangents[i].z;
     }
+#endif
 }
 
 ///////////////////////////////////////////////////////////
@@ -552,6 +558,66 @@ void ModelImporter::GetVerticesIndicesOfMesh(
         pMesh->mFaces,
         currSubset.indexStart,
         (int)pMesh->mNumFaces);
+
+#if 0
+    // compute tangent for each vertex
+    for (int i = currSubset.indexStart; i < currSubset.indexStart + (int)pMesh->mNumFaces;)
+    {
+        // get indices
+        const UINT i0 = model.indices_[i++];
+        const UINT i1 = model.indices_[i++];
+        const UINT i2 = model.indices_[i++];
+
+        // get vertices by indices
+        Vertex3D& v0 = model.vertices_[i0];
+        Vertex3D& v1 = model.vertices_[i1];
+        Vertex3D& v2 = model.vertices_[i2];
+
+        // compute edge vectors of the triangle
+        const XMFLOAT3 e0 = {
+            v1.position.x - v0.position.x,
+            v1.position.y - v0.position.y,
+            v1.position.z - v0.position.z };
+
+        const XMFLOAT3 e1 = {
+            v2.position.x - v0.position.x,
+            v2.position.y - v0.position.y,
+            v2.position.z - v0.position.z };
+
+        // compute deltas of texture coords
+        const float du0 = v1.texture.x - v0.texture.x;
+        const float dv0 = v1.texture.y - v0.texture.y;
+        const float du1 = v2.texture.x - v0.texture.x;
+        const float dv1 = v2.texture.y - v0.texture.y;
+
+        // compute interse matrix of texture coords
+        const float invDet = 1.0f / (du0 * dv1 - dv0 * du1);
+
+        //  | m00 m01 |
+        //  | m10 m11 |
+        const float m00 = invDet * +dv1;
+        const float m01 = invDet * -dv0;
+        const float m10 = invDet * -du1;
+        const float m11 = invDet * +du0;
+
+        // compute tangent coords
+        float Tx = (m00 * e0.x) + (m01 * e1.x);
+        float Ty = (m00 * e0.y) + (m01 * e1.y);
+        float Tz = (m00 * e0.z) + (m01 * e0.z);
+
+        const float invTangLen = 1.0f / sqrtf(Tx * Tx + Ty * Ty + Tz * Tz);
+        Tx *= invTangLen;
+        Ty *= invTangLen;
+        Tz *= invTangLen;
+
+        v0.tangent = { Tx, Ty, Tz };
+        v1.tangent = { Tx, Ty, Tz };
+        v2.tangent = { Tx, Ty, Tz };
+
+        // compute bitangent coords
+        //const float Bx = (m10 * e0.x) + (m11 * e1.x);
+    }
+#endif
 
     ComputeMeshAABB(
         model.subsetsAABB_[subsetIdx],

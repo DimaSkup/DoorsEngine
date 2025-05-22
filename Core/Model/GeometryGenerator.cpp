@@ -26,17 +26,92 @@ using XMCOLOR = DirectX::PackedVector::XMCOLOR;
 namespace Core
 {
 
+void GeometryGenerator::ComputeTangents(
+    Vertex3D* vertices,
+    UINT* indices,
+    const int numIndices)
+{
+    // compute tangent for each input vertex
+    try
+    {
+        Assert::True(vertices,       "input ptr to vertices arr == nullptr");
+        Assert::True(indices,        "input ptr to indices arr == nullptr");
+        Assert::True(numIndices > 0, "input number of indices must be > 0");
+
+        for (int i = 0; i < numIndices;)
+        {
+            // get indices
+            const UINT i0 = indices[i++];
+            const UINT i1 = indices[i++];
+            const UINT i2 = indices[i++];
+
+            // get vertices by indices
+            Vertex3D& v0 = vertices[i0];
+            Vertex3D& v1 = vertices[i1];
+            Vertex3D& v2 = vertices[i2];
+
+            // compute edge vectors of the triangle
+            const XMFLOAT3 e0 = {
+                v1.position.x - v0.position.x,
+                v1.position.y - v0.position.y,
+                v1.position.z - v0.position.z };
+
+            const XMFLOAT3 e1 = {
+                v2.position.x - v0.position.x,
+                v2.position.y - v0.position.y,
+                v2.position.z - v0.position.z };
+
+            // compute deltas of texture coords
+            const float du0 = v1.texture.x - v0.texture.x;
+            const float dv0 = v1.texture.y - v0.texture.y;
+            const float du1 = v2.texture.x - v0.texture.x;
+            const float dv1 = v2.texture.y - v0.texture.y;
+
+            // compute interse matrix of texture coords
+            const float invDet = 1.0f / (du0 * dv1 - dv0 * du1);
+
+            //  | m00 m01 |
+            //  | m10 m11 |
+            const float m00 = invDet * +dv1;
+            const float m01 = invDet * -dv0;
+            const float m10 = invDet * -du1;
+            const float m11 = invDet * +du0;
+
+            // compute tangent coords
+            float Tx = (m00 * e0.x) + (m01 * e1.x);
+            float Ty = (m00 * e0.y) + (m01 * e1.y);
+            float Tz = (m00 * e0.z) + (m01 * e0.z);
+
+            // normalize the tangent
+            const float invTangLen = 1.0f / sqrtf(Tx * Tx + Ty * Ty + Tz * Tz);
+            Tx *= invTangLen;
+            Ty *= invTangLen;
+            Tz *= invTangLen;
+
+            // store tangent into vertices
+            v0.tangent = { Tx, Ty, Tz };
+            v1.tangent = { Tx, Ty, Tz };
+            v2.tangent = { Tx, Ty, Tz };
+        }
+    }
+    catch (EngineException& e)
+    {
+        LogErr(e);
+    }
+}
+
+///////////////////////////////////////////////////////////
+
 void GeometryGenerator::GenerateCube(BasicModel& model)
 {
     // manually generate cube data 
 
-    const int numFaces    = 6;
-    const int numVertices = 24;
-    const int numIndices  = 36;
-    const int numSubsets  = 1;     // only one mesh
+    constexpr int numFaces    = 6;
+    constexpr int numVertices = 24;
+    constexpr int numIndices  = 36;
+    constexpr int numSubsets  = 1;     // only one mesh
 
     model.AllocateMemory(numVertices, numIndices, numSubsets);
-    Vertex3D* vertices = model.vertices_;
 
     // ---------------------------------------------
 
@@ -46,27 +121,30 @@ void GeometryGenerator::GenerateCube(BasicModel& model)
 
     // define positions:
     // - right side
-    XMFLOAT3 pos0 = { 1,  1, -1 };  // near top
-    XMFLOAT3 pos1 = { 1, -1, -1 };  // near bottom
-    XMFLOAT3 pos2 = { 1,  1,  1 };  // far top
-    XMFLOAT3 pos3 = { 1, -1,  1 };  // far bottom
+    constexpr XMFLOAT3 pos0 = { 1,  1, -1 };  // near top
+    constexpr XMFLOAT3 pos1 = { 1, -1, -1 };  // near bottom
+    constexpr XMFLOAT3 pos2 = { 1,  1,  1 };  // far top
+    constexpr XMFLOAT3 pos3 = { 1, -1,  1 };  // far bottom
 
     // - left side
-    XMFLOAT3 pos4 = { -1,  1, -1 }; // near top
-    XMFLOAT3 pos5 = { -1, -1, -1 }; // near bottom
-    XMFLOAT3 pos6 = { -1,  1,  1 }; // far top 
-    XMFLOAT3 pos7 = { -1, -1,  1 }; // far bottom
+    constexpr XMFLOAT3 pos4 = { -1,  1, -1 }; // near top
+    constexpr XMFLOAT3 pos5 = { -1, -1, -1 }; // near bottom
+    constexpr XMFLOAT3 pos6 = { -1,  1,  1 }; // far top 
+    constexpr XMFLOAT3 pos7 = { -1, -1,  1 }; // far bottom
 
     // define texture coords
-    XMFLOAT2 tex[4] = { {0, 1}, {0, 0}, {1, 0}, {1, 1} };
+    constexpr XMFLOAT2 tex[4] = { {0, 1}, {0, 0}, {1, 0}, {1, 1} };
 
     // define normal vectors
-    XMFLOAT3 normFront  = { 0,  0, -1 };
-    XMFLOAT3 normBack   = { 0,  0, +1 };
-    XMFLOAT3 normLeft   = { -1, 0,  0 };
-    XMFLOAT3 normRight  = { +1, 0,  0 };
-    XMFLOAT3 normTop    = { 0, +1,  0 };
-    XMFLOAT3 normBottom = { 0, -1,  0 };
+    constexpr XMFLOAT3 normFront  = { 0,  0, -1 };
+    constexpr XMFLOAT3 tangFront  = { 0, +1,  0 };
+    constexpr XMFLOAT3 normBack   = { 0,  0, +1 };
+    constexpr XMFLOAT3 normLeft   = { -1, 0,  0 };
+    constexpr XMFLOAT3 normRight  = { +1, 0,  0 };
+    constexpr XMFLOAT3 normTop    = { 0, +1,  0 };
+    constexpr XMFLOAT3 normBottom = { 0, -1,  0 };
+
+    Vertex3D* vertices = model.vertices_;
 
     // front
     vertices[0] = { pos5, tex[0], normFront };
@@ -118,10 +196,8 @@ void GeometryGenerator::GenerateCube(BasicModel& model)
 
     // ---------------------------------------------
 
-    //
     // setup the indices of the cube
-    //
-    const UINT indicesData[numIndices] =
+    constexpr UINT indicesData[numIndices] =
     {
         0,1,2,    0,2,3,    // front
         4,5,6,    4,6,7,    // back
@@ -132,6 +208,8 @@ void GeometryGenerator::GenerateCube(BasicModel& model)
     };
 
     model.CopyIndices(indicesData, numIndices);
+
+    ComputeTangents(model.vertices_, model.indices_, numIndices);
 
     // ---------------------------------------------
 
@@ -154,18 +232,19 @@ void BuildSkySphereVertices(
     //
 
     const float dTheta = DirectX::XM_2PI / sliceCount;   // horizontal ring angles delta
-    const float dAlpha = DirectX::XM_PI / stackCount;    // vertical angle delta
+    const float dAlpha = DirectX::XM_PI  / stackCount;    // vertical angle delta
 
     // allocate memory for the transient data
     float* thetaSines   = new float[sliceCount + 1];
     float* thetaÑosines = new float[sliceCount + 1];
 
-    // precompute sin/cos of Theta
+    // precompute sin/cos of Theta 
     for (int j = 0; j <= sliceCount; ++j)
-    {
-        thetaSines[j]   = sinf(j * dTheta);
+        thetaSines[j] = sinf(j * dTheta);
+
+    for (int j = 0; j <= sliceCount; ++j)
         thetaÑosines[j] = cosf(j * dTheta);
-    }
+
 
     // build vertices
     for (int i = 0; i < stackCount; ++i)
@@ -310,7 +389,7 @@ void GeometryGenerator::GenerateSkyBoxForCubeMap(
     const XMFLOAT3 pos7 = { -hh, -hh,  hh };  // far bottom
 
     // set position for each vertex
-    Vertex3DPos vertices[numVertices] =
+    const Vertex3DPos vertices[numVertices] =
     {
         pos5, pos4, pos0, pos1,   // front
         pos3, pos2, pos6, pos7,   // back
@@ -356,8 +435,8 @@ void GeometryGenerator::GenerateLineBox(BasicModel& model)
     // setup vertices position of the line box:
     Vertex3D* vertices = model.vertices_;
 
-    const DirectX::XMFLOAT3 minDimensions{ -1, -1, -1 };
-    const DirectX::XMFLOAT3 maxDimensions{ +1, +1, +1 };
+    constexpr DirectX::XMFLOAT3 minDimensions{ -1, -1, -1 };
+    constexpr DirectX::XMFLOAT3 maxDimensions{ +1, +1, +1 };
 
     // bottom side of the box
     vertices[0].position = { minDimensions.x, minDimensions.y, minDimensions.z };  // near left
@@ -372,7 +451,7 @@ void GeometryGenerator::GenerateLineBox(BasicModel& model)
     vertices[7].position = { minDimensions.x, maxDimensions.y, maxDimensions.z };
 
     // setup the indices for the cell lines box
-    const UINT indices[numIndices] = {
+    constexpr UINT indices[numIndices] = {
 
         // bottom
         0, 1, 0,
@@ -415,60 +494,8 @@ void GeometryGenerator::GenerateLineBox(BasicModel& model)
 
     // ---------------------------------------------
 
-    const XMCOLOR argbColor(0.0f, 1.0f, 1.0f, 1.0f);
-    const XMCOLOR abgrColor = Convert::ArgbToAbgr(argbColor);
-
-    // set color for each vertex
-    for (int idx = 0; idx < numVertices; ++idx)
-        vertices[idx].color = abgrColor;           // stored as a 32-bit ARGB color vector
-
     // setup subset (mesh) data (for cube we have only one subset)
     model.meshes_.SetSubsetName(0, "line_box");
-}
-
-///////////////////////////////////////////////////////////
-
-void GeometryGenerator::GenerateAxis(BasicModel& model)
-{
-    // create an axis model (axis are used for editor mode)
-
-    const XMCOLOR & red   = Colors::Red;
-    const XMCOLOR & green = Colors::Green;
-    const XMCOLOR & blue  = Colors::Blue;
-
-    const int numVertices = 6;
-    const int numIndices = 6;
-
-    model.AllocateMemory(numVertices, numIndices, 1);
-    Vertex3D* vertices = model.vertices_;
-
-    //
-    // create vertices data of axis 
-    //
-    
-    // X-axis
-    vertices[0].position = { -100, 0, 0 };  // negative X
-    vertices[0].color = blue;
-    vertices[1].position = { 100, 0, 0 };   // positive X
-    vertices[1].color = blue;
-
-    // Y-axis
-    vertices[2].position = { 0, -100, 0 };  // negative Y
-    vertices[2].color = green;
-    vertices[3].position = { 0, 100, 0 };   // positive Y
-    vertices[3].color = green;
-
-    // Z-axis
-    vertices[4].position = { 0, 0, -100 };  // negative Z
-    vertices[4].color = red;
-    vertices[5].position = { 0, 0, 100 };   // positive Z
-    vertices[5].color = red;
-
-    // 
-    // create indices data of axis
-    //
-    const UINT indicesData[numIndices] = {0,1,2,3,4,5};
-    model.CopyIndices(indicesData, numIndices);
 }
 
 //////////////////////////////////////////////////////////
@@ -524,6 +551,69 @@ void GeometryGenerator::GeneratePlane(
 
 //////////////////////////////////////////////////////////
 
+bool BuildFlatGridVertices(
+    Vertex3D* vertices,         // array of vertices (must be already allocated)
+    const float width,          // grid size by X
+    const float depth)          // grid size by Z
+{
+    try
+    {
+        Assert::True(vertices,  "input arr of vertices == nullptr");
+        Assert::True(width > 0, "input width must be > 0");
+        Assert::True(depth > 0, "input depth must be > 0");
+
+        const XMFLOAT2 offsets[4] =
+        {
+            XMFLOAT2(0,0),
+            XMFLOAT2(0,1),
+            XMFLOAT2(1,1),
+            XMFLOAT2(1,0)
+        };
+
+        const float du = 1.0f / width; // texture stride by X for each quad
+        const float dv = 1.0f / depth; // texture stride by Y for each quad
+        const float dx = 1.0f;
+        const float dz = 1.0f;
+
+        int vIdx = 0;
+
+        // push quads by Z
+        for (int i = 0; i < (int)depth; ++i)
+        {
+            // push quads by X
+            for (int j = 0; j < (int)width; ++j)
+            {
+                Vertex3D& v1 = vertices[vIdx++];
+                Vertex3D& v2 = vertices[vIdx++];
+                Vertex3D& v3 = vertices[vIdx++];
+                Vertex3D& v4 = vertices[vIdx++];
+
+                float x0 = offsets[0].x + j;
+                float z0 = offsets[0].y + i;
+
+                v1.position = { x0,   0.0f, z0   };
+                v2.position = { x0,   0.0f, z0+1 };
+                v3.position = { x0+1, 0.0f, z0+1 };
+                v4.position = { x0+1, 0.0f, z0   };
+
+                v1.texture = { du * x0,     dv * z0 };
+                v2.texture = { du * (x0+1), dv * z0 };
+                v3.texture = { du * x0,     dv * (z0+1) };
+                v4.texture = { du * (x0+1), dv * (z0+1) };
+            }
+        }
+
+        return true;
+    }
+    catch (EngineException& e)
+    {
+        LogErr(e);
+        return false;
+    }
+}
+
+//////////////////////////////////////////////////////////
+
 void BuildFlatGridVertices(
     Vertex3D* vertices,
     const int width,
@@ -539,16 +629,16 @@ void BuildFlatGridVertices(
         const float halfWidth = 0.5f * (float)width;
         const float halfDepth = 0.5f * (float)depth;
 
-        const int quadsByX = vertByX - 1;
-        const int quadsByZ = vertByZ - 1;
-        const float du = 1.0f / (float)quadsByX; // width of a single quad
-        const float dv = 1.0f / (float)quadsByZ; // depth of a single quad
-        const float dx = (float)width * du;             // how many quads we can put in such width
-        const float dz = (float)depth * dv;             // how many quads we can put in such depth
+        const int quadsByX    = vertByX - 1;
+        const int quadsByZ    = vertByZ - 1;
+        const float du        = 1.0f / (float)quadsByX; // texture stride by X for each quad
+        const float dv        = 1.0f / (float)quadsByZ; // texture stride by Y for each quad
+        const float dx        = (float)width * du;             // how many quads we can put in such width
+        const float dz        = (float)depth * dv;             // how many quads we can put in such depth
 
         // precompute X-coords (of position) and tu-component (of texture) for each quad 
         float* quadsXCoords = new float[vertByX];
-        float* quadsTU = new float[vertByX];
+        float* quadsTU      = new float[vertByX];
 
         for (int j = 0; j < vertByX; ++j)
             quadsXCoords[j] = j * dx - halfWidth;
@@ -569,10 +659,9 @@ void BuildFlatGridVertices(
                 Vertex3D& vertex = vertices[lineIdx + j];
 
                 vertex.position = DirectX::XMFLOAT3(quadsXCoords[j], 0.0f, z);
-                vertex.texture = DirectX::XMFLOAT2(quadsTU[j], tv);
-                vertex.normal = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
-                vertex.tangent = DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f);
-                vertex.binormal = DirectX::XMFLOAT3(0.0f, 0.0f, -1.0f);
+                vertex.texture  = DirectX::XMFLOAT2(quadsTU[j], tv);
+                vertex.normal   = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
+                vertex.tangent  = DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f);
             }
         }
 
@@ -590,6 +679,7 @@ void BuildFlatGridVertices(
 
 //////////////////////////////////////////////////////////
 
+#if 0
 void BuildFlatGridIndices(
     UINT* indices,
     const int verticesByX,
@@ -634,8 +724,75 @@ void BuildFlatGridIndices(
         }
     }
 }
+#endif
 
 //////////////////////////////////////////////////////////
+
+void BuildFlatGridIndices(
+    UINT* indices,
+    const int width,
+    const int depth)
+{
+    int k = 0;
+    int quadIdx = 0;
+
+    for (int i = 0; i < (int)depth; ++i)
+    {
+        // push indices for quads by X
+        for (int j = 0; j < (int)width; ++j)
+        {
+            int offset = (4 * quadIdx);
+        
+            // first triangle
+            indices[k]   = offset + 0;
+            indices[k+1] = offset + 1;
+            indices[k+2] = offset + 2;
+
+            indices[k+3] = offset + 0;
+            indices[k+4] = offset + 2;
+            indices[k+5] = offset + 3;
+
+            k += 6;
+            quadIdx++;
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////
+
+#if 0
+void GeometryGenerator::GenerateFlatGrid(
+    const int w,                          // width
+    const int d,                          // depth
+    BasicModel& model)                    // output model with generated vertices/indices
+{
+    const int width = (w > 0) ? w : 1;
+    const int depth = (d > 0) ? d : 1;
+    const int vertByX = width + 1;
+    const int vertByZ = depth + 1;
+
+    const int quadsByX = width;
+    const int quadsByZ = depth;
+    const int numFaces = quadsByX * quadsByZ * 2;   // 2 - two faces per each quad
+    const int numVertices = vertByX * vertByZ;
+    const int numIndices = numFaces * 3;          // 3 - three indices per each face (triangle)
+    const int numSubsets = 1;                     // grid is a solid mesh
+
+    try
+    {
+        // alloc memory for vertices/indices/AABBs of the grid
+        model.AllocateMemory(numVertices, numIndices, numSubsets);
+
+        BuildFlatGridVertices(model.vertices_, (float)width, (float)depth);
+
+    }
+    catch (std::bad_alloc& e)
+    {
+        LogErr(e.what());
+        throw EngineException("can't allocate memory for a flat grid");
+    }
+}
+#endif
 
 void GeometryGenerator::GenerateFlatGrid(
     const int w,            // width
@@ -658,31 +815,34 @@ void GeometryGenerator::GenerateFlatGrid(
     //              Vij = [-0.5*width + j*dx, 0.0, 0.5*depth - i*dz];
 
     // if input params is wrong we use the default params
-    const int width = (w > 0) ? w : 10;
-    const int depth = (d > 0) ? d : 10;
-    const int vertByX = (verticesByX > 1) ? verticesByX : 2;
-    const int vertByZ = (verticesByZ > 1) ? verticesByZ : 2;
+    const int width       = (w > 0) ? w : 1;
+    const int depth       = (d > 0) ? d : 1;
+    const int vertByX     = (verticesByX > 1) ? verticesByX : 2;
+    const int vertByZ     = (verticesByZ > 1) ? verticesByZ : 2;
 
-    const int quadsByX = vertByX - 1;
-    const int quadsByZ = vertByZ - 1;
-    const int faceCount = quadsByX * quadsByZ * 2;  // quad_num_by_X * quad_num_by_Z * 2_triangles_per_quad
-    const int numVertices = vertByX * vertByZ;
-    const int numIndices = faceCount * 3;
-    const int numSubsets = 1;                       // only one mesh
+    const int quadsByX    = vertByX - 1;
+    const int quadsByZ    = vertByZ - 1;
+    const int faceCount   = quadsByX * quadsByZ * 2;  // quad_num_by_X * quad_num_by_Z * 2_triangles_per_quad
+    const int numVertices = vertByX * vertByZ * 4;    // 4 vertices per quad
+    const int numIndices  = numVertices / 4 * 6;
+    const int numSubsets  = 1;                       // only one mesh
     
     try 
     {
         // allocate memory for data of the grid
         model.AllocateMemory(numVertices, numIndices, numSubsets);
 
-        BuildFlatGridVertices(model.vertices_, width, depth, vertByX, vertByZ);
+        BuildFlatGridVertices(model.vertices_, (float)width, (float)depth);
         BuildFlatGridIndices(model.indices_, vertByX, vertByZ);
 
         // compute the bounding box of the mesh
-        DirectX::BoundingBox aabb;
-        DirectX::XMStoreFloat3(&aabb.Center, { 0,0,0 });
-        DirectX::XMStoreFloat3(&aabb.Extents, { (float)width, 0.1f, (float)depth });
+        const DirectX::BoundingBox aabb
+        {
+            DirectX::XMFLOAT3(0,0,0),                            // center
+            DirectX::XMFLOAT3((float)width, 0.1f, (float)depth)  // extents
+        };
 
+        // currently the terrain model has only one submesh
         model.SetSubsetAABB(0, aabb);
         model.SetModelAABB(aabb);
 
@@ -705,16 +865,13 @@ void GeometryGenerator::GeneratePyramid(
     // construct a pyramid by the input height, baseWidth, baseDepth,
     // and stores its vertices and indices into the meshData variable;
 
-    const int verticesOfSides = 12;
-    const int numVertices = 16;
-    const int numIndices = 18;
-    const int numSubsets = 1;        // only one mesh
+    constexpr int verticesOfSides = 12;
+    constexpr int numVertices = 16;
+    constexpr int numIndices = 18;
+    constexpr int numSubsets = 1;        // only one mesh
 
     const float halfBaseWidth = 0.5f * baseWidth;
     const float halfBaseDepth = 0.5f * baseDepth;
-
-    const XMCOLOR tipColor  = Convert::ArgbToAbgr(Colors::Red);
-    const XMCOLOR baseColor = Convert::ArgbToAbgr(Colors::Green);
 
     // -------------------------------------------------- //
 
@@ -723,7 +880,6 @@ void GeometryGenerator::GeneratePyramid(
 
     tipVertex.position = { 0, height, 0 };
     tipVertex.texture = { 0.5f, 0 };   // upper center of texture
-    tipVertex.color = tipColor;
 
     // -------------------------------------------------- //
 
@@ -765,9 +921,7 @@ void GeometryGenerator::GeneratePyramid(
     for (int idx = 0; idx < verticesOfSides; idx += 3)
     {
         vertices[idx + 1].texture = { 0, 1 };   // bottom left of texture
-        vertices[idx + 1].color = baseColor;
         vertices[idx + 2].texture = { 1, 1 };   // bottom right of texture
-        vertices[idx + 2].color = baseColor;
     }
 
     // bottom
@@ -779,46 +933,6 @@ void GeometryGenerator::GeneratePyramid(
         vertices[v_idx].texture  = bottomTexCoords[data_idx];
         vertices[v_idx].normal   = { 0, -1, 0 };               // bottom normal vector
     }
-
-
-    // -------------------------------------------------- //
-
-    ModelMath modelMath;
-
-    // compute normal vectors for the first face of the pyramid
-    DirectX::XMVECTOR tangent;
-    DirectX::XMVECTOR bitangent;
-    DirectX::XMVECTOR normal;
-
-    // for each side of the pyramid we compute a tangent, bitangent, and normal vector
-    for (UINT v_idx = 0; v_idx < 12; v_idx += 3)
-    {
-        modelMath.CalculateTangentBinormal(
-            vertices[v_idx + 0],
-            vertices[v_idx + 1],
-            vertices[v_idx + 2],
-            tangent, bitangent);
-
-        modelMath.CalculateNormal(tangent, bitangent, normal);
-
-        // convert vectors of normal, tangent, and bitangent into XMFLOAT3
-        DirectX::XMFLOAT3 normalFloat3;
-        DirectX::XMFLOAT3 tangentFloat3;
-        DirectX::XMFLOAT3 bitangentFloat3;
-        DirectX::XMStoreFloat3(&normalFloat3, normal);
-        DirectX::XMStoreFloat3(&tangentFloat3, tangent);
-        DirectX::XMStoreFloat3(&bitangentFloat3, bitangent);
-
-        // for each vertex of this face we store the normal, tangent, bitangent
-        for (UINT idx = 0; idx < 3; ++idx)
-        {
-            const UINT index = v_idx + idx;
-            vertices[index].normal = normalFloat3;
-            vertices[index].tangent = tangentFloat3;
-            vertices[index].binormal = bitangentFloat3;
-        }
-    }
-
 
     //
     // create indices data for the pyramid
@@ -1098,64 +1212,7 @@ void GeometryGenerator::GenerateSphere(
     BuildSphereVertices(model.vertices_, vertexIdx, params, numVertices);
     BuildSphereIndices(model.indices_, vertexIdx - 1, sliceCount, stackCount);
 
-    // compute tangent for each vertex
-    for (int i = 0; i < numIndices;)
-    {
-        // get indices
-        const UINT i0 = model.indices_[i++];
-        const UINT i1 = model.indices_[i++];
-        const UINT i2 = model.indices_[i++];
-
-        // get vertices by indices
-        Vertex3D& v0 = model.vertices_[i0];
-        Vertex3D& v1 = model.vertices_[i1];
-        Vertex3D& v2 = model.vertices_[i2];
-
-
-        // compute edge vectors of the triangle
-        const XMFLOAT3 e0 = {
-            v1.position.x - v0.position.x,
-            v1.position.y - v0.position.y,
-            v1.position.z - v0.position.z };
-
-        const XMFLOAT3 e1 = {
-            v2.position.x - v0.position.x,
-            v2.position.y - v0.position.y,
-            v2.position.z - v0.position.z };
-
-        // compute deltas of texture coords
-        const float du0 = v1.texture.x - v0.texture.x;
-        const float dv0 = v1.texture.y - v0.texture.y;
-        const float du1 = v2.texture.x - v0.texture.x;
-        const float dv1 = v2.texture.y - v0.texture.y;
-
-        // compute interse matrix of texture coords
-        const float invDet = 1.0f / (du0*dv1 - dv0*du1);
-
-        //  | m00 m01 |
-        //  | m10 m11 |
-        const float m00 = invDet * +dv1;   
-        const float m01 = invDet * -dv0;   
-        const float m10 = invDet * -du1;
-        const float m11 = invDet * +du0;
-
-        // compute tangent coords
-        float Tx = (m00 * e0.x) + (m01 * e1.x);
-        float Ty = (m00 * e0.y) + (m01 * e1.y);
-        float Tz = (m00 * e0.z) + (m01 * e0.z);
-
-        const float invTangLen = 1.0f / sqrtf(Tx*Tx + Ty*Ty + Tz*Tz);
-        Tx *= invTangLen;
-        Ty *= invTangLen;
-        Tz *= invTangLen;
-
-        v0.tangent = { Tx, Ty, Tz };
-        v1.tangent = { Tx, Ty, Tz };
-        v2.tangent = { Tx, Ty, Tz };
-
-        // compute bitangent coords
-        //const float Bx = (m10 * e0.x) + (m11 * e1.x);
-    }
+    ComputeTangents(model.vertices_, model.indices_, model.GetNumIndices());
 }
 
 ///////////////////////////////////////////////////////////
@@ -1536,11 +1593,11 @@ void GeometryGenerator::BuildCylinderStacks(
             vertex.tangent = DirectX::XMFLOAT3(-s, 0.0f, c);
 
             //const float dr = bottomRadius - topRadius;
-            vertex.binormal = DirectX::XMFLOAT3(-dr*c, -params.height_, -dr*s);
+            const XMFLOAT3 binormal = DirectX::XMFLOAT3(-dr * c, -params.height_, -dr * s);
 
             // compute the normal vector
             const DirectX::XMVECTOR T = DirectX::XMLoadFloat3(&vertex.tangent);
-            const DirectX::XMVECTOR B = DirectX::XMLoadFloat3(&vertex.binormal);
+            const DirectX::XMVECTOR B = DirectX::XMLoadFloat3(&binormal);
             const DirectX::XMVECTOR N = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(T, B));
             DirectX::XMStoreFloat3(&vertex.normal, N);
 

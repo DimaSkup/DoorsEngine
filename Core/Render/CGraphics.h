@@ -36,7 +36,7 @@
 #include <map>
 #include <memory>
 #include <DirectXCollision.h>
-
+#include <vector>
 
 namespace Core
 {
@@ -80,6 +80,8 @@ public:
     // render related methods
 
     void ComputeFrustumCulling              (SystemState& sysState, ECS::EntityMgr* pEnttMgr);
+    void ComputeFrustumCullingOld           (SystemState& sysState, ECS::EntityMgr* pEnttMgr);
+
     void ComputeFrustumCullingOfLightSources(SystemState& sysState, ECS::EntityMgr* pEnttMgr);
     void ClearRenderingDataBeforeFrame      (ECS::EntityMgr* pEnttMgr, Render::CRender* pRender);
     void Render3D                           (ECS::EntityMgr* pEnttMgr, Render::CRender* pRender);
@@ -103,10 +105,6 @@ public:
 
 
     // ----------------------------------
-
-    // change render states using keyboard
-    void ChangeModelFillMode();   
-    void ChangeCullMode();
 
     inline void SetGameMode(bool enableGameMode)                    { isGameMode_ = enableGameMode; }
     inline void SetAABBShowMode(const AABBShowMode mode)            { aabbShowMode_ = mode; }

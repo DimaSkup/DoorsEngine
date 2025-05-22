@@ -96,6 +96,13 @@ private:
     cvector<SRV*>        shaderResourceViews_;
     cvector<std::string> names_;               // name (there can be path) which is used for searching of texture
     cvector<Texture>     textures_;
+
+
+    // transient arrays are used in GetSRVsByTexIDs()
+    cvector<index> idxsToNotZero_;
+    cvector<TexID> texIds_;
+    cvector<index> tempIdxs_;
+    cvector<SRV*>  preparedSRVs_;
 };
 
 

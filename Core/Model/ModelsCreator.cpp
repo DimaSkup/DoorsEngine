@@ -15,6 +15,7 @@
 #include "GeometryGenerator.h"
 #include "../Model/ModelLoader.h"
 #include "../Model/BasicModel.h"
+#include "../Model/BruteForceTerrain.h"
 #include "ModelImporter.h"
 
 #include "../Model/ModelMgr.h"
@@ -663,42 +664,40 @@ void GenerateHeightsForTerrainGrid(BasicModel& grid)
     }
 
 #endif
+
+    // after creation of heights we compute tangent for each vertex
+    GeometryGenerator geoGen;
+    geoGen.ComputeTangents(grid.vertices_, grid.indices_, grid.numIndices_);
 }
 
 ///////////////////////////////////////////////////////////
 
-ModelID ModelsCreator::CreateGeneratedTerrain(
-    ID3D11Device* pDevice,
-    const int terrainWidth,
-    const int terrainDepth,
-    const int verticesCountByX,
-    const int verticesCountByZ)
+void ComputeAveragedNormals(
+    Vertex3D* vertices,
+    const UINT* indices,
+    const int numVertices,
+    const int numIndices)
 {
-    //
-    // CREATE TERRAIN GRID
-    //
-    BasicModel& model = g_ModelMgr.AddEmptyModel();
+    // compute normal-vectors for input vertices with vertex normal averaging
+    //                  n0 + n1 + n2 + n3
+    //        Navg = -----------------------
+    //               || n0 + n1 + n2 + n3 ||
 
-    GeometryGenerator geoGen;
+    // check input params
+    if (!vertices || !indices)
+    {
+        LogErr("input arr of vertices/indices == nullptr");
+        return;
+    }
 
-    // generate terrain grid's vertices and indices by input params
-    geoGen.GenerateFlatGrid(
-        terrainWidth,
-        terrainDepth,
-        verticesCountByX,     // num of quads (cells count) by X 
-        verticesCountByZ,     // num of quads (cells count) by Z
-        model);
+    if ((numVertices <= 0) || (numIndices <= 0))
+    {
+        LogErr("input number of vertices/indices must be > 0");
+        return;
+    }
 
-    // generate height for each vertex of the terrain grid
-    GenerateHeightsForTerrainGrid(model);
-
-
-    // compute normals, tangents, and bitangents for this terrain grid
-    Vertex3D* vertices = model.vertices_;
-    const UINT* indices = model.indices_;
-
-    // for each triangle in the mesh
-    for (u32 i = 0; i < model.numIndices_ / 3; ++i)
+    // for each triangle
+    for (int i = 0; i < numIndices / 3; ++i)
     {
         // indices of the ith triangle 
         int baseIdx = i * 3;
@@ -727,8 +726,90 @@ ModelID ModelsCreator::CreateGeneratedTerrain(
 
     // for each vertex v, we have summed the face normals of all
     // the triangles that share v, so now we just need to normalize
-    for (u32 i = 0; i < model.numVertices_; ++i)
+    for (int i = 0; i < numVertices; ++i)
         vertices[i].normal = DirectX::XMFloat3Normalize(vertices[i].normal);
+}
+
+///////////////////////////////////////////////////////////
+
+ModelID ModelsCreator::CreateTerrainFromHeightmap(
+    ID3D11Device* pDevice,
+    const char* setupFilename)
+{
+    if (!setupFilename || setupFilename[0] == '\0')
+    {
+        LogErr("intput path to setup file is empty!");
+        return INVALID_MODEL_ID;
+    }
+
+    BasicModel&       model = g_ModelMgr.AddEmptyModel();
+    GeometryGenerator geoGen;
+    BruteForceTerrain terrain;
+
+    terrain.LoadSetupFile(setupFilename);
+    //terrain.LoadHeightMap(terrain.GetFilename(), terrain.GetWidth() + 1);
+    terrain.GenHeightFaultFormation(terrain.GetWidth()+1, 64, 0, 255, 0.2f);
+    terrain.SetHeightScale(0.2f);
+
+    // generate terrain flat grid's vertices and indices by input params
+    geoGen.GenerateFlatGrid(
+        terrain.GetWidth(),
+        terrain.GetDepth(),
+        terrain.GetWidth() + 1,     // num of quads (cells count) by X 
+        terrain.GetDepth() + 1,     // num of quads (cells count) by Z
+        model);
+
+    terrain.SetTexture(0, 0);
+   
+
+    // set heights for the terrain at particular positions
+    for (int i = 0; i < model.GetNumVertices(); ++i)
+    {
+        XMFLOAT3& pos = model.vertices_[i].position;
+        pos.y = terrain.GetScaledHeightAtPoint((int)pos.x, (int)pos.z);
+    }
+
+    ComputeAveragedNormals(model.vertices_, model.indices_, model.numVertices_, model.numIndices_);
+    //geoGen.ComputeTangents(model.vertices_, model.indices_, model.numIndices_);
+
+    // initialize vertex/index buffers
+    model.InitializeBuffers(pDevice);
+
+    model.ComputeSubsetsAABB();
+    model.ComputeModelAABB();
+
+    return model.id_;
+}
+
+///////////////////////////////////////////////////////////
+
+ModelID ModelsCreator::CreateGeneratedTerrain(
+    ID3D11Device* pDevice,
+    const int terrainWidth,
+    const int terrainDepth,
+    const int verticesCountByX,
+    const int verticesCountByZ)
+{
+    // create a terrain grid with generated heights
+
+    BasicModel& model = g_ModelMgr.AddEmptyModel();
+    GeometryGenerator geoGen;
+
+    // generate terrain flat grid's vertices and indices by input params
+    geoGen.GenerateFlatGrid(
+        terrainWidth,
+        terrainDepth,
+        verticesCountByX,     // num of quads (cells count) by X 
+        verticesCountByZ,     // num of quads (cells count) by Z
+        model);
+
+    // generate height for each vertex of the terrain grid
+    GenerateHeightsForTerrainGrid(model);
+
+    // compute normal vector for each triangle in the grid
+    //ComputeAveragedNormals(model.vertices_, model.indices_, model.numVertices_, model.numIndices_);
+
+  
 
 #if 0
     // setup a material for the single mesh (subset) of the model

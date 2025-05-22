@@ -8,9 +8,7 @@
 #include <CoreCommon/FileSystemPaths.h>
 #include <CoreCommon/log.h>
 #include "../Texture/TextureMgr.h"
-//#include "CRender.h"                     // from the Render module
 
-#include <format>
 #include <string>
 #include <imgui.h>
 #include <ImGuizmo.h>
@@ -23,7 +21,8 @@ using namespace Core;
 namespace UI
 {
 
-EventsHistory gEventsHistory;
+
+EventsHistory g_EventsHistory;
 
 UserInterface::UserInterface() : editorPanels_(&guiStates_)
 {
@@ -38,7 +37,6 @@ UserInterface::~UserInterface()
 // =================================================================================
 // Modification API
 // =================================================================================
-
 void UserInterface::Initialize(
     ID3D11Device* pDevice,
     ID3D11DeviceContext* pContext,
@@ -75,9 +73,10 @@ void UserInterface::Initialize(
         pFacadeEngineToUI_ = pFacadeEngineToUI;
         editorPanels_.Initialize(pFacadeEngineToUI_);
 
-
         // create text strings to show debug info onto the screen
         LoadDebugInfoStringFromFile(pDevice, videoCardName, videoCardMemory);
+
+        textStorage_.InitDebugText(pDevice, font1_);
 
 
         LogDbg("USER INTERFACE is initialized");
@@ -99,7 +98,10 @@ void UserInterface::Update(
     try
     {
         pFacadeEngineToUI_->deltaTime = systemState.deltaTime;
-        textStorage_.Update(pContext, font1_, systemState);
+
+        // update debug text only when we want to see it
+        if (systemState.isShowDbgInfo)
+            textStorage_.Update(pContext, font1_, systemState);
     }
     catch (EngineException & e)
     {
@@ -118,9 +120,9 @@ void UserInterface::UndoEditorLastEvent()
     //               can undo this event and place the model at the beginning position
 
 
-    if (gEventsHistory.HasHistory())
+    if (g_EventsHistory.HasHistory())
     {
-        HistoryItem historyItem = gEventsHistory.Undo();
+        HistoryItem historyItem = g_EventsHistory.Undo();
 
         editorPanels_.enttEditorController_.Undo(
             &historyItem.cmd_,
@@ -230,7 +232,8 @@ void UserInterface::LoadDebugInfoStringFromFile(
         {
             if (EOF != sscanf(buffer, "%*s %s %d %d", str, &posX, &posY))
             {
-                CreateConstStr(pDevice, std::string(str), { posX, posY });
+                const DirectX::XMFLOAT2 drawAt = ComputePosOnScreen({ posX, posY });
+                textStorage_.AddDebugConstSentence("const_str", str, drawAt.x, drawAt.y);
             }
             else
             {
@@ -242,8 +245,8 @@ void UserInterface::LoadDebugInfoStringFromFile(
         {
             if (EOF != sscanf(buffer, "%*s %s %d %d %d", str, &posX, &posY, &maxStrSize))
             {
-                SentenceID id = CreateDynamicStr(pDevice, "0", { posX, posY }, maxStrSize);
-                textStorage_.SetKeyByID(str, id);
+                const DirectX::XMFLOAT2 drawAt = ComputePosOnScreen({ posX, posY });
+                textStorage_.AddDebugDynamicSentence(str, "0", drawAt.x, drawAt.y);
             }
             else
             {
@@ -254,9 +257,14 @@ void UserInterface::LoadDebugInfoStringFromFile(
 
     fclose(pFile);
 
-    // create some strings about the video card
-    CreateConstStr(pDevice, videoCardName, { 150, 10 });
-    CreateConstStr(pDevice, std::format("{} MB", videoCardMemory), { 150, 30 });
+    // create some debug strings about the video card
+    sprintf(g_String, "%d MB", videoCardMemory);
+
+    const DirectX::XMFLOAT2 drawAt1 = ComputePosOnScreen({ 150, 10 });
+    const DirectX::XMFLOAT2 drawAt2 = ComputePosOnScreen({ 150, 30 });
+
+    textStorage_.AddDebugConstSentence("GPU_name", videoCardName.c_str(), drawAt1.x, drawAt1.y);
+    textStorage_.AddDebugConstSentence("GPU_memory", g_String, drawAt2.x, drawAt2.y);
 }
 
 
@@ -268,7 +276,6 @@ void UserInterface::RenderGameUI(
     Render::FontShader& fontShader,
     Core::SystemState& systemState)
 {
-
     // print onto the screen some debug info
     if (systemState.isShowDbgInfo)
         RenderDebugInfo(pContext, fontShader, systemState);
@@ -354,7 +361,6 @@ void UserInterface::RenderSceneWnd(SystemState& sysState)
 
             // handle directed and spot lights in a separate way for correct change
             // of its direction using gizmo
-
             const Vec3 pos = pFacadeEngineToUI_->GetEnttPosition(selectedEntt);
 
             world       = DirectX::XMMatrixIdentity();
@@ -419,23 +425,28 @@ void UserInterface::RenderDebugInfo(
     // render engine/game stats as text onto the sceen
     // (is used when we in the game mode)
 
-    cvector<ID3D11Buffer*> vertexBuffersPtrs;
-    cvector<ID3D11Buffer*> indexBuffersPtrs;
-    cvector<u32>           indexCounts;
-
     // receive a font texture SRV 
     ID3D11ShaderResourceView* const* ppFontTexSRV = font1_.GetTextureResourceViewAddress();
+    
+    // prepare buffers for rendering
+    ID3D11Buffer*  vertexBuffers[2]{ nullptr };
+    ID3D11Buffer*  pIB = nullptr;         // IB is common for both vertex buffers
+    u32            indexCounts[2]{ 0 };
+    constexpr size numSentences = 2;      // we have only two text buffers for the whole debug text: one for const sentences, one for dynamic sentences
 
-    textStorage_.GetRenderingData(vertexBuffersPtrs, indexBuffersPtrs, indexCounts);
+    textStorage_.GetRenderingData(
+        &vertexBuffers[0],                // vb: debug const text
+        &vertexBuffers[1],                // vb: debug dynamic text
+        &pIB,
+        indexCounts[0],                   // actual index count for debug const text
+        indexCounts[1]);                  // actual index count for debug dynamic text
 
-    // each sentence has its own vertex buffer so number of sentences == number of buffers
-    const size numSentences = vertexBuffersPtrs.size();
-
+    // render
     fontShader.Render(
         pContext,
-        vertexBuffersPtrs.data(),
-        indexBuffersPtrs.data(),
-        indexCounts.data(),
+        vertexBuffers,
+        pIB,
+        indexCounts,
         numSentences,
         sizeof(Core::VertexFont),
         ppFontTexSRV);

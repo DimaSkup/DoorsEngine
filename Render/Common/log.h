@@ -43,10 +43,10 @@ struct LogStorage
 
 ///////////////////////////////////////////////////////////
 
-extern char g_String[256];
+constexpr int g_StrLim = 512;
+extern char   g_String[g_StrLim];
 
 extern void SetupLogger(FILE* pLogFile, void* pLogStorage);
-
 
 extern void LogMsg(const char* msg, const std::source_location& location = std::source_location::current());
 extern void LogDbg(const char* msg, const std::source_location& location = std::source_location::current());

@@ -4,6 +4,7 @@
 #include "TextureShader.h"
 #include "../Common/Log.h"
 #include "../Common/Types.h"
+#include "../Common/StrHelper.h"
 
 
 namespace Render
@@ -24,13 +25,14 @@ TextureShader::~TextureShader()
 // ====================================================================================
 bool TextureShader::Initialize(
     ID3D11Device* pDevice,
-    const char* vsPath,
-    const char* psPath)
+    const char* vsPath,          
+    const char* psPath)          
 {
-    // initialize the shader class: hlsl for rendering textured objects;
-    // also create an instanced buffer;
     try
     {
+        Assert::True(!StrHelper::IsEmpty(vsPath), "input path to vertex shader is empty");
+        Assert::True(!StrHelper::IsEmpty(psPath), "input path to pixel shader is empty");
+
         InitializeShaders(pDevice, vsPath, psPath);
         LogDbg("is initialized");
         return true;

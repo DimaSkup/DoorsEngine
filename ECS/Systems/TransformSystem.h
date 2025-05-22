@@ -121,6 +121,7 @@ private:
     inline XMMATRIX GetMatScaling(const float uScale)         const { return DirectX::XMMatrixScaling(uScale, uScale, uScale); }
 
 private:
+    cvector<index> s_Idxs;              // static array of idxs to elements in array
     Transform* pTransform_ = nullptr;   // a ptr to the Transform component
 };
 

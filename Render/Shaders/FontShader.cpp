@@ -76,7 +76,7 @@ void FontShader::SetFontColor(
 void FontShader::Render(
     ID3D11DeviceContext* pContext,
     ID3D11Buffer* const* vertexBuffers,           // array of text vertex buffers
-    ID3D11Buffer* const* indexBuffers,            // array of text indices buffers
+    ID3D11Buffer* pIndexBuffer,                   // index buffer is common for all vertex buffers (we have the same vertices order for each sentence)
     const uint32_t* indexCounts,                  // array of index counts in each index buffer
     const size numSentences,
     const uint32_t fontVertexSize,
@@ -86,16 +86,13 @@ void FontShader::Render(
     try
     {
         Assert::True(vertexBuffers,    "input ptr to vertex buffers arr == nullptr");
-        Assert::True(indexBuffers,     "input ptr to index buffers arr == nullptr");
+        Assert::True(pIndexBuffer,     "input ptr to index buffer == nullptr");
         Assert::True(indexCounts,      "input ptr to index counts arr == nullptr");
         Assert::True(numSentences > 0, "input number of sentences must be > 0");
 
-        // bind vertex and pixel shaders
+        // bind vertex/pixel shaders and input layout
         pContext->VSSetShader(vs_.GetShader(), nullptr, 0U);
         pContext->PSSetShader(ps_.GetShader(), nullptr, 0U);
-
-        // set the primitive topology for all the sentences and the input layout
-        pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         pContext->IASetInputLayout(vs_.GetInputLayout());
 
         // set the sampler state and textures
@@ -105,12 +102,12 @@ void FontShader::Render(
         const UINT stride = fontVertexSize;
         const UINT offset = 0;
 
+        pContext->IASetIndexBuffer(pIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
         for (index idx = 0; idx < numSentences; ++idx)
         {
-            // bind vb/ib
             pContext->IASetVertexBuffers(0, 1, &vertexBuffers[idx], &stride, &offset);
-            pContext->IASetIndexBuffer(indexBuffers[idx], DXGI_FORMAT_R32_UINT, 0);
-
+            
             // render the fonts on the screen
             pContext->DrawIndexed(indexCounts[idx], 0, 0);
         }

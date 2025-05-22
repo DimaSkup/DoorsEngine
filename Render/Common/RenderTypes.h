@@ -33,19 +33,19 @@ using SRV = ID3D11ShaderResourceView;
 // =================================================================================
 // ENUMS
 // =================================================================================
-enum DebugState
+enum eDebugState
 {
-    TURN_OFF,               // turn off the debug shader and use the default shader
-    SHOW_NORMALS,
-    SHOW_TANGENTS,
-    SHOW_BINORMALS,
-    SHOW_BUMPED_NORMALS,
-    SHOW_ONLY_LIGTHING,
-    SHOW_ONLY_DIRECTED_LIGHTING,
-    SHOW_ONLY_POINT_LIGHTING,
-    SHOW_ONLY_SPOT_LIGHTING,
-    SHOW_ONLY_DIFFUSE_MAP,
-    SHOW_ONLY_NORMAL_MAP,
+    DBG_TURN_OFF,               // turn off the debug shader and use the default shader
+    DBG_SHOW_NORMALS,
+    DBG_SHOW_TANGENTS,
+    DBG_SHOW_BUMPED_NORMALS,
+    DBG_SHOW_ONLY_LIGTHING,
+    DBG_SHOW_ONLY_DIRECTED_LIGHTING,
+    DBG_SHOW_ONLY_POINT_LIGHTING,
+    DBG_SHOW_ONLY_SPOT_LIGHTING,
+    DBG_SHOW_ONLY_DIFFUSE_MAP,
+    DBG_SHOW_ONLY_NORMAL_MAP,
+    DBG_WIREFRAME,
 };
 
 enum EnttsSetType

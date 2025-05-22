@@ -161,6 +161,7 @@ void ImageReader::LoadPNGTexture(ID3D11Device* pDevice, DXTextureData& data)
     {
         sprintf(g_String, "can't create a PNG texture from file: %s", data.filePath);
         LogErr(g_String);
+        return;
     }
 
 	// initialize the texture width and height values

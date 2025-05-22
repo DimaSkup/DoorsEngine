@@ -20,6 +20,9 @@ void EventsHistory::FlushTempHistory()
 {
 	// create an actual history item after we release mouse or keyboard
 
+    if (tempHistory_.empty())
+        return;
+
 	HistoryItem forward;   // alternative undo
 	HistoryItem undo;      // classis undo (ctrl+z)
 

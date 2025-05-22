@@ -35,7 +35,8 @@ private:
 public:
 	GeometryGenerator() {};
 
-	void GenerateAxis(BasicModel& model);
+    void ComputeTangents(Vertex3D* vertices, UINT* indices, const int numIndices);
+
 	void GenerateCube(BasicModel& model);
 	void GenerateLineBox(BasicModel& model);
 
@@ -66,18 +67,6 @@ public:
 		const float baseWidth,
 		const float baseDepth,
 		BasicModel& model);
-
-#if 0
-	void GenerateWaves(
-		const UINT numRows,
-		const UINT numColumns,
-		const float spatialStep,
-		const float timeStep,
-		const float speed,
-		const float damping,
-		Waves & waves,
-		BasicModel& model);
-#endif
 
 	void GenerateCylinder(
 		const MeshCylinderParams& params,

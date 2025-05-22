@@ -163,7 +163,7 @@ void EnttPointLightController::ExecChangeAmbient(const EntityID id, const ColorR
 		pointLightModel_.ambient = ambient;
 
 		// generate an "undo" command and store it into the history
-		gEventsHistory.Push(
+		g_EventsHistory.Push(
 			CmdChangeColor(CHANGE_POINT_LIGHT_AMBIENT, oldAmbient),
             GenerateMsgForHistory(id, "ambient"),
 			id);
@@ -186,7 +186,7 @@ void EnttPointLightController::ExecChangeDiffuse(const EntityID id, const ColorR
 		pointLightModel_.diffuse = diffuse;
 
 		// generate an "undo" command and store it into the history
-		gEventsHistory.Push(
+		g_EventsHistory.Push(
 			CmdChangeColor(CHANGE_POINT_LIGHT_DIFFUSE, oldDiffuse),
             GenerateMsgForHistory(id, "diffuse"),
 			id);
@@ -209,7 +209,7 @@ void EnttPointLightController::ExecChangeSpecular(const EntityID id, const Color
 		pointLightModel_.specular = specular;
 
 		// generate an "undo" command and store it into the history
-		gEventsHistory.Push(
+		g_EventsHistory.Push(
 			CmdChangeColor(CHANGE_POINT_LIGHT_SPECULAR, oldSpecular),
             GenerateMsgForHistory(id, "specular"),
 			id);
@@ -232,7 +232,7 @@ void EnttPointLightController::ExecChangeRange(const EntityID id, const float ra
 		pointLightModel_.range = range;
 
 		// generate an "undo" command and store it into the history
-		gEventsHistory.Push(
+		g_EventsHistory.Push(
 			CmdChangeFloat(CHANGE_POINT_LIGHT_RANGE, oldRange),
             GenerateMsgForHistory(id, "range"),
 			id);
@@ -255,7 +255,7 @@ void EnttPointLightController::ExecChangeAttenuation(const EntityID id, const Ve
 		pointLightModel_.attenuation = att;
 
 		// generate an "undo" command and store it into the history
-		gEventsHistory.Push(
+		g_EventsHistory.Push(
 			CmdChangeVec3(CHANGE_POINT_LIGHT_ATTENUATION, oldAttenuation),
             GenerateMsgForHistory(id, "attenuation"),
 			id);

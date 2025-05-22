@@ -233,8 +233,6 @@ bool RenderWindow::ProcessMessages(HINSTANCE& hInstance, HWND& hwnd)
 		}
 	}
 
-	
-
 	return true;
 } 
 

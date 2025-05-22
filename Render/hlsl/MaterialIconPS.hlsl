@@ -28,7 +28,7 @@ struct PS_IN
     float3 posW      : POSITION;      // position in world
     float3 normalW   : NORMAL;        // normal in world
     float3 tangentW  : TANGENT;       // tangent in world
-    float2 tex       : TEXCOORD;      
+    float2 tex       : TEXCOORD;
 };
 
 //
@@ -39,7 +39,7 @@ float4 PS(PS_IN pin) : SV_Target
     //return float4(pin.normalW, 1.0f);
 
     float4 textureColor = gTextures[1].Sample(gSampleType, pin.tex);
-    //return textureColor;
+
 
     // execute alpha clipping
     if (true)
@@ -55,31 +55,25 @@ float4 PS(PS_IN pin) : SV_Target
     // compute the bumped normal in the world space
     float3 bumpedNormalW = NormalSampleToWorldSpace(normalMap, normalW, pin.tangentW);
 
-    
     // --------------------  LIGHT   --------------------
 
     // a vector in the world space from vertex to eye pos
-    float3 toEyeW = float3(0,0,-2.0f) - pin.posH.xyz;
+    float3 toEyeW = normalize(float3(0,0,1.1f) - pin.posW);
 
-    // compute the distance to the eye from this surface point
-    float distToEye = length(toEyeW);
-
-    // normalize
-    toEyeW /= distToEye;
 
     // start with a sum of zero
     float4 ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
     float4 diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);
-    float4 spec    = float4(0.0f, 0.0f, 0.0f, 0.0f);
+    float4 spec = float4(0.0f, 0.0f, 0.0f, 0.0f);
 
     // sum the light contribution from each light source (ambient, diffuse, specular)
     float4 A, D, S;
 
     DirectionalLight dirLight;
-    dirLight.ambient   = float4(1,1,1,1);
-    dirLight.diffuse   = float4(1,1,1,1);
-    dirLight.specular  = float4(1,1,1,1);
-    dirLight.direction = float3(-1.0f, -1.0f, 1.0f);
+    dirLight.ambient = float4(0.5f, 0.5f, 0.5f, 1.0f);
+    dirLight.diffuse = float4(0.8f, 0.8f, 0.8f, 1.0f);
+    dirLight.specular = float4(0.3f, 0.3f, 0.3f, 1.0f);
+    dirLight.direction = normalize(float3(-1.0f, -1.0f, 1));
 
     Material mat;
     mat.ambient = gAmbient;
@@ -92,12 +86,13 @@ float4 PS(PS_IN pin) : SV_Target
         dirLight,
         bumpedNormalW,
         toEyeW,
-        0.0f,
+        0.0f,             // specular map value
         A, D, S);
 
     ambient += A;
     diffuse += D;
     spec += S;
+
 
     // modulate with late add
     float4 litColor = textureColor * (ambient + diffuse) + spec;
@@ -108,5 +103,5 @@ float4 PS(PS_IN pin) : SV_Target
 
     return litColor;
 
-    
+
 }

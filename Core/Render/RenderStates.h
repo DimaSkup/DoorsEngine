@@ -60,7 +60,7 @@ public:
     void InitAll(ID3D11Device* pDevice, const bool multisampleEnable);
     void DestroyAll();
 
-    inline void ResetRS (ID3D11DeviceContext* pDeviceContext) { SetRS(pDeviceContext, { FILL_SOLID, CULL_BACK, FRONT_COUNTER_CLOCKWISE }); }
+    inline void ResetRS (ID3D11DeviceContext* pDeviceContext) { SetRS(pDeviceContext, { FILL_SOLID, CULL_BACK, FRONT_CLOCKWISE }); }
     inline void ResetBS (ID3D11DeviceContext* pDeviceContext) { SetBS(pDeviceContext, ALPHA_DISABLE); }
     inline void ResetDSS(ID3D11DeviceContext* pDeviceContext) { pDeviceContext->OMSetDepthStencilState(0, 0); }
 
@@ -92,7 +92,7 @@ private:
     ID3D11RasterizerState* GetRasterStateByHash(const uint8_t hash);
 
     void UpdateRSHash(const std::set<eRenderState>& rsParams);
-    void PrintErrAboutRSHash(const uint8_t hash);
+    void PrintErrAboutRSHash(const uint8_t bitfield);
 
 private:
     std::map<eRenderState, ID3D11BlendState*>         blendStates_;

@@ -103,7 +103,7 @@ Material& MaterialMgr::GetMaterialByID(const MaterialID id)
 void MaterialMgr::GetMaterialsByIDs(
     const MaterialID* ids,
     const size numMaterials,
-    cvector<Material>& outMaterials) const
+    cvector<Material>& outMaterials)
 {
     try
     {
@@ -111,14 +111,13 @@ void MaterialMgr::GetMaterialsByIDs(
         Assert::True(numMaterials > 0, "can't get materials: input number of materials must be > 0");
 
         // get idxs to materials data by its ids
-        cvector<index> idxs;
-        ids_.get_idxs(ids, numMaterials, idxs);
+        ids_.get_idxs(ids, numMaterials, idxs_);
 
         // get materials by idxs
         outMaterials.resize(numMaterials);
 
         for (index i = 0; i < numMaterials; ++i)
-            outMaterials[i] = materials_[idxs[i]];
+            outMaterials[i] = materials_[idxs_[i]];
 
     }
     catch (EngineException& e)
