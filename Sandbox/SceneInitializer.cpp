@@ -706,7 +706,7 @@ void CreateTerrain(ECS::EntityMgr& mgr, const BasicModel& model)
 
     // setup a transformation for the terrain's texture (scale it)
     ECS::StaticTexTransInitParams terrainTexTransform;
-    terrainTexTransform.Push(DirectX::XMMatrixScaling(50, 50, 0));
+    terrainTexTransform.Push(DirectX::XMMatrixScaling(4, 4, 0));
 
     // setup rendering params
     ECS::RenderInitParams renderParams;

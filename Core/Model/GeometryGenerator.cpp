@@ -597,9 +597,9 @@ bool BuildFlatGridVertices(
                 v4.position = { x0+1, 0.0f, z0   };
 
                 v1.texture = { du * x0,     dv * z0 };
-                v2.texture = { du * (x0+1), dv * z0 };
-                v3.texture = { du * x0,     dv * (z0+1) };
-                v4.texture = { du * (x0+1), dv * (z0+1) };
+                v2.texture = { du * x0,     dv * (z0+1) };
+                v3.texture = { du * (x0+1), dv * (z0+1) };
+                v4.texture = { du * (x0+1), dv * z0 };
             }
         }
 

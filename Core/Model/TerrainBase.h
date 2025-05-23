@@ -5,14 +5,44 @@
 
 namespace Core
 {
+// =================================================================================
+// Structures
+// =================================================================================
+constexpr int TRN_NUM_TILES = 5;
 
+// =================================================================================
+// Structures
+// =================================================================================
 struct HeightData
 {
     uint8_t* pData = nullptr;   // the height data
     int      size = 0;          // the height size (power of 2)
 };
 
-// =================================================================================
+///////////////////////////////////////////////////////////
+
+struct TerrainTextureRegions
+{   //    0%         optimalHeight        0%
+    //    |               |               |
+    //    |---------------|---------------|
+    //    |               |               |
+    // lowHeight         100%         highHeight
+
+    int lowHeight     = 0;   // lower possible height (0%)   - from this height and until optimalHeight the texture presence increses
+    int optimalHeight = 0;   // optimal height (100%)        - at this height the texture has 100% presense
+    int highHeight    = 0;   // highest possible height (0%) - from optimalHeight and until highHeight the texture presence reduces
+};
+
+///////////////////////////////////////////////////////////
+
+struct TerrainTextureTiles
+{
+    TerrainTextureRegions regions[TRN_NUM_TILES];    // texture regions (types of terrain heights)
+    //Image                 textureTiles[TRN_NUM_TILES];
+    int                   numTiles = TRN_NUM_TILES;
+};
+
+///////////////////////////////////////////////////////////
 
 class TerrainBase
 {
@@ -75,8 +105,8 @@ public:
     inline float        GetHeightScale() const { return heightScale_; }
 
     // heightmap generators
-    void GenHeightFaultFormation(const int size, const int numIterations, const int minDelta, const int maxDelta, const float filter);
-
+    bool GenHeightFaultFormation      (const int size, const int numIterations, const int minDelta, const int maxDelta, const float filter);
+    bool GenHeightMidpointDisplacement(const int size, const float roughness);
 
 private:
     // terrain heights erosion/bluring/normalization methods

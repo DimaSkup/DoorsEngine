@@ -1,8 +1,13 @@
+// =================================================================================
+// Filename:   TerrainBase.cpp
+// =================================================================================
 #include "TerrainBase.h"
 #include <CoreCommon/MemHelpers.h>
 #include <CoreCommon/StrHelper.h>
 #include <CoreCommon/Assert.h>
 #include <CoreCommon/Log.h>
+#include <CoreCommon/MathHelper.h>
+
 #include <time.h>
 #include <stdexcept>
 
@@ -13,6 +18,10 @@ namespace Core
 // Public methods
 // =================================================================================
 
+// --------------------------------------------------------
+// Desc:  load a file with terrain's settings
+// Args:  - filename: path to the setup file
+// --------------------------------------------------------
 bool TerrainBase::LoadSetupFile(const char* filename)
 {
     // check input params
@@ -58,8 +67,12 @@ bool TerrainBase::LoadSetupFile(const char* filename)
     return true;
 }
 
-///////////////////////////////////////////////////////////
-
+// --------------------------------------------------------
+// Desc:  load a height map from the file
+// Args:  - filename: path to the file
+//        - size:     dimension of the terrain by X and Z
+//                    (expected to be the same as filename's)
+// --------------------------------------------------------
 bool TerrainBase::LoadHeightMap(const char* filename, const int size)
 {
     FILE* pFile = nullptr;
@@ -186,113 +199,328 @@ bool TerrainBase::LoadHeightMap(const char* filename, const int size)
     }
 }
 
-///////////////////////////////////////////////////////////
-
+// --------------------------------------------------------
+// Desc:  release the memory from the heights data
+//        and reset the map dimensions
+// --------------------------------------------------------
 void TerrainBase::UnloadHeightMap()
 {
-    SafeDeleteArr(heightData_.pData);   // delete the height data
-    heightData_.size = 0;               // reset the map dimensions, also
+    SafeDeleteArr(heightData_.pData);   
+    heightData_.size = 0;               
 }
 
 // --------------------------------------------------------
 // Desc:  generate a height data using the method of fractal
-//        terrain generation is called "Fault Formation"
+//        terrain generation is called "Fault Formation".
+//        Note that this algorithm allows you specify any
+//        dimension of terrain and size not necessarally must
+//        be power of 2.
 // Args:  - size:          desired size of the height map
 //        - numIterations: number of detail passes to make
 //        - minDelta:      lowest value for the height
 //        - maxDelta:      highest value for the height
 //        - filter:        strength of the filter
 // --------------------------------------------------------
-void TerrainBase::GenHeightFaultFormation(
+bool TerrainBase::GenHeightFaultFormation(
     const int size,
     const int numIterations,
     const int minDelta,       
     const int maxDelta,    
     const float filter)  
 {
-    // check input params
-    if (size <= 0)
+    float* tempBuf = nullptr;   // we use this temp buffer because we need higher precision during computations
+
+    try
     {
-        LogErr("input size (dimensions) for height map must be > 0");
-        return;
-    }
+        // check input params
+        Assert::True(size > 0,          "input size (dimensions) for height map must be > 0");
+        Assert::True(numIterations > 0, "input number of iterations must be > 0");
 
-    if (numIterations <= 0)
-    {
-        LogErr("input number of iterations must be > 0");
-        return;
-    }
+        if (heightData_.pData)
+            UnloadHeightMap();
 
-    if (heightData_.pData)
-        UnloadHeightMap();
+        size_ = size;
 
-    size_ = size;
+        // need it for truly random generation of heights
+        srand((unsigned int)time(NULL));
 
-    srand(time(NULL));
+        // alloc the memory for our height data
+        heightData_.pData = new uint8_t[size * size]{ 0 };
+        tempBuf           = new float[size * size]{ 0.0f };
 
-
-    // alloc the memory for our height data
-    heightData_.pData = new uint8_t[size*size]{0};
-    float* tempBuf    = new float[size*size]{0.0f}; // we use this temp buffer because we need higher precision during computations
-
-    for (int currIteration = 0; currIteration < numIterations; ++currIteration)
-    {
-        // calculate the height range (lerp from maxDelta to minDelta) for this fault-pass
-        const float height = (float)(maxDelta - ((maxDelta - minDelta) * currIteration) / numIterations);
-
-      
-        // pick two points at random from the entire height map
-        const int randX1 = rand() % size;
-        const int randZ1 = rand() % size;
-        int       randX2 = rand() % size;
-        int       randZ2 = rand() % size;
-
-        // check to make sure that the points are not the same
-        while ((randX2 == randX1) && (randZ2 == randZ1))
+        for (int currIteration = 0; currIteration < numIterations; ++currIteration)
         {
-            randX2 = rand() % size;
-            randZ2 = rand() % size;
-        } 
+            // calculate the height range (lerp from maxDelta to minDelta) for this fault-pass
+            const float height = (float)(maxDelta - ((maxDelta - minDelta) * currIteration) / numIterations);
 
-        // <dirX1, dirX2> is a vec going the same direction as the division line
-        const int dirX1 = randX2 - randX1;
-        const int dirZ1 = randZ2 - randZ1;
+            // pick two points at random from the entire height map
+            const int randX1 = rand() % size;
+            const int randZ1 = rand() % size;
+            int       randX2 = rand() % size;
+            int       randZ2 = rand() % size;
 
-        // set heights for one half
+            // check to make sure that the points are not the same
+            while ((randX2 == randX1) && (randZ2 == randZ1))
+            {
+                randX2 = rand() % size;
+                randZ2 = rand() % size;
+            }
+
+            // <dirX1, dirX2> is a vec going the same direction as the division line
+            const int dirX1 = randX2 - randX1;
+            const int dirZ1 = randZ2 - randZ1;
+
+            // set heights for one half
+            for (int z = 0; z < size; ++z)
+            {
+                for (int x = 0; x < size; ++x)
+                {
+                    // <dirX2, dirZ2> is a vector from point <randX1, randZ1> to the curr point (in the loop)
+                    const int dirX2 = x - randX1;
+                    const int dirZ2 = z - randZ1;
+
+                    // if the result of (dirX2*dirZ1 - dirX1*dirZ2) is "up" (above 0), then raise this point by height
+                    if ((dirX2 * dirZ1 - dirX1 * dirZ2) > 0)
+                        tempBuf[(z * size) + x] += height;
+                }
+            }
+
+            // erode terrain
+            FilterHeightField(tempBuf, filter);
+        }
+
+        // normalize the terrain for our purposes
+        NormalizeTerrain(tempBuf, size);
+
+        // transfer the terrain into our class's uint8_t height buffer
         for (int z = 0; z < size; ++z)
         {
             for (int x = 0; x < size; ++x)
-            {
-                // <dirX2, dirZ2> is a vector from point <randX1, randZ1> to the curr point (in the loop)
-                const int dirX2 = x - randX1;
-                const int dirZ2 = z - randZ1;
-
-                // if the result of (dirX2*dirZ1 - dirX1*dirZ2) is "up" (above 0),
-                // then raise this point by height
-                if ((dirX2*dirZ1 - dirX1*dirZ2) > 0)
-                    tempBuf[(z * size) + x] += height;
-            }
+                SetHeightAtPoint((uint8_t)tempBuf[(z * size) + x], x, z);
         }
 
-        // erode terrain
-        FilterHeightField(tempBuf, filter);
+        // delete temp buffer
+        SafeDeleteArr(tempBuf);
+
+        return true;
     }
-
-    // normalize the terrain for our purposes
-    NormalizeTerrain(tempBuf, size);
-
-    // transfer the terrain into our class's uint8_t height buffer
-    for (int z = 0; z < size; ++z)
+    catch (std::bad_alloc& e)
     {
-        for (int x = 0; x < size; ++x)
-            SetHeightAtPoint((uint8_t)tempBuf[(z*size) + x], x, z);
+        LogErr(e.what());
+        throw EngineException("can't allocate the memory for heights data");
     }
+    catch (EngineException& e)
+    {
+        SafeDeleteArr(heightData_.pData);
+        SafeDeleteArr(tempBuf);
 
-    // delete temp buffer
-    SafeDeleteArr(tempBuf);
+        LogErr(e);
+        return false;
+    }
 }
 
+// --------------------------------------------------------
+// Desc:  generate a height data using the method of 
+//        terrain generation is called "Midpoint Displacement"
+//        (also known as the "plasma fractal" and the
+//        "diamond-square algorithm).
+//        Note: this algorithm has limited use, since
+//        CLOD algorithms usually require a height map
+//        size of (n^2)+1 x (n^2)+1, and this algorithm
+//        can only generate (n^2) x (n^2) maps
+// Args:  - size:      desired size of the height map
+//        - roughness: desired roughness of the terrain
+//                     (best results are from 0.25f to 1.5f)
+// --------------------------------------------------------
+bool TerrainBase::GenHeightMidpointDisplacement(const int size, float roughness)
+{
+    float* tempBuf = nullptr;    // temp buf for height data (we need it for higher precision)
+    int    rectSize = size;
 
+    try
+    {
+        // check input params
+        Assert::True(size > 0,                   "input size of mipmap must be > 0");
+        Assert::True(size && !(size & (size-1)), "input size must be a power of 2");
+
+        // unload previous height data if we has any
+        if (heightData_.pData)
+            UnloadHeightMap();
+
+        if (roughness < 0)
+            roughness *= -1;
+
+        float height = (float)(size / 2);                   
+        const float heightReducer = powf(2, -1*roughness);
+
+        size_ = size;
+
+        // alloc the memory for our height data
+        heightData_.pData = new uint8_t[size*size]{0};
+        tempBuf           = new float[size*size]{0.0f};
+
+        // being the displacement process
+        while (rectSize > 0)
+        {
+            // min/max heights for the current iteration
+            const float minHeight = -height * 0.5f;
+            const float maxHeight = +height * 0.5f;
+
+            const int halfRectSize = rectSize / 2;
+
+            /* Diamond step -
+
+            Find the values at the center of the rectangles by averaging the values at
+            the corners and adding a random offset:
+
+            a.....b
+            .     .
+            .  e  .
+            .     .
+            c.....d
+
+            e = (a+b+c+d)/4 + random
+
+            In the code below:
+            a = (i,j)
+            b = (ni, j)
+            c = (i, nj)
+            d = (ni,nj)
+            e = (mi,mj)  */
+
+            for (int i = 0; i < size; i += rectSize)
+            {
+                const int ni = (i+rectSize) & (size-1);       // (i + rectSize) % size
+                const int mi = i + halfRectSize;
+
+                for (int j = 0; j < size; j += rectSize)
+                {
+                    const int nj  = (j+rectSize) & (size-1);  // (j+rectSize) % size
+                    const int mj  = j + halfRectSize;
+                    const int idx = mi + (mj*size);
+
+                    tempBuf[idx] =
+                        tempBuf[i  + (j*size)]  +
+                        tempBuf[ni + (j*size)]  +
+                        tempBuf[i  + (nj*size)] +
+                        tempBuf[ni + (nj*size)];
+
+                    tempBuf[idx] *= 0.25f;
+                    tempBuf[idx] += MathHelper::RandF(minHeight, maxHeight);
+                }
+            }
+
+            /* Square step -
+
+            Find the values on the left and top sides of each rectangle.
+            The right and bottom sides are the left and top sides of the neighboring
+            rectangles, so we don't need to calculate them.
+
+            The height heightData_.pData wraps, so we're never left handing. The right
+            side of the last rectangle in a row is the left side of the first rectangle
+            in the row. The bottom side of the last rectangle in a column is the top side
+            of the first rectangle in the column.
+           
+                  .......
+                  .     .
+                  .     .
+                  .  d  .
+                  .     .
+                  .     .
+            ......a..g..b
+            .     .     .
+            .     .     .
+            .  e  h  f  .
+            .     .     .
+            .     .     .
+            ......c......
+
+            g = (d+f+a+b)/4 + random
+            h = (a+c+e+f)/4 + random
+
+            In the code below:
+                a = (i,j)
+                b = (ni,j)
+                c = (i,nj)
+                d = (mi,pmj)
+                e = (pmi,mj)
+                f = (mi,mj)
+                g = (mi,j)
+                h = (i,mj)  */
+            for (int i = 0; i < size; i += rectSize)
+            {
+                const int ni  = (i+rectSize) & (size-1);                 // (i+rectSize) % size
+                const int mi  = (i+halfRectSize);
+                const int pmi = (i-halfRectSize+size) & (size-1);        // (i-halfRectSize+size) % size
+
+                for (int j = 0; j < size; j += rectSize)
+                {
+                    const int nj  = (j+rectSize) & (size-1);             // (j + rectSize) % size
+                    const int mj  = (j+halfRectSize);
+                    const int pmj = (j-halfRectSize+size) & (size-1);    // (j-halfRectSize + size) % size
+
+                    // calculate the square value for the top side of the rectangle
+                    const int idx1 = mi + (j*size);
+
+                    tempBuf[idx1] =
+                        tempBuf[i  + (j*size)]    +
+                        tempBuf[ni + (j*size)]    +
+                        tempBuf[mi + (pmj*size)]  +
+                        tempBuf[mi + (mj*size)];
+
+                    tempBuf[idx1] *= 0.25f;
+                    tempBuf[idx1] += MathHelper::RandF(minHeight, maxHeight);
+
+                    // calculate the square value for the left side of the rectangle
+                    const int idx2 = i + (mj*size);
+
+                    tempBuf[idx2] =
+                        tempBuf[i   + (j*size)]   +
+                        tempBuf[i   + (nj*size)]  +
+                        tempBuf[pmi + (mj*size)]  +
+                        tempBuf[mi  + (mj*size)];
+
+                    tempBuf[idx2] *= 0.25f;
+                    tempBuf[idx2] += MathHelper::RandF(minHeight, maxHeight);
+                }
+            }
+
+            // reduce the rectangle size by two to prepare for the next displacement stage
+            rectSize /= 2;
+
+            // reduce the height by the height reducer
+            height *= heightReducer;
+        }
+
+        // normalize the terrain for our purposes (then we pack height values into uint8_t)
+        NormalizeTerrain(tempBuf, size);
+
+        // transfer the terrain into our class's uint_8 height buffer
+        for (int z = 0; z < size; ++z)
+        {
+            for (int x = 0; x < size; ++x)
+                SetHeightAtPoint((uint8_t)tempBuf[(z*size) + x], x, z);
+        }
+
+        // delete temp buffer
+        SafeDeleteArr(tempBuf);
+
+        return true;
+    }
+    catch (std::bad_alloc& e)
+    {
+        LogErr(e.what());
+        throw EngineException("can't allocate the memory for height data");
+    }
+    catch (EngineException& e)
+    {
+        SafeDeleteArr(heightData_.pData);
+        SafeDeleteArr(tempBuf);
+        LogErr(e);
+        return false;
+    }
+
+}
 
 // =================================================================================
 // Private methods
@@ -350,7 +578,6 @@ void TerrainBase::FilterHeightField(float* heightData, const float filter)
     for (int i = 0; i < size; ++i)
         FilterHeightBand(&heightData[size*(size-1)+i], -size, size, filter);
 }
-
 
 // --------------------------------------------------------
 // Desc:  scale the terrain height values to a range of 0-255

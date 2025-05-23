@@ -746,10 +746,8 @@ ModelID ModelsCreator::CreateTerrainFromHeightmap(
     GeometryGenerator geoGen;
     BruteForceTerrain terrain;
 
+    // load from the file meta-info about the terrain 
     terrain.LoadSetupFile(setupFilename);
-    //terrain.LoadHeightMap(terrain.GetFilename(), terrain.GetWidth() + 1);
-    terrain.GenHeightFaultFormation(terrain.GetWidth()+1, 64, 0, 255, 0.2f);
-    terrain.SetHeightScale(0.2f);
 
     // generate terrain flat grid's vertices and indices by input params
     geoGen.GenerateFlatGrid(
@@ -759,14 +757,50 @@ ModelID ModelsCreator::CreateTerrainFromHeightmap(
         terrain.GetDepth() + 1,     // num of quads (cells count) by Z
         model);
 
+    terrain.SetHeightScale(0.2f);
     terrain.SetTexture(0, 0);
-   
+
+    // generate a height map or load it from file
+    constexpr bool generateHeightMap = true;
+    bool hasHeights = false;
+
+    if constexpr (generateHeightMap)
+    {
+        // we generate height maps only relatively the terrain's size
+        const int generatedHeightMapSize = terrain.GetWidth() + 1;        // one height map pixel per vertex: num_pixels == num_vertices_in_line == terrain_width + 1 
+
+#if 0
+        const int   numIterations = 64;
+        const int   minDelta = 0;
+        const int   maxDelta = 255;
+        const float filter = 0.2f;       // bigger value makes smother terrain
+
+        hasHeights = terrain.GenHeightFaultFormation(
+            generatedHeightMapSize,
+            numIterations,
+            minDelta,
+            maxDelta,
+            filter);
+#else
+        const float roughness = 1.0f;   // bigger value makes smother terrain
+        hasHeights = terrain.GenHeightMidpointDisplacement(generatedHeightMapSize, 1.0f);
+#endif
+    }
+    else
+    {
+        // load a height map from the file
+        const int heightMapSize = terrain.GetWidth() + 1;
+        hasHeights = terrain.LoadHeightMap(terrain.GetFilename(), heightMapSize);
+    }
 
     // set heights for the terrain at particular positions
-    for (int i = 0; i < model.GetNumVertices(); ++i)
+    if (hasHeights)
     {
-        XMFLOAT3& pos = model.vertices_[i].position;
-        pos.y = terrain.GetScaledHeightAtPoint((int)pos.x, (int)pos.z);
+        for (int i = 0; i < model.GetNumVertices(); ++i)
+        {
+            XMFLOAT3& pos = model.vertices_[i].position;
+            pos.y = terrain.GetScaledHeightAtPoint((int)pos.x, (int)pos.z);
+        }
     }
 
     ComputeAveragedNormals(model.vertices_, model.indices_, model.numVertices_, model.numIndices_);
