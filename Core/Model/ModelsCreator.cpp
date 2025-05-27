@@ -576,44 +576,6 @@ ModelID ModelsCreator::CreateCylinder(
 
 ///////////////////////////////////////////////////////////
 
-#if 0
-ModelID ModelsCreator::CreateGrid(
-    ID3D11Device* pDevice, 
-    const u32 width, 
-    const u32 depth)
-{
-    // CREATE PLAIN GRID MESH
-    // 
-    // input:  width and height for mesh generation 
-    // return: an ID of created mesh
-
-    GeometryGenerator geoGen;
-    Mesh::MeshData mesh;
-
-    std::stringstream ss;
-    ss << "grid_" << width << "_" << depth;
-
-    // setup some mesh params
-    mesh.name = ss.str();
-    mesh.path = "data/models/" + mesh.name + ".txt";
-    ss.clear();
-
-    // generate grid's vertices and indices by input params
-    geoGen.GenerateFlatGridMesh(
-        static_cast<float>(width),
-        static_cast<float>(depth),
-        width + 1,     // num of quads (cells count) by X 
-        depth + 1,     // num of quads (cells count) by Z
-        mesh);
-    
-    // create a new grid mesh (model) and return its index
-    return MeshStorage::Get()->CreateMeshWithRawData(pDevice, mesh);
-}
-
-#endif
-
-///////////////////////////////////////////////////////////
-
 void GenerateHeightsForTerrainGrid(BasicModel& grid)
 {
     // generate height for the input grid by some particular function;
@@ -745,11 +707,10 @@ ModelID ModelsCreator::CreateTerrainFromHeightmap(
     BasicModel&       model = g_ModelMgr.AddEmptyModel();
     GeometryGenerator geoGen;
     BruteForceTerrain terrain;
+    TerrainConfig     terrainCfg;
 
-    terrain.LoadSetupFile(setupFilename);
-    //terrain.LoadHeightMap(terrain.GetFilename(), terrain.GetWidth() + 1);
-    terrain.GenHeightFaultFormation(terrain.GetWidth()+1, 64, 0, 255, 0.2f);
-    terrain.SetHeightScale(0.2f);
+    // load from the file meta-info about the terrain 
+    terrain.LoadSetupFile(setupFilename, terrainCfg);
 
     // generate terrain flat grid's vertices and indices by input params
     geoGen.GenerateFlatGrid(
@@ -759,18 +720,66 @@ ModelID ModelsCreator::CreateTerrainFromHeightmap(
         terrain.GetDepth() + 1,     // num of quads (cells count) by Z
         model);
 
-    terrain.SetTexture(0, 0);
-   
 
-    // set heights for the terrain at particular positions
-    for (int i = 0; i < model.GetNumVertices(); ++i)
+    // generate a height map or load it from file
+    bool hasHeights = false;
+
+    if (terrainCfg.generateHeights)
     {
-        XMFLOAT3& pos = model.vertices_[i].position;
-        pos.y = terrain.GetScaledHeightAtPoint((int)pos.x, (int)pos.z);
+        // we generate height maps only relatively the terrain's size
+        const int generatedHeightMapSize = terrainCfg.width + 1;
+
+        // use "Fault formation" algorithm for height generation
+        if (terrainCfg.useGenFaultFormation)
+        {
+            hasHeights = terrain.GenHeightFaultFormation(
+                generatedHeightMapSize,
+                terrainCfg.numIterations,
+                terrainCfg.minDelta,
+                terrainCfg.maxDelta,
+                terrainCfg.filter);
+        }
+
+        // use "midpoint displacement" for height generation
+        else
+        {
+            // bigger value makes smother terrain
+            const float roughness = terrainCfg.roughness;
+            hasHeights = terrain.GenHeightMidpointDisplacement(generatedHeightMapSize, roughness);
+        }
+
+        // also save this generated height map into the file
+        terrain.SaveHeightMap(terrainCfg.pathSaveHeightMap);
+    }
+    else
+    {
+        // load a height map from the file
+        const int heightMapSize = terrain.GetWidth();
+        hasHeights = terrain.LoadHeightMap(terrainCfg.pathHeightMap, heightMapSize);
     }
 
+    // set heights for the terrain at particular positions
+    if (hasHeights)
+    {
+        for (int i = 0; i < model.GetNumVertices(); ++i)
+        {
+            XMFLOAT3& pos = model.vertices_[i].position;
+            pos.y = terrain.GetScaledHeightAtPoint((int)pos.x, (int)pos.z);
+        }
+    }
+
+    // load tiles which will be used to generate texture map for terrain
+    terrain.LoadTile(LOWEST_TILE,   terrainCfg.pathLowestTile);
+    terrain.LoadTile(LOW_TILE,      terrainCfg.pathLowTile);
+    terrain.LoadTile(HIGH_TILE,     terrainCfg.pathHighTile);
+    terrain.LoadTile(HIGHEST_TILE,  terrainCfg.pathHighestTile);
+
+    // generate texture map based on loaded tiles and height map
+    const TexID textureMap = terrain.GenerateTextureMap(pDevice, terrainCfg.textureMapSize);
+    terrain.SaveTextureMap(terrainCfg.pathSaveTextureMap);
+
+
     ComputeAveragedNormals(model.vertices_, model.indices_, model.numVertices_, model.numIndices_);
-    //geoGen.ComputeTangents(model.vertices_, model.indices_, model.numIndices_);
 
     // initialize vertex/index buffers
     model.InitializeBuffers(pDevice);
@@ -809,8 +818,6 @@ ModelID ModelsCreator::CreateGeneratedTerrain(
     // compute normal vector for each triangle in the grid
     //ComputeAveragedNormals(model.vertices_, model.indices_, model.numVertices_, model.numIndices_);
 
-  
-
 #if 0
     // setup a material for the single mesh (subset) of the model
     Material& mat = model.materials_[0];
@@ -834,281 +841,7 @@ ModelID ModelsCreator::CreateGeneratedTerrain(
     sprintf(model.name_, "terrain_gen_%d_%d", terrainWidth, terrainDepth);
     model.type_ = eModelType::Terrain;
 
-#if 0
-    // PAINT GRID VERTICES WITH RAINBOW
-    PaintGridWithRainbow(grid, verticesCountByX, verticesCountByZ);
-#elif 0
-    // PAINT VERTICES OF GRID LIKE IT IS HILLS (according to its height)
-    PaintGridAccordingToHeights(grid);
-#endif
-
     return model.id_;
 }
-
-
-#if 0
-
-const UINT ModelsCreator::CreateWaves(ID3D11Device* pDevice,
-    EntityStore& modelsStore,
-    const UINT numRows,
-    const UINT numColumns,
-    const float spatialStep,
-    const float timeStep,
-    const float speed,
-    const float damping)
-{
-    //
-    // create a new waves model
-    //
-
-    const bool isDynamic = true;  // a vertex buffer of waves will be dynamic
-    VertexBuffer<Vertex3D> VB;
-    IndexBuffer IB;
-    GeometryGenerator geoGen;
-    GeometryGenerator::MeshData wavesMesh;
-
-    // generate a waves mesh with random shape
-    geoGen.GenerateWavesMesh(
-        params.numRows,
-        params.numColumns,
-        params.spatialStep,
-        params.timeStep,
-        params.speed,
-        params.damping,
-        modelsStore.waves_,
-        wavesMesh);
-
-    // initialize the vertex and index buffer with the raw vertices and indices data
-    VB.Initialize(pDevice, "waves", wavesMesh.vertices, isDynamic);
-    IB.Initialize(pDevice, wavesMesh.indices);
-
-    // create a new waves model using created vertex and index buffers
-    const UINT waves_idx = modelsStore.CreateNewModelWithBuffers(pDevice,
-        VB,
-        IB,
-        "waves",              // text id
-        defaultTexturesMap_);
-
-    return waves_idx;
-}
-#endif
-
-
-
-#if 0
-
-
-///////////////////////////////////////////////////////////
-
-const UINT ModelsCreator::CreateTerrainFromFile(
-    const std::string& terrainSetupFile,
-    ID3D11Device* pDevice,
-    EntityStore& modelsStore)
-{
-    TerrainInitializer terrainInitializer;
-
-    terrainInitializer.LoadSetupFile(terrainSetupFile);
-    const TerrainInitializer::TerrainSetupData& setupData = terrainInitializer.GetSetupData();
-
-    //
-    // CREATE TERRAIN GRID
-    //
-    GeometryGenerator geoGen;
-    GeometryGenerator::MeshData grid;
-
-    // generate grid's vertices and indices by input params
-    geoGen.GenerateFlatGridMesh(
-        static_cast<float>(setupData.terrainWidth),
-        static_cast<float>(setupData.terrainDepth),
-        setupData.terrainWidth,        // how many quads will we have along X-axis
-        setupData.terrainDepth,        // how many quads will we have along Z-axis
-        grid);
-
-    // generate height for each vertex and set color for it according to its height
-    GenerateHeightsForGrid(grid);
-    PaintGridAccordingToHeights(grid);
-
-    // add this terrain grid into the models store
-    const UINT terrainGrid_idx = modelsStore.CreateNewModelWithRawData(pDevice,
-        "terrain_grid",
-        grid.vertices,
-        grid.indices,
-        defaultTexturesMap_);
-
-    return terrainGrid_idx;
-}
-
-///////////////////////////////////////////////////////////
-
-const UINT ModelsCreator::CreateOneCopyOfModelByIndex(const UINT index,
-    EntityStore& modelsStore,
-    ID3D11Device* pDevice)
-{
-    // create a single copy of the origin model and return an ID of this copy
-    return modelsStore.CreateOneCopyOfModelByIndex(pDevice, index);
-}
-
-///////////////////////////////////////////////////////////
-
-const UINT ModelsCreator::CreateChunkBoundingBox(const UINT chunkDimension,
-    EntityStore& modelsStore,
-    ID3D11Device* pDevice)
-{
-    // creates the bouding box that surrounds the terrain cell. It is made up of series of 
-    // lines creating a box around the exact dimensions of the terrain cell. This is used
-    // for debugging purposes mostly
-
-    constexpr UINT vertexCount = 8;    // set the number of line box vertices in the vertex array
-    const float halfDimension = 0.5f * (float)chunkDimension;
-    const float min = -halfDimension;
-    const float max = halfDimension;
-
-    const DirectX::XMFLOAT3 minDimension{ min, min, min };
-    const DirectX::XMFLOAT3 maxDimension{ max, max, max };
-
-    // arrays for vertices/indices data
-    std::vector<Vertex3D> verticesDataArr(vertexCount);
-    std::vector<UINT> indicesDataArr;
-
-    // setup vertices position of the bounding box:
-
-    // bottom side of the box
-    verticesDataArr[0].position = { minDimension.x, minDimension.y, minDimension.z };  // near left
-    verticesDataArr[1].position = { maxDimension.x, minDimension.y, minDimension.z };  // near right
-    verticesDataArr[2].position = { maxDimension.x, minDimension.y, maxDimension.z };  // far right
-    verticesDataArr[3].position = { minDimension.x, minDimension.y, maxDimension.z };
-
-    // top side of the box
-    verticesDataArr[4].position = { minDimension.x, maxDimension.y, minDimension.z };  // near left
-    verticesDataArr[5].position = { maxDimension.x, maxDimension.y, minDimension.z };  // near right
-    verticesDataArr[6].position = { maxDimension.x, maxDimension.y, maxDimension.z };  // far right
-    verticesDataArr[7].position = { minDimension.x, maxDimension.y, maxDimension.z };
-
-
-    // setup the indices for the cell lines box
-    indicesDataArr.insert(indicesDataArr.begin(), {
-
-        // bottom
-        0, 1, 0,
-        1, 2, 1,
-        2, 3, 2,
-        3, 0, 3,
-
-        // front
-        4, 5, 4,
-        5, 1, 5,
-        1, 0, 1,
-        0, 4, 0,
-
-        // top
-        7, 6, 7,
-        6, 5, 6,
-        5, 4, 5,
-        4, 7, 4,
-
-        // back
-        6, 7, 6,
-        7, 3, 7,
-        3, 2, 3,
-        2, 6, 2,
-
-        // left
-        7, 4, 7,
-        4, 0, 4,
-        0, 3, 0,
-        3, 7, 3,
-
-        // right
-        5, 6, 5,
-        6, 2, 6,
-        2, 1, 2,
-        1, 5, 1
-        });
-
-
-    const UINT chunkBoundingBoxIdx = modelsStore.CreateNewModelWithRawData(pDevice,
-        "chunk_bounding_box",
-        verticesDataArr,
-        indicesDataArr,
-        defaultTexturesMap_);
-
-    return chunkBoundingBoxIdx;
-}
-
-
-
-///////////////////////////////////////////////////////////
-
-void ModelsCreator::PaintGridAccordingToHeights(GeometryGenerator::MeshData& grid)
-{
-    // THIS FUNCTION sets a color for the vertices according to its height (Y-coord)
-
-    //const DirectX::XMFLOAT4 sandyBeach(1.0f, 0.96f, 0.62f, 1.0f);
-    //const DirectX::XMFLOAT4 lightYellowGreen(0.48f, 0.77f, 0.46f, 1.0f);
-    //const DirectX::XMFLOAT4 darkYellowGreen(0.1f, 0.48f, 0.19f, 1.0f);
-    //const DirectX::XMFLOAT4 darkBrown(0.45f, 0.39f, 0.34f, 1.0f);
-    //const DirectX::XMFLOAT4 whiteSnow(1.0f, 1.0f, 1.0f, 1.0f);
-
-
-    const DirectX::PackedVector::XMCOLOR sandyBeach(1.0f, 0.96f, 0.62f, 1.0f);
-    const DirectX::PackedVector::XMCOLOR lightYellowGreen(0.48f, 0.77f, 0.46f, 1.0f);
-    const DirectX::PackedVector::XMCOLOR darkYellowGreen(0.1f, 0.48f, 0.19f, 1.0f);
-    const DirectX::PackedVector::XMCOLOR darkBrown(0.45f, 0.39f, 0.34f, 1.0f);
-    const DirectX::PackedVector::XMCOLOR whiteSnow(1.0f, 1.0f, 1.0f, 1.0f);;
-
-    for (Vertex3D& vertex : grid.vertices)
-    {
-        const float py = vertex.position.y;
-
-        if (py < -10.0f)
-        {
-            vertex.color = sandyBeach;
-        }
-        else if (py < 5.0f)
-        {
-            vertex.color = lightYellowGreen;
-        }
-        else if (py < 12.0f)
-        {
-            vertex.color = darkYellowGreen;
-        }
-        else if (py < 20.0f)
-        {
-            vertex.color = darkBrown;
-        }
-        else // is equal or above 20.0f
-        {
-            vertex.color = whiteSnow;
-        }
-
-    } // end for
-}
-
-///////////////////////////////////////////////////////////
-
-void ModelsCreator::PaintGridWithRainbow(GeometryGenerator::MeshData& grid,
-    const UINT verticesCountByX,
-    const UINT verticesCountByZ)
-{
-    // PAINT GRID VERTICES WITH RAINBOW
-
-    const int quadsByX = (int)verticesCountByX - 1;
-    const int quadsByZ = (int)verticesCountByZ - 1;
-    const float du = 1.0f / quadsByX;
-    const float dv = 1.0f / quadsByZ;
-
-    // paint grid vertices with color
-    for (UINT i = 0; i < (UINT)verticesCountByX; ++i)
-    {
-        for (UINT j = 0; j < (UINT)verticesCountByZ; ++j)
-        {
-            const UINT idx = i * verticesCountByX + j;
-            grid.vertices[idx].color = { du * i, 0.5f, dv * j, 1.0f };
-        }
-    }
-}
-
-
-#endif
 
 } // namespace Core

@@ -230,6 +230,7 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClCompile Include="Model\TerrainCellClass.cpp" />
     <ClCompile Include="Model\TerrainClass.cpp" />
     <ClCompile Include="Tests\ECS\ECS_Tester.cpp" />
+    <ClCompile Include="Texture\Image.cpp" />
     <ClCompile Include="Texture\TextureMgr.cpp" />
     <ClCompile Include="Physics\IntersectionWithGameObjects.cpp" />
     <ClCompile Include="Render\AdapterReader.cpp" />
@@ -342,6 +343,7 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClInclude Include="Model\TerrainBase.h" />
     <ClInclude Include="Tests\ECS\ECS_Tester.h" />
     <ClInclude Include="Tests\ECS\HelperTypes.h" />
+    <ClInclude Include="Texture\Image.h" />
     <ClInclude Include="Texture\TextureTypesNames.h" />
     <ClInclude Include="UI\Editor\Debug\DebugEditor.h" />
     <ClInclude Include="UI\Editor\EditorPanelElement\MaterialAssetsBrowser.h" />

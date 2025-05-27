@@ -99,7 +99,7 @@ public:
 	inline static float RandF()
 	{
 		// returns random float in [0, 1)
-		return (float)(rand()) / (float)RAND_MAX;
+		return (float)rand() / (float)RAND_MAX;
 	}
 	// ----------------------------------------------------
 	inline static float RandF(const float a, const float b)
