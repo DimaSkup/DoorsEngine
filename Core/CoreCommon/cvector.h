@@ -35,7 +35,7 @@ class cvector
 {
 private:
     T* data_ = nullptr;
-    vsize size_ = 0;
+    vsize heightMapSize_ = 0;
     vsize capacity_ = 0;
 
 public:
@@ -66,17 +66,17 @@ public:
     // iterators
     inline T*       begin()                       { return data_; }
     inline const T* begin()                 const { return data_; }
-    inline T*       end()                         { return data_ + size_; }
-    inline const T* end()                   const { return data_ + size_; }
-    inline       T& back()                  const { return *(data_ + size_ - 1); }
+    inline T*       end()                         { return data_ + heightMapSize_; }
+    inline const T* end()                   const { return data_ + heightMapSize_; }
+    inline       T& back()                  const { return *(data_ + heightMapSize_ - 1); }
 
 
     // getters
     inline T*       data()                  const { return data_; }
-    inline bool     empty()                 const { return size_ == 0; }
-    inline vsize    size()                  const { return size_; }
+    inline bool     empty()                 const { return heightMapSize_ == 0; }
+    inline vsize    size()                  const { return heightMapSize_; }
     inline vsize    capacity()              const { return capacity_; }
-    inline bool     is_valid_index(index i) const { return (i >= 0) && (i < size_); };
+    inline bool     is_valid_index(index i) const { return (i >= 0) && (i < heightMapSize_); };
 
     void get_data_by_idxs(const cvector<index>& idxs, cvector<T>& outData) const;
     void get_data_by_idxs(const cvector<index>& idxs, T* outData) const;
@@ -84,8 +84,8 @@ public:
     // setters
     void         push_back(const T& value);
     void         push_back(T&& rvalue);
-    inline void  pop_back() { if (size_ > 0) size_--; }
-    inline void  clear() { size_ = 0; };
+    inline void  pop_back() { if (heightMapSize_ > 0) heightMapSize_--; }
+    inline void  clear() { heightMapSize_ = 0; };
 
     void         shrink_to_fit();
     void         purge();
@@ -183,7 +183,7 @@ void cvector<T>::error_msg(
 // =================================================================================
 template <typename T>
 inline cvector<T>::cvector() :
-    size_(0),
+    heightMapSize_(0),
     capacity_(0),
     data_(nullptr)
 {
@@ -193,12 +193,12 @@ inline cvector<T>::cvector() :
 
 template <typename T>
 inline cvector<T>::cvector(const vsize count, const T& value) :
-    size_(count),
+    heightMapSize_(count),
     capacity_(count)
 {
     data_ = new T[capacity_];                               // alloc memory
 
-    for (vsize i = 0; i < size_; ++i)
+    for (vsize i = 0; i < heightMapSize_; ++i)
         data_[i] = value;                                   // init each element
 }
 
@@ -206,12 +206,12 @@ inline cvector<T>::cvector(const vsize count, const T& value) :
 
 template <typename T>
 inline cvector<T>::cvector(const cvector<T>& other) :
-    size_(other.size_),
+    heightMapSize_(other.heightMapSize_),
     capacity_(other.capacity_)
 {
     data_ = new T[capacity_];
 
-    for (vsize i = 0; i < size_; ++i)
+    for (vsize i = 0; i < heightMapSize_; ++i)
         data_[i] = other.data_[i];
 }
 
@@ -220,7 +220,7 @@ inline cvector<T>::cvector(const cvector<T>& other) :
 template <typename T>
 inline cvector<T>::cvector(cvector<T>&& other) noexcept :
     data_(std::exchange(other.data_, nullptr)),
-    size_(std::exchange(other.size_, 0)),
+    heightMapSize_(std::exchange(other.heightMapSize_, 0)),
     capacity_(std::exchange(other.capacity_, 0))
 {
 }
@@ -239,7 +239,7 @@ template <typename T>
 cvector<T>::~cvector()
 {
     safe_delete();
-    size_ = 0;
+    heightMapSize_ = 0;
     capacity_ = 0;
 }
 
@@ -272,16 +272,16 @@ inline cvector<T>& cvector<T>::operator=(const cvector<T>& rhs)
     if (this == &rhs) return *this;
 
     // realloc memory if need
-    if (capacity_ < rhs.size_)
+    if (capacity_ < rhs.heightMapSize_)
     {
-        realloc_buffer_discard(rhs.size_);
+        realloc_buffer_discard(rhs.heightMapSize_);
     }
 
     // copy the data
-    for (vsize i = 0; i < rhs.size_; ++i)
+    for (vsize i = 0; i < rhs.heightMapSize_; ++i)
         data_[i] = rhs.data_[i];
 
-    size_ = rhs.size_;
+    heightMapSize_ = rhs.heightMapSize_;
 
     return *this;
 }
@@ -296,7 +296,7 @@ inline cvector<T>& cvector<T>::operator=(cvector<T>&& rhs) noexcept
     safe_delete();
 
     data_ = std::exchange(rhs.data_, nullptr);
-    size_ = std::exchange(rhs.size_, 0);
+    heightMapSize_ = std::exchange(rhs.heightMapSize_, 0);
     capacity_ = std::exchange(rhs.capacity_, 0);
 
     return *this;
@@ -315,7 +315,7 @@ cvector<T>& cvector<T>::operator=(std::initializer_list<T> list)
         realloc_buffer_discard(listSize);
     }
 
-    size_ = listSize;
+    heightMapSize_ = listSize;
 
     // copy elems from the list
     for (vsize i = 0; const T & elem : list)
@@ -385,7 +385,7 @@ void cvector<T>::shift_right(const index idx, const int num)
     // if our type is POD, or plain structure we use memmove
     if constexpr (std::is_standard_layout_v<T>)
     {
-        index numToMove = size_ - idx - num;
+        index numToMove = heightMapSize_ - idx - num;
 
         if ((numToMove > 0))
             memmove(&data_[idx + num], &data_[idx], numToMove * sizeof(T));
@@ -425,15 +425,15 @@ inline void cvector<T>::shift_left(const index idx, const int num)
 template <typename T>
 inline void cvector<T>::push_back(const T& value)
 {
-    if (size_ == capacity_)
+    if (heightMapSize_ == capacity_)
     {
         // create a new array with growFactor times the original capacity
         const vsize newCapacity = GetGrownCapacity(capacity_ ? capacity_ : 8);
         reserve(newCapacity);
     }
 
-    data_[size_] = value;
-    size_++;
+    data_[heightMapSize_] = value;
+    heightMapSize_++;
 }
 
 // ----------------------------------------------------
@@ -441,15 +441,15 @@ inline void cvector<T>::push_back(const T& value)
 template <typename T>
 inline void cvector<T>::push_back(T&& rvalue)
 {
-    if (size_ == capacity_)
+    if (heightMapSize_ == capacity_)
     {
         // create a new array with growFactor times the original capacity
         const vsize newCapacity = GetGrownCapacity(capacity_ ? capacity_ : 8);
         reserve(newCapacity);
     }
 
-    data_[size_] = std::move(rvalue);
-    size_++;
+    data_[heightMapSize_] = std::move(rvalue);
+    heightMapSize_++;
 }
 
 // ----------------------------------------------------
@@ -459,17 +459,17 @@ inline void cvector<T>::erase(const vsize index)
 {
     if constexpr (ENABLE_CHECK)
     {
-        if ((index < 0) | (index >= size_))
+        if ((index < 0) | (index >= heightMapSize_))
         {
             error_msg("invalid input args", CALLER_INFO);
             return;
         }
     }
 
-    for (vsize i = index; i < size_ - 1; ++i)
+    for (vsize i = index; i < heightMapSize_ - 1; ++i)
         data_[i] = std::move(data_[i + 1]);
 
-    size_--;
+    heightMapSize_--;
 }
 
 // ----------------------------------------------------
@@ -540,14 +540,14 @@ void cvector<T>::insert_before(const vsize idx, const T& value)
 
     if constexpr (ENABLE_CHECK)
     {
-        if ((idx < 0) | (idx > size_))
+        if ((idx < 0) | (idx > heightMapSize_))
         {
             error_msg("invalid input args", CALLER_INFO);
             return;
         }
     }
 
-    if (capacity_ <= size_)
+    if (capacity_ <= heightMapSize_)
     {
         // create a new array with growFactor times the original capacity
         const vsize newCapacity = GetGrownCapacity(capacity_ ? capacity_ : 8);
@@ -555,7 +555,7 @@ void cvector<T>::insert_before(const vsize idx, const T& value)
     }
 
     // now we have one more element
-    size_++;
+    heightMapSize_++;
 
     // prepare a place for the input element and set it by index
     shift_right(idx, 1);
@@ -573,14 +573,14 @@ void cvector<T>::insert_before(const vsize idx, T&& value)
 
     if constexpr (ENABLE_CHECK)
     {
-        if ((idx < 0) | (idx > size_))
+        if ((idx < 0) | (idx > heightMapSize_))
         {
             error_msg("invalid input args", CALLER_INFO);
             return;
         }
     }
 
-    if (capacity_ <= size_)
+    if (capacity_ <= heightMapSize_)
     {
         // create a new array with growFactor times the original capacity
         const vsize newCapacity = GetGrownCapacity(capacity_ ? capacity_ : 8);
@@ -588,7 +588,7 @@ void cvector<T>::insert_before(const vsize idx, T&& value)
     }
 
     // now we have one more element
-    size_++;
+    heightMapSize_++;
 
     // prepare a place for the input element and set it by index
     shift_right(idx, 1);
@@ -634,7 +634,7 @@ void cvector<T>::append_vector(U&& src)
         src.purge();
     }
 
-    size_ = newSize;
+    heightMapSize_ = newSize;
 }
 
 // ----------------------------------------------------
@@ -644,7 +644,7 @@ template <typename Iter>
 inline void cvector<T>::assign(Iter first, Iter last)
 {
     vsize const sz = vsize(last - first);
-    if (size_ < sz) resize(sz);
+    if (heightMapSize_ < sz) resize(sz);
 
     for (Iter it = first; it != last; ++it)
         new (&data_[vsize(it - first)]) T(*it);
@@ -832,7 +832,7 @@ inline void cvector<T>::resize(const vsize newSize)
     if (capacity_ < newSize)
         realloc_buffer(newSize);
 
-    size_ = newSize * (newSize >= 0);
+    heightMapSize_ = newSize * (newSize >= 0);
 }
 
 // ----------------------------------------------------
@@ -844,10 +844,10 @@ void cvector<T>::resize(const vsize newSize, const T& value)
     {
         realloc_buffer(newSize);
 
-        for (vsize i = size_; i < capacity_; ++i)
+        for (vsize i = heightMapSize_; i < capacity_; ++i)
             new (&data_[i]) T(value);
     }
-    size_ = newSize * (newSize >= 0);
+    heightMapSize_ = newSize * (newSize >= 0);
 }
 
 
@@ -860,8 +860,8 @@ void cvector<T>::shrink_to_fit()
     // requests the removal of unused capacity. 
     // so the capacity() may be reduced to size().
 
-    if (size_ < capacity_)
-        realloc_buffer(size_);
+    if (heightMapSize_ < capacity_)
+        realloc_buffer(heightMapSize_);
 }
 
 // ----------------------------------------------------
@@ -870,7 +870,7 @@ template <typename T>
 void cvector<T>::purge()
 {
     safe_delete();
-    size_ = 0;
+    heightMapSize_ = 0;
     capacity_ = 0;
 }
 
@@ -942,14 +942,14 @@ inline void cvector<T>::realloc_buffer(const vsize newCapacity)
             T* newData = new T[newCapacity]{};
 
             // if we need to store less elements than before
-            if (newCapacity < size_)
-                size_ = newCapacity;
+            if (newCapacity < heightMapSize_)
+                heightMapSize_ = newCapacity;
             
 
             // TODO: test using memmove()
             // 
             // move necessary elements into the new buffer
-            for (vsize i = 0; i < size_; ++i)
+            for (vsize i = 0; i < heightMapSize_; ++i)
                 newData[i] = std::move(data_[i]);
 
             // release memory from the old buffer

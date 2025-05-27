@@ -706,7 +706,7 @@ void CreateTerrain(ECS::EntityMgr& mgr, const BasicModel& model)
 
     // setup a transformation for the terrain's texture (scale it)
     ECS::StaticTexTransInitParams terrainTexTransform;
-    terrainTexTransform.Push(DirectX::XMMatrixScaling(4, 4, 0));
+    terrainTexTransform.Push(DirectX::XMMatrixScaling(1, 1, 0));
 
     // setup rendering params
     ECS::RenderInitParams renderParams;
@@ -1738,8 +1738,10 @@ void GenerateAssets(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     // create terrain
     //const ModelID terrainID = creator.CreateGeneratedTerrain(pDevice, 500, 500, 501, 501);
 
-    const ModelID terrainID = creator.CreateTerrainFromHeightmap(pDevice, "data/terrain/terrain_setup.txt");
-    BasicModel& terrain = g_ModelMgr.GetModelByID(terrainID);
+    const char* terrainConfigPath = "data/terrain/terrain.cfg";
+    const ModelID terrainID       = creator.CreateTerrainFromHeightmap(pDevice, terrainConfigPath);
+    BasicModel& terrain           = g_ModelMgr.GetModelByID(terrainID);
+
     SetupTerrain(terrain);
     CreateTerrain(mgr, terrain);
 #endif

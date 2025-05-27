@@ -327,6 +327,80 @@ Texture::Texture(
         ImgReader::ImageReader   imageReader;
         ImgReader::DXTextureData texData(name, &pTexture_, &pTextureView_);
 
+        HRESULT hr = S_OK;
+
+    const float area = (float)(size / 4);
+    const UINT width = (UINT)sqrt(area);
+
+    ID3D11Texture2D* p2DTexture = nullptr;
+    D3D11_TEXTURE2D_DESC textureDesc;
+    D3D11_SUBRESOURCE_DATA initialData{};
+
+    // setup description for this texture
+    textureDesc.Format             = DXGI_FORMAT_R8G8B8A8_UNORM;
+    textureDesc.Width              = width;
+    textureDesc.Height             = width;
+    textureDesc.ArraySize          = 1;
+    textureDesc.MipLevels          = 1;
+    textureDesc.BindFlags          = D3D11_BIND_SHADER_RESOURCE;
+    textureDesc.Usage              = D3D11_USAGE_DEFAULT;
+    textureDesc.CPUAccessFlags     = 0;
+    textureDesc.SampleDesc.Count   = 1;
+    textureDesc.SampleDesc.Quality = 0;
+    textureDesc.MiscFlags          = 0;
+
+    // setup initial data for this texture
+    initialData.pSysMem = pData;
+    initialData.SysMemPitch = textureDesc.Width * sizeof(uint8_t)*4;
+
+    // create a new 2D texture
+    hr = pDevice->CreateTexture2D(&textureDesc, &initialData, &p2DTexture);
+    Assert::NotFailed(hr, "Failed to initialize texture from color data");
+
+    // store a ptr to the 2D texture 
+    //pTexture_ = static_cast<ID3D11Texture2D*>(p2DTexture);
+    pTexture_ = p2DTexture;
+
+    // setup description for a shader resource view (SRV)
+    CD3D11_SHADER_RESOURCE_VIEW_DESC srvDesc(D3D11_SRV_DIMENSION_TEXTURE2D, textureDesc.Format);
+
+    // create a new SRV from texture
+    hr = pDevice->CreateShaderResourceView(pTexture_, &srvDesc, &pTextureView_);
+    Assert::NotFailed(hr, "Failed to create shader resource view from texture generated from color data");
+
+
+#if 0
+         hr = D3DX11CreateTextureFromMemory(
+            pDevice,
+            (void*)pData,
+            size,
+            nullptr,
+            nullptr,
+            &pTexture_,
+            nullptr);
+        Assert::NotFailed(hr, "can't create a texture from memory");
+
+        D3D11_TEXTURE2D_DESC textureDesc;
+        ((ID3D11Texture2D*)pTexture_)->GetDesc(&textureDesc);
+
+        // setup description for a shader resource view (SRV)
+        CD3D11_SHADER_RESOURCE_VIEW_DESC srvDesc(D3D11_SRV_DIMENSION_TEXTURE2D, textureDesc.Format);
+
+
+        hr = pDevice->CreateShaderResourceView(pTexture_, &srvDesc, &pTextureView_);
+        Assert::NotFailed(hr, "can't create a shader resource view");
+
+        
+
+        // initialize the texture width and height values
+        D3D11_TEXTURE2D_DESC desc;
+        ID3D11Texture2D* pTex = (ID3D11Texture2D*)(pTexture_);
+        pTex->GetDesc(&desc);
+
+        width_ = desc.Width;
+        height_ = desc.Height;
+#endif
+#if 0
         bool result = imageReader.LoadTextureFromMemory(pDevice, pData, size, texData);
 
         if (!result)
@@ -343,7 +417,7 @@ Texture::Texture(
 
             return;
         }
-
+#endif
         width_ = texData.textureWidth;
         height_ = texData.textureHeight;
         name_ = name;

@@ -102,7 +102,7 @@ bool ImageReader::LoadTextureFromMemory(
 			outTexData.ppTexture,
 			outTexData.ppTextureView);
 
-		Assert::NotFailed(hr, "can't create a texture from memory");
+		Assert::NotFailed(hr, "can't create a WIC texture from memory");
 
 		// initialize the texture width and height values
 		D3D11_TEXTURE2D_DESC desc;

@@ -8,8 +8,6 @@
 
 #include <stdint.h>
 
-namespace Core
-{
 
 struct Float4
 {
@@ -23,6 +21,11 @@ struct Float4
 };
 
 // --------------------------
+
+using uint8    = uint8_t;
+//using uint8  = unsigned char;
+using uint   = unsigned int;
+using ushort = unsigned short;
 
 using u32   = uint32_t;
 using size  = ptrdiff_t;
@@ -65,5 +68,3 @@ constexpr MaterialID INVALID_MATERIAL_ID = 0;
 using     TexID   = uint32_t;                       // texture ID
 constexpr TexID INVALID_TEXTURE_ID = 0;
 constexpr size  NUM_TEXTURE_TYPES  = 21;
-
-} // namespace Core

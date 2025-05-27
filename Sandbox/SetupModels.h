@@ -28,7 +28,7 @@ void SetupTerrain(BasicModel& terrain)
   
     // create and setup material
     Material terrainMat;
-    terrainMat.SetTexture(TEX_TYPE_DIFFUSE, texTerrainDiff);
+    terrainMat.SetTexture(TEX_TYPE_DIFFUSE, 11);
     terrainMat.SetTexture(TEX_TYPE_NORMALS, texTerrainNorm);
     strcpy(terrainMat.name, "terrain_mat_1");
     const MaterialID terrainMatID = g_MaterialMgr.AddMaterial(std::move(terrainMat));

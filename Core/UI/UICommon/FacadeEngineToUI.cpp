@@ -774,12 +774,12 @@ bool FacadeEngineToUI::SwitchDebugState(const int debugType)
 bool FacadeEngineToUI::GetModelsNamesList(cvector<std::string>& outNames) const
 {
     // get a name of each loaded model
-    Core::cvector<Core::ModelName> modelsNames;
+    Core::cvector<ModelName> modelsNames;
     g_ModelMgr.GetModelsNamesList(modelsNames);
 
     outNames.resize(modelsNames.size());
 
-    for (int i = 0; const Core::ModelName& name : modelsNames)
+    for (int i = 0; const ModelName& name : modelsNames)
         outNames[i++] = name.name;
 
     return true;
@@ -856,10 +856,10 @@ bool FacadeEngineToUI::SetMaterialColorData(
 {
     return g_MaterialMgr.SetMaterialColorData(
         id,
-        Core::Float4(amb.x, amb.y, amb.z, amb.w),
-        Core::Float4(diff.x, diff.y, diff.z, diff.w),
-        Core::Float4(spec.x, spec.y, spec.z, spec.w),
-        Core::Float4(refl.x, refl.y, refl.z, refl.w));
+        Float4(amb.x, amb.y, amb.z, amb.w),
+        Float4(diff.x, diff.y, diff.z, diff.w),
+        Float4(spec.x, spec.y, spec.z, spec.w),
+        Float4(refl.x, refl.y, refl.z, refl.w));
 }
 
 ///////////////////////////////////////////////////////////
