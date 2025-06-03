@@ -7,8 +7,8 @@
 // Created:     22.03.2025 by DimaSkup
 // =================================================================================
 #pragma once
-#include <CoreCommon/cvector.h>
 #include <UICommon/IFacadeEngineToUI.h>
+#include <cvector.h>
 #include <string>
 
 

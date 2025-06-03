@@ -8,8 +8,8 @@
 
 #include "Engine/Engine.h"
 #include "Engine/Settings.h"
-#include <CoreCommon/EngineException.h>
-#include <CoreCommon/FileSystemPaths.h>
+#include <EngineException.h>
+#include <FileSystemPaths.h>
 
 #include "SceneInitializer.h"
 

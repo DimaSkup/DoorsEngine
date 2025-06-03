@@ -7,7 +7,7 @@
 // ********************************************************************************
 #pragma once
 
-#include <CoreCommon/Types.h>
+#include <Types.h>
 #include "Vertex.h"
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"

@@ -5,63 +5,85 @@
 // Created:   23.05.2025  by DimaSkup
 // =================================================================================
 #pragma once
-#include <CoreCommon/Types.h>
 
-// ========================================================
-// Constants/typedefs
-// ========================================================
-constexpr int BITMAP_ID = 0x4D42;
+#include <Types.h>
 
 
-// ========================================================
-// Structures
-// ========================================================
-struct TGAInfoHeader
+namespace Core
 {
-    uint8 header[6];
-    uint  bytesPerPixel;
-    uint  imageSize;
-    uint  temp;
-    uint  type;
-    uint  height;
-    uint  width;
-    uint  bpp;
+
+// ========================================================
+// enums / structures
+// ========================================================
+enum eTgaImageType
+{
+    NoImage             = 0,
+    UncompressedIndexed = 1,
+    UncompressedRgb     = 2,
+    UncompressedGray    = 3,
+    RleIndexed          = 9,
+    RleRgb              = 10,  // Runlength encoded RGB images
+    RleGray             = 11,  // Compressed, black and white images
 };
 
 #pragma pack( push, 1 )
 
-struct BMPFileHeader
+struct TGAInfoHeader
 {
-    ushort type;
-    uint   size;
-    ushort reserved1;
-    ushort reserved2;
-    uint   offBits;
+    uint8   idLength;
+    uint8   colormapType;
+    uint8   imageType;
+    uint16  colormapOrigin;
+    uint16  colormapLength;
+    uint8   colormapDepth;
+    uint16  xOrigin;
+    uint16  yOrigin;
+    uint16  width;
+    uint16  height;
+    uint8   bitsPerPixel;
+    uint8   imageDescriptor;
+
+    inline bool IsRGB() const
+    {
+        return (imageType == UncompressedRgb || imageType == RleRgb);
+    }
+
+    // currently we support only RGB images (uncompressed/RLE)
+    inline bool IsSupported() const
+    {
+        return IsRGB() && (bitsPerPixel == 24 || bitsPerPixel == 32);
+    }
+
+    inline int BytesPerPixel() const
+    {
+        return bitsPerPixel / 8;
+    }
 };
 
-#pragma pack( pop )
+struct BMPFileHeader
+{
+    ushort  type;               // magic identifier
+    uint    size;               // file size in bytes
+    ushort  reserved1;
+    ushort  reserved2;
+    uint    offBits;            // offset to image data, bytes
+};
 
 struct BMPInfoHeader
 {
-    uint    size;
-    long    width;
-    long    height;
-    ushort  planes;
-    ushort  bitCount;
-    uint    compression;
-    uint    sizeImage;
-    long    xPixelsPerMeter;
+    uint    size;               // header size in bytes
+    long    width;              // width of the image
+    long    height;             // height of the image
+    ushort  planes;             // number of colour planes
+    ushort  bitCount;           // bits per pixel
+    uint    compression;        // compression byte
+    uint    sizeImage;          // image size in bytes
+    long    xPixelsPerMeter;    
     long    yPixelsPerMeter;
-    uint    colorUsed;
-    uint    colorImportant;
+    uint    colorUsed;          // number of colors
+    uint    colorImportant;     // important colors
 };
-
-
-// ========================================================
-// Globals
-// ========================================================
-extern uint8 g_UTGAcompare[12];    // uncompressed TGA
-extern uint8 g_CTGAcompare[12];    // compressed TGA
+#pragma pack( pop )
 
 
 // ========================================================
@@ -70,8 +92,11 @@ extern uint8 g_CTGAcompare[12];    // compressed TGA
 class Image
 {
 public:
+    ~Image();
+
     bool Create(const uint width, const uint height, const uint bpp);
 
+  
     bool LoadData(const char* filename);
     bool Load    (const char* filename, const bool mipmapped = false);
     bool SaveBMP (const char* filename) const;
@@ -92,9 +117,9 @@ public:
             const uint bpp = bpp_ / 8;
             const uint idx = ((y*height_) + x) * bpp;
 
-            red   = pData_[idx + 0];
-            green = pData_[idx + 1];
-            blue  = pData_[idx + 2];
+            red   = pixels_[idx + 0];
+            green = pixels_[idx + 1];
+            blue  = pixels_[idx + 2];
         }
     }
 
@@ -110,15 +135,15 @@ public:
             const uint bpp = bpp_ / 8;
             const uint idx = ((y*height_) + x) * bpp;
 
-            pData_[idx + 0] = red;
-            pData_[idx + 1] = green;
-            pData_[idx + 2] = blue;
+            pixels_[idx + 0] = red;
+            pixels_[idx + 1] = green;
+            pixels_[idx + 2] = blue;
         }
     }
 
     // ----------------------------------------------------
 
-    inline uint8* GetData()   const { return pData_; }    // get a pointer to the image's data buffer
+    inline uint8* GetData()   const { return pixels_; }    // get a pointer to the image's data buffer
     inline uint   GetWidth()  const { return width_; }    // get the width of texture
     inline uint   GetHeight() const { return height_; }   // get the height of texture
     inline uint   GetBPP()    const { return bpp_; }      // get the number of bits per pixel
@@ -131,16 +156,22 @@ public:
 
 private:
     bool LoadBMP(void);
+    bool LoadTGA(void);
 
-    bool LoadCompressedTGA(void);
-    bool LoadUncompressedTGA(void);
+    void LoadCompressedTGA  (const TGAInfoHeader& header, uint8*& pixelsData);
+    void LoadUncompressedTGA(const TGAInfoHeader& header, uint8*& pixelsData);
+
+    void LoadCompressedTGA24(uint8*& pixelsData, const TGAInfoHeader& tgaInfo);
+    void LoadCompressedTGA32(uint8*& pixelsData, const TGAInfoHeader& tgaInfo);
 
 private:
-    uint8*  pData_ = nullptr;
-    uint    width_ = 0;
-    uint    height_ = 0;
-    uint    bpp_ = 0;
-    uint    id_ = 0;
-
-    bool    isLoaded_ = false;
+    char    name_[64]{'\0'};
+    uint    id_         = 0;
+    uint    width_      = 0;
+    uint    height_     = 0;
+    uint    bpp_        = 0;           // bits per pixel
+    uint8*  pixels_     = nullptr;
+    bool    isLoaded_   = false;
 };
+
+} // namespace Core

@@ -2,11 +2,9 @@
 // Filename: VertexShader.cpp
 // Revising: 05.11.22
 ////////////////////////////////////////////////////////////////////
+#include "../Common/pch.h"
 #include "VertexShader.h"
 
-#include "../Common/StrHelper.h"
-#include "../Common/MemHelpers.h"
-#include "../Common/Log.h"
 #include "Helpers/CSOLoader.h"
 #include "Helpers/ShaderCompiler.h"
 
@@ -16,7 +14,6 @@ namespace Render
 
 VertexShader::~VertexShader()
 {
-    Shutdown();
 }
 
 ///////////////////////////////////////////////////////////

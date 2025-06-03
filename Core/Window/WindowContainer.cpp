@@ -1,7 +1,5 @@
+#include <Log.h>
 #include "WindowContainer.h"
-#include <CoreCommon/log.h>
-
-#include <cassert>
 #include <imgui.h>
 #include <backends/imgui_impl_win32.h>
 

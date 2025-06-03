@@ -1,6 +1,5 @@
+#include <CoreCommon/pch.h>
 #include "ModelStorageSerializer.h"
-#include <cassert>
-
 
 namespace Core
 {

@@ -2,12 +2,8 @@
 // Filename: PixelShader.cpp
 // Revising: 05.11.22
 ////////////////////////////////////////////////////////////////////
+#include "../Common/pch.h"
 #include "PixelShader.h"
-
-#include "../Common/StrHelper.h"
-#include "../Common/MemHelpers.h"
-#include "../Common/Assert.h"
-#include "../Common/Log.h"
 
 #include "Helpers/CSOLoader.h"
 #include "Helpers/ShaderCompiler.h"
@@ -22,7 +18,6 @@ PixelShader::PixelShader()
 
 PixelShader::~PixelShader()
 {
-    Shutdown();
 }
 
 ///////////////////////////////////////////////////////////

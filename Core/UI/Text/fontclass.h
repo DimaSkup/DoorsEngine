@@ -12,7 +12,7 @@
 #pragma once
 
 #include "../../Mesh/Vertex.h"
-#include <UICommon/Types.h>
+#include <Types.h>
 #include <d3d11.h>
 
 

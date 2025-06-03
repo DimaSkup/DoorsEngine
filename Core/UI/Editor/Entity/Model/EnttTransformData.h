@@ -7,7 +7,6 @@
 // =================================================================================
 #pragma once
 
-#include <CoreCommon/MathHelper.h>
 #include <UICommon/Vectors.h>            // math vectors
 
 namespace UI

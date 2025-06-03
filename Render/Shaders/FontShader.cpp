@@ -2,8 +2,8 @@
 // Filename: FontShader.cpp
 // Revising: 23.07.22
 // ***********************************************************************************
+#include "../Common/pch.h"
 #include "FontShader.h"
-#include "../Common/Log.h"
 
 #pragma warning (disable : 4996)
 
@@ -38,7 +38,7 @@ bool FontShader::Initialize(
         LogDbg("is initialized");
         return true;
     }
-    catch (LIB_Exception & e)
+    catch (EngineException& e)
     {
         LogErr(e, true);
         LogErr("can't initialize the font shader class");
@@ -77,18 +77,18 @@ void FontShader::Render(
     ID3D11DeviceContext* pContext,
     ID3D11Buffer* const* vertexBuffers,           // array of text vertex buffers
     ID3D11Buffer* pIndexBuffer,                   // index buffer is common for all vertex buffers (we have the same vertices order for each sentence)
-    const uint32_t* indexCounts,                  // array of index counts in each index buffer
+    const uint32* indexCounts,                  // array of index counts in each index buffer
     const size numSentences,
-    const uint32_t fontVertexSize,
+    const uint32 fontVertexSize,
     SRV* const* ppFontTexSRV)
 {
     // renders text onto the screen
     try
     {
-        Assert::True(vertexBuffers,    "input ptr to vertex buffers arr == nullptr");
-        Assert::True(pIndexBuffer,     "input ptr to index buffer == nullptr");
-        Assert::True(indexCounts,      "input ptr to index counts arr == nullptr");
-        Assert::True(numSentences > 0, "input number of sentences must be > 0");
+        CAssert::True(vertexBuffers,    "input ptr to vertex buffers arr == nullptr");
+        CAssert::True(pIndexBuffer,     "input ptr to index buffer == nullptr");
+        CAssert::True(indexCounts,      "input ptr to index counts arr == nullptr");
+        CAssert::True(numSentences > 0, "input number of sentences must be > 0");
 
         // bind vertex/pixel shaders and input layout
         pContext->VSSetShader(vs_.GetShader(), nullptr, 0U);
@@ -112,7 +112,7 @@ void FontShader::Render(
             pContext->DrawIndexed(indexCounts[idx], 0, 0);
         }
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         LogErr(e, true);
         LogErr("can't render using the shader");
@@ -151,26 +151,26 @@ void FontShader::InitializeShaders(
 
     // initialize the vertex shader
     result = vs_.Initialize(pDevice, vsFilePath, layoutDesc, layoutElemNum);
-    Assert::True(result, "can't initialize the vertex shader");
+    CAssert::True(result, "can't initialize the vertex shader");
 
     // initialize the pixel shader
     result = ps_.Initialize(pDevice, psFilePath);
-    Assert::True(result, "can't initialize the pixel shader");
+    CAssert::True(result, "can't initialize the pixel shader");
 
     // initialize the sampler state
     result = samplerState_.Initialize(pDevice);
-    Assert::True(result, "can't initialize the sampler state");
+    CAssert::True(result, "can't initialize the sampler state");
 
 
     // ---------------------------  CONSTANT BUFFERS  ---------------------------------
 
     // initialize the matrix buffer
     hr = matrixBuffer_.Initialize(pDevice);
-    Assert::NotFailed(hr, "can't initialize the matrix buffer");
+    CAssert::NotFailed(hr, "can't initialize the matrix buffer");
     
     // initialize the pixel buffer
     hr = pixelBuffer_.Initialize(pDevice);
-    Assert::NotFailed(hr, "can't initialize the pixel buffer");
+    CAssert::NotFailed(hr, "can't initialize the pixel buffer");
     
 
     // ---------------- SET DEFAULT PARAMS FOR CONST BUFFERS --------------------------

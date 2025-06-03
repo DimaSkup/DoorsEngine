@@ -8,8 +8,8 @@
 // =================================================================================
 #pragma once
 
-#include <CoreCommon/Assert.h>
-#include <CoreCommon/log.h>
+#include <Assert.h>
+#include <log.h>
 #include <UICommon/IFacadeEngineToUI.h>
 #include <imgui.h>
 
@@ -28,7 +28,7 @@ public:
 	void Initialize(IFacadeEngineToUI* pFacade)
 	{
 		// the facade interface is used to contact with the rest of the engine
-		Core::Assert::NotNullptr(pFacade, "ptr to the IFacadeEngineToUI interface == nullptr");
+		CAssert::NotNullptr(pFacade, "ptr to the IFacadeEngineToUI interface == nullptr");
 		pFacade_ = pFacade;
 	}
 
@@ -41,7 +41,7 @@ public:
 
 		if (pFacade_ == nullptr)
 		{
-			Core::LogErr("ptr to the facade interface == nullptr");
+			LogErr("ptr to the facade interface == nullptr");
 			return;
 		}
 

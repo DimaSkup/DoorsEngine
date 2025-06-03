@@ -3,14 +3,13 @@
 // 
 // Created:       20.02.25  by DimaSkup
 // =================================================================================
+#include <CoreCommon/pch.h>
 #include "EnttTransformController.h"
 
 #include <UICommon/EventsHistory.h>
 #include <UICommon/EditorCommands.h>
-#include <CoreCommon/Assert.h>
-#include <CoreCommon/log.h>
 
-using namespace Core;
+#pragma warning (disable : 4996)
 
 namespace UI
 {
@@ -24,7 +23,7 @@ EnttTransformController::EnttTransformController()
 void EnttTransformController::Initialize(IFacadeEngineToUI* pFacade)
 {
     // the facade interface is used to contact with the rest of the engine
-    Assert::True(pFacade != nullptr, "ptr to the facade == nullptr");
+    CAssert::True(pFacade != nullptr, "ptr to the facade == nullptr");
     pFacade_ = pFacade;
 }
 

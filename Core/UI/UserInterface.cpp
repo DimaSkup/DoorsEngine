@@ -3,27 +3,27 @@
 // 
 // Created:      25.05.23
 // =================================================================================
+#include <CoreCommon/pch.h>
 #include "UserInterface.h"
-
-#include <CoreCommon/FileSystemPaths.h>
-#include <CoreCommon/log.h>
 #include "../Texture/TextureMgr.h"
 
-#include <string>
 #include <imgui.h>
 #include <ImGuizmo.h>
 #include <imgui_internal.h>
 
 #pragma warning(disable : 4996)
 
-using namespace Core;
-
 namespace UI
 {
 
-
+// --------------------------------------------------------
+// init global instance of the EventsHistory container
+// --------------------------------------------------------
 EventsHistory g_EventsHistory;
 
+// --------------------------------------------------------
+// UI constructor/desctructor
+// --------------------------------------------------------
 UserInterface::UserInterface() : editorPanels_(&guiStates_)
 {
 }
@@ -54,11 +54,11 @@ void UserInterface::Initialize(
 
     try
     {
-        Assert::True(pFacadeEngineToUI,                                 "a ptr to the facade interface == nullptr");
-        Assert::True((wndWidth > 0) && (wndHeight > 0),                 "wrong window dimensions");
-        Assert::True((!videoCardName.empty()) && (videoCardMemory > 0), "wrong video card data");
-        Assert::True((!fontDataFilePath.empty()),                       "wrong path to font data file");
-        Assert::True((!fontTextureFilePath.empty()),                    "wrong path to font texture file");
+        CAssert::True(pFacadeEngineToUI,                                 "a ptr to the facade interface == nullptr");
+        CAssert::True((wndWidth > 0) && (wndHeight > 0),                 "wrong window dimensions");
+        CAssert::True((!videoCardName.empty()) && (videoCardMemory > 0), "wrong video card data");
+        CAssert::True((!fontDataFilePath.empty()),                       "wrong path to font data file");
+        CAssert::True((!fontTextureFilePath.empty()),                    "wrong path to font texture file");
 
         // initialize the window dimensions members for internal using
         windowWidth_ = wndWidth;
@@ -92,7 +92,7 @@ void UserInterface::Initialize(
 
 void UserInterface::Update(
     ID3D11DeviceContext* pContext, 
-    const SystemState& systemState)
+    const Core::SystemState& systemState)
 {
     // each frame we call this function for updating the UI
     try
@@ -142,7 +142,7 @@ SentenceID UserInterface::CreateConstStr(
     // you can only change its position on the screen;
     try
     {
-        Assert::True(!content.empty(), "wrong input data: str is empty");
+        CAssert::True(!content.empty(), "wrong input data: str is empty");
 
         return textStorage_.CreateConstSentence(
             pDevice,
@@ -172,7 +172,7 @@ SentenceID UserInterface::CreateDynamicStr(
     // you can also change its position on the screen;
     try
     {
-        Assert::True((!content.empty()) && (maxStrSize > 0), "wrong input data");
+        CAssert::True((!content.empty()) && (maxStrSize > 0), "wrong input data");
 
         // max possible length for this dynamic string
         int maxSize = (maxStrSize >= content.length()) ? maxStrSize : (int)std::ssize(content);
@@ -283,7 +283,7 @@ void UserInterface::RenderGameUI(
 
 ///////////////////////////////////////////////////////////
 
-void UserInterface::RenderEditor(SystemState& systemState)
+void UserInterface::RenderEditor(Core::SystemState& systemState)
 {
     // Render the editor's panels and related stuff
 
@@ -321,7 +321,7 @@ void UserInterface::RenderEditor(SystemState& systemState)
 
 ///////////////////////////////////////////////////////////
 
-void UserInterface::RenderSceneWnd(SystemState& sysState)
+void UserInterface::RenderSceneWnd(Core::SystemState& sysState)
 {
     // render the scene screen space window and gizmos (if we selected any entity)
 

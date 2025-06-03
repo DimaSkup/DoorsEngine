@@ -6,9 +6,14 @@
 ////////////////////////////////////////////////////////////////////
 #pragma once
 
-#include <CoreCommon/Log.h>
 #include "MouseClass.h"
 #include "KeyboardClass.h"
+
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+
 
 class InputManager
 {

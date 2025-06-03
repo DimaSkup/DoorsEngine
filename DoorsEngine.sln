@@ -30,6 +30,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sandbox", "Sandbox\Sandbox.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DirectXTex", "DirectXTex\DirectXTex_Desktop_2022.vcxproj", "{371B9FA9-4C90-4AC6-A123-ACED756D6C77}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Shared", "Shared\Shared.vcxproj", "{6D7D2066-FC68-4900-BA95-7AFED5C6F35F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -214,6 +216,30 @@ Global
 		{371B9FA9-4C90-4AC6-A123-ACED756D6C77}.Release|x64.Build.0 = Release|x64
 		{371B9FA9-4C90-4AC6-A123-ACED756D6C77}.Release|x86.ActiveCfg = Release|Win32
 		{371B9FA9-4C90-4AC6-A123-ACED756D6C77}.Release|x86.Build.0 = Release|Win32
+		{6D7D2066-FC68-4900-BA95-7AFED5C6F35F}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{6D7D2066-FC68-4900-BA95-7AFED5C6F35F}.Debug|Any CPU.Build.0 = Debug|x64
+		{6D7D2066-FC68-4900-BA95-7AFED5C6F35F}.Debug|ARM.ActiveCfg = Debug|x64
+		{6D7D2066-FC68-4900-BA95-7AFED5C6F35F}.Debug|ARM.Build.0 = Debug|x64
+		{6D7D2066-FC68-4900-BA95-7AFED5C6F35F}.Debug|x64.ActiveCfg = Debug|x64
+		{6D7D2066-FC68-4900-BA95-7AFED5C6F35F}.Debug|x64.Build.0 = Debug|x64
+		{6D7D2066-FC68-4900-BA95-7AFED5C6F35F}.Debug|x86.ActiveCfg = Debug|Win32
+		{6D7D2066-FC68-4900-BA95-7AFED5C6F35F}.Debug|x86.Build.0 = Debug|Win32
+		{6D7D2066-FC68-4900-BA95-7AFED5C6F35F}.Profile|Any CPU.ActiveCfg = Debug|x64
+		{6D7D2066-FC68-4900-BA95-7AFED5C6F35F}.Profile|Any CPU.Build.0 = Debug|x64
+		{6D7D2066-FC68-4900-BA95-7AFED5C6F35F}.Profile|ARM.ActiveCfg = Debug|x64
+		{6D7D2066-FC68-4900-BA95-7AFED5C6F35F}.Profile|ARM.Build.0 = Debug|x64
+		{6D7D2066-FC68-4900-BA95-7AFED5C6F35F}.Profile|x64.ActiveCfg = Debug|x64
+		{6D7D2066-FC68-4900-BA95-7AFED5C6F35F}.Profile|x64.Build.0 = Debug|x64
+		{6D7D2066-FC68-4900-BA95-7AFED5C6F35F}.Profile|x86.ActiveCfg = Debug|Win32
+		{6D7D2066-FC68-4900-BA95-7AFED5C6F35F}.Profile|x86.Build.0 = Debug|Win32
+		{6D7D2066-FC68-4900-BA95-7AFED5C6F35F}.Release|Any CPU.ActiveCfg = Release|x64
+		{6D7D2066-FC68-4900-BA95-7AFED5C6F35F}.Release|Any CPU.Build.0 = Release|x64
+		{6D7D2066-FC68-4900-BA95-7AFED5C6F35F}.Release|ARM.ActiveCfg = Release|x64
+		{6D7D2066-FC68-4900-BA95-7AFED5C6F35F}.Release|ARM.Build.0 = Release|x64
+		{6D7D2066-FC68-4900-BA95-7AFED5C6F35F}.Release|x64.ActiveCfg = Release|x64
+		{6D7D2066-FC68-4900-BA95-7AFED5C6F35F}.Release|x64.Build.0 = Release|x64
+		{6D7D2066-FC68-4900-BA95-7AFED5C6F35F}.Release|x86.ActiveCfg = Release|Win32
+		{6D7D2066-FC68-4900-BA95-7AFED5C6F35F}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

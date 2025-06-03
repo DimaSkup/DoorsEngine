@@ -4,13 +4,10 @@
 // 
 // Created:      09.09.24
 // *********************************************************************************
+#include <CoreCommon/pch.h>
 #include "RenderStates.h"
-#include <CoreCommon/MemHelpers.h>
-#include <CoreCommon/Assert.h>
-#include <CoreCommon/log.h>
-//#include <stdexcept>
-#include <sstream>
 
+#pragma warning(disable : 4996)
 
 namespace Core
 {
@@ -236,7 +233,7 @@ void RenderStates::InitAllRasterParams(ID3D11Device* pDevice, bool multisampleEn
         desc.MultisampleEnable = multisampleEnable;
 
         hr = pDevice->CreateRasterizerState(&desc, &pRasterState);
-        Assert::NotFailed(hr, "can't create a raster state");
+        CAssert::NotFailed(hr, "can't create a raster state");
 
         UpdateRSHash({ FILL_SOLID, CULL_BACK, FRONT_CLOCKWISE });
         rasterStates_.insert({ GetCurrentRSHash(), pRasterState });
@@ -251,7 +248,7 @@ void RenderStates::InitAllRasterParams(ID3D11Device* pDevice, bool multisampleEn
         desc.DepthClipEnable = true;
 
         hr = pDevice->CreateRasterizerState(&desc, &pRasterState);
-        Assert::NotFailed(hr, "can't create a raster state");
+        CAssert::NotFailed(hr, "can't create a raster state");
 
         ResetRasterStateHash();
         UpdateRSHash({ FILL_SOLID, CULL_BACK, FRONT_COUNTER_CLOCKWISE });
@@ -267,7 +264,7 @@ void RenderStates::InitAllRasterParams(ID3D11Device* pDevice, bool multisampleEn
         desc.DepthClipEnable = true;
 
         hr = pDevice->CreateRasterizerState(&desc, &pRasterState);
-        Assert::NotFailed(hr, "can't create a raster state");
+        CAssert::NotFailed(hr, "can't create a raster state");
 
         ResetRasterStateHash();
         UpdateRSHash({ FILL_SOLID, CULL_NONE, FRONT_COUNTER_CLOCKWISE });
@@ -282,7 +279,7 @@ void RenderStates::InitAllRasterParams(ID3D11Device* pDevice, bool multisampleEn
         desc.DepthClipEnable = true;
 
         hr = pDevice->CreateRasterizerState(&desc, &pRasterState);
-        Assert::NotFailed(hr, "can't create a raster state");
+        CAssert::NotFailed(hr, "can't create a raster state");
 
         ResetRasterStateHash();
         UpdateRSHash({ FILL_SOLID, CULL_NONE, FRONT_CLOCKWISE });
@@ -298,7 +295,7 @@ void RenderStates::InitAllRasterParams(ID3D11Device* pDevice, bool multisampleEn
         desc.DepthClipEnable = true;
 
         hr = pDevice->CreateRasterizerState(&desc, &pRasterState);
-        Assert::NotFailed(hr, "can't create a raster state");
+        CAssert::NotFailed(hr, "can't create a raster state");
 
         ResetRasterStateHash();
         UpdateRSHash({ FILL_SOLID, CULL_FRONT, FRONT_CLOCKWISE });
@@ -314,7 +311,7 @@ void RenderStates::InitAllRasterParams(ID3D11Device* pDevice, bool multisampleEn
         desc.DepthClipEnable = true;
 
         hr = pDevice->CreateRasterizerState(&desc, &pRasterState);
-        Assert::NotFailed(hr, "can't create a raster state");
+        CAssert::NotFailed(hr, "can't create a raster state");
 
         ResetRasterStateHash();
         UpdateRSHash({ FILL_WIREFRAME, CULL_BACK, FRONT_CLOCKWISE });
@@ -330,7 +327,7 @@ void RenderStates::InitAllRasterParams(ID3D11Device* pDevice, bool multisampleEn
         desc.DepthClipEnable = true;
 
         hr = pDevice->CreateRasterizerState(&desc, &pRasterState);
-        Assert::NotFailed(hr, "can't create a raster state");
+        CAssert::NotFailed(hr, "can't create a raster state");
 
         ResetRasterStateHash();
         UpdateRSHash({ FILL_WIREFRAME, CULL_FRONT, FRONT_CLOCKWISE });
@@ -346,7 +343,7 @@ void RenderStates::InitAllRasterParams(ID3D11Device* pDevice, bool multisampleEn
         desc.DepthClipEnable = true;
 
         hr = pDevice->CreateRasterizerState(&desc, &pRasterState);
-        Assert::NotFailed(hr, "can't create a raster state");
+        CAssert::NotFailed(hr, "can't create a raster state");
 
         ResetRasterStateHash();
         UpdateRSHash({ FILL_WIREFRAME, CULL_NONE, FRONT_CLOCKWISE });
@@ -390,7 +387,7 @@ void RenderStates::InitAllBlendStates(ID3D11Device* pDevice)
     rtbd.RenderTargetWriteMask = 0;
 
     hr = pDevice->CreateBlendState(&blendDesc, &blendStates_[NO_RENDER_TARGET_WRITES]);
-    Assert::NotFailed(hr, "can't create a no_render_target_writes blending state");
+    CAssert::NotFailed(hr, "can't create a no_render_target_writes blending state");
     
     //
     // Disabled blending
@@ -408,7 +405,7 @@ void RenderStates::InitAllBlendStates(ID3D11Device* pDevice)
     rtbd.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
     hr = pDevice->CreateBlendState(&blendDesc, &blendStates_[ALPHA_DISABLE]);
-    Assert::NotFailed(hr, "can't create an alpha disabled blending state");
+    CAssert::NotFailed(hr, "can't create an alpha disabled blending state");
 
     //
     // Enabled blending (for rendering fonts, sky plane, ...)
@@ -426,7 +423,7 @@ void RenderStates::InitAllBlendStates(ID3D11Device* pDevice)
     rtbd.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
     hr = pDevice->CreateBlendState(&blendDesc, &blendStates_[ALPHA_ENABLE]);
-    Assert::NotFailed(hr, "can't create an alpha enabled blending state");
+    CAssert::NotFailed(hr, "can't create an alpha enabled blending state");
 
     //
     // Adding BS
@@ -444,7 +441,7 @@ void RenderStates::InitAllBlendStates(ID3D11Device* pDevice)
     rtbd.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
     hr = pDevice->CreateBlendState(&blendDesc, &blendStates_[ADDING]);
-    Assert::NotFailed(hr, "can't create an adding blend state");
+    CAssert::NotFailed(hr, "can't create an adding blend state");
 
     //
     // Subtracting BS
@@ -462,7 +459,7 @@ void RenderStates::InitAllBlendStates(ID3D11Device* pDevice)
     rtbd.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
     hr = pDevice->CreateBlendState(&blendDesc, &blendStates_[SUBTRACTING]);
-    Assert::NotFailed(hr, "can't create a subtracting blend state");
+    CAssert::NotFailed(hr, "can't create a subtracting blend state");
 
     //
     // Multiplying BS
@@ -480,7 +477,7 @@ void RenderStates::InitAllBlendStates(ID3D11Device* pDevice)
     rtbd.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
     hr = pDevice->CreateBlendState(&blendDesc, &blendStates_[MULTIPLYING]);
-    Assert::NotFailed(hr, "can't create a multiplying blend state");
+    CAssert::NotFailed(hr, "can't create a multiplying blend state");
 
     // 
     // Transparent BS
@@ -498,7 +495,7 @@ void RenderStates::InitAllBlendStates(ID3D11Device* pDevice)
     rtbd.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
     hr = pDevice->CreateBlendState(&blendDesc, &blendStates_[TRANSPARENCY]);
-    Assert::NotFailed(hr, "can't create a transparent blend state");
+    CAssert::NotFailed(hr, "can't create a transparent blend state");
 
     //
     // alpha to coverage
@@ -510,7 +507,7 @@ void RenderStates::InitAllBlendStates(ID3D11Device* pDevice)
     a2CDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
     hr = pDevice->CreateBlendState(&a2CDesc, &blendStates_[ALPHA_TO_COVERAGE]);
-    Assert::NotFailed(hr, "can't create a blend state (alpha to coverage)");
+    CAssert::NotFailed(hr, "can't create a blend state (alpha to coverage)");
 }
 
 ///////////////////////////////////////////////////////////
@@ -528,7 +525,7 @@ void RenderStates::InitAllDepthStencilStates(ID3D11Device* pDevice)
     depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
 
     hr = pDevice->CreateDepthStencilState(&depthStencilDesc, &depthStencilStates_[DEPTH_ENABLED]);
-    Assert::NotFailed(hr, "can't create a depth stencil state");
+    CAssert::NotFailed(hr, "can't create a depth stencil state");
 
     //
     // depth DISABLED (for 2D rendering)
@@ -538,7 +535,7 @@ void RenderStates::InitAllDepthStencilStates(ID3D11Device* pDevice)
     depthDisabledStencilDesc.DepthEnable = false;
 
     hr = pDevice->CreateDepthStencilState(&depthDisabledStencilDesc, &depthStencilStates_[DEPTH_DISABLED]);
-    Assert::NotFailed(hr, "can't create the depth disabled stencil state");
+    CAssert::NotFailed(hr, "can't create the depth disabled stencil state");
 
 
     // mark mirror:
@@ -568,7 +565,7 @@ void RenderStates::InitAllDepthStencilStates(ID3D11Device* pDevice)
     mirrorDesc.BackFace.StencilFunc         = D3D11_COMPARISON_ALWAYS;
 
     hr = pDevice->CreateDepthStencilState(&mirrorDesc, &depthStencilStates_[MARK_MIRROR]);
-    Assert::NotFailed(hr, "can't create a mark mirror depth stencil state");
+    CAssert::NotFailed(hr, "can't create a mark mirror depth stencil state");
 
 
     // draw reflection:
@@ -596,7 +593,7 @@ void RenderStates::InitAllDepthStencilStates(ID3D11Device* pDevice)
     drawReflectionDesc.BackFace.StencilFunc         = D3D11_COMPARISON_EQUAL;
 
     hr = pDevice->CreateDepthStencilState(&drawReflectionDesc, &depthStencilStates_[DRAW_REFLECTION]);
-    Assert::NotFailed(hr, "can't create a draw reflection depth stencil state");
+    CAssert::NotFailed(hr, "can't create a draw reflection depth stencil state");
 
 
     // no double blending:
@@ -629,7 +626,7 @@ void RenderStates::InitAllDepthStencilStates(ID3D11Device* pDevice)
     noDoubleBlendDesc.BackFace.StencilFunc         = D3D11_COMPARISON_EQUAL;
 
     hr = pDevice->CreateDepthStencilState(&noDoubleBlendDesc, &depthStencilStates_[NO_DOUBLE_BLEND]);
-    Assert::NotFailed(hr, "can't create a no double blend depth stencil state");
+    CAssert::NotFailed(hr, "can't create a no double blend depth stencil state");
 
     //
     // for the SKY DOME rendering
@@ -639,7 +636,7 @@ void RenderStates::InitAllDepthStencilStates(ID3D11Device* pDevice)
     desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
 
     hr = pDevice->CreateDepthStencilState(&depthStencilDesc, &depthStencilStates_[SKY_DOME]);
-    Assert::NotFailed(hr, "can't create a depth stencil state");
+    CAssert::NotFailed(hr, "can't create a depth stencil state");
 }
 
 ///////////////////////////////////////////////////////////

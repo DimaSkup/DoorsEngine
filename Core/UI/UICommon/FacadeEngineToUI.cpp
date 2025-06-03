@@ -3,11 +3,10 @@
 // 
 // Created:   31.12.24
 // =================================================================================
+#include <CoreCommon/pch.h>
 #include "FacadeEngineToUI.h"
-#include <CoreCommon/Assert.h>
-#include <CoreCommon/log.h>
-#include <CoreCommon/MathHelper.h>
 
+#include "../../Mesh/MaterialMgr.h"
 #include "../../Model/ModelMgr.h"
 #include "../../Texture/TextureMgr.h"   // texture mgr is used to get textures by its IDs
 
@@ -31,10 +30,10 @@ FacadeEngineToUI::FacadeEngineToUI(
     pGraphics_(pGraphics)
 {
     // set pointers to the subsystems
-    Assert::NotNullptr(pRender,    "ptr to render == nullptr");
-    Assert::NotNullptr(pContext,   "ptr to device context == nullptr");
-    Assert::NotNullptr(pEntityMgr, "ptr to the entt mgr == nullptr");
-    Assert::NotNullptr(pGraphics,  "ptr to the graphics class == nullptr");
+    CAssert::NotNullptr(pRender,    "ptr to render == nullptr");
+    CAssert::NotNullptr(pContext,   "ptr to device context == nullptr");
+    CAssert::NotNullptr(pEntityMgr, "ptr to the entt mgr == nullptr");
+    CAssert::NotNullptr(pGraphics,  "ptr to the graphics class == nullptr");
 }
 
 ///////////////////////////////////////////////////////////
@@ -774,7 +773,7 @@ bool FacadeEngineToUI::SwitchDebugState(const int debugType)
 bool FacadeEngineToUI::GetModelsNamesList(cvector<std::string>& outNames) const
 {
     // get a name of each loaded model
-    Core::cvector<ModelName> modelsNames;
+    cvector<ModelName> modelsNames;
     g_ModelMgr.GetModelsNamesList(modelsNames);
 
     outNames.resize(modelsNames.size());

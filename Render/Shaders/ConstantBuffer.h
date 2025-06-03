@@ -5,22 +5,16 @@
 // *********************************************************************************
 #pragma once
 
-//////////////////////////////////
-// INCLUDES
-//////////////////////////////////
+#include <Log.h>
 #include <d3d11.h>
 #include <DirectXMath.h>
 
-#include "../Common/Log.h"
-#include "../Common/MemHelpers.h"
-#include "../Common/Assert.h"
 
 namespace Render
 {
 
-
 template<class T>
-class ConstantBuffer final
+class ConstantBuffer
 {
 public:
 	ConstantBuffer() {};
@@ -66,9 +60,11 @@ HRESULT ConstantBuffer<T>::Initialize(ID3D11Device* pDevice)
 	desc.StructureByteStride = 0;
 
 	hr = pDevice->CreateBuffer(&desc, 0, &pBuffer_);
-	Assert::NotFailed(hr, "can't create a constant buffer");
 
-	return hr;
+    if (FAILED(hr))
+        LogErr("can't create a constant buffer");
+
+    return hr;
 }
 
 ///////////////////////////////////////////////////////////

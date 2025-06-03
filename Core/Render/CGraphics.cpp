@@ -2,12 +2,12 @@
 // Filename: CGraphics.cpp
 // Created:  14.10.22
 // =================================================================================
+#include <CoreCommon/pch.h>
 #include "CGraphics.h"
-
-
-#include <CoreCommon/Assert.h>
-#include <CoreCommon/MathHelper.h>
 #include "../Input/inputcodes.h"
+#include "../Texture/TextureMgr.h"
+#include "../Model/ModelMgr.h"
+#include "../Mesh/MaterialMgr.h"
 
 using namespace DirectX;
 
@@ -15,7 +15,8 @@ using namespace DirectX;
 namespace Core
 {
 
-CGraphics::CGraphics()
+CGraphics::CGraphics() :
+    texturesBuf_(NUM_TEXTURE_TYPES, nullptr)
 {
     LogDbg("constructor");
 }
@@ -80,7 +81,7 @@ bool CGraphics::InitHelper(
         pSysState_ = &systemState;
 
         result = initGraphics.InitializeDirectX(d3d_, hwnd, settings);
-        Assert::True(result, "can't initialize D3DClass");
+        CAssert::True(result, "can't initialize D3DClass");
 
         // after initialization of the DirectX we can use pointers to the device and device context
         d3d_.GetDeviceAndDeviceContext(pDevice_, pDeviceContext_);
@@ -565,6 +566,7 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
     {
         RenderEnttsDefault(pRender);
         RenderEnttsAlphaClipCullNone(pRender);
+        RenderTerrain(pRender, pEnttMgr);
         RenderSkyDome(pRender, pEnttMgr);
         //RenderFoggedBillboards(pRender, pEnttMgr);
 #if 0
@@ -954,7 +956,7 @@ void CGraphics::RenderBoundingLineBoxes(
 {
     Render::RenderDataStorage& storage           = pRender->dataStorage_;
     Render::InstBuffData& instancesBuffer        = storage.boundingLineBoxBuffer;
-    Render::cvector<Render::Instance>& instances = storage.boundingLineBoxInstances;
+    cvector<Render::Instance>& instances = storage.boundingLineBoxInstances;
 
     // prepare the line box instance
     const int numInstances = 1;                // how many different line box models we have
@@ -1105,10 +1107,9 @@ void CGraphics::RenderSkyDome(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr
     const TexID* skyTexIDs = sky.GetTexIDs();
     const int skyTexMaxNum = sky.GetMaxTexturesNum();
 
-    // get shader resource views for the sky
-    cvector<ID3D11ShaderResourceView*> instanceTexSRVs;
-    g_TextureMgr.GetSRVsByTexIDs(skyTexIDs, skyTexMaxNum, instanceTexSRVs);
-    instance.texSRVs = { instanceTexSRVs.begin(), instanceTexSRVs.end() };
+    // get shader resource views (textures) for the sky
+    g_TextureMgr.GetSRVsByTexIDs(skyTexIDs, skyTexMaxNum, texturesBuf_);
+    memcpy(instance.texSRVs, texturesBuf_.begin(), NUM_TEXTURE_TYPES * sizeof(ID3D11ShaderResourceView*));
 
     instance.vertexStride = sky.GetVertexStride();
     instance.pVB          = sky.GetVertexBuffer();
@@ -1138,6 +1139,51 @@ void CGraphics::RenderSkyDome(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr
     const XMMATRIX worldViewProj = DirectX::XMMatrixTranspose(camOffset * skyWorld * viewProj_);
 
     pRender->RenderSkyDome(pContext, instance, worldViewProj);
+}
+
+///////////////////////////////////////////////////////////
+
+void CGraphics::RenderTerrain(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr)
+{
+    const EntityID terrainID = pEnttMgr->nameSystem_.GetIdByName("terrain");
+
+    // if we haven't any sky entity
+    if (terrainID == ECS::INVALID_ENTITY_ID)
+        return;
+
+    const Terrain& terrain = g_ModelMgr.GetTerrain();
+    
+    // --------------------------
+    // prepare the sky instance
+    // --------------------------
+    Render::TerrainInstance instance;
+
+    // material
+    const Material& mat = g_MaterialMgr.GetMaterialByID(terrain.materialID_);
+    memcpy(&instance.material.ambient_.x,  &mat.ambient.x,  sizeof(float) * 4);
+    memcpy(&instance.material.diffuse_.x,  &mat.diffuse.x,  sizeof(float) * 4);
+    memcpy(&instance.material.specular_.x, &mat.specular.x, sizeof(float) * 4);
+    memcpy(&instance.material.reflect_.x,  &mat.reflect.x,  sizeof(float) * 4);
+
+    // textures
+    g_TextureMgr.GetSRVsByTexIDs(mat.textureIDs, NUM_TEXTURE_TYPES, texturesBuf_);
+    memcpy(instance.textures, texturesBuf_.begin(), NUM_TEXTURE_TYPES * sizeof(ID3D11ShaderResourceView*));
+
+    // vertex/index buffers data
+    instance.vertexStride = terrain.GetVertexStride();
+    instance.pVB          = terrain.GetVertexBuffer();
+    instance.pIB          = terrain.GetIndexBuffer();
+    instance.indexCount   = terrain.GetNumIndices();
+
+    // setup rendering pipeline before rendering of the sky dome
+    ID3D11DeviceContext* pContext = pDeviceContext_;
+
+    RenderStates& renderStates = d3d_.GetRenderStates();
+    renderStates.ResetRS(pContext);
+    renderStates.ResetBS(pContext);
+    renderStates.ResetDSS(pContext);
+
+    pRender->shadersContainer_.terrainShader_.Render(pContext, instance);
 }
 
 ///////////////////////////////////////////////////////////
@@ -1374,7 +1420,7 @@ void CGraphics::BuildGeometryBuffers()
     vbInitData.pSysMem = &spriteVertex;
 
     hr = pDevice_->CreateBuffer(&vbd, &vbInitData, &pGeomVB_);
-    Assert::NotFailed(hr, "can't create a vertex buffer for tree sprite");
+    CAssert::NotFailed(hr, "can't create a vertex buffer for tree sprite");
 
 
     //
@@ -1393,7 +1439,7 @@ void CGraphics::BuildGeometryBuffers()
     ibInitData.pSysMem = &indices;
 
     hr = pDevice_->CreateBuffer(&ibd, &ibInitData, &pGeomIB_);
-    Assert::NotFailed(hr, "can't create an index buffer for tree sprite");
+    CAssert::NotFailed(hr, "can't create an index buffer for tree sprite");
 }
 
 } // namespace Core

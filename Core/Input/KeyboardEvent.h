@@ -17,8 +17,17 @@ public:
 		Invalid   // event is invalid
 	};
 
-	KeyboardEvent();  // generates an invalid event
-	KeyboardEvent(const EventType type, const unsigned char key);  // generates some particular event by passed type and key
+    // generates an invalid keyboard event
+    KeyboardEvent() :
+        type_(EventType::Invalid), key_(0u)
+    {
+    }
+
+    // generates some particular event by passed type and key
+    KeyboardEvent(const EventType type, const unsigned char key) :
+        type_(type), key_(key)
+    {
+    }
 
 	inline bool IsPress()   const { return type_ == EventType::Press; }
 	inline bool IsRelease() const { return type_ == EventType::Release; }

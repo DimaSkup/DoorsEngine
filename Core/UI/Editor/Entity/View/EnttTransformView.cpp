@@ -2,9 +2,8 @@
 // Filename:      EnttTransformView.cpp
 // Created:       01.01.25
 // ====================================================================================
+#include <CoreCommon/pch.h>
 #include "EnttTransformView.h"
-
-#include <CoreCommon/Assert.h>
 #include <UICommon/Color.h>
 #include <UICommon/Vectors.h>
 #include <UICommon/EditorCommands.h>
@@ -19,7 +18,7 @@ namespace UI
 EnttTransformView::EnttTransformView(IEditorController* pController) :
     pController_(pController)
 {
-    Core::Assert::NotNullptr(pController, "ptr to the editor controller == nullptr");
+    CAssert::NotNullptr(pController, "ptr to the editor controller == nullptr");
 }
 
 ///////////////////////////////////////////////////////////

@@ -29,14 +29,13 @@ void Application::Initialize()
     auto initStartTime = std::chrono::steady_clock::now();
 
     // ATTENTION: put the declation of logger before all the others; this instance is necessary to create a logger text file
-    Core::InitLogger("DoorsEngineLog.txt");
-    Render::SetupLogger(Core::GetLogFile(), (void*)Core::GetLogStorage());
+    InitLogger("DoorsEngineLog.txt");
 
     // explicitly init Windows Runtime and COM
     HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
     if (FAILED(hr))
     {
-        Core::LogErr("can't explicitly initialize Windows Runtime and COM");
+        LogErr("can't explicitly initialize Windows Runtime and COM");
         exit(-1);
     }
 
@@ -66,8 +65,15 @@ void Application::Initialize()
     std::chrono::duration<float, std::milli> initDuration = initEndTime - initStartTime;
 
     // create a str with duration time about the engine initialization process
-    sprintf(g_String, "Init time: %d ms", (int)initDuration.count());
-    userInterface_.CreateConstStr(pDevice, g_String, { 10, 350 });
+    char initTimeBuf[256]{ '\0' };
+    const POINT drawAt = { 10, 350 };
+
+    sprintf(initTimeBuf, "Init time: %d ms", (int)initDuration.count());
+    userInterface_.CreateConstStr(pDevice, initTimeBuf, drawAt);
+
+    LogMsgf("%s---------------------------------------------\n", GREEN);
+    LogMsg(initTimeBuf);
+    LogMsgf("%s---------------------------------------------\n", GREEN);
 }
 
 ///////////////////////////////////////////////////////////
@@ -236,10 +242,10 @@ bool Application::InitGUI(
 {
     // this function initializes the GUI of the game/engine (interface elements, text, etc.);
 
-    Core::LogMsgf(" ");
-    Core::LogMsgf("%s----------------------------------------------------------", YELLOW);
-    Core::LogMsgf("%s                   INITIALIZATION: GUI                    ", YELLOW);
-    Core::LogMsgf("%s----------------------------------------------------------", YELLOW);
+    LogMsgf(" ");
+    LogMsgf("%s----------------------------------------------------------", YELLOW);
+    LogMsgf("%s                   INITIALIZATION: GUI                    ", YELLOW);
+    LogMsgf("%s----------------------------------------------------------", YELLOW);
 
     try
     {
@@ -271,9 +277,9 @@ bool Application::InitGUI(
 
         return true;
     }
-    catch (Core::EngineException& e)
+    catch (EngineException& e)
     {
-        Core::LogErr(e, true);
+        LogErr(e, true);
         return false;
     }
 }
@@ -305,7 +311,7 @@ void Application::Run()
 void Application::Close()
 {
     wndContainer_.renderWindow_.UnregisterWindowClass(hInstance_);
-    Core::CloseLogger();
+    CloseLogger();
 }
 
 }; // namespace Game

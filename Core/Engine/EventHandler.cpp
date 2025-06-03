@@ -1,7 +1,5 @@
 #include "EventHandler.h"
-#include <Common/log.h>
-#include <cassert>
-#include <vector>
+#include <assert.h>
 
 void EventHandler::AddEventListener(EventListener* eventListener)
 {

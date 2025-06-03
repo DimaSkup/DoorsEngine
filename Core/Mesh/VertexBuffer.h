@@ -7,10 +7,10 @@
 // *********************************************************************************
 #pragma once
 
-#include <CoreCommon/Types.h>
-#include <CoreCommon/log.h>
-#include <CoreCommon/Assert.h>
-#include <CoreCommon/MemHelpers.h>
+#include <Types.h>
+#include <log.h>
+#include <CAssert.h>
+#include <MemHelpers.h>
 
 #include <d3d11.h>
 #include <memory>   // for using std::construct_at
@@ -39,7 +39,7 @@ public:
         const int numVertices,
         const bool isDynamic)
     {
-        Assert::True((pVertices != nullptr) && (numVertices > 0), "wrong input data");
+        CAssert::True((pVertices != nullptr) && (numVertices > 0), "wrong input data");
         Initialize(pDevice, pVertices, numVertices, isDynamic);
     }
 
@@ -254,13 +254,13 @@ void VertexBuffer<T>::UpdateDynamic(
     // update this DYNAMIC vertex buffer with new vertices
     try
     {
-        Assert::True(usageType_ == D3D11_USAGE_DYNAMIC, "not dynamic usage of the buffer");
-        Assert::True(vertices && ((u32)count <= vertexCount_), "wrong input data");
+        CAssert::True(usageType_ == D3D11_USAGE_DYNAMIC, "not dynamic usage of the buffer");
+        CAssert::True(vertices && ((u32)count <= vertexCount_), "wrong input data");
 
         // map the buffer
         D3D11_MAPPED_SUBRESOURCE mappedResource;
         const HRESULT hr = pContext->Map(pBuffer_, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-        Assert::NotFailed(hr, "failed to map the vertex buffer");
+        CAssert::NotFailed(hr, "failed to map the vertex buffer");
 
         // copy new data into the buffer
         CopyMemory(mappedResource.pData, vertices, stride_ * count);
@@ -285,8 +285,8 @@ void VertexBuffer<T>::CopyBuffer(
     // copy data from the inBuffer into the current one
     // and creates a new vertex buffer using this data;
 
-    Assert::NotNullptr(pDevice, "a ptr to the device == nullptr");
-    Assert::NotNullptr(pContext, "a ptr to the device context == nullptr");
+    CAssert::NotNullptr(pDevice, "a ptr to the device == nullptr");
+    CAssert::NotNullptr(pContext, "a ptr to the device context == nullptr");
 
     ID3D11Buffer* pBuffer       = inBuffer.Get();
     const UINT stride           = inBuffer.GetStride();
@@ -294,8 +294,8 @@ void VertexBuffer<T>::CopyBuffer(
     const D3D11_USAGE usageType = inBuffer.GetUsage();
 
     // check input params
-    Assert::NotNullptr(pBuffer, "ptr to buffer == nullptr");
-    Assert::True((vertexCount > 0) && (stride), "wrong input buffer's data");
+    CAssert::NotNullptr(pBuffer, "ptr to buffer == nullptr");
+    CAssert::True((vertexCount > 0) && (stride), "wrong input buffer's data");
 
 
     HRESULT hr = S_OK;
@@ -318,7 +318,7 @@ void VertexBuffer<T>::CopyBuffer(
 
         // create a staging buffer for reading data from the anotherBuffer
         hr = pDevice->CreateBuffer(&stagingBufferDesc, nullptr, &pStagingBuffer);
-        Assert::NotFailed(hr, "can't create a staging buffer");
+        CAssert::NotFailed(hr, "can't create a staging buffer");
         
         // copy the entire contents of the source resource to the destination 
         // resource using the GPU (from the origin buffer into the statingBuffer)
@@ -326,7 +326,7 @@ void VertexBuffer<T>::CopyBuffer(
 
         // map the staging buffer
         hr = pContext->Map(pStagingBuffer, 0, D3D11_MAP_READ, 0, &mappedSubresource);
-        Assert::NotFailed(hr, "can't map the staging buffer");
+        CAssert::NotFailed(hr, "can't map the staging buffer");
 
         pContext->Unmap(pStagingBuffer, 0);
         SafeRelease(&pStagingBuffer);

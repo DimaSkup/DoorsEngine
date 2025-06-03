@@ -1,15 +1,9 @@
 // ************************************************************************************
 // Filename: fontclass.cpp
 // ************************************************************************************
+#include <CoreCommon/pch.h>
 #include "fontclass.h"
-
-#include <CoreCommon/MemHelpers.h>
-#include <CoreCommon/Assert.h>
-#include <CoreCommon/Log.h>
-#include <CoreCommon/FileSystem.h>
 #include "../../Texture/TextureMgr.h"
-
-#include <fstream>
 
 using namespace Core;
 
@@ -77,9 +71,9 @@ void FontClass::BuildVertexArray(
 	// input sentence and upper-left position
 	// (this function is called by a TextStore object)
 
-	Assert::True(vertices && (numVertices > 0),             "wrong input vertices buffer");
-    Assert::True(sentence && (sentence[0] != '\0'),         "input sentence is empty");
-	Assert::True((size)strlen(sentence) <= (numVertices/4), "input vertices buffer is too small");
+	CAssert::True(vertices && (numVertices > 0),             "wrong input vertices buffer");
+    CAssert::True(sentence && (sentence[0] != '\0'),         "input sentence is empty");
+	CAssert::True((size)strlen(sentence) <= (numVertices/4), "input vertices buffer is too small");
 
 	float       drawX   = drawAtX;
 	const float topY    = drawAtY;
@@ -123,7 +117,7 @@ void FontClass::BuildIndexArray(UINT* indices, const size numIndices)
 {
 	// NOTE: the input indices array must be empty before initialization
 
-	Assert::True((indices != nullptr) && (numIndices > 0), "invalid input params");
+	CAssert::True((indices != nullptr) && (numIndices > 0), "invalid input params");
 	
 	for (UINT vIdx = 0, arrIdx = 0; arrIdx < (UINT)numIndices;)
 	{
@@ -196,7 +190,7 @@ void FontClass::LoadFontData(
 	try 
 	{
 		fin.open(fontDataFilePath, std::ifstream::in);
-		Assert::True(fin.is_open(), "can't open the file with font data");
+		CAssert::True(fin.is_open(), "can't open the file with font data");
 
 		// read in data from the buffer
 		for (int i = 0; i < numOfFontChars - 2; i++)

@@ -11,8 +11,8 @@
 
 #include "fontclass.h"              // text font
 
-#include <UICommon/Types.h>
-#include <UICommon/cvector.h>
+#include <Types.h>
+#include <cvector.h>
 #include <CoreCommon/SystemState.h>
 
 #include "../../Mesh/Vertex.h"

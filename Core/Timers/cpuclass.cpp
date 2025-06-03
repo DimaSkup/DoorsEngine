@@ -4,10 +4,10 @@
 ////////////////////////////////////////////////////////////////////
 #include "cpuclass.h"
 #include <pdhmsg.h>
+#include <log.h>
+#include <StrHelper.h>
 
-#include <CoreCommon/Log.h>
-#include <CoreCommon/StrHelper.h>
-
+#pragma warning (disable : 4996)
 
 namespace Core
 {

@@ -9,6 +9,7 @@ ImGui/x64/
 ImageRender/x64
 Render/x64
 Sandbox/x64
+Shared/x64
 Lib/
 packages/
 DirectXTex/.vs/

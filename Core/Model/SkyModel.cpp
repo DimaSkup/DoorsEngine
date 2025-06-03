@@ -5,18 +5,14 @@
 // Created:       23.12.24
 // =================================================================================
 #include "SkyModel.h"
+#include <CAssert.h>
 
 
 namespace Core
 {
 
-SkyModel::SkyModel()
-{
-}
-
-SkyModel::~SkyModel()
-{
-}
+SkyModel::SkyModel()  {}
+SkyModel::~SkyModel() {}
 
 ///////////////////////////////////////////////////////////
 
@@ -30,10 +26,10 @@ bool SkyModel::InitializeBuffers(
 	// initialize vertex and index buffers with input data
     try
     {
-        Assert::True(vertices, "input ptr to arr of vertices == nullptr");
-        Assert::True(indices, "input ptr to arr of indices == nullptr");
-        Assert::True(numVertices > 0, "input number of vertices must be > 0");
-        Assert::True(numIndices > 0, "input number of indices must be > 0");
+        CAssert::True(vertices, "input ptr to arr of vertices == nullptr");
+        CAssert::True(indices, "input ptr to arr of indices == nullptr");
+        CAssert::True(numVertices > 0, "input number of vertices must be > 0");
+        CAssert::True(numIndices > 0, "input number of indices must be > 0");
 
         constexpr bool isDynamic = false;
 	    vb_.Initialize(pDevice, vertices, numVertices, isDynamic);
@@ -69,7 +65,7 @@ void SkyModel::SetName(const char* newName)
 
 void SkyModel::SetTexture(const int idx, const TexID texID)
 {
-	Assert::True((idx > -1) && (idx < maxTexNum_), "wrong data to set texture");
+	CAssert::True((idx > -1) && (idx < maxTexNum_), "wrong data to set texture");
 	texIDs_[idx] = texID;
 }
 

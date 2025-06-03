@@ -4,8 +4,8 @@
 // 
 // Created:      07.02.25  by DimaSkup
 // =================================================================================
+#include "../Common/pch.h"
 #include "OutlineShader.h"
-#include "../Common/log.h"
 
 
 namespace Render
@@ -34,7 +34,7 @@ bool OutlineShader::Initialize(
         LogDbg("is initialized");
 		return true;
 	}
-	catch (LIB_Exception& e)
+	catch (EngineException& e)
 	{
 		LogErr(e, true);
 		LogErr("can't initialize the outline shader class");
@@ -122,10 +122,10 @@ void OutlineShader::InitializeShaders(
 
 	// initialize: VS, PS
 	result = vs_.Initialize(pDevice, vsFilePath, inputLayoutDesc, layoutElemNum);
-	Assert::True(result, "can't initialize the vertex shader");
+	CAssert::True(result, "can't initialize the vertex shader");
 
 	result = ps_.Initialize(pDevice, psFilePath);
-	Assert::True(result, "can't initialize the pixel shader");
+	CAssert::True(result, "can't initialize the pixel shader");
 }
 
 } // namespace Render

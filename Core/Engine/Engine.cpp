@@ -3,6 +3,7 @@
 // Created:   05.10.22
 // =================================================================================
 #include "Engine.h"
+#include <CAssert.h>
 
 #include "ProjectSaver.h"
 #include "DumpGenerator.h"
@@ -75,10 +76,10 @@ bool Engine::Initialize(
     try
     {
         // check support for SSE2 (Pentium4, AMD K8, and above)
-        Assert::True(DirectX::XMVerifyCPUSupport(), "XNA math not supported");
-        Assert::True(pEnttMgr != nullptr,       "input ptr to the Entity Manager == nullptr");
-        Assert::True(pUserInterface != nullptr, "input ptr to the User Interface == nullptr");
-        Assert::True(pRender != nullptr,        "input ptr to the Render == nullptr");
+        CAssert::True(DirectX::XMVerifyCPUSupport(), "XNA math not supported");
+        CAssert::True(pEnttMgr != nullptr,       "input ptr to the Entity Manager == nullptr");
+        CAssert::True(pUserInterface != nullptr, "input ptr to the User Interface == nullptr");
+        CAssert::True(pRender != nullptr,        "input ptr to the Render == nullptr");
 
         // WINDOW: store a handle to the application instance
         hInstance_      = hInstance;  
@@ -98,7 +99,7 @@ bool Engine::Initialize(
             settings,
             pEnttMgr,
             pRender);
-        Assert::True(result, "can't initialize the graphics system");
+        CAssert::True(result, "can't initialize the graphics system");
 
         D3DClass& d3d                 = graphics_.GetD3DClass();
         ID3D11Device* pDevice         = d3d.GetDevice();
@@ -110,7 +111,7 @@ bool Engine::Initialize(
 #if 0
         // SOUND SYSTEM: initialize the sound obj
         result = sound_.Initialize(hwnd_);
-        Assert::True(result, "can't initialize the sound system");
+        CAssert::True(result, "can't initialize the sound system");
 #endif
 
         // TIMERS: (game timer, CPU)
@@ -213,7 +214,7 @@ void Engine::CalculateFrameStats()
         GetWindowThreadProcessId(hwnd_, &processID);
 
         HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processID);
-        Assert::True(hProcess != NULL, "can't get a process handle of the window");
+        CAssert::True(hProcess != NULL, "can't get a process handle of the window");
         
         GetProcessMemoryInfo(hProcess, &pmc, sizeof(pmc));
 

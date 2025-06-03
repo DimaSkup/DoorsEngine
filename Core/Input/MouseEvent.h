@@ -32,8 +32,13 @@ private:
 	int y;
 
 public:
-	MouseEvent();
-	MouseEvent(const EventType type, const int x, const int y);
+    MouseEvent() :
+        type(EventType::Invalid), x(0), y(0)
+    {}
+
+    MouseEvent(EventType type, int x, int y) :
+        type(type), x(x), y(y)
+    {}
 
 	inline bool IsValid()           const { return type != EventType::Invalid; }
 	inline EventType GetEventType() const { return type; }

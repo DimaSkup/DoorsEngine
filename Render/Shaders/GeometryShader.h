@@ -22,11 +22,11 @@ public:
     void Shutdown();
 
     // public query API
-    inline ID3D11GeometryShader* GetShader()    { return pShader_; };
+    inline ID3D11GeometryShader* GetShader() { return pShader_; };
 
 private:
     ID3D11GeometryShader* pShader_ = nullptr;
-    uint8_t* pShaderBuffer_ = nullptr;
+    uint8*                pShaderBuffer_ = nullptr;
     
 };
 

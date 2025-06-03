@@ -4,11 +4,8 @@
 //
 // Created:     13.03.24
 ////////////////////////////////////////////////////////////////////////////////////////////
+#include <CoreCommon/pch.h>
 #include "GeometryGenerator.h"
-
-#include <CoreCommon/Convert.h>
-#include <CoreCommon/MathHelper.h>
-#include <CoreCommon/log.h>
 
 #include "../Model/ModelMath.h"
 #include "../Render/Color.h"
@@ -34,9 +31,9 @@ void GeometryGenerator::ComputeTangents(
     // compute tangent for each input vertex
     try
     {
-        Assert::True(vertices,       "input ptr to vertices arr == nullptr");
-        Assert::True(indices,        "input ptr to indices arr == nullptr");
-        Assert::True(numIndices > 0, "input number of indices must be > 0");
+        CAssert::True(vertices,       "input ptr to vertices arr == nullptr");
+        CAssert::True(indices,        "input ptr to indices arr == nullptr");
+        CAssert::True(numIndices > 0, "input number of indices must be > 0");
 
         for (int i = 0; i < numIndices;)
         {
@@ -340,7 +337,7 @@ void GeometryGenerator::GenerateSkySphere(
 
     // compute the number of vertices and indices
     const int numVertices = stackCount * sliceCount + 1 + sliceCount;  // +1 because of lowest center vertex
-    const int numIndices = numVertices * 6 + (sliceCount * 3);         // + (sliceCount * 3) -- because of the lowest part of sphere
+    const int numIndices  = numVertices * 6 + (sliceCount * 3);         // + (sliceCount * 3) -- because of the lowest part of sphere
     int vertexIdx = 0;
 
     // prepare memory for the model's data
@@ -552,15 +549,15 @@ void GeometryGenerator::GeneratePlane(
 //////////////////////////////////////////////////////////
 
 bool BuildFlatGridVertices(
-    Vertex3D* vertices,         // array of vertices (must be already allocated)
+    Vertex3dTerrain* vertices,  // array of vertices (must be already allocated)
     const float width,          // grid size by X
     const float depth)          // grid size by Z
 {
     try
     {
-        Assert::True(vertices,  "input arr of vertices == nullptr");
-        Assert::True(width > 0, "input width must be > 0");
-        Assert::True(depth > 0, "input depth must be > 0");
+        CAssert::True(vertices,  "input arr of vertices == nullptr");
+        CAssert::True(width > 0, "input width must be > 0");
+        CAssert::True(depth > 0, "input depth must be > 0");
 
         const XMFLOAT2 offsets[4] =
         {
@@ -583,10 +580,10 @@ bool BuildFlatGridVertices(
             // push quads by X
             for (int j = 0; j < (int)width; ++j)
             {
-                Vertex3D& v1 = vertices[vIdx++];
-                Vertex3D& v2 = vertices[vIdx++];
-                Vertex3D& v3 = vertices[vIdx++];
-                Vertex3D& v4 = vertices[vIdx++];
+                Vertex3dTerrain& v1 = vertices[vIdx++];
+                Vertex3dTerrain& v2 = vertices[vIdx++];
+                Vertex3dTerrain& v3 = vertices[vIdx++];
+                Vertex3dTerrain& v4 = vertices[vIdx++];
 
                 float x0 = offsets[0].x + j;
                 float z0 = offsets[0].y + i;
@@ -794,12 +791,13 @@ void GeometryGenerator::GenerateFlatGrid(
 }
 #endif
 
-void GeometryGenerator::GenerateFlatGrid(
-    const int w,            // width
-    const int d,            // depth
-    const int verticesByX,    // vertices count by X
-    const int verticesByZ,
-    BasicModel& model)
+
+void GeometryGenerator::GenerateTerrainFlatGrid(
+    const int width,              // length by X-axis
+    const int depth,              // length by Z-axis
+    const int verticesByX,        // vertices count by X
+    const int verticesByZ,        // vertices count by Z
+    Terrain& terrain)
 {
     // build the grid in the XZ-plane. A grid of (m * n) vertices includes
     // (m - 1) * (n - 1) quads (or cells). Each cell will be covered by two triangles, 
@@ -814,43 +812,37 @@ void GeometryGenerator::GenerateFlatGrid(
     // The coordinates of the ij-th grid vertex in the xz-plane are given by:
     //              Vij = [-0.5*width + j*dx, 0.0, 0.5*depth - i*dz];
 
-    // if input params is wrong we use the default params
-    const int width       = (w > 0) ? w : 1;
-    const int depth       = (d > 0) ? d : 1;
-    const int vertByX     = (verticesByX > 1) ? verticesByX : 2;
-    const int vertByZ     = (verticesByZ > 1) ? verticesByZ : 2;
-
-    const int quadsByX    = vertByX - 1;
-    const int quadsByZ    = vertByZ - 1;
-    const int faceCount   = quadsByX * quadsByZ * 2;  // quad_num_by_X * quad_num_by_Z * 2_triangles_per_quad
-    const int numVertices = vertByX * vertByZ * 4;    // 4 vertices per quad
-    const int numIndices  = numVertices / 4 * 6;
-    const int numSubsets  = 1;                       // only one mesh
-    
     try 
     {
+        // check input params
+        CAssert::True(width > 0,        "input width must be > 0");
+        CAssert::True(depth > 0,        "input depth must be > 0");
+        CAssert::True(verticesByX >= 2, "input number of vertices by X-axis must be >= 2");
+        CAssert::True(verticesByZ >= 2, "input number of vertices by Z-axis must be >= 2");
+
+        const int quadsByX    = verticesByX - 1;
+        const int quadsByZ    = verticesByZ - 1;
+        const int faceCount   = quadsByX * quadsByZ * 2;        // quad_num_by_X * quad_num_by_Z * 2_triangles_per_quad
+        const int numVertices = verticesByX * verticesByZ * 4;  // 4 vertices per quad
+        const int numIndices  = numVertices / 4 * 6;
+
         // allocate memory for data of the grid
-        model.AllocateMemory(numVertices, numIndices, numSubsets);
+        terrain.AllocateMemory(numVertices, numIndices);
 
-        BuildFlatGridVertices(model.vertices_, (float)width, (float)depth);
-        BuildFlatGridIndices(model.indices_, vertByX, vertByZ);
-
-        // compute the bounding box of the mesh
-        const DirectX::BoundingBox aabb
-        {
-            DirectX::XMFLOAT3(0,0,0),                            // center
-            DirectX::XMFLOAT3((float)width, 0.1f, (float)depth)  // extents
-        };
-
-        // currently the terrain model has only one submesh
-        model.SetSubsetAABB(0, aabb);
-        model.SetModelAABB(aabb);
-
+        BuildFlatGridVertices(terrain.vertices_, (float)width, (float)depth);
+        BuildFlatGridIndices(terrain.indices_, verticesByX, verticesByZ);
     }
     catch (std::bad_alloc& e)
     {
         LogErr(e.what());
-        throw EngineException("can't allocate memory for a flat grid");
+        LogErr("can't allocate memory for a terrain's flat grid");
+        return;
+    }
+    catch (EngineException& e)
+    {
+        LogErr(e);
+        LogErr("can't generate flat grid for terrain");
+        return;
     }
 }
 

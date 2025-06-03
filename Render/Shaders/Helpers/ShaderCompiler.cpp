@@ -2,9 +2,7 @@
 // Filename: ShaderCompiler.cpp
 // =================================================================================
 #include "ShaderCompiler.h"
-
-#include "../../Common/Log.h"
-
+#include <log.h>
 #include <d3dx11async.h>   // is neccessary for the D3DX11CompileFromFile() function
 #include <d3dcompiler.h>   // for using shader flags
 

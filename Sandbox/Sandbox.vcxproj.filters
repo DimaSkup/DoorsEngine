@@ -21,9 +21,6 @@
     <ClCompile Include="SceneInitializer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Common\MathHelper.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -41,22 +38,10 @@
     <ClInclude Include="Common\ConsoleColorMacro.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Common\FileSystemPaths.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\MathHelper.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Common\FileSystem.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="LightEnttsInitializer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\Types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="SetupModels.h">

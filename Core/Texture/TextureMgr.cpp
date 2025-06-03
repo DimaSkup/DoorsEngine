@@ -4,14 +4,8 @@
 //                ALL the textures, getting it and releasing;
 // Created:       06.06.23
 // =================================================================================
+#include <CoreCommon/pch.h>
 #include "TextureMgr.h"
-
-#include <CoreCommon/FileSystemPaths.h>
-#include <CoreCommon/MemHelpers.h>
-#include <CoreCommon/log.h>
-#include <CoreCommon/Assert.h>
-#include <CoreCommon/FileSystem.h>
-
 #include "ImageReader.h"
 
 
@@ -68,7 +62,7 @@ TextureMgr::~TextureMgr()
 void TextureMgr::Initialize(ID3D11Device* pDevice)
 {
     // check input params
-    Assert::NotNullptr(pDevice, "ptr to the device == nullptr");
+    CAssert::NotNullptr(pDevice, "ptr to the device == nullptr");
     pDevice_ = pDevice;
 
     // create and store a couple of default textures
@@ -119,7 +113,7 @@ TexID TextureMgr::Add(const TexName& name, Texture& tex)
     // add a new texture by name and return its generated ID
     try
     {
-        Assert::NotEmpty(name.empty(), "a texture name (path) cannot be empty");
+        CAssert::NotEmpty(name.empty(), "a texture name (path) cannot be empty");
 
         // if there is already a texture by such name we just return its ID
         const bool isNotUniqueName = (names_.find(name) != -1);
@@ -154,7 +148,7 @@ TexID TextureMgr::Add(const char* name, Texture&& tex)
     // add a new texture by name and return its generated ID
     try
     {
-        Assert::True(!IsNameEmpty(name), "a texture name cannot be empty");
+        CAssert::True(!IsNameEmpty(name), "a texture name cannot be empty");
 
         TexID id = INVALID_TEXTURE_ID;
 
@@ -264,9 +258,9 @@ TexID TextureMgr::LoadTextureArray(
 {
     try
     {
-        Assert::True(!IsNameEmpty(textureObjName), "input name for the texture object is empty");
-        Assert::True(texturePaths,                 "input ptr to arr of filenames == nullptr");
-        Assert::True(numTextures > 0,              "input number of texture must be > 0");
+        CAssert::True(!IsNameEmpty(textureObjName), "input name for the texture object is empty");
+        CAssert::True(texturePaths,                 "input ptr to arr of filenames == nullptr");
+        CAssert::True(numTextures > 0,              "input number of texture must be > 0");
 
         // check if files exist
         for (index i = 0; i < numTextures; ++i)
@@ -388,8 +382,8 @@ void TextureMgr::GetIDsByNames(
 {
     // get textures IDs by its names
 
-    Assert::True(inNames != nullptr, "input ptr to names arr == nullptr");
-    Assert::True(numNames > 0,       "input number of names must be > 0");
+    CAssert::True(inNames != nullptr, "input ptr to names arr == nullptr");
+    CAssert::True(numNames > 0,       "input number of names must be > 0");
 
     // get idxs by names
     cvector<index> idxs(numNames);
@@ -420,55 +414,6 @@ ID3D11ShaderResourceView* TextureMgr::GetSRVByTexID(const TexID texID)
 
 ///////////////////////////////////////////////////////////
 
-# if 0
-void TextureMgr::GetSRVsByTexIDsOld(
-    const TexID* texIDs,
-    const size numTex,
-    cvector<ID3D11ShaderResourceView*>& outSRVs)
-{
-    // here get SRV (shader resource view) of each input texture by its ID
-
-    Assert::True(texIDs != nullptr, "input ptr to textures IDs arr == nullptr");
-    Assert::True(numTex > 0,        "input number of textures must be > 0");
-
-    // get idxs to textures IDs which != 0
-    cvector<index> idxsToNotZero(numTex);
-    int pos = 0;
-
-    for (index idx = 0; idx < numTex; ++idx)
-    {
-        idxsToNotZero[pos] = idx;
-        pos += bool(texIDs[idx]);
-    }
-
-    idxsToNotZero.resize(pos + 1);
-
-    // ---------------------------------------------
-
-    // get SRVs
-    ID3D11ShaderResourceView* unloadedTexSRV = shaderResourceViews_[0];
-    outSRVs.resize(numTex, unloadedTexSRV);
-
-    const size numPreparedTextures = std::ssize(idxsToNotZero);
-    cvector<TexID> ids(numPreparedTextures);
-    cvector<index> idxs(numPreparedTextures);
-    cvector<SRV*>  preparedSRVs(numPreparedTextures);
-    
-    for (index i = 0; const index idx : idxsToNotZero)
-        ids[i++] = texIDs[idx];
-
-    // get idxs of searched textures ids
-    ids_.get_idxs(ids.data(), numPreparedTextures, idxs);
-
-    for (int i = 0; const index idx : idxs)
-        preparedSRVs[i++] = shaderResourceViews_[idx];
-
-    for (index i = 0; const index idx : idxsToNotZero)
-        outSRVs[idx] = preparedSRVs[i++];
-}
-#endif
-
-
 void TextureMgr::GetSRVsByTexIDs(
     const TexID* texIDs,
     const size numTex,
@@ -476,8 +421,8 @@ void TextureMgr::GetSRVsByTexIDs(
 {
     // here get SRV (shader resource view) of each input texture by its ID
 
-    Assert::True(texIDs != nullptr, "input ptr to textures IDs arr == nullptr");
-    Assert::True(numTex > 0, "input number of textures must be > 0");
+    CAssert::True(texIDs != nullptr, "input ptr to textures IDs arr == nullptr");
+    CAssert::True(numTex > 0, "input number of textures must be > 0");
 
     // get idxs to textures IDs which != 0
     idxsToNotZero_.resize(numTex);

@@ -3,13 +3,9 @@
 // Description:  implementation of the SoundClass
 // Created:      05.01.23
 // =================================================================================
+#include <CoreCommon/pch.h>
 #include "SoundClass.h"
-#include <CoreCommon/MemHelpers.h>
-#include <CoreCommon/Assert.h>
-#include <CoreCommon/log.h>
-#include <CoreCommon/FileSystemPaths.h>
-#include <memory>
-
+#pragma warning (disable : 4996)
 
 namespace Core
 {
@@ -44,18 +40,18 @@ bool SoundClass::Initialize(HWND hwnd)
 
         // initialize DirectSound and the primary sound buffer
         result = InitializeDirectSound(hwnd);
-        Assert::True(result, "can't initialize DirectSound");
+        CAssert::True(result, "can't initialize DirectSound");
 
         // generate a path to the file
         sprintf(g_String, "%s%s", g_RelPathAudioDir, "bateman.wav");
 
         // load a wave audio file onto a secondary buffer
         result = LoadWaveFile(g_String, &pSecondaryBuffer1_);
-        Assert::True(result, "can't load in a wave audio file");
+        CAssert::True(result, "can't load in a wave audio file");
 
         // play the wave file now that it has been loaded
         result = PlayWaveFile();
-        Assert::True(result, "can't play the wave audio file");
+        CAssert::True(result, "can't play the wave audio file");
 
         return true;
     }
@@ -101,15 +97,15 @@ bool SoundClass::PlayWaveFile()
 
     // set the position at the beginning of the sound buffer
     hr = pSecondaryBuffer1_->SetCurrentPosition(0);
-    Assert::NotFailed(hr, "can't set the position in the sound buffer");
+    CAssert::NotFailed(hr, "can't set the position in the sound buffer");
 
     // set volume of the buffer to 100%
     hr = pSecondaryBuffer1_->SetVolume(DSBVOLUME_MAX);
-    Assert::NotFailed(hr, "can't set volume of the secondary buffer");
+    CAssert::NotFailed(hr, "can't set volume of the secondary buffer");
 
     // play the contents of the secondary sound buffer
     hr = pSecondaryBuffer1_->Play(0, 0, 0);
-    Assert::NotFailed(hr, "can't play the contents of the secondary buffer");
+    CAssert::NotFailed(hr, "can't play the contents of the secondary buffer");
 
     return true;
 }
@@ -128,12 +124,12 @@ bool SoundClass::InitializeDirectSound(HWND hwnd)
 
     // initialize the DirectSound interface pointer for the default sound device
     hr = DirectSoundCreate8(NULL, &pDirectSound_, NULL);
-    Assert::NotFailed(hr, "can't initialize the DirectSound interface");
+    CAssert::NotFailed(hr, "can't initialize the DirectSound interface");
 
     // set the cooperative level to priority so the format of the primary sound buffer
     // can be modified
     hr = pDirectSound_->SetCooperativeLevel(hwnd, DSSCL_PRIORITY);
-    Assert::NotFailed(hr, "can't set the cooperation level");
+    CAssert::NotFailed(hr, "can't set the cooperation level");
 
     // we have to setup the description of how we want to access the primary buffer. 
     // The dwFlags are the important part of this structure. In this case we just want 
@@ -150,7 +146,7 @@ bool SoundClass::InitializeDirectSound(HWND hwnd)
 
     // get control of the primary sound buffer on the default sound device
     hr = pDirectSound_->CreateSoundBuffer(&bd, &pPrimaryBuffer_, NULL);
-    Assert::NotFailed(hr, "can't create a primary sound buffer");
+    CAssert::NotFailed(hr, "can't create a primary sound buffer");
 
 
     // now that we have control of the primary buffer on the default sound device we want 
@@ -164,7 +160,7 @@ bool SoundClass::InitializeDirectSound(HWND hwnd)
 
     // set the primery buffer to be the wave format specified
     hr = pPrimaryBuffer_->SetFormat(&waveFormat);
-    Assert::NotFailed(hr, "can't set a format for the primary buffer");
+    CAssert::NotFailed(hr, "can't set a format for the primary buffer");
 
     return true;
 }
@@ -198,11 +194,11 @@ bool SoundClass::LoadWaveFile(const char* filename, IDirectSoundBuffer8** second
     
     // open the wave file in binary
     error = fopen_s(&filePtr, filename, "rb");
-    Assert::True(error == 0, "can't open the wave file in binary");
+    CAssert::True(error == 0, "can't open the wave file in binary");
 
     // read in the wave file header
     count = fread(&waveFileHeader, sizeof(waveFileHeader), 1, filePtr);
-    Assert::True(count == 1, "can't read in the wave file header");
+    CAssert::True(count == 1, "can't read in the wave file header");
 
     // verify the wave header file so we ensure everything is correct
     this->VerifyWaveHeaderFile(waveFileHeader);
@@ -226,31 +222,31 @@ bool SoundClass::VerifyWaveHeaderFile(const WaveHeaderType& waveFileHeader)
 
     // check that the chunk ID is the RIFF format
     isEqual = strncmp(waveFileHeader.chunkId, "RIFF", 4);
-    Assert::True(isEqual == 0, "chunk ID isn't the RIFF format");
+    CAssert::True(isEqual == 0, "chunk ID isn't the RIFF format");
 
     // check that the format is the WAVE format
     isEqual = strncmp(waveFileHeader.format, "WAVE", 4);
-    Assert::True(isEqual == 0, "the file format is not the WAVE format");
+    CAssert::True(isEqual == 0, "the file format is not the WAVE format");
 
     // check that the sub chunk ID is the fmt format
     isEqual = strncmp(waveFileHeader.subChunkId, "fmt ", 4);
-    Assert::True(isEqual == 0, "the sub chunk Id is not the fmt format");
+    CAssert::True(isEqual == 0, "the sub chunk Id is not the fmt format");
 
     // check that the audio format is WAVE_FORMAT_PCM
-    Assert::True(waveFileHeader.audioFormat == WAVE_FORMAT_PCM, "the audio format is not WAVE_FORMAT_PCM");
+    CAssert::True(waveFileHeader.audioFormat == WAVE_FORMAT_PCM, "the audio format is not WAVE_FORMAT_PCM");
 
     // check that the wave file was recorded in stereo format
-    Assert::True(static_cast<bool>(waveFileHeader.numChannels == 2), "the wave file wasn't recorded in stereo format");
+    CAssert::True(static_cast<bool>(waveFileHeader.numChannels == 2), "the wave file wasn't recorded in stereo format");
 
     // check that the wave file was recorded at a sample rate of 44.1KHz
-    Assert::True(static_cast<bool>(waveFileHeader.sampleRate == 44100), "the wave file wasn't recorded at a sample rate of 44.1KHz");
+    CAssert::True(static_cast<bool>(waveFileHeader.sampleRate == 44100), "the wave file wasn't recorded at a sample rate of 44.1KHz");
 
     // ensure that the wave file was recorded in 16 bit format
-    Assert::True(static_cast<bool>(waveFileHeader.bitsPerSample == 16), "the wave file wasn't recorded in 16 bit format");
+    CAssert::True(static_cast<bool>(waveFileHeader.bitsPerSample == 16), "the wave file wasn't recorded in 16 bit format");
 
     // check for the data chunk header
     isEqual = strncmp(waveFileHeader.dataChunkId, "data", 4);
-    Assert::True(isEqual == 0, "wrong data chunk header");
+    CAssert::True(isEqual == 0, "wrong data chunk header");
 
     return true;
 }
@@ -316,11 +312,11 @@ bool SoundClass::CreateSecondaryBuffer(const WaveHeaderType& waveFileHeader, IDi
 
     // create a temporary sound buffer with the specific buffer settings
     hr = pDirectSound_->CreateSoundBuffer(&bufferDesc, &tempBuffer, NULL);
-    Assert::NotFailed(hr, "can't create a temporary sound buffer");
+    CAssert::NotFailed(hr, "can't create a temporary sound buffer");
 
     // test the buffer format against the direct sound 8 interface and create the secondary buffer
     hr = tempBuffer->QueryInterface(IID_IDirectSoundBuffer8, (void**)&*secondaryBuffer);
-    Assert::NotFailed(hr, "can't create the secondary sound buffer");
+    CAssert::NotFailed(hr, "can't create the secondary sound buffer");
 
     SafeRelease(&tempBuffer);   // release the temporary buffer
 
@@ -363,26 +359,26 @@ bool SoundClass::ReadWaveData(
 
     // create a temporary buffer to hold the wave file data
     //waveData = new UCHAR[waveFileHeader.dataSize];
-    //Assert::True(waveData, "can't allocate memory for the wave file data");
+    //CAssert::True(waveData, "can't allocate memory for the wave file data");
 
     // read in the wave file data into the newly created buffer
     count = fread(waveData.get(), 1, waveFileHeader.dataSize, filePtr);
-    Assert::True(count == waveFileHeader.dataSize, "can't read in the wave file data");
+    CAssert::True(count == waveFileHeader.dataSize, "can't read in the wave file data");
 
     // close the file once done reading 
     error = fclose(filePtr);
-    Assert::True(error == 0, "something went wrong during closing of the file");
+    CAssert::True(error == 0, "something went wrong during closing of the file");
 
     // lock the secondary buffer to write wave data into it
     hr = (*secondaryBuffer)->Lock(0, waveFileHeader.dataSize, (void**)&bufferPtr, (DWORD*)&bufferSize, nullptr, 0, 0);
-    Assert::NotFailed(hr, "can't lock the secondary buffer");
+    CAssert::NotFailed(hr, "can't lock the secondary buffer");
 
     // copy the wave data into the buffer
     memcpy(bufferPtr, waveData.get(), waveFileHeader.dataSize);
 
     // unlock the secondary buffer ater the data had been written to it
     hr = (*secondaryBuffer)->Unlock((void*)bufferPtr, bufferSize, nullptr, 0);
-    Assert::NotFailed(hr, "can't unlock the secondary buffer after writing to it");
+    CAssert::NotFailed(hr, "can't unlock the secondary buffer after writing to it");
 
     // release the wave data since it was copied into the secondary buffer
     //_DELETE(waveData);

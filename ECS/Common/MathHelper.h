@@ -4,24 +4,6 @@
 #include <DirectXMath.h>
 
 
-namespace DirectX 
-{
-	static XMFLOAT3& operator+=(XMFLOAT3& lhs, const XMFLOAT3& rhs)
-	{
-		lhs.x += rhs.x;
-		lhs.y += rhs.y;
-		lhs.z += rhs.z;
-
-		return lhs;
-	}
-
-	static XMFLOAT3 XMFloat3Normalize(const XMFLOAT3& n)
-	{
-		const float invLen = 1.0f / sqrtf(n.x * n.x + n.y * n.y + n.z * n.z);
-		return XMFLOAT3(n.x * invLen, n.y * invLen, n.z * invLen);
-	}
-}
-
 namespace ECS
 {
 

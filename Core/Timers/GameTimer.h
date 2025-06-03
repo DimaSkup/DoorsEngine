@@ -14,28 +14,28 @@ namespace Core
 class GameTimer
 {
 public:
-	GameTimer();
+    GameTimer();
 
-	// get time in seconds
-	float        GetGameTime()  const;   
-	inline float GetDeltaTime() const { return (float)deltaTime_; }
+    // get time in seconds
+    float        GetGameTime()  const;   
+    inline float GetDeltaTime() const { return (float)deltaTime_; }
 
-	void Reset();  // is called before message loop
-	void Start();  // is called when unpaused
-	void Stop();   // is called when paused
-	void Tick();   // is called every frame
+    void Reset();  // is called before message loop
+    void Start();  // is called when unpaused
+    void Stop();   // is called when paused
+    void Tick();   // is called every frame
 
 private:
-	bool isStopped_ = false;
+    bool isStopped_ = false;
 
-	__int64 currTime_ = 0;
-	__int64 pausedTime_ = 0;
-	__int64 baseTime_ = 0;
-	__int64 prevTime_ = 0;
-	__int64 stopTime_ = 0;
+    __int64 currTime_ = 0;
+    __int64 pausedTime_ = 0;
+    __int64 baseTime_ = 0;
+    __int64 prevTime_ = 0;
+    __int64 stopTime_ = 0;
 
-	double secondsPerCount_ = 0.0f;  // 1.0 / counts_per_sec
-	double deltaTime_       = -1.0f;
+    double secondsPerCount_ = 0.0f;  // 1.0 / counts_per_sec
+    double deltaTime_       = -1.0f;
 };
 
 }

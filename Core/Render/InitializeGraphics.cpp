@@ -5,13 +5,8 @@
 //
 // Created:      02.12.22
 // =================================================================================
+#include <CoreCommon/pch.h>
 #include "InitializeGraphics.h"
-
-
-#include <CoreCommon/Assert.h>
-#include <CoreCommon/MathHelper.h>
-#include <CoreCommon/StrHelper.h>
-#include "Common/LIB_Exception.h"    // ECS exception
 #include <shellapi.h>
 
 using namespace DirectX;
@@ -47,7 +42,7 @@ bool InitializeGraphics::InitializeDirectX(
             settings.GetFloat("NEAR_Z"),
             settings.GetFloat("FAR_Z"));         // how far we can see
 
-        Assert::True(result, "can't initialize the Direct3D");
+        CAssert::True(result, "can't initialize the Direct3D");
 
         // setup the rasterizer state to default params
         d3d.SetRS({ eRenderState::CULL_BACK, eRenderState::FILL_SOLID });

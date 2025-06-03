@@ -3,10 +3,8 @@
 //
 // Created:       24.10.24
 // *********************************************************************************
+#include <CoreCommon/pch.h>
 #include "ModelLoaderM3D.h"
-#include <CoreCommon/FileSystemPaths.h>
-#include <CoreCommon/log.h>
-
 #include "../Texture/TextureMgr.h"
 
 

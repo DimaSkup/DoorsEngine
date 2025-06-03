@@ -9,13 +9,12 @@
 // =================================================================================
 #pragma once
 
-#include <CoreCommon/cvector.h>
 #include "textureclass.h"
 
+#include <cvector.h>
 #include <d3d11.h>
 #include <d3dx11tex.h>
 #include <string>
-//#include <windows.h>
 
 
 namespace Core

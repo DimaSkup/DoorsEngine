@@ -2,11 +2,8 @@
 // Filename: GeometryShader.cpp
 // Created:  01.03.25  by DimaSkup
 // =================================================================================
+#include "../Common/pch.h"
 #include "GeometryShader.h"
-
-#include "../Common/MemHelpers.h"
-#include "../Common/Log.h"
-
 #include "Helpers/CSOLoader.h"
 
 

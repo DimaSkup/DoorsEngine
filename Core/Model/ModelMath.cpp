@@ -3,9 +3,9 @@
 // Created:      06.02.23
 ////////////////////////////////////////////////////////////////////
 #include "ModelMath.h"
-
-#include <CoreCommon/Types.h>
 #include <cmath>
+#include <Types.h>
+
 
 using namespace DirectX;
 

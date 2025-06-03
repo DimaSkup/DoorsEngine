@@ -4,8 +4,7 @@
 // Created:     18.03.2025  by DimaSkup
 // =================================================================================
 #include "EntityCreatorWnd.h"
-#include <CoreCommon/log.h>
-
+#include <log.h>
 #include <imgui.h>
 
 namespace UI
@@ -120,28 +119,28 @@ void EntityCreatorWnd::RenderCreationWindow(bool* pOpen, IFacadeEngineToUI* pFac
     // TEMP
     if (*pOpen == false)
     {
-        Core::LogMsgf(" ");
-        Core::LogMsgf("%sCreated Entity", YELLOW);
-        Core::LogMsgf("%sName: %s", YELLOW, nameData_.enttName);
+        LogMsgf(" ");
+        LogMsgf("%sCreated Entity", YELLOW);
+        LogMsgf("%sName: %s", YELLOW, nameData_.enttName);
 
         // debug: print transformation component info
         const Vec3& pos = transformData_.position;
         const Vec3& dir = transformData_.direction;
         const float uniScale = transformData_.uniformScale;
-        Core::LogMsgf("%sTransform:", YELLOW);
-        Core::LogMsgf("%spos: %f %f %f", YELLOW, pos.x, pos.y, pos.z);
-        Core::LogMsgf("%spos: %f %f %f", YELLOW, dir.x, dir.y, dir.z);
-        Core::LogMsgf("%suniform scale: %d", YELLOW, uniScale);
+        LogMsgf("%sTransform:", YELLOW);
+        LogMsgf("%spos: %f %f %f", YELLOW, pos.x, pos.y, pos.z);
+        LogMsgf("%spos: %f %f %f", YELLOW, dir.x, dir.y, dir.z);
+        LogMsgf("%suniform scale: %d", YELLOW, uniScale);
 
         // debug: print model component info
         if (addedComponents_.isAddedModel)
-            Core::LogMsgf("%swith model: %s", YELLOW, modelData_.selectedModelName.c_str());
+            LogMsgf("%swith model: %s", YELLOW, modelData_.selectedModelName.c_str());
 
         // debug: print rendered component info
         if (addedComponents_.isAddedRendered)
-            Core::LogMsgf("%swith rendered component", YELLOW);
+            LogMsgf("%swith rendered component", YELLOW);
 
-        Core::LogMsgf("");
+        LogMsgf("");
 
         EntityID enttID = pFacade->CreateEntity();
         ModelID modelID = pFacade->GetModelIdByName(modelData_.selectedModelName);

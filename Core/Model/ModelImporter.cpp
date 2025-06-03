@@ -3,24 +3,17 @@
 // 
 // Created:       07.07.23
 ////////////////////////////////////////////////////////////////////
+#include <CoreCommon/pch.h>
 #include "ModelImporter.h"
 
-#include <CoreCommon/log.h>
-#include <CoreCommon/Assert.h>
-#include <CoreCommon/FileSystem.h>
 #include "ModelMath.h"
-
 #include "../Mesh/MaterialMgr.h"
 #include "../Model/ModelLoaderM3D.h"
 #include "../Texture/TextureMgr.h"
 #include "../Model/ModelImporterHelpers.h"
 
-#include <thread>
-#include <chrono>
-#include <map>
-
-//namespace fs = std::filesystem;
 using namespace DirectX;
+
 
 namespace Core
 {
@@ -374,16 +367,22 @@ void ModelImporter::LoadMaterialTextures(
             case TexStoreType::EmbeddedCompressed:
             {
                 const aiTexture* pAiTexture = pScene->GetEmbeddedTexture(path.C_Str());
+                constexpr bool   mipMapped = true;
+                char             textureName[64]{ '\0' };
 
-                char textureName[64]{ '\0' };
                 FileSys::GetFileName(path.C_Str(), textureName);
 
-                // add into the tex mgr a new texture
-                const TexID id = g_TextureMgr.Add(textureName, Texture(
+                Texture texture(
                     pDevice,
                     textureName,
                     (uint8_t*)(pAiTexture->pcData),         // data of texture
-                    pAiTexture->mWidth));                  // size of texture);
+                    pAiTexture->mWidth,                     
+                    pAiTexture->mHeight,
+                    mipMapped);
+
+                // add into the tex mgr a new texture
+                const TexID id = g_TextureMgr.Add(textureName, std::move(texture));
+
 
                 texIDs[type] = id;
 
@@ -393,16 +392,23 @@ void ModelImporter::LoadMaterialTextures(
             // load an embedded indexed compressed texture
             case TexStoreType::EmbeddedIndexCompressed:
             {
-                const UINT index = GetIndexOfEmbeddedCompressedTexture(&path);
-                char textureName[64]{ '\0' };
-                FileSys::GetFileName(path.C_Str(), textureName);
+                constexpr bool  mipMapped = true;
+                const UINT      index = GetIndexOfEmbeddedCompressedTexture(&path);
+                char            textureName[64]{ '\0' };
 
-                // add into the tex mgr a new texture
-                const TexID id = g_TextureMgr.Add(textureName, Texture(
+                FileSys::GetFileName(path.C_Str(), textureName);
+                aiTexture* pAiTex = pScene->mTextures[index];
+
+                Texture texture(
                     pDevice,
                     textureName,
-                    (uint8_t*)(pScene->mTextures[index]->pcData),   // data of texture
-                    pScene->mTextures[index]->mWidth));             // size of texture
+                    (uint8_t*)(pAiTex->pcData),
+                    pAiTex->mWidth,
+                    pAiTex->mHeight,
+                    mipMapped);
+
+                // add into the tex mgr a new texture
+                const TexID id = g_TextureMgr.Add(textureName, std::move(texture));            
 
                 texIDs[type] = id;
 

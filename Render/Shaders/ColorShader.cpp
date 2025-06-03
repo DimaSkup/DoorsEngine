@@ -2,11 +2,8 @@
 // Filename: ColorShader.cpp
 // Revising: 06.04.22
 /////////////////////////////////////////////////////////////////////
+#include "../Common/pch.h"
 #include "ColorShader.h"
-
-#include "../Common/Log.h"
-#include "../Common/MathHelper.h"
-#include "../Common/MemHelpers.h"
 
 
 namespace Render
@@ -36,7 +33,7 @@ bool ColorShader::Initialize(
         LogDbg("is initialized");
         return true;
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         LogErr(e, true);
         LogErr("can't initialize the color shader class");
@@ -150,10 +147,10 @@ void ColorShader::InitializeShaders(
 
     // initialize: VS, PS, sampler state
     result = vs_.Initialize(pDevice, vsFilePath, inputLayoutDesc, layoutElemNum);
-    Assert::True(result, "can't initialize the vertex shader");
+    CAssert::True(result, "can't initialize the vertex shader");
 
     result = ps_.Initialize(pDevice, psFilePath);
-    Assert::True(result, "can't initialize the pixel shader");
+    CAssert::True(result, "can't initialize the pixel shader");
 }
 
 } // namespace Render

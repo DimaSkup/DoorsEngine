@@ -2,18 +2,12 @@
 // Filename:      ModelMgr.cpp
 // Created:       30.10.24
 // ************************************************************************************
+#include <CoreCommon/pch.h>
 #include "ModelMgr.h"
 
-#include <CoreCommon/FileSystemPaths.h>
-#include <CoreCommon/log.h>
-#include <CoreCommon/Assert.h>
 #include "ModelExporter.h"
 #include "ModelsCreator.h"
 #include "ModelStorageSerializer.h"
-
-#include <algorithm>
-#include <fstream>
-#include <chrono>
 
 namespace fs = std::filesystem;
 
@@ -89,7 +83,7 @@ void ModelMgr::Serialize(ID3D11Device* pDevice)
     const char* pathToDataFile = "data/model_storage_data.txt";
 
     std::ofstream fout(pathToDataFile, std::ios::out);
-    Assert::True(fout.is_open(), "can't open a file for serialization of models storage");
+    CAssert::True(fout.is_open(), "can't open a file for serialization of models storage");
 
 
     ModelStorageSerializer serializer;
@@ -188,7 +182,7 @@ void ModelMgr::Deserialize(ID3D11Device* pDevice)
     const std::string pathToDataFile = "data/model_storage_data.txt";
 
     std::ifstream fin(pathToDataFile, std::ios::in);
-    Assert::True(fin.is_open(), "can't open a file for deserialization of models storage");
+    CAssert::True(fin.is_open(), "can't open a file for deserialization of models storage");
 
     // skip header
     fin >> ignore;
@@ -275,8 +269,8 @@ void ModelMgr::GetModelsByIDs(
 {
     // out: array of pointers to models by input IDs
 
-    Assert::True(ids != nullptr, "input ptr to models IDs arr == nullptr");
-    Assert::True(numModels > 0,  "input number of models must be > 0");
+    CAssert::True(ids != nullptr, "input ptr to models IDs arr == nullptr");
+    CAssert::True(numModels > 0,  "input number of models must be > 0");
 
     // get idxs by IDs
     cvector<index> idxs;

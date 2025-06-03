@@ -2,12 +2,9 @@
 // Filename:       SkyEditorController.cpp
 // Created:        31.12.24
 // =================================================================================
+#include <CoreCommon/pch.h>
 #include "FogEditorController.h"
 
-#include <CoreCommon/Assert.h>
-#include <CoreCommon/log.h>
-
-using namespace Core;
 
 namespace UI
 {
@@ -15,7 +12,7 @@ namespace UI
 void FogEditorController::Initialize(IFacadeEngineToUI* pFacade)
 {
 	// the facade interface is used to contact with the rest of the engine
-	Core::Assert::NotNullptr(pFacade, "ptr to the IFacadeEngineToUI interface == nullptr");
+	CAssert::NotNullptr(pFacade, "ptr to the IFacadeEngineToUI interface == nullptr");
 	pFacade_ = pFacade;
 
 
@@ -28,7 +25,7 @@ void FogEditorController::Initialize(IFacadeEngineToUI* pFacade)
 	if (pFacade_->GetFogData(fogColor, fogStart, fogRange, fogEnabled))
 		fogModel_.Update(fogColor, fogStart, fogRange, fogEnabled);
 	else
-		Core::LogErr("can't gather data for the fog editor :(");
+		LogErr("can't gather data for the fog editor :(");
 }
 
 ///////////////////////////////////////////////////////////

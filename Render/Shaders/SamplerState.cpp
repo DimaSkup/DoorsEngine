@@ -3,9 +3,8 @@
 // Description:  implementation of the SamplerState class 
 // 
 // *********************************************************************************
+#include "../Common/pch.h"
 #include "SamplerState.h"
-#include "../Common/Log.h"
-#include "../Common/MemHelpers.h"
 
 namespace Render
 {

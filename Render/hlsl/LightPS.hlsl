@@ -49,7 +49,6 @@ struct PS_IN
     float3   normalW            : NORMAL;       // normal in world
     float3   tangentW           : TANGENT;      // tangent in world
     float2   tex                : TEXCOORD;
-    uint     textureSubsetIdx   : TEX_SUBSET_IDX;
     uint     instanceID         : SV_InstanceID;
 };
 
@@ -67,7 +66,7 @@ float4 PS(PS_IN pin) : SV_Target
 {
     
     float4 textureColor = gTextures[1].Sample(gSampleType, pin.tex);
-    
+
     // execute alpha clipping
     //if (gAlphaClipping)
         clip(textureColor.a - 0.1f);

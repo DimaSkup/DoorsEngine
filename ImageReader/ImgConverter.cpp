@@ -4,23 +4,11 @@
 #include "Common/log.h"
 
 #pragma warning (disable : 4996)
-
 using namespace DirectX;
+
 
 namespace ImgReader
 {
-    
-#if 0
-// if we already have some uncompressed format
-        case DXGI_FORMAT_R8G8B8A8_UNORM:
-        case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
-        case DXGI_FORMAT_R8_UNORM:
-        case DXGI_FORMAT_R8_SNORM:
-        case DXGI_FORMAT_R8G8_UNORM:
-        case DXGI_FORMAT_R8G8_SNORM:
-        case DXGI_FORMAT_R32G32B32A32_FLOAT:
-#endif
-
 
 // *********************************************************************************
 //                            PUBLIC METHODS
@@ -50,8 +38,14 @@ bool ImgConverter::LoadFromFile(const fs::path& filepath, ScratchImage& outImage
     return true;
 }
 
-///////////////////////////////////////////////////////////
-
+// --------------------------------------------------------
+// Desc:   create a ScratchImage loading data from
+//         the input texture resource
+// Args:   - pDevice:  a ptr to the DX11 device
+//         - pContext: a ptr to the DX11 device context
+//         - pTexture: a ptr to the DX11 resource (in this case - texture)
+//         - image:    output image
+// --------------------------------------------------------
 void ImgConverter::LoadFromMemory(
     ID3D11Device* pDevice,
     ID3D11DeviceContext* pContext,
@@ -60,6 +54,93 @@ void ImgConverter::LoadFromMemory(
 {
     HRESULT hr = CaptureTexture(pDevice, pContext, pTexture, image);
     Assert::NotFailed(hr, "can't capture a texture");
+}
+
+// --------------------------------------------------------
+// Desc:  create a 2D texture resource by input
+//        raw texture pixels data, input metadata and flags
+// Args:  - ID3D11Device:   a pointer to the DX11 device
+//        - image:          raw image data and params
+//        - metadata:       image metadata (width/heigh/mipLevels/etc)
+//        - usage:          identified expected resource use during rendering
+//        - bindFlags:      identifies how to bind a resource to the pipeline
+//        - cpuAccessFlags: specifies the types of CPU access allowed for a resource
+//        - miscFlags:      identifies options for resources
+//        - genMips:        flag which defines if we will generate mipmaps or not
+//        - ppOutResource:  output texture resource
+// --------------------------------------------------------
+HRESULT ImgConverter::CreateTexture2dEx(
+    ID3D11Device* pDevice,
+    const Image& image,
+    const TexMetadata& metadata,
+    const D3D11_USAGE usage,
+    const UINT bindFlags,
+    const UINT cpuAccessFlags,
+    const UINT miscFlags,
+    const bool genMips,
+    ID3D11Resource** ppOutResource)
+{
+    HRESULT      hr     = S_OK;
+    size_t       levels = (genMips) ? 0 : 1;   //  0 indicates creating a full mipmap chain down to 1x1
+    ScratchImage srcImage;
+
+    srcImage.InitializeFromImage(image);
+
+    // we want to generate mip maps for the image
+    if (genMips)
+    {
+        ScratchImage mipChain;
+
+        hr = GenerateMipMaps(
+            srcImage.GetImages(),
+            srcImage.GetImageCount(),
+            srcImage.GetMetadata(),
+            TEX_FILTER_DEFAULT,
+            levels,
+            mipChain);
+
+        if (FAILED(hr))
+        {
+            LogErr("can't generate mipmaps");
+            return hr;
+        }
+
+        hr = DirectX::CreateTextureEx(
+            pDevice,
+            mipChain.GetImages(),
+            mipChain.GetImageCount(),                    
+            mipChain.GetMetadata(),
+            usage,
+            bindFlags,
+            cpuAccessFlags,
+            miscFlags,
+            CREATETEX_FLAGS::CREATETEX_DEFAULT,
+            ppOutResource);
+
+        if (FAILED(hr))
+            LogErr("can't create texture from input raw data");
+    }
+
+    // else: we want to create an image without mipmaps
+    else
+    {
+        hr = DirectX::CreateTextureEx(
+            pDevice,
+            srcImage.GetImages(),
+            srcImage.GetImageCount(),
+            srcImage.GetMetadata(),
+            usage,
+            bindFlags,
+            cpuAccessFlags,
+            miscFlags,
+            CREATETEX_FLAGS::CREATETEX_DEFAULT,
+            ppOutResource);
+
+        if (FAILED(hr))
+            LogErr("can't create texture from input raw data");
+    }
+
+    return hr;
 }
 
 ///////////////////////////////////////////////////////////

@@ -4,8 +4,8 @@
 //
 // Created:     06.04.2025 by DimaSkup
 // =================================================================================
+#include <CoreCommon/pch.h>
 #include "TextureAssetsBrowser.h"
-#include <CoreCommon/log.h>
 
 #pragma warning (disable : 4996)
 
@@ -23,7 +23,7 @@ void TextureAssetsBrowser::Initialize(IFacadeEngineToUI* pFacade)
     }
     else
     {
-        Core::LogErr("can't init textures browser");
+        LogErr("can't init textures browser");
     }
 }
 
@@ -35,7 +35,7 @@ void TextureAssetsBrowser::Render(IFacadeEngineToUI* pFacade, bool* pOpen)
 
     if (!pFacade && !arrShaderResourceViews_)
     {
-        Core::LogErr("can't render textures browser");
+        LogErr("can't render textures browser");
         return;
     }
 

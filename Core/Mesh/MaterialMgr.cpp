@@ -3,9 +3,8 @@
 //
 // Created:    25.03.2025 by DimaSkup
 // =================================================================================
+#include <CoreCommon/pch.h>
 #include "MaterialMgr.h"
-#include <CoreCommon/log.h>
-#include <CoreCommon/Assert.h>
 
 
 namespace Core
@@ -107,8 +106,8 @@ void MaterialMgr::GetMaterialsByIDs(
 {
     try
     {
-        Assert::True(ids != nullptr,   "can't get materials: input ptr to materials IDs arr == nullptr");
-        Assert::True(numMaterials > 0, "can't get materials: input number of materials must be > 0");
+        CAssert::True(ids != nullptr,   "can't get materials: input ptr to materials IDs arr == nullptr");
+        CAssert::True(numMaterials > 0, "can't get materials: input number of materials must be > 0");
 
         // get idxs to materials data by its ids
         ids_.get_idxs(ids, numMaterials, idxs_);
