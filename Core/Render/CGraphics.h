@@ -15,14 +15,7 @@
 #include "../Input/KeyboardEvent.h"
 #include "../Input/MouseEvent.h"
 
-
-// mesh, models, game objects and related stuff
-//#include "../Model/ModelsCreator.h"
 #include "RenderDataPreparator.h"
-//#include "../Model/ModelStorage.h"
-
-// physics / interaction with user
-//#include "../Physics/IntersectionWithGameObjects.h"
 
 // render stuff
 #include "CRender.h"
@@ -32,11 +25,11 @@
 // Entity-Component-System
 #include "Entity/EntityMgr.h"
 
-#include <string>
+//#include <string>
 #include <map>
-#include <memory>
+//#include <memory>
 #include <DirectXCollision.h>
-#include <vector>
+//#include <vector>
 
 namespace Core
 {
@@ -174,6 +167,7 @@ private:
     void RenderBoundingLineBoxes(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);
     void RenderBoundingLineSpheres();
     void RenderSkyDome(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);
+    void RenderTerrain(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);
 
 #if 0
     void UpdateInstanceBuffAndRenderInstances(
@@ -214,9 +208,9 @@ public:
     ECS::RenderStatesSystem::EnttsRenderStatesData rsDataToRender_;
 
 
-    FrameBuffer          materialBigIconFrameBuf_;
-    cvector<FrameBuffer> materialsFrameBuffers_;  // frame buffers which are used to render materials icons (for editor's material browser)
-
+    FrameBuffer                         materialBigIconFrameBuf_;
+    cvector<FrameBuffer>                materialsFrameBuffers_;   // frame buffers which are used to render materials icons (for editor's material browser)
+    cvector<ID3D11ShaderResourceView*>  texturesBuf_;             // to avoid reallocation each time we use this shared buffer
 
     // temp for geometry buffer testing
     void BuildGeometryBuffers();

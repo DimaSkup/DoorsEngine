@@ -3,14 +3,13 @@
 // 
 // Created:       20.02.25  by DimaSkup
 // =================================================================================
+#include <CoreCommon/pch.h>
 #include "EnttSpotLightController.h"
 
 #include <UICommon/EventsHistory.h>
 #include <UICommon/EditorCommands.h>
-#include <CoreCommon/Assert.h>
-#include <CoreCommon/log.h>
 
-using namespace Core;
+#pragma warning (disable : 4996)
 
 namespace UI
 {
@@ -18,7 +17,7 @@ namespace UI
 void EnttSpotLightController::Initialize(IFacadeEngineToUI* pFacade)
 {
     // the facade interface is used to contact with the rest of the engine
-    Core::Assert::NotNullptr(pFacade, "ptr to the facade == nullptr");
+    CAssert::NotNullptr(pFacade, "ptr to the facade == nullptr");
     pFacade_ = pFacade;
 }
 

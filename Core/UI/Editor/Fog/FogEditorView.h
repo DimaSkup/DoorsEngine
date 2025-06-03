@@ -8,12 +8,10 @@
 // ====================================================================================
 #pragma once
 
-#include <CoreCommon/log.h>
-#include <CoreCommon/Assert.h>
+#include <log.h>
 
 #include <UICommon/IEditorController.h>
 #include <UICommon/Color.h>
-//#include <UICommon/Vectors.h>
 #include <UICommon/EditorCommands.h>
 
 #include "FogEditorModel.h"
@@ -31,7 +29,10 @@ private:
 public:
     ViewFog(IEditorController* pController) : pController_(pController)
     {
-        Core::Assert::NotNullptr(pController, "ptr to the view listener == nullptr");
+        if (!pController)
+        {
+            LogErr("ptr to the view listener == nullptr");
+        }
     }
 
     ///////////////////////////////////////////////////////

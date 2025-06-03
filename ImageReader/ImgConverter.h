@@ -21,50 +21,61 @@ namespace fs = std::filesystem;
 
 namespace ImgReader
 {
-	
+    
 class ImgConverter
 {
 public:
-	bool LoadFromFile(const fs::path& filepath, DirectX::ScratchImage& outImage);
+    bool LoadFromFile(const fs::path& filepath, DirectX::ScratchImage& outImage);
 
-	void LoadFromMemory(
-		ID3D11Device* pDevice,
-		ID3D11DeviceContext* pContext,
-		ID3D11Resource* pTexture,
-		DirectX::ScratchImage& image);
+    void LoadFromMemory(
+        ID3D11Device* pDevice,
+        ID3D11DeviceContext* pContext,
+        ID3D11Resource* pTexture,
+        DirectX::ScratchImage& image);
 
-	void GenDstImgPath(const fs::path& srcPath, fs::path& dstPath);
+    HRESULT CreateTexture2dEx(
+        ID3D11Device* pDevice,
+        const DirectX::Image& image,
+        const DirectX::TexMetadata& metadata,
+        const D3D11_USAGE usage,
+        const UINT bindFlags,
+        const UINT cpuAccessFlags,
+        const UINT miscFlags,
+        const bool genMips,
+        ID3D11Resource** ppOutResource);
 
-	void Convert(
-		const DirectX::ScratchImage& srcImg,
-		const DXGI_FORMAT dstFormat,
-		const DirectX::ConvertOptions& opts,
-		DirectX::ScratchImage& dstImg);
+    void GenDstImgPath(const fs::path& srcPath, fs::path& dstPath);
 
-	void Decompress(
-		const DirectX::ScratchImage& srcImg,
-		const DXGI_FORMAT dstFormat,
-		DirectX::ScratchImage& dstImg);
+    void Convert(
+        const DirectX::ScratchImage& srcImg,
+        const DXGI_FORMAT dstFormat,
+        const DirectX::ConvertOptions& opts,
+        DirectX::ScratchImage& dstImg);
 
-	void Compress(
-		const DirectX::ScratchImage& srcImg,
-		const DXGI_FORMAT dstFormat,
-		const DirectX::CompressOptions opts,
-		DirectX::ScratchImage& dstImg);
+    void Decompress(
+        const DirectX::ScratchImage& srcImg,
+        const DXGI_FORMAT dstFormat,
+        DirectX::ScratchImage& dstImg);
 
-	DirectX::ScratchImage GenMipMaps(
-		DirectX::ScratchImage& srcImage,
-		const DirectX::TEX_FILTER_FLAGS filter);
+    void Compress(
+        const DirectX::ScratchImage& srcImg,
+        const DXGI_FORMAT dstFormat,
+        const DirectX::CompressOptions opts,
+        DirectX::ScratchImage& dstImg);
 
-	void ProcessImage(
-		const DirectX::ScratchImage& srcImage,
-		const DXGI_FORMAT dstFormat,
-		DirectX::ScratchImage& dstImage);
+    DirectX::ScratchImage GenMipMaps(
+        DirectX::ScratchImage& srcImage,
+        const DirectX::TEX_FILTER_FLAGS filter);
 
-	bool SaveToFile(
-		const DirectX::ScratchImage& image,
-		const DirectX::DDS_FLAGS flags,
-		const fs::path& dstPath);
+    void ProcessImage(
+        const DirectX::ScratchImage& srcImage,
+        const DXGI_FORMAT dstFormat,
+        DirectX::ScratchImage& dstImage);
+
+    bool SaveToFile(
+        const DirectX::ScratchImage& image,
+        const DirectX::DDS_FLAGS flags,
+        const fs::path& dstPath);
 };
 
 }

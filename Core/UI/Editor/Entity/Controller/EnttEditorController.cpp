@@ -2,18 +2,16 @@
 // Filename:       EnttEditorController.cpp
 // Created:        01.01.25
 // =================================================================================
+#include <CoreCommon/pch.h>
 #include "EnttEditorController.h"
 
-#include <CoreCommon/Assert.h>
-#include <CoreCommon/log.h>
-#include <CoreCommon/MathHelper.h>
 #include <UICommon/EditorCommands.h>
 #include <UICommon/EventsHistory.h>
-
 #include <imgui.h>
 #include <ImGuizmo.h>
 
-using namespace Core;
+#pragma warning (disable : 4996)
+
 
 namespace UI
 {
@@ -23,7 +21,7 @@ EnttEditorController::EnttEditorController(StatesGUI* pStatesGUI) :
     viewEnttLight_(this),
     pStatesGUI_(pStatesGUI)
 {
-    Assert::NotNullptr(pStatesGUI, "input ptr to the GUI states container == nullptr");
+    CAssert::NotNullptr(pStatesGUI, "input ptr to the GUI states container == nullptr");
 }
 
 
@@ -34,7 +32,7 @@ EnttEditorController::EnttEditorController(StatesGUI* pStatesGUI) :
 void EnttEditorController::Initialize(IFacadeEngineToUI* pFacade)
 {
     // the facade interface is used to contact with the rest of the engine
-    Assert::NotNullptr(pFacade, "ptr to the IFacadeEngineToUI interface == nullptr");
+    CAssert::NotNullptr(pFacade, "ptr to the IFacadeEngineToUI interface == nullptr");
     pFacade_ = pFacade;
 
     transformController_.Initialize(pFacade);

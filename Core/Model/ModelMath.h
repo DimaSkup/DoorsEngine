@@ -8,7 +8,6 @@
 #pragma once
 
 #include "../Mesh/Vertex.h"
-#include <DirectXMath.h>
 
 namespace Core
 {

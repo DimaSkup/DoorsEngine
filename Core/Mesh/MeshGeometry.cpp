@@ -3,11 +3,8 @@
 // 
 // Created:     29.10.24
 // =================================================================================
+#include <CoreCommon/pch.h>
 #include "MeshGeometry.h"
-#include <CoreCommon/MemHelpers.h>
-
-#include <memory>   // for using std::construct_at
-#include <utility>  // for using std::exchange
 
 #pragma warning (disable : 4996)
 
@@ -74,10 +71,10 @@ void MeshGeometry::Copy(
 {
     // deep copy of data from the input mesh geometry obj
 
-    Assert::True(vertices != nullptr, "input ptr to vertices == nullptr");
-    Assert::True(indices != nullptr,  "input ptr to indices == nullptr");
-    Assert::True(numVertices > 0,     "input number of vertices must be > 0");
-    Assert::True(numIndices > 0,      "input number of indices must be > 0");
+    CAssert::True(vertices != nullptr, "input ptr to vertices == nullptr");
+    CAssert::True(indices != nullptr,  "input ptr to indices == nullptr");
+    CAssert::True(numVertices > 0,     "input number of vertices must be > 0");
+    CAssert::True(numIndices > 0,      "input number of indices must be > 0");
 
     InitVertexBuffer(pDevice, vertices, numVertices);
     InitIndexBuffer(pDevice, indices, numIndices);
@@ -91,7 +88,7 @@ void MeshGeometry::AllocateSubsets(const int numSubsets)
     // allocate memory for this number of subsets
     try
     {
-        Assert::True(numSubsets > 0, "num of subsets must be > 0");
+        CAssert::True(numSubsets > 0, "num of subsets must be > 0");
 
         // we already have enough memory; just go out
         if (this->numSubsets_ == numSubsets)
@@ -119,8 +116,8 @@ void MeshGeometry::SetSubsets(const Subset* subsets, const int numSubsets)
 {
     // set new subsets (meshes) data
 
-    Assert::True(subsets != nullptr, "input ptr to subset arr == nullptr");
-    Assert::True(numSubsets > 0, "input number of subsets must be > 0");
+    CAssert::True(subsets != nullptr, "input ptr to subset arr == nullptr");
+    CAssert::True(numSubsets > 0, "input number of subsets must be > 0");
     
     AllocateSubsets(numSubsets);
     std::copy(subsets, subsets + numSubsets, this->subsets_);
@@ -133,8 +130,8 @@ void MeshGeometry::InitVertexBuffer(
     const Vertex3D* vertices,
     const int numVertices)
 {
-    Assert::True(vertices != nullptr, "input ptr to vertices arr == nullptr");
-    Assert::True(numVertices > 0, "input number of vertices must be > 0");
+    CAssert::True(vertices != nullptr, "input ptr to vertices arr == nullptr");
+    CAssert::True(numVertices > 0, "input number of vertices must be > 0");
 
     constexpr bool isBufferDynamic = false;
 
@@ -149,8 +146,8 @@ void MeshGeometry::InitIndexBuffer(
     const UINT* indices,
     int numIndices)
 {
-    Assert::True(indices != nullptr, "input ptr to indices arr == nullptr");
-    Assert::True(numIndices > 0, "input number of indices must be > 0");
+    CAssert::True(indices != nullptr, "input ptr to indices arr == nullptr");
+    CAssert::True(numIndices > 0, "input number of indices must be > 0");
 
     ib_.Initialize(pDevice, indices, numIndices);
 }
@@ -164,9 +161,9 @@ void MeshGeometry::SetSubsetName(const SubsetID subsetID, const char* name)
     {
         size_t length = strlen(name);
 
-        Assert::True(subsetID >= 0,   "subset id is invalid");
-        Assert::True(name != nullptr, "input ptr to name string == nullptr");
-        Assert::True(length > 0,      "length of input name string must be > 0");
+        CAssert::True(subsetID >= 0,   "subset id is invalid");
+        CAssert::True(name != nullptr, "input ptr to name string == nullptr");
+        CAssert::True(length > 0,      "length of input name string must be > 0");
 
         if (length > SUBSET_NAME_LENGTH_LIMIT)
             length = SUBSET_NAME_LENGTH_LIMIT;
@@ -187,8 +184,8 @@ void MeshGeometry::SetMaterialForSubset(const SubsetID subsetID, const MaterialI
 {
     try
     {
-        Assert::True((subsetID >= 0) && (subsetID < numSubsets_), "input ID to subset is invalid");
-        Assert::True(matID > 0,                                   "input ID to material is invalid");
+        CAssert::True((subsetID >= 0) && (subsetID < numSubsets_), "input ID to subset is invalid");
+        CAssert::True(matID > 0,                                   "input ID to material is invalid");
 
         subsets_[subsetID].materialID = matID;
     }
@@ -230,9 +227,9 @@ bool MeshGeometry::CheckInputParamsForMaterialsSetting(
     // check if input subsets IDs and materials IDs are valid
     try
     {
-        Assert::True(subsetsIDs != nullptr,   "input ptr to subsets IDs arr == nullptr");
-        Assert::True(materialsIDs != nullptr, "input ptr to materials IDs arr == nullptr");
-        Assert::True(count > 0,               "input number of elements must be > 0");
+        CAssert::True(subsetsIDs != nullptr,   "input ptr to subsets IDs arr == nullptr");
+        CAssert::True(materialsIDs != nullptr, "input ptr to materials IDs arr == nullptr");
+        CAssert::True(count > 0,               "input number of elements must be > 0");
 
         bool isValid = true;
         const uint16_t numSubsets = numSubsets_;

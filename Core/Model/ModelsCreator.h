@@ -7,9 +7,9 @@
 ////////////////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
-#include <CoreCommon/Types.h>
 #include "../Model/BasicModel.h"
 #include "../Mesh/MeshHelperTypes.h"
+#include <Types.h>
 
 
 namespace Core
@@ -30,9 +30,7 @@ public:
 	ModelID CreatePlane(ID3D11Device* pDevice, const float width = 1.0f, const float height = 1.0f);
 	ModelID CreateBoundingLineBox(ID3D11Device* pDevice);
 	ModelID CreateCube(ID3D11Device* pDevice);
-	void CreateSkyCube(ID3D11Device* pDevice, const float height);
-	void CreateSkySphere(ID3D11Device* pDevice, const float radius, const int sliceCount, const int stackCount);
-
+	
 	ModelID CreateSphere(ID3D11Device* pDevice, const MeshSphereParams& params);
 	ModelID CreateGeoSphere(ID3D11Device* pDevice, const MeshGeosphereParams& params);
 
@@ -42,7 +40,10 @@ public:
 	ModelID CreateGrid(ID3D11Device* pDevice, const u32 width, const u32 depth);
 	ModelID CreateWater(ID3D11Device* pDevice, const float width, const float depth);
 
-    ModelID CreateTerrainFromHeightmap(ID3D11Device* pDevice, const char* setupFilename);
+    // creators for the specific types of models
+    void CreateSkyCube             (ID3D11Device* pDevice, const float height);
+    void CreateSkySphere           (ID3D11Device* pDevice, const float radius, const int sliceCount, const int stackCount);
+    bool CreateTerrainFromHeightmap(ID3D11Device* pDevice, const char* configFilename);
 
 	ModelID CreateGeneratedTerrain(
 		ID3D11Device* pDevice,

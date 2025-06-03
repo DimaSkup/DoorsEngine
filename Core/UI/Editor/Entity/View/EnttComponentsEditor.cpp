@@ -4,8 +4,8 @@
 // 
 // Created:     03.04.2025 by DimaSkup
 // =================================================================================
+#include <CoreCommon/pch.h>
 #include "EnttComponentsEditor.h"
-#include <CoreCommon/Assert.h>
 #include <imgui.h>
 
 
@@ -16,7 +16,7 @@ EnttComponentsEditor::EnttComponentsEditor(
     const std::map<eEnttComponentType, std::string>& componentTypeName) :
     componentTypeName_(componentTypeName)
 {
-    Core::Assert::True(!componentTypeName.empty(), "input map of pairs [component_type => component_name] is EMPTY");
+    CAssert::True(!componentTypeName.empty(), "input map of pairs [component_type => component_name] is EMPTY");
 }
 
 ///////////////////////////////////////////////////////////

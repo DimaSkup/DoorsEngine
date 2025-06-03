@@ -3,14 +3,13 @@
 // 
 // Created:       20.02.25  by DimaSkup
 // =================================================================================
+#include <CoreCommon/pch.h>
 #include "EnttPointLightController.h"
 
 #include <UICommon/EventsHistory.h>
 #include <UICommon/EditorCommands.h>
-#include <CoreCommon/Assert.h>
-#include <CoreCommon/log.h>
 
-using namespace Core;
+#pragma warning (disable : 4996)
 
 namespace UI
 {
@@ -18,7 +17,7 @@ namespace UI
 void EnttPointLightController::Initialize(IFacadeEngineToUI* pFacade)
 {
 	// the facade interface is used to contact with the rest of the engine
-	Core::Assert::NotNullptr(pFacade, "ptr to the facade == nullptr");
+	CAssert::NotNullptr(pFacade, "ptr to the facade == nullptr");
 	pFacade_ = pFacade;
 }
 
@@ -81,7 +80,7 @@ void EnttPointLightController::ExecuteCommand(const ICommand* pCmd,	const Entity
 		}
         default:
         {
-            Core::LogErr("unknown type of command: " + pCmd->type_);
+            LogErr("unknown type of command: " + pCmd->type_);
         }
 	}
 }
@@ -193,7 +192,7 @@ void EnttPointLightController::ExecChangeDiffuse(const EntityID id, const ColorR
 	}
 	else
 	{
-        Core::LogErr(GenerateErrMsg(id, "diffuse").c_str());
+        LogErr(GenerateErrMsg(id, "diffuse").c_str());
 	}
 }
 

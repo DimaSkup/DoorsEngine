@@ -4,6 +4,10 @@
 // Created:      17.10.24
 // ********************************************************************************
 #include "RenderDataPreparator.h"
+#include "../Texture/TextureTypes.h"
+#include "../Model/ModelMgr.h"
+#include "../Mesh/MaterialMgr.h"
+#include "../Texture/TextureMgr.h"
 
 
 namespace Core
@@ -20,7 +24,7 @@ void PrepareInstancesWorldMatrices(
     const EntityID* enttsSortedByModels,
     const size numEntts,
     Render::InstBuffData& instanceBuffData,                 // data for the instances buffer
-    const Render::cvector<Render::Instance>& instances)     // instances (models) data for rendering
+    const cvector<Render::Instance>& instances)     // instances (models) data for rendering
 {
     // prepare world matrix for each subset (mesh) of each entity
 
@@ -46,7 +50,7 @@ void PrepareInstancesTextureTransformations(
     const EntityID* enttsSortedByModels,
     const size numEntts,
     Render::InstBuffData& instanceBuffData,         // data for the instances buffer
-    const Render::cvector<Render::Instance>& instances)       // instances (models) data for rendering
+    const cvector<Render::Instance>& instances)       // instances (models) data for rendering
 {
     // prepare texture transformation matrix for each subset (mesh) of each entity
 
@@ -73,7 +77,7 @@ void PrepareInstancesTextureTransformations(
 
 void PrepareInstancesMaterials(
     Render::InstBuffData& instanceBuffData,
-    const Render::cvector<Render::Instance>& instances,
+    const cvector<Render::Instance>& instances,
     const cvector<Render::Material>& materialsSortedByInstances)
 {
     int materialIdx = 0;
@@ -103,12 +107,12 @@ void RenderDataPreparator::PrepareEnttsDataForRendering(
     const size numEntts,
     ECS::EntityMgr* pEnttMgr,
     Render::InstBuffData& instanceBuffData,         // data for the instances buffer
-    Render::cvector<Render::Instance>& instances)       // instances (models) data for rendering
+    cvector<Render::Instance>& instances)       // instances (models) data for rendering
 {
     // prepare instances data and instances buffer for rendering entities by input IDs;
 
-    Assert::True(enttsIds != nullptr, "input ptr to entities IDs arr == nullptr");
-    Assert::True(numEntts > 0,        "input number of entities must be > 0");
+    CAssert::True(enttsIds != nullptr, "input ptr to entities IDs arr == nullptr");
+    CAssert::True(numEntts > 0,        "input number of entities must be > 0");
 
     // get data of models which are related to the input entts
     cvector<EntityID>         enttsSortedByInstances;
@@ -221,8 +225,8 @@ void RenderDataPreparator::PrepareEnttsMeshesBoundingLineBox(
     assert(0 && "FIXME");
 
 #if 0
-    Assert::True(visibleEntts != nullptr, "input ptr to entities IDs arr == nullptr");
-    Assert::True(numEntts > 0,            "input number of entts must be > 0");
+    CAssert::True(visibleEntts != nullptr, "input ptr to entities IDs arr == nullptr");
+    CAssert::True(numEntts > 0,            "input number of entts must be > 0");
     
     ECS::EntityMgr&    mgr = *pEnttMgr_;
     ECS::cvector<size> numBoxesPerEntt;                     // how many boxes each entt has
@@ -255,12 +259,12 @@ void RenderDataPreparator::PrepareInstancesData(
     const EntityID* ids,
     const size numEntts,
     ECS::EntityMgr* pEnttMgr,
-    Render::cvector<Render::Instance>& instances,
+    cvector<Render::Instance>& instances,
     cvector<EntityID>& outEnttsSortedByInstances,
     cvector<Render::Material>& outMaterials)      // one material per mesh of each instance
 {
-    Assert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
-    Assert::True(numEntts > 0,   "input number of entities must be > 0");
+    CAssert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
+    CAssert::True(numEntts > 0,   "input number of entities must be > 0");
 
     // separate entities into 2 groups: entts with mesh based materials / with its unique materials
     cvector<EntityID> enttsWithOrigMat;
@@ -355,13 +359,13 @@ void RenderDataPreparator::PrepareInstancesForEntts(
     ECS::EntityMgr& mgr,
     const EntityID* ids,
     const size numEntts,
-    Render::cvector<Render::Instance>& instances,
+    cvector<Render::Instance>& instances,
     cvector<EntityID>& outEnttsSortedByInstances)
 {
     // prepare instances data for input entities by IDs
     // NOTE: each input instance has materials which are the same as its model's materials
 
-    Assert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
+    CAssert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
 
     // maybe we have no entities to render -- it's OK, just go out
     if (numEntts == 0)
@@ -406,14 +410,14 @@ void RenderDataPreparator::PrepareInstancesForEnttsWithUniqueMaterials(
     ECS::EntityMgr& mgr,
     const EntityID* ids,
     const size numEntts,
-    Render::cvector<Render::Instance>& instances,
+    cvector<Render::Instance>& instances,
     cvector<EntityID>& outEnttsSortedByInstances)
 {
     // prepare instances data for input entities by IDs;
     // NOTE: each input entity has its own set of materials
     //       so here we create unique instance per each entity
 
-    Assert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
+    CAssert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
 
     // maybe we have no entities to render -- it's OK, just go out
     if (numEntts == 0)

@@ -4,21 +4,20 @@
 //
 // Created:         12.02.24
 // ************************************************************************************
+#include <CoreCommon/pch.h>
 #include "ModelsCreator.h"
 
-#include <CoreCommon/FileSystemPaths.h>
-#include <CoreCommon/MathHelper.h>
-#include <CoreCommon/FileSystem.h>
 #include "ModelMath.h"
 #include "../Engine/Settings.h"
 
 #include "GeometryGenerator.h"
 #include "../Model/ModelLoader.h"
 #include "../Model/BasicModel.h"
-#include "../Model/BruteForceTerrain.h"
+#include "../Terrain/Terrain.h"
 #include "ModelImporter.h"
 
 #include "../Model/ModelMgr.h"
+#include "../Texture/TextureMgr.h"
 
 using namespace DirectX;
 
@@ -269,49 +268,6 @@ void ModelsCreator::CreateSkySphere(ID3D11Device* pDevice, const float radius, c
 
 ///////////////////////////////////////////////////////////
 
-ModelID ModelsCreator::CreateWater(
-    ID3D11Device* pDevice,
-    const float width,
-    const float depth)
-{
-#if 0
-    // create a default water plane mesh;
-    // return: plane mesh ID
-
-    GeometryGenerator geoGen;
-    MeshRawData data;
-
-    geoGen.GeneratePlaneMesh(width, depth, data);
-
-    data.name_ = "water";
-    data.path_ = "data/models/default/water.txt";
-
-    // -----------------------------------
-
-    // specify a default material for the water
-    MeshMaterial& mat = data.material_;
-
-    mat.ambient_  = XMFLOAT4(0.137f, 0.42f, 0.556f, 1.0f);
-    mat.diffuse_  = XMFLOAT4(0.137f, 0.42f, 0.556f, 0.5f);
-    mat.specular_ = XMFLOAT4(0.8f, 0.8f, 0.8f, 96.0f);
-    mat.reflect_  = XMFLOAT4(.5f, .5f, .5f, 1);
-
-    // -----------------------------------
-
-    // set a default water texture for the mesh
-    const TexPath waterDiffTexPath = "data/textures/water2.dds";
-    const TexID waterDiffTexID = g_TextureMgr.LoadFromFile(waterDiffTexPath);
-
-    data.texIDs_[aiTextureType_DIFFUSE] = waterDiffTexID;
-
-    // store the mesh and return its ID
-    return MeshStorage::Get()->CreateMeshWithRawData(pDevice, data);
-#endif
-    return 0;
-}
-
-///////////////////////////////////////////////////////////
-
 ModelID ModelsCreator::CreateSkyDome(
     ID3D11Device* pDevice,
     const float radius,
@@ -417,34 +373,23 @@ ModelID ModelsCreator::CreateGeoSphere(
 
 ModelID ModelsCreator::CreateSkull(ID3D11Device* pDevice)
 {
-#if 0
-    BasicModel& model = ModelStorage::Get()->AddEmptyModel();
 
-    const std::string filepath = "models/skull/skull.txt";
+    BasicModel& model = g_ModelMgr.AddEmptyModel();
+
+    const char* filepath = "models/skull/skull.txt";
     ReadSkullMeshFromFile(model, filepath);
-
-    //ModelMath modelMath;
-    //modelMath.CalculateModelVectors(model.vertices_, model.numVertices_, true);
-
-    // specify a material for the skull
-    Material& mat = model.materials_[0];
-    mat.ambient_  = { 1, 1, 1, 1 };
-    mat.diffuse_  = { 0, 1, 1, 1 };
-    mat.specular_ = { 0.8f, 0.8f, 0.8f, 128.0f };
 
     // initialize vb/ib
     model.InitializeBuffers(pDevice);
 
+    // setup the bounding box of the model
     model.ComputeSubsetsAABB();
     model.ComputeModelAABB();
 
-    model.name_ = "skull_" + std::to_string(model.GetID());
+    sprintf(model.name_, "skull_%ud", model.GetID());
     model.type_ = eModelType::Skull;
 
     return model.id_;
-#endif
-
-    return INVALID_MODEL_ID;
 }
 
 ///////////////////////////////////////////////////////////
@@ -478,9 +423,9 @@ void ModelsCreator::ReadSkullMeshFromFile(BasicModel& model, const char* filepat
         // allocate memory for the vertices and indices data
         model.AllocateMemory(numVertices, numTriangles * 3, numSubsets);
 
-        for (u32 i = 0; i < model.numVertices_; ++i)
+        for (int i = 0; i < (int)model.numVertices_; ++i)
         {
-            XMFLOAT3& pos = model.vertices_[i].position;
+            XMFLOAT3& pos  = model.vertices_[i].position;
             XMFLOAT3& norm = model.vertices_[i].normal;
 
             fscanf(pFile, "%f %f %f", &pos.x, &pos.y, &pos.z);
@@ -491,7 +436,7 @@ void ModelsCreator::ReadSkullMeshFromFile(BasicModel& model, const char* filepat
         fscanf(pFile, "%s%s%s", &buf, &buf, &buf);
 
         // read in indices
-        for (u32 i = 0; i < model.numIndices_; ++i)
+        for (int i = 0; i < (int)model.numIndices_; ++i)
         {
             fscanf(pFile, "%ud", &model.indices_[i]);
         }
@@ -635,7 +580,7 @@ void GenerateHeightsForTerrainGrid(BasicModel& grid)
 ///////////////////////////////////////////////////////////
 
 void ComputeAveragedNormals(
-    Vertex3D* vertices,
+    Vertex3dTerrain* vertices,
     const UINT* indices,
     const int numVertices,
     const int numIndices)
@@ -692,34 +637,117 @@ void ComputeAveragedNormals(
         vertices[i].normal = DirectX::XMFloat3Normalize(vertices[i].normal);
 }
 
+// --------------------------------------------------------
+// Desc:   create DirectX texture from the image's input raw data
+// Args:   - name:      a name for texture identification
+//         - data:      actual pixels data (one element per channel)
+//         - width:     the texture width
+//         - height:    the texture height
+//         - bpp:       bits per pixel (24 or 32)
+//         - mipMapped: defines if we will generate mipmaps of not
+// Ret:    an ID of create texture (for details look at TextureMgr)
+// --------------------------------------------------------
+TexID CreateTextureFromRawData(
+    ID3D11Device* pDevice,
+    const char* name,
+    const uint8* data,
+    const uint width,
+    const uint height,
+    const int bpp,
+    const bool mipMapped)
+{
+    uint8* dstImage = nullptr;
+
+    try
+    {
+        // check input params
+        CAssert::True(!StrHelper::IsEmpty(name),          "input name is empty");
+        CAssert::True(data,                               "input ptr to image data array == nullptr");
+        CAssert::True(width && !(width & (width - 1)),    "input width must be a power of 2");
+        CAssert::True(height && !(height & (height - 1)), "input height must be a power of 2");
+        CAssert::True(bpp == 24 || bpp == 32,             "input number of bits per pixel must be equal to 24 or 32");
+
+        // if we got image with 24 bits per pixel we have to convert it into 32 bits
+        // since DirectX11 cannot create 24 bits images
+        if (bpp == 24)
+        {
+            const uint bytesPerPixel = 4;
+            const uint numPixels     = width * height;
+            const uint sizeInBytes   = numPixels * bytesPerPixel;
+
+            dstImage = new uint8[sizeInBytes]{ 0 };
+
+            // copy data from the generated 24bits texture map into the 32bits image buffer
+            for (int i = 0, i1 = 0, i2 = 0; i < (int)numPixels; i++, i1 = i*4, i2 = i*3)
+            {
+                // convert from RGB to RGBA
+                dstImage[i1 + 0] = data[i2 + 0];        // R
+                dstImage[i1 + 1] = data[i2 + 1];        // G
+                dstImage[i1 + 2] = data[i2 + 2];        // B
+                dstImage[i1 + 3] = 255;                 // A (255 because we use uint8)
+            }
+
+            // create a DirectX texture
+            Texture texture(pDevice, name, dstImage, width, height, mipMapped);
+
+            // move texture into the textures manager and get an ID of the texture
+            return g_TextureMgr.Add(name, std::move(texture));
+        }
+
+        // we already have a 32 bits image so just create a DirectX texture
+        else
+        {
+            const uint bytesPerPixel = 4;
+            const uint numPixels     = width * height;
+            const uint sizeInBytes   = numPixels * bytesPerPixel;
+
+            // create a DirectX texture
+            Texture texture(pDevice, name, data, width, height, mipMapped);
+
+            // move texture into the textures manager and get an ID of the texture
+            return g_TextureMgr.Add(name, std::move(texture));
+        }
+    }
+    catch (std::bad_alloc& e)
+    {
+        SafeDeleteArr(dstImage);
+        sprintf(g_String, "can't allocate memory for the terrain texture: %s", name);
+        LogErr(e.what());
+        LogErr(g_String);
+        return INVALID_TEXTURE_ID;
+    }
+    catch (EngineException& e)
+    {
+        LogErr(e);
+        SafeDeleteArr(dstImage);
+        return INVALID_TEXTURE_ID;
+    }
+}
+
 ///////////////////////////////////////////////////////////
 
-ModelID ModelsCreator::CreateTerrainFromHeightmap(
+bool ModelsCreator::CreateTerrainFromHeightmap(
     ID3D11Device* pDevice,
-    const char* setupFilename)
+    const char* configFilename)
 {
-    if (!setupFilename || setupFilename[0] == '\0')
+    if (StrHelper::IsEmpty(configFilename))
     {
-        LogErr("intput path to setup file is empty!");
-        return INVALID_MODEL_ID;
+        LogErr("intput path to terrain config file is empty!");
+        return false;
     }
 
-    BasicModel&       model = g_ModelMgr.AddEmptyModel();
+    Terrain&          terrain = g_ModelMgr.GetTerrain();
     GeometryGenerator geoGen;
-    BruteForceTerrain terrain;
     TerrainConfig     terrainCfg;
 
     // load from the file meta-info about the terrain 
-    terrain.LoadSetupFile(setupFilename, terrainCfg);
+    terrain.LoadSetupFile(configFilename, terrainCfg);
+
+    const int width = terrainCfg.width;
+    const int depth = terrainCfg.depth;
 
     // generate terrain flat grid's vertices and indices by input params
-    geoGen.GenerateFlatGrid(
-        terrain.GetWidth(),
-        terrain.GetDepth(),
-        terrain.GetWidth() + 1,     // num of quads (cells count) by X 
-        terrain.GetDepth() + 1,     // num of quads (cells count) by Z
-        model);
-
+    geoGen.GenerateTerrainFlatGrid(width, depth, width + 1, depth + 1, terrain);
 
     // generate a height map or load it from file
     bool hasHeights = false;
@@ -727,7 +755,7 @@ ModelID ModelsCreator::CreateTerrainFromHeightmap(
     if (terrainCfg.generateHeights)
     {
         // we generate height maps only relatively the terrain's size
-        const int generatedHeightMapSize = terrainCfg.width + 1;
+        const int generatedHeightMapSize = width + 1;
 
         // use "Fault formation" algorithm for height generation
         if (terrainCfg.useGenFaultFormation)
@@ -754,94 +782,100 @@ ModelID ModelsCreator::CreateTerrainFromHeightmap(
     else
     {
         // load a height map from the file
-        const int heightMapSize = terrain.GetWidth();
+        const int heightMapSize = width;
         hasHeights = terrain.LoadHeightMap(terrainCfg.pathHeightMap, heightMapSize);
     }
 
     // set heights for the terrain at particular positions
     if (hasHeights)
     {
-        for (int i = 0; i < model.GetNumVertices(); ++i)
+        for (int i = 0; i < terrain.GetNumVertices(); ++i)
         {
-            XMFLOAT3& pos = model.vertices_[i].position;
+            XMFLOAT3& pos = terrain.vertices_[i].position;
             pos.y = terrain.GetScaledHeightAtPoint((int)pos.x, (int)pos.z);
         }
     }
 
-    // load tiles which will be used to generate texture map for terrain
-    terrain.LoadTile(LOWEST_TILE,   terrainCfg.pathLowestTile);
-    terrain.LoadTile(LOW_TILE,      terrainCfg.pathLowTile);
-    terrain.LoadTile(HIGH_TILE,     terrainCfg.pathHighTile);
-    terrain.LoadTile(HIGHEST_TILE,  terrainCfg.pathHighestTile);
+ 
 
-    // generate texture map based on loaded tiles and height map
-    const TexID textureMap = terrain.GenerateTextureMap(pDevice, terrainCfg.textureMapSize);
-    terrain.SaveTextureMap(terrainCfg.pathSaveTextureMap);
+    // generate new texture map 
+    if (terrainCfg.generateTextureMap)
+    {
+        // load tiles which will be used to generate texture map for terrain
+        terrain.LoadTile(LOWEST_TILE,   terrainCfg.pathLowestTile);
+        terrain.LoadTile(LOW_TILE,      terrainCfg.pathLowTile);
+        terrain.LoadTile(HIGH_TILE,     terrainCfg.pathHighTile);
+        terrain.LoadTile(HIGHEST_TILE,  terrainCfg.pathHighestTile);
 
+        // generate texture map based on loaded tiles and height map
+        terrain.GenerateTextureMap(terrainCfg.textureMapSize);
+        terrain.SaveTextureMap(terrainCfg.pathSaveTextureMap);
+    }
 
-    ComputeAveragedNormals(model.vertices_, model.indices_, model.numVertices_, model.numIndices_);
+    // load texture map from file
+    else
+    {
+        terrain.LoadTextureMap(terrainCfg.pathTextureMap);
+    }
+    
+
+    // load detail map from the file
+    terrain.LoadDetailMap(terrainCfg.pathDetailMap);
+
+    //
+    // Create DirectX textures for the terrain
+    //
+    constexpr bool mipMapped = false;
+    const Image&   tileMap   = terrain.texture_;
+    const Image&   detailMap = terrain.detailMap_;
+
+    const TexID tileMapTexId = CreateTextureFromRawData(
+        pDevice,
+        "terrain_tile_map",
+        tileMap.GetData(),
+        tileMap.GetWidth(),
+        tileMap.GetHeight(),
+        tileMap.GetBPP(),
+        mipMapped);
+
+    const TexID detailMapTexId = CreateTextureFromRawData(
+        pDevice,
+        "terrain_detail_map",
+        detailMap.GetData(),
+        detailMap.GetWidth(),
+        detailMap.GetHeight(),
+        detailMap.GetBPP(),
+        mipMapped);
+
+    // set the texture's ID
+    terrain.texture_.SetID(tileMapTexId);
+    terrain.detailMap_.SetID(detailMapTexId);
+
+    ComputeAveragedNormals(
+        terrain.vertices_,
+        terrain.indices_,
+        terrain.numVertices_,
+        terrain.numIndices_);
 
     // initialize vertex/index buffers
-    model.InitializeBuffers(pDevice);
+    terrain.InitBuffers(
+        pDevice,
+        terrain.vertices_,
+        terrain.indices_,
+        terrain.numVertices_,
+        terrain.numIndices_);
 
-    model.ComputeSubsetsAABB();
-    model.ComputeModelAABB();
+    // compute the bounding box of the terrain
+    const DirectX::XMFLOAT3 center  = { 0,0,0 };
+    const DirectX::XMFLOAT3 extents = { (float)width, 1.0f, (float)depth };
 
-    return model.id_;
-}
+    // setup axis-aligned bounding box
+    terrain.SetAABB(center, extents);
 
-///////////////////////////////////////////////////////////
+    // release CPU copy of the vertices/indices data since we've already created buffers on GPU 
+    terrain.ClearMemory();
 
-ModelID ModelsCreator::CreateGeneratedTerrain(
-    ID3D11Device* pDevice,
-    const int terrainWidth,
-    const int terrainDepth,
-    const int verticesCountByX,
-    const int verticesCountByZ)
-{
-    // create a terrain grid with generated heights
-
-    BasicModel& model = g_ModelMgr.AddEmptyModel();
-    GeometryGenerator geoGen;
-
-    // generate terrain flat grid's vertices and indices by input params
-    geoGen.GenerateFlatGrid(
-        terrainWidth,
-        terrainDepth,
-        verticesCountByX,     // num of quads (cells count) by X 
-        verticesCountByZ,     // num of quads (cells count) by Z
-        model);
-
-    // generate height for each vertex of the terrain grid
-    GenerateHeightsForTerrainGrid(model);
-
-    // compute normal vector for each triangle in the grid
-    //ComputeAveragedNormals(model.vertices_, model.indices_, model.numVertices_, model.numIndices_);
-
-#if 0
-    // setup a material for the single mesh (subset) of the model
-    Material& mat = model.materials_[0];
-
-    mat.ambient_  = XMFLOAT4(1, 1, 1, 1);
-    mat.diffuse_  = XMFLOAT4(1, 1, 1, 1);
-    mat.specular_ = XMFLOAT4(0.0f, 0.0f, 0.0f, 16.0f);
-#endif
-    //mat.ambient_  = XMFLOAT4(0.48f, 0.77f, 0.46f, 1.0f);   // like grass
-    //mat.diffuse_  = XMFLOAT4(0.48f, 0.77f, 0.46f, 1.0f);
-    
-    // ----------------------------------- 
-
-    // initialize vb/ib
-    model.InitializeBuffers(pDevice);
-
-    model.ComputeSubsetsAABB();
-    model.ComputeModelAABB();
-
-    // setup name and type
-    sprintf(model.name_, "terrain_gen_%d_%d", terrainWidth, terrainDepth);
-    model.type_ = eModelType::Terrain;
-
-    return model.id_;
+    return true;
 }
 
 } // namespace Core

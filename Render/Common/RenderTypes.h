@@ -6,11 +6,13 @@
 // ********************************************************************************
 #pragma once
 
-#include "MemHelpers.h"
 #include "MaterialLightTypes.h"
-#include "Assert.h"
-#include "log.h"
-#include "cvector.h"
+
+#include <MemHelpers.h>
+#include <CAssert.h>
+#include <Types.h>
+#include <log.h>
+#include <cvector.h>
 
 #include <d3d11.h>
 #include <DirectXMath.h>
@@ -152,7 +154,7 @@ public:
             if (newSize < 0)
             {
                 sprintf(g_String, "wrong value of new size: %d", newSize);
-                throw LIB_Exception(g_String);
+                throw EngineException(g_String);
             }
 
             // if we need a reallocation (or just do nothing if we have enough memory)
@@ -176,7 +178,7 @@ public:
             LogErr(e.what());
             LogErr("can't allocate memory for the instanced transient data buffer");
         }
-        catch (LIB_Exception& e)
+        catch (EngineException& e)
         {
             Shutdown();
             LogErr(e);
@@ -256,12 +258,25 @@ struct SkyInstance
     // data of a sky model instance
 
     UINT              indexCount = 0;
-    UINT              vertexStride = 0;  // size in bytes of a single vertex
-    ID3D11Buffer*     pVB = nullptr;     // vertex buffer
-    ID3D11Buffer*     pIB = nullptr;     // index buffer
-    cvector<SRV*>     texSRVs;           // textures arr
-    DirectX::XMFLOAT3 colorCenter;       // horizon sky color (for gradient)
-    DirectX::XMFLOAT3 colorApex;         // top sky color (for gradient)
+    UINT              vertexStride = 0;             // size in bytes of a single vertex
+    ID3D11Buffer*     pVB = nullptr;                // vertex buffer
+    ID3D11Buffer*     pIB = nullptr;                // index buffer
+    SRV*              texSRVs[NUM_TEXTURE_TYPES];   // textures arr
+    DirectX::XMFLOAT3 colorCenter;                  // horizon sky color (for gradient)
+    DirectX::XMFLOAT3 colorApex;                    // top sky color (for gradient)
+};
+
+///////////////////////////////////////////////////////////
+
+struct TerrainInstance
+{
+    // data of the terrain model
+    UINT          indexCount = 0;
+    UINT          vertexStride = 0;
+    ID3D11Buffer* pVB = nullptr;
+    ID3D11Buffer* pIB = nullptr;
+    SRV*          textures[NUM_TEXTURE_TYPES];
+    Material      material;
 };
 
 ///////////////////////////////////////////////////////////

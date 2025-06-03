@@ -1,5 +1,4 @@
 #include "MainMenuBar.h"
-#include <CoreCommon/log.h>
 #include <imgui.h>
 #include "../Entity/Creator/EntityCreatorWnd.h"
 

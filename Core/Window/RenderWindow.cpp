@@ -4,9 +4,8 @@
 // Revising:     30.09.22
 ////////////////////////////////////////////////////////////////////
 #include "WindowContainer.h"
-
-#include <CoreCommon/Log.h>
-#include <CoreCommon/StrHelper.h>
+#include <Log.h>
+#include <StrHelper.h>
 
 
 namespace Core

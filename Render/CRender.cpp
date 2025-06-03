@@ -4,9 +4,9 @@
 // Created:      01.01.23
 // =================================================================================
 #include "CRender.h"
-
-#include "Common/MathHelper.h"
-#include "Common/log.h"
+#include <MathHelper.h>
+#include <log.h>
+#include <CAssert.h>
 #include "InitRender.h"
 
 using XMFLOAT3 = DirectX::XMFLOAT3;
@@ -42,7 +42,7 @@ bool CRender::Initialize(
             pContext,
             shadersContainer_,
             params.worldViewOrtho);
-        Assert::True(result, "can't initialize shaders");
+        CAssert::True(result, "can't initialize shaders");
 
         // --------------------------------------------
 
@@ -59,29 +59,29 @@ bool CRender::Initialize(
         vbd.StructureByteStride = 0;
 
         hr = pDevice->CreateBuffer(&vbd, nullptr, &pInstancedBuffer_);
-        Assert::NotFailed(hr, "can't create an instanced buffer");
+        CAssert::NotFailed(hr, "can't create an instanced buffer");
 
 
         // ------------------------ CONSTANT BUFFERS ------------------------------ 
 
         hr = cbvsPerFrame_.Initialize(pDevice);
-        Assert::NotFailed(hr, "can't init a const buffer (VS)");
+        CAssert::NotFailed(hr, "can't init a const buffer (VS)");
 
         hr = cbpsPerFrame_.Initialize(pDevice);
-        Assert::NotFailed(hr, "can't init a const buffer (PS)");
+        CAssert::NotFailed(hr, "can't init a const buffer (PS)");
 
         hr = cbpsRareChanged_.Initialize(pDevice);
-        Assert::NotFailed(hr, "can't init a const buffer (PS)");
+        CAssert::NotFailed(hr, "can't init a const buffer (PS)");
 
         // const buffers for geometry shader
         hr = cbgsPerFrame_.Initialize(pDevice);
-        Assert::NotFailed(hr, "can't initialize const buffer for GS");
+        CAssert::NotFailed(hr, "can't initialize const buffer for GS");
 
         //hr = cbgsPerObject_.Initialize(pDevice, pContext);
-        //Assert::NotFailed(hr, "can't initialize const buffer for GS");
+        //CAssert::NotFailed(hr, "can't initialize const buffer for GS");
 
         //hr = cbgsFixed_.Initialize(pDevice, pContext);
-        //Assert::NotFailed(hr, "can't initialize const buffer for GS");
+        //CAssert::NotFailed(hr, "can't initialize const buffer for GS");
 
         // init fog params
         InitFogParams(pContext, params.fogColor, params.fogStart, params.fogRange);
@@ -94,6 +94,7 @@ bool CRender::Initialize(
         SkyDomeShader&  skyDomeShader = shadersContainer_.skyDomeShader_;
         FontShader&     fontShader    = shadersContainer_.fontShader_;
         DebugShader&    debugShader   = shadersContainer_.debugShader_;
+        TerrainShader&  terrainShader = shadersContainer_.terrainShader_;
         
         // const buffers for vertex shaders (vsCB)
         ID3D11Buffer* vsCBs[3] = 
@@ -112,21 +113,26 @@ bool CRender::Initialize(
         };
 
         // const buffers for pixel shaders (psCB)
-        ID3D11Buffer* psCBs[5] = 
-        { 
+        ID3D11Buffer* psCBs[] =
+        {
             cbpsPerFrame_.Get(),                         // slot_0: light / debug shader
             cbpsRareChanged_.Get(),                      // slot_1: light / debug shader
             skyDomeShader.GetConstBufferPSRareChanged(), // slot_2: sky dome shader
             fontShader.GetConstBufferPS(),               // slot_3: font shader 
             debugShader.GetConstBufferPSRareChanged(),   // slot_4: debug shader
+            terrainShader.GetConstBufferPS(),            // slot_5: terrain shader
         };
 
+        const UINT numBuffersVS = sizeof(vsCBs) / sizeof(ID3D11Buffer*);
+        const UINT numBuffersGS = sizeof(gsCBs) / sizeof(ID3D11Buffer*);
+        const UINT numBuffersPS = sizeof(psCBs) / sizeof(ID3D11Buffer*);
+
         // bind constant buffers 
-        pContext->VSSetConstantBuffers(0, 3, vsCBs);
-        pContext->GSSetConstantBuffers(0, 1, gsCBs);     
-        pContext->PSSetConstantBuffers(0, 5, psCBs);
+        pContext->VSSetConstantBuffers(0, numBuffersVS, vsCBs);
+        pContext->GSSetConstantBuffers(0, numBuffersGS, gsCBs);
+        pContext->PSSetConstantBuffers(0, numBuffersPS, psCBs);
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         LogErr(e, true);
         LogErr("can't initialize the CRender module");
@@ -142,13 +148,14 @@ bool CRender::ShadersHotReload(ID3D11Device* pDevice)
 {
     try
     {
-        shadersContainer_.lightShader_.ShaderHotReload(pDevice, "shaders/hlsl/LightVS.hlsl", "shaders/hlsl/LightPS.hlsl");
+        shadersContainer_.lightShader_.ShaderHotReload       (pDevice, "shaders/hlsl/LightVS.hlsl",        "shaders/hlsl/LightPS.hlsl");
         shadersContainer_.materialIconShader_.ShaderHotReload(pDevice, "shaders/hlsl/MaterialIconVS.hlsl", "shaders/hlsl/MaterialIconPS.hlsl");
+        shadersContainer_.terrainShader_.ShaderHotReload     (pDevice, "shaders/hlsl/TerrainVS.hlsl",      "shaders/hlsl/TerrainPS.hlsl");
         LogDbg("shaders are hot reloaded");
 
         return true;
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         LogErr(e, true);
         return false;
@@ -191,7 +198,7 @@ void CRender::UpdatePerFrame(
         cbgsPerFrame_.ApplyChanges(pContext);
 
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         LogErr(e);
     }
@@ -227,15 +234,15 @@ void CRender::UpdateInstancedBuffer(
     // fill in the instanced buffer with data
     try
     {
-        Assert::True(worlds != nullptr,        "input arr of world matrices == nullptr");
-        Assert::True(texTransforms != nullptr, "input arr of texture transformations == nullptr");
-        Assert::True(materials != nullptr,     "input arr of materials == nullptr");
-        Assert::True(count > 0,                "input number of elements must be > 0");
+        CAssert::True(worlds != nullptr,        "input arr of world matrices == nullptr");
+        CAssert::True(texTransforms != nullptr, "input arr of texture transformations == nullptr");
+        CAssert::True(materials != nullptr,     "input arr of materials == nullptr");
+        CAssert::True(count > 0,                "input number of elements must be > 0");
 
         // map the instanced buffer to write into it
         D3D11_MAPPED_SUBRESOURCE mappedData;
         HRESULT hr = pContext->Map(pInstancedBuffer_, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData);
-        Assert::NotFailed(hr, "can't map the instanced buffer");
+        CAssert::NotFailed(hr, "can't map the instanced buffer");
 
         ConstBufType::InstancedData* dataView = (ConstBufType::InstancedData*)mappedData.pData;
 
@@ -254,7 +261,7 @@ void CRender::UpdateInstancedBuffer(
 
         pContext->Unmap(pInstancedBuffer_, 0);
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         LogErr(e);
         LogErr("can't update instanced buffer for rendering");
@@ -272,7 +279,7 @@ void CRender::UpdateInstancedBufferWorlds(
         // map the instanced buffer to write to it
         D3D11_MAPPED_SUBRESOURCE mappedData;
         HRESULT hr = pContext->Map(pInstancedBuffer_, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData);
-        Assert::NotFailed(hr, "can't map the instanced buffer");
+        CAssert::NotFailed(hr, "can't map the instanced buffer");
 
         ConstBufType::InstancedData* dataView = (ConstBufType::InstancedData*)mappedData.pData;
 
@@ -285,7 +292,7 @@ void CRender::UpdateInstancedBufferWorlds(
 
         pContext->Unmap(pInstancedBuffer_, 0);
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         LogErr(e);
         LogErr("can't update instanced buffer WORLDS for rendering");
@@ -307,7 +314,7 @@ void CRender::UpdateInstancedBufferMaterials(
         // map the instanced buffer to write to it
         D3D11_MAPPED_SUBRESOURCE mappedData;
         HRESULT hr = pContext->Map(pInstancedBuffer_, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData);
-        Assert::NotFailed(hr, "can't map the instanced buffer");
+        CAssert::NotFailed(hr, "can't map the instanced buffer");
 
         ConstBufType::InstancedData* dataView = (ConstBufType::InstancedData*)mappedData.pData;
 
@@ -317,7 +324,7 @@ void CRender::UpdateInstancedBufferMaterials(
 
         pContext->Unmap(pInstancedBuffer_, 0);
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         LogErr(e);
         LogErr("can't update instanced buffer MATERIALS for rendering");
@@ -351,7 +358,7 @@ void CRender::RenderBoundingLineBoxes(
             numModels,
             instancedBuffElemSize);
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         LogErr(e);
         LogErr("can't render the bounding line boxes onto the screen");
@@ -452,7 +459,7 @@ void CRender::RenderInstances(
             }
         }
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         LogErr(e);
         LogErr("can't render the mesh instances onto the screen");
@@ -477,7 +484,7 @@ void CRender::RenderSkyDome(
             sky,
             worldViewProj);
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         LogErr(e);
         LogErr("can't render the sky dome");
@@ -643,7 +650,7 @@ void CRender::SetSkyGradient(
     {
         shadersContainer_.skyDomeShader_.SetSkyGradient(pContext, colorCenter, colorApex);
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         LogErr(e);
         LogErr("can't update the sky gradient");
@@ -660,7 +667,7 @@ void CRender::SetSkyColorCenter(
     {
         shadersContainer_.skyDomeShader_.SetSkyColorCenter(pContext, color);
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         LogErr(e);
         LogErr("can't update the sky center (horizon) color");
@@ -677,7 +684,7 @@ void CRender::SetSkyColorApex(
     {
         shadersContainer_.skyDomeShader_.SetSkyColorApex(pContext, color);
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         LogErr(e);
         LogErr("can't update the sky apex (top) color");

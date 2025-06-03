@@ -3,11 +3,8 @@
 // 
 // Created:       30.10.24
 // =================================================================================
+#include <CoreCommon/pch.h>
 #include "BasicModel.h"
-#include <CoreCommon/MemHelpers.h>
-
-#include <memory>   // for using std::construct_at
-#include <utility>  // for using std::exchange
 
 
 namespace Core
@@ -236,7 +233,7 @@ void BasicModel::AllocateMemory(
 
 void BasicModel::AllocateVertices(const int numVertices)
 {
-    Assert::True(numVertices > 0, "new number of vertices must be > 0");
+    CAssert::True(numVertices > 0, "new number of vertices must be > 0");
 
     SafeDeleteArr(vertices_);
     vertices_ = new Vertex3D[numVertices]{};
@@ -247,7 +244,7 @@ void BasicModel::AllocateVertices(const int numVertices)
 
 void BasicModel::AllocateIndices(const int numIndices)
 {
-    Assert::True(numIndices > 0, "new number of indices must be > 0");
+    CAssert::True(numIndices > 0, "new number of indices must be > 0");
 
     SafeDeleteArr(indices_);
     indices_ = new UINT[numIndices]{ 0 };
@@ -259,8 +256,8 @@ void BasicModel::AllocateIndices(const int numIndices)
 void BasicModel::CopyVertices(const Vertex3D* vertices, const int numVertices)
 {
     // check input data and check if we have enough allocated memory
-    Assert::True(vertices != nullptr, "input ptr to vertices == nullptr");
-    Assert::True(numVertices > 0,     "input number of vertices must be > 0");
+    CAssert::True(vertices != nullptr, "input ptr to vertices == nullptr");
+    CAssert::True(numVertices > 0,     "input number of vertices must be > 0");
 
     std::copy(vertices, vertices + numVertices, vertices_);
 }
@@ -270,8 +267,8 @@ void BasicModel::CopyVertices(const Vertex3D* vertices, const int numVertices)
 void BasicModel::CopyIndices(const UINT* indices, const int numIndices)
 {
     // check input data and check if we have enough allocated memory
-    Assert::True(indices != nullptr, "input ptr to indices == nullptr");
-    Assert::True(numIndices > 0,     "input number of indices must be > 0");
+    CAssert::True(indices != nullptr, "input ptr to indices == nullptr");
+    CAssert::True(numIndices > 0,     "input number of indices must be > 0");
 
     std::copy(indices, indices + numIndices, indices_);
 }
@@ -300,7 +297,7 @@ void BasicModel::SetName(const char* newName)
 
 void BasicModel::SetMaterialForSubset(const SubsetID subsetID, const MaterialID materialID)
 {
-    Assert::True((subsetID >= 0) && (subsetID < GetNumSubsets()), "invalid ID of subset (wrong value range)");
+    CAssert::True((subsetID >= 0) && (subsetID < GetNumSubsets()), "invalid ID of subset (wrong value range)");
 
     SetMaterialsForSubsets(&subsetID, &materialID, 1);
 }
@@ -312,9 +309,9 @@ void BasicModel::SetMaterialsForSubsets(
     const MaterialID* materialsIDs,
     const size count)
 {
-    Assert::True(subsetsIDs != nullptr, "arr of subset ids == nullptr");
-    Assert::True(materialsIDs != nullptr, "arr of materials ids == nullptr");
-    Assert::True(count > 0, "wrong num of input data elements");
+    CAssert::True(subsetsIDs != nullptr, "arr of subset ids == nullptr");
+    CAssert::True(materialsIDs != nullptr, "arr of materials ids == nullptr");
+    CAssert::True(count > 0, "wrong num of input data elements");
 
     // set new material (new ID) for each input subset by its ID
     for (int i = 0; i < count; ++i)
@@ -338,7 +335,7 @@ void BasicModel::SetModelAABB(const DirectX::BoundingBox& aabb)
 
 void BasicModel::SetSubsetAABB(const SubsetID subsetID, const DirectX::BoundingBox& aabb)
 {
-    Assert::True((subsetID >= 0) && (subsetID < GetNumSubsets()), "invalid ID of subset (wrong range)");
+    CAssert::True((subsetID >= 0) && (subsetID < GetNumSubsets()), "invalid ID of subset (wrong range)");
     SetSubsetAABBs(&subsetID, &aabb, 1);
 }
 
@@ -349,9 +346,9 @@ void BasicModel::SetSubsetAABBs(
     const DirectX::BoundingBox* AABBs,
     const int count)
 {
-    Assert::True(subsetsIDs != nullptr, "ptr to subsets IDs == nullptr");
-    Assert::True(AABBs != nullptr,      "ptr to AABBs == nullptr");
-    Assert::True(count > 0,             "wrong num of input elems (must be > 0)");
+    CAssert::True(subsetsIDs != nullptr, "ptr to subsets IDs == nullptr");
+    CAssert::True(AABBs != nullptr,      "ptr to AABBs == nullptr");
+    CAssert::True(count > 0,             "wrong num of input elems (must be > 0)");
 
     // subset (mesh) ID is the same as its idx in the BasicModel class;
     // so we can access AABB by the same idx as well

@@ -1,10 +1,8 @@
 // ====================================================================================
 // Filename: TextureShader.cpp
 // ====================================================================================
+#include "../Common/pch.h"
 #include "TextureShader.h"
-#include "../Common/Log.h"
-#include "../Common/Types.h"
-#include "../Common/StrHelper.h"
 
 
 namespace Render
@@ -30,14 +28,14 @@ bool TextureShader::Initialize(
 {
     try
     {
-        Assert::True(!StrHelper::IsEmpty(vsPath), "input path to vertex shader is empty");
-        Assert::True(!StrHelper::IsEmpty(psPath), "input path to pixel shader is empty");
+        CAssert::True(!StrHelper::IsEmpty(vsPath), "input path to vertex shader is empty");
+        CAssert::True(!StrHelper::IsEmpty(psPath), "input path to pixel shader is empty");
 
         InitializeShaders(pDevice, vsPath, psPath);
         LogDbg("is initialized");
         return true;
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         LogErr(e, true);
         LogErr("can't initialize the texture shader class");
@@ -152,13 +150,13 @@ void TextureShader::InitializeShaders(
 
     // initialize: VS, PS, sampler state
     result = vs_.Initialize(pDevice, vsFilePath, inputLayoutDesc, layoutElemNum);
-    Assert::True(result, "can't initialize the vertex shader");
+    CAssert::True(result, "can't initialize the vertex shader");
 
     result = ps_.Initialize(pDevice, psFilePath);
-    Assert::True(result, "can't initialize the pixel shader");
+    CAssert::True(result, "can't initialize the pixel shader");
 
     result = samplerState_.Initialize(pDevice);
-    Assert::True(result, "can't initialize the sampler state");
+    CAssert::True(result, "can't initialize the sampler state");
 }
 
 } // namespace Render

@@ -2,14 +2,8 @@
 // Filename:       FrameBuffer.cpp
 // Created:        20.09.23  by DimaSkup
 // ====================================================================================
+#include <CoreCommon/pch.h>
 #include "FrameBuffer.h"
-
-#include <CoreCommon/MemHelpers.h>
-#include <CoreCommon/Assert.h>
-#include <CoreCommon/Log.h>
-
-#include <memory>   // for using std::construct_at
-#include <utility>  // for using std::exchange
 
 
 namespace Core
@@ -47,7 +41,7 @@ FrameBuffer& FrameBuffer::operator=(FrameBuffer&& rhs) noexcept
     // move-assignment
     if (this != &rhs)
     {
-        this->Shutdown();                          // lifetime of *this ends
+        Shutdown();                          // lifetime of *this ends
         std::construct_at(this, std::move(rhs));
     }
 
@@ -87,8 +81,8 @@ bool FrameBuffer::Initialize(ID3D11Device* pDevice, const FrameBufferSpecificati
 
     try
     {
-        Assert::True((spec.width > 0) && (spec.height > 0), "wrong texture dimensions");
-        Assert::True((spec.screenNear > 0.0f) && (spec.screenNear < spec.screenDepth), "wrong screen near or depth values");
+        CAssert::True((spec.width > 0) && (spec.height > 0), "wrong texture dimensions");
+        CAssert::True((spec.screenNear > 0.0f) && (spec.screenNear < spec.screenDepth), "wrong screen near or depth values");
 
         // store the basic params
         specification_ = spec;
@@ -225,7 +219,7 @@ void FrameBuffer::CreateRenderTargetTexture(ID3D11Device* pDevice)
 
     // create the render target texture
     hr = pDevice->CreateTexture2D(&desc, nullptr, &pRenderTargetTexture_);
-    Assert::NotFailed(hr, "can't create the render target texture");
+    CAssert::NotFailed(hr, "can't create the render target texture");
 }
 
 ///////////////////////////////////////////////////////////
@@ -243,7 +237,7 @@ void FrameBuffer::CreateRenderTargetView(ID3D11Device* pDevice)
 
     // create the render target view
     hr = pDevice->CreateRenderTargetView(pRenderTargetTexture_, &desc, &pRenderTargetView_);
-    Assert::NotFailed(hr, "can't create the render target view");
+    CAssert::NotFailed(hr, "can't create the render target view");
 }
 
 ///////////////////////////////////////////////////////////
@@ -264,7 +258,7 @@ void FrameBuffer::CreateShaderResourceView(ID3D11Device* pDevice)
 
     // create the shader resource view
     hr = pDevice->CreateShaderResourceView(pRenderTargetTexture_, &desc, &pShaderResourceView_);
-    Assert::NotFailed(hr, "can't create the shader resource view");
+    CAssert::NotFailed(hr, "can't create the shader resource view");
 }
 
 ///////////////////////////////////////////////////////////
@@ -290,7 +284,7 @@ void FrameBuffer::CreateDepthStencilBuffer(ID3D11Device* pDevice)
 
     // create the texture for the depth buffer using the filled out description
     hr = pDevice->CreateTexture2D(&desc, nullptr, &pDepthStencilBuffer_);
-    Assert::NotFailed(hr, "can't create the texture for the depth buffer");
+    CAssert::NotFailed(hr, "can't create the texture for the depth buffer");
 }
 
 ///////////////////////////////////////////////////////////
@@ -309,7 +303,7 @@ void FrameBuffer::CreateDepthStencilView(ID3D11Device* pDevice)
     // create the depth stencil view
     //hr = pDevice->CreateDepthStencilView(pDepthStencilBuffer_, &desc, &pDepthStencilView_);
     hr = pDevice->CreateDepthStencilView(pDepthStencilBuffer_, nullptr, &pDepthStencilView_);
-    Assert::NotFailed(hr, "can't create the depth stencil view");
+    CAssert::NotFailed(hr, "can't create the depth stencil view");
 }
 
 ///////////////////////////////////////////////////////////

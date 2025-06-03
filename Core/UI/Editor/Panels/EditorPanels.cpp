@@ -3,16 +3,10 @@
 // 
 // Created:    08.01.25 by DimaSkup
 // =================================================================================
+#include <CoreCommon/pch.h>
 #include "EditorPanels.h"
-
-#include <CoreCommon/Assert.h>
-#include <CoreCommon/log.h>
 #include <UICommon/EventsHistory.h>
-#include <vector>
-#include <string>
 #include <imgui.h>
-
-using namespace Core;
 
 
 namespace UI
@@ -22,7 +16,7 @@ EditorPanels::EditorPanels(StatesGUI* pStatesGUI) :
     enttEditorController_(pStatesGUI),
     pStatesGUI_(pStatesGUI)
 {
-    Assert::NotNullptr(pStatesGUI, "input ptr to the GUI states container == nullptr");
+    CAssert::NotNullptr(pStatesGUI, "input ptr to the GUI states container == nullptr");
 }
 
 
@@ -31,7 +25,7 @@ EditorPanels::EditorPanels(StatesGUI* pStatesGUI) :
 // =================================================================================
 void EditorPanels::Initialize(IFacadeEngineToUI* pFacade)
 {
-    Assert::NotNullptr(pFacade, "ptr to the facade interface == nullptr");
+    CAssert::NotNullptr(pFacade, "ptr to the facade interface == nullptr");
     pFacadeEngineToUI_ = pFacade;
 
     enttEditorController_.Initialize(pFacadeEngineToUI_);
@@ -45,7 +39,7 @@ void EditorPanels::Initialize(IFacadeEngineToUI* pFacade)
 
 ///////////////////////////////////////////////////////////
 
-void EditorPanels::Render(SystemState& sysState)
+void EditorPanels::Render(Core::SystemState& sysState)
 {
     if (pFacadeEngineToUI_ == nullptr)
     {
@@ -184,7 +178,7 @@ void EditorPanels::RenderEditorEventHistory()
 
 ///////////////////////////////////////////////////////////
 
-void EditorPanels::RenderEntitiesListWnd(SystemState& sysState)
+void EditorPanels::RenderEntitiesListWnd(Core::SystemState& sysState)
 {
     // render editor elements which are responsible for rendering 
     // the scene hierarchy list, etc.
@@ -197,7 +191,7 @@ void EditorPanels::RenderEntitiesListWnd(SystemState& sysState)
         // get an ID of each entity on the scene
         pFacadeEngineToUI_->GetAllEnttsIDs(pEnttsIDs, numEntts);
 
-        std::vector<std::string> enttsNames(numEntts);
+        cvector<std::string> enttsNames(numEntts);
 
         // ------ TODO: optimize ----------
         // 
@@ -243,7 +237,7 @@ void EditorPanels::RenderEntitiesListWnd(SystemState& sysState)
 
 ///////////////////////////////////////////////////////////
 
-void EditorPanels::RenderDebugPanel(const SystemState& systemState)
+void EditorPanels::RenderDebugPanel(const Core::SystemState& systemState)
 {
     if (ImGui::Begin("Debug"))
     {

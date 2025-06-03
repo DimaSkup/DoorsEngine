@@ -3,12 +3,8 @@
 //
 // Created       30.04.2025 by DimaSkup
 // =================================================================================
+#include "../Common/pch.h"
 #include "MaterialIconShader.h"
-#include "InputLayouts.h"
-#include "../Common/Log.h"
-#include "../Common/FileSystem.h"
-#include "../Common/Assert.h"
-#include "../Common/Types.h"
 
 namespace Render
 {
@@ -57,7 +53,7 @@ bool MaterialIconShader::Initialize(
 
         return true;
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         LogErr(e, true);
         sprintf(g_String, "can't initialize the %s", className_);
@@ -77,9 +73,9 @@ void MaterialIconShader::PrepareRendering(
     // bind buffers/shaders/input layout
     try
     {
-        Assert::True(vertexBuffer,   "input ptr to vertex buffer == nullptr");
-        Assert::True(indexBuffer,    "input ptr to index buffer == nullptr");
-        Assert::True(vertexSize > 0, "input size of vertex must be > 0");
+        CAssert::True(vertexBuffer,   "input ptr to vertex buffer == nullptr");
+        CAssert::True(indexBuffer,    "input ptr to index buffer == nullptr");
+        CAssert::True(vertexSize > 0, "input size of vertex must be > 0");
 
         // bind vertex and pixel shaders
         pContext->VSSetShader(vs_.GetShader(), nullptr, 0U);
@@ -102,7 +98,7 @@ void MaterialIconShader::PrepareRendering(
         // bind the constant buffer for vertex shader
         pContext->VSSetConstantBuffers(10, 1, cbvsWorldViewProj_.GetAddressOf());
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         LogErr(e, true);
         LogErr("can't render using the shader");
@@ -121,8 +117,8 @@ void MaterialIconShader::Render(
     // render a model (preferably sphere) with a single material
     try
     {
-        Assert::True(indexCount > 0, "input number of indices must be > 0");
-        Assert::True(ppTextures,     "input ptr to arr of textures == nullptr");
+        CAssert::True(indexCount > 0, "input number of indices must be > 0");
+        CAssert::True(ppTextures,     "input ptr to arr of textures == nullptr");
 
         // setup textures
         pContext->PSSetShaderResources(0, NUM_TEXTURE_TYPES, ppTextures);
@@ -138,7 +134,7 @@ void MaterialIconShader::Render(
         // render geometry
         pContext->DrawIndexed(indexCount, 0U, 0U);
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         LogErr(e, true);
         LogErr("can't render using the shader");
@@ -174,20 +170,20 @@ void MaterialIconShader::InitializeHelper(
     // initialize: VS, PS, texture sampler
     bool result = false;
     result = vs_.Initialize(pDevice, vsFilePath, inputLayout.desc, inputLayout.numElem);
-    Assert::True(result, "can't initialize the vertex shader");
+    CAssert::True(result, "can't initialize the vertex shader");
 
     result = ps_.Initialize(pDevice, psFilePath);
-    Assert::True(result, "can't initialize the pixel shader");
+    CAssert::True(result, "can't initialize the pixel shader");
 
     result = samplerState_.Initialize(pDevice);
-    Assert::True(result, "can't initialize the sampler state");
+    CAssert::True(result, "can't initialize the sampler state");
 
     // initialize: constant buffers
     HRESULT hr = cbvsWorldViewProj_.Initialize(pDevice);
-    Assert::NotFailed(hr, "can't initialize the const buffer (for world/view/proj in VS)");
+    CAssert::NotFailed(hr, "can't initialize the const buffer (for world/view/proj in VS)");
 
     hr = cbpsMaterialData_.Initialize(pDevice);
-    Assert::NotFailed(hr, "can't initialize the const buffer (for material in PS)");
+    CAssert::NotFailed(hr, "can't initialize the const buffer (for material in PS)");
 
 
     // apply the default params for the constant buffers
@@ -216,10 +212,10 @@ void MaterialIconShader::ShaderHotReload(
         "VS", "vs_5_0",
         inputLayout.desc,
         inputLayout.numElem);
-    Assert::True(result, "can't hot reload the vertex shader");
+    CAssert::True(result, "can't hot reload the vertex shader");
 
     result = ps_.CompileShaderFromFile(pDevice, psFilePath, "PS", "ps_5_0");
-    Assert::True(result, "can't hot reload the vertex shader");
+    CAssert::True(result, "can't hot reload the vertex shader");
 }
 
 } // namespace Render

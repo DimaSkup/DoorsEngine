@@ -3,14 +3,9 @@
 // 
 // Created:       11.11.24
 // =================================================================================
+#include <CoreCommon/pch.h>
 #include "ModelLoader.h"
-
-#include <CoreCommon/FileSystemPaths.h>
-#include <CoreCommon/log.h>
 #include "../Texture/TextureMgr.h"
-
-#include <fstream>
-#include <filesystem>
 
 namespace fs = std::filesystem;
 

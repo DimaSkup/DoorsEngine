@@ -8,10 +8,11 @@
 // *********************************************************************************
 #pragma once
 
-#include <CoreCommon/Types.h>
+
 #include "TextureTypes.h"
 #include "../Render/Color.h"
 
+#include <Types.h>
 #include <assimp/material.h>
 #include <d3d11.h>
 
@@ -78,7 +79,9 @@ public:
         ID3D11Device* pDevice,
         const char* name,
         const uint8_t* pData,
-        const size_t size);
+        const UINT width,
+        const UINT height,
+        const bool mipmapped);
 
     ~Texture();
 

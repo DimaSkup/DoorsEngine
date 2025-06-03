@@ -4,8 +4,8 @@
 // 
 // Created:      21.12.24
 // =================================================================================
+#include "../Common/pch.h"
 #include "SkyDomeShader.h"
-#include "../Common/Log.h"
 
 #pragma warning (disable : 4996)
 
@@ -36,7 +36,7 @@ bool SkyDomeShader::Initialize(
 		LogDbg("is initialized");
         return true;
 	}
-	catch (LIB_Exception& e)
+	catch (EngineException& e)
 	{
 		LogErr(e, true);
 		LogErr("can't initialize the sky dome shader class");
@@ -70,8 +70,7 @@ void SkyDomeShader::Render(
 	pContext->PSSetSamplers(0, 1, samplerState_.GetAddressOf());
 
 	// update textures for the current subset
-	SRV* const* texIDs = sky.texSRVs.data();
-	pContext->PSSetShaderResources(0U, 1U, texIDs);
+	pContext->PSSetShaderResources(0U, 1U, sky.texSRVs);
 
 	// render the sky
 	pContext->DrawIndexed(sky.indexCount, 0, 0);
@@ -141,19 +140,19 @@ void SkyDomeShader::InitializeShaders(
 	
 	// initialize: VS, PS, sampler state
 	result = vs_.Initialize(pDevice, vsFilePath, inputLayoutDesc, numInputLayoutElems);
-	Assert::True(result, "can't initialize the vertex shader");
+	CAssert::True(result, "can't initialize the vertex shader");
 
 	result = ps_.Initialize(pDevice, psFilePath);
-	Assert::True(result, "can't initialize the pixel shader");
+	CAssert::True(result, "can't initialize the pixel shader");
 
 	result = samplerState_.Initialize(pDevice, &samplerDesc);
-	Assert::True(result, "can't initialize the sampler state");
+	CAssert::True(result, "can't initialize the sampler state");
 
 	hr = cbvsPerFrame_.Initialize(pDevice);
-	Assert::NotFailed(hr, "can't init a const buffer (VS)");
+	CAssert::NotFailed(hr, "can't init a const buffer (VS)");
 
 	hr = cbpsRareChanged_.Initialize(pDevice);
-	Assert::NotFailed(hr, "can't init a const buffer (PS)");
+	CAssert::NotFailed(hr, "can't init a const buffer (PS)");
 
 
 	// setup the constant buffers with default values and load data into GPU

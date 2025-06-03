@@ -8,7 +8,7 @@
 #pragma once
 
 #include <DirectXMath.h>
-#include <CoreCommon/Types.h>
+
 
 namespace Core
 {
@@ -27,12 +27,12 @@ public:
 	int wndWidth_  = 800;                    // current width of the main window 
 	int wndHeight_ = 600;                    // current height of the main window
 				
-	u32 visibleVerticesCount = 0;            // the number of rendered vertices for this frame
-	u32 visibleObjectsCount = 0;             // the number of rendered models for this frame
-	u32 numVisiblePointLights = 0;
-	u32 cellsDrawn = 0;                      // the number of rendered terrain cells
-	u32 cellsCulled = 0;                     // the number of culled terrain cells
-	u32 pickedEnttID_ = 0;                   // currently chosen entity (its ID)
+	uint32_t visibleVerticesCount = 0;            // the number of rendered vertices for this frame
+	uint32_t visibleObjectsCount = 0;             // the number of rendered models for this frame
+	uint32_t numVisiblePointLights = 0;
+	uint32_t cellsDrawn = 0;                      // the number of rendered terrain cells
+	uint32_t cellsCulled = 0;                     // the number of culled terrain cells
+	uint32_t pickedEnttID_ = 0;                   // currently chosen entity (its ID)
 
     float deltaTime = 0.0f;                  // seconds per last frame
 	float frameTime = 0.0f;                  // ms per last frame

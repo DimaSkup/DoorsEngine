@@ -4,10 +4,9 @@
 //               its texture, simple PARRALEL light on it using HLSL shaders.
 // Created:      09.04.23
 // =================================================================================
+#include "../Common/pch.h"
 #include "LightShader.h"
-#include "InputLayouts.h"
-#include "../Common/Log.h"
-#include "../Common/Types.h"
+
 
 
 namespace Render
@@ -35,7 +34,7 @@ bool LightShader::Initialize(
         LogDbg("is initialized");
         return true;
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         LogErr(e, true);
         LogErr("can't initialize the light shader class");
@@ -118,13 +117,13 @@ void LightShader::InitializeShaders(
     // initialize: VS, PS, sampler state
     bool result = false;
     result = vs_.Initialize(pDevice, vsFilePath, inputLayout.desc, inputLayout.numElem);
-    Assert::True(result, "can't initialize the vertex shader");
+    CAssert::True(result, "can't initialize the vertex shader");
 
     result = ps_.Initialize(pDevice, psFilePath);
-    Assert::True(result, "can't initialize the pixel shader");
+    CAssert::True(result, "can't initialize the pixel shader");
 
     result = samplerState_.Initialize(pDevice);
-    Assert::True(result, "can't initialize the sampler state");
+    CAssert::True(result, "can't initialize the sampler state");
 }
 
 ///////////////////////////////////////////////////////////
@@ -145,10 +144,10 @@ void LightShader::ShaderHotReload(
         "VS", "vs_5_0",
         inputLayout.desc,
         inputLayout.numElem);
-    Assert::True(result, "can't hot reload the vertex shader");
+    CAssert::True(result, "can't hot reload the vertex shader");
 
     result = ps_.CompileShaderFromFile(pDevice, psFilePath, "PS", "ps_5_0");
-    Assert::True(result, "can't hot reload the vertex shader");
+    CAssert::True(result, "can't hot reload the vertex shader");
 }
 
 } // namespace Render

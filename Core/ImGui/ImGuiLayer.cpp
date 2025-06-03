@@ -4,10 +4,8 @@
 // 
 // Created:      16.01.25  by DimaSkup
 // =================================================================================
+#include <CoreCommon/pch.h>
 #include "ImGuiLayer.h"
-
-#include <CoreCommon/log.h>
-
 #include <backends/imgui_impl_win32.h>
 #include <backends/imgui_impl_dx11.h>
 

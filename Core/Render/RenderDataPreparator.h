@@ -6,17 +6,10 @@
 // ********************************************************************************
 #pragma once
 
-#include "../Texture/TextureTypes.h"
 #include "../Model/BasicModel.h"
-#include "../Model/ModelMgr.h"
-
-#include <CoreCommon/Types.h>  
-#include "CRender.h"
+#include <Types.h>  
 #include "Entity/EntityMgr.h"
-#include "../Texture/TextureMgr.h"
-#include "../Mesh/MaterialMgr.h"
-
-//#include <vector>
+#include "CRender.h"
 
 namespace Core
 {
@@ -38,7 +31,7 @@ public:
         const size numEntts,
         ECS::EntityMgr* pEnttMgr,
         Render::InstBuffData& instanceBuffData,      // data for the instance buffer
-        Render::cvector<Render::Instance>& instances);   // instances (models subsets) data for rendering
+        cvector<Render::Instance>& instances);   // instances (models subsets) data for rendering
 
     // ----------------------------------------------------
 
@@ -46,7 +39,7 @@ public:
         const EntityID* ids,
         const size numEntts,
         ECS::EntityMgr* pEnttMgr,
-        Render::cvector<Render::Instance>& instances,
+        cvector<Render::Instance>& instances,
         cvector<EntityID>&        outEnttsSortedByModels,
         cvector<Render::Material>& outMaterialsSortedByInstances);
 
@@ -76,14 +69,14 @@ private:
         ECS::EntityMgr& mgr,
         const EntityID* ids,
         const size numEntts,
-        Render::cvector<Render::Instance>& instances,
+        cvector<Render::Instance>& instances,
         cvector<EntityID>& outEnttsSortedByInstances);
 
     void PrepareInstancesForEnttsWithUniqueMaterials(
         ECS::EntityMgr& mgr,
         const EntityID* ids,
         const size numEntts,
-        Render::cvector<Render::Instance>& instances,
+        cvector<Render::Instance>& instances,
         cvector<EntityID>& outEnttsSortedByInstances);
 
     void PrepareTexturesForInstance(Render::Instance& instance);

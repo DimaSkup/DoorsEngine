@@ -3,6 +3,7 @@
 #include "LightEnttsInitializer.h"
 #include "SetupModels.h"
 #include "../Core/Engine/Settings.h"
+#include "../Core/Terrain/Terrain.h"
 //#include <time.h>
 
 using namespace Core;
@@ -694,8 +695,9 @@ void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
 
 ///////////////////////////////////////////////////////////
 
-void CreateTerrain(ECS::EntityMgr& mgr, const BasicModel& model)
+void CreateTerrain(ECS::EntityMgr& mgr, const Core::Terrain& terrain)
 {
+#if 1
     //
     // create and setup terrain elements
     //
@@ -714,31 +716,30 @@ void CreateTerrain(ECS::EntityMgr& mgr, const BasicModel& model)
     renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
     mgr.AddTransformComponent(enttID, { 0, 0, 0 });
-    mgr.AddNameComponent(enttID, model.GetName());
-    mgr.AddModelComponent(enttID, model.GetID());
+    mgr.AddNameComponent(enttID, "terrain");
+    //mgr.AddModelComponent(enttID, terrain.GetID());
     mgr.AddTextureTransformComponent(enttID, ECS::TexTransformType::STATIC, terrainTexTransform);
-    mgr.AddRenderingComponent(enttID, renderParams);
+    //mgr.AddRenderingComponent(enttID, renderParams);
+
 
     // add bounding component to each subset of this entity
-    constexpr size numEntts = 1;
-    constexpr size numSubsets = 1;
-    ECS::BoundingType boundTypes = ECS::BoundingType::BOUND_BOX;
+    constexpr size             numEntts = 1;
+    constexpr size             numSubsets = 1;
+    const ECS::BoundingType    boundType = ECS::BoundingType::BOUND_BOX;
+    const DirectX::BoundingBox aabb = { terrain.center_, terrain.extents_ };
 
-    mgr.AddBoundingComponent(
-        &enttID,
-        numEntts,
-        numSubsets,
-        &boundTypes,
-        model.GetSubsetsAABB());             // AABB data (center, extents)
+    mgr.AddBoundingComponent(enttID, boundType, aabb);
+
 
     constexpr bool areMaterialsMeshBased = true;
-    const MaterialID terrainMatID = model.meshes_.subsets_[0].materialID;
+    const MaterialID terrainMatID = terrain.materialID_;
     mgr.AddMaterialComponent(enttID, &terrainMatID, numSubsets, areMaterialsMeshBased);
 
     //const DirectX::XMVECTOR rotQuat = DirectX::XMQuaternionRotationAxis({ 1,0,0 }, DirectX::XM_PI);
     //mgr.transformSystem_.RotateLocalSpacesByQuat(&enttID, numEntts, rotQuat);
 
     LogDbg("Terrain is created");
+#endif
 }
 
 ///////////////////////////////////////////////////////////
@@ -1623,45 +1624,41 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     // 1. import models from different external formats (.obj, .blend, .fbx, etc.)
     // 2. create relative entities
 
-    ModelsCreator creator;
 
     // paths to external models
-    const std::string extModelsDir = std::string(g_RelPathExtModelsDir);
+    const char* pathNanosuit                = "data/models/ext/nanosuit/nanosuit.obj";
+    const char* pathSovietBuilding          = "data/models/ext/building9/building9.obj";
+    const char* pathSovietStatue            = "data/models/ext/sovietstatue_1/sickle&hammer.obj";
+    const char* pathSovietApartment         = "data/models/ext/Apartment/Apartment.obj";
+    const char* pathPwerHWTower             = "data/models/ext/power_line/Power_HV_Tower.FBX";
 
-    const std::string barrelPath                = extModelsDir + "Barrel1/Barrel1.obj";
-    const std::string nanosuitPath              = extModelsDir + "nanosuit/nanosuit.obj";
-    const std::string building9Path             = extModelsDir + "building9/building9.obj";
-    const std::string apartmentPath             = extModelsDir + "Apartment/Apartment.obj";
-    const std::string sovientStatuePath         = extModelsDir + "sovietstatue_1/sickle&hammer.obj";
-    const std::string lightPolePath             = extModelsDir + "light_pole/light_pole.obj";
-    const std::string treeDubPath               = extModelsDir + "trees/dub/dub.obj";
+    const char* pathStalkerHouseSmall       = "data/models/ext/stalker/stalker-house/source/SmallHouse.fbx";
+    const char* pathStalkerHouseAbandoned   = "data/models/ext/stalker/abandoned-house-20/source/StalkerAbandonedHouse.fbx";
+    const char* pathStalkerTraktor          = "data/models/ext/tr13/tr13.fbx";
+    const char* pathStalkerFreedom          = "data/models/ext/stalker_freedom_1/stalker_freedom_1.fbx";
+    const char* pathAk47                    = "data/models/ext/aks-74_game_ready/scene.gltf";
+    const char* pathAk74u                   = "data/models/ext/ak_74u/ak_74u.fbx";
 
-    const std::string powerHVTowerPath          = extModelsDir + "power_line/Power_HV_Tower.FBX";
-    const std::string stalkerHouseSmallPath     = extModelsDir + "stalker/stalker-house/source/SmallHouse.fbx";
-    const std::string stalkerHouseAbandonedPath = extModelsDir + "stalker/abandoned-house-20/source/StalkerAbandonedHouse.fbx";
-    const std::string stalkerTraktor13Path      = extModelsDir + "tr13/tr13.fbx";
-    const std::string stalkerFreedom1Path       = extModelsDir + "stalker_freedom_1/stalker_freedom_1.fbx";
-    const std::string ak47Path                  = extModelsDir + "aks-74_game_ready/scene.gltf";
-    const std::string ak74uPath                 = extModelsDir + "ak_74u/ak_74u.fbx";
-
-    const std::string treeSprucePath            = extModelsDir + "trees/tree_spruce/tree_spruce.obj";
-    const std::string treePinePath              = extModelsDir + "trees/FBX format/tree_pine.fbx";
-    const std::string radarPath                 = extModelsDir + "radar/radar.fbx";
+    const char* pathTreeSpruce              = "data/models/ext/trees/tree_spruce/tree_spruce.obj";
+    const char* pathTreePine                = "data/models/ext/trees/FBX format/tree_pine.fbx";
+    const char* pathRadar                   = "data/models/ext/radar/radar.fbx";
 
 #if 1
     // import a model from file by path
     LogDbg("Start of models importing");
 
+    ModelsCreator creator;
+
     //const ModelID lightPoleID      = creator.ImportFromFile(pDevice, lightPolePath);
     //const ModelID treeSpruceID     = creator.ImportFromFile(pDevice, treeSprucePath.c_str());
-    const ModelID treePineID = creator.ImportFromFile(pDevice, treePinePath.c_str());
+    const ModelID treePineID = creator.ImportFromFile(pDevice, pathTreePine);
     //const ModelID nanosuitID       = creator.ImportFromFile(pDevice, nanosuitPath);
     //const ModelID stalkerFreedomID = creator.ImportFromFile(pDevice, stalkerFreedom1Path.c_str());
     //const ModelID traktorID        = creator.ImportFromFile(pDevice, stalkerTraktor13Path.c_str());
     //const ModelID stalkerHouse1ID  = creator.ImportFromFile(pDevice, stalkerHouseSmallPath.c_str());
     //const ModelID stalkerHouse2ID  = creator.ImportFromFile(pDevice, stalkerHouseAbandonedPath.c_str());
     //const ModelID ak47ID = creator.ImportFromFile(pDevice, ak47Path.c_str());
-    const ModelID ak74ID           = creator.ImportFromFile(pDevice, ak74uPath.c_str());
+    const ModelID ak74ID           = creator.ImportFromFile(pDevice, pathAk74u);
     //const ModelID barrelID         = creator.ImportFromFile(pDevice, barrelPath);
     //const ModelID powerHVTowerID   = creator.ImportFromFile(pDevice, powerHVTowerPath.c_str());
     //const ModelID radarID = creator.ImportFromFile(pDevice, radarPath.c_str());
@@ -1740,9 +1737,20 @@ void GenerateAssets(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
 
     const char* terrainConfigPath = "data/terrain/terrain.cfg";
     const ModelID terrainID       = creator.CreateTerrainFromHeightmap(pDevice, terrainConfigPath);
-    BasicModel& terrain           = g_ModelMgr.GetModelByID(terrainID);
+    Core::Terrain& terrain        = g_ModelMgr.GetTerrain();
 
-    SetupTerrain(terrain);
+    // load and set a texture for the terrain model
+
+    // create and setup material for terrain
+    Material terrainMat;
+    terrainMat.SetTexture(TEX_TYPE_DIFFUSE, terrain.texture_.GetID());
+    terrainMat.SetTexture(TEX_TYPE_DIFFUSE_ROUGHNESS, terrain.detailMap_.GetID());
+    //terrainMat.SetTexture(TEX_TYPE_NORMALS, terrain.normalMap_.GetID());
+    strcpy(terrainMat.name, "terrain_mat_1");
+    const MaterialID terrainMatID = g_MaterialMgr.AddMaterial(std::move(terrainMat));
+
+    terrain.SetMaterial(terrainMatID);
+
     CreateTerrain(mgr, terrain);
 #endif
 

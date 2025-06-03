@@ -7,9 +7,9 @@
 // =================================================================================
 #pragma once
 
-#include <CoreCommon/MemHelpers.h>
-#include <CoreCommon/log.h>
-#include <CoreCommon/Assert.h>
+#include <MemHelpers.h>
+#include <log.h>
+#include <CAssert.h>
 
 #include <d3d11.h>
 #include <memory>   // for using std::construct_at
@@ -29,7 +29,7 @@ public:
 
 	inline IndexBuffer(ID3D11Device* pDevice, const T* indices, const int numIndices)
 	{
-		Assert::True((indices != nullptr) && (numIndices > 0), "wrong input data");
+		CAssert::True((indices != nullptr) && (numIndices > 0), "wrong input data");
 		Initialize(pDevice, indices, numIndices);
 	}
 
@@ -120,7 +120,7 @@ bool IndexBuffer<T>::Initialize(
 
     try
     {
-        Assert::True((pIndices != nullptr) && (numIndices > 0), "wrong input data");
+        CAssert::True((pIndices != nullptr) && (numIndices > 0), "wrong input data");
 
         // initialize the number of indices
         indexCount_ = (UINT)numIndices;
@@ -163,7 +163,7 @@ void IndexBuffer<T>::CopyBuffer(
 	const UINT origIndexCount = srcBuffer.GetIndexCount();
 
 	// check input params
-	Assert::NotZero(origIndexCount, "there is no indices in the inOriginBuffer");
+	CAssert::NotZero(origIndexCount, "there is no indices in the inOriginBuffer");
 
 	HRESULT hr = S_OK;
 	D3D11_MAPPED_SUBRESOURCE mappedSubresource;
@@ -185,7 +185,7 @@ void IndexBuffer<T>::CopyBuffer(
 
 		// create a staging buffer for reading data from the anotherBuffer
 		hr = pDevice->CreateBuffer(&stagingBufferDesc, nullptr, &pStagingBuffer);
-		Assert::NotFailed(hr, "can't create a staging buffer");
+		CAssert::NotFailed(hr, "can't create a staging buffer");
 
 		// copy the entire contents of the source resource to the destination 
 		// resource using the GPU (from the anotherBuffer into the statingBuffer)
@@ -193,7 +193,7 @@ void IndexBuffer<T>::CopyBuffer(
 
 		// map the staging buffer
 		hr = pDeviceContext->Map(pStagingBuffer, 0, D3D11_MAP_READ, 0, &mappedSubresource);
-		Assert::NotFailed(hr, "can't map the staging buffer");
+		CAssert::NotFailed(hr, "can't map the staging buffer");
 
 		// in the end we unmap the staging buffer and release it
 		pDeviceContext->Unmap(pStagingBuffer, 0);
@@ -256,7 +256,7 @@ void IndexBuffer<T>::InitializeHelper(
 
 	// create an index buffer
 	const HRESULT hr = pDevice->CreateBuffer(&buffDesc, &indexBufferData, &pBuffer_);
-	Assert::NotFailed(hr, "can't create an index buffer");
+	CAssert::NotFailed(hr, "can't create an index buffer");
 }
 
 } // namespace Core

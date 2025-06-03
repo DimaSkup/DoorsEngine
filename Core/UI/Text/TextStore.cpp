@@ -2,12 +2,10 @@
 // Filename: textclass.cpp
 // Revising: 04.07.22
 // =================================================================================
+#include <CoreCommon/pch.h>
 #include "TextStore.h"
+#pragma warning (disable : 4996)
 
-#include <CoreCommon/Log.h>
-#include <stdexcept>
-
-using namespace Core;
 
 namespace UI
 {
@@ -21,7 +19,7 @@ TextStore::TextStore()
 
 TextStore::~TextStore() 
 {
-    Core::LogDbg("");
+    LogDbg("");
 }
 
 
@@ -104,7 +102,7 @@ SentenceID TextStore::CreateConstSentence(
 
     try
     {
-        Core::Assert::True(!textContent.empty(), "the input string is empty");
+        CAssert::True(!textContent.empty(), "the input string is empty");
 
         // add ID for this new sentence
         SentenceID id = staticID_++;
@@ -139,7 +137,7 @@ SentenceID TextStore::CreateConstSentence(
 
         return ids_.back();
     }
-    catch (Core::EngineException& e)
+    catch (EngineException& e)
     {
         LogErr(e, false);
         sprintf(g_String, "can't create a sentence with the text: %s", textContent.c_str());
@@ -163,8 +161,8 @@ SentenceID TextStore::CreateSentence(
     try
     {
         // check input params
-        Core::Assert::True(!textContent.empty(), "the input string is empty");
-        Core::Assert::True(maxStrSize >= std::ssize(textContent), "max string size must be >= input text string");
+        CAssert::True(!textContent.empty(), "the input string is empty");
+        CAssert::True(maxStrSize >= std::ssize(textContent), "max string size must be >= input text string");
 
         // add ID for this new sentence
         SentenceID id = staticID_++;
@@ -197,7 +195,7 @@ SentenceID TextStore::CreateSentence(
 
         return id;
     }
-    catch (Core::EngineException & e)
+    catch (EngineException & e)
     {
         LogErr(e, false);
         sprintf(g_String, "can't create a sentence with the text: %s", textContent.c_str());
@@ -324,8 +322,8 @@ void TextStore::BuildTextVerticesIndices(
     // textContent and places its vertices at the drawAt position;
     try
     {
-        Core::Assert::True(!textContent.empty(), "the input str is empty");
-        Core::Assert::True(maxStrSize >= std::ssize(textContent), "maxStrSize must be >= sentence size");
+        CAssert::True(!textContent.empty(), "the input str is empty");
+        CAssert::True(maxStrSize >= std::ssize(textContent), "maxStrSize must be >= sentence size");
 
         constexpr size numVerticesPerChar = 4;
         constexpr size numIndicesPerChar  = 6;
@@ -339,7 +337,7 @@ void TextStore::BuildTextVerticesIndices(
         font.BuildVertexArray(vertices.data(), numVertices, textContent.c_str(), drawAt.x, drawAt.y);
         font.BuildIndexArray(indices.data(), numIndices);
     }
-    catch (Core::EngineException & e)
+    catch (EngineException & e)
     {
         LogErr(e);
         sprintf(g_String, "can't build buffers for the sentence: %s", textContent.c_str());

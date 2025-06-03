@@ -5,15 +5,14 @@
 // ********************************************************************************
 #pragma once
 
-#include "../Common/RenderTypes.h"
-
 #include "VertexShader.h"
 #include "PixelShader.h"
 #include "SamplerState.h"         // for using textures sampler
 #include "ConstantBuffer.h"
+#include "../Common/RenderTypes.h"
 
 #include <d3d11.h>
-//#include <DirectXMath.h>
+
 
 namespace Render
 {

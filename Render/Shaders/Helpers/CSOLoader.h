@@ -1,8 +1,7 @@
 #pragma once
 
-#include "../../Common/MemHelpers.h"
-#include "../../Common/Assert.h"
-#include "../../Common/log.h"
+#include <CAssert.h>
+#include <log.h>
 #include <stdexcept>
 
 #pragma warning (disable : 4996)

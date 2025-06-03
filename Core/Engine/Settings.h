@@ -6,7 +6,7 @@
 // =================================================================================
 #pragma once
 
-#include <CoreCommon/log.h>
+#include <log.h>
 #include <string>
 #include <map>
 

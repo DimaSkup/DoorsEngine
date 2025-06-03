@@ -7,7 +7,6 @@
 ////////////////////////////////////////////////////////////////////
 #pragma once
 
-#include "../Common/Types.h"
 #include "VertexShader.h"
 #include "PixelShader.h"
 #include "SamplerState.h"
@@ -15,6 +14,7 @@
 
 #include "../Common/ConstBufferTypes.h"
 
+#include <Types.h>
 #include <d3d11.h>
 #include <DirectXMath.h>
 
@@ -46,9 +46,9 @@ public:
         ID3D11DeviceContext* pContext,
         ID3D11Buffer* const* vertexBuffers,            
         ID3D11Buffer* pIndexBuffer,
-        const uint32_t* indexCounts,
+        const uint32* indexCounts,
         const size numSentences,
-        const uint32_t fontVertexSize,
+        const uint32 fontVertexSize,
         SRV* const* ppFontTexSRV);
     
     // Public modification API

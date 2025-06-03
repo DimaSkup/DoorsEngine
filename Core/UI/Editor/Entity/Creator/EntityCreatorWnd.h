@@ -6,11 +6,9 @@
 // =================================================================================
 #pragma once
 
-#include <CoreCommon/cvector.h>
 #include <UICommon/IFacadeEngineToUI.h>
 #include <UICommon/Vectors.h>
 #include "../../EditorPanelElement/ModelsAssetsList.h"
-
 
 
 namespace UI

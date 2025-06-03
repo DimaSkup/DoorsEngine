@@ -2,16 +2,12 @@
 // Filename:     ModelExporter.cpp
 // Created:      11.11.24
 // =================================================================================
+#include <CoreCommon/pch.h>
 #include "ModelExporter.h"
 
-#include <CoreCommon/FileSystemPaths.h>
-#include <CoreCommon/FileSystem.h>
 #include "../Texture/TextureTypes.h"
 #include "ImgConverter.h"
 #include "../Texture/TextureMgr.h"
-
-#include <exception>
-#include <filesystem>
 
 namespace fs = std::filesystem;
 
@@ -286,7 +282,7 @@ void ModelExporter::WriteSubsetTable(
 {
     // write data of each subset in the model
 
-    Assert::True((subsets != nullptr) && (numSubsets > 0), "wrong subsets data");
+    CAssert::True((subsets != nullptr) && (numSubsets > 0), "wrong subsets data");
 
     fout << "***************SubsetTable*******************\n";
 
@@ -310,7 +306,7 @@ void ModelExporter::WriteModelSubsetsAABB(
     const DirectX::BoundingBox* subsetsAABBs,
     const int numAABB)
 {
-    Assert::True((subsetsAABBs != nullptr) && (numAABB > 0), "wrong input data");
+    CAssert::True((subsetsAABBs != nullptr) && (numAABB > 0), "wrong input data");
 
     // write data about AABB of the whole model and each model's subset
 
@@ -338,7 +334,7 @@ void ModelExporter::WriteVertices(
 {
     // write data of each vertex in the model
 
-    Assert::True((vertices != nullptr) && (numVertices > 0), "wrong vertices data");
+    CAssert::True((vertices != nullptr) && (numVertices > 0), "wrong vertices data");
 
     fout << "***************Vertices**********************\n";
     fout.write((char*)vertices, sizeof(Vertex3D) * numVertices);
@@ -353,7 +349,7 @@ void ModelExporter::WriteIndices(
 {
     // write indices data (faces/triangles) of the model
 
-    Assert::True((indices != nullptr) && (numIndices > 0), "wrong subsets data");
+    CAssert::True((indices != nullptr) && (numIndices > 0), "wrong subsets data");
 
     fout << "***************Triangles*********************\n";
     fout.write((char*)indices, sizeof(UINT) * numIndices);

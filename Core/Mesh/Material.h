@@ -6,10 +6,11 @@
 // ********************************************************************************
 #pragma once
 
+#include <Types.h>
+#include <log.h>
+#include <CAssert.h>
 #include "../Texture/TextureTypes.h"
-#include <CoreCommon/Types.h>
-#include <CoreCommon/log.h>
-#include <CoreCommon/Assert.h>
+
 
 #pragma warning (disable : 4996)
 
@@ -18,7 +19,7 @@ namespace Core
 {
 
 // flags to define specific property of the material
-enum eMaterialProp : uint32_t
+enum eMaterialProp : uint32
 {
     ALPHA_CLIPPING,
     NUM_PROPERTIES,
@@ -35,7 +36,7 @@ struct Material
 
     char     name[MAX_LENGTH_MATERIAL_NAME]{ '\0' };
     TexID    textureIDs[NUM_TEXTURE_TYPES]{ INVALID_TEXTURE_ID };
-    uint32_t properties = 0;                                      // bitfield for materials properties
+    uint32   properties = 0;                                      // bitfield for materials properties
 
     // ----------------------------------------------------
 
@@ -51,8 +52,8 @@ struct Material
 
         size_t length = strlen(inName);
 
-        Assert::True(inName != nullptr, "input ptr to name string == nullptr");
-        Assert::True(length > 0,        "length of input name string must be > 0");
+        CAssert::True(inName != nullptr, "input ptr to name string == nullptr");
+        CAssert::True(length > 0,        "length of input name string must be > 0");
 
         if (length > MAX_LENGTH_MATERIAL_NAME)
             length = MAX_LENGTH_MATERIAL_NAME;

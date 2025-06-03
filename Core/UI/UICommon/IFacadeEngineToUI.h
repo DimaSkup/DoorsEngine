@@ -11,10 +11,10 @@
 // =================================================================================
 #pragma once
 
-#include <UICommon/Types.h>
+#include <Types.h>
 #include "Color.h"
 #include "Vectors.h"
-#include <UICommon/cvector.h>
+#include <cvector.h>
 
 #include <string>
 #include <d3d11.h>

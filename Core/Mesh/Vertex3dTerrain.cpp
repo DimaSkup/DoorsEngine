@@ -9,7 +9,7 @@ Vertex3dTerrain::Vertex3dTerrain() :
 	texture(0.0f, 0.0f),
 	normal(0.0f, 0.0f, 0.0f),
 	tangent(0.0f, 0.0f, 0.0f),
-	color(1.0f, 1.0f, 1.0f, 1.0f)  // a default color of a vertex is pink
+	color(1.0f, 1.0f, 1.0f, 1.0f)
 {
 	// default constructor
 }

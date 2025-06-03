@@ -3,9 +3,10 @@
 // 
 // Created:       01.01.25  by DimaSkup
 // ====================================================================================
+#include <CoreCommon/pch.h>
 #include "EnttLightView.h"
 
-#include <CoreCommon/Assert.h>
+//#include <CAssert.h>
 #include <UICommon/EditorCommands.h>
 #include <imgui.h>
 
@@ -15,7 +16,7 @@ namespace UI
 
 EnttLightView::EnttLightView(IEditorController* pController) : pController_(pController)
 {
-    Core::Assert::NotNullptr(pController, "ptr to the editor controller == nullptr");
+    CAssert::NotNullptr(pController, "ptr to the editor controller == nullptr");
 }
 
 ///////////////////////////////////////////////////////////

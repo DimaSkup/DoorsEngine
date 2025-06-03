@@ -14,8 +14,7 @@
 #include <MaterialMgr.h>
 #include <BasicModel.h>
 
-#include "Common/Types.h"
-//#include "Common/log.h"
-#include "Common/FileSystem.h"
-#include "Common/FileSystemPaths.h"
-#include "Common/MathHelper.h"
+#include <Types.h>
+#include <FileSystem.h>
+#include <FileSystemPaths.h>
+#include <MathHelper.h>

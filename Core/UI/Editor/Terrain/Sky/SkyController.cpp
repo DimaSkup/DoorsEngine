@@ -3,15 +3,14 @@
 // 
 // Created:       20.02.25  by DimaSkup
 // =================================================================================
+#include <CoreCommon/pch.h>
 #include "SkyController.h"
 
 #include <UICommon/EventsHistory.h>
 #include <UICommon/EditorCommands.h>
-#include <CoreCommon/Assert.h>
-#include <CoreCommon/log.h>
 #include <imgui.h>
 
-using namespace Core;
+#pragma warning (disable : 4996)
 
 namespace UI
 {
@@ -25,7 +24,7 @@ SkyController::SkyController()
 void SkyController::Initialize(IFacadeEngineToUI* pFacade)
 {
 	// the facade interface is used to contact with the rest of the engine
-	Core::Assert::NotNullptr(pFacade, "ptr to the facade == nullptr");
+	CAssert::NotNullptr(pFacade, "ptr to the facade == nullptr");
 	pFacade_ = pFacade;
 
 #if 0
@@ -55,7 +54,7 @@ void SkyController::LoadEnttData(const uint32_t skyEnttID)
 	}
 	else
 	{
-		Core::LogErr("can't gather data for the sky editor model for unknown reason");
+		LogErr("can't gather data for the sky editor model for unknown reason");
 	}
 }
 

@@ -1,20 +1,11 @@
 // =================================================================================
 // Filename: textureclass.cpp
 // =================================================================================
+#include <CoreCommon/pch.h>
 #include "textureclass.h"
-
 #include "ImageReader.h"
-#include "../../ImageReader/Common/LIB_Exception.h"
-
-#include <CoreCommon/Log.h>
-#include <CoreCommon/MemHelpers.h>
-#include <CoreCommon/Assert.h>
-#include <CoreCommon/FileSystem.h>
-#include <CoreCommon/StrHelper.h>
-#include <CoreCommon/cvector.h>
-
+#include "ImgConverter.h"
 #include <D3DX11tex.h>
-
 
 #pragma warning (disable : 4996)
 
@@ -166,11 +157,11 @@ void InitTexture2dArr(
     texArrayDesc.MiscFlags          = 0;
 
     HRESULT hr = pDevice->CreateTexture2D(&texArrayDesc, nullptr, textureArr);
-    Assert::NotFailed(hr, "can't create a texture array");
+    CAssert::NotFailed(hr, "can't create a texture array");
 
     // fill in the texture 2D array with data of separate textures
     bool res = FillTextureArray(pDevice, srcTextures.size(), texElemDesc, srcTextures, *textureArr);
-    Assert::True(res, "can't fill in the texture 2D with data");
+    CAssert::True(res, "can't fill in the texture 2D with data");
 }
 
 
@@ -216,12 +207,12 @@ Texture::Texture(
 
     try
     {
-        Assert::True((name != nullptr) && (name[0] != '\0'), "input name for the texture object is empty");
-        Assert::True(texturesNames != nullptr,               "input arr of paths to textures == nullptr");
-        Assert::True(numTextures > 0,                        "input number of textures filenames must be > 0");
+        CAssert::True((name != nullptr) && (name[0] != '\0'), "input name for the texture object is empty");
+        CAssert::True(texturesNames != nullptr,               "input arr of paths to textures == nullptr");
+        CAssert::True(numTextures > 0,                        "input number of textures filenames must be > 0");
         
         bool res = CreateTexturesFromFiles(pDevice, texturesNames, numTextures, format, srcTextures);
-        Assert::True(res, "can't create individual textures from files");
+        CAssert::True(res, "can't create individual textures from files");
 
 
         D3D11_TEXTURE2D_DESC texElemDesc;
@@ -241,7 +232,7 @@ Texture::Texture(
         viewDesc.Texture2DArray.ArraySize       = (UINT)numTextures;
 
         HRESULT hr = pDevice->CreateShaderResourceView(textureArr, &viewDesc, &texArrSRV);
-        Assert::NotFailed(hr, "can't create a shader resource view for texture array");
+        CAssert::NotFailed(hr, "can't create a shader resource view for texture array");
 
 
         // cleanup
@@ -294,8 +285,8 @@ Texture::Texture(
     // create a width_x_height texture with input color data
     try
     {
-        Assert::NotNullptr(pColorData,       "the input ptr to color data == nullptr");
-        Assert::True((bool)(width & height), "texture dimensions must be greater that zero");
+        CAssert::NotNullptr(pColorData,       "the input ptr to color data == nullptr");
+        CAssert::True((bool)(width & height), "texture dimensions must be greater that zero");
 
         InitializeColorTexture(pDevice, pColorData, width, height);
     }
@@ -306,127 +297,100 @@ Texture::Texture(
     }	
 }
 
-///////////////////////////////////////////////////////////
-
+// --------------------------------------------------------
+// Desc:   constructor to create a texture resource by input image raw data
+// Args:   - pDevice:   a ptr to DX11 device
+//         - name:      a name for texture identification
+//         - pData:     image raw data (where 4 bytes per pixel)
+//         - width:     image width
+//         - height:    image height
+//         - mipmapped: generate mipmaps or not
+// --------------------------------------------------------
 Texture::Texture(
     ID3D11Device* pDevice,
     const char* name,
     const uint8_t* pData,
-    const size_t size)
+    const UINT width,
+    const UINT height,
+    const bool mipmapped)
 {
-    // a constructor for loading embedded compressed textures;
-    // 
-    // source texture can be compressed or embedded so we firstly load its 
-    // content into the memory and then passed here ptr to this loaded data;
     try
     {
-        Assert::True((name != nullptr) && (name[0] != '\0'), "input name for the texture obj is empty");
-        Assert::True(pData != nullptr,                       "input ptr to texture data == nullptr");
-        Assert::True(size > 0,                               "size of input texture data must be > 0");
+        // check input params
+        CAssert::True(!StrHelper::IsEmpty(name),   "input name for the texture is empty");
+        CAssert::True(pData != nullptr,            "input ptr to texture data == nullptr");
+        CAssert::True((width > 0) && (height > 0), "input img dimensions is wrong (must be > 0)");
 
-        ImgReader::ImageReader   imageReader;
-        ImgReader::DXTextureData texData(name, &pTexture_, &pTextureView_);
+       
+        D3D11_TEXTURE2D_DESC     textureDesc;
+        ImgReader::ImgConverter  imgConv;
+        DirectX::Image           img;
+        DirectX::TexMetadata     metadata;
+   
+        HRESULT    hr = S_OK;
+        const UINT mipLevels = (mipmapped) ? 0 : 1;
+        const UINT miscFlags = (mipmapped) ? D3D11_RESOURCE_MISC_GENERATE_MIPS : 0;
 
-        HRESULT hr = S_OK;
+        // setup description for this texture
+        textureDesc.Format              = DXGI_FORMAT_R8G8B8A8_UNORM;
+        textureDesc.Width               = width;
+        textureDesc.Height              = height;
+        textureDesc.ArraySize           = 1;
+        textureDesc.MipLevels           = mipLevels;
+        textureDesc.BindFlags           = D3D11_BIND_SHADER_RESOURCE;
+        textureDesc.Usage               = D3D11_USAGE_DEFAULT;
+        textureDesc.CPUAccessFlags      = 0;
+        textureDesc.SampleDesc.Count    = 1;
+        textureDesc.SampleDesc.Quality  = 0;
+        textureDesc.MiscFlags           = miscFlags;
+      
+        // setup image params
+        img.width                       = width;
+        img.height                      = height;
+        img.format                      = DXGI_FORMAT_R8G8B8A8_UNORM;
+        img.rowPitch                    = width * sizeof(uint8_t) * 4; // 4 bytes per pixel (32bit image)
+        img.slicePitch                  = 0;
+        img.pixels                      = (uint8_t*)pData;
 
-    const float area = (float)(size / 4);
-    const UINT width = (UINT)sqrt(area);
+        // setup image metadata
+        metadata.width                  = width;
+        metadata.height                 = height;
+        metadata.depth                  = 1;
+        metadata.arraySize              = 1;
+        metadata.mipLevels              = 0;
+        metadata.miscFlags              = miscFlags;
+        metadata.format                 = DXGI_FORMAT_R8G8B8A8_UNORM;
+        metadata.dimension              = DirectX::TEX_DIMENSION_TEXTURE2D;
 
-    ID3D11Texture2D* p2DTexture = nullptr;
-    D3D11_TEXTURE2D_DESC textureDesc;
-    D3D11_SUBRESOURCE_DATA initialData{};
-
-    // setup description for this texture
-    textureDesc.Format             = DXGI_FORMAT_R8G8B8A8_UNORM;
-    textureDesc.Width              = width;
-    textureDesc.Height             = width;
-    textureDesc.ArraySize          = 1;
-    textureDesc.MipLevels          = 1;
-    textureDesc.BindFlags          = D3D11_BIND_SHADER_RESOURCE;
-    textureDesc.Usage              = D3D11_USAGE_DEFAULT;
-    textureDesc.CPUAccessFlags     = 0;
-    textureDesc.SampleDesc.Count   = 1;
-    textureDesc.SampleDesc.Quality = 0;
-    textureDesc.MiscFlags          = 0;
-
-    // setup initial data for this texture
-    initialData.pSysMem = pData;
-    initialData.SysMemPitch = textureDesc.Width * sizeof(uint8_t)*4;
-
-    // create a new 2D texture
-    hr = pDevice->CreateTexture2D(&textureDesc, &initialData, &p2DTexture);
-    Assert::NotFailed(hr, "Failed to initialize texture from color data");
-
-    // store a ptr to the 2D texture 
-    //pTexture_ = static_cast<ID3D11Texture2D*>(p2DTexture);
-    pTexture_ = p2DTexture;
-
-    // setup description for a shader resource view (SRV)
-    CD3D11_SHADER_RESOURCE_VIEW_DESC srvDesc(D3D11_SRV_DIMENSION_TEXTURE2D, textureDesc.Format);
-
-    // create a new SRV from texture
-    hr = pDevice->CreateShaderResourceView(pTexture_, &srvDesc, &pTextureView_);
-    Assert::NotFailed(hr, "Failed to create shader resource view from texture generated from color data");
-
-
-#if 0
-         hr = D3DX11CreateTextureFromMemory(
+        // create texture resource
+        imgConv.CreateTexture2dEx(
             pDevice,
-            (void*)pData,
-            size,
-            nullptr,
-            nullptr,
-            &pTexture_,
-            nullptr);
-        Assert::NotFailed(hr, "can't create a texture from memory");
-
-        D3D11_TEXTURE2D_DESC textureDesc;
-        ((ID3D11Texture2D*)pTexture_)->GetDesc(&textureDesc);
+            img,
+            metadata,
+            textureDesc.Usage,
+            textureDesc.BindFlags,
+            textureDesc.CPUAccessFlags,
+            textureDesc.MiscFlags,
+            mipmapped,
+            &pTexture_);
 
         // setup description for a shader resource view (SRV)
         CD3D11_SHADER_RESOURCE_VIEW_DESC srvDesc(D3D11_SRV_DIMENSION_TEXTURE2D, textureDesc.Format);
 
-
+        // create a new SRV from texture
         hr = pDevice->CreateShaderResourceView(pTexture_, &srvDesc, &pTextureView_);
-        Assert::NotFailed(hr, "can't create a shader resource view");
+        CAssert::NotFailed(hr, "Failed to create shader resource view from texture generated from color data");
 
-        
-
-        // initialize the texture width and height values
-        D3D11_TEXTURE2D_DESC desc;
-        ID3D11Texture2D* pTex = (ID3D11Texture2D*)(pTexture_);
-        pTex->GetDesc(&desc);
-
-        width_ = desc.Width;
-        height_ = desc.Height;
-#endif
-#if 0
-        bool result = imageReader.LoadTextureFromMemory(pDevice, pData, size, texData);
-
-        if (!result)
-        {
-            sprintf(g_String, "can't load a texture from memory");
-            LogErr(g_String);
-
-            // if we didn't manage to load a texture from the memory
-            // we create a 1x1 color texture for this texture object
-            Initialize1x1ColorTexture(pDevice, Colors::UnloadedTextureColor);
-
-            width_ = 1;
-            height_ = 1;
-
-            return;
-        }
-#endif
-        width_ = texData.textureWidth;
-        height_ = texData.textureHeight;
-        name_ = name;
+        width_  = width;
+        height_ = height;
+        name_   = name;
     }
     catch (EngineException& e)
     {
         LogErr(e);
         LogErr("can't create an embedded compressed texture");
 
+        // in case of any exception we will try to create 1x1 single color texture
         Initialize1x1ColorTexture(pDevice, Colors::UnloadedTextureColor);
     }
 }
@@ -519,14 +483,14 @@ void Texture::Copy(ID3D11Resource* const pSrcTexResource)
     textureBufDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
 
     hr = pDevice->CreateTexture2D(&textureBufDesc, nullptr, &pTextureBuf);
-    Assert::NotFailed(hr, "Failed to create a staging texture");
+    CAssert::NotFailed(hr, "Failed to create a staging texture");
 
     // copy the data from the source texture
     pContext->CopyResource(pTextureBuf, pSrcTexture);
 
     // map the staging buffer
     hr = pContext->Map(pTextureBuf, 0, D3D11_MAP_READ, 0, &mappedSubresource);
-    Assert::NotFailed(hr, "can't map the staging buffer");
+    CAssert::NotFailed(hr, "can't map the staging buffer");
 
     // copy src texture data into the temporal buffer
     const int numPixels = textureBufDesc.Width * textureBufDesc.Height;
@@ -547,7 +511,7 @@ void Texture::Copy(ID3D11Resource* const pSrcTexResource)
     dstTextureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 
     hr = pDevice->CreateTexture2D(&dstTextureDesc, &initialData, &pDstTexture);
-    Assert::NotFailed(hr, "Failed to create a dst texture");
+    CAssert::NotFailed(hr, "Failed to create a dst texture");
 
     // store a ptr to the 2D texture 
     pTexture_ = pDstTexture;
@@ -566,7 +530,7 @@ void Texture::Copy(ID3D11Resource* const pSrcTexResource)
     srvDesc.ViewDimension             = (no4xMSAA) ? D3D11_SRV_DIMENSION_TEXTURE2D : D3D_SRV_DIMENSION_TEXTURE2DMS;
 
     hr = pDevice->CreateShaderResourceView(pTexture_, &srvDesc, &pTextureView_);
-    Assert::NotFailed(hr, "Failed to create shader resource view (SRV)");
+    CAssert::NotFailed(hr, "Failed to create shader resource view (SRV)");
 
 
     // ----------------------------------------------------
@@ -614,7 +578,7 @@ void Texture::LoadFromFile(ID3D11Device* pDevice, const char* filePath)
     // load a texture from file by input path and store texture obj into the manager;
     try
     {
-        Assert::True((filePath != nullptr) && (filePath[0] != '\0'), "input path to texture is empty");
+        CAssert::True((filePath != nullptr) && (filePath[0] != '\0'), "input path to texture is empty");
 
         ImgReader::ImageReader imageReader;
         ImgReader::DXTextureData data(filePath, &pTexture_, &pTextureView_);
@@ -692,7 +656,7 @@ void Texture::InitializeColorTexture(
 
     // create a new 2D texture
     HRESULT hr = pDevice->CreateTexture2D(&textureDesc, &initialData, &p2DTexture);
-    Assert::NotFailed(hr, "Failed to initialize texture from color data");
+    CAssert::NotFailed(hr, "Failed to initialize texture from color data");
 
     // store a ptr to the 2D texture 
     //pTexture_ = static_cast<ID3D11Texture2D*>(p2DTexture);
@@ -703,7 +667,7 @@ void Texture::InitializeColorTexture(
 
     // create a new SRV from texture
     hr = pDevice->CreateShaderResourceView(pTexture_, &srvDesc, &pTextureView_);
-    Assert::NotFailed(hr, "Failed to create shader resource view from texture generated from color data");
+    CAssert::NotFailed(hr, "Failed to create shader resource view from texture generated from color data");
 }
 
 } // namespace Core

@@ -1,7 +1,7 @@
 // =================================================================================
 // Description:    parts of code which are used during initialization
 // =================================================================================
-#include "Common/FileSystemPaths.h"
+#include <FileSystemPaths.h>
 #include <Material.h>
 #include <MaterialMgr.h>
 
@@ -10,33 +10,6 @@ using namespace Core;
 
 namespace Game
 {
-
-void SetupTerrain(BasicModel& terrain)
-{
-    // load and set a texture for the terrain model
-
-#if 0
-    // use stone textures
-    const TexID texTerrainDiff = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "stone02d.jpg");
-    const TexID texTerrainNorm = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "stone02n.png");
-#else
-    // use ground textures
-    const TexID texTerrainDiff = g_TextureMgr.LoadFromFile(g_RelPathDataDir, "terrain/detail_grnd_grass.dds");
-    const TexID texTerrainNorm = g_TextureMgr.LoadFromFile(g_RelPathDataDir, "terrain/detail_grnd_grass_bump.dds");
-#endif
-
-  
-    // create and setup material
-    Material terrainMat;
-    terrainMat.SetTexture(TEX_TYPE_DIFFUSE, 11);
-    terrainMat.SetTexture(TEX_TYPE_NORMALS, texTerrainNorm);
-    strcpy(terrainMat.name, "terrain_mat_1");
-    const MaterialID terrainMatID = g_MaterialMgr.AddMaterial(std::move(terrainMat));
-
-    terrain.meshes_.SetMaterialForSubset(0, terrainMatID);
-}
-
-///////////////////////////////////////////////////////////
 
 void SetupTree(BasicModel& tree)
 {

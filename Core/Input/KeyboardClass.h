@@ -23,11 +23,7 @@ public:
 	inline bool IsAnyPressed()                         const { return !pressedKeys_.empty(); }
 	inline bool HasReleasedEvents()                    const { return !eventsReleased_.empty(); }
 
-	//unsigned char ReadChar();
-	//inline bool CharBufferIsEmpty()       const { return charBuffer_.empty(); }
-	//inline void OnChar(const unsigned char key) { charBuffer_.push(key); }
-
-	const std::list<eKeyCodes>& GetPressedKeysList() const { return pressedKeys_; }
+	const std::list<eKeyCodes>& GetPressedKeysList()   const { return pressedKeys_; }
 
 	void OnKeyPressed (const unsigned char key);
 	void OnKeyReleased(const unsigned char key);

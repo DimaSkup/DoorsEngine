@@ -3,9 +3,8 @@
 //
 // Created:     28.04.2025 by DimaSkup
 // =================================================================================
+#include <CoreCommon/pch.h>
 #include "MaterialAssetsBrowser.h"
-#include <CoreCommon/log.h>
-
 
 #pragma warning (disable : 4996)
 
@@ -34,7 +33,7 @@ void MaterialAssetsBrowser::Render(IFacadeEngineToUI* pFacade, bool* pOpen)
 
     if (!pFacade)
     {
-        Core::LogErr("can't render materials browser: input ptr to facade == nullptr");
+        LogErr("can't render materials browser: input ptr to facade == nullptr");
         return;
     }
 
@@ -279,7 +278,7 @@ void MaterialAssetsBrowser::GetMaterialDataByIdx(const int matIdx, IFacadeEngine
 
     if ((matIdx < 0) || (matIdx >= numItems_))
     {
-        Core::LogErr("can't get data for material by idx: %d (is invalid)", matIdx);
+        LogErr("can't get data for material by idx: %d (is invalid)", matIdx);
         return;
     }
 

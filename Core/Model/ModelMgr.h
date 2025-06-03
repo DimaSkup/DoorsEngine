@@ -6,9 +6,10 @@
 // ************************************************************************************
 #pragma once
 
-#include <CoreCommon/Types.h>
-#include <CoreCommon/cvector.h>
+#include <Types.h>
+#include <cvector.h>
 #include "SkyModel.h"
+#include "../Terrain/Terrain.h"
 #include "BasicModel.h"
 
 namespace Core
@@ -32,6 +33,7 @@ public:
 
     //inline BasicModel& GetLastModel()       { return models_.back(); }
     inline SkyModel&   GetSky()             { return sky_; }
+    inline Terrain&    GetTerrain()         { return terrain_; }
     inline int         GetNumAssets() const { return (int)std::ssize(ids_); }
 
     void GetModelsNamesList(cvector<ModelName>& names);
@@ -41,6 +43,7 @@ private:
     cvector<BasicModel> models_;
 
     SkyModel            sky_;
+    Terrain             terrain_;
 
     static ModelMgr*    pInstance_;
     static ModelID      lastModelID_;

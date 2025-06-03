@@ -8,8 +8,8 @@
 // =================================================================================
 #pragma once
 
-#include <CoreCommon/Types.h>
-#include <CoreCommon/cvector.h>
+#include <Types.h>
+#include <cvector.h>
 #include "Material.h"
 
 namespace Core

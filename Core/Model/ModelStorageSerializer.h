@@ -1,5 +1,5 @@
 #pragma once
-#include <CoreCommon/Types.h>
+#include <Types.h>
 #include <fstream>
 #include <string>
 

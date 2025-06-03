@@ -2,12 +2,8 @@
 // Filename: d3dclass.cpp
 // Revising: 01.01.23
 // ================================================================================
+#include <CoreCommon/pch.h>
 #include "d3dclass.h"
-
-#include <CoreCommon/MemHelpers.h>
-#include <CoreCommon/Log.h>
-#include <CoreCommon/StrHelper.h>
-#include <CoreCommon/Assert.h>
 
 #pragma warning (disable : 4996)
 
@@ -62,7 +58,7 @@ bool D3DClass::Initialize(
         LogDbg("D3DClass start of initialization");
 
         // check if we have any available IDXGI adapter
-        Assert::True(adaptersReader_.GetNumAdapters() > 1, "can't find any IDXGI adapter");
+        CAssert::True(adaptersReader_.GetNumAdapters() > 1, "can't find any IDXGI adapter");
 
         // set adapter idx (if there is any discrete graphics adapter we use this discrete adapter as primary)
         displayAdapterIndex_ = 0;
@@ -84,7 +80,7 @@ bool D3DClass::Initialize(
 
             //Retrieves the client area of the window, which tells us its renderable width and height
             bool result = GetClientRect(hwnd, &clientRect);
-            Assert::True(result, "can't get the client rectangle params");
+            CAssert::True(result, "can't get the client rectangle params");
         
             wndWidth_  = clientRect.right - clientRect.left;
             wndHeight_ = clientRect.bottom - clientRect.top;
@@ -260,9 +256,9 @@ void D3DClass::InitializeDirectX(
     {
         LogMsg("Start initialization of DirectX stuff");
 
-        Assert::True((wndWidth & wndHeight), "wrong window dimensions");
-        Assert::True(nearZ > 0,              "near window plane must be > 0");
-        Assert::True(farZ > nearZ,           "far frustum plane must be > near plane");
+        CAssert::True((wndWidth & wndHeight), "wrong window dimensions");
+        CAssert::True(nearZ > 0,              "near window plane must be > 0");
+        CAssert::True(farZ > nearZ,           "far frustum plane must be > near plane");
 
         // create the Direct3D 11 device and context
         InitializeDevice();
@@ -306,12 +302,12 @@ void D3DClass::InitializeDevice()
         &featureLevel,
         &pContext_);
 
-    Assert::NotFailed(hr, "D3D11CreateDevice failed");
-    Assert::True(featureLevel == D3D_FEATURE_LEVEL_11_0, "Direct3D Feature Level 11 unsupported");
+    CAssert::NotFailed(hr, "D3D11CreateDevice failed");
+    CAssert::True(featureLevel == D3D_FEATURE_LEVEL_11_0, "Direct3D Feature Level 11 unsupported");
 
     // now that we have a created device, we can check the quality level support for 4X MSAA.
     hr = pDevice_->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, 4, &m4xMsaaQuality_);
-    Assert::NotFailed(hr, "the quality level number must be > 0");
+    CAssert::NotFailed(hr, "the quality level number must be > 0");
 }
 
 ///////////////////////////////////////////////////////////
@@ -349,7 +345,7 @@ bool D3DClass::ResizeSwapChain(HWND hwnd, SIZE newSize)
         hr = pSwapChain_->ResizeBuffers(0, 0, 0,
             DXGI_FORMAT_UNKNOWN,                  
             DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH);
-        Assert::NotFailed(hr, "can't resize swap chain buffers");
+        CAssert::NotFailed(hr, "can't resize swap chain buffers");
 
         // 4. recreate the render target view, depth stencil buffer/view, and viewport
         InitializeRenderTargetView();
@@ -400,22 +396,22 @@ void D3DClass::InitializeSwapChain(HWND hwnd, const int width, const int height)
     // used to create the device
     IDXGIDevice* pDxgiDevice = nullptr;
     hr = pDevice_->QueryInterface(__uuidof(IDXGIDevice), (void**)&pDxgiDevice);
-    Assert::NotFailed(hr, "can't get the interface of DXGI Device");
+    CAssert::NotFailed(hr, "can't get the interface of DXGI Device");
 
     IDXGIAdapter* pDxgiAdapter = nullptr;
     hr = pDxgiDevice->GetParent(__uuidof(IDXGIAdapter), (void**)&pDxgiAdapter);
-    Assert::NotFailed(hr, "can't get the interface of DXGI Adapter");
+    CAssert::NotFailed(hr, "can't get the interface of DXGI Adapter");
 
     // finally go the IDXGIFactory interface
     IDXGIFactory* pDxgiFactory = nullptr;
     hr = pDxgiAdapter->GetParent(__uuidof(IDXGIFactory), (void**)&pDxgiFactory);
-    Assert::NotFailed(hr, "can't get the interface of DXGI Factory");
+    CAssert::NotFailed(hr, "can't get the interface of DXGI Factory");
         
 
     // Create the swap chain
     pDxgiFactory->CreateSwapChain(pDevice_, &sd, &pSwapChain_);
-    Assert::NotFailed(hr, "can't create the swap chain");
-    Assert::NotNullptr(pSwapChain_, "something went wrong during creation of the swap chain because pSwapChain == NULLPTR");
+    CAssert::NotFailed(hr, "can't create the swap chain");
+    CAssert::NotNullptr(pSwapChain_, "something went wrong during creation of the swap chain because pSwapChain == NULLPTR");
 
     // release our acquired COM interfaces (because we are done with them)
     SafeRelease(&pDxgiDevice);
@@ -436,13 +432,13 @@ void D3DClass::InitializeRenderTargetView()
         // obtain a ptr to the swap chain's back buffer which we will use as a render target
         ID3D11Texture2D* pBackBuffer = nullptr;
         hr = pSwapChain_->GetBuffer(0, __uuidof(ID3D11Texture2D), (VOID**)&pBackBuffer);
-        Assert::NotFailed(hr, "can't get a buffer from the swap chain");
+        CAssert::NotFailed(hr, "can't get a buffer from the swap chain");
 
         // create a render target view 
         if (pBackBuffer)
         {
             hr = pDevice_->CreateRenderTargetView(pBackBuffer, nullptr, &pRenderTargetView_);
-            Assert::NotFailed(hr, "can't create a render target view");
+            CAssert::NotFailed(hr, "can't create a render target view");
             SafeRelease(&pBackBuffer);
         }
     }
@@ -504,7 +500,7 @@ void D3DClass::InitializeDepthStencilTextureBuffer(const UINT width, const UINT 
 
     // Create the depth/stencil buffer
     HRESULT hr = pDevice_->CreateTexture2D(&desc, nullptr, &pDepthStencilBuffer_);
-    Assert::NotFailed(hr, "can't create the depth stencil buffer");
+    CAssert::NotFailed(hr, "can't create the depth stencil buffer");
 } 
 
 ///////////////////////////////////////////////////////////
@@ -527,7 +523,7 @@ void D3DClass::InitializeDepthStencilView()
         nullptr,                  // &depthStencilViewDesc, -- because we specified the type of our depth/stencil buffer, we specify null for this parameter
         &pDepthStencilView_);
 
-    Assert::NotFailed(hr, "can't create a depth stencil view");
+    CAssert::NotFailed(hr, "can't create a depth stencil view");
 }
 
 ///////////////////////////////////////////////////////////
@@ -579,14 +575,14 @@ bool D3DClass::ToggleFullscreen(HWND hwnd, bool isFullscreen)
 
             
             HRESULT hr = hr = pSwapChain_->ResizeTarget(&mode);
-            Assert::NotFailed(hr, "can't resize a target during switching of the fullscreen mode");
+            CAssert::NotFailed(hr, "can't resize a target during switching of the fullscreen mode");
 
-            //hr = pSwapChain_->SetFullscreenState(TRUE, nullptr);
-            //Assert::NotFailed(hr, "can't set full screen state");
+            hr = pSwapChain_->SetFullscreenState(TRUE, nullptr);
+            CAssert::NotFailed(hr, "can't set full screen state");
 
             // another one for good luck
             hr = pSwapChain_->ResizeTarget(&mode);
-            Assert::NotFailed(hr, "can't resize a target during switching of the fullscreen mode");
+            CAssert::NotFailed(hr, "can't resize a target during switching of the fullscreen mode");
 
             // resize the swapchain and related parts to the chosen solution
             ResizeSwapChain(hwnd, { (LONG)mode.Width, (LONG)mode.Height });
@@ -602,10 +598,10 @@ bool D3DClass::ToggleFullscreen(HWND hwnd, bool isFullscreen)
             mode.Height = windowedModeHeight_;
 
             HRESULT hr = pSwapChain_->SetFullscreenState(FALSE, nullptr);
-            Assert::NotFailed(hr, "can't switch to WINDOWED mode");
+            CAssert::NotFailed(hr, "can't switch to WINDOWED mode");
 
             hr = pSwapChain_->ResizeTarget(&mode);
-            Assert::NotFailed(hr, "can't resize a target during switching of the fullscreen mode");
+            CAssert::NotFailed(hr, "can't resize a target during switching of the fullscreen mode");
 
             // resize the swapchain and related parts to the chosen solution
             ResizeSwapChain(hwnd, { (LONG)mode.Width, (LONG)mode.Height });

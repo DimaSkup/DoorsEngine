@@ -6,7 +6,8 @@
 // Created:       30.08.24
 // *********************************************************************************
 #include "InitRender.h"
-#include "Common/log.h"
+#include <log.h>
+#include <CAssert.h>
 
 #pragma warning (disable : 4996)
 
@@ -37,43 +38,50 @@ bool InitRender::InitializeShaders(
         const char* pathToDir = "shaders/"; // path to direction with shader files (.cso)
 
 
-
+        // color / texture / light
         result = shadersContainer.colorShader_.Initialize(pDevice, "shaders/colorVS.cso", "shaders/colorPS.cso");
-        Assert::True(result, "can't initialize the color shader class");
+        CAssert::True(result, "can't initialize the color shader class");
 
         result = shadersContainer.textureShader_.Initialize(pDevice, "shaders/textureVS.cso", "shaders/texturePS.cso");
-        Assert::True(result, "can't initialize the texture shader class");
+        CAssert::True(result, "can't initialize the texture shader class");
 
         result = shadersContainer.lightShader_.Initialize(pDevice, "shaders/LightVS.cso", "shaders/LightPS.cso");
-        Assert::True(result, "can't initialize the light shader class");
+        CAssert::True(result, "can't initialize the light shader class");
       
-        
+
+        // font / debug / sky_dome
         result = shadersContainer.fontShader_.Initialize(pDevice, WVO, "shaders/fontVS.cso", "shaders/fontPS.cso");
-        Assert::True(result, "can't initialize the font shader class");
+        CAssert::True(result, "can't initialize the font shader class");
 
         result = shadersContainer.debugShader_.Initialize(pDevice, "shaders/DebugVS.cso", "shaders/DebugPS.cso");
-        Assert::True(result, "can't initialize the debug shader");
+        CAssert::True(result, "can't initialize the debug shader");
 
         result = shadersContainer.skyDomeShader_.Initialize(pDevice, "shaders/SkyDomeVS.cso", "shaders/SkyDomePS.cso");
-        Assert::True(result, "can't initialize the sky dome shader");
+        CAssert::True(result, "can't initialize the sky dome shader");
         
 
+        // outline / billboard / material_icon
         result = shadersContainer.outlineShader_.Initialize(pDevice, "shaders/OutlineVS.cso", "shaders/OutlinePS.cso");
-        Assert::True(result, "can't initialize the outline shader");
+        CAssert::True(result, "can't initialize the outline shader");
 
         result = shadersContainer.billboardShader_.Initialize(pDevice, "shaders/billboardVS.cso", "shaders/billboardPS.cso", "shaders/billboardGS.cso");
-        Assert::True(result, "can't initialize the billboard shader");
+        CAssert::True(result, "can't initialize the billboard shader");
 
         result = shadersContainer.materialIconShader_.Initialize(pDevice, "shaders/MaterialIconVS.cso", "shaders/MaterialIconPS.cso");
         if (!result)
             LogErr("can't initialize the material icon shader");
+
+
+        // terrain
+        result = shadersContainer.terrainShader_.Initialize(pDevice, "shaders/TerrainVS.cso", "shaders/TerrainPS.cso");
+        CAssert::True(result, "can't initialize the terrain shader");
 
         
         LogDbg("shaders initialization: finished successfully");
         LogMsgf("%s%s", YELLOW, "---------------------------------------------------------");
         LogMsg("\n");
     }
-    catch (LIB_Exception& e) 
+    catch (EngineException& e) 
     {
         LogErr(e, true);
         return false;
