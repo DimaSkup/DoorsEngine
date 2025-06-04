@@ -375,12 +375,11 @@ void Engine::EventWindowResize(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
         PostQuitMessage(0);
     }
 
-    // update cameras according to new dimensions
+    // update all the cameras according to new dimensions
     if (pEnttMgr_)
     {
-        //const EntityID editorCamID = pEnttMgr_->nameSystem_.GetIdByName("editor_camera");
-        const float    aspectRatio = (float)newSize.cx / (float)newSize.cy;
-        ECS::cvector<EntityID> ids;
+        const float aspectRatio = (float)newSize.cx / (float)newSize.cy;
+        cvector<EntityID> ids;
         pEnttMgr_->cameraSystem_.GetAllCamerasIds(ids);
 
         // update each camera

@@ -1,4 +1,5 @@
 #include "../Common/pch.h"
+#include <ECSTypes.h>
 #include "NameSystem.h"
 
 
@@ -7,7 +8,7 @@ namespace ECS
 
 NameSystem::NameSystem(Name* pNameComponent)
 {
-    Assert::NotNullptr(pNameComponent, "ptr to the Name component == nullptr");
+    CAssert::NotNullptr(pNameComponent, "ptr to the Name component == nullptr");
     pNameComponent_ = pNameComponent;
 
     // add invalid data; this data is returned when we ask for wrong entity

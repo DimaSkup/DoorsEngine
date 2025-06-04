@@ -15,13 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Readers\BMP_Image.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Readers\DDS_ImageReader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Readers\DDSTextureLoader11.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ImageReader.h">
@@ -33,42 +27,15 @@
     <ClInclude Include="Readers\WICTextureLoader11.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Common\Types.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="ImgConverter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Common\MemHelpers.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\log.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\Assert.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\LIB_Exception.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\StrHelper.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\FileSystem.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\ConsoleColorMacro.h">
+    <ClInclude Include="Common\pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Readers\BMP_Image.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Readers\DDS_ImageReader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Readers\DDSTextureLoader11.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ImageReader.cpp">
@@ -83,10 +50,7 @@
     <ClCompile Include="ImgConverter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Common\log.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Common\LIB_Exception.cpp">
+    <ClCompile Include="Common\pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

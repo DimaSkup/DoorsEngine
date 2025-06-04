@@ -4,17 +4,16 @@
 // =================================================================================
 #include "ImageReader.h"
 
-#include "Common/log.h"
-#include "Common/LIB_Exception.h"
-#include "Common/FileSystem.h"
-#include "Common/Assert.h"
-#include "Common/StrHelper.h"
+#include <log.h>
+#include <EngineException.h>
+#include <FileSystem.h>
+#include <CAssert.h>
+#include <StrHelper.h>
 
 // image readers for different types
 #include "Readers/DDS_ImageReader.h"
 #include "Readers/TARGA_ImageReader.h"
 #include "Readers/WICTextureLoader11.h"
-#include "Readers/BMP_Image.h"
 
 #include <d3dx11tex.h>
 
@@ -68,7 +67,7 @@ bool ImageReader::LoadTextureFromFile(
 
         return true;
 	}
-	catch (LIB_Exception & e)
+	catch (EngineException & e)
 	{
         LogErr(e);
         sprintf(g_String, "can't load a texture from file: %s", texData.filePath);
@@ -88,8 +87,8 @@ bool ImageReader::LoadTextureFromMemory(
 	try
 	{
 		CheckInputParams(outTexData);
-        Assert::True(pData != nullptr, "input ptr to texture raw data");
-        Assert::True(size > 0,         "input size of texture data must be > 0");
+        CAssert::True(pData != nullptr, "input ptr to texture raw data");
+        CAssert::True(size > 0,         "input size of texture data must be > 0");
 
 		ID3D11DeviceContext* pContext = nullptr;
 		pDevice->GetImmediateContext(&pContext);
@@ -102,7 +101,7 @@ bool ImageReader::LoadTextureFromMemory(
 			outTexData.ppTexture,
 			outTexData.ppTextureView);
 
-		Assert::NotFailed(hr, "can't create a WIC texture from memory");
+		CAssert::NotFailed(hr, "can't create a WIC texture from memory");
 
 		// initialize the texture width and height values
 		D3D11_TEXTURE2D_DESC desc;
@@ -114,7 +113,7 @@ bool ImageReader::LoadTextureFromMemory(
 
         return true;
 	}
-	catch (LIB_Exception& e)
+	catch (EngineException& e)
 	{
 		LogErr(e);
 		LogErr("can't load texture's data from memory");
@@ -128,7 +127,7 @@ bool ImageReader::LoadTextureFromMemory(
 // =================================================================================
 void ImageReader::CheckInputParams(const DXTextureData& data)
 {
-	Assert::True(
+	CAssert::True(
 		(data.filePath[0] != '\0') &&
 		data.ppTexture && 
 		data.ppTextureView, "some of input params are invalid");
@@ -207,15 +206,24 @@ void ImageReader::LoadTGATexture(ID3D11Device* pDevice, DXTextureData& data)
 
 void ImageReader::LoadBMPTexture(ID3D11Device* pDevice, DXTextureData& data)
 {
-	BMP_Image reader;
+    // because we can use the same loading both for dds and bmp files
+    // we just use the DDS_ImageReader for processing the input file by bmpFilePath
 
-	reader.LoadTextureFromFile(
-		data.filePath,
-		pDevice,
-		data.ppTexture,
-		data.ppTextureView,
-		data.textureWidth,
-		data.textureHeight);
+    DDS_ImageReader ddsImage;
+
+    const bool result = ddsImage.LoadTextureFromFile(
+        data.filePath,
+        pDevice,
+        data.ppTexture,
+        data.ppTextureView,
+        data.textureWidth,
+        data.textureHeight);
+
+    if (!result)
+    {
+        sprintf(g_String, "can't load a BMP texture from the file: %s", data.filePath);
+        LogErr(g_String);
+    }
 }
 
 

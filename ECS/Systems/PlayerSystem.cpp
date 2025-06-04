@@ -15,9 +15,9 @@ PlayerSystem::PlayerSystem(
     pCameraSys_(pCameraSys),
     pHierarchySys_(pHierarchySys)
 {
-    Assert::True(pTransformSys != nullptr, "input ptr to transform system == nullptr");
-    Assert::True(pCameraSys    != nullptr, "input ptr to camera system == nullptr");
-    Assert::True(pHierarchySys != nullptr, "input ptr to camera system == nullptr");
+    CAssert::True(pTransformSys != nullptr, "input ptr to transform system == nullptr");
+    CAssert::True(pCameraSys    != nullptr, "input ptr to camera system == nullptr");
+    CAssert::True(pHierarchySys != nullptr, "input ptr to camera system == nullptr");
 }
 
 

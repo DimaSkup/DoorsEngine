@@ -102,15 +102,11 @@ bool FacadeEngineToUI::GetEntityAddedComponentsNames(
     // out:    names array of components which are added to entity by ID;
     // return: false if there is no entity by ID in the Entity Manager
 
-    ECS::cvector<std::string> names;
-
-    if (pEntityMgr_->GetComponentNamesByEntt(id, names))
-    {
-        componentsNames = cvector<std::string>(names.begin(), names.end());
+    if (pEntityMgr_->GetComponentNamesByEntt(id, componentsNames))
         return true;
-    }
 
     // we didn't manage to get components names
+    LogErr("can't get components names by entity");
     return false;
 }
 
@@ -123,14 +119,14 @@ bool FacadeEngineToUI::GetEntityAddedComponentsTypes(
     // out:    array of components types which are added to entity by ID;
     // return: false if there is no entity by ID in the Entity Manager
 
-    ECS::cvector<uint8_t> types;
+    cvector<uint8> types;
 
     if (pEntityMgr_->GetComponentTypesByEntt(id, types))
     {
         // store received component types into the output array
         componentTypes.resize(types.size());
 
-        for (int i = 0; const uint8_t type : types)
+        for (int i = 0; const uint8 type : types)
             componentTypes[i++] = (eEnttComponentType)type;
 
         return true;

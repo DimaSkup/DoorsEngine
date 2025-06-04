@@ -6,8 +6,8 @@
 // =================================================================================
 #pragma once
 
-#include "../Common/Types.h"
-#include "../Common/cvector.h"
+#include <Types.h>
+#include <cvector.h>
 #include <DirectXCollision.h>
 
 namespace ECS
@@ -67,8 +67,6 @@ struct Bounding
 
 	cvector<EntityID>     ids;
 	cvector<BoundingData> data;
-
-    eComponentType componentType_ = eComponentType::BoundingComponent;
 };
 
 

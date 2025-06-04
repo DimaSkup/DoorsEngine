@@ -1,7 +1,8 @@
 #include "ImgConverter.h"
 
-#include "Common/Assert.h"
-#include "Common/log.h"
+#include <CAssert.h>
+#include <log.h>
+#include <EngineException.h>
 
 #pragma warning (disable : 4996)
 using namespace DirectX;
@@ -53,7 +54,7 @@ void ImgConverter::LoadFromMemory(
     ScratchImage& image)
 {
     HRESULT hr = CaptureTexture(pDevice, pContext, pTexture, image);
-    Assert::NotFailed(hr, "can't capture a texture");
+    CAssert::NotFailed(hr, "can't capture a texture");
 }
 
 // --------------------------------------------------------
@@ -186,7 +187,7 @@ void ImgConverter::Convert(
     if (isSrcCompressed || isDstCompressed)
     {
         sprintf(g_String, "can't handle compressed format (src or dst): %d => %d", srcFormat, dstFormat);
-        throw LIB_Exception(g_String);
+        throw EngineException(g_String);
     }
 
     // uncompressed => uncompressed
@@ -196,7 +197,7 @@ void ImgConverter::Convert(
         srcImage.GetMetadata(),
         dstFormat,
         opts, dstImage);
-    Assert::NotFailed(hr, "can't convert");
+    CAssert::NotFailed(hr, "can't convert");
 }
 
 ///////////////////////////////////////////////////////////
@@ -220,7 +221,7 @@ void ImgConverter::Decompress(
     if (!isSrcCompressed || isDstCompressed)
     {
         sprintf(g_String, "wrong format params: %d => %d", srcFormat, dstFormat);
-        throw LIB_Exception(g_String);
+        throw EngineException(g_String);
     }
 
     // compressed => uncompressed
@@ -230,7 +231,7 @@ void ImgConverter::Decompress(
         srcImage.GetMetadata(),
         dstFormat, 
         dstImage);
-    Assert::NotFailed(hr, "can't decompress");
+    CAssert::NotFailed(hr, "can't decompress");
 }
 
 ///////////////////////////////////////////////////////////
@@ -262,7 +263,7 @@ void ImgConverter::Compress(
             dstFormat,
             opts,
             dstImg);
-        Assert::NotFailed(hr, "can't compress");
+        CAssert::NotFailed(hr, "can't compress");
     }
     // RECOMPRESS: compressed => compressed
     else if (isSrcCompressed && isDstCompressed) 
@@ -273,7 +274,7 @@ void ImgConverter::Compress(
         ScratchImage tempImg;
 
         hr = DirectX::Decompress(*srcImg.GetImages(), DXGI_FORMAT_UNKNOWN, tempImg);
-        Assert::NotFailed(hr, "recompress image: can't decompress");
+        CAssert::NotFailed(hr, "recompress image: can't decompress");
 
         hr = CompressEx(
             tempImg.GetImages(),
@@ -282,7 +283,7 @@ void ImgConverter::Compress(
             dstFormat,
             opts,
             dstImg);
-        Assert::NotFailed(hr, "recompress image: can't compress");
+        CAssert::NotFailed(hr, "recompress image: can't compress");
     }
 }
 
@@ -307,8 +308,8 @@ ScratchImage ImgConverter::GenMipMaps(
     const TexMetadata& metadata = srcImage.GetMetadata();
 
     // check if the input img format is proper
-    Assert::True(IsValid(metadata.format), "the format of input img is invalid");
-    Assert::True(!IsPlanar(metadata.format), "a planar format isn't supported");
+    CAssert::True(IsValid(metadata.format), "the format of input img is invalid");
+    CAssert::True(!IsPlanar(metadata.format), "a planar format isn't supported");
 
     // generate mip-maps if necessary
     if (metadata.mipLevels == 1 &&
@@ -334,7 +335,7 @@ ScratchImage ImgConverter::GenMipMaps(
                 levels,
                 mipChain);
 
-            Assert::NotFailed(hr, "can't generate mipmaps");
+            CAssert::NotFailed(hr, "can't generate mipmaps");
         }
         // else input img is already uncompressed
         else
@@ -347,7 +348,7 @@ ScratchImage ImgConverter::GenMipMaps(
                 levels,
                 mipChain);
 
-            Assert::NotFailed(hr, "can't generate mipmaps");
+            CAssert::NotFailed(hr, "can't generate mipmaps");
         }
 
         // return a generated mipChain

@@ -6,8 +6,8 @@
 // *********************************************************************************
 #pragma once
 
-#include "../Common/Types.h"
-#include "../Common/cvector.h"
+#include <Types.h>
+#include <cvector.h>
 #include <string>
 
 namespace ECS
@@ -19,8 +19,6 @@ struct Name
 	// there is one to one records ['entity_id' => 'entity_name']
 	cvector<EntityID> ids_;
 	cvector<std::string> names_;
-
-    eComponentType type_ = eComponentType::NameComponent;
 };
 
 }

@@ -6,15 +6,12 @@
 // =================================================================================
 #pragma once
 
-
-#include "../Common/Types.h"
 #include "../Components/Rendered.h"
-#include <d3d11.h>
 
 namespace ECS
 {
 
-class RenderSystem final
+class RenderSystem
 {
 public:
     RenderSystem(Rendered* pRenderComponent);

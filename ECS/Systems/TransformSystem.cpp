@@ -16,7 +16,7 @@ namespace ECS
 
 TransformSystem::TransformSystem(Transform* pTransform)
 {
-    Assert::NotNullptr(pTransform, "ptr to the Transform component == nullptr");
+    CAssert::NotNullptr(pTransform, "ptr to the Transform component == nullptr");
     pTransform_ = pTransform;
 }
 
@@ -37,7 +37,7 @@ void TransformSystem::AddRecords(
     const float* uniformScales,
     const size numElems)
 {
-    Assert::True(ids && positions && directions && uniformScales && (numElems > 0), "invalid input args");
+    CAssert::True(ids && positions && directions && uniformScales && (numElems > 0), "invalid input args");
 
     AddRecordsToTransformComponent(ids, positions, directions, uniformScales, numElems);
 }
@@ -532,8 +532,8 @@ void TransformSystem::GetWorlds(
     const size numEntts,
     cvector<DirectX::XMMATRIX>& outWorlds)
 {
-    Assert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
-    Assert::True(numEntts > 0,   "input number of entities must be > 0");
+    CAssert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
+    CAssert::True(numEntts > 0,   "input number of entities must be > 0");
 
     // get data idx by each ID and then get world matrices by these idxs
     pTransform_->ids.get_idxs(ids, numEntts, s_Idxs);
@@ -571,7 +571,7 @@ void TransformSystem::AddRecordsToTransformComponent(
     Transform& comp = *pTransform_;
 
     bool canAddComponent = !comp.ids.binary_search(ids, numElems);
-    Assert::True(canAddComponent, "can't add component: there is already a record with some entity id");
+    CAssert::True(canAddComponent, "can't add component: there is already a record with some entity id");
 
     cvector<index> idxs;
     comp.ids.get_insert_idxs(ids, numElems, idxs);

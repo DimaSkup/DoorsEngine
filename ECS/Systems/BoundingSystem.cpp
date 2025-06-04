@@ -20,7 +20,7 @@ BoundingBox    ComputeAABB          (const BoundingOrientedBox* obbs, const size
 BoundingSystem::BoundingSystem(Bounding* pBoundingComponent) :
     pBoundingComponent_(pBoundingComponent)
 {
-    Assert::NotNullptr(pBoundingComponent, "ptr to the bounding component == nullptr");
+    CAssert::NotNullptr(pBoundingComponent, "ptr to the bounding component == nullptr");
 }
 
 
@@ -36,7 +36,7 @@ void BoundingSystem::Update(
     // apply a transform matrix by idx to all the bounding boxes 
     // of entity by the same idx;
 
-    Assert::True(ids && transforms && (numEntts > 0) && (numEntts == numMatrices), "wrong input data");
+    CAssert::True(ids && transforms && (numEntts > 0) && (numEntts == numMatrices), "wrong input data");
 
     Bounding& comp = *pBoundingComponent_;
 
@@ -74,13 +74,13 @@ void BoundingSystem::Add(
 {
     // add the same BOUNDING BOX for each mesh (subset) of each input entity;
 
-    Assert::True((numEntts > 0) && (numSubsets > 0), "num of entts/subsets must be > 0");
-    Assert::True(ids && types && AABBs, "wrong data arrays");
+    CAssert::True((numEntts > 0) && (numSubsets > 0), "num of entts/subsets must be > 0");
+    CAssert::True(ids && types && AABBs, "wrong data arrays");
 
     // check if we already have a record with such ID
     Bounding& comp = *pBoundingComponent_;
     bool canAddComponent = !comp.ids.binary_search(ids, numEntts);
-    Assert::True(canAddComponent, "can't add component: there is already a record with some entity id");
+    CAssert::True(canAddComponent, "can't add component: there is already a record with some entity id");
 
     // ---------------------------------------------
 
@@ -146,7 +146,7 @@ void BoundingSystem::GetOBBs(
     cvector<size>& outNumBoxesPerEntt,
     cvector<DirectX::BoundingOrientedBox>& outOBBs)
 {
-    Assert::True((ids != nullptr) && (numEntts > 0), "can't get OBBs: invalid input args");
+    CAssert::True((ids != nullptr) && (numEntts > 0), "can't get OBBs: invalid input args");
 
     Bounding& comp = *pBoundingComponent_;
     size numOBBs = 0;
@@ -188,7 +188,7 @@ void BoundingSystem::GetBoxLocalSpaceMatricesByIDs(
     // out:  1. how many bounding boxes this entt has
     //       2. local space matrix of each bounding box
 
-    Assert::True((ids != nullptr) && (numEntts > 0), "can't get local space matrices: invalid input args");
+    CAssert::True((ids != nullptr) && (numEntts > 0), "can't get local space matrices: invalid input args");
 
     Bounding& comp = *pBoundingComponent_;
     size numOBBs = 0;
@@ -237,7 +237,7 @@ void BoundingSystem::GetBoxesLocalSpaceMatrices(
 {
     // make a local space matrices by input bounding boxes params
 
-    Assert::True((boundingBoxes != nullptr) && (numBoundingBoxes > 0), "invalid input args");
+    CAssert::True((boundingBoxes != nullptr) && (numBoundingBoxes > 0), "invalid input args");
 
     outMatrices.resize(numBoundingBoxes);
 

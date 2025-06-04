@@ -161,7 +161,7 @@ void CGraphics::UpdateHelper(
     UpdateShadersDataPerFrame(pEnttMgr, pRender);
 
     // prepare all the visible entities data for rendering
-    const ECS::cvector<EntityID>& visibleEntts = pEnttMgr->renderSystem_.GetAllVisibleEntts();
+    const cvector<EntityID>& visibleEntts = pEnttMgr->renderSystem_.GetAllVisibleEntts();
 
     // separate entts into opaque, entts with alpha clipping, blended, etc.
     pEnttMgr->renderStatesSystem_.SeparateEnttsByRenderStates(visibleEntts, rsDataToRender_);
@@ -175,7 +175,7 @@ void CGraphics::UpdateHelper(
 
     // render as lit entts only that entts which are closer than some distance
     // all entts that are farther will be rendered as fully fogged with a single fog color
-    ECS::cvector<EntityID>& alphaClippedEntts = rsDataToRender_.enttsAlphaClipping_.ids_;
+    cvector<EntityID>& alphaClippedEntts = rsDataToRender_.enttsAlphaClipping_.ids_;
     const size numVisEntts = alphaClippedEntts.size();
 
   
@@ -186,7 +186,7 @@ void CGraphics::UpdateHelper(
 
         size count = 0;
         std::vector<index> idxs(numVisEntts);
-        ECS::cvector<XMFLOAT3> positions;
+        cvector<XMFLOAT3> positions;
 
 
         pEnttMgr->transformSystem_.GetPositions(alphaClippedEntts.data(), numVisEntts, positions);
@@ -208,7 +208,7 @@ void CGraphics::UpdateHelper(
         }
 
         idxs.resize(count);
-        ECS::cvector<EntityID>& foggedEntts = rsDataToRender_.enttsFogged_.ids_;
+        cvector<EntityID>& foggedEntts = rsDataToRender_.enttsFogged_.ids_;
         foggedEntts.resize(count);
 
         // store IDs of entts which are farther than fog range
@@ -331,14 +331,14 @@ void CGraphics::ComputeFrustumCulling(
     ECS::EntityMgr& mgr = *pEnttMgr;
     ECS::RenderSystem& renderSys = mgr.renderSystem_;
 
-    const ECS::cvector<EntityID>& enttsRenderable = renderSys.GetAllEnttsIDs();
+    const cvector<EntityID>& enttsRenderable = renderSys.GetAllEnttsIDs();
     const size numRenderableEntts = enttsRenderable.size();
     size numVisEntts = 0;                                     // the number of currently visible entts
 
     if (numRenderableEntts == 0)
         return;
 
-    static ECS::cvector<BoundingSphere> boundSpheres;                   // bounding sphere of the whole entity
+    static cvector<BoundingSphere> boundSpheres;                   // bounding sphere of the whole entity
     
     static cvector<index>               idxsToVisEntts(numRenderableEntts);
     static cvector<XMMATRIX>            enttsLocal(numRenderableEntts);
@@ -350,7 +350,7 @@ void CGraphics::ComputeFrustumCulling(
         boundSpheres);
 
 #if 1
-    static ECS::cvector<XMMATRIX>       invWorlds;                           // inverse world matrix of each renderable entt
+    static cvector<XMMATRIX>       invWorlds;                           // inverse world matrix of each renderable entt
 
     // get inverse world matrix of each renderable entt
     mgr.transformSystem_.GetInverseWorlds(
@@ -442,7 +442,7 @@ void CGraphics::ComputeFrustumCulling(
     // ------------------------------------------
 
     // store ids of visible entts
-    ECS::cvector<EntityID>& visibleEntts = renderSys.GetAllVisibleEntts();
+    cvector<EntityID>& visibleEntts = renderSys.GetAllVisibleEntts();
     visibleEntts.resize(numVisEntts);
 
     for (index i = 0; i < numVisEntts; ++i)
@@ -464,15 +464,15 @@ void CGraphics::ComputeFrustumCullingOfLightSources(
     ECS::EntityMgr& mgr = *pEnttMgr;
 
     mgr.renderSystem_.ClearVisibleLightSources();
-    ECS::cvector<EntityID>& visPointLights = mgr.renderSystem_.GetVisiblePointLights();
+    cvector<EntityID>& visPointLights = mgr.renderSystem_.GetVisiblePointLights();
 
     // get all the point light sources which are in the visibility range
     const size numPointLights      = mgr.lightSystem_.GetNumPointLights();
     const EntityID* pointLightsIDs = mgr.lightSystem_.GetPointLights().ids.data();
 
 
-    static ECS::cvector<XMMATRIX> invWorlds(numPointLights);
-    static ECS::cvector<XMMATRIX> localSpaces(numPointLights);
+    static cvector<XMMATRIX> invWorlds(numPointLights);
+    static cvector<XMMATRIX> localSpaces(numPointLights);
 
     // get inverse world matrix of each point light source
     mgr.transformSystem_.GetInverseWorlds(pointLightsIDs, numPointLights, invWorlds);
@@ -1057,7 +1057,7 @@ void CGraphics::RenderFoggedBillboards(
     // prepare billboards data for rendering
     //
     std::vector<Render::Material> materials(numFoggedEntts);
-    ECS::cvector<DirectX::XMFLOAT3> foggedPositions;
+    cvector<DirectX::XMFLOAT3> foggedPositions;
     std::vector<DirectX::XMFLOAT2> sizes(numFoggedEntts, { 30, 30 });
 
     pEnttMgr->transformSystem_.GetPositions(foggedEntts, numFoggedEntts, foggedPositions);
@@ -1095,7 +1095,7 @@ void CGraphics::RenderSkyDome(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr
     const EntityID skyEnttID = pEnttMgr->nameSystem_.GetIdByName("sky");
 
     // if we haven't any sky entity
-    if (skyEnttID == ECS::INVALID_ENTITY_ID)
+    if (skyEnttID == INVALID_ENTITY_ID)
         return;
 
     const SkyModel& sky = g_ModelMgr.GetSky();
@@ -1148,7 +1148,7 @@ void CGraphics::RenderTerrain(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr
     const EntityID terrainID = pEnttMgr->nameSystem_.GetIdByName("terrain");
 
     // if we haven't any sky entity
-    if (terrainID == ECS::INVALID_ENTITY_ID)
+    if (terrainID == INVALID_ENTITY_ID)
         return;
 
     const Terrain& terrain = g_ModelMgr.GetTerrain();
@@ -1184,6 +1184,9 @@ void CGraphics::RenderTerrain(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr
     renderStates.ResetDSS(pContext);
 
     pRender->shadersContainer_.terrainShader_.Render(pContext, instance);
+
+    // compute how many vertices will we render
+    pSysState_->visibleVerticesCount += terrain.vb_.GetVertexCount();
 }
 
 ///////////////////////////////////////////////////////////
@@ -1205,36 +1208,36 @@ void CGraphics::SetupLightsForFrame(
     const size numDirLights   = dirLights.data.size();
     const size numSpotLights  = spotLights.data.size();
 
-    const ECS::cvector<EntityID>& visPointLights = renderSys.GetVisiblePointLights();
-    const size numVisPointLightSources           = visPointLights.size();
+    const cvector<EntityID>& visPointLights = renderSys.GetVisiblePointLights();
+    const size numVisPointLightSources      = visPointLights.size();
 
 
     outData.ResizeLightData((int)numDirLights, (int)numVisPointLightSources, (int)numSpotLights);
 
+    // ----------------------------------------------------
+    // prepare data of point lights
+
     if (numVisPointLightSources > 0)
     {
-        ECS::cvector<ECS::PointLight>   pointLightsData;
-        ECS::cvector<DirectX::XMFLOAT3> pointLightsPositions;
-
         lightSys.GetPointLightsData(
             visPointLights.data(),
             numVisPointLightSources,
-            pointLightsData,
-            pointLightsPositions);
+            lightTempData_.pointLightsData,
+            lightTempData_.pointLightsPositions);
 
         // store light properties, range, and attenuation
         for (index i = 0; i < numVisPointLightSources; ++i)
         {
-            outData.pointLights[i].ambient  = pointLightsData[i].ambient;
-            outData.pointLights[i].diffuse  = pointLightsData[i].diffuse;
-            outData.pointLights[i].specular = pointLightsData[i].specular;
-            outData.pointLights[i].att      = pointLightsData[i].att;
-            outData.pointLights[i].range    = pointLightsData[i].range;
+            outData.pointLights[i].ambient  = lightTempData_.pointLightsData[i].ambient;
+            outData.pointLights[i].diffuse  = lightTempData_.pointLightsData[i].diffuse;
+            outData.pointLights[i].specular = lightTempData_.pointLightsData[i].specular;
+            outData.pointLights[i].att      = lightTempData_.pointLightsData[i].att;
+            outData.pointLights[i].range    = lightTempData_.pointLightsData[i].range;
         }
 
         // store positions
         for (index i = 0; i < numVisPointLightSources; ++i)
-            outData.pointLights[i].position = pointLightsPositions[i];
+            outData.pointLights[i].position = lightTempData_.pointLightsPositions[i];
     }
 
     // ----------------------------------------------------
@@ -1247,10 +1250,12 @@ void CGraphics::SetupLightsForFrame(
         outData.dirLights[i].specular = dirLights.data[i].specular;
     }
 
-    ECS::cvector<XMVECTOR> dirLightsDirections;
-    pEnttMgr->transformSystem_.GetDirections(dirLights.ids.data(), numDirLights, dirLightsDirections);
+    pEnttMgr->transformSystem_.GetDirections(
+        dirLights.ids.data(),
+        numDirLights,
+        lightTempData_.dirLightsDirections);
 
-    for (int i = 0; const XMVECTOR& dirQuat : dirLightsDirections)
+    for (int i = 0; const XMVECTOR& dirQuat : lightTempData_.dirLightsDirections)
     {
         DirectX::XMStoreFloat3(&outData.dirLights[i].direction, dirQuat);
         ++i;
@@ -1259,31 +1264,27 @@ void CGraphics::SetupLightsForFrame(
     // ----------------------------------------------------
     // prepare data of spot lights
 
-    ECS::cvector<ECS::SpotLight> spotLightsData;
-    ECS::cvector<XMFLOAT3>       spotLightsPositions;
-    ECS::cvector<XMFLOAT3>       spotLightsDirections;
-
     lightSys.GetSpotLightsData(
         spotLights.ids.data(),
         numSpotLights,
-        spotLightsData,
-        spotLightsPositions,
-        spotLightsDirections);
+        lightTempData_.spotLightsData,
+        lightTempData_.spotLightsPositions,
+        lightTempData_.spotLightsDirections);
 
     for (index i = 0; i < numSpotLights; ++i)
     {
-        outData.spotLights[i].ambient  = spotLightsData[i].ambient;
-        outData.spotLights[i].diffuse  = spotLightsData[i].diffuse;
-        outData.spotLights[i].specular = spotLightsData[i].specular;
-        outData.spotLights[i].range    = spotLightsData[i].range;
-        outData.spotLights[i].spot     = spotLightsData[i].spot;
-        outData.spotLights[i].att      = spotLightsData[i].att;
+        outData.spotLights[i].ambient  = lightTempData_.spotLightsData[i].ambient;
+        outData.spotLights[i].diffuse  = lightTempData_.spotLightsData[i].diffuse;
+        outData.spotLights[i].specular = lightTempData_.spotLightsData[i].specular;
+        outData.spotLights[i].range    = lightTempData_.spotLightsData[i].range;
+        outData.spotLights[i].spot     = lightTempData_.spotLightsData[i].spot;
+        outData.spotLights[i].att      = lightTempData_.spotLightsData[i].att;
     }
 
-    for (int i = 0; const XMFLOAT3& pos : spotLightsPositions)
+    for (int i = 0; const XMFLOAT3& pos : lightTempData_.spotLightsPositions)
         outData.spotLights[i++].position = pos;
 
-    for (int i = 0; const XMFLOAT3& dir : spotLightsDirections)
+    for (int i = 0; const XMFLOAT3& dir : lightTempData_.spotLightsDirections)
         outData.spotLights[i++].direction = dir;
 }
 

@@ -5,13 +5,12 @@
 // *********************************************************************************
 #pragma once
 
-#include "../Common/Types.h"
 #include <d3d11.h>
 
 namespace ImgReader
 {
 
-class DDS_ImageReader final
+class DDS_ImageReader
 {
 public:
 	DDS_ImageReader() {}
@@ -21,8 +20,8 @@ public:
 		ID3D11Device* pDevice,
 		ID3D11Resource** ppTexture,
 		ID3D11ShaderResourceView** ppTextureView,
-		u32& texWidth,
-		u32& texHeight);
+		uint32_t& texWidth,
+        uint32_t& texHeight);
 };
 
 

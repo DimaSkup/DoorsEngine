@@ -9,7 +9,7 @@ namespace ECS
 
 ModelSystem::ModelSystem(Model* pModelComponent) : pModelComponent_(pModelComponent)
 {
-    Assert::NotNullptr(pModelComponent, "ptr to the Model component == nullptr");
+    CAssert::NotNullptr(pModelComponent, "ptr to the Model component == nullptr");
 }
 
 ///////////////////////////////////////////////////////////
@@ -34,7 +34,7 @@ void ModelSystem::AddRecords(
     // make relations one to one: 'entity_id' => 'model_id'
     // NOTE: enttsIDs are supposed to be SORTED!
 
-    Assert::True((enttsIDs != nullptr) && (numEntts > 0), "invalid input args");
+    CAssert::True((enttsIDs != nullptr) && (numEntts > 0), "invalid input args");
 
     Model& comp = *pModelComponent_;
     cvector<index> idxs;
@@ -56,7 +56,7 @@ void ModelSystem::AddRecords(
 
 void ModelSystem::RemoveRecords(const EntityID* ids, const size numEntts)
 {
-    Assert::True(false, "TODO: IMPLEMENT IT!");
+    CAssert::True(false, "TODO: IMPLEMENT IT!");
 }
 
 ///////////////////////////////////////////////////////////
@@ -90,8 +90,8 @@ void ModelSystem::GetModelsIdsRelatedToEntts(
     //      2) arr of entts sorted by its models
     //      3) arr of entts number per model
 
-    Assert::True(enttsIDs != nullptr, "input ptr to entities IDs arr == nullptr");
-    Assert::True(numEntts > 0,        "input number of entities must be > 0");
+    CAssert::True(enttsIDs != nullptr, "input ptr to entities IDs arr == nullptr");
+    CAssert::True(numEntts > 0,        "input number of entities must be > 0");
 
     cvector<index> idxs;
     const Model& comp = *pModelComponent_;

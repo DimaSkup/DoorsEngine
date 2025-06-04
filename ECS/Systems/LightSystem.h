@@ -109,8 +109,8 @@ public:
     bool GetPointLightsPositionAndRange(
         const EntityID* ids,
         const size numEntts,
-        ECS::cvector<XMFLOAT3>& outPositions,
-        ECS::cvector<float>& outRanges) const;
+        cvector<XMFLOAT3>& outPositions,
+        cvector<float>& outRanges) const;
 
     const size GetNumDirLights()   const { return pLightComponent_->dirLights.ids.size(); }
     const size GetNumPointLights() const { return pLightComponent_->pointLights.ids.size(); }

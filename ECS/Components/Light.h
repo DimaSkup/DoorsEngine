@@ -6,15 +6,14 @@
 // *********************************************************************************
 #pragma once
 
-#include "../Common/Types.h"
-#include "../Common/cvector.h"
+#include "../Common/ECSTypes.h"
+#include <Types.h>
+#include <cvector.h>
 #include <DirectXMath.h>
 
 
 namespace ECS
 {
-
-
 
 // *********************************************************************************
 //        STRUCTURES TO REPRESENT TYPES OF LIGHTS (DIRECTIONAL, POINT, SPOT)
@@ -258,8 +257,6 @@ struct Light
     DirLights           dirLights;
     PointLights         pointLights;
     SpotLights          spotLights;
-
-    eComponentType type = eComponentType::LightComponent;
 };
 
 

@@ -15,7 +15,7 @@ namespace ECS
 	
 RenderStatesSystem::RenderStatesSystem(RenderStates* pRenderStatesComponent)
 {
-	Assert::NotNullptr(pRenderStatesComponent, "a ptr to the component == nullptr");
+	CAssert::NotNullptr(pRenderStatesComponent, "a ptr to the component == nullptr");
 	pRSComponent_ = pRenderStatesComponent;
 
 #if 0
@@ -59,7 +59,7 @@ void RenderStatesSystem::AddWithDefaultStates(const EntityID* ids, const size nu
 	// add new records only with ids which aren't exist in the component yet;
 	// and apply the same default set of states to each of these new entts;
 
-    Assert::True((ids != nullptr) && (numEntts > 0), "invalid input args");
+    CAssert::True((ids != nullptr) && (numEntts > 0), "invalid input args");
 
 	RenderStates& comp = *pRSComponent_;
 	const u32 hash = defaultRSMask_;
