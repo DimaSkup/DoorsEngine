@@ -7,6 +7,7 @@
 #pragma once
 
 #include "../Model/BasicModel.h"
+#include <Common/ECSTypes.h>
 #include <Types.h>  
 #include "Entity/EntityMgr.h"
 #include "CRender.h"

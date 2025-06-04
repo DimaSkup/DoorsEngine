@@ -6,8 +6,9 @@
 // *********************************************************************************
 #pragma once
 
-#include "../Common/Types.h"
-#include "../Common/cvector.h"
+#include "../Common/ECSTypes.h"
+#include <Types.h>
+#include <cvector.h>
 #include <d3d11.h>
 
 namespace ECS
@@ -15,7 +16,7 @@ namespace ECS
 
 struct RenderInitParams
 {
-    ECS::RenderShaderType    shaderType;
+    RenderShaderType         shaderType;
     D3D11_PRIMITIVE_TOPOLOGY topologyType;
 };
 
@@ -24,13 +25,11 @@ struct RenderInitParams
 struct Rendered
 {
     cvector<EntityID>                   ids;
-    cvector<ECS::RenderShaderType>      shaderTypes;
+    cvector<RenderShaderType>           shaderTypes;
     cvector<D3D11_PRIMITIVE_TOPOLOGY>   primTopologies;
 
     cvector<EntityID>                   visibleEnttsIDs;        // currently visible entts (models) for this frame
     cvector<EntityID>                   visiblePointLightsIDs;  // currently visible point light sources
-
-    eComponentType                       type = eComponentType::RenderedComponent;
 };
 
 }

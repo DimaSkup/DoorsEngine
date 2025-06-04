@@ -7,18 +7,16 @@
 #pragma once
 
 
-#include "../Common/Types.h"
-#include "../Common/cvector.h"
+#include "../Common/ECSTypes.h"
+#include <Types.h>
+#include <cvector.h>
 
 namespace ECS
 {
 
-
-// ************************************************************************************
-// 
-//              DATA STRUCTURES FOR INITIALIZATION OF TEXTURE TRANSFORMATIONS 
-// 
-// ************************************************************************************
+// ---------------------------------------------------------------------------------
+//           DATA STRUCTURES FOR INITIALIZATION OF TEXTURE TRANSFORMATIONS 
+// ---------------------------------------------------------------------------------
 
 struct TexTransformInitParams
 {

@@ -12,7 +12,7 @@
 #pragma once
 
 #include "../Components/TextureTransform.h"
-#include "../Common/cvector.h"
+#include <cvector.h>
 
 namespace ECS
 {

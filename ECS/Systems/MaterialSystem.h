@@ -7,7 +7,7 @@
 // **********************************************************************************
 #pragma once
 
-#include "../Common/Types.h"
+#include <Types.h>
 #include "../Components/Material.h"
 #include "../Systems/NameSystem.h"
 #include <fstream>

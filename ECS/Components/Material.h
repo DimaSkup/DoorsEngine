@@ -9,8 +9,8 @@
 // *********************************************************************************
 #pragma once
 
-#include "../Common/Types.h"
-#include "../Common/cvector.h"
+#include <Types.h>
+#include <cvector.h>
 
 namespace ECS
 {
@@ -39,8 +39,6 @@ struct Material
     // a flag to define if all the materials (MaterialData) which are related to entity
     // are based on related model (means related to entity)
     cvector<bool>         flagsMeshBasedMaterials;  
-
-    eComponentType        type = MaterialComponent;
 };
 
 }

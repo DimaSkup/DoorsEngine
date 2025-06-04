@@ -6,16 +6,12 @@
 // =================================================================================
 #pragma once
 
-#include "../Common/Types.h"
-
 namespace ECS
 {
 
 // ECS component
 struct PlayerData
 {
-    eComponentType type = eComponentType::PlayerComponent;
-
     float currSpeed = 10.0f;
     float walkSpeed = 10.0f;
     float runSpeed  = 20.0f;
@@ -26,7 +22,7 @@ struct PlayerData
     bool isRunning = false;
     bool isTurnedOnFlashlight = false;
 
-    XMVECTOR rightVec = { 1,0,0 };
+    DirectX::XMVECTOR rightVec = { 1,0,0 };
 };
 
 

@@ -1,8 +1,5 @@
+#include "../Common/pch.h"
 #include "TARGA_ImageReader.h"
-#include "../Common/log.h"
-#include "../Common/LIB_Exception.h"
-#include "../Common/MemHelpers.h"
-#include <stdexcept>
 
 #pragma warning (disable : 4996)
 
@@ -168,7 +165,7 @@ void LoadTarga32Bit(
         if (error != 0)
         {
             sprintf(g_String, "can't open the targa file for reading in binary: %s", filePath);
-            throw LIB_Exception(g_String);
+            throw EngineException(g_String);
         }
 
         // read in the file header
@@ -176,7 +173,7 @@ void LoadTarga32Bit(
         if (count != 1)
         {
             sprintf(g_String, "can't read in the file header: %s", filePath);
-            throw LIB_Exception(g_String);
+            throw EngineException(g_String);
         }
 
         // get the important information from the header
@@ -187,7 +184,7 @@ void LoadTarga32Bit(
         if (targaFileHeader.bpp != UCHAR(32))
         {
             sprintf(g_String, "this targa texture is not 32-bit: %s", filePath);
-            throw LIB_Exception(g_String);
+            throw EngineException(g_String);
         }
 
         // calculate the size of the 32 bit image data
@@ -204,7 +201,7 @@ void LoadTarga32Bit(
         if (count != imageSize)
         {
             sprintf(g_String, "can't read in the targa image data from file: %s", filePath);
-            throw LIB_Exception(g_String);
+            throw EngineException(g_String);
         }
 
         // close the file
@@ -212,7 +209,7 @@ void LoadTarga32Bit(
         if (error != 0)
         {
             sprintf(g_String, "can't close the file: %s", filePath);
-            throw LIB_Exception(g_String);
+            throw EngineException(g_String);
         }
 
 
@@ -247,15 +244,15 @@ void LoadTarga32Bit(
         SafeDeleteArr(*targaDataArr);
         fclose(pFile);              // close the targa file
         LogErr(e.what());
-        throw LIB_Exception("can't allocate memory for the targa image data array / targa destination data array");
+        throw EngineException("can't allocate memory for the targa image data array / targa destination data array");
     }
-    catch (LIB_Exception & e)
+    catch (EngineException & e)
     {
         SafeDeleteArr(targaImageDataArr);
         SafeDeleteArr(*targaDataArr);
         fclose(pFile);              // close the targa file
         LogErr(e);
-        throw LIB_Exception("can't read targa-image data");
+        throw EngineException("can't read targa-image data");
     }
 }
 

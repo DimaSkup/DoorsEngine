@@ -15,8 +15,8 @@ LightSystem::LightSystem(Light* pLightComponent, TransformSystem* pTransformSys)
     pLightComponent_(pLightComponent),
     pTransformSys_(pTransformSys)
 {
-    Assert::NotNullptr(pLightComponent, "input ptr to the light component == nullptr");
-    Assert::NotNullptr(pTransformSys,   "input ptr to the Transform system == nullptr");
+    CAssert::NotNullptr(pLightComponent, "input ptr to the light component == nullptr");
+    CAssert::NotNullptr(pTransformSys,   "input ptr to the Transform system == nullptr");
 }
 
 LightSystem::~LightSystem()
@@ -63,8 +63,8 @@ void LightSystem::AddDirLights(
 {
     // add new directional light sources
 
-    Assert::True(ids,          "input ptr to entities IDs arr == nullptr");
-    Assert::True(numEntts > 0, "input number of entitites must be > 0");
+    CAssert::True(ids,          "input ptr to entities IDs arr == nullptr");
+    CAssert::True(numEntts > 0, "input number of entitites must be > 0");
     
     Light& comp = *pLightComponent_;
     cvector<index> idxs;
@@ -112,7 +112,7 @@ void LightSystem::AddPointLights(
 {
     // create a new point light sources
 
-    Assert::True((ids != nullptr) && (numEntts > 0), "invalid input args");
+    CAssert::True((ids != nullptr) && (numEntts > 0), "invalid input args");
 
     Light& comp = *pLightComponent_;
     cvector<index> idxs;
@@ -160,7 +160,7 @@ void LightSystem::AddSpotLights(
 {
     // create a new spotlight source
 
-    Assert::True((ids != nullptr) && (numEntts > 0), "invalid input args");
+    CAssert::True((ids != nullptr) && (numEntts > 0), "invalid input args");
 
     Light& comp = *pLightComponent_;
     cvector<index> idxs;
@@ -362,8 +362,8 @@ void LightSystem::GetPointLightsData(
 {
     // get point light data by the input array of entities IDs
 
-    Assert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
-    Assert::True(numEntts > 0,   "input number of entities must be > 0");
+    CAssert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
+    CAssert::True(numEntts > 0,   "input number of entities must be > 0");
 
     cvector<index> idxs;
     PointLights& lights = GetPointLights();
@@ -885,14 +885,14 @@ bool LightSystem::IsLightActive(const EntityID id)
 bool LightSystem::GetPointLightsPositionAndRange(
     const EntityID* ids,
     const size numEntts,
-    ECS::cvector<XMFLOAT3>& outPositions,
-    ECS::cvector<float>& outRanges) const
+    cvector<XMFLOAT3>& outPositions,
+    cvector<float>& outRanges) const
 {
     // out: position and range of point light sources by input IDs;
     // NOTE: outData is supposed to be already allocated to size of numEntts
 
-    Assert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
-    Assert::True(numEntts,       "input number of entities must be > 0");
+    CAssert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
+    CAssert::True(numEntts,       "input number of entities must be > 0");
 
    
     // get position of each point light by ID

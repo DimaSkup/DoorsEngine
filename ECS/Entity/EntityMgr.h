@@ -229,7 +229,7 @@ public:
     inline bool CheckEnttsExist(const EntityID* ids, const size numEntts) const { return ids_.binary_search(ids, numEntts); }
 
 private:
-    ComponentHash GetHashByComponent(const eComponentType component);
+    ComponentBitfield GetHashByComponent(const eComponentType component);
  
     // common setters: components
     void SetEnttHasComponent(
@@ -271,7 +271,7 @@ public:
     cvector<EntityID> ids_;
 
     // bit flags for every component, indicating whether this object "has it"
-    cvector<ComponentHash> componentHashes_;
+    cvector<ComponentBitfield> componentHashes_;
 
     std::map<eComponentType, std::string> componentTypeToName_;  
 

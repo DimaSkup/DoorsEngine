@@ -6,7 +6,8 @@
 // =================================================================================
 #pragma once
 
-#include "../Common/Types.h"
+#include "../Common/ECSTypes.h"
+#include <Types.h>
 #include <map>
 
 
@@ -51,7 +52,6 @@ struct Camera
     }
 
     std::map<EntityID, CameraData> data;
-    eComponentType type = eComponentType::CameraComponent;
 };
 
 }

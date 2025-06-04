@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Common/Types.h"
+#include <stdint.h>
 #include <d3d11.h>
 #include <stdio.h>
 

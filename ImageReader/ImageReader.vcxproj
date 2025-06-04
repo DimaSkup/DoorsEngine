@@ -19,32 +19,33 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Common\Assert.h" />
-    <ClInclude Include="Common\ConsoleColorMacro.h" />
-    <ClInclude Include="Common\FileSystem.h" />
-    <ClInclude Include="Common\LIB_Exception.h" />
-    <ClInclude Include="Common\log.h" />
-    <ClInclude Include="Common\MemHelpers.h" />
-    <ClInclude Include="Common\StrHelper.h" />
+    <ClInclude Include="Common\pch.h" />
     <ClInclude Include="ImgConverter.h" />
-    <ClInclude Include="Readers\BMP_Image.h" />
-    <ClInclude Include="Readers\DDSTextureLoader11.h" />
     <ClInclude Include="Readers\DDS_ImageReader.h" />
     <ClInclude Include="ImageReader.h" />
     <ClInclude Include="Readers\TARGA_ImageReader.h" />
-    <ClInclude Include="Common\Types.h" />
     <ClInclude Include="Readers\WICTextureLoader11.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Common\LIB_Exception.cpp" />
-    <ClCompile Include="Common\log.cpp" />
-    <ClCompile Include="ImgConverter.cpp" />
-    <ClCompile Include="Readers\BMP_Image.cpp" />
-    <ClCompile Include="Readers\DDSTextureLoader11.cpp" />
+    <ClCompile Include="Common\pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">../Common/pch.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <ClCompile Include="ImgConverter.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="Readers\DDS_ImageReader.cpp" />
-    <ClCompile Include="ImageReader.cpp" />
+    <ClCompile Include="ImageReader.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="Readers\TARGA_ImageReader.cpp" />
-    <ClCompile Include="Readers\WICTextureLoader11.cpp" />
+    <ClCompile Include="Readers\WICTextureLoader11.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -99,17 +100,17 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(WindowsSDK_IncludePath);$(DXSDK_DIR)Include\;$(SolutionDir)DirectXTex\;$(IncludePath)</IncludePath>
-    <ReferencePath>$(DXSDK_DIR)Lib\x64;$(WindowsSDK_LibraryPath_x64);$(SolutionDir)Lib\$(Platform)\$(Configuration);$(ReferencePath)</ReferencePath>
+    <IncludePath>$(WindowsSDK_IncludePath);$(DXSDK_DIR)Include\;$(SolutionDir)DirectXTex\;$(SolutionDir)Shared\</IncludePath>
+    <ReferencePath>$(DXSDK_DIR)Lib\x64;$(WindowsSDK_LibraryPath_x64)</ReferencePath>
     <OutDir>$(SolutionDir)Lib\$(Platform)\$(Configuration)\</OutDir>
-    <LibraryPath>$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)Lib\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
     <TargetName>$(ProjectName)_d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(WindowsSDK_IncludePath);$(DXSDK_DIR)Include\;$(ProjectDir)Include\DirectXTex\;$(IncludePath)</IncludePath>
-    <ReferencePath>$(DXSDK_DIR)Lib\x64;$(WindowsSDK_LibraryPath_x64);$(ReferencePath)</ReferencePath>
+    <IncludePath>$(WindowsSDK_IncludePath);$(DXSDK_DIR)Include\;$(SolutionDir)DirectXTex\;$(SolutionDir)Shared\</IncludePath>
+    <ReferencePath>$(DXSDK_DIR)Lib\x64;$(WindowsSDK_LibraryPath_x64)</ReferencePath>
     <OutDir>$(SolutionDir)Lib\$(Platform)\$(Configuration)\</OutDir>
-    <LibraryPath>$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)Lib\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -151,10 +152,11 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>../Common/pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalIncludeDirectories>$(SolutionDir)Lib\$(Platform)\$(Configuration)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -162,7 +164,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Shared_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -173,9 +175,10 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>../Common/pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(SolutionDir)Lib\$(Platform)\$(Configuration)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -185,8 +188,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalDependencies>
-      </AdditionalDependencies>
+      <AdditionalDependencies>Shared.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

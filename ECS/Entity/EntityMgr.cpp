@@ -174,7 +174,7 @@ cvector<EntityID> EntityMgr::CreateEntities(const int newEnttsCount)
     //
     // return: SORTED array of IDs of just created entities;
 
-    Assert::True(newEnttsCount > 0, "new entitites count cannot be <= 0");
+    CAssert::True(newEnttsCount > 0, "new entitites count cannot be <= 0");
 
     cvector<EntityID> generatedIDs(newEnttsCount, INVALID_ENTITY_ID);
 
@@ -184,7 +184,7 @@ cvector<EntityID> EntityMgr::CreateEntities(const int newEnttsCount)
 
     // append ids and hashes of entities
     ids_.append_vector(generatedIDs);
-    componentHashes_.append_vector(cvector<ComponentHash>(newEnttsCount, 0));
+    componentHashes_.append_vector(cvector<ComponentBitfield>(newEnttsCount, 0));
 
     return generatedIDs;
 }
@@ -193,8 +193,8 @@ cvector<EntityID> EntityMgr::CreateEntities(const int newEnttsCount)
 
 void EntityMgr::DestroyEntities(const EntityID* ids, const size numEntts)
 {
-    //Assert::True(ids != nullptr, "input ptr to enitites IDs arr == nullptr");
-    //Assert::True(numEntts > 0, "input number of entts must be > 0");
+    //CAssert::True(ids != nullptr, "input ptr to enitites IDs arr == nullptr");
+    //CAssert::True(numEntts > 0, "input number of entts must be > 0");
 
     assert("TODO: IMPLEMENT IT!" && 0);
 }
@@ -243,7 +243,7 @@ void EntityMgr::SetEnttsHaveComponent(
     ids_.get_idxs(ids, numEntts, idxs);
 
     // generate hash mask by input component type
-    ComponentHash hashMask = 1 << compType;
+    ComponentBitfield hashMask = 1 << compType;
 
     for (const index idx : idxs)
         componentHashes_[idx] |= hashMask;
@@ -263,7 +263,7 @@ void EntityMgr::SetEnttsHaveComponents(
     ids_.get_idxs(ids, numEntts, idxs);
 
     // generate hash mask by input component types
-    ComponentHash hashMask = 0;
+    ComponentBitfield hashMask = 0;
     for (const eComponentType type : compTypes)
         hashMask |= (1 << type);
 
@@ -293,7 +293,7 @@ void EntityMgr::AddNameComponent(
         nameSystem_.AddRecords(ids, names, numEntts);
         SetEnttsHaveComponent(ids, numEntts, NameComponent);
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         LogErr(e);
         LogErr(GetErrMsg("can't add a name component to entts: ", ids, numEntts).c_str());
@@ -327,7 +327,7 @@ void EntityMgr::AddTransformComponent(
         transformSystem_.AddRecords(ids, positions, dirQuats, uniformScales, numEntts);
         SetEnttsHaveComponents(ids, { TransformComponent }, numEntts);
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         sprintf(g_String, "can't add transform component to entts: %s", GetEnttsIDsAsString(ids, numEntts).c_str());
         LogErr(e);
@@ -364,7 +364,7 @@ void EntityMgr::AddMoveComponent(
         moveSystem_.AddRecords(ids, translations, rotationQuats, uniformScaleFactors, numEntts);
         SetEnttsHaveComponent(ids, numEntts, MoveComponent);
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         sprintf(g_String, "can't add move component to entts: %s", GetEnttsIDsAsString(ids, numEntts).c_str());
         LogErr(e);
@@ -397,7 +397,7 @@ void EntityMgr::AddModelComponent(
         modelSystem_.AddRecords(enttsIDs, modelID, numEntts);
         SetEnttsHaveComponent(enttsIDs, numEntts, ModelComponent);
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         sprintf(g_String, "can't add model component to entts: %s; \nmodel ID: %ud", GetEnttsIDsAsString(enttsIDs, numEntts).c_str(), modelID);
         LogErr(e);
@@ -418,13 +418,13 @@ void EntityMgr::AddModelComponent(
 
     try
     {
-        Assert::NotEmpty(enttsIDs.empty(), "the array of entities IDs is empty");
-        Assert::NotEmpty(modelsIDs.empty(), "the array of models IDs is empty");
+        CAssert::NotEmpty(enttsIDs.empty(), "the array of entities IDs is empty");
+        CAssert::NotEmpty(modelsIDs.empty(), "the array of models IDs is empty");
 
         modelSystem_.AddRecords(enttsIDs, modelsIDs);
         SetEnttsHaveComponent(enttsIDs.data(), std::ssize(enttsIDs), ModelComponent);
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         std::string errMsg;
         errMsg += "can't add model component to entts: ";
@@ -479,7 +479,7 @@ void EntityMgr::AddRenderingComponent(
         using enum eComponentType;
         SetEnttsHaveComponents(ids, { RenderedComponent, RenderStatesComponent }, numEntts);
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         sprintf(g_String, "can't add rendering component to entts: %s", GetEnttsIDsAsString(ids, numEntts).c_str());
         LogErr(e);
@@ -504,12 +504,12 @@ void EntityMgr::AddMaterialComponent(
     try
     {
         sprintf(g_String, "no entity by ID: %ud", enttID);
-        Assert::True(CheckEnttExist(enttID), g_String);
+        CAssert::True(CheckEnttExist(enttID), g_String);
 
         materialSystem_.AddRecord(enttID, materialsIDs, numSubmeshes, areMaterialsMeshBased);
         SetEnttHasComponent(enttID, MaterialComponent);
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         sprintf(g_String, "can't add Material component to entt (id: %ud; name: %s)", enttID, nameSystem_.GetNameById(enttID).c_str());
         LogErr(e);
@@ -546,7 +546,7 @@ void EntityMgr::AddTextureTransformComponent(
         texTransformSystem_.AddTexTransformation(ids, numEntts, type, params);
         SetEnttsHaveComponent(ids, numEntts, TextureTransformComponent);
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         sprintf(g_String, "can't add texture transform component to entts: %s", GetEnttsIDsAsString(ids, numEntts).c_str());
         LogErr(e);
@@ -567,7 +567,7 @@ void EntityMgr::AddLightComponent(
         lightSystem_.AddDirLights(ids, numEntts, params);
         SetEnttsHaveComponent(ids, numEntts, LightComponent);
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         LogErr(e);
         LogErr(GetErrMsg("can't add Light component (directional lights) to entts: ", ids, numEntts).c_str());
@@ -586,7 +586,7 @@ void EntityMgr::AddLightComponent(
         lightSystem_.AddPointLights(ids, numEntts, params);
         SetEnttsHaveComponent(ids, numEntts, LightComponent);
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         LogErr(e);
         LogErr(GetErrMsg("can't add Light component (point lights) to entts: ", ids, numEntts).c_str());
@@ -607,7 +607,7 @@ void EntityMgr::AddLightComponent(
         lightSystem_.AddSpotLights(ids, numEntts, params);
         SetEnttsHaveComponent(ids, numEntts, LightComponent);
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         LogErr(e);
         LogErr(GetErrMsg("can't add Light component (spot lights) to entts: ", ids, numEntts).c_str());
@@ -633,7 +633,7 @@ void EntityMgr::AddRenderStatesComponent(const EntityID* ids, const size numEntt
         renderStatesSystem_.AddWithDefaultStates(ids, numEntts);
         SetEnttsHaveComponent(ids, numEntts, RenderStatesComponent);
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         sprintf(g_String, "can't add render states component to entts: %s", GetEnttsIDsAsString(ids, numEntts).c_str());
         LogErr(e);
@@ -654,7 +654,7 @@ void EntityMgr::AddBoundingComponent(
         boundingSystem_.Add(id, type, aabb);
         SetEnttHasComponent(id, BoundingComponent);
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         sprintf(g_String, "can't add bounding component to entts: %ud", id);
         LogErr(e);
@@ -678,7 +678,7 @@ void EntityMgr::AddBoundingComponent(
         boundingSystem_.Add(ids, numEntts, numSubsets, types, AABBs);
         SetEnttsHaveComponent(ids, numEntts, BoundingComponent);
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         sprintf(g_String, "can't add bounding component to entts: %s", GetEnttsIDsAsString(ids, numEntts).c_str());
         LogErr(e);
@@ -700,7 +700,7 @@ void EntityMgr::AddBoundingComponent(
         //boundingSystem_.Add(ids, numEntts, spheres);
         //SetEnttsHaveComponent(ids, numEntts, BoundingComponent);
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         sprintf(g_String, "can't add bounding component to entts: %s", GetEnttsIDsAsString(ids, numEntts).c_str());
         LogErr(e);
@@ -718,7 +718,7 @@ void EntityMgr::AddCameraComponent(const EntityID id, const CameraData& data)
         cameraSystem_.AddRecord(id, data);
         SetEnttHasComponent(id, CameraComponent);
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         sprintf(g_String, "can't add camera component to entts: %ud", id);
         LogErr(e);
@@ -736,7 +736,7 @@ void EntityMgr::AddPlayerComponent(const EntityID id)
         playerSystem_.SetPlayer(id);
         SetEnttHasComponent(id, PlayerComponent);
     }
-    catch (LIB_Exception& e)
+    catch (EngineException& e)
     {
         sprintf(g_String, "can't add a player component to entt: %ud", id);
         LogErr(e);
@@ -751,9 +751,9 @@ void EntityMgr::AddPlayerComponent(const EntityID id)
 //                               PRIVATE HELPERS
 // ************************************************************************************
 
-ComponentHash EntityMgr::GetHashByComponent(const eComponentType component)
+ComponentBitfield EntityMgr::GetHashByComponent(const eComponentType component)
 {
-    ComponentHash bitmask = 0;
+    ComponentBitfield bitmask = 0;
     return (bitmask |= (1 << component));
 }
 
@@ -791,7 +791,7 @@ bool EntityMgr::GetComponentNamesByEntt(const EntityID id, cvector<std::string>&
     }
 
     // get a bitfield where each bit is define if such component is added to entity or not
-    const ComponentHash hash = componentHashes_[idx];
+    const ComponentBitfield hash = componentHashes_[idx];
 
     for (int i = 0; i < eComponentType::NUM_COMPONENTS; ++i)
     {
@@ -819,7 +819,7 @@ bool EntityMgr::GetComponentTypesByEntt(const EntityID id, cvector<uint8_t>& typ
     }
 
     // get a bitfield where each bit is define if such component is added to entity or not
-    const ComponentHash hash = componentHashes_[idx];
+    const ComponentBitfield hash = componentHashes_[idx];
     types.reserve(4);
 
     for (int i = 0; i < (int)eComponentType::NUM_COMPONENTS; ++i)

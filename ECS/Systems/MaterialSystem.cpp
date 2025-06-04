@@ -20,8 +20,8 @@ MaterialSystem::MaterialSystem(
     pMaterialComponent_(pMaterialComponent),
     pNameSystem_(pNameSys)
 {
-    Assert::True(pMaterialComponent != nullptr, "input ptr to the Material component == nullptr");
-    Assert::True(pNameSys != nullptr,           "input ptr to the Name system == nullptr");
+    CAssert::True(pMaterialComponent != nullptr, "input ptr to the Material component == nullptr");
+    CAssert::True(pNameSys != nullptr,           "input ptr to the Name system == nullptr");
 
     // setup default (invalid) material which has ID == 0 for invalid entity
     const cvector<MaterialID> materialsIDs(1, INVALID_MATERIAL_ID);
@@ -37,14 +37,14 @@ MaterialSystem::MaterialSystem(
 
 void MaterialSystem::Serialize(std::ofstream& fout, u32& offset)
 {
-    Assert::True(false, "TODO: implement it!");
+    CAssert::True(false, "TODO: implement it!");
 }
 
 ///////////////////////////////////////////////////////////
 
 void MaterialSystem::Deserialize(std::ifstream& fin, const u32 offset)
 {
-    Assert::True(false, "TODO: implement it!");
+    CAssert::True(false, "TODO: implement it!");
 }
 
 ///////////////////////////////////////////////////////////
@@ -61,9 +61,9 @@ void MaterialSystem::AddRecord(
     //     numSubmeshes          -- how many meshes does input entity have
     //     areMaterialsMeshBased -- defines if all the materials IDs are the same as materials IDs of the related model
 
-    Assert::True(enttID != INVALID_ENTITY_ID, "invalid entity");
-    Assert::True(materialsIDs != nullptr,     "input ptr to materials IDs arr == nullptr");
-    Assert::True(numSubmeshes > 0,            "input number of submeshes must be > 0");
+    CAssert::True(enttID != INVALID_ENTITY_ID, "invalid entity");
+    CAssert::True(materialsIDs != nullptr,     "input ptr to materials IDs arr == nullptr");
+    CAssert::True(numSubmeshes > 0,            "input number of submeshes must be > 0");
 
 
     Material& comp = *pMaterialComponent_;
@@ -135,8 +135,8 @@ void MaterialSystem::GetDataByEnttsIDs(
     // get an array of materials data per each input entity id;
     // (array per entity because each entity can have multiple meshes with one material)
 
-    Assert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
-    Assert::True(numEntts > 0,   "input number of entities must be > 0");
+    CAssert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
+    CAssert::True(numEntts > 0,   "input number of entities must be > 0");
 
     const Material& comp = *pMaterialComponent_;
     cvector<index> idxs;
@@ -164,8 +164,8 @@ void MaterialSystem::GetMaterialsFlagsByEntts(
     // materials of the related original model; if so we will render such entity
     // using INSTANCING;
 
-    Assert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
-    Assert::True(numEntts > 0,   "input number of entities must be > 0");
+    CAssert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
+    CAssert::True(numEntts > 0,   "input number of entities must be > 0");
 
     Material& comp = *pMaterialComponent_;
     cvector<index> idxs;

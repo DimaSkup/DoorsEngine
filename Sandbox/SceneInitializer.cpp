@@ -59,7 +59,7 @@ void SceneInitializer::InitPlayer(ID3D11Device* pDevice, ECS::EntityMgr* pEnttMg
 {
     // create and setup the player's entity
 
-    const ECS::EntityID playerID = pEnttMgr->CreateEntity("player");
+    const EntityID playerID = pEnttMgr->CreateEntity("player");
     pEnttMgr->AddTransformComponent(playerID, { 0,0,0 }, { 0,0,1 });
 
     // ------------------------------------------
@@ -192,7 +192,7 @@ void CreateLightPoles(ECS::EntityMgr& mgr, const BasicModel& lightPole)
 
     constexpr size numEntts = 10;
 
-    const ECS::cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
+    const cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
 
     XMFLOAT3    positions[numEntts];
     XMVECTOR    dirQuats[numEntts];
@@ -259,7 +259,7 @@ void CreateSpheres(ECS::EntityMgr& mgr, const BasicModel& model)
     LogDbg("create spheres entities");
 
     constexpr size numEntts = 10;
-    const ECS::cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
+    const cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
     const EntityID* ids = enttsIDs.data();
 
 
@@ -408,7 +408,7 @@ void CreateCylinders(ECS::EntityMgr& mgr, const BasicModel& model)
     LogDbg("create cylinders entities");
 
     constexpr size numEntts = 10;
-    const ECS::cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
+    const cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
     const EntityID* ids = enttsIDs.data();
 
     // ---------------------------------------------------------
@@ -505,7 +505,7 @@ void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
         };
 
         // create empty entities
-        const ECS::cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
+        const cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
         const EntityID* ids = enttsIDs.data();
 
 
@@ -791,7 +791,7 @@ void CreateTreesPine(ECS::EntityMgr& mgr, const BasicModel& model)
 
     using enum ECS::eRenderState;
     constexpr size numEntts = 50;
-    const ECS::cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
+    const cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
     const EntityID* ids = enttsIDs.data();
 
     // ---------------------------------------------
@@ -877,7 +877,7 @@ void CreateTreesSpruce(ECS::EntityMgr& mgr, const BasicModel& model)
 
     using enum ECS::eRenderState;
     constexpr int numEntts = 50;
-    const ECS::cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
+    const cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
     const EntityID* ids = enttsIDs.data();
 
     // ---------------------------------------------
@@ -952,7 +952,7 @@ void CreatePowerLine(ECS::EntityMgr& mgr, const BasicModel& model)
 
     // create and setup an entity
     constexpr int numEntts = 3;
-    const ECS::cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
+    const cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
     const EntityID* ids = enttsIDs.data();
    
 
@@ -1502,7 +1502,7 @@ void CreateRocks(ECS::EntityMgr& mgr, const BasicModel& model)
     LogDbg("create rock entities");
 
     constexpr int numEntts = 20;
-    const ECS::cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
+    const cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
     const EntityID* ids = enttsIDs.data();
 
     XMFLOAT3    positions[numEntts];

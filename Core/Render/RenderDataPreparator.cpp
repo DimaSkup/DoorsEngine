@@ -28,7 +28,7 @@ void PrepareInstancesWorldMatrices(
 {
     // prepare world matrix for each subset (mesh) of each entity
 
-    ECS::cvector<DirectX::XMMATRIX> worlds;
+    cvector<DirectX::XMMATRIX> worlds;
     pEnttMgr->transformSystem_.GetWorlds(enttsSortedByModels, numEntts, worlds);
 
     for (int worldIdx = 0, i = 0; const Render::Instance & instance : instances)
@@ -54,7 +54,7 @@ void PrepareInstancesTextureTransformations(
 {
     // prepare texture transformation matrix for each subset (mesh) of each entity
 
-    ECS::cvector<DirectX::XMMATRIX> enttsTexTransforms;
+    cvector<DirectX::XMMATRIX> enttsTexTransforms;
 
     pEnttMgr->texTransformSystem_.GetTexTransformsForEntts(
         enttsSortedByModels,
@@ -313,7 +313,7 @@ void RenderDataPreparator::SeparateEnttsByMaterialGroups(
 {
     // separate entities by entts with mesh based materials and unique materials
 
-    ECS::cvector<bool> materialsFlags;
+    cvector<bool> materialsFlags;
     mgr.materialSystem_.GetMaterialsFlagsByEntts(ids, numEntts, materialsFlags);
 
     // we expect that maybe all the entts has materials which are the same as its model and just a bit of entitites may have unique materials
@@ -371,9 +371,9 @@ void RenderDataPreparator::PrepareInstancesForEntts(
     if (numEntts == 0)
         return;
 
-    ECS::cvector<ModelID>  modelsIDs;
-    ECS::cvector<EntityID> enttsSortedByModels;
-    ECS::cvector<size>     numEnttsPerModel;
+    cvector<ModelID>  modelsIDs;
+    cvector<EntityID> enttsSortedByModels;
+    cvector<size>     numEnttsPerModel;
 
     mgr.modelSystem_.GetModelsIdsRelatedToEntts(
         ids,
@@ -423,10 +423,10 @@ void RenderDataPreparator::PrepareInstancesForEnttsWithUniqueMaterials(
     if (numEntts == 0)
         return;
 
-    ECS::cvector<ModelID>           modelsIDs;
-    ECS::cvector<EntityID>          enttsSortedByModels;
-    ECS::cvector<size>              numEnttsPerInstance;
-    ECS::cvector<ECS::MaterialData> materialsDataPerEntt;
+    cvector<ModelID>           modelsIDs;
+    cvector<EntityID>          enttsSortedByModels;
+    cvector<size>              numEnttsPerInstance;
+    cvector<ECS::MaterialData> materialsDataPerEntt;
 
     mgr.modelSystem_.GetModelsIdsRelatedToEntts(
         ids,

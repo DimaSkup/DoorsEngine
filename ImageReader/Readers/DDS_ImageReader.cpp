@@ -1,44 +1,19 @@
+#include "../Common/pch.h"
 #include "DDS_ImageReader.h"
-
-#include "../Common/log.h"
-#include "DDSTextureLoader11.h"
 #include <d3dx11tex.h>
-#include <string>
 
 #pragma warning (disable : 4996)
 
 namespace ImgReader
 {
 
-    inline static bool IsEmpty(const char* str) { return ((str == nullptr) || (str[0] == '\0')); }
-
-inline static void StrToWide(const char* str, wchar_t* outWStr)
-{
-    // dummy way (or not?) to convert str => wstr
-
-    if (outWStr == nullptr)
-    {
-        LogErr("in-out wide string == nullptr: so we cannot convert str => wstr");
-        return;
-    }
-
-    if (IsEmpty(str))
-    {
-        outWStr[0] = L'\0';
-        return;
-    }
-
-    const size_t sz = strlen(str) + 1;
-    mbstowcs(outWStr, str, sz);
-}
-
 bool DDS_ImageReader::LoadTextureFromFile(
     const char* filePath,
     ID3D11Device* pDevice,
     ID3D11Resource** ppTexture,
     ID3D11ShaderResourceView** ppTextureView,
-    u32& texWidth,
-    u32& texHeight)
+    uint32_t& texWidth,
+    uint32_t& texHeight)
 {
     // this function loads a DDS texture from the file by filePath
     // and initializes input parameters: texture resource, shader resource view,
@@ -53,7 +28,7 @@ bool DDS_ImageReader::LoadTextureFromFile(
 
     //std::wstring wStr(filePath, filePath + strlen(filePath));
     wchar_t wStr[256]{ L'\0' };
-    StrToWide(filePath, wStr);
+    StrHelper::StrToWide(filePath, wStr);
 
 
     // create a shader resource view from the texture file

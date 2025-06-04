@@ -17,8 +17,8 @@ CameraSystem::CameraSystem(Camera* pCameraComponent, TransformSystem* pTransform
     pCameraComponent_(pCameraComponent),
     pTransformSys_(pTransformSys)
 {
-    Assert::NotNullptr(pCameraComponent, "ptr to the camera component == nullptr");
-    Assert::NotNullptr(pTransformSys,    "ptr to the transform system == nullptr");
+    CAssert::NotNullptr(pCameraComponent, "ptr to the camera component == nullptr");
+    CAssert::NotNullptr(pTransformSys,    "ptr to the transform system == nullptr");
 }
 
 CameraSystem::~CameraSystem() 

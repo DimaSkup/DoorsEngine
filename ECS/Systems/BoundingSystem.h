@@ -6,12 +6,13 @@
 // **********************************************************************************
 #pragma once
 
+#include "../Common/ECSTypes.h"
 #include "../Components/Bounding.h"
 
 namespace ECS
 {
 
-class BoundingSystem final
+class BoundingSystem
 {
 public:
     BoundingSystem(Bounding* pBoundingComponent);

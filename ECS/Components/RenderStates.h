@@ -7,8 +7,8 @@
 // *********************************************************************************
 #pragma once
 
-#include "../Common/Types.h"
-#include "../Common/cvector.h"
+#include <Types.h>
+#include <cvector.h>
 
 namespace ECS
 {
@@ -78,8 +78,6 @@ static const cvector<eRenderState> g_AlphaClipCullNoneStates =
 
 struct RenderStates
 {
-    eComponentType type_ = eComponentType::RenderStatesComponent;
-
     cvector<EntityID> ids_;
     cvector<u32> statesHashes_;    // hash where each bit responds for a specific render state
 };

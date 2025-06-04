@@ -8,37 +8,16 @@
 
 #include <DirectXMath.h>
 
-
 namespace ECS
 {
 
 // Common typedefs
-using UINT = unsigned int;
-using XMFLOAT2 = DirectX::XMFLOAT2;
-using XMFLOAT3 = DirectX::XMFLOAT3;
-using XMFLOAT4 = DirectX::XMFLOAT4;
-using XMVECTOR = DirectX::XMVECTOR;
-using XMMATRIX = DirectX::XMMATRIX;
-
-using u32            = uint32_t;
-using size           = ptrdiff_t;  // used for indexing, or for storing the result from std::ssize()
-using index          = ptrdiff_t;
-
-using ComponentHash  = uint32_t;
-using ModelID        = uint32_t;
-
-// textures/materials related typedefs
-using TexID          = uint32_t;
-using MaterialID     = uint32_t;
-using SubmeshID      = uint16_t;
-
-using EntityID       = uint32_t;
-
-// common constants
-constexpr EntityID   INVALID_ENTITY_ID   = 0;
-constexpr MaterialID INVALID_MATERIAL_ID = 0;
-constexpr TexID      INVALID_TEXTURE_ID  = 0;
-constexpr size       NUM_TEXTURE_TYPES   = 21;
+using UINT          = unsigned int;
+using XMFLOAT2      = DirectX::XMFLOAT2;
+using XMFLOAT3      = DirectX::XMFLOAT3;
+using XMFLOAT4      = DirectX::XMFLOAT4;
+using XMVECTOR      = DirectX::XMVECTOR;
+using XMMATRIX      = DirectX::XMMATRIX;
 
 
 // for detailed description of each component you need to look for responsible component header file
@@ -51,7 +30,7 @@ enum eComponentType
     ModelComponent,                // attach to entity a 2D/3D model by ID
 
     CameraComponent,               // attach to entity a camera
-    MaterialComponent,             
+    MaterialComponent,
     TextureTransformComponent,     // set that texture has some kind of transformation (maybe it is a translation over some atlas texture so we create an animation, or rotation around texture center -- creates a rotating fireball)
     LightComponent,                // attach to entity some type of light source (directed, point, spotlight, etc.)
     RenderStatesComponent,         // for using different render states: blending, alpha clipping, fill mode, cull mode, etc.
@@ -82,5 +61,4 @@ enum RenderShaderType
     SKYDOME_SHADER
 };
 
-
-}
+} // namespace ECS

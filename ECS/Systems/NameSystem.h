@@ -6,7 +6,7 @@
 // **********************************************************************************
 #pragma once
 
-#include "../Common/Types.h"
+#include <Types.h>
 #include "../Components/Name.h"
 
 namespace ECS
@@ -25,15 +25,6 @@ public:
         const EntityID* ids,
         const std::string* names,
         const size numEntts);
-	
-#if 0
-	// TODO
-	void RenameRecords(
-		const cvector<EntityID>& enttsIDs,
-		const cvector<EntityName>& newEnttsNames);
-
-	void RemoveRecords(const cvector<EntityID>& enttsIDs);
-#endif
 
 	//
 	// getters

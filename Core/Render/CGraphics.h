@@ -25,17 +25,28 @@
 // Entity-Component-System
 #include "Entity/EntityMgr.h"
 
-//#include <string>
 #include <map>
-//#include <memory>
 #include <DirectXCollision.h>
-//#include <vector>
 
 namespace Core
 {
 
+// container for the light sources temp data during update process
+struct LightTempData
+{
+    cvector<DirectX::XMVECTOR>  dirLightsDirections;
+    cvector<ECS::PointLight>    pointLightsData;
+    cvector<DirectX::XMFLOAT3>  pointLightsPositions;
+    cvector<ECS::SpotLight>     spotLightsData;
+    cvector<DirectX::XMFLOAT3>  spotLightsPositions;
+    cvector<DirectX::XMFLOAT3>  spotLightsDirections;
+};
+
+// --------------------------------------------------------
+
 class CGraphics
 {
+
 public:
     enum AABBShowMode
     {
@@ -202,11 +213,12 @@ public:
     D3DClass              d3d_;
     RenderDataPreparator  prep_;
     FrameBuffer           frameBuffer_;                           // for rendering to some texture
-    ECS::EntityID currCameraID_ = 0;
+    EntityID currCameraID_ = 0;
     
     // for rendering
     ECS::RenderStatesSystem::EnttsRenderStatesData rsDataToRender_;
 
+    LightTempData lightTempData_;
 
     FrameBuffer                         materialBigIconFrameBuf_;
     cvector<FrameBuffer>                materialsFrameBuffers_;   // frame buffers which are used to render materials icons (for editor's material browser)

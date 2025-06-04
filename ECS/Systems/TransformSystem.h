@@ -6,7 +6,7 @@
 // Created:       20.05.24
 // **********************************************************************************
 #pragma once
-
+#include "../Common/ECSTypes.h"
 #include "../Components/Transform.h"
 
 

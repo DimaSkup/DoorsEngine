@@ -8,15 +8,14 @@
 #pragma once
 
 #include "../Components/RenderStates.h"
-#include "../Common/cvector.h"
-
+#include <cvector.h>
 #include <map>
 
 
 namespace ECS
 {
 
-class RenderStatesSystem final
+class RenderStatesSystem
 {
 public:
 

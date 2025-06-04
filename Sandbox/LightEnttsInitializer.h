@@ -6,8 +6,8 @@
 // =================================================================================
 #pragma once
 
-#include "Common/Types.h"
-#include "Common/MathHelper.h"
+#include <Types.h>
+#include <MathHelper.h>
 #include "Entity/EntityMgr.h"
 
 using XMFLOAT3 = DirectX::XMFLOAT3;
@@ -58,7 +58,7 @@ void InitDirectedLightEntities(ECS::EntityMgr& mgr)
 
 
         // create directional light entities and add components to them
-        const ECS::cvector<EntityID> dirLightsIds = mgr.CreateEntities(numDirLights);
+        const cvector<EntityID> dirLightsIds = mgr.CreateEntities(numDirLights);
         const EntityID* ids = dirLightsIds.data();
 
         const std::string names[numDirLights] =
@@ -192,7 +192,7 @@ void InitPointLightEntities(ECS::EntityMgr& mgr)
         // ------------------------------------------------
         // create and setup point light entities
 
-        const ECS::cvector<EntityID> pointLightsIds = mgr.CreateEntities(numPointLights);
+        const cvector<EntityID> pointLightsIds = mgr.CreateEntities(numPointLights);
         const EntityID* ids = pointLightsIds.data();
 
         mgr.AddTransformComponent(ids, numPointLights, positions, dirQuats, uniformScales);
@@ -243,7 +243,7 @@ void InitSpotLightEntities(ECS::EntityMgr& mgr)
         //
         // create and setup spotlight entities
         //
-        const ECS::cvector<EntityID> spotLightsIds = mgr.CreateEntities(numSpotLights);
+        const cvector<EntityID> spotLightsIds = mgr.CreateEntities(numSpotLights);
         const EntityID* enttsIDs = spotLightsIds.data();
         const EntityID flashLightID = spotLightsIds[0];
 

@@ -6,9 +6,8 @@
 // *********************************************************************************
 #pragma once
 
-
-#include "../Common/Types.h"
-#include "../Common/cvector.h"
+#include <Types.h>
+#include <cvector.h>
 
 
 namespace ECS
@@ -16,11 +15,9 @@ namespace ECS
 
 struct Movement
 {
-	cvector<EntityID> ids_;                     // entities IDs
-	cvector<XMFLOAT4> translationAndUniScales_; // translation (x,y,z); uniform scale (w)
-	cvector<XMVECTOR> rotationQuats_;           // rotation quatertion {0, pitch, yaw, roll}
-
-    eComponentType type_ = eComponentType::MoveComponent;
+	cvector<EntityID> ids_;                              // entities IDs
+	cvector<DirectX::XMFLOAT4> translationAndUniScales_; // translation (x,y,z); uniform scale (w)
+	cvector<DirectX::XMVECTOR> rotationQuats_;           // rotation quatertion {0, pitch, yaw, roll}
 };
 
 }
