@@ -1,4 +1,4 @@
-#include <Log.h>
+#include <CoreCommon/pch.h>
 #include "WindowContainer.h"
 #include <imgui.h>
 #include <backends/imgui_impl_win32.h>

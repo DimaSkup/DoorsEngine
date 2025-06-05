@@ -4,8 +4,9 @@
 // 
 // Created:       23.12.24
 // =================================================================================
+#include <CoreCommon/pch.h>
 #include "SkyModel.h"
-#include <CAssert.h>
+#pragma warning (disable : 4996)
 
 
 namespace Core

@@ -3,9 +3,8 @@
 // Description:  
 // Revising:     30.09.22
 ////////////////////////////////////////////////////////////////////
+#include <CoreCommon/pch.h>
 #include "WindowContainer.h"
-#include <Log.h>
-#include <StrHelper.h>
 
 
 namespace Core

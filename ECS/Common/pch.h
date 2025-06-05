@@ -17,5 +17,6 @@
 #include "cvector.h"
 #include "Types.h"
 #include "UtilsFilesystem.h"
+#include "ECSTypes.h"
 
 #pragma warning (disable : 4996)

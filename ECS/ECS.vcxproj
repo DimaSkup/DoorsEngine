@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.props" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.props')" />
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -19,22 +18,74 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Common\ECSTypes.h" />
+    <ClInclude Include="Common\pch.h" />
+    <ClInclude Include="Components\Bounding.h" />
+    <ClInclude Include="Components\Camera.h" />
+    <ClInclude Include="Components\Helpers\TextureTransformHelpers.h" />
+    <ClInclude Include="Components\Hierarchy.h" />
+    <ClInclude Include="Components\Light.h" />
+    <ClInclude Include="Components\Material.h" />
+    <ClInclude Include="Components\Model.h" />
+    <ClInclude Include="Components\Movement.h" />
+    <ClInclude Include="Components\Name.h" />
+    <ClInclude Include="Components\Player.h" />
+    <ClInclude Include="Components\Rendered.h" />
+    <ClInclude Include="Components\RenderStates.h" />
+    <ClInclude Include="Components\TextureTransform.h" />
+    <ClInclude Include="Components\Transform.h" />
+    <ClInclude Include="Entity\EntityMgr.h" />
+    <ClInclude Include="Systems\BoundingSystem.h" />
+    <ClInclude Include="Systems\CameraSystem.h" />
+    <ClInclude Include="Systems\HierarchySystem.h" />
+    <ClInclude Include="Systems\LightSystem.h" />
+    <ClInclude Include="Systems\MaterialSystem.h" />
+    <ClInclude Include="Systems\ModelSystem.h" />
+    <ClInclude Include="Systems\MoveSystem.h" />
+    <ClInclude Include="Systems\NameSystem.h" />
+    <ClInclude Include="Systems\PlayerSystem.h" />
+    <ClInclude Include="Systems\RenderStatesSystem.h" />
+    <ClInclude Include="Systems\RenderSystem.h" />
+    <ClInclude Include="Systems\TextureTransformSystem.h" />
+    <ClInclude Include="Systems\TransformSystem.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Common\pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Entity\EntityMgr.cpp" />
+    <ClCompile Include="Systems\BoundingSystem.cpp" />
+    <ClCompile Include="Systems\CameraSystem.cpp" />
+    <ClCompile Include="Systems\HierarchySystem.cpp" />
+    <ClCompile Include="Systems\LightSystem.cpp" />
+    <ClCompile Include="Systems\MaterialSystem.cpp" />
+    <ClCompile Include="Systems\ModelSystem.cpp" />
+    <ClCompile Include="Systems\MoveSystem.cpp" />
+    <ClCompile Include="Systems\NameSystem.cpp" />
+    <ClCompile Include="Systems\PlayerSystem.cpp" />
+    <ClCompile Include="Systems\RenderStatesSystem.cpp" />
+    <ClCompile Include="Systems\RenderSystem.cpp" />
+    <ClCompile Include="Systems\TextureTransformSystem.cpp" />
+    <ClCompile Include="Systems\TransformSystem.cpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{09e2ea9a-659c-4bec-bb0b-803bde6b1d29}</ProjectGuid>
+    <ProjectGuid>{d4788e9a-0043-467d-aca9-237d21315a17}</ProjectGuid>
     <RootNamespace>ECS</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -71,30 +122,30 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <TargetName>$(ProjectName)_d</TargetName>
-    <OutDir>$(SolutionDir)Lib\$(Platform)\$(Configuration)\</OutDir>
-    <IncludePath>$(SolutionDir)ECS\;$(SolutionDir)Shared\;$(SolutionDir)ECS\Common\;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)Lib\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)Lib\$(Platform)\$(Configuration)\</OutDir>
-    <IncludePath>$(SolutionDir)ECS\;$(SolutionDir)Shared\;$(SolutionDir)ECS\Common\;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)Lib\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
+    <IncludePath>$(IncludePath);$(DXSDK_DIR)Include;$(SolutionDir)Shared\</IncludePath>
+    <LibraryPath>$(DXSDK_DIR)Lib\x64;$(SolutionDir)Lib\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(SolutionDir)Lib\$(Platform)\$(Configuration)\</OutDir>
+    <TargetName>$(ProjectName)_d</TargetName>
+    <IncludePath>$(IncludePath);$(DXSDK_DIR)Include;$(SolutionDir)Shared\</IncludePath>
+    <LibraryPath>$(DXSDK_DIR)Lib\x64;$(SolutionDir)Lib\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;ECS_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>
+      </SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <EnableUAC>false</EnableUAC>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -103,38 +154,33 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;ECS_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>
+      </SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <EnableUAC>false</EnableUAC>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;ECS_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>../Common/pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
-      <ForcedIncludeFiles>
-      </ForcedIncludeFiles>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>
+      </SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <EnableUAC>false</EnableUAC>
     </Link>
     <Lib>
       <AdditionalDependencies>Shared_d.lib;</AdditionalDependencies>
@@ -146,90 +192,24 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;ECS_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>../Common/pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <ForcedIncludeFiles>$(SolutionDir)ECS\Common\pch.h;</ForcedIncludeFiles>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>
+      </SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <EnableUAC>false</EnableUAC>
     </Link>
     <Lib>
-      <AdditionalDependencies>Shared.lib;</AdditionalDependencies>
+      <AdditionalDependencies>Shared.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClInclude Include="Common\ECSTypes.h" />
-    <ClInclude Include="Common\pch.h" />
-    <ClInclude Include="Common\vector.h" />
-    <ClInclude Include="Components\Bounding.h" />
-    <ClInclude Include="Components\Camera.h" />
-    <ClInclude Include="Components\Hierarchy.h" />
-    <ClInclude Include="Components\Player.h" />
-    <ClInclude Include="Components\RenderStates.h" />
-    <ClInclude Include="Components\Light.h" />
-    <ClInclude Include="Components\Helpers\TextureTransformHelpers.h" />
-    <ClInclude Include="Components\Model.h" />
-    <ClInclude Include="Components\Movement.h" />
-    <ClInclude Include="Components\Name.h" />
-    <ClInclude Include="Components\Rendered.h" />
-    <ClInclude Include="Components\Material.h" />
-    <ClInclude Include="Components\TextureTransform.h" />
-    <ClInclude Include="Components\Transform.h" />
-    <ClInclude Include="Entity\EntityMgr.h" />
-    <ClInclude Include="Systems\BoundingSystem.h" />
-    <ClInclude Include="Systems\CameraSystem.h" />
-    <ClInclude Include="Systems\HierarchySystem.h" />
-    <ClInclude Include="Systems\PlayerSystem.h" />
-    <ClInclude Include="Systems\RenderStatesSystem.h" />
-    <ClInclude Include="Systems\LightSystem.h" />
-    <ClInclude Include="Systems\ModelSystem.h" />
-    <ClInclude Include="Systems\MoveSystem.h" />
-    <ClInclude Include="Systems\NameSystem.h" />
-    <ClInclude Include="Systems\RenderSystem.h" />
-    <ClInclude Include="Systems\MaterialSystem.h" />
-    <ClInclude Include="Systems\TextureTransformSystem.h" />
-    <ClInclude Include="Systems\TransformSystem.h" />
-    <ClInclude Include="ECS_Tests\Unit\ECS_Main_Unit_Test.h" />
-    <ClInclude Include="ECS_Tests\Unit\ECS_Test_Components.h" />
-    <ClInclude Include="ECS_Tests\Unit\UnitTestUtils.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="Common\pch.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Entity\EntityMgr.cpp" />
-    <ClCompile Include="Systems\BoundingSystem.cpp" />
-    <ClCompile Include="Systems\CameraSystem.cpp" />
-    <ClCompile Include="Systems\HierarchySystem.cpp" />
-    <ClCompile Include="Systems\PlayerSystem.cpp" />
-    <ClCompile Include="Systems\RenderStatesSystem.cpp" />
-    <ClCompile Include="Systems\LightSystem.cpp" />
-    <ClCompile Include="Systems\ModelSystem.cpp" />
-    <ClCompile Include="Systems\MoveSystem.cpp" />
-    <ClCompile Include="Systems\NameSystem.cpp" />
-    <ClCompile Include="Systems\RenderSystem.cpp" />
-    <ClCompile Include="Systems\MaterialSystem.cpp" />
-    <ClCompile Include="Systems\TextureTransformSystem.cpp" />
-    <ClCompile Include="Systems\TransformSystem.cpp" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.targets" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.targets')" />
   </ImportGroup>
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.props'))" />
-    <Error Condition="!Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.CppWinRT.2.0.210806.1\build\native\Microsoft.Windows.CppWinRT.targets'))" />
-  </Target>
 </Project>

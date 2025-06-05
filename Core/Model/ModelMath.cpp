@@ -2,10 +2,8 @@
 // Filename:     ModelMath.cpp
 // Created:      06.02.23
 ////////////////////////////////////////////////////////////////////
+#include <CoreCommon/pch.h>
 #include "ModelMath.h"
-#include <cmath>
-#include <Types.h>
-
 
 using namespace DirectX;
 
