@@ -3,8 +3,8 @@
 //
 // Created:     20.02.25  by DimaSkup
 // =================================================================================
+#include <CoreCommon/pch.h>
 #include "SkyEditorView.h"
-#include <CAssert.h>
 
 #include <UICommon/Color.h>
 #include <UICommon/Vectors.h>

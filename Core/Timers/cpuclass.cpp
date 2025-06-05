@@ -2,10 +2,9 @@
 // Filename: cpuclass.cpp
 // Revising: 31.07.22
 ////////////////////////////////////////////////////////////////////
+#include <CoreCommon/pch.h>
 #include "cpuclass.h"
 #include <pdhmsg.h>
-#include <log.h>
-#include <StrHelper.h>
 
 #pragma warning (disable : 4996)
 

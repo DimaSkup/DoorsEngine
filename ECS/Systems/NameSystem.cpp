@@ -1,5 +1,4 @@
 #include "../Common/pch.h"
-#include <ECSTypes.h>
 #include "NameSystem.h"
 
 
