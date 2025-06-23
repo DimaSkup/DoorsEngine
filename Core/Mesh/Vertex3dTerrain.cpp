@@ -90,8 +90,8 @@ Vertex3dTerrain::Vertex3dTerrain(
 	position(pos),
 	texture(tex),
 	normal(nor),
-	tangent(tang),
-	color(col)
+	tangent(tang)
+	//color(col)
 {
 	// a constructor with XM-type input params
 }
@@ -106,8 +106,8 @@ Vertex3dTerrain::Vertex3dTerrain(
 	position(pos),
 	texture(tex),
 	normal(nor),
-	tangent(tang),
-	color(col)
+	tangent(tang)
+	//color(col)
 {
 }
 

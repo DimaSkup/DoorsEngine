@@ -122,7 +122,7 @@ bool SceneInitializer::InitCameras(
        // EntityID matBrowserCamID = enttMgr.CreateEntity("material_browser_camera");
 
         // add transform component: positions and directions
-        const XMFLOAT3 editorCamPos = { -18, 1, -15 };
+        const XMFLOAT3 editorCamPos = { 0, 10, 0 };
         const XMFLOAT3 gameCamPos   = { 0, 0, 0 };
         const XMFLOAT3 matBrowserCamPos = { 0, 0, -2.0f };
 
@@ -695,9 +695,8 @@ void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
 
 ///////////////////////////////////////////////////////////
 
-void CreateTerrain(ECS::EntityMgr& mgr, const Core::Terrain& terrain)
+void CreateTerrain(ECS::EntityMgr& mgr, const Core::TerrainGeomipmapped& terrain)
 {
-#if 1
     //
     // create and setup terrain elements
     //
@@ -706,40 +705,28 @@ void CreateTerrain(ECS::EntityMgr& mgr, const Core::Terrain& terrain)
     // create and setup a terrain entity
     const EntityID enttID = mgr.CreateEntity();
 
-    // setup a transformation for the terrain's texture (scale it)
-    ECS::StaticTexTransInitParams terrainTexTransform;
-    terrainTexTransform.Push(DirectX::XMMatrixScaling(1, 1, 0));
-
     // setup rendering params
     ECS::RenderInitParams renderParams;
     renderParams.shaderType = ECS::LIGHT_SHADER;
     renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
-    mgr.AddTransformComponent(enttID, { 0, 0, 0 });
-    mgr.AddNameComponent(enttID, "terrain");
-    //mgr.AddModelComponent(enttID, terrain.GetID());
-    mgr.AddTextureTransformComponent(enttID, ECS::TexTransformType::STATIC, terrainTexTransform);
-    //mgr.AddRenderingComponent(enttID, renderParams);
-
-
-    // add bounding component to each subset of this entity
+    // setup bounding params
     constexpr size             numEntts = 1;
     constexpr size             numSubsets = 1;
     const ECS::BoundingType    boundType = ECS::BoundingType::BOUND_BOX;
     const DirectX::BoundingBox aabb = { terrain.center_, terrain.extents_ };
 
-    mgr.AddBoundingComponent(enttID, boundType, aabb);
-
-
+    // setup material params
     constexpr bool areMaterialsMeshBased = true;
     const MaterialID terrainMatID = terrain.materialID_;
+
+
+    mgr.AddTransformComponent(enttID);
+    mgr.AddNameComponent(enttID, "terrain");
+    mgr.AddBoundingComponent(enttID, boundType, aabb);
     mgr.AddMaterialComponent(enttID, &terrainMatID, numSubsets, areMaterialsMeshBased);
 
-    //const DirectX::XMVECTOR rotQuat = DirectX::XMQuaternionRotationAxis({ 1,0,0 }, DirectX::XM_PI);
-    //mgr.transformSystem_.RotateLocalSpacesByQuat(&enttID, numEntts, rotQuat);
-
     LogDbg("Terrain is created");
-#endif
 }
 
 ///////////////////////////////////////////////////////////
@@ -790,7 +777,7 @@ void CreateTreesPine(ECS::EntityMgr& mgr, const BasicModel& model)
     LogDbg("create tree pine entities");
 
     using enum ECS::eRenderState;
-    constexpr size numEntts = 50;
+    constexpr size numEntts = 100;
     const cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
     const EntityID* ids = enttsIDs.data();
 
@@ -809,14 +796,22 @@ void CreateTreesPine(ECS::EntityMgr& mgr, const BasicModel& model)
         name = g_String;
     }
 
+    // we will set heights according to the terrain's landscape
+    TerrainGeomipmapped& terrain = g_ModelMgr.GetTerrainGeomip();
+    const float range = (float)terrain.heightMap_.GetWidth();
+    const float maxHeight = 60;// terrain.tiles_.regions[HIGHEST_TILE].lowHeight;
+
     // generate positions
     for (XMFLOAT3& pos : positions)
     {
-        pos.x = MathHelper::RandF(-150, 150);
-        pos.z = MathHelper::RandF(-150, 150);
-        pos.y = 0.0f; // GetHeightOfGeneratedTerrainAtPoint(pos.x, pos.z);
+        do
+        {
+            pos.x = MathHelper::RandF(0, range);
+            pos.z = MathHelper::RandF(0, range);
+            pos.y = terrain.GetScaledHeightAtPoint((int)pos.x, (int)pos.z) - 0.3f;
+
+        } while (maxHeight < pos.y);   // limit height for trees
     }
-    //positions[0] = { 0,0,0 };
 
     // generate directions
     for (index i = 0; i < numEntts; ++i)
@@ -876,7 +871,7 @@ void CreateTreesSpruce(ECS::EntityMgr& mgr, const BasicModel& model)
     LogDbg("create tree spruce entities");
 
     using enum ECS::eRenderState;
-    constexpr int numEntts = 50;
+    constexpr int numEntts = 100;
     const cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
     const EntityID* ids = enttsIDs.data();
 
@@ -893,15 +888,22 @@ void CreateTreesSpruce(ECS::EntityMgr& mgr, const BasicModel& model)
         name = { "tree_spruce_" + std::to_string(enttsIDs[i++]) };
     }
 
+    // we will set heights according to the terrain's landscape
+    TerrainGeomipmapped& terrain = g_ModelMgr.GetTerrainGeomip();
+    const float range            = (float)terrain.heightMap_.GetWidth();
+    const float maxHeight        = 60;
+
     // generate positions
     for (XMFLOAT3& pos : positions)
     {
-        pos.x = MathHelper::RandF(-150, 150);
-        pos.z = MathHelper::RandF(-150, 150);
-        pos.y = GetHeightOfGeneratedTerrainAtPoint(pos.x, pos.z);
-    }
+        do
+        {
+            pos.x = MathHelper::RandF(0, range);
+            pos.z = MathHelper::RandF(0, range);
+            pos.y = terrain.GetScaledHeightAtPoint((int)pos.x, (int)pos.z) - 0.3f;
 
-    positions[0] = { 0,0,0 };
+        } while (maxHeight < pos.y);   // limit height for trees
+    }
 
     // generate direction quats
     for (int i = 0; i < numEntts; ++i)
@@ -989,7 +991,7 @@ void CreatePowerLine(ECS::EntityMgr& mgr, const BasicModel& model)
 
     // setup bounding params
     const size numSubsets = model.GetNumSubsets();
-    const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
+    const cvector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
 
 
     mgr.AddTransformComponent(ids, numEntts, positions, directions, uniformScales);
@@ -1261,18 +1263,18 @@ void CreateSovietStatue(ECS::EntityMgr& mgr, const BasicModel& model)
     const EntityID enttID = mgr.CreateEntity();
 
     // setup transformation params
-    const XMFLOAT3 pos = { -50, 1.3f, 60 };
-    const XMVECTOR dirQuat = { 0,0,0,1 };
-    const float uniformScale = 5.0f;
+    const XMFLOAT3 pos          = { -50, 1.3f, 60 };
+    const XMVECTOR dirQuat      = { 0,0,0,1 };
+    const float uniformScale    = 5.0f;
 
     // setup rendering params
     ECS::RenderInitParams renderParams;
-    renderParams.shaderType = ECS::LIGHT_SHADER;
-    renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+    renderParams.shaderType     = ECS::LIGHT_SHADER;
+    renderParams.topologyType   = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
     // add bounding params
-    const size numEntts = 1;
-    const size numSubsets = model.GetNumSubsets();
+    const size numEntts         = 1;
+    const size numSubsets       = model.GetNumSubsets();
     const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
 
 
@@ -1377,6 +1379,59 @@ void CreateAk47(ECS::EntityMgr& mgr, const BasicModel& model)
 
 ///////////////////////////////////////////////////////////
 
+void CreateCastleTower(ECS::EntityMgr& mgr, const BasicModel& model)
+{
+    const EntityID enttID = mgr.CreateEntity();
+
+    // compute the terrain's middle point
+    TerrainGeomipmapped& terrain = g_ModelMgr.GetTerrainGeomip();
+    const float terrainSize = (float)terrain.heightMap_.GetWidth();
+    const float posX = terrainSize / 2;
+    const float posZ = terrainSize / 2;
+    const float posY = terrain.GetScaledHeightAtPoint((int)posX, (int)posZ) - 7;
+
+    // setup transformation params
+    const XMFLOAT3 position = { posX, posY, posZ };
+    const XMVECTOR dirQuat = { 0, 0, 1, 0 };
+    const float uniformScale = 5.0f;
+
+    // setup rendering params
+    ECS::RenderInitParams renderParams;
+    renderParams.shaderType = ECS::LIGHT_SHADER;
+    renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+    // setup bounding params
+    const size numEntts = 1;
+    const size numSubsets = model.GetNumSubsets();
+    const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
+
+    // setup transformation
+    mgr.AddTransformComponent(enttID, position, dirQuat, uniformScale);
+    const XMVECTOR q1 = DirectX::XMQuaternionRotationAxis({ 1,0,0 }, DirectX::XM_PIDIV2 - 0.1f);
+    mgr.transformSystem_.RotateLocalSpaceByQuat(enttID, q1);
+
+    mgr.AddNameComponent(enttID, "castle_tower");
+    mgr.AddModelComponent(enttID, model.GetID());
+    mgr.AddRenderingComponent(enttID, renderParams);
+
+    mgr.AddBoundingComponent(
+        &enttID,
+        1,
+        numSubsets,
+        boundTypes.data(),
+        model.GetSubsetsAABB());      // AABB data (center, extents)
+
+    constexpr bool areMaterialsMeshBased = true;
+    const MaterialID matID = model.meshes_.subsets_[0].materialID;
+    mgr.AddMaterialComponent(enttID, &matID, numSubsets, areMaterialsMeshBased);
+
+    // TEMP: fix rotation
+    const DirectX::XMVECTOR rotQuat = DirectX::XMQuaternionRotationAxis({ 1,0,0 }, -DirectX::XM_PIDIV2+0.1f);
+    mgr.transformSystem_.RotateLocalSpaceByQuat(enttID, rotQuat);
+}
+
+////////////////////////////////////////////////////////////
+
 void CreateAk74(ECS::EntityMgr& mgr, const BasicModel& model)
 {
     LogDbg("create ak74 entity");
@@ -1429,11 +1484,11 @@ void CreateHouse(ECS::EntityMgr& mgr, const BasicModel& model)
     const EntityID enttID = mgr.CreateEntity();
 
     // setup transformation params
-    const float posY = GetHeightOfGeneratedTerrainAtPoint(34, 43) + 2.5f;
-    const XMFLOAT3 pos = { 34, posY, 43 };
-    const XMVECTOR rotVec = { DirectX::XM_PIDIV2, 0,0 };
-    const XMVECTOR quat = DirectX::XMQuaternionRotationRollPitchYawFromVector(rotVec);
-    const float uniScale = 1.0f;
+    const float posY        = GetHeightOfGeneratedTerrainAtPoint(34, 43) + 2.5f;
+    const XMFLOAT3 pos      = { 34, posY, 43 };
+    const XMVECTOR rotVec   = { DirectX::XM_PIDIV2, 0,0 };
+    const XMVECTOR quat     = DirectX::XMQuaternionRotationRollPitchYawFromVector(rotVec);
+    const float uniScale    = 1.0f;
 
     // setup rendering params
     ECS::RenderInitParams renderParams;
@@ -1441,10 +1496,9 @@ void CreateHouse(ECS::EntityMgr& mgr, const BasicModel& model)
     renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
     // setup bounding params
-    const size numEntts = 1;
-    const size numSubsets = model.GetNumSubsets();
+    const size numEntts     = 1;
+    const size numSubsets   = model.GetNumSubsets();
     const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
-
 
     mgr.AddTransformComponent(enttID, pos, quat, uniScale);
     mgr.AddNameComponent(enttID, "kordon_house");
@@ -1642,7 +1696,7 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     const char* pathTreeSpruce              = "data/models/ext/trees/tree_spruce/tree_spruce.obj";
     const char* pathTreePine                = "data/models/ext/trees/FBX format/tree_pine.fbx";
     const char* pathRadar                   = "data/models/ext/radar/radar.fbx";
-
+    const char* pathCastleTower             = "data/models/ext/castle-tower/fougeres gate.obj";
 #if 1
     // import a model from file by path
     LogDbg("Start of models importing");
@@ -1650,8 +1704,8 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     ModelsCreator creator;
 
     //const ModelID lightPoleID      = creator.ImportFromFile(pDevice, lightPolePath);
-    //const ModelID treeSpruceID     = creator.ImportFromFile(pDevice, treeSprucePath.c_str());
-    const ModelID treePineID = creator.ImportFromFile(pDevice, pathTreePine);
+    const ModelID treeSpruceID     = creator.ImportFromFile(pDevice, pathTreeSpruce);
+    const ModelID treePineID       = creator.ImportFromFile(pDevice, pathTreePine);
     //const ModelID nanosuitID       = creator.ImportFromFile(pDevice, nanosuitPath);
     //const ModelID stalkerFreedomID = creator.ImportFromFile(pDevice, stalkerFreedom1Path.c_str());
     //const ModelID traktorID        = creator.ImportFromFile(pDevice, stalkerTraktor13Path.c_str());
@@ -1659,6 +1713,7 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     //const ModelID stalkerHouse2ID  = creator.ImportFromFile(pDevice, stalkerHouseAbandonedPath.c_str());
     //const ModelID ak47ID = creator.ImportFromFile(pDevice, ak47Path.c_str());
     const ModelID ak74ID           = creator.ImportFromFile(pDevice, pathAk74u);
+    const ModelID castleTowerID    = creator.ImportFromFile(pDevice, pathCastleTower);
     //const ModelID barrelID         = creator.ImportFromFile(pDevice, barrelPath);
     //const ModelID powerHVTowerID   = creator.ImportFromFile(pDevice, powerHVTowerPath.c_str());
     //const ModelID radarID = creator.ImportFromFile(pDevice, radarPath.c_str());
@@ -1676,7 +1731,7 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     //BasicModel& building        = g_ModelMgr.GetModelByID(buildingID);
     //BasicModel& apartment       = g_ModelMgr.GetModelByID(apartmentID);
     //BasicModel& sovietStatue    = g_ModelMgr.GetModelByID(sovietStatueID);
-    //BasicModel& treeSpruce      = g_ModelMgr.GetModelByID(treeSpruceID);
+    BasicModel& treeSpruce      = g_ModelMgr.GetModelByID(treeSpruceID);
     BasicModel& treePine        = g_ModelMgr.GetModelByID(treePineID);
     //BasicModel& powerHVTower    = g_ModelMgr.GetModelByID(powerHVTowerID);
     //BasicModel& stalkerFreedom  = g_ModelMgr.GetModelByID(stalkerFreedomID);
@@ -1685,12 +1740,14 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     //BasicModel& stalkerHouse2   = g_ModelMgr.GetModelByID(stalkerHouse2ID);
     //BasicModel& ak47            = g_ModelMgr.GetModelByID(ak47ID);
     BasicModel& ak74            = g_ModelMgr.GetModelByID(ak74ID);
+    BasicModel& castleTower = g_ModelMgr.GetModelByID(castleTowerID);
     //BasicModel& radar           = g_ModelMgr.GetModelByID(radarID);
 
     // setup some models (set textures, setup materials)
     //SetupStalkerSmallHouse(stalkerHouse1);
     //SetupStalkerAbandonedHouse(stalkerHouse2);
     SetupTree(treePine);
+    SetupTreeSpruce(treeSpruce);
     //SetupPowerLine(powerHVTower);
     //SetupBuilding9(building);
     //SetupStalkerFreedom(stalkerFreedom);
@@ -1698,8 +1755,8 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     SetupAk74(ak74);
     //SetupTraktor(traktor13);
 
-    //CreateTreesPine(mgr, treePine);
-    //CreateTreesSpruce(mgr, treeSpruce);
+    CreateTreesPine(mgr, treePine);
+    CreateTreesSpruce(mgr, treeSpruce);
     //CreatePowerLine(mgr, powerHVTower);
     //CreateLightPoles(mgr, lightPole);
     //CreateHouse(mgr, stalkerHouse1);
@@ -1707,6 +1764,7 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
 
     //CreateAk47(mgr, ak47);
     CreateAk74(mgr, ak74);
+    CreateCastleTower(mgr, castleTower);
     //CreateBarrel(mgr, barrel);
     //CreateNanoSuit(mgr, nanosuit);
     //CreateRadar(mgr, radar);
@@ -1736,15 +1794,22 @@ void GenerateAssets(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     //const ModelID terrainID = creator.CreateGeneratedTerrain(pDevice, 500, 500, 501, 501);
 
     const char* terrainConfigPath = "data/terrain/terrain.cfg";
-    const ModelID terrainID       = creator.CreateTerrainFromHeightmap(pDevice, terrainConfigPath);
-    Core::Terrain& terrain        = g_ModelMgr.GetTerrain();
+#if 0
+    const ModelID terrainID     = creator.CreateTerrain(pDevice, terrainConfigPath);
+    Core::Terrain& terrain      = g_ModelMgr.GetTerrain();
+#else
+    const ModelID terrainID             = creator.CreateTerrainGeomipmapped(pDevice, terrainConfigPath);
+    Core::TerrainGeomipmapped& terrain  = g_ModelMgr.GetTerrainGeomip();
+#endif
 
     // load and set a texture for the terrain model
 
     // create and setup material for terrain
     Material terrainMat;
+    terrainMat.SetAmbient(0.2f, 0.2f, 0.2f, 1.0f);
     terrainMat.SetTexture(TEX_TYPE_DIFFUSE, terrain.texture_.GetID());
     terrainMat.SetTexture(TEX_TYPE_DIFFUSE_ROUGHNESS, terrain.detailMap_.GetID());
+    terrainMat.SetTexture(TEX_TYPE_LIGHTMAP, terrain.lightmap_.id);
     //terrainMat.SetTexture(TEX_TYPE_NORMALS, terrain.normalMap_.GetID());
     strcpy(terrainMat.name, "terrain_mat_1");
     const MaterialID terrainMatID = g_MaterialMgr.AddMaterial(std::move(terrainMat));
@@ -1937,6 +2002,8 @@ bool SceneInitializer::InitModelEntities(ID3D11Device* pDevice, ECS::EntityMgr& 
         const ModelID boundingBoxID = creator.CreateBoundingLineBox(pDevice);
 
         LoadTreesBillboardsTextures();
+        GenerateAssets(pDevice, mgr);
+
 #if 1
         if (FileSys::Exists(g_RelPathAssetsDir))
         {
@@ -1953,8 +2020,7 @@ bool SceneInitializer::InitModelEntities(ID3D11Device* pDevice, ECS::EntityMgr& 
 #endif
 
 
-        GenerateAssets(pDevice, mgr);
-
+       
         //exit(-1);
 #if 0
 

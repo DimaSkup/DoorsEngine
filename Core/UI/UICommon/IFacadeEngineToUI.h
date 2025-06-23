@@ -87,7 +87,6 @@ public:
 
     virtual ~IFacadeEngineToUI() {};
 
-
     virtual ModelID GetModelIdByName(const std::string& name) { return 0; }
 
 
@@ -199,12 +198,12 @@ public:
     virtual bool SetPointLightRange      (const EntityID id, const float range)         { return false; }
     virtual bool SetPointLightAttenuation(const EntityID id, const Vec3& attenuation)   { return false; }
 
-    virtual ColorRGBA GetPointLightAmbient (const EntityID id)                    const { return GetInvalidRGBA(); }
-    virtual ColorRGBA GetPointLightDiffuse (const EntityID id)                    const { return GetInvalidRGBA(); }
-    virtual ColorRGBA GetPointLightSpecular(const EntityID id)                    const { return GetInvalidRGBA(); }
-    virtual Vec3 GetPointLightPos          (const EntityID id)                    const { return GetInvalidVec3(); }
-    virtual Vec3 GetPointLightAttenuation  (const EntityID id)                    const { return GetInvalidVec3(); }
-    virtual float GetPointLightRange       (const EntityID id)                    const { return GetInvalidFloat(); }
+    virtual ColorRGBA GetPointLightAmbient    (const EntityID id)                 const { return GetInvalidRGBA(); }
+    virtual ColorRGBA GetPointLightDiffuse    (const EntityID id)                 const { return GetInvalidRGBA(); }
+    virtual ColorRGBA GetPointLightSpecular   (const EntityID id)                 const { return GetInvalidRGBA(); }
+    virtual Vec3      GetPointLightPos        (const EntityID id)                 const { return GetInvalidVec3(); }
+    virtual Vec3      GetPointLightAttenuation(const EntityID id)                 const { return GetInvalidVec3(); }
+    virtual float     GetPointLightRange      (const EntityID id)                 const { return GetInvalidFloat(); }
 
 
     // =============================================================================
@@ -298,11 +297,11 @@ public:
         const float yAxisRotation) { return false; }
 
 private:
-    inline float GetInvalidFloat()    const { return NAN; }
-    inline Vec3 GetInvalidVec3()      const { return { NAN, NAN, NAN }; }
-    inline Vec4 GetInvalidVec4()      const { return { NAN, NAN, NAN, NAN }; }
-    inline ColorRGBA GetInvalidRGB()  const { return { NAN, NAN, NAN, NAN }; }
-    inline ColorRGBA GetInvalidRGBA() const { return { NAN, NAN, NAN, NAN }; }
+    inline float     GetInvalidFloat() const { return NAN; }
+    inline Vec3      GetInvalidVec3()  const { return { NAN, NAN, NAN }; }
+    inline Vec4      GetInvalidVec4()  const { return { NAN, NAN, NAN, NAN }; }
+    inline ColorRGBA GetInvalidRGB()   const { return { NAN, NAN, NAN, NAN }; }
+    inline ColorRGBA GetInvalidRGBA()  const { return { NAN, NAN, NAN, NAN }; }
 };
 
 } // namespace UI

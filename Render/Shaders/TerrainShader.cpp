@@ -81,9 +81,46 @@ void TerrainShader::Render(
     cbpsMaterialData_.ApplyChanges(pContext);
 
     // render geometry
-    pContext->DrawIndexed(instance.indexCount, 0U, 0U);
+    //pContext->DrawIndexed(instance.indexCount, 0U, 0U);
+    pContext->Draw(instance.numVertices, 0);
 }
 
+// --------------------------------------------------------
+// Desc:   render terrain's vertices onto the screen
+//         (NOTE: we don't use any indices here)
+// Args:   - pContext: a ptr to DirectX11 device context
+//         - instance: container of necessary data for rendering
+// --------------------------------------------------------
+void TerrainShader::RenderVertices(
+    ID3D11DeviceContext* pContext,
+    const TerrainInstance& instance)
+{
+    // bind vertex and pixel shaders
+    pContext->VSSetShader(vs_.GetShader(), nullptr, 0U);
+    pContext->IASetInputLayout(vs_.GetInputLayout());
+    pContext->PSSetShader(ps_.GetShader(), nullptr, 0U);
+
+    // set the sampler state and textures
+    pContext->PSSetSamplers(1U, 1U, samplerState_.GetAddressOf());
+    pContext->PSSetShaderResources(1U, NUM_TEXTURE_TYPES, instance.textures);
+
+    // bind vertex buffer
+    constexpr UINT offset = 0;
+
+    pContext->IASetVertexBuffers(0, 1, &instance.pVB, &instance.vertexStride, &offset);
+
+    // setup the material
+    cbpsMaterialData_.data.ambient  = instance.material.ambient_;
+    cbpsMaterialData_.data.diffuse  = instance.material.diffuse_;
+    cbpsMaterialData_.data.specular = instance.material.specular_;
+    cbpsMaterialData_.data.reflect  = instance.material.reflect_;
+    cbpsMaterialData_.ApplyChanges(pContext);
+
+    pContext->PSSetConstantBuffers(5, 1, cbpsMaterialData_.GetAddressOf());
+
+    // render geometry
+    pContext->Draw(instance.numVertices, 0);
+}
 
 // --------------------------------------------------------
 // Desc:   reload of shaders without reloading of the engine :)
@@ -138,6 +175,7 @@ void TerrainShader::InitializeShaders(
     result = samplerState_.Initialize(pDevice);
     CAssert::True(result, "can't initialize the sampler state");
 
+    // cbps - const buffer for pixel shader
     hr = cbpsMaterialData_.Initialize(pDevice);
     CAssert::NotFailed(hr, "can't initialize a constant buffer of materials");
 }

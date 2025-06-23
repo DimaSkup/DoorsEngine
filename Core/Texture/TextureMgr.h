@@ -39,6 +39,23 @@ public:
     // public creation API
     void Initialize(ID3D11Device* pDevice);
 
+    TexID CreateTextureFromRawData(
+        const char* name,
+        const uint8* data,
+        const uint width,
+        const uint height,
+        const int bpp,
+        const bool mipMapped);
+
+    void RecreateTextureFromRawData(
+        const char* name,
+        const uint8* data,
+        const uint width,
+        const uint height,
+        const int bpp,
+        const bool mipMapped,
+        Texture& inOutTex);
+
     TexID Add(const char* name, Texture& tex);
     TexID Add(const char* name, Texture&& tex);
 

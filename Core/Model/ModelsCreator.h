@@ -41,17 +41,10 @@ public:
 	ModelID CreateWater(ID3D11Device* pDevice, const float width, const float depth);
 
     // creators for the specific types of models
-    void CreateSkyCube             (ID3D11Device* pDevice, const float height);
-    void CreateSkySphere           (ID3D11Device* pDevice, const float radius, const int sliceCount, const int stackCount);
-    bool CreateTerrainFromHeightmap(ID3D11Device* pDevice, const char* configFilename);
-
-	ModelID CreateGeneratedTerrain(
-		ID3D11Device* pDevice,
-		const int terrainWidth,
-		const int terrainDepth,
-		const int verticesCountByX,
-		const int verticesCountByZ);
-
+    void CreateSkyCube            (ID3D11Device* pDevice, const float height);
+    void CreateSkySphere          (ID3D11Device* pDevice, const float radius, const int sliceCount, const int stackCount);
+    bool CreateTerrain            (ID3D11Device* pDevice, const char* configFilename);
+    bool CreateTerrainGeomipmapped(ID3D11Device* pDevice, const char* configFilename);
 	
 private:
 	void ReadSkullMeshFromFile(BasicModel& model, const char* filepath);

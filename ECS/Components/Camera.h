@@ -1,6 +1,6 @@
 // =================================================================================
 // Filename:       Camera.h
-// Description     an ECS component for storing data of multiple cameras
+// Description     an ECS component for storing data of UVN cameras data
 // 
 // Created:        14.01.25   by DimaSkup
 // =================================================================================
@@ -19,7 +19,7 @@ struct CameraData
 {
     // cache frustum properties
     float fovY          = -1.0f;
-    float aspectRatio   = -1.0f;
+    float aspectRatio   = -1.0f;      // viewport width / viewport height
     float nearZ         = -1.0f;
     float farZ          = -1.0f;
 
@@ -33,9 +33,14 @@ struct CameraData
     XMMATRIX ortho    = DirectX::XMMatrixIdentity();   // orthographic matrix
 
     // camera coordinate system with coordinates relative to world space
+#if 0
+    XMVECTOR position;                // is stored in the Transform component
+    XMVECTOR direction;               // is stored in the Transform component
+#endif
+
     XMVECTOR right      { 1,0,0 };    // world space right vector of the camera
     //XMVECTOR up         { 0,1,0 };    // camera's up vector
-    XMVECTOR lookAtPoint{ 0,1,0 };    // world space look_at point (is used when we concentrate camera on some point)
+    XMVECTOR target{ 0,1,0 };    // world space look_at point (is used when we concentrate camera on some point)
 
     // defines if camera is fixed at some particular look_at point
     bool isFixedLook_ = false;

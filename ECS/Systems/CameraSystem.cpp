@@ -287,24 +287,29 @@ const XMMATRIX& CameraSystem::UpdateView(const EntityID id)
     if (!HasEntity(id))
         return pCameraComponent_->data[0].view;
 
-    CameraData& camData = pCameraComponent_->data[id];
 
     XMVECTOR P;   // camera's position
     XMVECTOR L;   // camera's direction
     
     pTransformSys_->GetPosAndDir(id, P, L);
 
+    // make look vector unit length
+    L = XMVector3Normalize(L);
+
+    // camera's up vector: by default 
+    XMVECTOR U = { 0,1,0,0 };
+
     // compute camera's right vector (cross: look X world_up)
-    XMVECTOR R = XMVector3Normalize(XMVector3Cross({ 0,1,0,0 }, L));
+    XMVECTOR R = XMVector3Normalize(XMVector3Cross(U, L));
 
     // camera's up vector: L, R already ortho-normal, so no need to normalize cross product
-    XMVECTOR U = XMVector3Cross(L, R);
+    U = XMVector3Cross(L, R);
 
 
     // fill in the view matrix entries
     float x = -XMVectorGetX(XMVector3Dot(P, R));
     float y = -XMVectorGetX(XMVector3Dot(P, U));
-    float z = -XMVectorGetY(XMVector3Dot(P, L));
+    float z = -XMVectorGetX(XMVector3Dot(P, L));
 
     XMFLOAT3 right;
     XMFLOAT3 up;
@@ -313,6 +318,8 @@ const XMMATRIX& CameraSystem::UpdateView(const EntityID id)
     XMStoreFloat3(&up, U);
     XMStoreFloat3(&look, L);
 
+
+    CameraData& camData = pCameraComponent_->data[id];
     camData.right = R;
 
     camData.view =

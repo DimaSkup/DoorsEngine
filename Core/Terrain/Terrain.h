@@ -8,15 +8,12 @@
 namespace Core
 {
 
-// limit of textures for the terrain
-static constexpr int MAX_NUM_TEXTURES_IN_TERRAIN = 6;        
-
 
 class Terrain : public TerrainBase
 {
 public:
-    Terrain() {};
-    ~Terrain() {};
+    Terrain()  {}
+    ~Terrain() { Shutdown(); }
 
     ///////////////////////////////////////////////////////////
 

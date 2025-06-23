@@ -5,6 +5,7 @@
 // Created:       06.06.23
 // =================================================================================
 #include <CoreCommon/pch.h>
+#include "../Render/d3dclass.h"
 #include "TextureMgr.h"
 #include "ImageReader.h"
 
@@ -71,6 +72,214 @@ void TextureMgr::Initialize(ID3D11Device* pDevice)
     //AddDefaultTex("unhandled_texture", { pDevice, Colors::UnhandledTextureColor });
 }
 
+// --------------------------------------------------------
+// Desc:   check if input value is power of 2
+// Args:   - value: a value to check
+// Ret:    - true if is power of 2
+// --------------------------------------------------------
+inline bool IsPow2(const int value)
+{
+    return (value && !(value & (value - 1)));
+}
+
+
+// --------------------------------------------------------
+// Desc:   convert input image raw data into 32 bits per pixel data
+// Args:   - data:      actual pixels data (one element per channel)
+//         - width:     the texture width
+//         - height:    the texture height
+//         - bpp:       bits per pixel (24 or 8)
+// Out:    - outData:   array of converted data
+// --------------------------------------------------------
+void ConvertInto32bits(
+    const uint8* data,
+    const uint width,
+    const uint height,
+    const int bpp,
+    cvector<uint8>& outData)
+{
+    const uint bytesPerPixel = 4;
+    const uint numPixels     = width * height;
+    const uint sizeInBytes   = numPixels * bytesPerPixel;
+
+    // alloc memory for the output 32 bits image data
+    outData.resize(sizeInBytes, 0);
+
+    // convert 24 bits => 32 bits
+    if (bpp == 24)
+    {
+        for (int i = 0, i1 = 0, i2 = 0; i < (int)numPixels; i++, i1 = i * 4, i2 = i * 3)
+        {
+            // convert from RGB to RGBA
+            outData[i1 + 0] = data[i2 + 0];        // R
+            outData[i1 + 1] = data[i2 + 1];        // G
+            outData[i1 + 2] = data[i2 + 2];        // B
+            outData[i1 + 3] = 255;                 // A (255 because we use uint8)
+        }
+    }
+    // convert 8 bits => 32 bits (it will be a grayscale image)
+    else if (bpp == 8)
+    {
+        for (int i = 0, i1 = 0, i2 = 0; i < (int)numPixels; i++, i1 = i * 4, i2++)
+        {
+            // convert from RGB to RGBA
+            outData[i1 + 0] = data[i2 + 0];        // R
+            outData[i1 + 1] = data[i2 + 0];        // G
+            outData[i1 + 2] = data[i2 + 0];        // B
+            outData[i1 + 3] = 255;                 // A (255 because we use uint8)
+        }
+    }
+    else
+    {
+        sprintf(g_String, "wrong number of bits per pixel (expected: 8 or 24; received: %d)", bpp);
+        LogErr(g_String);
+    }
+}
+
+// --------------------------------------------------------
+// Desc:   create a new DirectX texture with the image's input raw data
+// Args:   - name:      a name for texture identification
+//         - data:      actual pixels data (one element per channel)
+//         - width:     the texture width
+//         - height:    the texture height
+//         - bpp:       bits per pixel (8, 24 or 32)
+//         - mipMapped: defines if we will generate mipmaps of not
+// Ret:    an ID of created texture (for details look at TextureMgr)
+// --------------------------------------------------------
+TexID TextureMgr::CreateTextureFromRawData(
+    const char* name,
+    const uint8* data,
+    const uint width,
+    const uint height,
+    const int bpp,
+    const bool mipMapped)
+{
+    uint8* initData = nullptr;
+    cvector<uint8> convertedData;
+
+    try
+    {
+        // check input params
+        CAssert::True(!StrHelper::IsEmpty(name),          "input name is empty");
+        CAssert::True(data,                               "input ptr to image data array == nullptr");
+        CAssert::True(bpp == 8 || bpp == 24 || bpp == 32, "input number of bits per pixel must be equal to 24 or 32");
+
+        // if we want to create mipmaps
+        if (mipMapped)
+        {
+            CAssert::True(IsPow2(width),  "input width must be a power of 2");
+            CAssert::True(IsPow2(height), "input height must be a power of 2");
+        }
+        // create a texture with only one mipmap
+        else
+        {
+            CAssert::True(width & height,  "input width and height must be > 0");
+            CAssert::True(width == height, "input width != height (for square texture)");
+        }
+
+
+        // we already have a 32 bits image
+        if (bpp == 32)
+        {
+            initData = (uint8*)data;
+        }
+        // we need to convert from 8 or 24 bits into 32 bits image data
+        else
+        {
+            ConvertInto32bits(data, width, height, bpp, convertedData);
+            initData = convertedData.data();
+        }
+
+        // create a DirectX texture
+        Texture texture(g_pDevice, name, initData, width, height, mipMapped);
+
+        // move texture into the textures manager and return an ID of the texture
+        return Add(name, std::move(texture));
+    }
+    catch (std::bad_alloc& e)
+    {
+        sprintf(g_String, "can't allocate memory for the texture: %s", name);
+        LogErr(e.what());
+        LogErr(g_String);
+        return INVALID_TEXTURE_ID;
+    }
+    catch (EngineException& e)
+    {
+        LogErr(e);
+        return INVALID_TEXTURE_ID;
+    }
+}
+
+// --------------------------------------------------------
+// Desc:   recreate a DirectX texture with the image's input raw data
+//         (release the previous data and init with new)
+// Args:   - name:      a name for texture identification
+//         - data:      actual pixels data (one element per channel)
+//         - width:     the texture width
+//         - height:    the texture height
+//         - bpp:       bits per pixel (24 or 32)
+//         - mipMapped: defines if we will generate mipmaps of not
+//         - inOutTex:  texture object which will be filled with new pixel data
+// --------------------------------------------------------
+void TextureMgr::RecreateTextureFromRawData(
+    const char* name,
+    const uint8* data,
+    const uint width,
+    const uint height,
+    const int bpp,
+    const bool mipMapped,
+    Texture& inOutTex)
+{
+    uint8* initData = nullptr;
+    cvector<uint8> convertedData;
+   
+    try
+    {
+        // check input params
+        CAssert::True(!StrHelper::IsEmpty(name),          "input name is empty");
+        CAssert::True(data,                               "input ptr to image data array == nullptr");
+        CAssert::True(IsPow2(width),                      "input width must be a power of 2");
+        CAssert::True(IsPow2(height),                     "input height must be a power of 2");
+        CAssert::True(bpp == 8 || bpp == 24 || bpp == 32, "input number of bits per pixel must be equal to 24 or 32");
+
+        // we already have a 32 bits image
+        if (bpp == 32)
+        {
+            initData = (uint8*)data;
+        }
+        // we need to convert from 8 or 24 bits into 32 bits image data
+        else
+        {
+            ConvertInto32bits(data, width, height, bpp, convertedData);
+            initData = convertedData.data();
+        }
+
+        // get idx of this texture in the texture manager
+        const TexID id  = GetIDByName(inOutTex.GetName().c_str());
+        const index idx = ids_.get_idx(id);
+
+        // init texture with raw data
+        if (!inOutTex.Initialize(g_pDevice, name, initData, width, height, mipMapped))
+        {
+            sprintf(g_String, "can't initialize texture: %s", name);
+            throw EngineException(g_String);
+        }
+
+        // update shader resource view by this texture
+        shaderResourceViews_[idx] = inOutTex.GetTextureResourceView();
+    }
+    catch (std::bad_alloc& e)
+    {
+        sprintf(g_String, "can't allocate memory for the terrain texture: %s", name);
+        LogErr(e.what());
+        LogErr(g_String);
+    }
+    catch (EngineException& e)
+    {
+        LogErr(e);
+    }
+}
+
 ///////////////////////////////////////////////////////////
 
 void TextureMgr::SetTexName(const TexID id, const char* inName)
@@ -84,9 +293,8 @@ void TextureMgr::SetTexName(const TexID id, const char* inName)
     }
 
     const index idx = ids_.get_idx(id);
-    const bool exist = (ids_[idx] == id);
 
-    if (!exist)
+    if (ids_[idx] != id)
     {
         sprintf(g_String, "there is no texture by ID: %ud", id);
         LogErr(g_String);
@@ -219,10 +427,8 @@ TexID TextureMgr::LoadFromFile(const char* path)
             return INVALID_TEXTURE_ID;
 #endif
 
-        TexID id = INVALID_TEXTURE_ID;
-
         // if there is already such a texture we just return its ID
-        id = GetIDByName(path);
+        TexID id = GetIDByName(path);
         if (id != 0)
             return id;
 

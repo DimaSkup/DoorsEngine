@@ -2,11 +2,14 @@
 // Filename:   TerrainBase.cpp
 // =================================================================================
 #include <CoreCommon/pch.h>
+#include <CoreCommon/RawFile.h>
 #include "TerrainBase.h"
 #include "../Texture/TextureMgr.h"
 #include <time.h>
 
 #pragma warning (disable : 4996)
+#pragma warning (disable : 6031)
+
 
 namespace Core
 {
@@ -14,6 +17,30 @@ namespace Core
 // =================================================================================
 // Public methods
 // =================================================================================
+
+// --------------------------------------------------------
+// Desc:   release memory from all the images raw pixels data
+//         (usually we call it after creation of all the necessary
+//          texture resources on GPU)
+// --------------------------------------------------------
+void TerrainBase::ClearMemoryFromMaps(void)
+{
+    UnloadHeightMap();
+    UnloadLightMap();
+    UnloadTexture();       // texture tile map (diffuse)
+    UnloadDetailMap();
+    UnloadAllTiles();
+}
+
+// --------------------------------------------------------
+// Desc:   check if input value is power of 2
+// Args:   - value: a value to check
+// Ret:    - true if is power of 2
+// --------------------------------------------------------
+inline bool IsPow2(const int value)
+{
+    return (value && !(value & (value - 1)));
+}
 
 // --------------------------------------------------------
 // Desc:  load a file with terrain's settings
@@ -41,6 +68,8 @@ bool TerrainBase::LoadSetupFile(const char* filename, TerrainConfig& outConfigs)
     int           tempBool = 0;
     constexpr int bufsize = 256;
     char          buf[bufsize]{ '\0' };
+    char          tmpChars[64]{'\0'};
+    float         fl[4]{0};
 
     LogDbg("Start: read in the terrain setup file");
 
@@ -54,7 +83,10 @@ bool TerrainBase::LoadSetupFile(const char* filename, TerrainConfig& outConfigs)
     fgets(buf, bufsize, pFile);
     sscanf(buf, "Path_detail_map: %s", outConfigs.pathDetailMap);
 
+    fgets(buf, bufsize, pFile);
+    sscanf(buf, "Path_light_map: %s", outConfigs.pathLightMap);
 
+    // depth, width, height_scale
     fgets(buf, bufsize, pFile);
     sscanf(buf, "Terrain_depth: %d", &outConfigs.depth);
 
@@ -78,6 +110,11 @@ bool TerrainBase::LoadSetupFile(const char* filename, TerrainConfig& outConfigs)
     fgets(buf, bufsize, pFile);
     sscanf(buf, "Generate_heights: %d", &tempBool);
     outConfigs.generateHeights = (uint8)tempBool;
+
+    // do we want to generate lightmap for the terrain?
+    fgets(buf, bufsize, pFile);
+    sscanf(buf, "Generate_lightmap: %d", &tempBool);
+    outConfigs.generateLightMap = (uint8)tempBool;
 
     fgets(buf, bufsize, pFile);
     sscanf(buf, "Use_gen_fault_formation: %d", &tempBool);
@@ -127,6 +164,48 @@ bool TerrainBase::LoadSetupFile(const char* filename, TerrainConfig& outConfigs)
     fgets(buf, bufsize, pFile);
     sscanf(buf, "Path_save_generated_texture_map: %s", outConfigs.pathSaveTextureMap);
 
+    fgets(buf, bufsize, pFile);
+    sscanf(buf, "Path_save_generated_light_map: %s", outConfigs.pathSaveLightMap);
+
+
+    // lightmap generation params
+    fgets(buf, bufsize, pFile);
+    sscanf(buf, "Lighting_type: %s", tmpChars);
+
+    if (strcmp(tmpChars, "HEIGHT_BASED") == 0)
+        outConfigs.lightingType = HEIGHT_BASED;
+
+    else if (strcmp(tmpChars, "LIGHTMAP") == 0)
+        outConfigs.lightingType = LIGHTMAP;
+
+    else if (strcmp(tmpChars, "SLOPE_LIGHT") == 0)
+        outConfigs.lightingType = SLOPE_LIGHT;
+
+
+    fgets(buf, bufsize, pFile);
+    sscanf(buf, "Light_color: %f %f %f %f", &fl[0], &fl[1], &fl[2], &fl[3]);
+
+    outConfigs.lightColor = { fl[0], fl[1], fl[2], fl[3] };
+
+    fgets(buf, bufsize, pFile);
+    sscanf(buf, "Light_direction_x: %d",      &outConfigs.lightDirX);
+
+    fgets(buf, bufsize, pFile);
+    sscanf(buf, "Light_direction_z: %d",      &outConfigs.lightDirZ);
+
+    fgets(buf, bufsize, pFile);
+    sscanf(buf, "Light_min_brightness: %f",   &outConfigs.lightMinBrightness);
+
+    fgets(buf, bufsize, pFile);
+    sscanf(buf, "Light_max_brightness: %f",   &outConfigs.lightMaxBrightness);
+
+    fgets(buf, bufsize, pFile);
+    sscanf(buf, "Light_shadow_softness: %f",  &outConfigs.shadowSoftness);
+
+
+    // load geomipmapping params
+    fgets(buf, bufsize, pFile);
+    sscanf(buf, "Geomipmapping_patch_size: %d", &outConfigs.patchSize);
 
     // close the setup file
     fclose(pFile);
@@ -142,130 +221,7 @@ bool TerrainBase::LoadSetupFile(const char* filename, TerrainConfig& outConfigs)
 // --------------------------------------------------------
 bool TerrainBase::LoadHeightMapFromBMP(const char* filename)
 {
-    FILE*            pFile = nullptr;
-    size_t           retCode = 0;
-    BITMAPFILEHEADER bitmapFileHeader;
-    BITMAPINFOHEADER bitmapInfoHeader;
-    uint8_t*         bitmapImage = nullptr;
-
-    try
-    {
-        CAssert::True(!StrHelper::IsEmpty(filename), "input filename str is empty");
-
-        // check to see if the data has been set
-        if (heightData_.pData)
-            UnloadHeightMap();
-
-        // open the bitmap map file in binary
-        pFile = fopen(filename, "rb");
-        if (!pFile)
-        {
-            sprintf(g_String, "can't open file for reading: %s", filename);
-            throw EngineException(g_String);
-        } 
-   
-        // read in the bitmap file header
-        retCode = fread(&bitmapFileHeader, sizeof(BITMAPFILEHEADER), 1, pFile);
-        if (retCode != 1)
-        {
-            sprintf(g_String, "error reading bitmap file header: %s", filename);
-            throw EngineException(g_String);
-        }
-
-        // read in the bitmap info header
-        retCode = fread(&bitmapInfoHeader, sizeof(BITMAPINFOHEADER), 1, pFile);
-        if (retCode != 1)
-        {
-            sprintf(g_String, "error reading bitmap info header: %s", filename);
-            throw EngineException(g_String);
-        }
-
-        // assert that we load height data only for square height maps
-        if (bitmapInfoHeader.biWidth != bitmapInfoHeader.biHeight)
-        {
-            sprintf(g_String, "wrong height map dimensions (width != height): %s", filename);
-            throw EngineException(g_String);
-        }
-
-        // calculate the size of the bitmap image data;
-        // since we use non-divide by 2 dimensions (eg. 257x257) we need to add an extra byte to each line
-        uint bytesPerPixel   = bitmapInfoHeader.biBitCount / 8;
-        const uint imageSize = bitmapInfoHeader.biSizeImage;
-        
-        //const int imageSize = size * ((size * bytesPerPixel) + 1);
-
-        // alloc memory for the bitmap image data
-        bitmapImage = new uint8_t[imageSize]{ 0 };
-
-        // alloc the memory for the height map data
-        const uint numHeightElems = imageSize / bytesPerPixel;   // == num pixels
-        heightData_.pData = new uint8_t[numHeightElems]{ 0 };
-
-
-        // move to the beginning of the bitmap data
-        fseek(pFile, bitmapFileHeader.bfOffBits, SEEK_SET);
-
-        // read in the bitmap image data
-        retCode = fread(bitmapImage, 1, imageSize, pFile);
-        if (retCode != imageSize)
-        {
-            sprintf(g_String, "can't read the bitmap image data: %s", filename);
-            throw EngineException(g_String);
-        }
-
-        // close the file
-        fclose(pFile);
-
-        // initialize the position in the image data buffer
-        int k = 0;
-        int idx = 0;
-        const int size = (int)bitmapInfoHeader.biWidth;
-
-        // read the image data into the height map array
-        for (int j = 0; j < size; ++j)
-        {
-            // bitmaps are upside down so load bottom to top into the height map array
-            const int rowIdx = (size * (size - 1 - j));
-
-            for (int i = 0; i < size; ++i)
-            {
-                // get the grey scale pixel value from the bitmap image data at this location
-                heightData_.pData[rowIdx + i] = bitmapImage[k];
-
-                // increment the bitmap image data idx (skip G and B channels)
-                k += 3;
-            }
-
-            // compensate for the extra byte at end of each line in non-divide by 2 bitmaps (eg. 257x257)
-            k++;
-        }
-
-        // release the bitmap img since the height map data has been loaded
-        SafeDeleteArr(bitmapImage);
-
-        // set the size data
-        heightData_.size = size;
-        heightMapSize_            = size;
-
-        LogMsgf("Height map is loaded: %s", filename);
-        return true;
-    }
-    catch (std::bad_alloc& e)
-    {
-        LogErr(e.what());
-        sprintf(g_String, "couldn't alloc memory for height data / height map image: %s", filename);
-        throw EngineException(g_String);
-    }
-    catch (EngineException& e)
-    {
-        if (pFile)
-            fclose(pFile);
-
-        SafeDeleteArr(heightData_.pData);
-        SafeDeleteArr(bitmapImage);
-        LogErr(e);
-        return false;
-    }
+    return heightMap_.LoadGrayscaleBMP(filename);
 }
 
 // --------------------------------------------------------
@@ -275,75 +231,7 @@ bool TerrainBase::LoadHeightMapFromBMP(const char* filename)
 // --------------------------------------------------------
 bool TerrainBase::LoadHeightMapFromRAW(const char* filename)
 {
-    FILE* pFile = nullptr;
-
-    try
-    {
-        // check input params
-        if (StrHelper::IsEmpty(filename))
-        {
-            LogErr("input filename is empty!");
-            return false;
-        }
-
-        // open RAW file
-        pFile = fopen(filename, "rb");
-        if (!pFile)
-        {
-            sprintf(g_String, "can't open file: %s", filename);
-            LogErr(g_String);
-            return false;
-        }
-
-        // release previous data (if we have any)
-        if (heightData_.pData)
-            UnloadHeightMap();
-
-        // read in the number of height elements
-        u32 numElems = 0;
-        size_t res = fread(&numElems, sizeof(u32), 1, pFile);
-        if (res != 1)
-        {
-            sprintf(g_String, "can't read the number of elements from .raw file: %s", filename);
-            throw EngineException(g_String);
-        }
-
-        // allocate the memory for our height data
-        heightData_.pData = new uint8[numElems]{0};
-
-        // read in the height map into context
-        res = fread(heightData_.pData, 1, numElems, pFile);
-        if (res != numElems)
-        {
-            sprintf(g_String, "can't read in height data from the file: %s", filename);
-            throw EngineException(g_String);
-        }
-
-        // close the file
-        fclose(pFile);
-
-        // setup data fields
-        heightMapSize_ = (int)sqrtf((float)numElems);    // set height map side size (map is a square)
-
-        sprintf(g_String, "height map is loaded from the file: %s", filename);
-        LogMsg(g_String);
-        return true;
-    }
-    catch (std::bad_alloc& e)
-    {
-        LogErr(e.what());
-        sprintf(g_String, "can't allocate memory for the height data from file: %s", filename);
-        throw EngineException(g_String);
-    }
-    catch (EngineException& e)
-    {
-        if (pFile)
-            fclose(pFile);
-
-        SafeDeleteArr(heightData_.pData);
-        LogErr(e);
-        return false;
-    }
+    return heightMap_.LoadData(filename);
 }
 
 // --------------------------------------------------------
@@ -382,30 +270,53 @@ bool TerrainBase::LoadHeightMap(const char* filename, const int size)
 }
 
 // --------------------------------------------------------
-// Desc:  load a texture (tile) map from the file
-//        NOTE: supported formats: BMP, DDS
+// Desc:  load a texture (tile) map from the file 
+//        NOTE: 1. supported formats: BMP, DDS
+//              2. doesn't create texture resource
 // 
-// Args:  - filename: path to the file
+// Args:  - filename:  path to the file
 // --------------------------------------------------------
 bool TerrainBase::LoadTextureMap(const char* filename)
 {
+    if (!filename || filename[0] == '\0')
+    {
+        LogErr("input filename is empty!");
+        return false;
+    }
+
     char extension[8]{'\0'};
     FileSys::GetFileExt(filename, extension);
 
-    // load from bmp
+    // load from BMP
     if (strcmp(extension, ".bmp") == 0)
     {
+        // load in data
         if (!texture_.LoadData(filename))
         {
-            sprintf(g_String, "can't load height map from the file: %s", filename);
+            sprintf(g_String, "can't load texture map from the file: %s", filename);
             LogErr(g_String);
             return false;
         }
     }
-    // load from dds
+
+    // load from DDS
     else if (strcmp(extension, ".dds") == 0)
     {
-        assert(0 && "FIXME");
+        const TexID tileMapTexId = g_TextureMgr.LoadFromFile(filename);
+
+        if (tileMapTexId)
+        {
+            LogDbg("terrain_tile_map texture is created");
+
+            // set the texture's ID
+            texture_.SetID(tileMapTexId);
+        }
+        else
+        {
+            sprintf(g_String, "can't load terrain's texture map from file: %s", filename);
+            LogErr(g_String);
+            return false;
+        }
     }
     // unknow format
     else
@@ -425,41 +336,7 @@ bool TerrainBase::LoadTextureMap(const char* filename)
 // --------------------------------------------------------
 bool TerrainBase::SaveHeightMap(const char* filename)
 {
-    // check input params
-    if (StrHelper::IsEmpty(filename))
-    {
-        LogErr("input height map filename is empty");
-        return false;
-    }
-
-    // check to see if our height map actually has data in it
-    if (heightData_.pData == nullptr)
-    {
-        sprintf(g_String, "The height data buffer for %s is empty", filename);
-        LogErr(g_String);
-        return false;
-    }
-
-    // open a file to write to
-    FILE* pFile = fopen(filename, "wb");
-    if (!pFile)
-    {
-        sprintf(g_String, "Couldn't create a height map file: %s", filename);
-        LogErr(g_String);
-        return false;
-    }
-
-    // write data to the file
-    const u32 numElems = (u32)(heightMapSize_ * heightMapSize_);
-    fwrite(&numElems, sizeof(u32), 1, pFile);          // write the number of height elements
-    fwrite(heightData_.pData, 1, numElems, pFile);
-
-    // close the file
-    fclose(pFile);
-
-    sprintf(g_String, "The height map was saved successfully: %s", filename);
-    LogMsg(g_String);
-    return true;
+    return heightMap_.Save(filename);
 }
 
 // --------------------------------------------------------
@@ -468,8 +345,7 @@ bool TerrainBase::SaveHeightMap(const char* filename)
 // --------------------------------------------------------
 void TerrainBase::UnloadHeightMap()
 {
-    SafeDeleteArr(heightData_.pData);   
-    heightData_.size = 0;               
+    heightMap_.Unload();
 }
 
 // --------------------------------------------------------
@@ -497,23 +373,24 @@ bool TerrainBase::GenHeightFaultFormation(
 {
     float* tempBuf = nullptr;   // we use this temp buffer because we need higher precision during computations
 
+    LogDbg("wait while height map (fault formation) is generated");
+
     try
     {
         // check input params
         CAssert::True(size > 0,          "input size (dimensions) for height map must be > 0");
         CAssert::True(numIterations > 0, "input number of iterations must be > 0");
 
-        if (heightData_.pData)
-            UnloadHeightMap();
-
-        heightMapSize_ = size;
+        // unload previous height data if we has any
+        heightMap_.Unload();
 
         // need it for truly random generation of heights
         if (trueRandom)
             srand((unsigned int)time(NULL));
 
         // alloc the memory for our height data
-        heightData_.pData = new uint8_t[size * size]{ 0 };
+        //heightData_.pData = new uint8_t[size * size]{ 0 };
+        heightMap_.Create(size, size, 8);
         tempBuf           = new float[size * size]{ 0.0f };
 
         for (int currIteration = 0; currIteration < numIterations; ++currIteration)
@@ -570,6 +447,7 @@ bool TerrainBase::GenHeightFaultFormation(
         // delete temp buffer
         SafeDeleteArr(tempBuf);
 
+        LogMsg("height map is generated successfully");
         return true;
     }
     catch (std::bad_alloc& e)
@@ -579,7 +457,7 @@ bool TerrainBase::GenHeightFaultFormation(
     }
     catch (EngineException& e)
     {
-        SafeDeleteArr(heightData_.pData);
+        heightMap_.Unload();
         SafeDeleteArr(tempBuf);
 
         LogErr(e);
@@ -605,6 +483,8 @@ bool TerrainBase::GenHeightFaultFormation(
 // --------------------------------------------------------
 bool TerrainBase::GenHeightMidpointDisplacement(const int size, float roughness, const bool trueRandom)
 {
+    LogDbg("wait while height map (midpoint displacement) is generated");
+
     float* tempBuf = nullptr;    // temp buf for height data (we need it for higher precision)
     int    rectSize = size;
 
@@ -612,11 +492,10 @@ bool TerrainBase::GenHeightMidpointDisplacement(const int size, float roughness,
     {
         // check input params
         CAssert::True(size > 0,                   "input size of mipmap must be > 0");
-        CAssert::True(size && !(size & (size-1)), "input size must be a power of 2");
+        CAssert::True(IsPow2(size), "input size must be a power of 2");
 
         // unload previous height data if we has any
-        if (heightData_.pData)
-            UnloadHeightMap();
+        heightMap_.Unload();
 
         if (roughness < 0)
             roughness *= -1;
@@ -624,17 +503,14 @@ bool TerrainBase::GenHeightMidpointDisplacement(const int size, float roughness,
         float height = (float)(size / 2);                   
         const float heightReducer = powf(2, -1*roughness);
 
-        heightMapSize_ = size;
-
         // need it for truly random generation of heights
         if (trueRandom)
             srand((unsigned int)time(NULL));
 
         // alloc the memory for our height data
-        heightData_.pData = new uint8_t[size*size]{0};
+        //heightData_.pData = new uint8_t[size*size]{0};
+        heightMap_.Create(size, size, 8);
         tempBuf           = new float[size*size]{0.0f};
-
-        heightData_.size = size;
 
         // being the displacement process
         while (rectSize > 0)
@@ -643,7 +519,7 @@ bool TerrainBase::GenHeightMidpointDisplacement(const int size, float roughness,
             const float minHeight = -height * 0.5f;
             const float maxHeight = +height * 0.5f;
 
-            const int halfRectSize = rectSize / 2;
+            const int halfRectSize = rectSize >> 1;
 
             /* Diamond step -
 
@@ -782,6 +658,7 @@ bool TerrainBase::GenHeightMidpointDisplacement(const int size, float roughness,
         // delete temp buffer
         SafeDeleteArr(tempBuf);
 
+        LogMsg("height map is generated successfully");
         return true;
     }
     catch (std::bad_alloc& e)
@@ -791,7 +668,7 @@ bool TerrainBase::GenHeightMidpointDisplacement(const int size, float roughness,
     }
     catch (EngineException& e)
     {
-        SafeDeleteArr(heightData_.pData);
+        heightMap_.Unload();
         SafeDeleteArr(tempBuf);
         LogErr(e);
         return false;
@@ -816,6 +693,8 @@ bool TerrainBase::GenerateTextureMap(const uint texMapSize)
         LogErr("can't generate texture map: input size for texture map must be > 0");
         return false;
     }
+
+    LogDbg("wait while texture map is generated");
 
     // find out the number and indices of tiles that we have
     int numTiles = 0;
@@ -869,7 +748,7 @@ bool TerrainBase::GenerateTextureMap(const uint texMapSize)
     // get the height map to texture map ratio (since, the most of the time,
     // the texture map will be a higher resolution that the height map, so we
     // need the ration of height map pixels to texture map pixels)
-    const float mapRatio = (float)heightMapSize_ / texMapSize;    // for instance: 128 / 256
+    const float mapRatio = (float)heightMap_.GetWidth() / texMapSize;    // for instance: 128 / 256
 
     // create the texture data
     for (int z = 0; z < (int)texMapSize; ++z)
@@ -913,6 +792,7 @@ bool TerrainBase::GenerateTextureMap(const uint texMapSize)
         } // for by X
     } // for by Z
 
+    LogMsg("texture map is generated successfully");
     return true;
 }
 
@@ -1034,7 +914,7 @@ uint8 TerrainBase::InterpolateHeight(
     float       interpolation = 0.0f;
     const float scaledX       = x * heightToTexRatio;
     const float scaledZ       = z * heightToTexRatio;
-    const float heightMapSize = (float)heightMapSize_;
+    const float heightMapSize = (float)heightMap_.GetWidth();
 
     // set the middle boundary
     const uint8 low = GetTrueHeightAtPoint((int)scaledX, (int)scaledZ);
@@ -1104,7 +984,7 @@ void TerrainBase::FilterHeightBand(
 // --------------------------------------------------------
 void TerrainBase::FilterHeightField(float* heightData, const float filter)
 {
-    const int size = heightMapSize_;
+    const int size = heightMap_.GetWidth();
 
     // erode left to right
     for (int i = 0; i < size; ++i)
@@ -1153,5 +1033,254 @@ void TerrainBase::NormalizeTerrain(float* heightData, const int size)
         heightData[i] = (heightData[i] - min) * invHeight;
 }
 
+
+// --------------------------------------------------------
+// Desc:   load a grayscale RAW light map
+// Args:   - filename: the file name of the light map
+//         - size:     the size (power of 2) of the map
+// --------------------------------------------------------
+bool TerrainBase::LoadLightMap(const char* filename)
+{
+    FILE* pFile = nullptr;
+
+    try
+    {
+        // check input params
+        CAssert::True(!StrHelper::IsEmpty(filename), "input filename is empty");
+
+        // open the RAW lightmap
+        pFile = fopen(filename, "rb");
+        if (!pFile)
+        {
+            sprintf(g_String, "can't open file: %s", filename);
+            throw EngineException(g_String);
+        }
+
+        // define the size (in bytes) of the lightmap
+        fseek(pFile, 0, SEEK_END);
+        const int numBytes = ftell(pFile);
+        fseek(pFile, 0, SEEK_SET);
+
+        // the size must be power of 2
+        CAssert::True(IsPow2(numBytes), "input size must be power of 2");
+        const int size = (int)sqrtf((float)numBytes);
+
+
+        // check to see if the data has been set
+        if (lightmap_.pData)
+            UnloadLightMap();
+
+        // allocate the memory for our lightmap
+        lightmap_.pData = new uint8[numBytes];
+
+        // set the data fields
+        lightmap_.size = size;
+
+        // read in the light map into context
+        if (fread(lightmap_.pData, 1, numBytes, pFile) != numBytes)
+        {
+            sprintf(g_String, "can't read in light map data: %s", filename);
+            throw EngineException(g_String);
+        }
+
+        fclose(pFile);
+
+        // great success!
+        sprintf(g_String, "Loaded light map: %s", filename);
+        LogMsg(g_String);
+        return true;
+    }
+    catch (const std::bad_alloc& e)
+    {
+        LogErr(e.what());
+        sprintf(g_String, "can't allocate memory for the light map: %s", filename);
+        throw EngineException(g_String);
+    }
+    catch (EngineException& e)
+    {
+        if (pFile)
+            fclose(pFile);
+
+        SafeDeleteArr(lightmap_.pData);
+        LogErr(e);
+        return false;
+    }
+}
+
+// --------------------------------------------------------
+// Desc:   save a grayscale light map to a file
+// Args:   - filename: the filename of the light map
+// --------------------------------------------------------
+bool TerrainBase::SaveLightMap(const char* filename)
+{
+        // check input args
+    if (StrHelper::IsEmpty(filename))
+    {
+        LogErr("input filename is empty!");
+        return false;
+    }
+
+    // get extension
+    char extension[8]{'\0'};
+    FileSys::GetFileExt(filename, extension);
+
+    // save to RAW
+    if (strcmp(extension, ".raw") == 0)
+    {
+        const int numBytes = lightmap_.size * lightmap_.size;
+        return SaveRAW(filename, lightmap_.pData, numBytes);
+    }
+    // save to BMP
+    else if (strcmp(extension, ".bmp") == 0)
+    {
+        // TODO: save into grayscale bmp image
+    }
+
+    return false;
+}
+
+// --------------------------------------------------------
+// Desc:   unload the class's light map (if there is one)
+// --------------------------------------------------------
+void TerrainBase::UnloadLightMap(void)
+{
+    SafeDeleteArr(lightmap_.pData);
+    lightmap_.size = 0;
+
+    LogMsg("Successfully unloaded the light map");
+}
+
+// --------------------------------------------------------
+// Desc:   calculate the lighting value for any given point
+// --------------------------------------------------------
+uint8 TerrainBase::CalculateLightingAtPoint(const int x, const int z)
+{
+    if (lightingType_ == HEIGHT_BASED)
+        return GetTrueHeightAtPoint(x, z);
+
+    else if (lightingType_ == LIGHTMAP)
+        return GetBrightnessAtPoint(x, z);
+
+    return 0;
+}
+
+// --------------------------------------------------------
+// Desc:   create a lightmap using height-based lighting
+// Args:   - size: the size of lightmap
+// --------------------------------------------------------
+void TerrainBase::CalculateLightingHeightBased(const int size)
+{
+    // loop through all vertices
+    for (int z = 0; z < size; ++z)
+    {
+        for (int x = 0; x < size; ++x)
+        {
+            SetBrightnessAtPoint(x, z, GetTrueHeightAtPoint(x, z));
+        }
+    }
+}
+
+// --------------------------------------------------------
+// Desc:   create a lightmap using slope-based lighting
+// Args:   - size:          the size of lightmap
+//         - dirX:          the light direction by X-axis
+//         - dirZ:          the light direction by Z-axis
+//         - minBrightness: minimal brightness of the light
+//         - maxBrightness: maximal brightness of the light
+//         - softness:      the softness of the shadows
+// --------------------------------------------------------
+void TerrainBase::CalculateLightingSlope(
+    const int size,
+    const int dirX,
+    const int dirZ,
+    const float minBrightness,
+    const float maxBrightness,
+    const float softness)
+{
+    float shade = 0.0f;
+    const float invLightSoftness = 1.0f / softness;
+
+
+    // loop through all vertices
+    for (int z = 0; z < size; ++z)
+    {
+        for (int x = 0; x < size; ++x)
+        {
+            // ensure that we won't be stepping over array boundaries by doing this
+            if (z >= dirZ && x >= dirX)
+            {
+                shade = 1.0f - (GetTrueHeightAtPoint(x-dirX, z-dirZ) -
+                                GetTrueHeightAtPoint(x, z)) * invLightSoftness;
+            }
+
+            // if we are, then just return a very bright color value (white)
+            else
+                shade = 1.0f;
+
+            // clamp the shading value to the min/max brightness boundaries
+            if (shade < minBrightness)
+                shade = minBrightness;
+            if (shade > maxBrightness)
+                shade = maxBrightness;
+
+            SetBrightnessAtPoint(x, z, (uint)(shade * 255));
+        }
+    }
+}
+
+// --------------------------------------------------------
+// Desc:   calculates lighting for the pre-set technique,
+//         and stores all computations in a lightmap
+// --------------------------------------------------------
+bool TerrainBase::CalculateLighting(void)
+{
+    // a lightmap has already been provided, no need to create another one
+    if (lightingType_ == LIGHTMAP)
+        return true;
+
+    const int size = heightMap_.GetWidth();
+
+    LogDbg("wait while light map is generated");
+
+    // check if we have valid terrain size
+    if (size <= 0)
+    {
+        sprintf(g_String, "invalid terrain size (%d); must be > 0", size);
+        LogErr(g_String);
+        return false;
+    }
+
+
+
+    // allocate memory if it is needed
+    if ((lightmap_.size != size) || (lightmap_.pData == nullptr))
+    {
+        // delete the memory for the old data
+        SafeDeleteArr(lightmap_.pData);
+
+        // allocate memory for the new lightmap data buffer
+        lightmap_.pData = new uint8 [size*size]{0};
+        lightmap_.size  = size;
+    }
+
+
+    // use height-based lighting
+    if (lightingType_ == HEIGHT_BASED)
+        CalculateLightingHeightBased(size);
+
+    // use the slope-lighting technique
+    else if (lightingType_ == SLOPE_LIGHT)
+        CalculateLightingSlope(
+            size,
+            directionX_,
+            directionZ_,
+            minBrightness_,
+            maxBrightness_,
+            lightSoftness_);
+
+    LogMsg("light map is generated successfully");
+
+    return true;
+}
 
 } // namespace

@@ -80,12 +80,9 @@ void LightShader::Render(
         {
             // update textures for the current subset
             pContext->PSSetShaderResources(
-                0U,
+                1U,
                 NUM_TEXTURE_TYPES,
-                texSRVs + (subsetIdx * NUM_TEXTURE_TYPES));
-
-            //const UINT numTexturesToBind = 22U * numUniqueTexturesArraysPerSubset;
-            //pContext->PSSetShaderResources(0U, numTexturesToBind, texSRVs + (subsetIdx * 44U));
+                texSRVs + (subsetIdx * NUM_TEXTURE_TYPES));  // texture_buffer_begin + offset
 
             const Subset& subset = instance.subsets[subsetIdx];
 

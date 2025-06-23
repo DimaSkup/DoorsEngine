@@ -77,7 +77,7 @@ private:
         const char* vsFilePath,
         const char* psFilePath);
 
-private:
+public:
 	VertexShader vs_;
 	PixelShader  ps_;
 	SamplerState samplerState_;                                          // a sampler for texturing

@@ -56,7 +56,6 @@ void ModelExporter::ExportIntoDE3D(
         LogErr(g_String);
         return;
     }
-
     
     WriteHeader(fout, model);
     WriteMaterials(pDevice, fout, model, targetDir);

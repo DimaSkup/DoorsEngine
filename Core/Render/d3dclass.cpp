@@ -14,11 +14,15 @@ extern "C"
     __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 }
 
-
 namespace Core
 {
 
 D3DClass* D3DClass::pInstance_ = nullptr;
+
+// Global pointers of DX11 device and device context
+ID3D11Device*        g_pDevice;
+ID3D11DeviceContext* g_pContext;
+
 
 
 D3DClass::D3DClass()
@@ -279,7 +283,7 @@ void D3DClass::InitializeDirectX(
 
 void D3DClass::InitializeDevice()
 {
-    // THIS FUNCTION creates the Direct3D 11 device and context;
+    // creates the Direct3D 11 device and context;
     // also it check the quality level support for 4X MSAA.
 
     D3D_FEATURE_LEVEL featureLevel;
@@ -302,12 +306,18 @@ void D3DClass::InitializeDevice()
         &featureLevel,
         &pContext_);
 
+    
+
     CAssert::NotFailed(hr, "D3D11CreateDevice failed");
     CAssert::True(featureLevel == D3D_FEATURE_LEVEL_11_0, "Direct3D Feature Level 11 unsupported");
 
     // now that we have a created device, we can check the quality level support for 4X MSAA.
     hr = pDevice_->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, 4, &m4xMsaaQuality_);
     CAssert::NotFailed(hr, "the quality level number must be > 0");
+
+    // also initialize the global pointers to device and device context
+    g_pDevice  = pDevice_;
+    g_pContext = pContext_;
 }
 
 ///////////////////////////////////////////////////////////

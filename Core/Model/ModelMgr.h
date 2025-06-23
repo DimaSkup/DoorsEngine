@@ -10,6 +10,7 @@
 #include <cvector.h>
 #include "SkyModel.h"
 #include "../Terrain/Terrain.h"
+#include "../Terrain/TerrainGeomipmapped.h"
 #include "BasicModel.h"
 
 namespace Core
@@ -20,30 +21,33 @@ class ModelMgr
 public:
     ModelMgr();
 
-    void Serialize  (ID3D11Device* pDevice);
-    void Deserialize(ID3D11Device* pDevice);
+    void        Serialize  (ID3D11Device* pDevice);
+    void        Deserialize(ID3D11Device* pDevice);
 
-    ModelID AddModel(BasicModel&& model);
+    ModelID     AddModel(BasicModel&& model);
     BasicModel& AddEmptyModel();
 
-    void GetModelsByIDs(const ModelID* ids, const size numModels, cvector<const BasicModel*>& outModels);
+    void        GetModelsByIDs  (const ModelID* ids, const size numModels, cvector<const BasicModel*>& outModels);
     BasicModel& GetModelByID    (const ModelID id);
     BasicModel& GetModelByName  (const char* name);
     ModelID     GetModelIdByName(const char* name);
 
-    //inline BasicModel& GetLastModel()       { return models_.back(); }
-    inline SkyModel&   GetSky()             { return sky_; }
-    inline Terrain&    GetTerrain()         { return terrain_; }
-    inline int         GetNumAssets() const { return (int)std::ssize(ids_); }
+    void        GetModelsNamesList(cvector<ModelName>& names);
 
-    void GetModelsNamesList(cvector<ModelName>& names);
+    inline Terrain&             GetTerrain()         { return terrain_; }
+    inline TerrainGeomipmapped& GetTerrainGeomip()   { return terrainGeomip_; }
+    inline SkyModel&            GetSky()             { return sky_; }
 
+    inline int                  GetNumAssets() const { return (int)std::ssize(ids_); }
+
+    
 private:
     cvector<ModelID>    ids_;
     cvector<BasicModel> models_;
 
     SkyModel            sky_;
     Terrain             terrain_;
+    TerrainGeomipmapped terrainGeomip_;
 
     static ModelMgr*    pInstance_;
     static ModelID      lastModelID_;

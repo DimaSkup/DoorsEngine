@@ -1,17 +1,13 @@
-# Blender 4.3.2 MTL File: 'None'
+# Blender 4.2.2 LTS MTL File: 'None'
 # www.blender.org
 
 newmtl Material__10684
-Ns 10.000000
-Ni 1.500000
-d 1.000000
-Tr 0.000000
-Tf 1.000000 1.000000 1.000000 
-illum 2
-Ka 0.588000 0.588000 0.588000
-Kd 0.588000 0.588000 0.588000
+Ns 10.000005
+Ka 1.000000 1.000000 1.000000
 Ks 0.000000 0.000000 0.000000
 Ke 0.000000 0.000000 0.000000
-map_Ka tree_spruce_diffuse.dds
+Ni 1.500000
+d 1.000000
+illum 1
 map_Kd tree_spruce_diffuse.dds
-map_d tree_spruce_normal.dds
+map_Bump tree_spruce_diffuse_NRM.dds

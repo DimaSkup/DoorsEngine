@@ -26,6 +26,8 @@ enum eTgaImageType
     RleGray             = 11,  // Compressed, black and white images
 };
 
+///////////////////////////////////////////////////////////
+
 #pragma pack( push, 1 )
 
 struct TGAInfoHeader
@@ -60,6 +62,8 @@ struct TGAInfoHeader
     }
 };
 
+///////////////////////////////////////////////////////////
+
 struct BMPFileHeader
 {
     ushort  type;               // magic identifier
@@ -68,6 +72,8 @@ struct BMPFileHeader
     ushort  reserved2;
     uint    offBits;            // offset to image data, bytes
 };
+
+///////////////////////////////////////////////////////////
 
 struct BMPInfoHeader
 {
@@ -95,14 +101,16 @@ public:
     ~Image();
 
     bool Create(const uint width, const uint height, const uint bpp);
-
   
-    bool LoadData(const char* filename);
-    bool Load    (const char* filename, const bool mipmapped = false);
+    bool LoadData        (const char* filename);
+    bool Load            (const char* filename, const bool mipmapped = false);
+    bool LoadGrayscaleBMP(const char* filename);
+
+    bool Save    (const char* filename);
     bool SaveBMP (const char* filename) const;
 
+
     void Unload();
-    
 
     // ----------------------------------------------------
     // Desc:   get the color (RGB triplet) from a texture pixel
@@ -114,8 +122,7 @@ public:
     {
         if ((x < width_) && (y < height_))
         {
-            const uint bpp = bpp_ / 8;
-            const uint idx = ((y*height_) + x) * bpp;
+            const uint idx = ((y*height_) + x) * bytesPerPixel_;
 
             red   = pixels_[idx + 0];
             green = pixels_[idx + 1];
@@ -132,8 +139,7 @@ public:
     {
         if ((x < width_) && (y < height_))
         {
-            const uint bpp = bpp_ / 8;
-            const uint idx = ((y*height_) + x) * bpp;
+            const uint idx = ((y*height_) + x) * bytesPerPixel_;
 
             pixels_[idx + 0] = red;
             pixels_[idx + 1] = green;
@@ -142,25 +148,50 @@ public:
     }
 
     // ----------------------------------------------------
+    // Desc:   setup pixel for a grayscale image (when bpp == 8)
+    // Args:   - pixel: pixel value (white color intensity from 0 to 255)
+    //         - x, y:  position to set value
+    // ----------------------------------------------------
+    inline void SetPixelGray(const uint8 pixel, const int x, const int y)
+    {
+        pixels_[(y * width_) + x] = pixel;
+    }
 
-    inline uint8* GetData()   const { return pixels_; }    // get a pointer to the image's data buffer
+    // ----------------------------------------------------
+    // Desc:   get gray pixel value
+    // Ret:    uint8 value which is a white color intensity from 0 to 255
+    // ----------------------------------------------------
+    inline uint8 GetPixelGray(const int x, const int y) const
+    {
+        if ((x < width_) && (y < height_))
+        {
+            return pixels_[(y * width_) + x];
+        }
+        else
+        {
+            return 0;
+        }
+    }
+
+    // ----------------------------------------------------
+
+    inline uint8* GetData()   const { return pixels_; }   // get a pointer to the image's data buffer
     inline uint   GetWidth()  const { return width_; }    // get the width of texture
     inline uint   GetHeight() const { return height_; }   // get the height of texture
     inline uint   GetBPP()    const { return bpp_; }      // get the number of bits per pixel
     inline uint   GetID()     const { return id_; }       // get the identifying of ID of texture
 
-    inline void   SetID(const uint id) { id_ = id; }      // set the texture's identifying ID
 
+    inline void   SetID(const uint id) { id_ = id; }      // set the texture's identifying ID
     inline bool   IsLoaded()  const { return isLoaded_; } // find out if the texture has been loaded or not
 
 
 private:
-    bool LoadBMP(void);
-    bool LoadTGA(void);
+    bool LoadRgbBMP(const char* filename);
+    bool LoadTGA            (const char* filename);
 
     void LoadCompressedTGA  (const TGAInfoHeader& header, uint8*& pixelsData);
     void LoadUncompressedTGA(const TGAInfoHeader& header, uint8*& pixelsData);
-
     void LoadCompressedTGA24(uint8*& pixelsData, const TGAInfoHeader& tgaInfo);
     void LoadCompressedTGA32(uint8*& pixelsData, const TGAInfoHeader& tgaInfo);
 
@@ -170,6 +201,7 @@ private:
     uint    width_      = 0;
     uint    height_     = 0;
     uint    bpp_        = 0;           // bits per pixel
+    uint    bytesPerPixel_ = 0;
     uint8*  pixels_     = nullptr;
     bool    isLoaded_   = false;
 };

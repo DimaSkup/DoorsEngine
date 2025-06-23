@@ -78,18 +78,10 @@ ModelID ModelsCreator::ImportFromFile(
     const char* modelPath)
 {
     // create a model by loading its vertices/indices/texture data/etc. from a file
-    
     try
     {
         ModelImporter importer;
         BasicModel& model = g_ModelMgr.AddEmptyModel();
-
-        // set a name and type for the model
-        FileSys::GetFileStem(modelPath, g_String);
-
-        model.SetName(g_String);
-        model.type_ = eModelType::Imported;
-
 
         // import model from a file by path
         importer.LoadFromFile(pDevice, model, modelPath);
@@ -100,6 +92,13 @@ ModelID ModelsCreator::ImportFromFile(
         model.ComputeSubsetsAABB();
         model.ComputeModelAABB();
 
+        // set a name and type for the model
+        FileSys::GetFileStem(modelPath, g_String);
+
+        model.SetName(g_String);
+        model.type_ = eModelType::Imported;
+
+
         return model.id_;
     }
     catch (EngineException& e)
@@ -109,50 +108,6 @@ ModelID ModelsCreator::ImportFromFile(
         LogErr(g_String);
         return INVALID_MODEL_ID;
     }
-}
-
-///////////////////////////////////////////////////////////
-
-ModelID ModelsCreator::Create(ID3D11Device* pDevice, const eModelType type)
-{
-    // create new BASIC model by input type and use default params;
-
-#if 0
-    switch (type)
-    {
-        case MeshType::Plane:
-        {
-            return CreatePlane(pDevice);
-        }
-        case MeshType::Cube:
-        {
-            return CreateCube(pDevice);
-        }
-        case MeshType::Skull:
-        {
-            return CreateSkull(pDevice);
-        }
-        case MeshType::Pyramid:
-        {
-            return CreatePyramid(pDevice);
-        }
-        case MeshType::Sphere:
-        {
-            return CreateSphere(pDevice);
-        }
-        case MeshType::Cylinder:
-        {
-            Mesh::MeshCylinderParams defaultCylParams;
-            return CreateCylinder(pDevice, defaultCylParams);
-        }
-        default:
-        {
-            throw EngineException("Unknown mesh type");
-        }
-    }
-#endif
-
-    return 0;
 }
 
 
@@ -375,7 +330,6 @@ ModelID ModelsCreator::CreateSkull(ID3D11Device* pDevice)
 {
 
     BasicModel& model = g_ModelMgr.AddEmptyModel();
-
     const char* filepath = "models/skull/skull.txt";
     ReadSkullMeshFromFile(model, filepath);
 
@@ -637,131 +591,20 @@ void ComputeAveragedNormals(
         vertices[i].normal = DirectX::XMFloat3Normalize(vertices[i].normal);
 }
 
-// --------------------------------------------------------
-// Desc:   create DirectX texture from the image's input raw data
-// Args:   - name:      a name for texture identification
-//         - data:      actual pixels data (one element per channel)
-//         - width:     the texture width
-//         - height:    the texture height
-//         - bpp:       bits per pixel (24 or 32)
-//         - mipMapped: defines if we will generate mipmaps of not
-// Ret:    an ID of create texture (for details look at TextureMgr)
-// --------------------------------------------------------
-TexID CreateTextureFromRawData(
-    ID3D11Device* pDevice,
-    const char* name,
-    const uint8* data,
-    const uint width,
-    const uint height,
-    const int bpp,
-    const bool mipMapped)
+//---------------------------------------------------------
+//---------------------------------------------------------
+bool TerrainInitHeight(TerrainGeomipmapped& terrain, const TerrainConfig& terrainCfg)
 {
-    uint8* dstImage = nullptr;
-
-    try
-    {
-        // check input params
-        CAssert::True(!StrHelper::IsEmpty(name),          "input name is empty");
-        CAssert::True(data,                               "input ptr to image data array == nullptr");
-        CAssert::True(width && !(width & (width - 1)),    "input width must be a power of 2");
-        CAssert::True(height && !(height & (height - 1)), "input height must be a power of 2");
-        CAssert::True(bpp == 24 || bpp == 32,             "input number of bits per pixel must be equal to 24 or 32");
-
-        // if we got image with 24 bits per pixel we have to convert it into 32 bits
-        // since DirectX11 cannot create 24 bits images
-        if (bpp == 24)
-        {
-            const uint bytesPerPixel = 4;
-            const uint numPixels     = width * height;
-            const uint sizeInBytes   = numPixels * bytesPerPixel;
-
-            dstImage = new uint8[sizeInBytes]{ 0 };
-
-            // copy data from the generated 24bits texture map into the 32bits image buffer
-            for (int i = 0, i1 = 0, i2 = 0; i < (int)numPixels; i++, i1 = i*4, i2 = i*3)
-            {
-                // convert from RGB to RGBA
-                dstImage[i1 + 0] = data[i2 + 0];        // R
-                dstImage[i1 + 1] = data[i2 + 1];        // G
-                dstImage[i1 + 2] = data[i2 + 2];        // B
-                dstImage[i1 + 3] = 255;                 // A (255 because we use uint8)
-            }
-
-            // create a DirectX texture
-            Texture texture(pDevice, name, dstImage, width, height, mipMapped);
-
-            // move texture into the textures manager and get an ID of the texture
-            return g_TextureMgr.Add(name, std::move(texture));
-        }
-
-        // we already have a 32 bits image so just create a DirectX texture
-        else
-        {
-            const uint bytesPerPixel = 4;
-            const uint numPixels     = width * height;
-            const uint sizeInBytes   = numPixels * bytesPerPixel;
-
-            // create a DirectX texture
-            Texture texture(pDevice, name, data, width, height, mipMapped);
-
-            // move texture into the textures manager and get an ID of the texture
-            return g_TextureMgr.Add(name, std::move(texture));
-        }
-    }
-    catch (std::bad_alloc& e)
-    {
-        SafeDeleteArr(dstImage);
-        sprintf(g_String, "can't allocate memory for the terrain texture: %s", name);
-        LogErr(e.what());
-        LogErr(g_String);
-        return INVALID_TEXTURE_ID;
-    }
-    catch (EngineException& e)
-    {
-        LogErr(e);
-        SafeDeleteArr(dstImage);
-        return INVALID_TEXTURE_ID;
-    }
-}
-
-///////////////////////////////////////////////////////////
-
-bool ModelsCreator::CreateTerrainFromHeightmap(
-    ID3D11Device* pDevice,
-    const char* configFilename)
-{
-    if (StrHelper::IsEmpty(configFilename))
-    {
-        LogErr("intput path to terrain config file is empty!");
-        return false;
-    }
-
-    Terrain&          terrain = g_ModelMgr.GetTerrain();
-    GeometryGenerator geoGen;
-    TerrainConfig     terrainCfg;
-
-    // load from the file meta-info about the terrain 
-    terrain.LoadSetupFile(configFilename, terrainCfg);
-
-    const int width = terrainCfg.width;
-    const int depth = terrainCfg.depth;
-
-    // generate terrain flat grid's vertices and indices by input params
-    geoGen.GenerateTerrainFlatGrid(width, depth, width + 1, depth + 1, terrain);
-
-    // generate a height map or load it from file
     bool hasHeights = false;
+    const int heightMapSize = terrainCfg.width;
 
     if (terrainCfg.generateHeights)
     {
-        // we generate height maps only relatively the terrain's size
-        const int generatedHeightMapSize = width + 1;
-
         // use "Fault formation" algorithm for height generation
         if (terrainCfg.useGenFaultFormation)
         {
             hasHeights = terrain.GenHeightFaultFormation(
-                generatedHeightMapSize,
+                heightMapSize,
                 terrainCfg.numIterations,
                 terrainCfg.minDelta,
                 terrainCfg.maxDelta,
@@ -773,16 +616,15 @@ bool ModelsCreator::CreateTerrainFromHeightmap(
         {
             // bigger value makes smother terrain
             const float roughness = terrainCfg.roughness;
-            hasHeights = terrain.GenHeightMidpointDisplacement(generatedHeightMapSize, roughness);
+            hasHeights = terrain.GenHeightMidpointDisplacement(heightMapSize, roughness);
         }
 
         // also save this generated height map into the file
-        terrain.SaveHeightMap(terrainCfg.pathSaveHeightMap);
+        //terrain.SaveHeightMap(terrainCfg.pathSaveHeightMap);
     }
     else
     {
         // load a height map from the file
-        const int heightMapSize = width;
         hasHeights = terrain.LoadHeightMap(terrainCfg.pathHeightMap, heightMapSize);
     }
 
@@ -796,50 +638,183 @@ bool ModelsCreator::CreateTerrainFromHeightmap(
         }
     }
 
- 
+    return hasHeights;
+}
+
+//---------------------------------------------------------
+//---------------------------------------------------------
+bool TerrainInitTileMap(TerrainGeomipmapped& terrain, const TerrainConfig& terrainCfg)
+{
+    bool result = false;
 
     // generate new texture map 
     if (terrainCfg.generateTextureMap)
     {
         // load tiles which will be used to generate texture map for terrain
-        terrain.LoadTile(LOWEST_TILE,   terrainCfg.pathLowestTile);
-        terrain.LoadTile(LOW_TILE,      terrainCfg.pathLowTile);
-        terrain.LoadTile(HIGH_TILE,     terrainCfg.pathHighTile);
-        terrain.LoadTile(HIGHEST_TILE,  terrainCfg.pathHighestTile);
+        terrain.LoadTile(LOWEST_TILE,  terrainCfg.pathLowestTile);
+        terrain.LoadTile(LOW_TILE,     terrainCfg.pathLowTile);
+        terrain.LoadTile(HIGH_TILE,    terrainCfg.pathHighTile);
+        terrain.LoadTile(HIGHEST_TILE, terrainCfg.pathHighestTile);
 
         // generate texture map based on loaded tiles and height map
-        terrain.GenerateTextureMap(terrainCfg.textureMapSize);
-        terrain.SaveTextureMap(terrainCfg.pathSaveTextureMap);
-    }
+        result = terrain.GenerateTextureMap(terrainCfg.textureMapSize);
 
+        Image& tileMap = terrain.texture_;
+        constexpr bool mipMapped = true;
+
+        // create texture resource
+        const TexID tileMapTexId = g_TextureMgr.CreateTextureFromRawData(
+            "terrain_tile_map",
+            tileMap.GetData(),
+            tileMap.GetWidth(),
+            tileMap.GetHeight(),
+            tileMap.GetBPP(),
+            mipMapped);
+
+        if (tileMapTexId)
+            LogDbg("terrain_tile_map texture is created");
+
+        // tile map id can be 0 if something went wrong
+        result &= tileMapTexId;
+
+        tileMap.SetID(tileMapTexId);
+
+        //terrain.SaveTextureMap(terrainCfg.pathSaveTextureMap);
+    }
     // load texture map from file
     else
     {
-        terrain.LoadTextureMap(terrainCfg.pathTextureMap);
+        result = terrain.LoadTextureMap(terrainCfg.pathTextureMap);
     }
-    
 
-    // load detail map from the file
+    return result;
+}
+
+//---------------------------------------------------------
+//---------------------------------------------------------
+bool TerrainInitLightMap(TerrainGeomipmapped& terrain, const TerrainConfig& terrainCfg)
+{
+    bool result = false;
+
+    if (terrainCfg.generateLightMap)
+    {
+        // setup the terrain's lighting system
+        terrain.SetLightingType(terrainCfg.lightingType);
+        terrain.SetLightColor(terrainCfg.lightColor);
+
+        terrain.CustomizeSlopeLighting(
+            terrainCfg.lightDirX,
+            terrainCfg.lightDirZ,
+            terrainCfg.lightMinBrightness,
+            terrainCfg.lightMaxBrightness,
+            terrainCfg.shadowSoftness);
+
+        // compute pixel raw data for the lightmap texture
+        result = terrain.CalculateLighting();
+
+        terrain.SaveLightMap(terrainCfg.pathSaveLightMap);
+    }
+    else
+    {
+        result = terrain.LoadLightMap(terrainCfg.pathLightMap);
+    }
+
+    return result;
+}
+
+//---------------------------------------------------------
+// Desc:   create terrain which will be used together with
+//         geomipmapping CLOD algorithm
+// Args:   - pDevice:        ptr to DirectX11 device
+//         - configFilename: path to file with params for terrain
+//---------------------------------------------------------
+bool ModelsCreator::CreateTerrainGeomipmapped(
+    ID3D11Device* pDevice,
+    const char* configFilename)
+{
+    if (StrHelper::IsEmpty(configFilename))
+    {
+        LogErr("intput path to terrain config file is empty!");
+        return false;
+    }
+
+    TerrainGeomipmapped& terrain = g_ModelMgr.GetTerrainGeomip();
+    GeometryGenerator    geoGen;
+    TerrainConfig        terrainCfg;
+
+    // load from the file meta-info about the terrain 
+    terrain.LoadSetupFile(configFilename, terrainCfg);
+
+    const int width = terrainCfg.width;
+    const int depth = terrainCfg.depth;
+
+    // generate terrain flat grid's vertices and indices by input params
+    int numVertices = 0;
+    int numIndices = 0;
+
+    terrain.ClearMemory();
+
+    geoGen.GenerateTerrainFlatGrid(
+        width,
+        depth,
+        width + 1,
+        depth + 1,
+        &terrain.vertices_,
+        &terrain.indices_,
+        numVertices,
+        numIndices);
+
+    terrain.numVertices_ = (uint32)numVertices;
+    terrain.numIndices_  = (uint32)numIndices;
+
+    // ------------------------------------------
+
+    // generate a height map or load it from file
+    if (!TerrainInitHeight(terrain, terrainCfg))
+    {
+        LogErr("can't initialize the terrain heights");
+        exit(-1);
+    }
+
+    // generate a tile map or load it from file
+    if (!TerrainInitTileMap(terrain, terrainCfg))
+    {
+        LogErr("can't initialize the terrain's tile map");
+        exit(-1);
+    }
+
+    if (!TerrainInitLightMap(terrain, terrainCfg))
+    {
+        LogErr("can't initialize the terrain's light map");
+        exit(-1);
+    }
+
     terrain.LoadDetailMap(terrainCfg.pathDetailMap);
 
-    //
+
+    // ------------------------------------------
     // Create DirectX textures for the terrain
     //
-    constexpr bool mipMapped = false;
-    const Image&   tileMap   = terrain.texture_;
-    const Image&   detailMap = terrain.detailMap_;
+    constexpr bool mipMapped = true;
+   
+    Image&         detailMap = terrain.detailMap_;
+    LightmapData&  lightmap  = terrain.lightmap_;
 
-    const TexID tileMapTexId = CreateTextureFromRawData(
-        pDevice,
-        "terrain_tile_map",
-        tileMap.GetData(),
-        tileMap.GetWidth(),
-        tileMap.GetHeight(),
-        tileMap.GetBPP(),
-        mipMapped);
 
-    const TexID detailMapTexId = CreateTextureFromRawData(
-        pDevice,
+
+    const TexID lightmapTexId = g_TextureMgr.CreateTextureFromRawData(
+        "terrain_light_map",
+        lightmap.pData,
+        lightmap.size,
+        lightmap.size,
+        8,
+        false);
+
+    if (lightmapTexId)
+        LogDbg("terrain_light_map texture is created");
+
+
+    const TexID detailMapTexId = g_TextureMgr.CreateTextureFromRawData(
         "terrain_detail_map",
         detailMap.GetData(),
         detailMap.GetWidth(),
@@ -847,33 +822,44 @@ bool ModelsCreator::CreateTerrainFromHeightmap(
         detailMap.GetBPP(),
         mipMapped);
 
-    // set the texture's ID
-    terrain.texture_.SetID(tileMapTexId);
-    terrain.detailMap_.SetID(detailMapTexId);
+    if (detailMapTexId)
+        LogDbg("terrain_detail_map texture is created");
 
+    terrain.lightmap_.id = lightmapTexId;
+    detailMap.SetID(detailMapTexId);
+   
+#if 0
     ComputeAveragedNormals(
         terrain.vertices_,
         terrain.indices_,
         terrain.numVertices_,
         terrain.numIndices_);
+#endif
+
+    terrain.ClearMemory();
+    terrain.AllocateMemory(1000000, 1);
+    UINT indices[1]{ 0 };
 
     // initialize vertex/index buffers
     terrain.InitBuffers(
         pDevice,
         terrain.vertices_,
-        terrain.indices_,
+        indices, //terrain.indices_,
         terrain.numVertices_,
-        terrain.numIndices_);
+        1);      // terrain.numIndices_);
+
+    terrain.InitGeomipmapping(terrainCfg.patchSize);
 
     // compute the bounding box of the terrain
-    const DirectX::XMFLOAT3 center  = { 0,0,0 };
+    const DirectX::XMFLOAT3 center = { 0,0,0 };
     const DirectX::XMFLOAT3 extents = { (float)width, 1.0f, (float)depth };
 
     // setup axis-aligned bounding box
     terrain.SetAABB(center, extents);
 
-    // release CPU copy of the vertices/indices data since we've already created buffers on GPU 
-    terrain.ClearMemory();
+    // release CPU copy of transient data since we're already loaded
+    // all the necessary stuff on GPU
+    //terrain.ClearMemoryFromMaps();
 
     return true;
 }
