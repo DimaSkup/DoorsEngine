@@ -13,6 +13,7 @@
 #include "../Mesh/Material.h"
 #include "../Model/BasicModel.h"
 #include "../Terrain/Terrain.h"
+#include "../Terrain/TerrainGeomipmapped.h"
 
 
 namespace Core
@@ -61,7 +62,10 @@ public:
         const int depth,
         const int m,
         const int n,
-        Terrain& terrain);
+        Vertex3dTerrain** outVertices,
+        UINT** outIndices,
+        int& outNumVertices,
+        int& outNumIndices);
 
     void GeneratePyramid(
         const float height,

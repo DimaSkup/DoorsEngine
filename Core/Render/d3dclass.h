@@ -136,8 +136,8 @@ private:
     //DirectX::XMMATRIX         orthoMatrix_ = DirectX::XMMatrixIdentity();
 
     IDXGISwapChain*			  pSwapChain_        = nullptr;    
-    ID3D11Device*			  pDevice_           = nullptr;    // for creation of buffers, etc.
-    ID3D11DeviceContext*	  pContext_ = nullptr;    // set different resource for rendering
+    ID3D11Device*			  pDevice_           = nullptr;    
+    ID3D11DeviceContext*	  pContext_          = nullptr;    
     ID3D11Texture2D*          pBackBuffer_       = nullptr;    // the render target texture resource
     ID3D11RenderTargetView*   pRenderTargetView_ = nullptr;    // where we are going to render our buffers
     D3D11_VIEWPORT            viewport_{0};
@@ -167,5 +167,12 @@ private:
     UINT m4xMsaaQuality_        = 0;       // 4X MSAA quality level
     UINT displayAdapterIndex_   = 0;       // set adapter idx (if there is any discrete graphics adapter we use this discrete adapter as primary)
 };
+
+
+//==================================================================================
+// Global pointers of DX11 device and device context
+//==================================================================================
+extern ID3D11Device*        g_pDevice;
+extern ID3D11DeviceContext* g_pContext;
 
 } // namespace Core

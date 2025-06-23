@@ -153,7 +153,7 @@ void LoadTarga32Bit(
 
     errno_t error = -1;
     //UCHAR bpp = 0;           // bites per pixel (supposed to be 32)
-
+    size_t count = 0;
     TargaHeader targaFileHeader;
     FILE* pFile = nullptr;
     UCHAR* targaImageDataArr;
@@ -169,7 +169,7 @@ void LoadTarga32Bit(
         }
 
         // read in the file header
-        UINT count = (UINT)(fread(&targaFileHeader, sizeof(TargaHeader), 1, pFile));
+        count = fread(&targaFileHeader, sizeof(TargaHeader), 1, pFile);
         if (count != 1)
         {
             sprintf(g_String, "can't read in the file header: %s", filePath);
@@ -197,8 +197,8 @@ void LoadTarga32Bit(
         *targaDataArr = new UCHAR[imageSize]{ 0 };
 
         // read in the targa image data
-        count = (UINT)(fread(targaImageDataArr, 1, imageSize, pFile));
-        if (count != imageSize)
+        count = fread(targaImageDataArr, 1, imageSize, pFile);
+        if (count != (size_t)imageSize)
         {
             sprintf(g_String, "can't read in the targa image data from file: %s", filePath);
             throw EngineException(g_String);

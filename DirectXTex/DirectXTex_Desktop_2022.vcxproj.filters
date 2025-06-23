@@ -18,9 +18,6 @@
     <CLInclude Include="DirectXTex.inl">
       <Filter>Header Files</Filter>
     </CLInclude>
-    <ClCompile Include="BC4BC5.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClInclude Include="BCDirectCompute.h">
       <Filter>Source Files</Filter>
     </ClInclude>
@@ -38,34 +35,10 @@
     </CLInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="BC.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="BC6HBC7.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="BCDirectCompute.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DirectXTexCompress.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DirectXTexCompressGPU.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DirectXTexConvert.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="DirectXTexD3D11.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="DirectXTexDDS.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DirectXTexFlipRotate.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DirectXTexImage.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="DirectXTexMipMaps.cpp">
@@ -77,24 +50,18 @@
     <ClCompile Include="DirectXTexNormalMaps.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="DirectXTexPMAlpha.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DirectXTexResize.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DirectXTexTGA.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="DirectXTexUtil.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="DirectXTexWIC.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="DirectXTexHDR.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
+    <ClCompile Include="DirectXTexConvert.cpp" />
+    <ClCompile Include="DirectXTexCompress.cpp" />
+    <ClCompile Include="BC.cpp" />
+    <ClCompile Include="BC4BC5.cpp" />
+    <ClCompile Include="BC6HBC7.cpp" />
+    <ClCompile Include="DirectXTexImage.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CLInclude Include="BC.h">
@@ -103,12 +70,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\CompileShaders.cmd">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="Shaders\BC6HEncode.hlsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="Shaders\BC7Encode.hlsl">
       <Filter>Source Files\Shaders</Filter>
     </None>
   </ItemGroup>

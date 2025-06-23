@@ -40,6 +40,10 @@ public:
         ID3D11DeviceContext* pContext,
         const TerrainInstance& instance);
 
+    void RenderVertices(
+        ID3D11DeviceContext* pContext,
+        const TerrainInstance& instance);
+
     void ShaderHotReload(
         ID3D11Device* pDevice,
         const char* vsFilename,

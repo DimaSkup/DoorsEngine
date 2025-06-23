@@ -92,12 +92,12 @@ HRESULT ImgConverter::CreateTexture2dEx(
     {
         ScratchImage mipChain;
 
-        hr = GenerateMipMaps(
+        hr = DirectX::GenerateMipMaps(
             srcImage.GetImages(),
             srcImage.GetImageCount(),
             srcImage.GetMetadata(),
             TEX_FILTER_DEFAULT,
-            levels,
+            0,
             mipChain);
 
         if (FAILED(hr))
@@ -106,6 +106,14 @@ HRESULT ImgConverter::CreateTexture2dEx(
             return hr;
         }
 
+        hr = DirectX::CreateTexture(
+            pDevice,
+            mipChain.GetImages(),
+            mipChain.GetImageCount(),
+            mipChain.GetMetadata(),
+            ppOutResource);
+
+#if 0
         hr = DirectX::CreateTextureEx(
             pDevice,
             mipChain.GetImages(),
@@ -117,6 +125,7 @@ HRESULT ImgConverter::CreateTexture2dEx(
             miscFlags,
             CREATETEX_FLAGS::CREATETEX_DEFAULT,
             ppOutResource);
+#endif
 
         if (FAILED(hr))
             LogErr("can't create texture from input raw data");

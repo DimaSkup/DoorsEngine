@@ -9,13 +9,13 @@
 #include "DumpGenerator.h"
 #include "ImGuizmo.h"
 
-//#include <imgui.h>
-//#include <imgui_internal.h>
-#include <winuser.h>
+#include "../Terrain/Terrain.h"
+#include "../Texture/TextureMgr.h"
+#include "../Model/ModelMgr.h"
+//#include <winuser.h>
 
 #pragma warning (disable : 4996)
 
-//#include <Psapi.h>    // This header is used by Process Status API (PSAPI)
 
 namespace Core
 {
@@ -436,15 +436,14 @@ void HandleEditorCameraMovement(
 {
     ECS::CameraSystem& camSys = pEnttMgr->cameraSystem_;
     const EntityID     camID = pEnttMgr->nameSystem_.GetIdByName("editor_camera");
-    constexpr int      editorCameraSpeed = 10;
+    constexpr int      editorCameraSpeed = 3;
     
     // if camera look isn't fixed at some particular point
     if (!camSys.IsFixedLook(camID))
     {
         // double the speed if we press shift
         const bool  isRunning = keyboard.IsPressed(KEY_SHIFT);
-        const int   speedMul  = 1 + 1 * (isRunning);
-
+        const int   speedMul  = 1 + 10 * (isRunning);
         const float currSpeed = deltaTime * (speedMul * editorCameraSpeed);
 
         switch (code)
@@ -613,11 +612,77 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
                     TurnOnGameMode();
                 break;
             }
+            case KEY_F2:
+            {
+                // switch btw cameras modes (free / game)
+                if (!keyboard_.WasPressedBefore(KEY_F2))
+                {
+                    ECS::PlayerSystem& player = pEnttMgr->playerSystem_;
+                    player.SetFreeFlyMode(!player.IsFreeFlyMode());
+                }
+                
+
+                break;
+            }
             case KEY_F3:
             {
                 // shaders hot reload
                 if (!keyboard_.WasPressedBefore(KEY_F3))
                     pRender_->ShadersHotReload(graphics_.GetD3DClass().GetDevice());
+                break;
+            }
+            case KEY_F4:
+            {
+                if (keyboard_.WasPressedBefore(KEY_F4))
+                    break;
+
+                // recompute light map for the terrain
+                TerrainGeomipmapped& terrain = g_ModelMgr.GetTerrainGeomip();
+                TerrainConfig terrainCfg;
+
+                const char* configPath = "data/terrain/terrain.cfg";
+                terrain.LoadSetupFile(configPath, terrainCfg);
+
+                // setup the terrain's lighting system
+                terrain.SetLightingType(terrainCfg.lightingType);
+                terrain.SetLightColor(terrainCfg.lightColor);
+
+                terrain.CustomizeSlopeLighting(
+                    terrainCfg.lightDirX,
+                    terrainCfg.lightDirZ,
+                    terrainCfg.lightMinBrightness,
+                    terrainCfg.lightMaxBrightness,
+                    terrainCfg.shadowSoftness);
+
+                terrain.UnloadLightMap();
+
+                //terrain.UnloadLightMap();
+                terrain.CalculateLighting();
+
+                const int bitsPerPixel = 8;
+                const LightmapData& lightmap = terrain.lightmap_;
+                Texture& tex = g_TextureMgr.GetTexByID(lightmap.id);
+                
+
+                g_TextureMgr.RecreateTextureFromRawData(
+                    "terrain_light_map",
+                    lightmap.pData,
+                    lightmap.size,
+                    lightmap.size,
+                    bitsPerPixel,
+                    false,
+                    tex);
+
+                // unload lightmap raw data since we're already created a texture resource with it
+                terrain.UnloadLightMap();
+
+                break;
+            }
+            case KEY_F5:
+            {
+                if (!keyboard_.WasPressedBefore(KEY_F5))
+                    g_ModelMgr.GetTerrainGeomip().wantDebug_ = true;
+
                 break;
             }
             case VK_ESCAPE:

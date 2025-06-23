@@ -4,7 +4,8 @@
 //
 // GLOBALS
 //
-Texture2D    gTextures[128] : register(t0);
+TextureCube  gCubeMap       : register(t0);
+Texture2D    gTextures[22] : register(t1);
 SamplerState gSampleType   : register(s0);
 
 
@@ -27,7 +28,7 @@ cbuffer cbRareChanged : register(b1)
     // some flags for controlling the rendering process and
     // params which are changed very rarely
 
-    float3 gFogColor;            // what is the color of fog?
+    float3 gFixedFogColor;       // what is the color of fog?
     float  gFogStart;            // how far from camera the fog starts?
     float  gFogRange;            // how far from camera the object is fully fogged?
 
@@ -64,15 +65,35 @@ struct PS_OUT
 //
 float4 PS(PS_IN pin) : SV_Target
 {
-    
+    // a vector in the world space from vertex to eye pos
+    float3 toEyeW = gEyePosW - pin.posW;
+
+    // compute the distance to the eye from this surface point
+    float distToEye = length(toEyeW);
+
+    // normalize
+    toEyeW /= distToEye;
+
+    // ------------------------------------------
+
+    // HACK to get proper sky pixel
+    float3 vec = -toEyeW;
+    vec.y -= 990;
+
+    float4 skyTexColor = gCubeMap.Sample(gSampleType, vec);
+
+    // return blended fixed fog color with the sky color at this pixel
+    // if the pixel is fully fogged
+    if (gFogEnabled && distToEye > (gFogStart + gFogRange))
+    {
+        return skyTexColor * float4(gFixedFogColor, 1.0f);
+    }
+
     float4 textureColor = gTextures[1].Sample(gSampleType, pin.tex);
 
     // execute alpha clipping
-    //if (gAlphaClipping)
+    if (gAlphaClipping)
         clip(textureColor.a - 0.1f);
-
-    //float4 specularMap = gTextures[2].Sample(gSampleType, pin.tex);
-    //float4 roughnessMap = gTextures[16].Sample(gSampleType, pin.tex);
 
     // --------------------  NORMAL MAP   --------------------
 
@@ -86,15 +107,6 @@ float4 PS(PS_IN pin) : SV_Target
 
   
     // --------------------  LIGHT   --------------------
-
-    // a vector in the world space from vertex to eye pos
-    float3 toEyeW = gEyePosW - pin.posW;
-
-    // compute the distance to the eye from this surface point
-    float distToEye = length(toEyeW);
-
-    // normalize
-    toEyeW /= distToEye;
 
     // start with a sum of zero
     float4 ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -186,11 +198,17 @@ float4 PS(PS_IN pin) : SV_Target
 
     if (gFogEnabled)
     {
-        //float distToEye = length(gEyePosW - pin.posW);
         float fogLerp = saturate((distToEye - gFogStart) / gFogRange);
 
+        // TEMP: hacky fix for the vector to sample the proper pixel of sky
+        float3 vec = -toEyeW;
+        vec.y -= 850;
+
+        // blend sky pixel color with fixed fog color
+        float4 fogColor = gCubeMap.Sample(gSampleType, vec) * float4(gFixedFogColor, 1.0f);
+
         // blend the fog color and the lit color
-        litColor = lerp(litColor, float4(gFogColor, 1.0f), fogLerp);
+        litColor = lerp(litColor, fogColor, fogLerp);
     }
 
     // render depth value as color

@@ -314,85 +314,7 @@ Texture::Texture(
     const UINT height,
     const bool mipmapped)
 {
-    try
-    {
-        // check input params
-        CAssert::True(!StrHelper::IsEmpty(name),   "input name for the texture is empty");
-        CAssert::True(pData != nullptr,            "input ptr to texture data == nullptr");
-        CAssert::True((width > 0) && (height > 0), "input img dimensions is wrong (must be > 0)");
-
-       
-        D3D11_TEXTURE2D_DESC     textureDesc;
-        ImgReader::ImgConverter  imgConv;
-        DirectX::Image           img;
-        DirectX::TexMetadata     metadata;
-   
-        HRESULT    hr = S_OK;
-        const UINT mipLevels = (mipmapped) ? 0 : 1;
-        const UINT miscFlags = (mipmapped) ? D3D11_RESOURCE_MISC_GENERATE_MIPS : 0;
-
-        // setup description for this texture
-        textureDesc.Format              = DXGI_FORMAT_R8G8B8A8_UNORM;
-        textureDesc.Width               = width;
-        textureDesc.Height              = height;
-        textureDesc.ArraySize           = 1;
-        textureDesc.MipLevels           = mipLevels;
-        textureDesc.BindFlags           = D3D11_BIND_SHADER_RESOURCE;
-        textureDesc.Usage               = D3D11_USAGE_DEFAULT;
-        textureDesc.CPUAccessFlags      = 0;
-        textureDesc.SampleDesc.Count    = 1;
-        textureDesc.SampleDesc.Quality  = 0;
-        textureDesc.MiscFlags           = miscFlags;
-      
-        // setup image params
-        img.width                       = width;
-        img.height                      = height;
-        img.format                      = DXGI_FORMAT_R8G8B8A8_UNORM;
-        img.rowPitch                    = width * sizeof(uint8_t) * 4; // 4 bytes per pixel (32bit image)
-        img.slicePitch                  = 0;
-        img.pixels                      = (uint8_t*)pData;
-
-        // setup image metadata
-        metadata.width                  = width;
-        metadata.height                 = height;
-        metadata.depth                  = 1;
-        metadata.arraySize              = 1;
-        metadata.mipLevels              = 0;
-        metadata.miscFlags              = miscFlags;
-        metadata.format                 = DXGI_FORMAT_R8G8B8A8_UNORM;
-        metadata.dimension              = DirectX::TEX_DIMENSION_TEXTURE2D;
-
-        // create texture resource
-        imgConv.CreateTexture2dEx(
-            pDevice,
-            img,
-            metadata,
-            textureDesc.Usage,
-            textureDesc.BindFlags,
-            textureDesc.CPUAccessFlags,
-            textureDesc.MiscFlags,
-            mipmapped,
-            &pTexture_);
-
-        // setup description for a shader resource view (SRV)
-        CD3D11_SHADER_RESOURCE_VIEW_DESC srvDesc(D3D11_SRV_DIMENSION_TEXTURE2D, textureDesc.Format);
-
-        // create a new SRV from texture
-        hr = pDevice->CreateShaderResourceView(pTexture_, &srvDesc, &pTextureView_);
-        CAssert::NotFailed(hr, "Failed to create shader resource view from texture generated from color data");
-
-        width_  = width;
-        height_ = height;
-        name_   = name;
-    }
-    catch (EngineException& e)
-    {
-        LogErr(e);
-        LogErr("can't create an embedded compressed texture");
-
-        // in case of any exception we will try to create 1x1 single color texture
-        Initialize1x1ColorTexture(pDevice, Colors::UnloadedTextureColor);
-    }
+    Initialize(pDevice, name, pData, width, height, mipmapped);
 }
 
 ///////////////////////////////////////////////////////////
@@ -414,7 +336,7 @@ Texture& Texture::operator=(Texture&& rhs) noexcept
     // move assignment
     if (this != &rhs)
     {
-        Clear();                    // lifetime of *this ends
+        Release();                    // lifetime of *this ends
         std::construct_at(this, std::move(rhs));
     }
 
@@ -425,13 +347,135 @@ Texture& Texture::operator=(Texture&& rhs) noexcept
 
 Texture::~Texture()
 {
-    Clear();
+    Release();
 }
+
+
 
 
 // =================================================================================
 // Public API
 // =================================================================================
+
+//---------------------------------------------------------
+// Desc:   initialize the texture with input raw data
+// Args:   - pDevice:   a ptr to DirectX11 device
+//         - name:      name for the texture
+//         - data:      pixels raw data (expected format only for 32 bits per pixel)
+//         - width:     width of the image
+//         - height:    height of the image
+//         - mipMapped: defines if need to generate mipmaps
+// Ret:    true if texture was successfully initialized
+//---------------------------------------------------------
+bool Texture::Initialize(
+    ID3D11Device* pDevice,
+    const char* name,
+    const uint8* data,
+    const uint width,
+    const uint height,
+    const bool mipMapped)
+{
+    try
+    {
+        // check input params
+        CAssert::True(!StrHelper::IsEmpty(name),   "input name for the texture is empty");
+        CAssert::True(data != nullptr,            "input ptr to texture data == nullptr");
+        CAssert::True((width > 0) && (height > 0), "input img dimensions is wrong (must be > 0)");
+
+        // release memory from prev data (if we have any)
+        Release();
+       
+        D3D11_TEXTURE2D_DESC     textureDesc;
+        ImgReader::ImgConverter  imgConv;
+        DirectX::Image           img;
+        DirectX::TexMetadata     metadata;
+   
+        HRESULT    hr = S_OK;
+        const UINT mipLevels = (mipMapped) ? 0 : 1;
+        const UINT miscFlags = (mipMapped) ? D3D11_RESOURCE_MISC_GENERATE_MIPS : 0;
+
+        // setup description for this texture
+        textureDesc.Format              = DXGI_FORMAT_R8G8B8A8_UNORM;
+        textureDesc.Width               = width;
+        textureDesc.Height              = height;
+        textureDesc.ArraySize           = 1;
+        textureDesc.MipLevels           = mipLevels;
+        textureDesc.BindFlags           = D3D11_BIND_SHADER_RESOURCE;
+        textureDesc.Usage               = D3D11_USAGE_DEFAULT;
+        textureDesc.CPUAccessFlags      = 0;
+        textureDesc.SampleDesc.Count    = 1;
+        textureDesc.SampleDesc.Quality  = 0;
+        textureDesc.MiscFlags           = miscFlags;
+      
+        // setup image params
+        img.width                       = width;
+        img.height                      = height;
+        img.format                      = DXGI_FORMAT_R8G8B8A8_UNORM;
+        img.rowPitch                    = width * sizeof(uint8_t) * 4; // 4 bytes per pixel (32bit image)
+        img.slicePitch                  = 0;
+        img.pixels                      = (uint8_t*)data;
+
+        // setup image metadata
+        metadata.width                  = width;
+        metadata.height                 = height;
+        metadata.depth                  = 1;
+        metadata.arraySize              = 1;
+        metadata.mipLevels              = 0;
+        metadata.miscFlags              = miscFlags;
+        metadata.format                 = DXGI_FORMAT_R8G8B8A8_UNORM;
+        metadata.dimension              = DirectX::TEX_DIMENSION_TEXTURE2D;
+
+        // create texture resource
+        imgConv.CreateTexture2dEx(
+            pDevice,
+            img,
+            metadata,
+            textureDesc.Usage,
+            textureDesc.BindFlags,
+            textureDesc.CPUAccessFlags,
+            textureDesc.MiscFlags,
+            mipMapped,
+            &pTexture_);
+
+        // setup description for a shader resource view (SRV)
+        CD3D11_SHADER_RESOURCE_VIEW_DESC srvDesc(D3D11_SRV_DIMENSION_TEXTURE2D, textureDesc.Format);
+
+        // create a new SRV from texture
+        hr = pDevice->CreateShaderResourceView(pTexture_, &srvDesc, &pTextureView_);
+        CAssert::NotFailed(hr, "Failed to create shader resource view from texture generated from color data");
+
+        width_  = width;
+        height_ = height;
+        name_   = name;
+
+        return true;
+    }
+    catch (EngineException& e)
+    {
+        LogErr(e);
+        LogErr("can't create an embedded compressed texture");
+
+        // in case of any exception we will try to create 1x1 single color texture
+        Initialize1x1ColorTexture(pDevice, Colors::UnloadedTextureColor);
+
+        return false;
+    }
+}
+
+///////////////////////////////////////////////////////////
+
+void Texture::Release()
+{
+    // clear the texture data and release resources
+    width_ = 0;
+    height_ = 0;
+    name_.clear();
+    SafeRelease(&pTexture_);
+    SafeRelease(&pTextureView_);
+}
+
+///////////////////////////////////////////////////////////
+
 void Texture::Copy(Texture& src)
 {
     this->Copy(src.pTexture_);
@@ -454,7 +498,7 @@ void Texture::Copy(ID3D11Resource* const pSrcTexResource)
         return;
 
     // clear the previous data
-    Clear();
+    Release();
 
     ID3D11Device* pDevice = nullptr;
     ID3D11DeviceContext* pContext = nullptr;
@@ -561,17 +605,6 @@ POINT Texture::GetTextureSize()
 // =================================================================================
 // Private API
 // =================================================================================
-void Texture::Clear()
-{
-    // clear the texture data and release resources
-    width_ = 0;
-    height_ = 0;
-    name_.clear();
-    SafeRelease(&pTexture_);
-    SafeRelease(&pTextureView_);
-}
-
-///////////////////////////////////////////////////////////
 
 void Texture::LoadFromFile(ID3D11Device* pDevice, const char* filePath)
 {

@@ -212,9 +212,9 @@ bool Application::InitRenderModule(
     const DirectX::XMFLOAT3 skyColorApex   = g_ModelMgr.GetSky().GetColorApex();
 
     // setup the fog color according to the sky center color
-    renderParams.fogColor.x *= skyColorCenter.x;
-    renderParams.fogColor.y *= skyColorCenter.y;
-    renderParams.fogColor.z *= skyColorCenter.z;
+    renderParams.fogColor.x;// *= skyColorCenter.x;
+    renderParams.fogColor.y;// *= skyColorCenter.y;
+    renderParams.fogColor.z;// *= skyColorCenter.z;
 
     
     ID3D11DeviceContext* pContext = nullptr;

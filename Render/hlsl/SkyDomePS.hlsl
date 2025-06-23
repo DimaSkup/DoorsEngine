@@ -56,7 +56,11 @@ float4 PS(PS_INPUT pin) : SV_TARGET
 
 	// determine the position on the sky dome where this pixel is located
 	// and mix it with the gradient color
-	//return float4(color, 1.0f);
-	return float4(color, 1.0f) * gCubeMap.Sample(gSampleType, pin.posL);
-	
+    // 
+	//float3 vec = float3(0, 1, 0);
+    //return float4(color, 1.0f) * gCubeMap.Sample(gSampleType, vec);
+
+    //return float4(color, 1.0f) * gCubeMap.Sample(gSampleType, pin.posL);
+
+    return gCubeMap.Sample(gSampleType, pin.posL);
 };

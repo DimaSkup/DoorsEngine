@@ -129,30 +129,100 @@ void CGraphics::UpdateHelper(
 {
     // update all the graphics related stuff for this frame
 
-    const EntityID currCamID = currCameraID_;
-    pEnttMgr->cameraSystem_.UpdateView(currCamID);
 
-    // DIRTY HACK: update the camera height according to the terrain height function
-#if 0
-    DirectX::XMFLOAT3 prevCamPos = pEnttMgr->transformSystem_.GetPosition(currCamID);
-    const float strideByY = 0.01f * (prevCamPos.z * sinf(0.1f * prevCamPos.x) + prevCamPos.x * cosf(0.1f * prevCamPos.z)) + 1.5f;
-    pCurrCamera_->SetStrideByY(strideByY);
-#endif
+    TerrainGeomipmapped& terrain = g_ModelMgr.GetTerrainGeomip();
+    
 
     // ---------------------------------------------
+    // update the cameras states
 
-    sysState.cameraPos = pEnttMgr->transformSystem_.GetPosition(currCamID);
-    sysState.cameraDir = pEnttMgr->transformSystem_.GetDirection(currCamID);
+    const EntityID currCamID = currCameraID_;
+    static XMFLOAT3 prevCamPos{ 0,0,0 };
+    const XMFLOAT3 camPos = pEnttMgr->transformSystem_.GetPosition(currCamID);
+
+    bool posWasChanged = (prevCamPos != camPos);
+    bool onGroundMode = !pEnttMgr->playerSystem_.IsFreeFlyMode();
+
+    if (posWasChanged && onGroundMode)
+    {
+        prevCamPos = camPos;
+
+        // make camera offset by Y-axis to be at fixed height over the terrain
+        float terrainHeight     = terrain.GetScaledInterpolatedHeightAtPoint(camPos.x, camPos.z);
+        float offsetOverTerrain = 2;
+        float camOffset         = terrainHeight + offsetOverTerrain;
+
+        const XMFLOAT3 newCamPos = { camPos.x, camOffset, camPos.z };
+
+        const EntityID playerID = pEnttMgr->nameSystem_.GetIdByName("player");
+
+        
+        ECS::TransformSystem& transformSys = pEnttMgr->transformSystem_;
+
+        transformSys.SetPosition(playerID, newCamPos);
+        transformSys.SetPosition(currCamID, newCamPos);
+
+        sysState.cameraPos = newCamPos;
+    }
+    else
+    {
+        sysState.cameraPos = camPos;
+    }
+
+    sysState.cameraDir  = pEnttMgr->transformSystem_.GetDirection(currCamID);
+
+    pEnttMgr->cameraSystem_.UpdateView(currCamID);
+
     sysState.cameraView = pEnttMgr->cameraSystem_.GetView(currCamID);
     sysState.cameraProj = pEnttMgr->cameraSystem_.GetProj(currCamID);
-    
-    viewProj_ = sysState.cameraView * sysState.cameraProj;
+    viewProj_           = sysState.cameraView * sysState.cameraProj;
 
-    // update the cameras states
-    
-    // build the frustum from the projection matrix in view space.
+    // build the frustum in view space from the projection matrix
     DirectX::BoundingFrustum::CreateFromMatrix(frustums_[0], sysState.cameraProj);
 
+
+    // ---------------------------------------------
+    // update the terrain
+
+    // get camera params which will be used for culling of terrain patches 
+    CameraParams camParams;
+
+    // setup camera position
+    camParams.posX = sysState.cameraPos.x;
+    camParams.posY = sysState.cameraPos.y;
+    camParams.posZ = sysState.cameraPos.z;
+
+    // setup view matrix
+    memcpy(camParams.viewMatrix, &sysState.cameraView.r->m128_f32, 16 * sizeof(float));
+    memcpy(camParams.projMatrix, &sysState.cameraProj.r->m128_f32, 16 * sizeof(float));
+
+    camParams.fovX  = pEnttMgr->cameraSystem_.GetFovX(currCamID);
+    camParams.fovY  = pEnttMgr->cameraSystem_.GetFovY(currCamID);
+
+    camParams.nearZ = pEnttMgr->cameraSystem_.GetNearZ(currCamID);
+    camParams.farZ  = pEnttMgr->cameraSystem_.GetFarZ(currCamID);
+
+
+    // 6 planes representation of frustum
+    DirectX::XMVECTOR planes[6];
+    frustums_[0].GetPlanes(&planes[0], &planes[1], &planes[2], &planes[3], &planes[4], &planes[5]);
+
+    // setup params for each frustum plane 
+    for (int i = 0; i < 6; ++i)
+    {
+        // normalized plane (normal: x,y,z; w is d = -dot(n,p0))
+        camParams.planes[i][0] = -planes[i].m128_f32[0];
+        camParams.planes[i][1] = -planes[i].m128_f32[1];
+        camParams.planes[i][2] = -planes[i].m128_f32[2];
+        camParams.planes[i][3] = -planes[i].m128_f32[3];
+    }
+
+    // recompute terrain patches and load them into GPU
+    terrain.Update(camParams);
+    terrain.vb_.UpdateDynamic(pDeviceContext_, terrain.vertices_, terrain.verticesOffset_);
+
+
+    // ------------------------------------------
     // perform frustum culling on all of our currently loaded entities
     ComputeFrustumCulling(sysState, pEnttMgr);
     ComputeFrustumCullingOfLightSources(sysState, pEnttMgr);
@@ -169,6 +239,7 @@ void CGraphics::UpdateHelper(
     pSysState_->visibleVerticesCount = 0;
 
 
+#if 0
     //
     // separate entts by distance
     //
@@ -226,17 +297,13 @@ void CGraphics::UpdateHelper(
 
         idxs.clear();
     }
-
+#endif
 
     // ----------------------------------------------------
     // prepare data for each entts set
    
     PrepBasicInstancesForRender(pEnttMgr, pRender);
     PrepAlphaClippedInstancesForRender(pEnttMgr, pRender);
-
-    /*
-    PrepBlendedInstancesForRender(blendedEntts, numBlendedEntts);
-    */
 }
 
 ///////////////////////////////////////////////////////////
@@ -325,9 +392,6 @@ void CGraphics::ComputeFrustumCulling(
     SystemState& sysState,
     ECS::EntityMgr* pEnttMgr)
 {
-    // reset render counters (do it before frustum culling)
-    sysState.visibleObjectsCount = 0;
-
     ECS::EntityMgr& mgr = *pEnttMgr;
     ECS::RenderSystem& renderSys = mgr.renderSystem_;
 
@@ -339,9 +403,8 @@ void CGraphics::ComputeFrustumCulling(
         return;
 
     static cvector<BoundingSphere> boundSpheres;                   // bounding sphere of the whole entity
-    
-    static cvector<index>               idxsToVisEntts(numRenderableEntts);
-    static cvector<XMMATRIX>            enttsLocal(numRenderableEntts);
+    static cvector<index>          idxsToVisEntts(numRenderableEntts);
+    static cvector<XMMATRIX>       enttsLocal(numRenderableEntts);
 
     // get arr of bounding spheres for each renderable entt
     mgr.boundingSystem_.GetBoundSpheres(
@@ -350,7 +413,8 @@ void CGraphics::ComputeFrustumCulling(
         boundSpheres);
 
 #if 1
-    static cvector<XMMATRIX>       invWorlds;                           // inverse world matrix of each renderable entt
+    // inverse world matrix of each renderable entt
+    static cvector<XMMATRIX> invWorlds;  
 
     // get inverse world matrix of each renderable entt
     mgr.transformSystem_.GetInverseWorlds(
@@ -371,8 +435,8 @@ void CGraphics::ComputeFrustumCulling(
         DirectX::BoundingFrustum LSpaceFrustum;
         frustums_[0].Transform(LSpaceFrustum, enttsLocal[idx]);
 
-        if (LSpaceFrustum.Intersects(boundSpheres[idx]))
-            idxsToVisEntts[numVisEntts++] = idx;
+        idxsToVisEntts[numVisEntts] = idx;
+        numVisEntts += LSpaceFrustum.Intersects(boundSpheres[idx]);
     }
 
 #else
@@ -564,11 +628,24 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
 {
     try
     {
+        // prepare the sky textures: in different shaders we will sample the sky
+        // texture pixels so we bind them only once at the beginning of the frame
+        const SkyModel& sky = g_ModelMgr.GetSky();
+        const TexID* skyTexIDs = sky.GetTexIDs();
+        const int skyTexMaxNum = sky.GetMaxTexturesNum();
+
+        // get shader resource views (textures) for the sky
+        ID3D11DeviceContext* pContext = pDeviceContext_;
+        g_TextureMgr.GetSRVsByTexIDs(skyTexIDs, skyTexMaxNum, texturesBuf_);
+        pContext->PSSetShaderResources(0U, 1U, texturesBuf_.data());
+
+
         RenderEnttsDefault(pRender);
         RenderEnttsAlphaClipCullNone(pRender);
         RenderTerrain(pRender, pEnttMgr);
         RenderSkyDome(pRender, pEnttMgr);
         //RenderFoggedBillboards(pRender, pEnttMgr);
+
 #if 0
         pDeviceContext_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 
@@ -813,10 +890,10 @@ void CGraphics::RenderMaterialsIcons(
         Material& mat = g_MaterialMgr.GetMaterialByID(matIdx);
 
         const Render::Material renderMat(
-            DirectX::XMFLOAT4(&mat.ambient.x),
-            DirectX::XMFLOAT4(&mat.diffuse.x),
-            DirectX::XMFLOAT4(&mat.specular.x),
-            DirectX::XMFLOAT4(&mat.reflect.x));
+            XMFLOAT4(&mat.ambient.x),
+            XMFLOAT4(&mat.diffuse.x),
+            XMFLOAT4(&mat.specular.x),
+            XMFLOAT4(&mat.reflect.x));
 
         cvector<ID3D11ShaderResourceView*> texSRVs;
         g_TextureMgr.GetSRVsByTexIDs(mat.textureIDs, NUM_TEXTURE_TYPES, texSRVs);
@@ -856,7 +933,6 @@ void CGraphics::RenderEnttsDefault(Render::CRender* pRender)
         d3d_.GetRenderStates().ResetRS(pDeviceContext_);
         d3d_.GetRenderStates().ResetBS(pDeviceContext_);
     }
-    
 
     pRender->UpdateInstancedBuffer(pDeviceContext_, storage.modelInstBuffer);
 
@@ -881,34 +957,34 @@ void CGraphics::RenderEnttsAlphaClipCullNone(Render::CRender* pRender)
         return;
 
     RenderStates& renderStates = d3d_.GetRenderStates();
+    ID3D11DeviceContext* pContext = pDeviceContext_;
+
 
     // setup states before rendering
     if (pRender->shadersContainer_.debugShader_.GetDebugType() == Render::eDebugState::DBG_WIREFRAME)
     {
-        renderStates.SetRS(pDeviceContext_, { FILL_WIREFRAME, CULL_BACK, FRONT_CLOCKWISE });
+        renderStates.SetRS(pContext, { FILL_WIREFRAME, CULL_BACK, FRONT_CLOCKWISE });
     }
     else
     {
-        renderStates.SetRS(pDeviceContext_, { FILL_SOLID, CULL_NONE, FRONT_CLOCKWISE });
-        d3d_.GetRenderStates().ResetBS(pDeviceContext_);
-        pRender->SwitchAlphaClipping(pDeviceContext_, true);
+        renderStates.SetRS(pContext, { FILL_SOLID, CULL_NONE, FRONT_CLOCKWISE });
+        renderStates.ResetBS(pContext);
+        renderStates.ResetDSS(pContext);
+        pRender->SwitchAlphaClipping(pContext, true);
     }
 
-
-    
-
     // load instances data and render them
-    pRender->UpdateInstancedBuffer(pDeviceContext_, storage.alphaClippedModelInstBuffer);
+    pRender->UpdateInstancedBuffer(pContext, storage.alphaClippedModelInstBuffer);
 
     pRender->RenderInstances(
-        pDeviceContext_,
+        pContext,
         Render::ShaderTypes::LIGHT,
         storage.alphaClippedModelInstances.data(),
         (int)storage.alphaClippedModelInstances.size());
 
     // reset rendering pipeline
-    renderStates.ResetRS(pDeviceContext_);
-    pRender->SwitchAlphaClipping(pDeviceContext_, false);
+    renderStates.ResetRS(pContext);
+    pRender->SwitchAlphaClipping(pContext, false);
 }
 
 ///////////////////////////////////////////////////////////
@@ -1101,21 +1177,10 @@ void CGraphics::RenderSkyDome(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr
     const SkyModel& sky = g_ModelMgr.GetSky();
     Render::SkyInstance instance;
 
-    //
-    // prepare the sky instance
-    //
-    const TexID* skyTexIDs = sky.GetTexIDs();
-    const int skyTexMaxNum = sky.GetMaxTexturesNum();
-
-    // get shader resource views (textures) for the sky
-    g_TextureMgr.GetSRVsByTexIDs(skyTexIDs, skyTexMaxNum, texturesBuf_);
-    memcpy(instance.texSRVs, texturesBuf_.begin(), NUM_TEXTURE_TYPES * sizeof(ID3D11ShaderResourceView*));
-
     instance.vertexStride = sky.GetVertexStride();
     instance.pVB          = sky.GetVertexBuffer();
     instance.pIB          = sky.GetIndexBuffer();
     instance.indexCount   = sky.GetNumIndices();
-
     instance.colorCenter  = sky.GetColorCenter();
     instance.colorApex    = sky.GetColorApex();
 
@@ -1124,69 +1189,87 @@ void CGraphics::RenderSkyDome(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr
     ID3D11DeviceContext* pContext = pDeviceContext_;
 
     RenderStates& renderStates = d3d_.GetRenderStates();
-    //renderStates.ResetRS(pContext);
     renderStates.SetRS(pContext, { FILL_SOLID, CULL_NONE, FRONT_COUNTER_CLOCKWISE });
     renderStates.ResetBS(pContext);
     renderStates.SetDSS(pContext, SKY_DOME, 1);
 
-    // compute a worldViewProj matrix for the sky instance
 
-    // TODO: optimize it!
+    // compute a worldViewProj matrix for the sky instance
     const XMFLOAT3 skyOffset     = pEnttMgr->transformSystem_.GetPosition(skyEnttID);
     const XMFLOAT3 eyePos        = pEnttMgr->cameraSystem_.GetPos(currCameraID_);
-    const XMMATRIX camOffset     = DirectX::XMMatrixTranslation(eyePos.x, eyePos.y, eyePos.z);
-    const XMMATRIX skyWorld      = DirectX::XMMatrixTranslation(skyOffset.x, skyOffset.y, skyOffset.z);
-    const XMMATRIX worldViewProj = DirectX::XMMatrixTranspose(camOffset * skyWorld * viewProj_);
+    const XMFLOAT3 translation   = skyOffset + eyePos;
+    const XMMATRIX world         = DirectX::XMMatrixTranslation(translation.x, translation.y, translation.z);
+    const XMMATRIX worldViewProj = DirectX::XMMatrixTranspose(world * viewProj_);
 
     pRender->RenderSkyDome(pContext, instance, worldViewProj);
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   render terrain onto the screen
+// Args:   - pRender: a pointer to the renderer (look at Render module)
+//         - pEnttMgr: a pointer to the ECS manager (look at ECS module)
+//---------------------------------------------------------
 void CGraphics::RenderTerrain(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr)
 {
     const EntityID terrainID = pEnttMgr->nameSystem_.GetIdByName("terrain");
 
-    // if we haven't any sky entity
+    // if we haven't any terrain entity
     if (terrainID == INVALID_ENTITY_ID)
         return;
 
-    const Terrain& terrain = g_ModelMgr.GetTerrain();
-    
-    // --------------------------
-    // prepare the sky instance
-    // --------------------------
+
+    // prepare the terrain instance
+    TerrainGeomipmapped& terrain = g_ModelMgr.GetTerrainGeomip();
     Render::TerrainInstance instance;
 
-    // material
+    // prepare material
     const Material& mat = g_MaterialMgr.GetMaterialByID(terrain.materialID_);
     memcpy(&instance.material.ambient_.x,  &mat.ambient.x,  sizeof(float) * 4);
     memcpy(&instance.material.diffuse_.x,  &mat.diffuse.x,  sizeof(float) * 4);
     memcpy(&instance.material.specular_.x, &mat.specular.x, sizeof(float) * 4);
     memcpy(&instance.material.reflect_.x,  &mat.reflect.x,  sizeof(float) * 4);
 
-    // textures
+    // prepare textures
     g_TextureMgr.GetSRVsByTexIDs(mat.textureIDs, NUM_TEXTURE_TYPES, texturesBuf_);
     memcpy(instance.textures, texturesBuf_.begin(), NUM_TEXTURE_TYPES * sizeof(ID3D11ShaderResourceView*));
 
     // vertex/index buffers data
-    instance.vertexStride = terrain.GetVertexStride();
-    instance.pVB          = terrain.GetVertexBuffer();
-    instance.pIB          = terrain.GetIndexBuffer();
-    instance.indexCount   = terrain.GetNumIndices();
+    instance.vertexStride   = terrain.GetVertexStride();
+    instance.pVB            = terrain.GetVertexBuffer();
+    instance.pIB            = terrain.GetIndexBuffer();
+    instance.numVertices    = terrain.verticesOffset_;
+    instance.indexCount     = terrain.GetNumIndices();
+
+    // for debugging
+    instance.wantDebug = terrain.wantDebug_;
 
     // setup rendering pipeline before rendering of the sky dome
-    ID3D11DeviceContext* pContext = pDeviceContext_;
-
+   
     RenderStates& renderStates = d3d_.GetRenderStates();
-    renderStates.ResetRS(pContext);
-    renderStates.ResetBS(pContext);
-    renderStates.ResetDSS(pContext);
 
-    pRender->shadersContainer_.terrainShader_.Render(pContext, instance);
+     ID3D11DeviceContext* pContext = pDeviceContext_;
 
-    // compute how many vertices will we render
-    pSysState_->visibleVerticesCount += terrain.vb_.GetVertexCount();
+    // setup states before rendering
+    if (pRender->shadersContainer_.debugShader_.GetDebugType() == Render::eDebugState::DBG_WIREFRAME)
+    {
+        renderStates.SetRS(pDeviceContext_, { FILL_WIREFRAME, CULL_BACK, FRONT_CLOCKWISE });
+        renderStates.ResetBS(pContext);
+        renderStates.ResetDSS(pContext);
+    }
+    else
+    {
+        renderStates.ResetRS(pContext);
+        renderStates.ResetBS(pContext);
+        renderStates.ResetDSS(pContext);
+    }
+
+    pRender->shadersContainer_.terrainShader_.RenderVertices(pContext, instance);
+
+    // compute how many vertices we already rendered
+    pSysState_->visibleVerticesCount += (uint32_t)terrain.verticesOffset_;
+    //pSysState_->visibleVerticesCount += terrain.vb_.GetVertexCount();
+
+    terrain.wantDebug_ = false;
 }
 
 ///////////////////////////////////////////////////////////

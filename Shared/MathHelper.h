@@ -50,6 +50,11 @@ namespace DirectX
 		return !(lhs == rhs);
 	}
 
+    static XMFLOAT3 operator+(const XMFLOAT3& lhs, const XMFLOAT3& rhs)
+    {
+        return { lhs.x+rhs.x, lhs.y+rhs.y, lhs.z+rhs.z };
+    }
+
 	static XMFLOAT3& operator+=(XMFLOAT3& lhs, const XMFLOAT3& rhs)
 	{
 		lhs.x += rhs.x;
@@ -58,6 +63,33 @@ namespace DirectX
 
 		return lhs;
 	}
+
+    static XMFLOAT3& operator*=(XMFLOAT3& lhs, const XMFLOAT3& rhs)
+    {
+        lhs.x *= rhs.x;
+        lhs.y *= rhs.y;
+        lhs.z *= rhs.z;
+
+        return lhs;
+    }
+
+    static XMFLOAT3& operator*=(XMFLOAT3& lhs, const float value)
+    {
+        lhs.x *= value;
+        lhs.y *= value;
+        lhs.z *= value;
+
+        return lhs;
+    }
+
+    static XMFLOAT3& operator*=(XMFLOAT3& lhs, const int value)
+    {
+        lhs.x *= value;
+        lhs.y *= value;
+        lhs.z *= value;
+
+        return lhs;
+    }
 
 	static XMFLOAT3 XMFloat3Normalize(const XMFLOAT3& n)
 	{

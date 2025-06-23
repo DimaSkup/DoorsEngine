@@ -87,6 +87,16 @@ public:
 
     // --------------------------------------------------------------------------------
 
+    bool Initialize(
+        ID3D11Device* pDevice,
+        const char* name,
+        const uint8* data,
+        const uint width,
+        const uint height,
+        const bool mipMapped);
+
+    void Release();
+
     // deep copy
     void Copy(Texture& src);
     void Copy(ID3D11Resource* const pSrcTexResource);
@@ -104,11 +114,9 @@ public:
 
     inline void SetName(const std::string& newPath) { name_ = newPath; } 
 
-    // --------------------------------------------------------------------------------
 
 private:
-    void Clear();
-
+  
     void LoadFromFile(
         ID3D11Device* pDevice, 
         const char* filePath);

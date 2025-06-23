@@ -56,10 +56,9 @@ void SkyDomeShader::Render(
 	cbvsPerFrame_.ApplyChanges(pContext);
 	
 	// prepare input assembler (IA) stage before the rendering process
-	UINT stride = sky.vertexStride;
 	UINT offset = 0;
 
-	pContext->IASetVertexBuffers(0, 1, &sky.pVB, &stride, &offset);
+	pContext->IASetVertexBuffers(0, 1, &sky.pVB, &sky.vertexStride, &offset);
 	pContext->IASetIndexBuffer(sky.pIB, DXGI_FORMAT_R16_UINT, 0);
 	pContext->IASetInputLayout(vs_.GetInputLayout());
 	pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -70,7 +69,7 @@ void SkyDomeShader::Render(
 	pContext->PSSetSamplers(0, 1, samplerState_.GetAddressOf());
 
 	// update textures for the current subset
-	pContext->PSSetShaderResources(0U, 1U, sky.texSRVs);
+	//pContext->PSSetShaderResources(0U, 1U, sky.texSRVs);
 
 	// render the sky
 	pContext->DrawIndexed(sky.indexCount, 0, 0);

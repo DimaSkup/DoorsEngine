@@ -11,7 +11,6 @@
 #include <CAssert.h>
 #include "../Texture/TextureTypes.h"
 
-
 #pragma warning (disable : 4996)
 
 

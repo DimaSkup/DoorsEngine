@@ -294,9 +294,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <CLInclude Include="BC.h" />
-    <ClCompile Include="BC.cpp" />
-    <ClCompile Include="BC4BC5.cpp" />
-    <ClCompile Include="BC6HBC7.cpp" />
     <ClInclude Include="BCDirectCompute.h" />
     <CLInclude Include="DDS.h" />
     <ClInclude Include="filters.h" />
@@ -304,21 +301,17 @@
     <CLInclude Include="DirectXTex.h" />
     <CLInclude Include="DirectXTexP.h" />
     <CLInclude Include="DirectXTex.inl" />
-    <ClCompile Include="BCDirectCompute.cpp" />
+    <ClCompile Include="BC.cpp" />
+    <ClCompile Include="BC4BC5.cpp" />
+    <ClCompile Include="BC6HBC7.cpp" />
     <ClCompile Include="DirectXTexCompress.cpp" />
-    <ClCompile Include="DirectXTexCompressGPU.cpp" />
     <ClCompile Include="DirectXTexConvert.cpp" />
     <ClCompile Include="DirectXTexD3D11.cpp" />
     <ClCompile Include="DirectXTexDDS.cpp" />
-    <ClCompile Include="DirectXTexFlipRotate.cpp" />
-    <ClCompile Include="DirectXTexHDR.cpp" />
     <ClCompile Include="DirectXTexImage.cpp" />
     <ClCompile Include="DirectXTexMipMaps.cpp" />
     <ClCompile Include="DirectXTexMisc.cpp" />
     <ClCompile Include="DirectXTexNormalMaps.cpp" />
-    <ClCompile Include="DirectXTexPMAlpha.cpp" />
-    <ClCompile Include="DirectXTexResize.cpp" />
-    <ClCompile Include="DirectXTexTGA.cpp" />
     <ClCompile Include="DirectXTexUtil.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
@@ -328,14 +321,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="DirectXTexWIC.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Shaders\BC6HEncode.hlsl">
-      <FileType>Document</FileType>
-    </None>
-    <None Include="Shaders\BC7Encode.hlsl">
-      <FileType>Document</FileType>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\CompileShaders.cmd" />

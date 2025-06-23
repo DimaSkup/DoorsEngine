@@ -139,7 +139,8 @@ if not exist "$(SolutionDir)build\$(IntDir)data\models" mkdir "$(SolutionDir)bui
 dir /b /s /a "$(SolutionDir)build\$(IntDir)data\models" | findstr .&gt;nul || (
   xcopy /Y "$(SolutionDir)data\models" "$(SolutionDir)build\$(IntDir)data\models" /E
 )
-</Command>
+
+xcopy /Y /f "$(SolutionDir)Linking\lib\assimp-vc143-mtd.dll" "$(SolutionDir)build\$(IntDir)"</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>
@@ -189,10 +190,20 @@ dir /b /s /a "$(SolutionDir)build\$(IntDir)data\models" | findstr .&gt;nul || (
       <AdditionalDependencies>d3dcompiler.lib;d3d11.lib;d3dx11.lib;assimp-vc143-mt.lib;ECS.lib;ImageReader.lib;Render.lib;ImGui.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mt.dll" xcopy /Y "$(SolutionDir)Lib\$(IntDir)assimp-vc143-mt.dll" "$(SolutionDir)build\$(IntDir)"
-
+      <Command>
 if not exist "$(SolutionDir)build\$(IntDir)data" mkdir "$(SolutionDir)build\$(IntDir)data"
-xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</Command>
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data" "$(SolutionDir)build\$(IntDir)data" /E
+)
+
+if not exist "$(SolutionDir)build\$(IntDir)data\models" mkdir "$(SolutionDir)build\$(IntDir)data\models"
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\models" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\models" "$(SolutionDir)build\$(IntDir)data\models" /E
+)
+
+if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mtd.dll" xcopy /Y /f "$(SolutionDir)Linking\lib\assimp-vc143-mtd.dll" "$(SolutionDir)build\$(IntDir)"</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>
@@ -203,6 +214,10 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CoreCommon\Frustum.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="CoreCommon\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pch.h</PrecompiledHeaderFile>
@@ -254,6 +269,7 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CoreCommon/pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <ClCompile Include="Terrain\TerrainBase.cpp" />
+    <ClCompile Include="Terrain\TerrainGeomipmapped.cpp" />
     <ClCompile Include="Texture\Image.cpp" />
     <ClCompile Include="Texture\TextureMgr.cpp" />
     <ClCompile Include="Render\AdapterReader.cpp" />
@@ -344,7 +360,10 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CoreCommon\Frustum.h" />
+    <ClInclude Include="CoreCommon\Matrix.h" />
     <ClInclude Include="CoreCommon\pch.h" />
+    <ClInclude Include="CoreCommon\RawFile.h" />
     <ClInclude Include="ECS_Components\MeshComponent.h" />
     <ClInclude Include="ECS_Components\Rendered.h" />
     <ClInclude Include="ECS_Components\WorldMatrix.h" />
@@ -397,6 +416,7 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClInclude Include="Model\ModelStorageSerializer.h" />
     <ClInclude Include="Model\SkyModel.h" />
     <ClInclude Include="Terrain\TerrainBase.h" />
+    <ClInclude Include="Terrain\TerrainGeomipmapped.h" />
     <ClInclude Include="Texture\Image.h" />
     <ClInclude Include="Texture\TextureTypesNames.h" />
     <ClInclude Include="UI\Editor\Debug\DebugEditor.h" />

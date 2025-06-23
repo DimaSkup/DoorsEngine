@@ -144,40 +144,41 @@ void GeometryGenerator::GenerateCube(BasicModel& model)
     Vertex3D* vertices = model.vertices_;
 
     // front
-    vertices[0] = { pos5, tex[0], normFront };
-    vertices[1] = { pos4, tex[1], normFront };
-    vertices[2] = { pos0, tex[2], normFront };
-    vertices[3] = { pos1, tex[3], normFront };
+    vertices[0] = { pos5, tex[0], normFront, {1,0,0} };
+    vertices[1] = { pos4, tex[1], normFront, {1,0,0} };
+    vertices[2] = { pos0, tex[2], normFront, {1,0,0} };
+    vertices[3] = { pos1, tex[3], normFront, {1,0,0} };
 
     // back
-    vertices[4] = { pos3, tex[0], normBack };
-    vertices[5] = { pos2, tex[1], normBack };
-    vertices[6] = { pos6, tex[2], normBack };
-    vertices[7] = { pos7, tex[3], normBack };
+    vertices[4] = { pos3, tex[0], normBack, {-1,0,0} };
+    vertices[5] = { pos2, tex[1], normBack, {-1,0,0} };
+    vertices[6] = { pos6, tex[2], normBack, {-1,0,0} };
+    vertices[7] = { pos7, tex[3], normBack, {-1,0,0} };
 
     // left
-    vertices[8]  = { pos7, tex[0], normLeft };
-    vertices[9]  = { pos6, tex[1], normLeft };
-    vertices[10] = { pos4, tex[2], normLeft };
-    vertices[11] = { pos5, tex[3], normLeft };
+    vertices[8]  = { pos7, tex[0], normLeft, {0,0,-1} };
+    vertices[9]  = { pos6, tex[1], normLeft, {0,0,-1} };
+    vertices[10] = { pos4, tex[2], normLeft, {0,0,-1} };
+    vertices[11] = { pos5, tex[3], normLeft, {0,0,-1} };
 
     // right
-    vertices[12] = { pos1, tex[0], normRight };
-    vertices[13] = { pos0, tex[1], normRight };
-    vertices[14] = { pos2, tex[2], normRight };
-    vertices[15] = { pos3, tex[3], normRight };
+
+    vertices[12] = { pos1, tex[0], normRight, {0,0,1} };
+    vertices[13] = { pos0, tex[1], normRight, {0,0,1} };
+    vertices[14] = { pos2, tex[2], normRight, {0,0,1} };
+    vertices[15] = { pos3, tex[3], normRight, {0,0,1} };
 
     // top
-    vertices[16] = { pos4, tex[0], normTop };
-    vertices[17] = { pos6, tex[1], normTop };
-    vertices[18] = { pos2, tex[2], normTop };
-    vertices[19] = { pos0, tex[3], normTop };
+    vertices[16] = { pos4, tex[0], normTop, {1,0,0} };
+    vertices[17] = { pos6, tex[1], normTop, {1,0,0} };
+    vertices[18] = { pos2, tex[2], normTop, {1,0,0} };
+    vertices[19] = { pos0, tex[3], normTop, {1,0,0} };
 
     // bottom
-    vertices[20] = { pos7, tex[0] };
-    vertices[21] = { pos5, tex[1] };
-    vertices[22] = { pos1, tex[2] };
-    vertices[23] = { pos3, tex[3] };
+    vertices[20] = { pos7, tex[0], normBottom, {1,0,0} };
+    vertices[21] = { pos5, tex[1], normBottom, {1,0,0} };
+    vertices[22] = { pos1, tex[2], normBottom, {1,0,0} };
+    vertices[23] = { pos3, tex[3], normBottom, {1,0,0} };
 
 #if 0
     // generate a unique colour for each vertex of each side of the cube
@@ -206,7 +207,7 @@ void GeometryGenerator::GenerateCube(BasicModel& model)
 
     model.CopyIndices(indicesData, numIndices);
 
-    ComputeTangents(model.vertices_, model.indices_, numIndices);
+    //ComputeTangents(model.vertices_, model.indices_, numIndices);
 
     // ---------------------------------------------
 
@@ -797,7 +798,10 @@ void GeometryGenerator::GenerateTerrainFlatGrid(
     const int depth,              // length by Z-axis
     const int verticesByX,        // vertices count by X
     const int verticesByZ,        // vertices count by Z
-    Terrain& terrain)
+    Vertex3dTerrain** outVertices,
+    UINT** outIndices,
+    int& outNumVertices,
+    int& outNumIndices)
 {
     // build the grid in the XZ-plane. A grid of (m * n) vertices includes
     // (m - 1) * (n - 1) quads (or cells). Each cell will be covered by two triangles, 
@@ -820,17 +824,18 @@ void GeometryGenerator::GenerateTerrainFlatGrid(
         CAssert::True(verticesByX >= 2, "input number of vertices by X-axis must be >= 2");
         CAssert::True(verticesByZ >= 2, "input number of vertices by Z-axis must be >= 2");
 
-        const int quadsByX    = verticesByX - 1;
-        const int quadsByZ    = verticesByZ - 1;
-        const int faceCount   = quadsByX * quadsByZ * 2;        // quad_num_by_X * quad_num_by_Z * 2_triangles_per_quad
-        const int numVertices = verticesByX * verticesByZ * 4;  // 4 vertices per quad
-        const int numIndices  = numVertices / 4 * 6;
+        constexpr int vertexPerQuad = 4;
+        constexpr int indexPerQuad  = 6;
+
+        outNumVertices = verticesByX * verticesByZ * vertexPerQuad;  
+        outNumIndices  = outNumVertices / vertexPerQuad * indexPerQuad;
 
         // allocate memory for data of the grid
-        terrain.AllocateMemory(numVertices, numIndices);
+        *outVertices   = new Vertex3dTerrain[outNumVertices];
+        *outIndices    = new UINT[outNumIndices];
 
-        BuildFlatGridVertices(terrain.vertices_, (float)width, (float)depth);
-        BuildFlatGridIndices(terrain.indices_, verticesByX, verticesByZ);
+        BuildFlatGridVertices(*outVertices, (float)width, (float)depth);
+        BuildFlatGridIndices(*outIndices, verticesByX, verticesByZ);
     }
     catch (std::bad_alloc& e)
     {

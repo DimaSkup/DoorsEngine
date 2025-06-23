@@ -17,13 +17,13 @@ struct VS_IN
     float2   tex        : TEXCOORD;
     float3   normalL    : NORMAL;       // vertex normal in local space
     float3   tangentL   : TANGENT;      // tangent in local space
-    uint     color      : COLOR;
+    float4   color      : COLOR;
 };
 
 struct VS_OUT
 {
     float4   posH       : SV_POSITION;  // homogeneous position
-    //float4   color      : COLOR;
+    float4   color      : COLOR;
     float3   posW       : POSITION;     // position in world
     float3   normalW    : NORMAL;       // normal in world
     float3   tangentW   : TANGENT;      // tangent in world
@@ -37,7 +37,8 @@ VS_OUT VS(VS_IN vin)
 {
     VS_OUT vout;
 
-    //vout.color = vin.color;
+    //uint c = vin.color;
+    vout.color = vin.color;
 
     // transform pos from local to world space
     vout.posW = vin.posL;// mul(float4(vin.posL, 1.0f), vin.world).xyz;

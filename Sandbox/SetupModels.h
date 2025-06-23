@@ -11,6 +11,28 @@ using namespace Core;
 namespace Game
 {
 
+void SetupTreeSpruce(BasicModel& tree)
+{
+    // manually setup of tree spruce model
+
+    // prepare path to textures directory
+    char pathToTreeModelDir[64]{ '\0' };
+    sprintf(pathToTreeModelDir, "%s%s", g_RelPathExtModelsDir, "trees/tree_spruce/");
+
+    // load in textures
+    const TexID normalMapID = g_TextureMgr.LoadFromFile(pathToTreeModelDir, "tree_spruce_diffuse_NRM.dds");
+
+    // setup the material for a single subset of the tree
+    const MaterialID matID = tree.meshes_.subsets_[0].materialID;
+    Material& mat          = g_MaterialMgr.GetMaterialByID(matID);
+
+    mat.SetName("tree_spruce_mat");
+    mat.SetTexture(TEX_TYPE_NORMALS, normalMapID);
+    mat.SetDiffuse(1, 1, 1, 1);
+}
+
+///////////////////////////////////////////////////////////
+
 void SetupTree(BasicModel& tree)
 {
     // manually setup of tree pine model

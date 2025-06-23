@@ -65,7 +65,8 @@ public:
     DirectX::XMFLOAT2 texture;
     DirectX::XMFLOAT3 normal;
     DirectX::XMFLOAT3 tangent;
-    DirectX::PackedVector::XMCOLOR color;   // 32-bit ARGB packed color
+    DirectX::XMFLOAT4 color;
+   //DirectX::PackedVector::XMCOLOR color;   // 32-bit ARGB packed color
 };
 
 } // namespace
