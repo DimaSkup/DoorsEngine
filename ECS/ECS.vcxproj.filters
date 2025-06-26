@@ -105,6 +105,9 @@
     <ClInclude Include="Entity\EntityMgr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Events\IEvent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\pch.cpp">

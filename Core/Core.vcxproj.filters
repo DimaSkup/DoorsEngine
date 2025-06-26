@@ -698,9 +698,6 @@
     <ClInclude Include="CoreCommon\Matrix.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CoreCommon\RawFile.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="ECS_Entity\EntityManagerInlineFunc.inl">

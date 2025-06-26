@@ -12,6 +12,7 @@
 #include <map>
 #include <string>
 
+#include "RawFile.h"
 #include "log.h"
 #include "CAssert.h"
 #include "EngineException.h"
@@ -22,5 +23,6 @@
 #include "Types.h"
 #include "FileSystem.h"
 #include "FileSystemPaths.h"
+
 
 #pragma warning (disable : 4996)

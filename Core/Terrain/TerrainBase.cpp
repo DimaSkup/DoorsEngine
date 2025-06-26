@@ -2,7 +2,6 @@
 // Filename:   TerrainBase.cpp
 // =================================================================================
 #include <CoreCommon/pch.h>
-#include <CoreCommon/RawFile.h>
 #include "TerrainBase.h"
 #include "../Texture/TextureMgr.h"
 #include <time.h>
@@ -389,9 +388,8 @@ bool TerrainBase::GenHeightFaultFormation(
             srand((unsigned int)time(NULL));
 
         // alloc the memory for our height data
-        //heightData_.pData = new uint8_t[size * size]{ 0 };
         heightMap_.Create(size, size, 8);
-        tempBuf           = new float[size * size]{ 0.0f };
+        tempBuf = new float[size * size]{ 0.0f };
 
         for (int currIteration = 0; currIteration < numIterations; ++currIteration)
         {
@@ -508,9 +506,8 @@ bool TerrainBase::GenHeightMidpointDisplacement(const int size, float roughness,
             srand((unsigned int)time(NULL));
 
         // alloc the memory for our height data
-        //heightData_.pData = new uint8_t[size*size]{0};
         heightMap_.Create(size, size, 8);
-        tempBuf           = new float[size*size]{0.0f};
+        tempBuf = new float[size*size]{0.0f};
 
         // being the displacement process
         while (rectSize > 0)
@@ -756,9 +753,9 @@ bool TerrainBase::GenerateTextureMap(const uint texMapSize)
         for (int x = 0; x < (int)texMapSize; ++x)
         {
             // set our total color counters to 0.0f
-            float totalRed        = 0.0f;
-            float totalGreen      = 0.0f;
-            float totalBlue       = 0.0f;
+            float totalRed           = 0.0f;
+            float totalGreen         = 0.0f;
+            float totalBlue          = 0.0f;
             const uint8 interpHeight = InterpolateHeight(x, z, mapRatio);
 
             // loop through the loaded tiles
@@ -1033,7 +1030,6 @@ void TerrainBase::NormalizeTerrain(float* heightData, const int size)
         heightData[i] = (heightData[i] - min) * invHeight;
 }
 
-
 // --------------------------------------------------------
 // Desc:   load a grayscale RAW light map
 // Args:   - filename: the file name of the light map
@@ -1041,49 +1037,24 @@ void TerrainBase::NormalizeTerrain(float* heightData, const int size)
 // --------------------------------------------------------
 bool TerrainBase::LoadLightMap(const char* filename)
 {
-    FILE* pFile = nullptr;
-
     try
     {
         // check input params
         CAssert::True(!StrHelper::IsEmpty(filename), "input filename is empty");
 
-        // open the RAW lightmap
-        pFile = fopen(filename, "rb");
-        if (!pFile)
-        {
-            sprintf(g_String, "can't open file: %s", filename);
-            throw EngineException(g_String);
-        }
-
-        // define the size (in bytes) of the lightmap
-        fseek(pFile, 0, SEEK_END);
-        const int numBytes = ftell(pFile);
-        fseek(pFile, 0, SEEK_SET);
-
-        // the size must be power of 2
-        CAssert::True(IsPow2(numBytes), "input size must be power of 2");
-        const int size = (int)sqrtf((float)numBytes);
-
-
         // check to see if the data has been set
         if (lightmap_.pData)
             UnloadLightMap();
 
-        // allocate the memory for our lightmap
-        lightmap_.pData = new uint8[numBytes];
+        // load in data
+        int fileSize = 0;
+        LoadRAW(filename, &lightmap_.pData, fileSize);
 
-        // set the data fields
-        lightmap_.size = size;
+        // check if lightmap has proper size
+        CAssert::True(IsPow2(fileSize), "input size must be power of 2");
 
-        // read in the light map into context
-        if (fread(lightmap_.pData, 1, numBytes, pFile) != numBytes)
-        {
-            sprintf(g_String, "can't read in light map data: %s", filename);
-            throw EngineException(g_String);
-        }
-
-        fclose(pFile);
+        // width == height
+        lightmap_.size = (int)sqrtf((float)fileSize);
 
         // great success!
         sprintf(g_String, "Loaded light map: %s", filename);
@@ -1098,9 +1069,6 @@ bool TerrainBase::LoadLightMap(const char* filename)
     }
     catch (EngineException& e)
     {
-        if (pFile)
-            fclose(pFile);
-
         SafeDeleteArr(lightmap_.pData);
         LogErr(e);
         return false;
@@ -1113,12 +1081,16 @@ bool TerrainBase::LoadLightMap(const char* filename)
 // --------------------------------------------------------
 bool TerrainBase::SaveLightMap(const char* filename)
 {
-        // check input args
+    // check input args
     if (StrHelper::IsEmpty(filename))
     {
         LogErr("input filename is empty!");
         return false;
     }
+
+    const uint8* data   = lightmap_.pData;
+    const int    width  = lightmap_.size;
+    const int    height = lightmap_.size;
 
     // get extension
     char extension[8]{'\0'};
@@ -1127,13 +1099,16 @@ bool TerrainBase::SaveLightMap(const char* filename)
     // save to RAW
     if (strcmp(extension, ".raw") == 0)
     {
-        const int numBytes = lightmap_.size * lightmap_.size;
-        return SaveRAW(filename, lightmap_.pData, numBytes);
+        return SaveRAW(filename, data, width*height);
     }
     // save to BMP
     else if (strcmp(extension, ".bmp") == 0)
     {
-        // TODO: save into grayscale bmp image
+        return Image::SaveRawAsGrayBmp(filename, data, width, height);
+    }
+    else
+    {
+        LogErr("can't save lightmap into file: unsupported output format");
     }
 
     return false;
@@ -1234,53 +1209,59 @@ void TerrainBase::CalculateLightingSlope(
 // --------------------------------------------------------
 bool TerrainBase::CalculateLighting(void)
 {
-    // a lightmap has already been provided, no need to create another one
-    if (lightingType_ == LIGHTMAP)
-        return true;
-
-    const int size = heightMap_.GetWidth();
-
-    LogDbg("wait while light map is generated");
-
-    // check if we have valid terrain size
-    if (size <= 0)
+    try
     {
-        sprintf(g_String, "invalid terrain size (%d); must be > 0", size);
-        LogErr(g_String);
+        // a lightmap has already been provided, no need to create another one
+        if (lightingType_ == LIGHTMAP)
+            return true;
+
+        const int size = heightMap_.GetWidth();
+
+        LogDbg("wait while light map is generated");
+
+        // check if we have valid terrain size
+        if (size <= 0)
+        {
+            sprintf(g_String, "invalid terrain size (%d); must be > 0", size);
+            LogErr(g_String);
+            return false;
+        }
+
+        // allocate memory if it is needed
+        if ((lightmap_.size != size) || (lightmap_.pData == nullptr))
+        {
+            // delete the memory for the old data
+            SafeDeleteArr(lightmap_.pData);
+
+            // allocate memory for the new lightmap data buffer
+            lightmap_.pData = new uint8[size * size]{ 0 };
+            lightmap_.size = size;
+        }
+
+        // use height-based lighting
+        if (lightingType_ == HEIGHT_BASED)
+            CalculateLightingHeightBased(size);
+
+        // use the slope-lighting technique
+        else if (lightingType_ == SLOPE_LIGHT)
+            CalculateLightingSlope(
+                size,
+                directionX_,
+                directionZ_,
+                minBrightness_,
+                maxBrightness_,
+                lightSoftness_);
+
+        LogMsg("light map is generated successfully");
+
+        return true;
+    }
+    catch (const std::bad_alloc& e)
+    {
+        LogErr(e.what());
+        LogErr("can't allocate memory for the terrain's lightmap");
         return false;
     }
-
-
-
-    // allocate memory if it is needed
-    if ((lightmap_.size != size) || (lightmap_.pData == nullptr))
-    {
-        // delete the memory for the old data
-        SafeDeleteArr(lightmap_.pData);
-
-        // allocate memory for the new lightmap data buffer
-        lightmap_.pData = new uint8 [size*size]{0};
-        lightmap_.size  = size;
-    }
-
-
-    // use height-based lighting
-    if (lightingType_ == HEIGHT_BASED)
-        CalculateLightingHeightBased(size);
-
-    // use the slope-lighting technique
-    else if (lightingType_ == SLOPE_LIGHT)
-        CalculateLightingSlope(
-            size,
-            directionX_,
-            directionZ_,
-            minBrightness_,
-            maxBrightness_,
-            lightSoftness_);
-
-    LogMsg("light map is generated successfully");
-
-    return true;
 }
 
 } // namespace

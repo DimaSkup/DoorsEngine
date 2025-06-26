@@ -23,7 +23,7 @@ EntityMgr::EntityMgr() :
     renderStatesSystem_ { &renderStates_ },
     boundingSystem_     { &bounding_ },
     cameraSystem_       { &camera_, &transformSystem_ },
-    hierarchySystem_    { &hierarchy_ },
+    hierarchySystem_    { &hierarchy_, &transformSystem_ },
     playerSystem_       { &transformSystem_, &cameraSystem_, &hierarchySystem_ }
    
 {
@@ -211,6 +211,91 @@ void EntityMgr::Update(const float totalGameTime, const float deltaTime)
     //moveSystem_.UpdateAllMoves(deltaTime, transformSystem_);
     texTransformSystem_.UpdateAllTextrureAnimations(totalGameTime, deltaTime);
     lightSystem_.Update(deltaTime, totalGameTime);
+
+
+    for (const Event& e : events_)
+    {
+        switch (e.type)
+        {
+            case EVENT_TRANSLATE:
+            {
+                EntityID playerID = playerSystem_.GetPlayerID();
+                XMFLOAT3 t = { e.x, e.y, e.z };
+                XMFLOAT3 playerOldPos = playerSystem_.GetPosition();
+
+                cvector<EntityID> ids;
+                hierarchySystem_.GetChildrenArr(playerID, ids);
+                ids.push_back(playerID);
+
+                XMFLOAT3 offset = { t.x-playerOldPos.x, t.y - playerOldPos.y, t.z - playerOldPos.z};
+
+                transformSystem_.AdjustPositions(ids.data(), ids.size(), { offset.x, offset.y, offset.z });
+                break;
+            }
+            case EVENT_ROTATE:
+            {
+                break;
+            }
+            case EVENT_SCALE:
+            {
+                break;
+            }
+            case EVENT_PLAYER_RUN:              // set the player is running or not
+            {
+                playerSystem_.SetIsRunning(e.x);
+                break;
+            }
+            case EVENT_PLAYER_JUMP:
+            {
+                playerSystem_.Move(ePlayerState::JUMP);
+                break;
+            }
+            case EVENT_PLAYER_MOVE_FORWARD:
+            {
+                playerSystem_.Move(ePlayerState::MOVE_FORWARD);
+                break;
+            }
+            case EVENT_PLAYER_MOVE_BACK:
+            {
+                playerSystem_.Move(ePlayerState::MOVE_BACK);
+                break;
+            }
+            case EVENT_PLAYER_MOVE_RIGHT:
+            {
+                playerSystem_.Move(ePlayerState::MOVE_RIGHT);
+                break;
+            }
+            case EVENT_PLAYER_MOVE_LEFT:
+            {
+                playerSystem_.Move(ePlayerState::MOVE_LEFT);
+                break;
+            }
+            case EVENT_PLAYER_MOVE_UP:
+            {
+                playerSystem_.Move(ePlayerState::MOVE_UP);
+                break;
+            }
+            case EVENT_PLAYER_MOVE_DOWN:
+            {
+                playerSystem_.Move(ePlayerState::MOVE_DOWN);
+                break;
+            }
+        }
+    }
+
+    if (playerSystem_.IsMoving())
+    {
+        playerSystem_.Update(deltaTime);
+    }
+
+    // we handled all the events so clear the list of event
+    events_.clear();
+
+}
+
+void EntityMgr::AddEvent(const Event& e)
+{
+    events_.push_back(e);
 }
 
 // *********************************************************************************

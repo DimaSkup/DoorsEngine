@@ -4,7 +4,6 @@
 // Created:   24.05.2025  by DimaSkup
 // =================================================================================
 #include <CoreCommon/pch.h>
-#include <CoreCommon/RawFile.h>
 #include "image.h"
 
 #include <math.h>   // for abs()
@@ -56,9 +55,6 @@ bool Image::Create(const uint width, const uint height, const uint bpp)
         return false;
     }
 }
-
-bool Create(const uint8* data, const uint width, const uint height, const uint bpp);
-
 
 // --------------------------------------------------------
 // Desc:   load only the data for a new image (do not
@@ -177,6 +173,8 @@ bool Image::Load(const char* filename, const bool mipmapped)
 }
 
 // --------------------------------------------------------
+// Desc:   save image into file (supported formats: BMP, RAW)
+// Args:   - filename: where to store the image
 // --------------------------------------------------------
 bool Image::Save(const char* filename)
 {
@@ -206,11 +204,53 @@ bool Image::Save(const char* filename)
     else if (strcmp(extension, ".bmp") == 0)
         SaveBMP(filename);
 
+    else
+    {
+        sprintf(g_String, "can't save image into file: unsupported format (%s)", extension);
+        LogErr(g_String);
+        return false;
+    }
+
 
     sprintf(g_String, "The height map was saved successfully: %s", filename);
     LogMsg(g_String);
 
     return true;
+}
+
+// --------------------------------------------------------
+// Desc:    a STATIC method for saving RAW data as BMP
+//          (for instance: we loaded lightmap as RAW but want to
+//           save it as a BMP image)
+// Args:    - filename: path for saving file
+//          - data:     raw data (one value per grayscale pixel)
+//          - width:    width of the image
+//          - height:   height of the image
+// Ret:     true if we managed to create the image
+// --------------------------------------------------------
+bool Image::SaveRawAsGrayBmp(
+    const char* filename,
+    const uint8* data,
+    const int width,
+    const int height)
+{
+    bool result = false;
+    Image img;
+
+    // bind input data buffer to image
+    img.pixels_ = (uint8*)data;
+
+    img.width_    = width;
+    img.height_   = height;
+    img.bpp_      = 8;
+    img.isLoaded_ = true;
+
+    result = img.SaveBMP(filename);
+
+    // unbind input data to prevent its releasing
+    img.pixels_ = nullptr;
+
+    return result;
 }
 
 // --------------------------------------------------------
@@ -220,21 +260,17 @@ bool Image::Save(const char* filename)
 // --------------------------------------------------------
 bool Image::SaveBMP(const char* filename) const
 {
-    BMPFileHeader   bitmapFileHeader;
-    BMPInfoHeader   bitmapInfoHeader;
+    BMPFileHeader  bitmapFileHeader;
+    BMPInfoHeader  bitmapInfoHeader;
 
-    constexpr uint  bytesPerPixel = 3;
-    const uint      offset        = sizeof(BMPFileHeader) + sizeof(BMPInfoHeader);
+    const uint bytesPerPixel   = 3;
+    const uint offset          = sizeof(BMPFileHeader) + sizeof(BMPInfoHeader);
     const uint bytesInScanline = (width_ * bytesPerPixel);
-    const int overFour = (bytesInScanline % 4);
-    const int      paddingSize    = (overFour == 0) ? 0 : 4-overFour ;
-
-    //uint imageSize = (width_* 24 + 7) / 8 * abs((int)height_);
-
-    uint      imageSize     = bytesInScanline * height_ + (height_ * paddingSize);
-
-    // compensate for the extra byte at end of each line in non-divide by 2 bitmaps (eg. 257x257)
-    //imageSize += (height_ * paddingSize);
+   
+    // compensate for the extra bytes at end of each line (to make boundary 4 bytes aligned)
+    const int  overFour    = (bytesInScanline % 4);
+    const int  paddingSize = (overFour == 0) ? 0 : 4-overFour ;
+    const uint imageSize   = bytesInScanline * height_ + (height_ * paddingSize);
 
     // check input params
     if (!filename || filename[0] == '\0')
@@ -288,12 +324,12 @@ bool Image::SaveBMP(const char* filename) const
         if (paddingSize)
         {
             int k = 0;
-            for (int j = 0; j < height_; ++j)
+            for (int j = 0; j < height; ++j)
             {
                 // bitmaps are upside down so load bottom to top into the array
                 const int rowIdx = (height - 1 - j) * (bytesInScanline + paddingSize);
 
-                for (int i = 0; i < width_; ++i)
+                for (int i = 0; i < width; ++i)
                 {
                     bmpPixels[rowIdx + i*3 + 0] = pixels_[k];
                     bmpPixels[rowIdx + i*3 + 1] = pixels_[k];
@@ -305,7 +341,7 @@ bool Image::SaveBMP(const char* filename) const
         // no paddings: just copy the data
         else
         {
-            for (int i = 0; i < (int)(width_ * height_); ++i)
+            for (int i = 0; i < width * height; ++i)
             {
                 bmpPixels[i*3 + 0] = pixels_[i];
                 bmpPixels[i*3 + 1] = pixels_[i];
@@ -347,6 +383,9 @@ bool Image::SaveBMP(const char* filename) const
 
     // now write the actual image data
     fwrite(bmpPixels, 1, imageSize, pFile);
+
+    // release the pixels temp buffer
+    SafeDeleteArr(bmpPixels);
 
     // the file has been successfully saved
     fclose(pFile);
@@ -431,44 +470,6 @@ bool Image::LoadRgbBMP(const char* filename)
         // move to the beginning of the bitmap data
         fseek(pFile, fileHeader.offBits, SEEK_SET);
 
-#if 0
-
-        bitmapImage = new uint8[infoHeader.sizeImage]{ 0 };
-
-        // read in the bitmap image data
-        retCode = fread(bitmapImage, 1, imageSize, pFile);
-        if (retCode != imageSize)
-        {
-            sprintf(g_String, "can't read the bitmap image data: %s", filename);
-            throw EngineException(g_String);
-        }
-
-
-        // initialize the position in the image data buffer
-        int k   = 0;
-        int idx = 0;
-        const int size  = (int)infoHeader.width;
-        const int isOdd = (size % 2 != 0);
-
-        // read the image data into the height map array
-        for (int j = 0; j < size; ++j)
-        {
-            // bitmaps are upside down so load bottom to top into the array
-            const int rowIdx = (size * (size - 1 - j));
-
-            for (int i = 0; i < size; ++i)
-            {
-                const int off = rowIdx + i*3;
-
-                pixels_[off + 0] = bitmapImage[k + 2];
-                pixels_[off + 1] = bitmapImage[k + 1];
-                pixels_[off + 2] = bitmapImage[k + 0];
-
-                // increment the bitmap image data idx (skip G and B channels)
-                k += 3;
-            }
-        }
-#else
         // read in the bitmap image data
         retCode = fread(pixels_, 1, imageSize, pFile);
         if (retCode != imageSize)
@@ -483,7 +484,7 @@ bool Image::LoadRgbBMP(const char* filename)
             // swap values without using extra space for a temp variable
             SWAP(pixels_[i], pixels_[i + 2]);
         }
-#endif
+
 
         // close the file
         fclose(pFile);
@@ -509,63 +510,21 @@ bool Image::LoadRgbBMP(const char* filename)
         LogErr(e);
         return false;
     }
-
-
-
-
-
-
-
-
-
-#if 0
-    BMPFileHeader* pFileHeader = nullptr;
-    BMPInfoHeader* pInfoHeader = nullptr;
-    uint8*         pData = pixels_;
-
-    // load in the file header
-    pFileHeader = (BMPFileHeader*)pData;
-
-    // advance the buffer, and load in the file info header
-    pData += sizeof(BMPFileHeader);
-    pInfoHeader = (BMPInfoHeader*)pData;
-
-    // advance the buffer to load in the actual image data
-    pData += sizeof(BMPInfoHeader);
-    pData += pFileHeader->offBits;
-
-    // init the image memory
-    if (!Create(pInfoHeader->width, pInfoHeader->height, pInfoHeader->bitCount))
-    {
-        LogErr("can't create an empty space for bmp image");
-        return false;
-    }
-
-    // copy the data to the class's data buffer
-    const uint imgSize = pFileHeader->size - pFileHeader->offBits;
-    memcpy(pixels_, pData, imgSize);
-
-    // swap the R and B values to get RGB since the bitmap color format is in BGR
-    for (int i = 0; i < (int)pInfoHeader->sizeImage; i += 3)
-    {
-        // swap values without using extra space for a temp variable
-        SWAP(pixels_[i], pixels_[i + 2]);
-    }
-
-    // the BMP has been successfully loaded
-    return true;
-#endif
 }
 
 //---------------------------------------------------------
+// Desc:   to minimize memory usage we load grayscale bmp images
+//         in a specific way: just get only R-channel of each pixel
+//         and set bits per pixel value == 8 for this image instance
+// Args:   - filename: file to load
 //---------------------------------------------------------
 bool Image::LoadGrayscaleBMP(const char* filename)
 {
-    FILE* pFile = nullptr;
-    size_t           retCode = 0;
-    BMPFileHeader    fileHeader;
-    BMPInfoHeader    infoHeader;
-    uint8_t* bitmapImage = nullptr;
+    FILE*         pFile = nullptr;
+    size_t        retCode = 0;
+    BMPFileHeader fileHeader;
+    BMPInfoHeader infoHeader;
+    uint8_t*      bitmapImage = nullptr;
 
     try
     {
@@ -629,7 +588,7 @@ bool Image::LoadGrayscaleBMP(const char* filename)
         // initialize the position in the image data buffer
         int k = 0;
         int idx = 0;
-        const int size = (int)infoHeader.width;
+        const int size  = (int)infoHeader.width;
         const int isOdd = (size % 2 != 0);
 
         const int width  = infoHeader.width;
@@ -676,6 +635,7 @@ bool Image::LoadGrayscaleBMP(const char* filename)
         if (pFile)
             fclose(pFile);
 
+        SafeDeleteArr(bitmapImage);
         SafeDeleteArr(pixels_);
         LogErr(e);
         return false;
@@ -688,148 +648,132 @@ bool Image::LoadGrayscaleBMP(const char* filename)
 bool Image::LoadTGA(const char* filename)
 {
     TGAInfoHeader tgaInfo;
-    FILE*         pFile = nullptr;
-    int           fileSize = 0;
-
-    if (!filename || filename[0] == '\0')
+    FILE*  pFile = nullptr;
+    uint8* pixelsData = nullptr;
+    int    fileSize = 0;
+    
+    try
     {
-        LogErr("input filename is empty");
-        return false;
-    }
-
-    // open the file for reading (in binary mode)
-    pFile = fopen(filename, "rb");
-    if (!pFile)
-    {
-        sprintf(g_String, "can't open file: %s", filename);
-        throw EngineException(g_String);
-    }
-
-    // get file length
-    fseek(pFile, 0, SEEK_END);
-    fileSize = ftell(pFile);
-    fseek(pFile, 0, SEEK_SET);
-
-
-    pixels_ = new uint8[fileSize]{0};
-
-    if (fread(pixels_, 1, fileSize, pFile) != (unsigned)fileSize)
-    {
-        sprintf(g_String, "can't read in pixels data: %s", filename);
-        LogErr(g_String);
-        SafeDeleteArr(pixels_);
-        fclose(pFile);
-
-        return false;
-    }
-
-    uint8* fileData = pixels_;
-
-    // skip header
-    //fileData += 12;
-
-    const int headerSize = sizeof(TGAInfoHeader);
-
-    memcpy(&tgaInfo, fileData, headerSize);
-
-    const uint width = (uint)tgaInfo.width;
-    const uint height = (uint)tgaInfo.height;
-    const uint bpp = (uint)tgaInfo.bitsPerPixel;
-
-    Create(width, height, bpp);
-
-    fileData += 18;
-
-    uint imageSize = width*height*(bpp/8);
-
-    memcpy(pixels_, fileData, imageSize);
-
-#if 0
-
-    // read in the image header
-    fread(&tgaInfo, sizeof(tgaInfo), 1, pFile);
-
-    const uint width  = (uint)tgaInfo.width;
-    const uint height = (uint)tgaInfo.height;
-    const uint bpp    = (uint)tgaInfo.bitsPerPixel;
-
-    // make sure that the image's dimensions are supported by this loader
-    if ((width <= 0) || (height <= 0) || ((bpp != 24) && (bpp != 32)))
-    {
-        sprintf(g_String, "TGA image is not supported: %s", name_);
-        LogErr(g_String);
-        return false;
-    }
-
-    // create empty space for the image
-    if (!Create(width, height, bpp))
-    {
-        sprintf(g_String, "can't create an empty space for tga image: %s", name_);
-        LogErr(g_String);
-        return false;
-    }
-
-    fseek(pFile, sizeof(tgaInfo), SEEK_SET);
-
-    // calculate the size of the targa image in bytes
-    const int imageSize = width * height * (bpp / 8);
-
-    // allocate memory for the targa image temp buffer
-    uint8* pixelsData = new uint8[imageSize]{ 0 };
-
-    // read in pixels data
-    const size_t res = fread(pixelsData, 1, imageSize, pFile);
-    if (res != (unsigned)imageSize)
-    {
-        SafeDeleteArr(pixelsData);
-        sprintf(g_String, "%s is corrupted, could not read all data", filename);
-        throw EngineException(g_String);
-    }
-#endif
-
-    // close the file
-    fclose(pFile);
-
-    // define if tga image is compressed or uncompressed
-    switch (tgaInfo.imageType)
-    {
-        case UncompressedRgb:
+        // check input filename
+        if (!filename || filename[0] == '\0')
         {
-            LoadUncompressedTGA(tgaInfo, fileData);
-            return true;
-        }
-        case RleRgb:
-        {
-            LoadCompressedTGA(tgaInfo, fileData);
-            return true;
-        }
-        default:
-        {
-            sprintf(g_String, "unsupported TGA image type: %d", tgaInfo.imageType);
-            LogErr(g_String);
+            LogErr("input filename is empty");
             return false;
         }
-    } // switch
 
-    // release the temp data buffer
-    //SafeDeleteArr(pixelsData);
+        // open the file for reading (in binary mode)
+        pFile = fopen(filename, "rb");
+        if (!pFile)
+        {
+            sprintf(g_String, "can't open file: %s", filename);
+            throw EngineException(g_String);
+        }
+
+        // get file length
+        fseek(pFile, 0, SEEK_END);
+        fileSize = ftell(pFile);
+        fseek(pFile, 0, SEEK_SET);
+
+        // allocate memory for the file content
+        pixelsData = new uint8[fileSize]{0};
+
+        // read in file content
+        if (fread(pixelsData, 1, fileSize, pFile) != (unsigned)fileSize)
+        {
+            sprintf(g_String, "can't read in pixels data: %s", filename);
+            throw EngineException(g_String);
+        }
+
+        // load TGA info header data
+        uint8* fileData = pixelsData;
+        memcpy(&tgaInfo, fileData, sizeof(TGAInfoHeader));
+
+        const uint width  = (uint)tgaInfo.width;
+        const uint height = (uint)tgaInfo.height;
+        const uint bpp    = (uint)tgaInfo.bitsPerPixel;
+
+        // create empty image
+        if (!Create(width, height, bpp))
+        {
+            sprintf(g_String, "can't allocate memory for the TGA image: %s", filename);
+            throw EngineException(g_String);
+        }
+
+        // skip the header and move to the actual pixels data
+        fileData += sizeof(TGAInfoHeader);
+
+        // copy pixels raw data into buffer
+        uint imageSize = width*height*(bpp/8);
+        memcpy(pixels_, fileData, imageSize);
+
+        // close the file
+        fclose(pFile);
+
+        // define if tga image is compressed or uncompressed
+        switch (tgaInfo.imageType)
+        {
+            case UncompressedRgb:
+            {
+                LoadUncompressedTGA(tgaInfo, fileData);
+                break;
+            }
+            case RleRgb:
+            {
+                // if we want to read in RGB image
+                if (tgaInfo.BytesPerPixel() == 3)
+                {
+                    LoadCompressedTGA24(fileData, tgaInfo.width, tgaInfo.height);
+                }
+                // we want to read in RGBA image
+                else
+                {
+                    LoadCompressedTGA32(fileData, tgaInfo.width, tgaInfo.height);
+                }
+                break;
+            }
+            default:
+            {
+                sprintf(g_String, "unsupported TGA image type: %d", tgaInfo.imageType);
+                throw EngineException(g_String);
+            }
+        } // switch
+
+        // release the temp data buffer
+        SafeDeleteArr(pixelsData);
+
+        return true;
+    }
+    catch (const std::bad_alloc& e)
+    {
+        LogErr(e.what());
+        sprintf(g_String, "can't allocate memory for the TGA image: %s", filename);
+        throw EngineException(g_String);
+    }
+    catch (EngineException& e)
+    {
+        LogErr(e);
+        fclose(pFile);
+        SafeDeleteArr(pixelsData);
+        SafeDeleteArr(pixels_);
+        return false;
+    }
 }
 
 //--------------------------------------------------------------
-// Desc:   read in compressed TGA image data with 24 bits per pixel
+// Desc:   read in RLE compressed TGA image data with 24 bits per pixel
 // Args:   - data:   pixels raw data
 //         - header: tga image header
 //--------------------------------------------------------------
-void Image::LoadCompressedTGA24(uint8*& data, const TGAInfoHeader& header)
+void Image::LoadCompressedTGA24(uint8*& data, const int width, const int height)
 {
     constexpr uint bytesPerPixel = 3;
     uint           currByte = 0;
     uint8          colorBuf[bytesPerPixel]{ 0 };
 
 
-    for (int y = 0; y < header.height; ++y)
+    for (int y = 0; y < height; ++y)
     {
-        for (int x = 0; x < header.width;)
+        for (int x = 0; x < width;)
         {
             uint8 c = *(uint*)data;
             data++;
@@ -877,19 +821,19 @@ void Image::LoadCompressedTGA24(uint8*& data, const TGAInfoHeader& header)
 }
 
 //--------------------------------------------------------------
-// Desc:   read in compressed TGA image data with 32 bits per pixel
+// Desc:   read in RLE compressed TGA image data with 32 bits per pixel
 // Args:   - data:   pixels raw data
 //         - header: tga image header
 //--------------------------------------------------------------
-void Image::LoadCompressedTGA32(uint8*& data, const TGAInfoHeader& header)
+void Image::LoadCompressedTGA32(uint8*& data, const int width, const int height)
 {
     constexpr uint bytesPerPixel = 4;
     uint           currByte = 0;
     uint8          colorBuf[bytesPerPixel]{ 0 };
 
-    for (int y = 0; y < header.height; ++y)
+    for (int y = 0; y < height; ++y)
     {
-        for (int x = 0; x < header.width;)
+        for (int x = 0; x < width;)
         {
             uint8 c = *(uint*)data;
             data++;
@@ -936,24 +880,6 @@ void Image::LoadCompressedTGA32(uint8*& data, const TGAInfoHeader& header)
                 }
             }
         }
-    }
-}
-
-//--------------------------------------------------------------
-// Desc:   private HELPER to load a compressed targe (TGA) image
-// Args:   
-//--------------------------------------------------------------
-void Image::LoadCompressedTGA(const TGAInfoHeader& header, uint8*& pixelsData)
-{
-    // if we want to read in RGB image
-    if (header.BytesPerPixel() == 3)
-    {
-        LoadCompressedTGA24(pixelsData, header);
-    }
-    // we want to read in RGBA image
-    else
-    {
-        LoadCompressedTGA32(pixelsData, header);
     }
 }
 

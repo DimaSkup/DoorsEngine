@@ -6,12 +6,22 @@
 namespace ECS
 {
 
-HierarchySystem::HierarchySystem(Hierarchy* pHierarchyComponent) :
-    pHierarchy_(pHierarchyComponent)
+HierarchySystem::HierarchySystem(
+    Hierarchy* pHierarchyComponent,
+    TransformSystem* pTransformSys)
+    :
+    pHierarchy_(pHierarchyComponent),
+    pTransformSys_(pTransformSys)
 {
     if (!pHierarchyComponent)
     {
         LogErr("input ptr to the hierarchy component == nullptr");
+        return;
+    }
+
+    if (!pTransformSys)
+    {
+        LogErr("input ptr to the transform system == nullptr");
         return;
     }
 
@@ -41,10 +51,24 @@ bool HierarchySystem::AddChild(const EntityID id, const EntityID childID)
         return false;
     }
 
+    const XMFLOAT3 parentPos = pTransformSys_->GetPosition(id);
+    const XMFLOAT3 childPos = pTransformSys_->GetPosition(childID);
+
+    // compute position of child relatively to its parent (offset from parent to child)
+    const XMFLOAT3 relPos =
+    {
+        childPos.x - parentPos.x,
+        childPos.y - parentPos.y,
+        childPos.z - parentPos.z,
+    };
+
+    // set a new parent and relative position
     comp.data[childID].parentID = id;
+    comp.data[childID].relativePos = relPos;
 
     // add a child entity for the parent entity by ID
     comp.data[id].children.insert(childID);
+
 
     return true;
 }
@@ -66,8 +90,8 @@ void HierarchySystem::SetParent(const EntityID childID, const EntityID parentID)
         comp.data[prevParentID].children.erase(childID);
     }
 
-    // set a new parent
-    comp.data[childID].parentID = parentID;
+  
+    
 }
 
 } // namespace ECS

@@ -36,6 +36,7 @@
     <ClInclude Include="Components\TextureTransform.h" />
     <ClInclude Include="Components\Transform.h" />
     <ClInclude Include="Entity\EntityMgr.h" />
+    <ClInclude Include="Events\IEvent.h" />
     <ClInclude Include="Systems\BoundingSystem.h" />
     <ClInclude Include="Systems\CameraSystem.h" />
     <ClInclude Include="Systems\HierarchySystem.h" />

@@ -718,28 +718,25 @@ void Engine::HandlePlayerActions(
     ECS::EntityMgr* pEnttMgr,
     Render::CRender* pRender)
 {
-    ECS::PlayerSystem& player = pEnttMgr->playerSystem_;
-    bool playerWasMoved = false;
-    const float step = player.GetSpeed() * deltaTime;
-
+    using namespace ECS;
+    PlayerSystem& player = pEnttMgr->playerSystem_;
+    //const float step = player.GetSpeed() * deltaTime;
+    
     switch (code)
     {
         case KEY_SHIFT:
         {
-            player.SetIsRunning(true);
+            pEnttMgr->AddEvent(ECS::EventPlayerRun(true));
             break;
         }
-        // (keys A/D): handle moving left/right
         case KEY_A:
         {
-            player.Strafe(-step);
-            playerWasMoved = true;
+            pEnttMgr->AddEvent(EventPlayerMove(EVENT_PLAYER_MOVE_LEFT));
             break;
         }
         case KEY_D:
         {
-            player.Strafe(step);
-            playerWasMoved = true;
+            pEnttMgr->AddEvent(EventPlayerMove(EVENT_PLAYER_MOVE_RIGHT));
             break;
         }
         case KEY_L:
@@ -749,29 +746,29 @@ void Engine::HandlePlayerActions(
                 SwitchFlashLight(*pEnttMgr, *pRender);
             break;
         }
-        // (keys W/S): handle moving forward/backward
         case KEY_S:
         {
-            player.Walk(-step);
-            playerWasMoved = true;
+            pEnttMgr->AddEvent(EventPlayerMove(EVENT_PLAYER_MOVE_BACK));
             break;
         }
         case KEY_W:
         {
-            player.Walk(step);
-            playerWasMoved = true;
+            pEnttMgr->AddEvent(EventPlayerMove(EVENT_PLAYER_MOVE_FORWARD));
             break;
         }
         case KEY_Z:
         {
-            player.MoveUp(-step);
-            playerWasMoved = true;
+            if (player.IsFreeFlyMode())
+                pEnttMgr->AddEvent(EventPlayerMove(EVENT_PLAYER_MOVE_DOWN));
             break;
         }
         case KEY_SPACE:
         {
-            player.MoveUp(step);
-            playerWasMoved = true;
+            if (player.IsFreeFlyMode())
+                pEnttMgr->AddEvent(EventPlayerMove(EVENT_PLAYER_MOVE_UP));
+            else
+                pEnttMgr->AddEvent(EventPlayerMove(EVENT_PLAYER_JUMP));
+
             break;
         }
     } // switch
@@ -782,7 +779,6 @@ void Engine::HandlePlayerActions(
 void Engine::HandleGameEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr)
 {
     ECS::PlayerSystem& player = pEnttMgr->playerSystem_;
-
 
     // go through each currently pressed key and handle related events
     for (const eKeyCodes code : keyboard_.GetPressedKeysList())
@@ -842,7 +838,7 @@ void Engine::HandleGameEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* pEn
         {
             case KEY_SHIFT:
             {
-                player.SetIsRunning(false);
+                pEnttMgr->AddEvent(ECS::EventPlayerRun(false));
                 break;
             }
         }
@@ -1160,7 +1156,7 @@ void Engine::TurnOnGameMode()
 
     const EntityID gameCamID = pEnttMgr_->nameSystem_.GetIdByName("game_camera");
 
-    graphics_.GetD3DClass().ToggleFullscreen(hwnd_, true);
+    //graphics_.GetD3DClass().ToggleFullscreen(hwnd_, true);
     graphics_.SetCurrentCamera(gameCamID);
     graphics_.SetGameMode(true);
 

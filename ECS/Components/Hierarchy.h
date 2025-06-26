@@ -20,6 +20,9 @@ struct HierarchyNode
 
     EntityID parentID = 0;
     std::set<EntityID> children{};
+
+    // position of entity relatively to its parent (offset from parent to child)
+    XMFLOAT3 relativePos{0,0,0};       
 };
 
 ///////////////////////////////////////////////////////////

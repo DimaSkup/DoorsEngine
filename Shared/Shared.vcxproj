@@ -28,6 +28,7 @@
     <ClInclude Include="log.h" />
     <ClInclude Include="MathHelper.h" />
     <ClInclude Include="MemHelpers.h" />
+    <ClInclude Include="RawFile.h" />
     <ClInclude Include="StrHelper.h" />
     <ClInclude Include="SystemState.h" />
     <ClInclude Include="Types.h" />

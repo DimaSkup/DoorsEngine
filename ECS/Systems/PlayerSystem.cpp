@@ -20,71 +20,119 @@ PlayerSystem::PlayerSystem(
     CAssert::True(pHierarchySys != nullptr, "input ptr to camera system == nullptr");
 }
 
-
-// =================================================================================
-// Player movement
-// =================================================================================
-void PlayerSystem::Strafe(const float d)
+//---------------------------------------------------------
+// Desc:    update the player's states
+// Args:    - deltaTime: the time since the prev frame
+//---------------------------------------------------------
+void PlayerSystem::Update(const float deltaTime)
 {
-    // move left/right the player by distance d
-    const EntityID id = playerID_;
-    
-    // pos += d * right_vec
-    const XMVECTOR offset = XMVectorMultiply(XMVectorReplicate(d), data_.rightVec);
+    uint64 states = data_.playerStates_;
+    const float speed = GetSpeed() * deltaTime;
 
-    // adjust position of the player and its children
-    cvector<EntityID> ids;
-    pHierarchySys_->GetChildrenArr(id, ids);
-    ids.push_back(id);
+    XMVECTOR offset = { 0,0,0 };
 
-    pTransformSys_->AdjustPositions(ids.data(), ids.size(), offset);
-}
-
-///////////////////////////////////////////////////////////
-
-void PlayerSystem::Walk(const float d)
-{
-    // move forward/backward the player by distance d
     const EntityID id = playerID_;
 
-    // pos += d * look_vec
-    XMVECTOR look         = pTransformSys_->GetDirectionVec(id);
-    const XMVECTOR offset = XMVectorMultiply(XMVectorReplicate(d), look);
-
-    // adjust position of the player and its children
-    cvector<EntityID> ids;
-    pHierarchySys_->GetChildrenArr(id, ids);
-    ids.push_back(id);
-
-    pTransformSys_->AdjustPositions(ids.data(), ids.size(), offset);
-}
-
-///////////////////////////////////////////////////////////
-
-void PlayerSystem::MoveUp(const float d)
-{
-    // if the player in free fly mode:
-    
-    if (data_.isFreeFlyMode)
+    if (states & MOVE_FORWARD)
     {
-        XMVECTOR s = XMVectorReplicate(d);
-        const XMVECTOR pos = pTransformSys_->GetPositionVec(playerID_);
-
-        // pos_ += d * world_up_vec
-        const XMVECTOR offset = XMVectorMultiply(s, { 0,1,0 });
-        pTransformSys_->AdjustPosition(playerID_, offset);
-
-        const std::set<EntityID>& playerChildren = pHierarchySys_->GetChildren(playerID_);
-
-        for (const EntityID id : playerChildren)
-        {
-            pTransformSys_->AdjustPosition(id, offset);
-        }
+        offset += pTransformSys_->GetDirectionVec(id);
+    }
+    if (states & MOVE_BACK)
+    {
+        offset -= pTransformSys_->GetDirectionVec(id);
+    }
+    if (states & MOVE_RIGHT)
+    {
+        offset += data_.rightVec;
+    }
+    if (states & MOVE_LEFT)
+    {
+        offset -= data_.rightVec;
+    }
+    if (states & JUMP)
+    {
+        // DO JUMP STUFF
+    }
+    if (states & MOVE_UP)
+    {
+        // if we in free fly mode we just move up/down (freely move by Y-axis)
+        offset += { 0, 1, 0 };
+    }
+    if (states & MOVE_DOWN)
+    {
+        offset -= { 0, 1, 0 };
     }
 
- 
+    // normalize the movement direction vector and scale it according to player's speed
+    offset = XMVector3Normalize(offset);
+    offset = XMVectorMultiply(XMVectorReplicate(speed), offset);
+
+    // adjust position of the player and its children
+    cvector<EntityID> ids;
+    pHierarchySys_->GetChildrenArr(id, ids);
+    ids.push_back(id);
+
+    // move player and all its children by offset
+    pTransformSys_->AdjustPositions(ids.data(), ids.size(), offset);
+
+    // reset all the movement states
+    data_.playerStates_ &= ~(GetFlagsMove());
 }
 
+//---------------------------------------------------------
+// Desc:   set a movement state for the player
+// Args:   - state: expected to be some of the movement states
+//---------------------------------------------------------
+void PlayerSystem::Move(ePlayerState state)
+{
+    // if movement
+    if (GetFlagsMove() & state)
+        data_.playerStates_ |= state;
+}
+
+//---------------------------------------------------------
+// Desc:   turn on/off the player's free fly mode
+//---------------------------------------------------------
+void PlayerSystem::SetFreeFlyMode(const bool mode)
+{
+    if (mode)
+        data_.playerStates_ |= FREE_FLY;
+    else
+        data_.playerStates_ &= ~(FREE_FLY);
+}
+
+//---------------------------------------------------------
+// Desc:   turn on/off the player's flashlight
+//---------------------------------------------------------
+void PlayerSystem::SwitchFlashLight(const bool state)
+{
+    // turn on the flashlight
+    if (state)
+        data_.playerStates_ |= TURNED_FLASHLIGHT;
+
+    // turn off the flashlight
+    else
+        data_.playerStates_ &= ~(TURNED_FLASHLIGHT);
+}
+
+//---------------------------------------------------------
+// Desc:   turn on/off the player's running state
+//---------------------------------------------------------
+void PlayerSystem::SetIsRunning(const bool isRun)
+{
+    if (isRun)
+    {
+        data_.playerStates_ |= RUN;
+        data_.playerStates_ &= ~(WALK | CRAWL);
+        data_.currSpeed = data_.runSpeed;
+    }
+    else
+    {
+        data_.playerStates_ &= ~(RUN | CRAWL);
+        data_.playerStates_ |= WALK;
+        data_.currSpeed = data_.walkSpeed;
+    }
+}
 
 // =================================================================================
 // Player rotation

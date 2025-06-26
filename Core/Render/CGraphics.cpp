@@ -137,36 +137,42 @@ void CGraphics::UpdateHelper(
     // update the cameras states
 
     const EntityID currCamID = currCameraID_;
-    static XMFLOAT3 prevCamPos{ 0,0,0 };
-    const XMFLOAT3 camPos = pEnttMgr->transformSystem_.GetPosition(currCamID);
 
-    bool posWasChanged = (prevCamPos != camPos);
-    bool onGroundMode = !pEnttMgr->playerSystem_.IsFreeFlyMode();
-
-    if (posWasChanged && onGroundMode)
+    if (isGameMode_)
     {
-        prevCamPos = camPos;
+        //bool posWasChanged = (prevCamPos != camPos);
+        bool onGroundMode = !pEnttMgr->playerSystem_.IsFreeFlyMode();
 
-        // make camera offset by Y-axis to be at fixed height over the terrain
-        float terrainHeight     = terrain.GetScaledInterpolatedHeightAtPoint(camPos.x, camPos.z);
-        float offsetOverTerrain = 2;
-        float camOffset         = terrainHeight + offsetOverTerrain;
+        if (onGroundMode)
+        {
+            XMFLOAT3 playerPos = pEnttMgr->playerSystem_.GetPosition();
+            const float terrainSize = (float)terrain.heightMap_.GetWidth();
 
-        const XMFLOAT3 newCamPos = { camPos.x, camOffset, camPos.z };
+            // clamp the camera position to be only on the terrain
+            if (playerPos.x < 0)
+                playerPos.x = 0;
+            if (playerPos.x >= terrainSize)
+                playerPos.x = terrainSize - 1;
 
-        const EntityID playerID = pEnttMgr->nameSystem_.GetIdByName("player");
+            if (playerPos.z < 0)
+                playerPos.z = 0;
+            if (playerPos.z >= terrainSize)
+                playerPos.z = terrainSize - 1;
 
-        
-        ECS::TransformSystem& transformSys = pEnttMgr->transformSystem_;
+            // make player's offset by Y-axis to be at fixed height over the terrain
+            float terrainHeight = terrain.GetScaledInterpolatedHeightAtPoint(playerPos.x, playerPos.z);
+            float offsetOverTerrain = 2;
+            float playerOffsetY = terrainHeight + offsetOverTerrain;
 
-        transformSys.SetPosition(playerID, newCamPos);
-        transformSys.SetPosition(currCamID, newCamPos);
+            // set new position for the player
+            pEnttMgr->AddEvent(ECS::EventTranslate(playerPos.x, playerOffsetY, playerPos.z));
 
-        sysState.cameraPos = newCamPos;
+            sysState.cameraPos = { playerPos.x, playerOffsetY, playerPos.z };
+        }
     }
     else
     {
-        sysState.cameraPos = camPos;
+        sysState.cameraPos = pEnttMgr->transformSystem_.GetPosition(currCamID);
     }
 
     sysState.cameraDir  = pEnttMgr->transformSystem_.GetDirection(currCamID);

@@ -1,4 +1,5 @@
 #include "../Common/pch.h"
+#include "Image.h"
 #include "TARGA_ImageReader.h"
 
 #pragma warning (disable : 4996)
@@ -58,12 +59,19 @@ bool TARGA_ImageReader::LoadTextureFromFile(
     ID3D11DeviceContext* pDeviceContext = nullptr;
 
     // holds the raw Targa data read straight in from the file
-    UCHAR* targaData;
+    UCHAR* targaData = nullptr;
 
     // ----------------------------------------------------- //
 
+    Image img;
+    img.LoadData(filePath);
+
     // load the targa image data into memory (into the targaDataArr array) 
-    LoadTarga32Bit(filePath, &targaData, texWidth, texHeight);
+    //LoadTarga32Bit(filePath, &targaData, texWidth, texHeight);
+
+    targaData = img.GetData();
+    texWidth = img.GetWidth();
+    texHeight = img.GetHeight();
 
     // next we need to setup our description of the DirectX texture that we will load
     // the Targa data into. We use the height and width from the Targa image data, and 
@@ -156,7 +164,7 @@ void LoadTarga32Bit(
     size_t count = 0;
     TargaHeader targaFileHeader;
     FILE* pFile = nullptr;
-    UCHAR* targaImageDataArr;
+    UCHAR* targaImageDataArr = nullptr;
 
     try
     {
