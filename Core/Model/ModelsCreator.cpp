@@ -592,6 +592,9 @@ void ComputeAveragedNormals(
 }
 
 //---------------------------------------------------------
+// Desc:   generate terrain's height map or load it from file
+// Args:   - terrain:    actual terrain's class
+//         - terrainCfg: container for different configs for terrain
 //---------------------------------------------------------
 bool TerrainInitHeight(TerrainGeomipmapped& terrain, const TerrainConfig& terrainCfg)
 {
@@ -642,6 +645,9 @@ bool TerrainInitHeight(TerrainGeomipmapped& terrain, const TerrainConfig& terrai
 }
 
 //---------------------------------------------------------
+// Desc:   generate terrain's tile map or load it from file
+// Args:   - terrain:    actual terrain's class
+//         - terrainCfg: container for different configs for terrain
 //---------------------------------------------------------
 bool TerrainInitTileMap(TerrainGeomipmapped& terrain, const TerrainConfig& terrainCfg)
 {
@@ -672,12 +678,15 @@ bool TerrainInitTileMap(TerrainGeomipmapped& terrain, const TerrainConfig& terra
             mipMapped);
 
         if (tileMapTexId)
+        {
             LogDbg("terrain_tile_map texture is created");
-
-        // tile map id can be 0 if something went wrong
-        result &= tileMapTexId;
-
-        tileMap.SetID(tileMapTexId);
+            tileMap.SetID(tileMapTexId);
+        }
+        else
+        {
+            LogErr("can't create texture resource for terrain's tile map");
+            result = false;
+        }
 
         //terrain.SaveTextureMap(terrainCfg.pathSaveTextureMap);
     }
@@ -691,6 +700,9 @@ bool TerrainInitTileMap(TerrainGeomipmapped& terrain, const TerrainConfig& terra
 }
 
 //---------------------------------------------------------
+// Desc:   generate lightmap or load it from file
+// Args:   - terrain:    actual terrain's class
+//         - terrainCfg: container for different configs for terrain
 //---------------------------------------------------------
 bool TerrainInitLightMap(TerrainGeomipmapped& terrain, const TerrainConfig& terrainCfg)
 {
@@ -717,6 +729,33 @@ bool TerrainInitLightMap(TerrainGeomipmapped& terrain, const TerrainConfig& terr
     else
     {
         result = terrain.LoadLightMap(terrainCfg.pathLightMap);
+//        terrain.SaveLightMap(terrainCfg.pathSaveLightMap);
+    }
+
+    // if we successfully loaded/generated lightmap's raw data
+    if (result)
+    {
+        LightmapData& lightmap = terrain.lightmap_;
+
+        // create texture resource
+        const TexID lightmapTexId = g_TextureMgr.CreateTextureFromRawData(
+            "terrain_light_map",
+            lightmap.pData,
+            lightmap.size,
+            lightmap.size,
+            8,                 // bits per pixel
+            false);
+
+        if (lightmapTexId)
+        {
+            LogDbg("terrain_light_map texture is created");
+            terrain.lightmap_.id = lightmapTexId;
+        }
+        else
+        {
+            LogErr("can't create texture resource for terrain's lightmap");
+            result = false;
+        }
     }
 
     return result;
@@ -789,7 +828,11 @@ bool ModelsCreator::CreateTerrainGeomipmapped(
         exit(-1);
     }
 
-    terrain.LoadDetailMap(terrainCfg.pathDetailMap);
+    if (!terrain.LoadDetailMap(terrainCfg.pathDetailMap))
+    {
+        LogErr("can't load the terrain's detail map");
+        exit(-1);
+    }
 
 
     // ------------------------------------------
@@ -798,22 +841,7 @@ bool ModelsCreator::CreateTerrainGeomipmapped(
     constexpr bool mipMapped = true;
    
     Image&         detailMap = terrain.detailMap_;
-    LightmapData&  lightmap  = terrain.lightmap_;
-
-
-
-    const TexID lightmapTexId = g_TextureMgr.CreateTextureFromRawData(
-        "terrain_light_map",
-        lightmap.pData,
-        lightmap.size,
-        lightmap.size,
-        8,
-        false);
-
-    if (lightmapTexId)
-        LogDbg("terrain_light_map texture is created");
-
-
+   
     const TexID detailMapTexId = g_TextureMgr.CreateTextureFromRawData(
         "terrain_detail_map",
         detailMap.GetData(),
@@ -825,7 +853,7 @@ bool ModelsCreator::CreateTerrainGeomipmapped(
     if (detailMapTexId)
         LogDbg("terrain_detail_map texture is created");
 
-    terrain.lightmap_.id = lightmapTexId;
+  
     detailMap.SetID(detailMapTexId);
    
 #if 0

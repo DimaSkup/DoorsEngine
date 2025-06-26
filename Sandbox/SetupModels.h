@@ -69,7 +69,7 @@ void SetupTree(BasicModel& tree)
     branchMat.SetTexture(TEX_TYPE_DIFFUSE, texBranchDiffID);
     branchMat.SetTexture(TEX_TYPE_NORMALS, texBranchNormID);
     branchMat.SetTexture(TEX_TYPE_OPACITY, texBranchSubsurfID);
-    branchMat.SetAmbient(0.3f, 0.3f, 0.3f, 1.0f);
+    branchMat.SetAmbient(0.17f, 0.30f, 0.28f, 1.0f);
     branchMat.SetDiffuse(0.6f, 0.6f, 0.6f, 1.0f);
     branchMat.SetSpecular(0.1f, 0.1f, 0.1f);
     branchMat.SetSpecularPower(1.0f);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "RawFile.h"
 #include "log.h"
 #include "CAssert.h"
 #include "EngineException.h"

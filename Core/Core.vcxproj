@@ -140,7 +140,7 @@ dir /b /s /a "$(SolutionDir)build\$(IntDir)data\models" | findstr .&gt;nul || (
   xcopy /Y "$(SolutionDir)data\models" "$(SolutionDir)build\$(IntDir)data\models" /E
 )
 
-xcopy /Y /f "$(SolutionDir)Linking\lib\assimp-vc143-mtd.dll" "$(SolutionDir)build\$(IntDir)"</Command>
+if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mtd.dll" xcopy /Y /f "$(SolutionDir)Core\assimp-vc143-mtd.dll" "$(SolutionDir)build\$(IntDir)"</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>
@@ -203,7 +203,7 @@ dir /b /s /a "$(SolutionDir)build\$(IntDir)data\models" | findstr .&gt;nul || (
   xcopy /Y "$(SolutionDir)data\models" "$(SolutionDir)build\$(IntDir)data\models" /E
 )
 
-if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mtd.dll" xcopy /Y /f "$(SolutionDir)Linking\lib\assimp-vc143-mtd.dll" "$(SolutionDir)build\$(IntDir)"</Command>
+if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mtd.dll" xcopy /Y /f "$(SolutionDir)Core\assimp-vc143-mtd.dll" "$(SolutionDir)build\$(IntDir)"</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>
@@ -363,7 +363,6 @@ if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mtd.dll" xcopy /Y /f "$(
     <ClInclude Include="CoreCommon\Frustum.h" />
     <ClInclude Include="CoreCommon\Matrix.h" />
     <ClInclude Include="CoreCommon\pch.h" />
-    <ClInclude Include="CoreCommon\RawFile.h" />
     <ClInclude Include="ECS_Components\MeshComponent.h" />
     <ClInclude Include="ECS_Components\Rendered.h" />
     <ClInclude Include="ECS_Components\WorldMatrix.h" />

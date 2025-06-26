@@ -217,14 +217,10 @@ void TerrainGeomipmapped::Update(const CameraParams& camParams)
     constexpr int midDistSqr    = midDist * midDist;
     constexpr int farDistSqr    = farDist * farDist;
 
+    // radius of each patch
     const float radius = sqrtf(SQR(fHalfPatchSz) + SQR(fHalfPatchSz) + SQR(fHalfPatchSz));
     
-#if USE_DX_FRUSTUM
-     // build the frustum in view space from the projection matrix
-    DirectX::XMMATRIX projMatrix(camParams.projMatrix);
-    DirectX::BoundingFrustum frustum;
-    DirectX::BoundingFrustum::CreateFromMatrix(frustum, projMatrix);
-#else
+
     // compute frustum by input camera's params
     Frustum frustum;
 
@@ -235,7 +231,7 @@ void TerrainGeomipmapped::Update(const CameraParams& camParams)
         camParams.planes[3],
         camParams.planes[4],
         camParams.planes[5]);
-#endif
+
 
     const DirectX::XMMATRIX view(camParams.viewMatrix);
     const int numPerSide = numPatchesPerSide_;
@@ -263,29 +259,24 @@ void TerrainGeomipmapped::Update(const CameraParams& camParams)
             //---------------------------------------------
             // cull non-visible patches
 
-#if USE_DX_FRUSTUM
-            DirectX::BoundingSphere boundSphere({c.x, c.y, c.z}, radius);
-            patch.isVisible = frustum.Intersects(boundSphere);
-
-            if (patch.isVisible)
-            {
-                DirectX::BoundingBox aabb({ c.x, c.y, c.z }, { extents, extents, extents });
-                patch.isVisible = frustum.Intersects(aabb);
-            }
-#else
             // first of all we execute frustum/sphere test because of simple computations
             patch.isVisible = frustum.SphereTest(c.x, c.y, c.z, radius);
 
+            // if we passed frustum/sphere test then we execute frustum/cube
+            // test for higher precision
             if (patch.isVisible)
             {
-                // if we passed frustum/sphere test then we execute frustum/cube
-                // test for higher precision
                 bool cubeTest = frustum.CubeTest(c.x, c.y, c.z, fHalfPatchSz);
-                bool weInPatch = TestWeInPatch(camPosX, camPosZ, c.x, c.z, halfPatchSize);
+                bool weInPatch = TestWeInPatch(camPosX, camPosZ, px, pz, halfPatchSize);
 
                 patch.isVisible = cubeTest || weInPatch;
             }
-#endif
+            // we don't see this patch so just move to the next patch computation
+            else
+            {
+                continue;
+            }
+
             if (patch.isVisible)
             {
                 // get the square of the distance from the camera to the patch

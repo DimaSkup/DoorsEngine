@@ -95,9 +95,10 @@ void SceneInitializer::InitPlayer(ID3D11Device* pDevice, ECS::EntityMgr* pEnttMg
     const EntityID gameCameraID  = nameSys.GetIdByName("game_camera");
     const EntityID ak74ID        = nameSys.GetIdByName("ak_74");
     const EntityID flashlightID  = nameSys.GetIdByName("flashlight");
+    const EntityID swordID       = nameSys.GetIdByName("sword");
 
     // BIND some entities to the player
-    hierarchySys.AddChild(playerID, ak74ID);
+    hierarchySys.AddChild(playerID, swordID);
     hierarchySys.AddChild(playerID, gameCameraID);
     hierarchySys.AddChild(playerID, flashlightID);
 
@@ -1379,6 +1380,52 @@ void CreateAk47(ECS::EntityMgr& mgr, const BasicModel& model)
 
 ///////////////////////////////////////////////////////////
 
+void CreateSword(ECS::EntityMgr& mgr, const BasicModel& model)
+{
+    LogDbg("create sword entity");
+
+    const EntityID enttID = mgr.CreateEntity();
+
+    // setup transformation params
+    const XMFLOAT3 position = { 0.7f,-0.4f,1.1f };
+    const XMVECTOR dirQuat = { 0, 0, 1, 0 };
+    const float uniformScale = 0.015f;
+
+    // setup rendering params
+    ECS::RenderInitParams renderParams;
+    renderParams.shaderType = ECS::LIGHT_SHADER;
+    renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+    // setup bounding params
+    const size numEntts = 1;
+    const size numSubsets = model.GetNumSubsets();
+    const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
+
+    // setup transformation
+    mgr.AddTransformComponent(enttID, position, dirQuat, uniformScale);
+    const XMVECTOR q1 = DirectX::XMQuaternionRotationAxis({ 0,1,0 }, DirectX::XM_PIDIV2 - 0.1f);
+    const XMVECTOR q2 = DirectX::XMQuaternionRotationAxis({ 1,0,0 }, 0.1f);
+    mgr.transformSystem_.RotateLocalSpaceByQuat(enttID, DirectX::XMQuaternionMultiply(q1, q2));
+
+    mgr.AddNameComponent(enttID, "sword");
+    mgr.AddModelComponent(enttID, model.GetID());
+    mgr.AddRenderingComponent(enttID, renderParams);
+
+    mgr.AddBoundingComponent(
+        &enttID,
+        1,
+        numSubsets,
+        boundTypes.data(),
+        model.GetSubsetsAABB());      // AABB data (center, extents)
+
+    constexpr bool areMaterialsMeshBased = true;
+    const MaterialID matID = model.meshes_.subsets_[0].materialID;
+    mgr.AddMaterialComponent(enttID, &matID, numSubsets, areMaterialsMeshBased);
+}
+
+
+///////////////////////////////////////////////////////////
+
 void CreateCastleTower(ECS::EntityMgr& mgr, const BasicModel& model)
 {
     const EntityID enttID = mgr.CreateEntity();
@@ -1697,6 +1744,7 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     const char* pathTreePine                = "data/models/ext/trees/FBX format/tree_pine.fbx";
     const char* pathRadar                   = "data/models/ext/radar/radar.fbx";
     const char* pathCastleTower             = "data/models/ext/castle-tower/fougeres gate.obj";
+    const char* pathSword                   = "data/models/ext/sword/sword.obj";
 #if 1
     // import a model from file by path
     LogDbg("Start of models importing");
@@ -1704,16 +1752,19 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     ModelsCreator creator;
 
     //const ModelID lightPoleID      = creator.ImportFromFile(pDevice, lightPolePath);
-    const ModelID treeSpruceID     = creator.ImportFromFile(pDevice, pathTreeSpruce);
-    const ModelID treePineID       = creator.ImportFromFile(pDevice, pathTreePine);
+    
     //const ModelID nanosuitID       = creator.ImportFromFile(pDevice, nanosuitPath);
     //const ModelID stalkerFreedomID = creator.ImportFromFile(pDevice, stalkerFreedom1Path.c_str());
     //const ModelID traktorID        = creator.ImportFromFile(pDevice, stalkerTraktor13Path.c_str());
     //const ModelID stalkerHouse1ID  = creator.ImportFromFile(pDevice, stalkerHouseSmallPath.c_str());
     //const ModelID stalkerHouse2ID  = creator.ImportFromFile(pDevice, stalkerHouseAbandonedPath.c_str());
     //const ModelID ak47ID = creator.ImportFromFile(pDevice, ak47Path.c_str());
+    const ModelID swordID          = creator.ImportFromFile(pDevice, pathSword);
     const ModelID ak74ID           = creator.ImportFromFile(pDevice, pathAk74u);
-    const ModelID castleTowerID    = creator.ImportFromFile(pDevice, pathCastleTower);
+    //const ModelID castleTowerID    = creator.ImportFromFile(pDevice, pathCastleTower);
+
+    //const ModelID treeSpruceID     = creator.ImportFromFile(pDevice, pathTreeSpruce);
+    //const ModelID treePineID       = creator.ImportFromFile(pDevice, pathTreePine);
     //const ModelID barrelID         = creator.ImportFromFile(pDevice, barrelPath);
     //const ModelID powerHVTowerID   = creator.ImportFromFile(pDevice, powerHVTowerPath.c_str());
     //const ModelID radarID = creator.ImportFromFile(pDevice, radarPath.c_str());
@@ -1731,23 +1782,24 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     //BasicModel& building        = g_ModelMgr.GetModelByID(buildingID);
     //BasicModel& apartment       = g_ModelMgr.GetModelByID(apartmentID);
     //BasicModel& sovietStatue    = g_ModelMgr.GetModelByID(sovietStatueID);
-    BasicModel& treeSpruce      = g_ModelMgr.GetModelByID(treeSpruceID);
-    BasicModel& treePine        = g_ModelMgr.GetModelByID(treePineID);
+    //BasicModel& treeSpruce      = g_ModelMgr.GetModelByID(treeSpruceID);
+    //BasicModel& treePine        = g_ModelMgr.GetModelByID(treePineID);
     //BasicModel& powerHVTower    = g_ModelMgr.GetModelByID(powerHVTowerID);
     //BasicModel& stalkerFreedom  = g_ModelMgr.GetModelByID(stalkerFreedomID);
     //BasicModel& traktor13       = g_ModelMgr.GetModelByID(traktorID);
     //BasicModel& stalkerHouse1   = g_ModelMgr.GetModelByID(stalkerHouse1ID);
     //BasicModel& stalkerHouse2   = g_ModelMgr.GetModelByID(stalkerHouse2ID);
     //BasicModel& ak47            = g_ModelMgr.GetModelByID(ak47ID);
+    BasicModel& sword           = g_ModelMgr.GetModelByID(swordID);
     BasicModel& ak74            = g_ModelMgr.GetModelByID(ak74ID);
-    BasicModel& castleTower = g_ModelMgr.GetModelByID(castleTowerID);
+    //BasicModel& castleTower     = g_ModelMgr.GetModelByID(castleTowerID);
     //BasicModel& radar           = g_ModelMgr.GetModelByID(radarID);
 
     // setup some models (set textures, setup materials)
     //SetupStalkerSmallHouse(stalkerHouse1);
     //SetupStalkerAbandonedHouse(stalkerHouse2);
-    SetupTree(treePine);
-    SetupTreeSpruce(treeSpruce);
+    //SetupTree(treePine);
+    //SetupTreeSpruce(treeSpruce);
     //SetupPowerLine(powerHVTower);
     //SetupBuilding9(building);
     //SetupStalkerFreedom(stalkerFreedom);
@@ -1755,16 +1807,18 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     SetupAk74(ak74);
     //SetupTraktor(traktor13);
 
-    CreateTreesPine(mgr, treePine);
-    CreateTreesSpruce(mgr, treeSpruce);
+    //CreateTreesPine(mgr, treePine);
+    //CreateTreesSpruce(mgr, treeSpruce);
     //CreatePowerLine(mgr, powerHVTower);
     //CreateLightPoles(mgr, lightPole);
     //CreateHouse(mgr, stalkerHouse1);
     //CreateHouse2(mgr, stalkerHouse2);
 
     //CreateAk47(mgr, ak47);
+
+    CreateSword(mgr, sword);
     CreateAk74(mgr, ak74);
-    CreateCastleTower(mgr, castleTower);
+    //CreateCastleTower(mgr, castleTower);
     //CreateBarrel(mgr, barrel);
     //CreateNanoSuit(mgr, nanosuit);
     //CreateRadar(mgr, radar);

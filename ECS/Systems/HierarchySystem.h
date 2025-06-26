@@ -8,6 +8,7 @@
 #pragma once
 
 #include "../Components/Hierarchy.h"
+#include "../Systems/TransformSystem.h"
 
 
 namespace ECS
@@ -16,7 +17,7 @@ namespace ECS
 class HierarchySystem
 {
 public:
-    HierarchySystem(Hierarchy* pHierarchyComponent);
+    HierarchySystem(Hierarchy* pHierarchyComponent, TransformSystem* pTransformSys);
 
     bool AddChild(const EntityID id, const EntityID childID);
     void SetParent(const EntityID childID, const EntityID parentID);
@@ -54,7 +55,8 @@ public:
     }
 
 private:
-    Hierarchy* pHierarchy_ = nullptr;
+    Hierarchy*       pHierarchy_    = nullptr;
+    TransformSystem* pTransformSys_ = nullptr;
 };
 
 } // namespace ECS

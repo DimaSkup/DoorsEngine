@@ -37,6 +37,10 @@
 #include "../Systems/PlayerSystem.h"
 #include "../Systems/HierarchySystem.h"
 
+// events (ECS)
+#include "../Events/IEvent.h"
+
+#include <deque>
 
 namespace ECS
 {
@@ -69,6 +73,7 @@ public:
 
     void Update(const float totalGameTime, const float deltaTime);
 
+    void AddEvent(const Event& e);
 
     // =============================================================================
     // PUBLIC METHODS: ADD COMPONENTS 
@@ -277,6 +282,7 @@ public:
 
 
 private:
+    std::deque<Event> events_;
 
     static int       lastEntityID_;
 

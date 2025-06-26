@@ -54,6 +54,9 @@
     <ClInclude Include="UtilsFilesystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="RawFile.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="EngineException.cpp">

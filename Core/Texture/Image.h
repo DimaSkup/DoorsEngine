@@ -109,6 +109,11 @@ public:
     bool Save    (const char* filename);
     bool SaveBMP (const char* filename) const;
 
+    static bool SaveRawAsGrayBmp(
+        const char* filename,
+        const uint8* data,
+        const int width,
+        const int height);
 
     void Unload();
 
@@ -120,14 +125,14 @@ public:
     // ----------------------------------------------------
     inline void GetColor(const uint x, const uint y, uint8& red, uint8& green, uint8& blue) const
     {
-        if ((x < width_) && (y < height_))
-        {
+        //if ((x < width_) && (y < height_))
+        //{
             const uint idx = ((y*height_) + x) * bytesPerPixel_;
 
             red   = pixels_[idx + 0];
             green = pixels_[idx + 1];
             blue  = pixels_[idx + 2];
-        }
+        //}
     }
 
     // ----------------------------------------------------
@@ -163,14 +168,7 @@ public:
     // ----------------------------------------------------
     inline uint8 GetPixelGray(const int x, const int y) const
     {
-        if ((x < width_) && (y < height_))
-        {
-            return pixels_[(y * width_) + x];
-        }
-        else
-        {
-            return 0;
-        }
+        return pixels_[(y * width_) + x];
     }
 
     // ----------------------------------------------------
@@ -190,10 +188,9 @@ private:
     bool LoadRgbBMP(const char* filename);
     bool LoadTGA            (const char* filename);
 
-    void LoadCompressedTGA  (const TGAInfoHeader& header, uint8*& pixelsData);
     void LoadUncompressedTGA(const TGAInfoHeader& header, uint8*& pixelsData);
-    void LoadCompressedTGA24(uint8*& pixelsData, const TGAInfoHeader& tgaInfo);
-    void LoadCompressedTGA32(uint8*& pixelsData, const TGAInfoHeader& tgaInfo);
+    void LoadCompressedTGA24(uint8*& pixelsData, const int width, const int height);
+    void LoadCompressedTGA32(uint8*& pixelsData, const int width, const int height);
 
 private:
     char    name_[64]{'\0'};
