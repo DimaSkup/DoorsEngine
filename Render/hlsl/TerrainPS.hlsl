@@ -76,8 +76,6 @@ struct PS_OUT
 //
 float4 PS(PS_IN pin) : SV_Target
 {
-
-
     // a vector in the world space from vertex to eye pos
     float3 toEyeW = gEyePosW - pin.posW;
 
@@ -106,7 +104,7 @@ float4 PS(PS_IN pin) : SV_Target
     // -------------  SAMPLE TEXTURES  ------------------
 
     // how many times we scale the detail map
-    const float detalizationLvl = 16;
+    const float detalizationLvl = 32;
 
     float4 textureColor   = gTextures[1].Sample(gSampleType, pin.tex);
     float4 lightMapColor  = gTextures[10].Sample(gSampleType, pin.tex);

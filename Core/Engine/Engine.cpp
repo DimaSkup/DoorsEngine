@@ -1156,7 +1156,7 @@ void Engine::TurnOnGameMode()
 
     const EntityID gameCamID = pEnttMgr_->nameSystem_.GetIdByName("game_camera");
 
-    //graphics_.GetD3DClass().ToggleFullscreen(hwnd_, true);
+    graphics_.GetD3DClass().ToggleFullscreen(hwnd_, true);
     graphics_.SetCurrentCamera(gameCamID);
     graphics_.SetGameMode(true);
 

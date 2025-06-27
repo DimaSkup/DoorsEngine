@@ -89,9 +89,25 @@ void HierarchySystem::SetParent(const EntityID childID, const EntityID parentID)
         EntityID prevParentID = comp.data[childID].parentID;
         comp.data[prevParentID].children.erase(childID);
     }
+}
 
-  
-    
+///////////////////////////////////////////////////////////
+
+XMFLOAT3 HierarchySystem::GetRelativePos(const EntityID childID) const
+{
+    // get a position relatively to parent
+    const Hierarchy& comp = *pHierarchy_;
+
+    if (comp.data.contains(childID))
+    {
+        return comp.data.at(childID).relativePos;
+    }
+    else
+    {
+        sprintf(g_String, "there is no hierarchy data for entity: %d", childID);
+        LogErr(g_String);
+        return { 0,0,0 };
+    }
 }
 
 } // namespace ECS

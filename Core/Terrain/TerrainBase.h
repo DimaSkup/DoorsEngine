@@ -192,9 +192,14 @@ public:
     // texture map generation methods
     bool  GenerateTextureMap(const uint size);
     
-    float RegionPercent     (const int tileType, const uint8 height);
+    float RegionPercent     (const int tileType, const int height);
     void  GetTexCoords      (const Image& tex, uint& inOutX, uint& inOutY);
-    uint8 InterpolateHeight (const int x, const int z, const float heightToTexRatio);
+
+    int InterpolateHeight(
+        const int x,
+        const int z,
+        const float heightToTexRatio,
+        const float heightMapSize);
 
 
     // set the terrain's height scaling factor

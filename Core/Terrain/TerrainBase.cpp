@@ -745,24 +745,38 @@ bool TerrainBase::GenerateTextureMap(const uint texMapSize)
     // get the height map to texture map ratio (since, the most of the time,
     // the texture map will be a higher resolution that the height map, so we
     // need the ration of height map pixels to texture map pixels)
-    const float mapRatio = (float)heightMap_.GetWidth() / texMapSize;    // for instance: 128 / 256
+    const float heightMapSize         = (float)heightMap_.GetWidth();
+    const float mapRatio              = heightMapSize / texMapSize;    // for instance: 128 / 256
 
+    const int iTexMapSize             = (int)texMapSize;
+    const int lowestTileOptimalHeight = tiles_.regions[LOWEST_TILE].optimalHeight;
+        
     // create the texture data
-    for (int z = 0; z < (int)texMapSize; ++z)
+    for (int z = 0; z < iTexMapSize; ++z)
     {
-        for (int x = 0; x < (int)texMapSize; ++x)
+        for (int x = 0; x < iTexMapSize; ++x)
         {
             // set our total color counters to 0.0f
-            float totalRed           = 0.0f;
-            float totalGreen         = 0.0f;
-            float totalBlue          = 0.0f;
-            const uint8 interpHeight = InterpolateHeight(x, z, mapRatio);
+            float totalRed   = 0.0f;
+            float totalGreen = 0.0f;
+            float totalBlue  = 0.0f;
+
+            // compute interpolated height
+            const int height = (int)InterpolateHeight(x, z, mapRatio, heightMapSize);
+
 
             // loop through the loaded tiles
             for (int i = 0; i < numTiles; ++i)
             {
-                const int tileIdx = loadedTilesIdxs[i];
+                const int tileIdx                  = loadedTilesIdxs[i];
+                const TerrainTextureRegions region = tiles_.regions[tileIdx];
+
+                // if current height doesn't belong to the current region
+                if ((height < region.lowHeight) || (height > region.highHeight))
+                    continue;
+
                 const Image& tile = tiles_.textureTiles[tileIdx];
+                float blendFactor = 0.0f;
 
                 uint texX = x;
                 uint texZ = z;
@@ -774,13 +788,20 @@ bool TerrainBase::GenerateTextureMap(const uint texMapSize)
                 uint8 red, green, blue;
                 tile.GetColor(texX, texZ, red, green, blue);
 
+                // if the height is lower than the lowest tile's height, then we want full brightness,
+               // if we don't do this, the area will get darkened, and no texture will get shown
+                if ((tileIdx == LOWEST_TILE) && (height < lowestTileOptimalHeight))
+                    blendFactor = 1.0f;
+
                 // get the curr coordinate's blending percentage for this tile
-                const float blendFactor = RegionPercent(tileIdx, interpHeight);
+                else
+                    blendFactor = RegionPercent(tileIdx, height);
 
                 // calculate the RGB values that will be used
-                totalRed   += (red * blendFactor);
+                totalRed   += (red   * blendFactor);
                 totalGreen += (green * blendFactor);
-                totalBlue  += (blue * blendFactor);
+                totalBlue  += (blue  * blendFactor);
+
             }
 
             // set our terrain's texture color to the one that we previously calculated
@@ -820,40 +841,19 @@ bool TerrainBase::SaveTextureMap(const char* filename)
 // Ret:    a float values: the percentage of which the
 //         current texture occupies at the give height
 // --------------------------------------------------------
-float TerrainBase::RegionPercent(const int tileType, const uint8 height)
+float TerrainBase::RegionPercent(const int tileType, const int height)
 {
-    // if the height is lower than the lowest tile's height, then we want full brightness,
-    // if we don't do this, the area will get darkened, and no texture will get shown
-    if (tileType == LOWEST_TILE)
-    {
-        if (tiles_.textureTiles[LOWEST_TILE].IsLoaded() &&
-            height < tiles_.regions[LOWEST_TILE].optimalHeight)
-            return 1.0f;
-    }
-
     const TerrainTextureRegions region = tiles_.regions[tileType];
 
-    // height is lower than the region's boundary
-    if (height < region.lowHeight)
-        return 0.0f;
-
     // height is higher than the region's boundary
-    else if (height > region.highHeight)
-        return 0.0f;
-
-    // height is higher than the region's boundary
-    if (height < region.optimalHeight)  // lowHeight < height < optimalHeight
+    if (height < region.optimalHeight)       // lowHeight < height < optimalHeight
     {
         // calculate the texture percentage for the given tile's region
         const float temp1 = (float)(height - region.lowHeight);
-        const float temp2 = (float)region.optimalHeight - region.lowHeight;
+        const float temp2 = (float)(region.optimalHeight - region.lowHeight);
 
         return temp1 / temp2;
     }
-
-    // height is exactly the same as the optimal height
-    else if (height == region.optimalHeight)
-        return 1.0f;
 
     // height is above the optimal height
     else if (height > region.optimalHeight)  // optimalHeight < height < highHeight
@@ -862,6 +862,10 @@ float TerrainBase::RegionPercent(const int tileType, const uint8 height)
         const float temp = (float)(region.highHeight - region.optimalHeight);
         return (temp - (height - region.optimalHeight)) / temp;
     }
+
+    // height is exactly the same as the optimal height
+    else if (height == region.optimalHeight)
+        return 1.0f;
 
     // something is seriously wrong if the height doesn't fit the previous cases
     sprintf(g_String, "wrong height: %d", height);
@@ -883,12 +887,12 @@ void TerrainBase::GetTexCoords(const Image& tex, uint& inOutX, uint& inOutY)
     const uint height = tex.GetHeight();
 
     // define how many times the tile must repeat until the current coordinate
-    const int repeatX = (int)(inOutX / width);
-    const int repeatY = (int)(inOutY / height);
+    const uint repeatX = (inOutX / width);
+    const uint repeatY = (inOutY / height);
 
     // update the given texture map coordinates so we will be able to get
     // the correct coordinates from the input tile
-    inOutX = inOutX - (width * repeatX);
+    inOutX = inOutX - (width  * repeatX);
     inOutY = inOutY - (height * repeatY);
 }
 
@@ -897,50 +901,44 @@ void TerrainBase::GetTexCoords(const Image& tex, uint& inOutX, uint& inOutY)
 //         the generated texture map doesn't look incredibly blocky
 //         (is used to get rid of heightmap resolution depencency,
 //          so our texture map may have any resolution)
+// 
 // Args:   - x, z: texture map coordinates to get the height at
 //         - heightToTexRatio: height map size to texture map size ratio
+//         - heightMapSize:    size (width and height) of the terrain's height map
 // Ret:    uint8 value: the interpolated height
 // --------------------------------------------------------
-uint8 TerrainBase::InterpolateHeight(
+int TerrainBase::InterpolateHeight(
     const int x,
     const int z,
-    const float heightToTexRatio)
+    const float heightToTexRatio,
+    const float heightMapSize)
 {
-    uint8       highX         = 0;
-    uint8       highZ         = 0;
     float       interpolation = 0.0f;
-    const float scaledX       = x * heightToTexRatio;
-    const float scaledZ       = z * heightToTexRatio;
-    const float heightMapSize = (float)heightMap_.GetWidth();
+    const float fScaledX       = x * heightToTexRatio;
+    const float fScaledZ       = z * heightToTexRatio;
+    const int   iScaledX       = (int)fScaledX;
+    const int   iScaledZ       = (int)fScaledZ;
 
-    // set the middle boundary
-    const uint8 low = GetTrueHeightAtPoint((int)scaledX, (int)scaledZ);
-
-    // interpolate along the X axis:
-    // set the high boundary
-    if ((scaledX + 1) > heightMapSize)
+    const uint8 low = GetTrueHeightAtPoint(iScaledX,     iScaledZ);
+     
+    if ((fScaledX + 1) > heightMapSize || ((fScaledZ + 1) > heightMapSize))
         return low;
-    else
-        highX = GetTrueHeightAtPoint((int)scaledX + 1, (int)scaledZ);
+
+    const uint8 highX = GetTrueHeightAtPoint(iScaledX + 1, iScaledZ);
+    const uint8 highZ = GetTrueHeightAtPoint(iScaledX, iScaledZ + 1);
 
     // calculate the interpolation (for the X axis)
-    interpolation = (scaledX - (int)scaledX);                    // remove integer part
+    interpolation = (fScaledX - iScaledX);                    // remove integer part
     const float xCoord = ((highX - low) * interpolation) + low;  // interpolated height by X-axis
 
-    // interpolate along the Z axis:
-    // set the high boundary
-    if ((scaledZ + 1) > heightMapSize)
-        return low;
-    else
-        highZ = GetTrueHeightAtPoint((int)scaledX, (int)scaledZ + 1);
-
     // calculate the interpolation (for the Z axis)
-    interpolation = (scaledZ - (int)scaledZ);                    // remove integer part
+    interpolation = (fScaledZ - iScaledZ);                    // remove integer part
     const float zCoord = ((highZ - low) * interpolation) + low;  // interpolated height by Z-axis
 
     // calculate the overall interpolation (average of the two values)
-    return (uint8)((xCoord + zCoord) * 0.5f);
+    return (int)((xCoord + zCoord) * 0.5f);
 }
+
 
 
 // =================================================================================

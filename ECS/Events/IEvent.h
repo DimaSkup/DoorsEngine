@@ -42,9 +42,10 @@ struct Event
 // =================================================================================
 struct EventTranslate : public Event
 {
-    EventTranslate(const float _x, const float _y, const float _z)
+    EventTranslate(const EntityID id, const float _x, const float _y, const float _z)
     {
         type = EVENT_TRANSLATE;
+        enttID = id;
         x = _x;
         y = _y;
         z = _z;

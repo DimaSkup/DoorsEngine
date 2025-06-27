@@ -37,26 +37,36 @@ public:
     inline float    GetSpeed()     const { return data_.currSpeed; }
     inline float    GetWalkSpeed() const { return data_.walkSpeed; }
     inline float    GetRunSpeed()  const { return data_.runSpeed; }
+    inline float    GetJumpOffset() const { return data_.jumpOffset; }
 
-    constexpr inline uint64 GetFlagsMove() const { return (MOVE_FORWARD | MOVE_BACK | MOVE_RIGHT | MOVE_LEFT | MOVE_UP | MOVE_DOWN | JUMP); }
+    constexpr inline uint64 GetFlagsMove() const { return (MOVE_FORWARD | MOVE_BACK | MOVE_RIGHT | MOVE_LEFT | MOVE_UP | MOVE_DOWN); }
 
     inline bool IsMoving()           const { return data_.playerStates_ & GetFlagsMove(); }
     inline bool IsFreeFlyMode()      const { return data_.playerStates_ & FREE_FLY; }
     inline bool IsFlashLightActive() const { return data_.playerStates_ & TURNED_FLASHLIGHT; }
+    inline bool IsJump()             const { return data_.playerStates_ & JUMP; }
+    
 
+    // set movement state
     void Move(ePlayerState movementState);
 
     // rotate the player
     void Pitch  (float angle);
     void RotateY(float angle);
 
+    inline void SetCurrentSpeed(const float speed) { data_.currSpeed = (speed > 0) ? speed : 5; }
+    inline void SetWalkSpeed   (const float speed) { data_.walkSpeed = (speed > 0) ? speed : 5; }
+    inline void SetRunSpeed    (const float speed) { data_.runSpeed  = (speed > 0) ? speed : 20; }
+    inline void SetMinVerticalOffset(const float minOffset) { data_.minVerticalOffset = minOffset; }
 
+    inline void StopJump()
+    {
+        data_.playerStates_ &= ~(JUMP);
+        data_.jumpOffset = 0;
+    }
     
-    void SetIsRunning(const bool isRun);
-    void SetWalkSpeed(const float speed) { data_.walkSpeed = (speed > 0) ? speed : 10.0f; }
-    void SetRunSpeed (const float speed) { data_.runSpeed  = (speed > 0) ? speed : 20.0f; }
-
-    void SetFreeFlyMode(const bool mode);
+    void SetIsRunning    (const bool isRun);
+    void SetFreeFlyMode  (const bool mode);
     void SwitchFlashLight(const bool state);
 
 private:

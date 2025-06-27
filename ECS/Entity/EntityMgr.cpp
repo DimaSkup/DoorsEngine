@@ -212,6 +212,7 @@ void EntityMgr::Update(const float totalGameTime, const float deltaTime)
     texTransformSystem_.UpdateAllTextrureAnimations(totalGameTime, deltaTime);
     lightSystem_.Update(deltaTime, totalGameTime);
 
+    cvector<EntityID> ids(16);
 
     for (const Event& e : events_)
     {
@@ -219,6 +220,19 @@ void EntityMgr::Update(const float totalGameTime, const float deltaTime)
         {
             case EVENT_TRANSLATE:
             {
+                // compute offset for translation
+                EntityID id = e.enttID;
+                XMFLOAT3 prevPos = transformSystem_.GetPosition(id);
+                XMFLOAT3 offset = { e.x-prevPos.x, e.y-prevPos.y, e.z-prevPos.z };
+
+                // make an arr of entt and its children's ids
+                hierarchySystem_.GetChildrenArr(id, ids);
+                ids.push_back(id);
+
+                // adjust position for entt and its children
+                transformSystem_.AdjustPositions(ids.data(), ids.size(), { offset.x, offset.y, offset.z });
+
+#if 0
                 EntityID playerID = playerSystem_.GetPlayerID();
                 XMFLOAT3 t = { e.x, e.y, e.z };
                 XMFLOAT3 playerOldPos = playerSystem_.GetPosition();
@@ -230,6 +244,7 @@ void EntityMgr::Update(const float totalGameTime, const float deltaTime)
                 XMFLOAT3 offset = { t.x-playerOldPos.x, t.y - playerOldPos.y, t.z - playerOldPos.z};
 
                 transformSystem_.AdjustPositions(ids.data(), ids.size(), { offset.x, offset.y, offset.z });
+#endif
                 break;
             }
             case EVENT_ROTATE:
@@ -283,10 +298,8 @@ void EntityMgr::Update(const float totalGameTime, const float deltaTime)
         }
     }
 
-    if (playerSystem_.IsMoving())
-    {
-        playerSystem_.Update(deltaTime);
-    }
+
+    playerSystem_.Update(deltaTime);
 
     // we handled all the events so clear the list of event
     events_.clear();
