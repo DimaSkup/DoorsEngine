@@ -29,11 +29,13 @@ enum ePlayerState
 // ECS component
 struct PlayerData
 {
-    float currSpeed = 10.0f;
-    float walkSpeed = 10.0f;
+    float currSpeed = 5.0f;
+    float walkSpeed = 5.0f;
     float runSpeed  = 20.0f;
     float pitch = 0.0f;
     float yaw = 0.0f;
+    float jumpOffset = 0.0f;
+    float minVerticalOffset = 0;
 
     uint64 playerStates_ = 0;
 

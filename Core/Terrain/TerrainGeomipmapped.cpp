@@ -262,6 +262,7 @@ void TerrainGeomipmapped::Update(const CameraParams& camParams)
             // first of all we execute frustum/sphere test because of simple computations
             patch.isVisible = frustum.SphereTest(c.x, c.y, c.z, radius);
 
+#if 1
             // if we passed frustum/sphere test then we execute frustum/cube
             // test for higher precision
             if (patch.isVisible)
@@ -276,6 +277,7 @@ void TerrainGeomipmapped::Update(const CameraParams& camParams)
             {
                 continue;
             }
+#endif
 
             if (patch.isVisible)
             {

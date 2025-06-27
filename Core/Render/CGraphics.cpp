@@ -140,35 +140,81 @@ void CGraphics::UpdateHelper(
 
     if (isGameMode_)
     {
-        //bool posWasChanged = (prevCamPos != camPos);
-        bool onGroundMode = !pEnttMgr->playerSystem_.IsFreeFlyMode();
+#if 1
+        ECS::PlayerSystem& player = pEnttMgr->playerSystem_;
+        XMFLOAT3 playerPos = player.GetPosition();
 
-        if (onGroundMode)
+        const float terrainSize = (float)terrain.heightMap_.GetWidth();
+
+        // clamp the camera position to be only on the terrain
+        if (playerPos.x < 0)
+            playerPos.x = 0;
+        if (playerPos.x >= terrainSize)
+            playerPos.x = terrainSize - 1;
+
+        if (playerPos.z < 0)
+            playerPos.z = 0;
+        if (playerPos.z >= terrainSize)
+            playerPos.z = terrainSize - 1;
+
+
+        if (player.IsFreeFlyMode())
         {
-            XMFLOAT3 playerPos = pEnttMgr->playerSystem_.GetPosition();
-            const float terrainSize = (float)terrain.heightMap_.GetWidth();
-
-            // clamp the camera position to be only on the terrain
-            if (playerPos.x < 0)
-                playerPos.x = 0;
-            if (playerPos.x >= terrainSize)
-                playerPos.x = terrainSize - 1;
-
-            if (playerPos.z < 0)
-                playerPos.z = 0;
-            if (playerPos.z >= terrainSize)
-                playerPos.z = terrainSize - 1;
-
-            // make player's offset by Y-axis to be at fixed height over the terrain
-            float terrainHeight = terrain.GetScaledInterpolatedHeightAtPoint(playerPos.x, playerPos.z);
-            float offsetOverTerrain = 2;
-            float playerOffsetY = terrainHeight + offsetOverTerrain;
-
-            // set new position for the player
-            pEnttMgr->AddEvent(ECS::EventTranslate(playerPos.x, playerOffsetY, playerPos.z));
-
-            sysState.cameraPos = { playerPos.x, playerOffsetY, playerPos.z };
+            // do nothing
         }
+
+        // we aren't in free fly mode
+        else
+        {
+            // make player's offset by Y-axis to be at fixed height over the terrain
+            const float terrainHeight = terrain.GetScaledInterpolatedHeightAtPoint(playerPos.x, playerPos.z);
+            const float offsetOverTerrain = 2;
+
+            player.SetMinVerticalOffset(terrainHeight + offsetOverTerrain);
+
+#if 0
+            // if we aren't in jump
+            if (!player.IsJump())
+            {
+                // make player's offset by Y-axis to be at fixed height over the terrain
+                const float terrainHeight = terrain.GetScaledInterpolatedHeightAtPoint(playerPos.x, playerPos.z);
+                const float offsetOverTerrain = 2;
+
+                playerPos.y = terrainHeight + offsetOverTerrain;
+
+                // set new position for the player
+                const EntityID playerID = player.GetPlayerID();
+                ECS::EventTranslate evnt(playerID, playerPos.x, playerPos.y, playerPos.z);
+                pEnttMgr->AddEvent(evnt);
+            }
+            // we're in jump and check player's height to prevent falling through
+            // the terrain when move both vertically and horizontally
+            else
+            {
+#if 1
+                if (playerPos.y < terrainHeight + offsetOverTerrain)
+                {
+                    player.StopJump();
+
+                    playerPos.y = terrainHeight + offsetOverTerrain;
+
+                    // set new position for the player
+                    const EntityID playerID = player.GetPlayerID();
+                    ECS::EventTranslate evnt(playerID, playerPos.x, playerPos.y, playerPos.z);
+                    pEnttMgr->AddEvent(evnt);
+                }
+#endif
+            }
+#endif
+        }
+
+
+        sysState.cameraPos = { playerPos.x, playerPos.y, playerPos.z };
+#else
+        const ECS::PlayerSystem& player = pEnttMgr->playerSystem_;
+        XMFLOAT3 playerPos = player.GetPosition();
+        sysState.cameraPos = { playerPos.x, playerPos.y, playerPos.z };
+#endif
     }
     else
     {

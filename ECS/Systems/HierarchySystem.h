@@ -10,6 +10,7 @@
 #include "../Components/Hierarchy.h"
 #include "../Systems/TransformSystem.h"
 
+#pragma warning (disable : 4996)
 
 namespace ECS
 {
@@ -22,12 +23,41 @@ public:
     bool AddChild(const EntityID id, const EntityID childID);
     void SetParent(const EntityID childID, const EntityID parentID);
 
+    // get a position relatively to parent
+    XMFLOAT3 GetRelativePos(const EntityID childID) const;
+
+    void UpdateRelativePos(const EntityID childID)
+    {
+        Hierarchy& comp = *pHierarchy_;
+
+        if (comp.data.contains(childID))
+        {
+            HierarchyNode& node = comp.data.at(childID);
+
+            XMFLOAT3 posParent = pTransformSys_->GetPosition(node.parentID);
+            XMFLOAT3 posChild  = pTransformSys_->GetPosition(childID);
+
+            // compute new relative position
+            node.relativePos =
+            {
+                posChild.x - posParent.x,
+                posChild.y - posParent.y,
+                posChild.z - posParent.z
+            };
+        }
+        else
+        {
+            sprintf(g_String, "there is no hierarchy data for entt: %d", childID);
+            LogErr(g_String);
+        }
+    }
+
     ///////////////////////////////////////////////////////
 
     inline bool HasChildren(const EntityID id) const
     {
         // return a flag to define if enitity has any children
-        return !GetChildren(id).empty();
+        return !GetChildrenSet(id).empty();
     }
 
     ///////////////////////////////////////////////////////
@@ -36,7 +66,7 @@ public:
     {
         // output: an array of children IDs
 
-        const std::set<EntityID>& children = GetChildren(id);
+        const std::set<EntityID>& children = GetChildrenSet(id);
         outChildren.resize(children.size());
 
         for (int i = 0; const EntityID childID : children)
@@ -45,7 +75,7 @@ public:
 
     ///////////////////////////////////////////////////////
 
-    inline const std::set<EntityID>& GetChildren(const EntityID id) const
+    inline const std::set<EntityID>& GetChildrenSet(const EntityID id) const
     {
         // return all the children of input entity
         Hierarchy& comp  = *pHierarchy_;

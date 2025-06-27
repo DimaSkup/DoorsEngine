@@ -629,9 +629,13 @@ bool TerrainInitHeight(TerrainGeomipmapped& terrain, const TerrainConfig& terrai
     {
         // load a height map from the file
         hasHeights = terrain.LoadHeightMap(terrainCfg.pathHeightMap, heightMapSize);
+
+        //terrain.SaveHeightMap(terrainCfg.pathSaveHeightMap);
     }
 
+
     // set heights for the terrain at particular positions
+#if 1
     if (hasHeights)
     {
         for (int i = 0; i < terrain.GetNumVertices(); ++i)
@@ -640,6 +644,7 @@ bool TerrainInitHeight(TerrainGeomipmapped& terrain, const TerrainConfig& terrai
             pos.y = terrain.GetScaledHeightAtPoint((int)pos.x, (int)pos.z);
         }
     }
+#endif
 
     return hasHeights;
 }
@@ -724,12 +729,12 @@ bool TerrainInitLightMap(TerrainGeomipmapped& terrain, const TerrainConfig& terr
         // compute pixel raw data for the lightmap texture
         result = terrain.CalculateLighting();
 
-        terrain.SaveLightMap(terrainCfg.pathSaveLightMap);
+        //terrain.SaveLightMap(terrainCfg.pathSaveLightMap);
     }
     else
     {
         result = terrain.LoadLightMap(terrainCfg.pathLightMap);
-//        terrain.SaveLightMap(terrainCfg.pathSaveLightMap);
+        terrain.SaveLightMap(terrainCfg.pathSaveLightMap);
     }
 
     // if we successfully loaded/generated lightmap's raw data
