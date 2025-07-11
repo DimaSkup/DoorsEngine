@@ -1061,7 +1061,7 @@ void BuildSphereVertices(
     // allocate memory for the transient data
     float* tu = new float[sliceCount + 1];               // texture X coords
     float* thetaSines = new float[sliceCount + 1];
-    float* thetaÑosines = new float[sliceCount + 1];
+    float* thetaCosines = new float[sliceCount + 1];
 
     // ------------------------------------------
 
@@ -1074,7 +1074,7 @@ void BuildSphereVertices(
         thetaSines[j] = sinf(j * dTheta);
 
     for (int j = 0; j <= sliceCount; ++j)
-        thetaÑosines[j] = cosf(j * dTheta);
+        thetaCosines[j] = cosf(j * dTheta);
 
 
     // build vertices
@@ -1093,7 +1093,7 @@ void BuildSphereVertices(
         // make vertices for this ring
         for (int j = 0; j <= sliceCount; ++j)
         {
-            vertices[idx].position = { r * thetaÑosines[j], y, r * thetaSines[j] };
+            vertices[idx].position = { r * thetaCosines[j], y, r * thetaSines[j] };
             vertices[idx].texture = { tu[j], tv };
 
             ++idx;
@@ -1119,7 +1119,7 @@ void BuildSphereVertices(
     // release the memory from transient data
     SafeDeleteArr(tu);
     SafeDeleteArr(thetaSines);
-    SafeDeleteArr(thetaÑosines);
+    SafeDeleteArr(thetaCosines);
 }
 
 ///////////////////////////////////////////////////////////
