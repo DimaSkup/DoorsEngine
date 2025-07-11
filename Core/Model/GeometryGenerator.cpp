@@ -234,14 +234,14 @@ void BuildSkySphereVertices(
 
     // allocate memory for the transient data
     float* thetaSines   = new float[sliceCount + 1];
-    float* theta—osines = new float[sliceCount + 1];
+    float* thetaCosines = new float[sliceCount + 1];
 
     // precompute sin/cos of Theta 
     for (int j = 0; j <= sliceCount; ++j)
         thetaSines[j] = sinf(j * dTheta);
 
     for (int j = 0; j <= sliceCount; ++j)
-        theta—osines[j] = cosf(j * dTheta);
+        thetaCosines[j] = cosf(j * dTheta);
 
 
     // build vertices
@@ -257,7 +257,7 @@ void BuildSkySphereVertices(
         // make vertices for the current ring
         for (int j = 0; j <= sliceCount; ++j)
         {
-            vertices[vIdx++] = DirectX::XMFLOAT3(r * theta—osines[j], y, r * thetaSines[j]);
+            vertices[vIdx++] = DirectX::XMFLOAT3(r * thetaCosines[j], y, r * thetaSines[j]);
         }
     }
 
@@ -266,7 +266,7 @@ void BuildSkySphereVertices(
 
     // release memory from the transient data
     SafeDeleteArr(thetaSines);
-    SafeDeleteArr(theta—osines);
+    SafeDeleteArr(thetaCosines);
 }
 
 ///////////////////////////////////////////////////////////
@@ -1061,7 +1061,7 @@ void BuildSphereVertices(
     // allocate memory for the transient data
     float* tu = new float[sliceCount + 1];               // texture X coords
     float* thetaSines = new float[sliceCount + 1];
-    float* theta—osines = new float[sliceCount + 1];
+    float* theta√ëosines = new float[sliceCount + 1];
 
     // ------------------------------------------
 
@@ -1074,7 +1074,7 @@ void BuildSphereVertices(
         thetaSines[j] = sinf(j * dTheta);
 
     for (int j = 0; j <= sliceCount; ++j)
-        theta—osines[j] = cosf(j * dTheta);
+        theta√ëosines[j] = cosf(j * dTheta);
 
 
     // build vertices
@@ -1093,7 +1093,7 @@ void BuildSphereVertices(
         // make vertices for this ring
         for (int j = 0; j <= sliceCount; ++j)
         {
-            vertices[idx].position = { r * theta—osines[j], y, r * thetaSines[j] };
+            vertices[idx].position = { r * theta√ëosines[j], y, r * thetaSines[j] };
             vertices[idx].texture = { tu[j], tv };
 
             ++idx;
@@ -1119,7 +1119,7 @@ void BuildSphereVertices(
     // release the memory from transient data
     SafeDeleteArr(tu);
     SafeDeleteArr(thetaSines);
-    SafeDeleteArr(theta—osines);
+    SafeDeleteArr(theta√ëosines);
 }
 
 ///////////////////////////////////////////////////////////
