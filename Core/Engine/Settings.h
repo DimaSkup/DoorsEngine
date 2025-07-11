@@ -9,6 +9,7 @@
 #include <log.h>
 #include <string>
 #include <map>
+#include <typeinfo>
 
 
 namespace Core
@@ -58,7 +59,7 @@ void Settings::UpdateSettingByKey(const char* key, T val)
         return;
     }
 
-    int valType = typeid(val);
+    const std::type_info& valType = typeid(val);
 
     // check if the src type is allowed
     if ((valType == typeid(float)) ||
