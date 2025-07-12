@@ -31,14 +31,14 @@ bool BillboardShader::Initialize(
     try
     {
         InitializeShaders(pDevice, vsFilePath, psFilePath, gsFilePath);
-        LogDbg("is initialized");
+        LogDbg(LOG, "is initialized");
         return true;
     }
     catch (EngineException& e)
     {
         Shutdown();
         LogErr(e, true);
-        LogErr("can't initialize the texture shader class");
+        LogErr(LOG, "can't initialize the texture shader class");
         return false;
     }
 }

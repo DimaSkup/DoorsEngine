@@ -50,8 +50,7 @@ bool TerrainBase::LoadSetupFile(const char* filename, TerrainConfig& outConfigs)
     // check input params
     if (StrHelper::IsEmpty(filename))
     {
-        sprintf(g_String, "terrain setup filename is empty: %s", filename);
-        LogErr(g_String);
+        LogErr(LOG, "terrain setup filename is empty: %s", filename);
         return false;
     }
 
@@ -59,8 +58,7 @@ bool TerrainBase::LoadSetupFile(const char* filename, TerrainConfig& outConfigs)
     FILE* pFile = fopen(filename, "r");
     if (!pFile)
     {
-        sprintf(g_String, "can't open a terrain setup file: %s", filename);
-        LogErr(g_String);
+        LogErr(LOG, "can't open a terrain setup file: %s", filename);
         return false;
     }
 
@@ -70,7 +68,7 @@ bool TerrainBase::LoadSetupFile(const char* filename, TerrainConfig& outConfigs)
     char          tmpChars[64]{'\0'};
     float         fl[4]{0};
 
-    LogDbg("Start: read in the terrain setup file");
+    LogDbg(LOG, "Start: read in the terrain setup file");
 
     // read in terrain common data
     fgets(buf, bufsize, pFile);
@@ -100,6 +98,8 @@ bool TerrainBase::LoadSetupFile(const char* filename, TerrainConfig& outConfigs)
     terrainWidth_ = outConfigs.width;
     heightScale_  = outConfigs.heightScale;
 
+    // --------------------------------
+
     // do we want to generate terrain texture (tile) map?
     fgets(buf, bufsize, pFile);
     sscanf(buf, "Generate_texture_map: %d", &tempBool);
@@ -115,6 +115,23 @@ bool TerrainBase::LoadSetupFile(const char* filename, TerrainConfig& outConfigs)
     sscanf(buf, "Generate_lightmap: %d", &tempBool);
     outConfigs.generateLightMap = (uint8)tempBool;
 
+    // --------------------------------
+
+    // do we want to store generated texture_map/height_map/light_map into the files?
+    fgets(buf, bufsize, pFile);
+    sscanf(buf, "Save_texture_map: %d", &tempBool);
+    outConfigs.saveTextureMap = (uint8)tempBool;
+
+    fgets(buf, bufsize, pFile);
+    sscanf(buf, "Save_height_map: %d", &tempBool);
+    outConfigs.saveHeightMap = (uint8)tempBool;
+
+    fgets(buf, bufsize, pFile);
+    sscanf(buf, "Save_light_map: %d", &tempBool);
+    outConfigs.saveLightMap = (uint8)tempBool;
+
+    // --------------------------------
+
     fgets(buf, bufsize, pFile);
     sscanf(buf, "Use_gen_fault_formation: %d", &tempBool);
     outConfigs.useGenFaultFormation = (uint8)tempBool;
@@ -123,6 +140,7 @@ bool TerrainBase::LoadSetupFile(const char* filename, TerrainConfig& outConfigs)
     sscanf(buf, "Use_gen_midpoint_displacement: %d", &tempBool);
     outConfigs.useGenMidpointDisplacement = (uint8)tempBool;
 
+    // --------------------------------
 
     // read in params for heights generation
     fgets(buf, bufsize, pFile);
@@ -140,6 +158,7 @@ bool TerrainBase::LoadSetupFile(const char* filename, TerrainConfig& outConfigs)
     fgets(buf, bufsize, pFile);
     sscanf(buf, "Midpoint_displacement_roughness: %f", &outConfigs.roughness);
 
+    // --------------------------------
 
     // read in params for texture map
     fgets(buf, bufsize, pFile);
@@ -158,13 +177,13 @@ bool TerrainBase::LoadSetupFile(const char* filename, TerrainConfig& outConfigs)
     sscanf(buf, "Path_highest_tile: %s", outConfigs.pathHighestTile);
 
     fgets(buf, bufsize, pFile);
-    sscanf(buf, "Path_save_generated_height_map: %s", outConfigs.pathSaveHeightMap);
+    sscanf(buf, "Path_save_height_map: %s", outConfigs.pathSaveHeightMap);
 
     fgets(buf, bufsize, pFile);
-    sscanf(buf, "Path_save_generated_texture_map: %s", outConfigs.pathSaveTextureMap);
+    sscanf(buf, "Path_save_texture_map: %s", outConfigs.pathSaveTextureMap);
 
     fgets(buf, bufsize, pFile);
-    sscanf(buf, "Path_save_generated_light_map: %s", outConfigs.pathSaveLightMap);
+    sscanf(buf, "Path_save_light_map: %s", outConfigs.pathSaveLightMap);
 
 
     // lightmap generation params
@@ -182,9 +201,9 @@ bool TerrainBase::LoadSetupFile(const char* filename, TerrainConfig& outConfigs)
 
 
     fgets(buf, bufsize, pFile);
-    sscanf(buf, "Light_color: %f %f %f %f", &fl[0], &fl[1], &fl[2], &fl[3]);
+    sscanf(buf, "Light_color: %f %f %f", &fl[0], &fl[1], &fl[2]);
 
-    outConfigs.lightColor = { fl[0], fl[1], fl[2], fl[3] };
+    outConfigs.lightColor = { fl[0], fl[1], fl[2] };
 
     fgets(buf, bufsize, pFile);
     sscanf(buf, "Light_direction_x: %d",      &outConfigs.lightDirX);
@@ -209,8 +228,7 @@ bool TerrainBase::LoadSetupFile(const char* filename, TerrainConfig& outConfigs)
     // close the setup file
     fclose(pFile);
 
-    LogDbg("End: the terrain setup file is read in successfully!");
-
+    LogDbg(LOG, "End: the terrain setup file is read in successfully!");
     return true;
 }
 
@@ -249,8 +267,7 @@ bool TerrainBase::LoadHeightMap(const char* filename, const int size)
     {
         if (!LoadHeightMapFromBMP(filename))
         {
-            sprintf(g_String, "can't load height map from the file: %s", filename);
-            LogErr(g_String);
+            LogErr(LOG, "can't load height map from the file: %s", filename);
             return false;
         }
     }
@@ -259,8 +276,7 @@ bool TerrainBase::LoadHeightMap(const char* filename, const int size)
     {
         if (!LoadHeightMapFromRAW(filename))
         {
-            sprintf(g_String, "can't load height map from the file: %s", filename);
-            LogErr(g_String);
+            LogErr(LOG, "can't load height map from the file: %s", filename);
             return false;
         }
     }
@@ -292,10 +308,23 @@ bool TerrainBase::LoadTextureMap(const char* filename)
         // load in data
         if (!texture_.LoadData(filename))
         {
-            sprintf(g_String, "can't load texture map from the file: %s", filename);
-            LogErr(g_String);
+            LogErr(LOG, "can't load texture map from the file: %s", filename);
             return false;
         }
+
+        Image& tileMap = texture_;
+        constexpr bool mipMapped = true;
+
+        // create texture resource
+        const TexID tileMapTexId = g_TextureMgr.CreateTextureFromRawData(
+            "terrain_tile_map",
+            tileMap.GetData(),
+            tileMap.GetWidth(),
+            tileMap.GetHeight(),
+            tileMap.GetBPP(),
+            mipMapped);
+
+        tileMap.SetID(tileMapTexId);
     }
 
     // load from DDS
@@ -305,24 +334,22 @@ bool TerrainBase::LoadTextureMap(const char* filename)
 
         if (tileMapTexId)
         {
-            LogDbg("terrain_tile_map texture is created");
+            LogDbg(LOG, "terrain_tile_map texture is created");
 
             // set the texture's ID
             texture_.SetID(tileMapTexId);
         }
         else
         {
-            sprintf(g_String, "can't load terrain's texture map from file: %s", filename);
-            LogErr(g_String);
+            LogErr(LOG, "can't load terrain's texture map from file: %s", filename);
             return false;
         }
     }
     // unknow format
     else
     {
-        sprintf(g_String, "can't load terrain texture map from file: %s\n"
-                          "REASON: unsupported format: %s", filename, extension);
-        LogErr(g_String);
+        LogErr(LOG, "can't load terrain texture map from file: %s\n"
+                    "REASON: unsupported format: %s", filename, extension);
         return false;
     }
 
@@ -372,7 +399,7 @@ bool TerrainBase::GenHeightFaultFormation(
 {
     float* tempBuf = nullptr;   // we use this temp buffer because we need higher precision during computations
 
-    LogDbg("wait while height map (fault formation) is generated");
+    LogDbg(LOG, "wait while height map (fault formation) is generated");
 
     try
     {
@@ -481,7 +508,7 @@ bool TerrainBase::GenHeightFaultFormation(
 // --------------------------------------------------------
 bool TerrainBase::GenHeightMidpointDisplacement(const int size, float roughness, const bool trueRandom)
 {
-    LogDbg("wait while height map (midpoint displacement) is generated");
+    LogDbg(LOG, "wait while height map (midpoint displacement) is generated");
 
     float* tempBuf = nullptr;    // temp buf for height data (we need it for higher precision)
     int    rectSize = size;
@@ -691,7 +718,7 @@ bool TerrainBase::GenerateTextureMap(const uint texMapSize)
         return false;
     }
 
-    LogDbg("wait while texture map is generated");
+    LogDbg(LOG, "wait while texture map is generated");
 
     // find out the number and indices of tiles that we have
     int numTiles = 0;
@@ -828,9 +855,25 @@ bool TerrainBase::SaveTextureMap(const char* filename)
 
     // check if a texture is loaded, if so, save it
     if (texture_.IsLoaded())
+    {
         return texture_.SaveBMP(filename);
+    }
+    // if we didn't load a texture from bmp/tga/raw we didn't initialize
+    // this texture object, but we loaded it from dds and we have the texture data on
+    // GPU side (if we really have such data we must have a valid texture ID),
+    // so we just get texture by its ID, get data from GPU and store it into a file
+    else if (texture_.GetID() != INVALID_TEXTURE_ID)
+    {
+         //ImgReader::ImgConverter
+    }
     else
+    {
+        LogErr(LOG, "you want to save a texture map into file: %s\n\t%s", filename,
+                    "but this image isn't initialized (has no data)");
         return false;
+    }
+
+    return true;
 }
 
 // --------------------------------------------------------
@@ -868,8 +911,7 @@ float TerrainBase::RegionPercent(const int tileType, const int height)
         return 1.0f;
 
     // something is seriously wrong if the height doesn't fit the previous cases
-    sprintf(g_String, "wrong height: %d", height);
-    LogErr(g_String);
+    LogErr(LOG, "wrong height: %d", height);
     return 0.0f;
 }
 
@@ -1049,20 +1091,20 @@ bool TerrainBase::LoadLightMap(const char* filename)
         LoadRAW(filename, &lightmap_.pData, fileSize);
 
         // check if lightmap has proper size
-        CAssert::True(IsPow2(fileSize), "input size must be power of 2");
+        //CAssert::True(IsPow2(fileSize), "input size must be power of 2");
 
         // width == height
         lightmap_.size = (int)sqrtf((float)fileSize);
 
         // great success!
-        sprintf(g_String, "Loaded light map: %s", filename);
-        LogMsg(g_String);
+        LogMsg(LOG, "Loaded light map: %s", filename);
         return true;
     }
     catch (const std::bad_alloc& e)
     {
-        LogErr(e.what());
         sprintf(g_String, "can't allocate memory for the light map: %s", filename);
+        LogErr(e.what());
+        LogErr(g_String);
         throw EngineException(g_String);
     }
     catch (EngineException& e)
@@ -1119,8 +1161,6 @@ void TerrainBase::UnloadLightMap(void)
 {
     SafeDeleteArr(lightmap_.pData);
     lightmap_.size = 0;
-
-    LogMsg("Successfully unloaded the light map");
 }
 
 // --------------------------------------------------------
@@ -1215,13 +1255,12 @@ bool TerrainBase::CalculateLighting(void)
 
         const int size = heightMap_.GetWidth();
 
-        LogDbg("wait while light map is generated");
+        LogDbg(LOG, "wait while light map is generated");
 
         // check if we have valid terrain size
         if (size <= 0)
         {
-            sprintf(g_String, "invalid terrain size (%d); must be > 0", size);
-            LogErr(g_String);
+            LogErr(LOG, "invalid terrain size (%d); must be > 0", size);
             return false;
         }
 

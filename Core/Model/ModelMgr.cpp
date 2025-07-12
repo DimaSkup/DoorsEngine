@@ -74,10 +74,9 @@ void ModelMgr::Serialize(ID3D11Device* pDevice)
     // 1. write model storage's data into the file
     // 2. export model into the internal model format if it hadn't been done before
 
-    LogDbg("serialization: start");
+    LogDbg(LOG, "serialization: start");
 
     auto start = std::chrono::steady_clock::now();
-
 
 
     const char* pathToDataFile = "data/model_storage_data.txt";
@@ -138,43 +137,20 @@ void ModelMgr::Serialize(ID3D11Device* pDevice)
         secondHalfRangeStart,
         secondHalfRangeEnd);
 
-#if 0
-    std::thread th(
-        SerializeModels,
-        pDevice,
-        models_.data(),
-        relativePathsToAssets.data(),
-        models_.size(),
-        firstHalfRangeStart,
-        firstHalfRangeEnd);
-
-    SerializeModels(
-        pDevice,
-        models_.data(),
-        relativePathsToAssets.data(),
-        models_.size(),
-        secondHalfRangeStart,
-        secondHalfRangeEnd);
-
-   th.join();
-#endif
 
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double, std::milli> elapsed = end - start;
 
-    sprintf(g_String, "Model mgr serialization duration: %f sec", elapsed.count());
-    LogMsg(g_String);
-
     fout.close();
-
-    LogDbg("serialization: finished");
+    LogMsg(LOG, "Model mgr serialization duration: %f sec", elapsed.count());
+    LogDbg(LOG, "serialization: finished");
 }
 
 ///////////////////////////////////////////////////////////
 
 void ModelMgr::Deserialize(ID3D11Device* pDevice)
 {
-    LogDbg("deserialization: start");
+    LogDbg(LOG, "deserialization: start");
 
     std::string ignore;
     ModelsCreator creator;
@@ -217,7 +193,7 @@ void ModelMgr::Deserialize(ID3D11Device* pDevice)
         }
     }
 
-    LogDbg("deserialization: finished");
+    LogDbg(LOG, "deserialization: finished");
 }
 
 ///////////////////////////////////////////////////////////
@@ -227,8 +203,7 @@ ModelID ModelMgr::AddModel(BasicModel&& model)
     // check if there is no such model id yet
     if (ids_.binary_search(model.id_))
     {
-        sprintf(g_String, "can't add model: there is already a model by ID: %ud", model.id_);
-        LogErr(g_String);
+        LogErr(LOG, "can't add model: there is already a model by ID: %ud", model.id_);
         return INVALID_MODEL_ID;
     }
 
@@ -313,8 +288,7 @@ BasicModel& ModelMgr::GetModelByName(const char* name)
     }
 
     // return an empty model if we didn't find any
-    sprintf(g_String, "there is no model by name: %s", name);
-    LogErr(g_String);
+    LogErr(LOG, "there is no model by name: %s", name);
     return models_[0];                  
 }
 
@@ -337,8 +311,7 @@ ModelID ModelMgr::GetModelIdByName(const char* name)
     }
 
     // return an empty model ID if we didn't find any
-    sprintf(g_String, "there is no model by name: %s", name);
-    LogErr(g_String);
+    LogErr(LOG, "there is no model by name: %s", name);
     return ids_[0];
 }
 

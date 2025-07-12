@@ -50,7 +50,7 @@ void UserInterface::Initialize(
 {
     // initialize the graphics user interface (GUI)
 
-    LogDbg("initialization of the User Interface");
+    LogDbg(LOG, "initialization of the User Interface");
 
     try
     {
@@ -79,7 +79,7 @@ void UserInterface::Initialize(
         textStorage_.InitDebugText(pDevice, font1_);
 
 
-        LogDbg("USER INTERFACE is initialized");
+        LogDbg(LOG, "USER INTERFACE is initialized");
     }
     catch (EngineException& e)
     {

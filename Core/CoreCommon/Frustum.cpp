@@ -1,24 +1,8 @@
 #include "Frustum.h"
+#include <DMath.h>
 #include <assert.h>
-#include <math.h>
 #include <memory.h>
 
-//---------------------------------------
-// Desc:   helpers to get a square of input value
-//---------------------------------------
-inline int   SQR(const int number)   { return number * number; }
-inline float SQR(const float number) { return number * number; }
-
-
-//---------------------------------------------------------
-// Desc:   compute the dot product for two input 3D vectors
-// Args:   - v1, v2: vectors in 3D space
-// Ret:    - float value: the dot product
-//---------------------------------------------------------
-inline float Dot(const Vec3& v1, const Vec3& v2)
-{
-    return (v1.x*v2.x) + (v1.y*v2.y) + (v1.z*v2.z);
-}
 
 //---------------------------------------------------------
 // Desc:   initialize a view frustum by fields of view and near/far planes

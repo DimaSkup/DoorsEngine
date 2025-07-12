@@ -75,6 +75,8 @@ void PrepareInstancesTextureTransformations(
     }
 }
 
+///////////////////////////////////////////////////////////
+
 void PrepareInstancesMaterials(
     Render::InstBuffData& instanceBuffData,
     const cvector<Render::Instance>& instances,

@@ -9,8 +9,8 @@
 #include <Types.h>
 #include <cvector.h>
 #include "SkyModel.h"
-#include "../Terrain/Terrain.h"
 #include "../Terrain/TerrainGeomipmapped.h"
+#include "../Terrain/TerrainQuadtree.h"
 #include "BasicModel.h"
 
 namespace Core
@@ -34,8 +34,9 @@ public:
 
     void        GetModelsNamesList(cvector<ModelName>& names);
 
-    inline Terrain&             GetTerrain()         { return terrain_; }
+    //inline Terrain&             GetTerrain()         { return terrain_; }
     inline TerrainGeomipmapped& GetTerrainGeomip()   { return terrainGeomip_; }
+    inline TerrainQuadtree&     GetTerrainQuadtree() { return terrainQuadtree_; }
     inline SkyModel&            GetSky()             { return sky_; }
 
     inline int                  GetNumAssets() const { return (int)std::ssize(ids_); }
@@ -46,8 +47,9 @@ private:
     cvector<BasicModel> models_;
 
     SkyModel            sky_;
-    Terrain             terrain_;
+    //Terrain             terrain_;
     TerrainGeomipmapped terrainGeomip_;
+    TerrainQuadtree     terrainQuadtree_;
 
     static ModelMgr*    pInstance_;
     static ModelID      lastModelID_;

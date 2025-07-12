@@ -73,19 +73,13 @@ public:
         const float size,
         const GeomNeighbor& neighbor);
 
-    void ComputeFanWithIndices(
-        const float cx,
-        const float cz,
-        const float size,
-        const GeomNeighbor& neighbor);
-
     // ------------------------------------------
     // getters
     // ------------------------------------------
 
-    inline int GetNumVertices()                 const { return numVertices_; }
-    inline int GetNumIndices()                  const { return numIndices_; }
-    inline int GetVertexStride()                const { return vb_.GetStride(); }
+    inline int  GetNumVertices()                 const { return numVertices_; }
+    inline int  GetNumIndices()                  const { return numIndices_; }
+    inline uint GetVertexStride()                const { return vb_.GetStride(); }
 
     inline ID3D11Buffer* GetVertexBuffer()      const { return vb_.Get(); }
     inline ID3D11Buffer* GetIndexBuffer()       const { return ib_.Get(); }

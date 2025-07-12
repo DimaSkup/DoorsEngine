@@ -35,13 +35,13 @@ bool FontShader::Initialize(
     try
     {
         InitializeShaders(pDevice, WVO, vsFilePath, psFilePath);
-        LogDbg("is initialized");
+        LogDbg(LOG, "is initialized");
         return true;
     }
     catch (EngineException& e)
     {
         LogErr(e, true);
-        LogErr("can't initialize the font shader class");
+        LogErr(LOG, "can't initialize the font shader class");
         return false;
     }
 }

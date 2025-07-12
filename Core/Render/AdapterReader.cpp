@@ -34,9 +34,7 @@ AdapterReader::AdapterReader()
         {
             pAdapter = adaptersData_[idx].pAdapter_;
 
-            // enumerate all the output for this adapter
-            //while (pAdapter->EnumOutputs(outputIdx, &pOutput) != DXGI_ERROR_NOT_FOUND)
-
+            // enumerate the outputs for this adapter
             pAdapter->EnumOutputs(0, &adaptersData_[idx].pOutput_);
         }
     }
@@ -68,11 +66,9 @@ AdapterReader::~AdapterReader()
 }
 
 
-
 // ====================================================================================
 //                              public methods
 // ====================================================================================
-
 AdapterData* AdapterReader::GetAdapterDataByIdx(const int idx)
 {
     assert((0 <= idx) && (idx < numAdapters_) && "wrong index");

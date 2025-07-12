@@ -81,8 +81,7 @@ bool ModelImporter::LoadFromFile(
         // assert that we successfully read the data file
         if (pScene == nullptr)
         {
-            sprintf(g_String, "can't read a model's data from file: %s", filePath);
-            LogErr(g_String);
+            LogErr(LOG, "can't read a model's data from file: %s", filePath);
             return false;
         }
 
@@ -209,16 +208,13 @@ bool ModelImporter::LoadFromFile(
 
         ModelImporter::s_ImportDuration_ += elapsed.count();
 
-        sprintf(g_String, "Model is loaded from file: %s", filePath);
-        LogDbg(g_String);
-
+        LogDbg(LOG, "Model is loaded from file: %s", filePath);
         return true;
     }
     catch (EngineException& e)
     {
         LogErr(e, true);
-        sprintf(g_String, "can't import a model from the file: %s", filePath);
-        LogErr(g_String);
+        LogErr(LOG, "can't import a model from the file: %s", filePath);
         return false;
     }
 }
@@ -341,6 +337,7 @@ void ModelImporter::ProcessMesh(
     {
         LogErr(e);
         sprintf(g_String, "can't import a mesh \"%s\" for a model from file: %s", subset.name, filePath);
+        LogErr(g_String);
         throw EngineException(g_String);
     }
 }
@@ -438,12 +435,13 @@ void ModelImporter::LoadMaterialTextures(
                 // load a tex which is located on the disk
             case TexStoreType::Disk:
             {
-                // make and store a pair [texture_type => texture_filepath]
-                 // get path to the directory which contains a model's data file
+                // get a path to the texture file
                 char texturePath[256]{ '\0' };
                 FileSys::GetParentPath(filePath, g_String);
-                sprintf(texturePath, "%s%s", g_String, path.C_Str());
+                strcat(texturePath, g_String);
+                strcat(texturePath, path.C_Str());
 
+                // store pair: [texture_type => texture_path]
                 texTypeToPath.insert_or_assign(type, texturePath);
 
                 break;

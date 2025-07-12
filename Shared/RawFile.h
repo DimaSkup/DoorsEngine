@@ -49,16 +49,14 @@ static bool SaveRAW(const char* filename, const uint8* data, const int numBytes)
     pFile = fopen(filename, "wb");
     if (!pFile)
     {
-        sprintf(g_String, "can't open file: %s", filename);
-        LogErr(g_String);
+        LogErr(LOG, "can't open file: %s", filename);
         return false;
     }
 
     // write the light map to the file
     if (fwrite(data, 1, numBytes, pFile) != numBytes)
     {
-        sprintf(g_String, "can't write raw data into file: %s", filename);
-        LogErr(g_String);
+        LogErr(LOG, "can't write raw data into file: %s", filename);
         return false;
     }
 
@@ -84,7 +82,7 @@ static bool LoadRAW(const char* filename, uint8** outData, int& outSize)
     // check input params
     if (!filename || filename[0] == '\0')
     {
-        LogErr("input filename is empty!");
+        //LogErr("input filename is empty!");
         return false;
     }
 

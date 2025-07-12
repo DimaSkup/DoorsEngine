@@ -22,7 +22,7 @@ MaterialID   MaterialMgr::lastMaterialID_ = 0;
 
 MaterialMgr::MaterialMgr()
 {
-    LogDbg("creation of the material manager");
+    LogDbg(LOG, "creation of the material manager");
 
     if (pInstance_ == nullptr)
     {
@@ -70,8 +70,7 @@ bool MaterialMgr::SetMaterialColorData(
 
     if (!exist)
     {
-        sprintf(g_String, "there is no material by ID: %ld", id);
-        LogErr(g_String);
+        LogErr(LOG, "there is no material by ID: %ld", id);
         return false;
     }
 

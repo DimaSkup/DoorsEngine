@@ -4,33 +4,116 @@
 #include "Log.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <time.h>
 
 #pragma warning (disable : 4996)
 
 
-char g_String[g_StrLim]{ '\0' };                 // global buffer for characters
-char s_TmpStr[g_StrLim]{ '\0' };                 // static buffer for internal using
+char g_String    [LOG_BUF_SIZE]{ '\0' };        // global buffer for characters
+char s_StrTmpBuf [LOG_BUF_SIZE]{ '\0' };        // static buffer for internal using
+char s_StrTmpBuf2[LOG_BUF_SIZE]{ '\0' };        // another static buffer for internal using
 
+static FILE*      s_pLogFile = nullptr;     // a static descriptor of the log file
 static LogStorage s_LogStorage;
-static FILE*      s_pLogFile = nullptr;     // a static descriptor of the log file 
 
 // helpers prototypes
-void        GetPathFromProjRoot(const char* fullPath, char* outPath);
-void        PrintHelper(const char* lvlText, const char* text, const LogType type);
-void        PrintExceptionErrHelper(const EngineException& e, const bool showMsgBox);
+void GetPathFromProjRoot(const char* fullPath, char* outPath);
+void PrintExceptionErrHelper(const EngineException& e, const bool showMsgBox);
 
-const char* PrepareMsg(const char* msg, const std::source_location& loc);                                 // for C++20
-const char* PrepareMsg(const char* msg, const char* fileName, const char* funcName, const int codeLine);  // for C or below C++20
 
-const char* PrepareErrMsg(const char* msg, const std::source_location& loc);
-const char* PrepareErrMsg(const char* msg, const char* fileName, const char* funcName, const int codeLine);
 
-// =================================================================================
-
-bool InitLogger(const char* logFileName)
+//---------------------------------------------------------
+// Desc:   set console color to some particular by input code
+// Args:   - keyColor: key code to change color
+//---------------------------------------------------------
+void SetConsoleColor(const char* keyColor)
 {
-    if (!logFileName || logFileName[0] == '\0')
+    printf("%s", keyColor);
+}
+
+//---------------------------------------------------------
+// Desc:   add a new message into the log storage (simply log history);
+//         this storage is used for printing log messages into
+//         the editors GUI
+// Args:   - msg:  a string with text message
+//         - type: what kind of log we want to add
+//---------------------------------------------------------
+void AddMsgIntoLogStorage(const char* msg, const eLogType type)
+{
+    int& numLogs    = s_LogStorage.numLogs;
+    LogMessage& log = s_LogStorage.logs[numLogs];
+    char** buf      = &log.msg;                          // get a buffer to the text of this log
+    log.type        = type;                                // store the type of this log
+    
+    *buf = new char[strlen(msg) + 1]{ '\0' };
+    strcpy(*buf, msg);
+    
+    ++numLogs;
+}
+
+//---------------------------------------------------------
+// Desc:   a helper for printing messages into the console
+//         and into the logger file
+// Args:   - fileName:  path to the caller file
+//         - funcName:  name of the caller function/method
+//         - type:      a type of the log message
+//         - text:      log message content
+//         - codeLine:  line of code where logger was called
+//---------------------------------------------------------
+void PrintHelper(
+    const char* fileName,
+    const char* funcName,
+    const char* text,
+    const int codeLine,
+    const eLogType type)
+{
+    const char* fmt = "[%05ld] %s %s: %s() (line: %d): %s\n";
+    const time_t t = clock();
+
+    const char* levels[] =
+    {
+        "",          // simple message
+        "DEBUG:",
+        "ERROR:",
+        "",          // formatted message
+    };
+
+    // create a final string
+    snprintf(g_String, LOG_BUF_SIZE, fmt, t, levels[type], fileName, funcName, codeLine, text);
+
+    // print a message into the console and log-file
+    printf(g_String);
+    AddMsgIntoLogStorage(g_String, type);
+
+    if (s_pLogFile)
+        fprintf(s_pLogFile, g_String);
+}
+
+//---------------------------------------------------------
+// Desc:   print a message into the console and log-file
+// Args:   - msg:  text content of the log message
+//         - type: a type of this log message
+//---------------------------------------------------------
+void PrintHelper(
+    const char* msg,
+    const eLogType type)
+{
+    printf("%s\n", msg);
+    AddMsgIntoLogStorage(msg, type);
+
+    if (s_pLogFile)
+        fprintf(s_pLogFile, "%s\n", msg);
+}
+
+//---------------------------------------------------------
+// Desc:   create a logger file into which we will write messages
+// Args:   - filename:  path to logger file relatively to the working directory
+// Ret:    1 if everything is OK, and 0 if something went wrong
+//---------------------------------------------------------
+int InitLogger(const char* filename)
+{
+    if (!filename || filename[0] == '\0')
     {
         LogErr("input name for the log file is empty!");
         return false;
@@ -43,147 +126,220 @@ bool InitLogger(const char* logFileName)
     SetConsoleMode(hConsole, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 #endif
 
-    if ((s_pLogFile = fopen(logFileName, "w")) != nullptr)
+    if ((s_pLogFile = fopen(filename, "w")) != nullptr)
     {
-        LogMsg("the log file is created successfully");
+        printf("the log file is created!\n");
 
-        char time[9];
-        char date[9];
+        time_t rawTime;
+        struct tm* info = NULL;
+        char buffer[80];
 
-        _strtime(time);
-        _strtime(date);
+        memset(buffer, 0, 80);
+        time(&rawTime);
+        info = localtime(&rawTime);
+        strftime(buffer, 80, "%x - %I:%M%p", info);
 
-        if (s_pLogFile)
-            fprintf(s_pLogFile, "%s : %s| the Log file is created\n", time, date);
-        LogMsgf("-------------------------------------------\n\n");
+        fprintf(s_pLogFile, "%s| the log file is create!\n", buffer);
+        fprintf(s_pLogFile, "-------------------------\n\n");
 
-        return true;
+        return 1;   // true
     }
     else
     {
         printf("%sInitLogger(): can't initialize the logger %s\n", RED, RESET);
-        return false;
+        return 0;   // false
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   print msg about closing of the log file and close it
+//---------------------------------------------------------
 void CloseLogger()
 {
     // print message about closing of the log file and close it
 
-    char time[9];
-    char date[9];
+    time_t rawTime;
+    struct tm* info = NULL;
+    char buffer[80];
 
-    _strtime(time);
-    _strdate(date);
+    time(&rawTime);
+    info = localtime(&rawTime);
+    strftime(buffer, 80, "%x -%I:%M%p", info);
 
-    fprintf(s_pLogFile, "\n-------------------------------------------\n");
-    fprintf(s_pLogFile, "%s : %s| the end of the Log file\n", time, date);
+    fprintf(s_pLogFile, "\n--------------------------------\n");
+    fprintf(s_pLogFile, "%s| this is the end, my only friend, the end\n", buffer);
 
-    fflush(s_pLogFile);
     fclose(s_pLogFile);
 }
 
-///////////////////////////////////////////////////////////
-
-void AddMsgIntoLogStorage(const char* msg, const LogType type)
+//---------------------------------------------------------
+// Desc:   get a ptr (file descriptor) to the opened log file
+//---------------------------------------------------------
+FILE* GetLogFile()
 {
-    // add a new message into the log storage 
-
-    if (!msg || msg[0] == '\0')
-        return;
-
-    int& numLogs = s_LogStorage.numLogs;
-    LogMessage& log = s_LogStorage.logs[numLogs];
-    char** buf = &log.msg;                          // get a buffer to the text of this log
-    log.type = type;                                // store the type of this log
-    
-    *buf = new char[strlen(msg) + 1]{ '\0' };
-    strcpy(*buf, msg);
-    
-    ++numLogs;
+    return s_pLogFile;
 }
 
-///////////////////////////////////////////////////////////
-
-FILE*             GetLogFile()    { return s_pLogFile; }
-const LogStorage* GetLogStorage() { return &s_LogStorage; }
-
-
-// =================================================================================
-// logger functions which prints info about its caller (file, function, line)
-// =================================================================================
-void LogMsg(const char* msg, const std::source_location& loc)
+//---------------------------------------------------------
+// Desc:  get a ptr to the logs storage (logs history)
+//---------------------------------------------------------
+const LogStorage* GetLogStorage()
 {
-    printf("%s", GREEN);                                // setup console color
-    const char* buf = PrepareMsg(msg, loc);
-    PrintHelper("", buf, LOG_TYPE_MESSAGE);
-    printf("%s", RESET);                                // reset console color
+    return &s_LogStorage;
 }
 
-///////////////////////////////////////////////////////////
-
-void LogDbg(const char* msg, const std::source_location& loc)
+//---------------------------------------------------------
+// Desc:   print a usual message into console but without
+//         info about the caller
+// Args:   - format:   format string for variadic aruments
+//         - ...:      variadic arguments
+//---------------------------------------------------------
+void LogMsg(const char* format, ...)
 {
-    const char* buf = PrepareMsg(msg, loc);
-    PrintHelper("DEBUG", buf, LOG_TYPE_DEBUG);
-}
+    const char* fmt = "[%05ld] %s";
+    const time_t t = clock();
 
-///////////////////////////////////////////////////////////
-
-void LogErr(const char* msg, const std::source_location& loc)
-{
-    printf("%s", RED);                                  // setup console color
-    const char* buf = PrepareErrMsg(msg, loc);
-    PrintHelper("ERROR", buf, LOG_TYPE_ERROR);
-    printf("%s", RESET);                                // reset console color
-}
-
-///////////////////////////////////////////////////////////
-
-void LogMsg(const char* fileName, const char* funcName, const int codeLine, const char* msg)
-{
-    printf("%s", GREEN);                                // setup console color
-    const char* buf = PrepareMsg(msg, fileName, funcName, codeLine);
-    PrintHelper("", buf, LOG_TYPE_MESSAGE);
-    printf("%s", RESET);                                // reset console color
-}
-
-///////////////////////////////////////////////////////////
-
-void LogDbg(const char* fileName, const char* funcName, const int codeLine, const char* msg)
-{
-    const char* buf = PrepareMsg(msg, fileName, funcName, codeLine);
-    PrintHelper("DEBUG", buf, LOG_TYPE_DEBUG);
-}
-
-///////////////////////////////////////////////////////////
-
-void LogErr(const char* fileName, const char* funcName, const int codeLine, const char* msg)
-{
-    printf("%s", RED);                                  // setup console color
-    const char* buf = PrepareErrMsg(msg, fileName, funcName, codeLine);
-    PrintHelper("ERROR", buf, LOG_TYPE_ERROR);
-    printf("%s", RESET);                                // reset console color
-}
-
-
-// =================================================================================
-// logger function with variadic arguments
-// =================================================================================
-void LogMsgf(const char* format, ...)
-{
     va_list args;
     va_start(args, format);
 
-    vsnprintf(s_TmpStr, g_StrLim, format, args);
-    PrintHelper("", s_TmpStr, LOG_TYPE_FORMATTED);
-    printf("%s", RESET);                  // reset console color
+    // reset the buffer
+    memset(s_StrTmpBuf, 0, LOG_BUF_SIZE);
+
+    // make a string with input log-message
+    vsnprintf(s_StrTmpBuf, LOG_BUF_SIZE- 1, format, args);
+
+    // create a final string and print it
+    snprintf(s_StrTmpBuf2, LOG_BUF_SIZE-1, fmt, t, s_StrTmpBuf);
+    PrintHelper(s_StrTmpBuf2, LOG_TYPE_FORMATTED);
 
     va_end(args);
 }
 
+//---------------------------------------------------------
+// Desc:   print a usual message into console
+// Args:   - fullFilePath:  path to the caller file
+//         - funcName:      name of the caller function
+//         - codeLine:      line of code where logger was called
+//         - format:        format string for variadic arguments
+//         - ...:           variadic arguments
+//---------------------------------------------------------
+void LogMsg(
+    const char* fullFilePath,
+    const char* funcName,
+    const int codeLine,
+    const char* format,
+    ...)
+{
+    va_list args;
+    va_start(args, format);
+
+    // reset the buffer
+    memset(s_StrTmpBuf, 0, LOG_BUF_SIZE);
+
+    // make a string with input log-message
+    vsnprintf(s_StrTmpBuf, LOG_BUF_SIZE - 1, format, args);
+
+    // get a relative path to the caller's file
+    char* fileName = s_StrTmpBuf2;
+    GetPathFromProjRoot(fullFilePath, fileName);
+
+    // print a message into the console and log file
+    SetConsoleColor(GREEN);
+    PrintHelper(fileName, funcName, s_StrTmpBuf, codeLine, LOG_TYPE_MESSAGE);
+    SetConsoleColor(RESET);
+
+    va_end(args);
+}
+
+//---------------------------------------------------------
+// Desc:   print a debug message into console
+// Args:   - fullFilePath:   path to the caller file
+//         - funcName:       name of the caller function
+//         - codeLine:       line of code where logger was called
+//         - format:         format string for variadic arguments
+//         - ...:            variadic arguments
+//---------------------------------------------------------
+void LogDbg(
+    const char* fullFilePath,
+    const char* funcName,
+    const int codeLine,
+    const char* format,
+    ...)
+{
+    va_list args;
+    va_start(args, format);
+
+    // reset the buffer
+    memset(s_StrTmpBuf, 0, LOG_BUF_SIZE);
+
+    // make a string with input log-message
+    vsnprintf(s_StrTmpBuf, LOG_BUF_SIZE - 1, format, args);
+
+    // get a relative path to the caller's file
+    char* fileName = s_StrTmpBuf2;
+    GetPathFromProjRoot(fullFilePath, fileName);
+
+    // print a message into the console and log file
+    SetConsoleColor(RESET);
+    PrintHelper(fileName, funcName, s_StrTmpBuf, codeLine, LOG_TYPE_DEBUG);
+
+    va_end(args);
+}
+
+//---------------------------------------------------------
+// Desc:   print an error message into console
+// Args:   - fullFilePath:  path to the caller file
+//         - funcName:      name of the caller function
+//         - codeLine:      line of code where logger was called
+//         - format:        format string for variadic arguments
+//         - ...:           variadic arguments
+//---------------------------------------------------------
+void LogErr(
+    const char* fullFilePath,
+    const char* funcName,
+    const int codeLine,
+    const char* format,
+    ...)
+{
+    va_list args;
+    va_start(args, format);
+
+    // reset the buffers
+    memset(s_StrTmpBuf,  0, LOG_BUF_SIZE);
+    memset(s_StrTmpBuf2, 0, LOG_BUF_SIZE);
+
+    // make a string with input log-message
+    vsnprintf(s_StrTmpBuf, LOG_BUF_SIZE - 1, format, args);
+
+    // get a relative path to the caller's file
+    char* fileName = s_StrTmpBuf2;
+    GetPathFromProjRoot(fullFilePath, fileName);
+
+    const time_t time = clock();
+    const char*  fmt =
+        "[%05ld] ERROR:\n"
+        "FILE:  %s\n"
+        "FUNC:  %s()\n"
+        "LINE:  %d\n"
+        "MSG:   %s\n";
+
+    snprintf(
+        s_StrTmpBuf2,
+        LOG_BUF_SIZE-1,
+        fmt,
+        time,
+        fileName,                               // relative path to the caller file
+        funcName,                               // a function name where we called this log-function
+        codeLine,                               // at what line
+        s_StrTmpBuf);
+
+    // print a message into the console and log file
+    SetConsoleColor(RED);
+    PrintHelper(s_StrTmpBuf2, LOG_TYPE_ERROR);
+    SetConsoleColor(RESET);
+
+    va_end(args);
+}
 
 // =================================================================================
 // exception handlers (in case if using C++)
@@ -233,107 +389,6 @@ void GetPathFromProjRoot(const char* fullPath, char* outPath)
 
 ///////////////////////////////////////////////////////////
 
-void PrintHelper(const char* lvlText, const char* text, const LogType type)
-{
-    // a helper for printing messages into the command prompt
-    // and into the Logger text file
-
-    snprintf(g_String, g_StrLim, "[%05d] %s: %s\n", clock(), lvlText, text);
-    printf(g_String);
-    AddMsgIntoLogStorage(g_String, type);
-
-    if (s_pLogFile)
-        fprintf(s_pLogFile, g_String);
-}
-
-///////////////////////////////////////////////////////////
-
-const char* PrepareMsg(const char* msg, const std::source_location& loc)
-{
-    // prepare a message for logger and put it into the global buffer (g_String)
-
-    char pathFromProjRoot[128]{ '\0' };
-    GetPathFromProjRoot(loc.file_name(), pathFromProjRoot);
-
-    snprintf(s_TmpStr, g_StrLim, "%s: %s() (line: %d): %s",
-        pathFromProjRoot,                           // relative path to the caller file
-        loc.function_name(),                        // a function name where we called this log-function
-        loc.line(),                                 // at what line
-        msg);
-
-    return s_TmpStr;
-}
-
-///////////////////////////////////////////////////////////
-
-const char* PrepareMsg(
-    const char* msg,
-    const char* fileName,
-    const char* funcName,
-    const int codeLine)
-{
-    char pathFromProjRoot[128]{ '\0' };
-    GetPathFromProjRoot(fileName, pathFromProjRoot);
-
-    snprintf(s_TmpStr, g_StrLim, "%s: %s() (line: %d): %s",
-        pathFromProjRoot,                               // relative path to the caller file
-        funcName,                                       // a function name where we called this log-function
-        codeLine,                                       // at what line
-        msg);
-
-    return s_TmpStr;
-}
-
-///////////////////////////////////////////////////////////
-
-const char* PrepareErrMsg(const char* msg, const std::source_location& loc)
-{
-    // prepare error message to be printed in specific format
-
-    char pathFromProjRoot[128]{ '\0' };
-    GetPathFromProjRoot(loc.file_name(), pathFromProjRoot);
-
-    snprintf(
-        s_TmpStr,
-        g_StrLim,
-        "\nFILE:  %s\n"
-        "FUNC:  %s()\n"
-        "LINE:  %d\n"
-        "MSG:   %s\n",
-        pathFromProjRoot,                               // relative path to the caller file
-        loc.function_name(),                            // a function name where we called this log-function
-        loc.line(),                                     // at what line
-        msg);
-
-    return s_TmpStr;
-}
-
-///////////////////////////////////////////////////////////
-
-const char* PrepareErrMsg(const char* msg, const char* fileName, const char* funcName, const int codeLine)
-{
-    // prepare error message to be printed in specific format
-
-    char pathFromProjRoot[128]{ '\0' };
-    GetPathFromProjRoot(fileName, pathFromProjRoot);
-
-    snprintf(
-        s_TmpStr,
-        g_StrLim,
-        "\nFILE:  %s\n"
-        "FUNC:  %s()\n"
-        "LINE:  %d\n"
-        "MSG:   %s\n",
-        pathFromProjRoot,                               // relative path to the caller file
-        funcName,                                       // a function name where we called this log-function
-        codeLine,                                       // at what line
-        msg);
-
-    return s_TmpStr;
-}
-
-///////////////////////////////////////////////////////////
-
 void PrintExceptionErrHelper(const EngineException& e, const bool showMsgBox)
 {
     // show a message box if we need
@@ -342,6 +397,6 @@ void PrintExceptionErrHelper(const EngineException& e, const bool showMsgBox)
 
     // print an error msg into the console and log file
     printf("%s", RED);                                   // setup console color
-    PrintHelper("ERROR: ", e.GetConstStr(), LOG_TYPE_ERROR);
+    PrintHelper(e.GetConstStr(), LOG_TYPE_ERROR);
     printf("%s", RESET);                                 // reset console color
 }

@@ -187,7 +187,7 @@ void TransformSystem::GetPosAndDir(
 
 ///////////////////////////////////////////////////////////
 
-const XMFLOAT3 TransformSystem::GetPosition(const EntityID id) const
+XMFLOAT3 TransformSystem::GetPosition(const EntityID id) const
 {
     const XMFLOAT4& pos = pTransform_->posAndUniformScale[GetIdx(id)];
     return XMFLOAT3(pos.x, pos.y, pos.z);
@@ -195,7 +195,16 @@ const XMFLOAT3 TransformSystem::GetPosition(const EntityID id) const
 
 ///////////////////////////////////////////////////////////
 
-const XMVECTOR TransformSystem::GetPositionVec(const EntityID id) const
+XMFLOAT4 TransformSystem::GetPositionFloat4(const EntityID id) const
+{
+    XMFLOAT4 pos = pTransform_->posAndUniformScale[GetIdx(id)];
+    pos.w = 1.0f;
+    return pos;
+}
+
+///////////////////////////////////////////////////////////
+
+XMVECTOR TransformSystem::GetPositionVec(const EntityID id) const
 {
     const XMFLOAT4& pos = pTransform_->posAndUniformScale[GetIdx(id)];
     return XMVECTOR{ pos.x, pos.y, pos.z, 1 };

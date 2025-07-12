@@ -294,12 +294,6 @@
     <ClCompile Include="Terrain\TerrainBase.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Terrain\Terrain.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Texture\Image.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="CoreCommon\pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -307,6 +301,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CoreCommon\Frustum.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Terrain\TerrainQuadtree.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -680,12 +677,6 @@
     <ClInclude Include="Terrain\TerrainBase.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Terrain\Terrain.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Texture\Image.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="CoreCommon\pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -696,6 +687,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CoreCommon\Matrix.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Terrain\TerrainQuadtree.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Terrain\TerrainCreator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Terrain\TerrainGeomipmapCreator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Terrain\TerrainQuadtreeCreator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

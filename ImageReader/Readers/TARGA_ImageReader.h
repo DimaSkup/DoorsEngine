@@ -7,7 +7,7 @@
 
 #include <d3d11.h>
 
-namespace ImgReader
+namespace Img
 {
 
 class TARGA_ImageReader

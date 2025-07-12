@@ -119,28 +119,27 @@ void EntityCreatorWnd::RenderCreationWindow(bool* pOpen, IFacadeEngineToUI* pFac
     // TEMP
     if (*pOpen == false)
     {
-        LogMsgf(" ");
-        LogMsgf("%sCreated Entity", YELLOW);
-        LogMsgf("%sName: %s", YELLOW, nameData_.enttName);
+        SetConsoleColor(YELLOW);
+        LogMsg("\nCreated Entity\nName: %s", nameData_.enttName);
 
         // debug: print transformation component info
         const Vec3& pos = transformData_.position;
         const Vec3& dir = transformData_.direction;
         const float uniScale = transformData_.uniformScale;
-        LogMsgf("%sTransform:", YELLOW);
-        LogMsgf("%spos: %f %f %f", YELLOW, pos.x, pos.y, pos.z);
-        LogMsgf("%spos: %f %f %f", YELLOW, dir.x, dir.y, dir.z);
-        LogMsgf("%suniform scale: %d", YELLOW, uniScale);
+        LogMsg("Transform:");
+        LogMsg("pos: %f %f %f", pos.x, pos.y, pos.z);
+        LogMsg("pos: %f %f %f", dir.x, dir.y, dir.z);
+        LogMsg("uniform scale: %d", uniScale);
 
         // debug: print model component info
         if (addedComponents_.isAddedModel)
-            LogMsgf("%swith model: %s", YELLOW, modelData_.selectedModelName.c_str());
+            LogMsg("switch model: ", modelData_.selectedModelName.c_str());
 
         // debug: print rendered component info
         if (addedComponents_.isAddedRendered)
-            LogMsgf("%swith rendered component", YELLOW);
+            LogMsg("switch rendered component");
 
-        LogMsgf("");
+        LogMsg("");
 
         EntityID enttID = pFacade->CreateEntity();
         ModelID modelID = pFacade->GetModelIdByName(modelData_.selectedModelName);
@@ -151,6 +150,7 @@ void EntityCreatorWnd::RenderCreationWindow(bool* pOpen, IFacadeEngineToUI* pFac
         pFacade->AddRenderedComponent(enttID);
         pFacade->AddBoundingComponent(enttID, 1, DirectX::BoundingBox({ 0,0,0 }, { 1,1,1 }));
 
+        SetConsoleColor(RESET);
     }
 #endif
 }

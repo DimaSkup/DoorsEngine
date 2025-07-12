@@ -344,7 +344,10 @@ void EditorPanels::RenderWndEntityCreation(bool* pOpen, IFacadeEngineToUI* pFaca
         if (pEnttCreatorWnd_ == nullptr)
         {
             pEnttCreatorWnd_ = new EntityCreatorWnd;
-            LogMsgf("%sEntity creator window is allocated", YELLOW);
+
+            SetConsoleColor(YELLOW);
+            LogMsg(LOG, "Entity creator window is allocated");
+            SetConsoleColor(RESET);
         }
 
         pEnttCreatorWnd_->RenderCreationWindow(pOpen, pFacade);
@@ -358,7 +361,9 @@ void EditorPanels::RenderWndEntityCreation(bool* pOpen, IFacadeEngineToUI* pFaca
             pEnttCreatorWnd_ = nullptr;
         }
 
-        LogMsgf("%sEntity creator window is DEallocated", YELLOW);
+        SetConsoleColor(YELLOW);
+        LogMsg(LOG, "Entity creator window is DEallocated");
+        SetConsoleColor(RESET);
     }
 }
 

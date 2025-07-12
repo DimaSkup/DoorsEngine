@@ -242,21 +242,10 @@ bool LightSystem::SetDirLightProp(
 
     switch (prop)
     {
-        case LightProp::AMBIENT:
-        {
-            light.ambient = value;
-            break;
-        }
-        case LightProp::DIFFUSE:
-        {
-            light.diffuse = value;
-            break;
-        }
-        case LightProp::SPECULAR:
-        {
-            light.specular = value;
-            break;
-        }
+        case LightProp::AMBIENT:    light.ambient  = value; break;
+        case LightProp::DIFFUSE:    light.diffuse  = value; break;
+        case LightProp::SPECULAR:   light.specular = value; break;
+
         default:
         {
             LogErr(GenerateMsgUnknownProperty(id, prop, "directed"));
@@ -323,18 +312,10 @@ XMFLOAT4 LightSystem::GetDirLightProp(const EntityID id, const LightProp prop)
 
     switch (prop)
     {
-        case AMBIENT:
-        {
-            return light.ambient;
-        }
-        case DIFFUSE:
-        {
-            return light.diffuse;
-        }
-        case SPECULAR:
-        {
-            return light.specular;
-        }
+        case AMBIENT:       return light.ambient;
+        case DIFFUSE:       return light.diffuse;
+        case SPECULAR:      return light.specular;
+
         case DIRECTION:
         {
             // get light direction from the Transform component
@@ -449,27 +430,17 @@ XMFLOAT4 LightSystem::GetPointLightProp(const EntityID id, const LightProp prop)
 
     switch (prop)
     {
-        case AMBIENT:
-        {
-            return light.ambient;
-        }
-        case DIFFUSE:
-        {
-            return light.diffuse;
-        }
-        case SPECULAR:
-        {
-            return light.specular;
-        }
+        case AMBIENT:       return light.ambient;
+        case DIFFUSE:       return light.diffuse;
+        case SPECULAR:      return light.specular;
+
+        // get a light position from the Transform component
         case POSITION:
-        {
-            // get light position from the Transform component
-            const XMFLOAT3 pos = pTransformSys_->GetPosition(id);
-            return { pos.x, pos.y, pos.z, 1.0f };
-        }
+            return pTransformSys_->GetPositionFloat4(id);
+
+        // return the range value in each component of XMFLOAT4
         case RANGE:
         {
-            // return the range value in each component of XMFLOAT4
             const float r = light.range;
             return { r, r, r, r };               
         }
@@ -506,24 +477,13 @@ bool LightSystem::SetPointLightProp(
 
     switch (prop)
     {
-        case LightProp::AMBIENT:
-        {
-            light.ambient = value;
-            break;
-        }
-        case LightProp::DIFFUSE:
-        {
-            light.diffuse = value;
-            break;
-        }
-        case LightProp::SPECULAR:
-        {
-            light.specular = value;
-            break;
-        }
+        case LightProp::AMBIENT:    light.ambient  = value; break;
+        case LightProp::DIFFUSE:    light.diffuse  = value; break;
+        case LightProp::SPECULAR:   light.specular = value; break;
+
+        // store light position into the Transform component
         case LightProp::POSITION:
         {
-            // store light position into the Transform component
             pTransformSys_->SetPosition(id, XMFLOAT3{ value.x, value.y, value.z });
             break;
         }
@@ -566,10 +526,9 @@ bool LightSystem::SetPointLightProp(
     switch (prop)
     {
         case LightProp::RANGE:
-        {
             light.range = value;
             break;
-        }
+
         default:
         {
             LogErr(GenerateMsgUnknownProperty(id, prop, "point"));
@@ -624,24 +583,14 @@ XMFLOAT4 LightSystem::GetSpotLightProp(const EntityID id, const LightProp prop)
 
     switch (prop)
     {
-        case AMBIENT:
-        {
-            return light.ambient;
-        }
-        case DIFFUSE:
-        {
-            return light.diffuse;
-        }
-        case SPECULAR:
-        {
-            return light.specular;
-        }
+        case AMBIENT:       return light.ambient;
+        case DIFFUSE:       return light.diffuse;
+        case SPECULAR:      return light.specular;
+
+        // get a light position from the Transform component
         case POSITION:
-        {
-            // get light position from the Transform component
-            const XMFLOAT3 pos = pTransformSys_->GetPosition(id);
-            return { pos.x, pos.y, pos.z, 1.0f };
-        }
+            return pTransformSys_->GetPositionFloat4(id);
+
         case DIRECTION:
         {
             // get light direction from the Transform component
@@ -694,21 +643,10 @@ bool LightSystem::SetSpotLightProp(
 
     switch (prop)
     {
-        case LightProp::AMBIENT:
-        {
-            light.ambient = val;
-            break;
-        }
-        case LightProp::DIFFUSE:
-        {
-            light.diffuse = val;
-            break;
-        }
-        case LightProp::SPECULAR:
-        {
-            light.specular = val;
-            break;
-        }
+        case LightProp::AMBIENT:    light.ambient  = val; break;
+        case LightProp::DIFFUSE:    light.diffuse  = val; break;
+        case LightProp::SPECULAR:   light.specular = val; break;
+
         case LightProp::POSITION:
         {
             // store light position into the Transform component
@@ -758,16 +696,9 @@ bool LightSystem::SetSpotLightProp(
 
     switch (prop)
     {
-        case LightProp::RANGE:
-        {
-            light.range = value;
-            break;
-        }
-        case LightProp::SPOT_EXP:
-        {
-            light.spot = value;
-            break;
-        }
+        case LightProp::RANGE:      light.range = value; break;
+        case LightProp::SPOT_EXP:   light.spot  = value; break;
+
         default:
         {
             LogErr(GenerateMsgUnknownProperty(id, prop, "spot"));
@@ -910,24 +841,5 @@ bool LightSystem::GetPointLightsPositionAndRange(
 
     return true;
 }
-
-///////////////////////////////////////////////////////////
-
-void* LightSystem::operator new(size_t i)
-{
-    if (void* ptr = _aligned_malloc(i, 16))
-    {
-        return ptr;
-    }
-
-    LogErr("can't allocate the memory for object");
-    throw std::bad_alloc{};
-}
-
-void LightSystem::operator delete(void* p)
-{
-    _aligned_free(p);
-}
-
 
 };  // namespace ECS

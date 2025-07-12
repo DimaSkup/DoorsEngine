@@ -82,6 +82,11 @@ namespace DirectX
         return lhs;
     }
 
+    static XMFLOAT3 operator*(const XMFLOAT3& lhs, const float value)
+    {
+        return { lhs.x*value, lhs.y*value, lhs.z*value };
+    }
+
     static XMFLOAT3& operator*=(XMFLOAT3& lhs, const int value)
     {
         lhs.x *= value;

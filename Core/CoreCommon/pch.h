@@ -11,6 +11,8 @@
 #include <chrono>
 #include <map>
 #include <string>
+#include <new>          // std::nothrow
+#include <stdlib.h>
 
 #include "RawFile.h"
 #include "log.h"

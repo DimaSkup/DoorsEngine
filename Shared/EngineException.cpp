@@ -3,26 +3,20 @@
 // Descption:    a wrapper class for manual exceptions of the DoorsEngine core
 ///////////////////////////////////////////////////////////////////////////////////////////
 #include "EngineException.h"
+#include <time.h>
 #pragma warning (disable : 4996)
 
-
+//---------------------------------------------------------
+// Desc:  generate an error string with data about some EngineException so later we can
+//        use this string for the logger printing functions
+// Args:  - msg:      text content of an exception
+//        - location: info about the place where this exception was thrown
+//        - hr:       error code
+//---------------------------------------------------------
 EngineException::EngineException(
     const char* msg,
     const std::source_location& location,
     const HRESULT hr)
-{
-    // generate an error string with data about some EngineException so later we can
-    // use this string for the logger printing functions
-
-    MakeExceptionMsg(hr, msg, location);
-}
-
-///////////////////////////////////////////////////////////
-
-void EngineException::MakeExceptionMsg(
-    HRESULT hr,
-    const char* msg,
-    const std::source_location& location)
 {
     // TODO: FIXME (getting error msg from the HR)
 #if 0
@@ -35,11 +29,23 @@ void EngineException::MakeExceptionMsg(
     }
 #endif
 
+    const time_t time = clock();
+
+    const char* fmt =
+        "[%05ld] ERROR:\n"
+        "FILE:  %s\n"
+        "FUNC:  %s()\n"
+        "LINE:  %d\n"
+        "MSG:   %s\n";
+
     // string
-    sprintf(strBuf_,                                         // dst buffer
-        "\nErrMsg: %s \nFile: %s \nFunction: %s() \nLine: %d \n\n",
-        msg,
+    snprintf(
+        buf_,                       // dst buffer
+        512,                        // buffer size limit
+        fmt,
+        time,
         location.file_name(),
         location.function_name(),
-        location.line());
+        location.line(),
+        msg);
 }

@@ -9,6 +9,7 @@
 #include <log.h>
 #include <string>
 #include <map>
+#include <typeinfo>
 
 
 namespace Core
@@ -53,12 +54,11 @@ void Settings::UpdateSettingByKey(const char* key, T val)
 
     if (!settingsList_.contains(key))
     {
-        sprintf(g_String, "there is no such a key in settings: %s", key);
-        LogErr(g_String);
+        LogErr(LOG, "there is no such a key in settings: %s", key);
         return;
     }
 
-    int valType = typeid(val);
+    const std::type_info& valType = typeid(val);
 
     // check if the src type is allowed
     if ((valType == typeid(float)) ||
@@ -71,8 +71,7 @@ void Settings::UpdateSettingByKey(const char* key, T val)
     else
     {
         const char* typeName = typeid(T).name();
-        sprintf(g_String, "failed to set key (%s): wrong source type: %s", key, typeName);
-        LogErr(g_String);
+        LogErr(LOG, "failed to set key (%s): wrong source type: %s", key, typeName);
     }
 }
 

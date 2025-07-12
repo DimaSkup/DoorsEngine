@@ -36,13 +36,13 @@ bool TerrainShader::Initialize(
         CAssert::True(!StrHelper::IsEmpty(psFilename), "input pixel shader filename is empty");
 
         InitializeShaders(pDevice, vsFilename, psFilename);
-        LogDbg("is initialized");
+        LogDbg(LOG, "is initialized");
         return true;
     }
     catch (EngineException& e)
     {
         LogErr(e, true);
-        LogErr("can't initialize the terrain shader class");
+        LogErr(LOG, "can't initialize the terrain shader class");
         return false;
     }
 }

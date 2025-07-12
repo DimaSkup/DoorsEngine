@@ -33,7 +33,7 @@ bool RID_RegisterDevice(HWND hTarget, USHORT usage)
 
 WindowContainer::WindowContainer(HWND hwnd)
 {
-	LogDbg("wnd container");
+	LogDbg(LOG, "constructor");
 
 	// we can have only one instance of the WindowContainer
 	if (WindowContainer::pWindowContainer_ == nullptr)
@@ -62,7 +62,7 @@ WindowContainer::WindowContainer(HWND hwnd)
 WindowContainer::~WindowContainer()
 {
 	SystemParametersInfo(SPI_SETKEYBOARDDELAY, 0, &oldKeyboardDelayTime, 0);
-	LogDbg("destructor");
+	LogDbg(LOG, "destructor");
 }
 
 

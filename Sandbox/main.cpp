@@ -12,6 +12,9 @@ int main()
 
 	Game::Application app;
 
+    // ATTENTION: put the declation of logger before all the others; this instance is necessary to create a logger text file
+    InitLogger("DoorsEngineLog.txt");
+
 	app.Initialize();
 	app.Run();
 	app.Close();

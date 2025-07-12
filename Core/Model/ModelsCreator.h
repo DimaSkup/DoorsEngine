@@ -43,9 +43,8 @@ public:
     // creators for the specific types of models
     void CreateSkyCube            (ID3D11Device* pDevice, const float height);
     void CreateSkySphere          (ID3D11Device* pDevice, const float radius, const int sliceCount, const int stackCount);
-    bool CreateTerrain            (ID3D11Device* pDevice, const char* configFilename);
-    bool CreateTerrainGeomipmapped(ID3D11Device* pDevice, const char* configFilename);
-	
+    bool CreateTerrain            (const char* configFilename);
+
 private:
 	void ReadSkullMeshFromFile(BasicModel& model, const char* filepath);
 

@@ -3,8 +3,6 @@
 #include "LightEnttsInitializer.h"
 #include "SetupModels.h"
 #include "../Core/Engine/Settings.h"
-#include "../Core/Terrain/Terrain.h"
-//#include <time.h>
 
 using namespace Core;
 
@@ -194,7 +192,7 @@ inline float GetHeightOfGeneratedTerrainAtPoint(const float x, const float z)
 
 void CreateLightPoles(ECS::EntityMgr& mgr, const BasicModel& lightPole)
 {
-    LogDbg("create light poles entities");
+    LogDbg(LOG, "create light poles entities");
 
     constexpr size numEntts = 10;
 
@@ -262,7 +260,7 @@ void CreateLightPoles(ECS::EntityMgr& mgr, const BasicModel& lightPole)
 
 void CreateSpheres(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    LogDbg("create spheres entities");
+    LogDbg(LOG, "create spheres entities");
 
     constexpr size numEntts = 10;
     const cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
@@ -351,7 +349,7 @@ void CreateSpheres(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateSkyBox(ECS::EntityMgr& mgr, SkyModel& sky)
 {
-    LogDbg("create sky box entity");
+    LogDbg(LOG, "create sky box entity");
 
     std::string skyTexPath;
     int textureIdx = 0;
@@ -411,7 +409,7 @@ void CreateSkyBox(ECS::EntityMgr& mgr, SkyModel& sky)
 
 void CreateCylinders(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    LogDbg("create cylinders entities");
+    LogDbg(LOG, "create cylinders entities");
 
     constexpr size numEntts = 10;
     const cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
@@ -494,7 +492,7 @@ void CreateCylinders(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    LogDbg("create cubes entities");
+    LogDbg(LOG, "create cubes entities");
 
     try
     {
@@ -706,7 +704,7 @@ void CreateTerrain(ECS::EntityMgr& mgr, const Core::TerrainGeomipmapped& terrain
     //
     // create and setup terrain elements
     //
-    LogDbg("create terrain");
+    LogDbg(LOG, "create terrain");
 
     // create and setup a terrain entity
     const EntityID enttID = mgr.CreateEntity();
@@ -732,7 +730,7 @@ void CreateTerrain(ECS::EntityMgr& mgr, const Core::TerrainGeomipmapped& terrain
     mgr.AddBoundingComponent(enttID, boundType, aabb);
     mgr.AddMaterialComponent(enttID, &terrainMatID, numSubsets, areMaterialsMeshBased);
 
-    LogDbg("Terrain is created");
+    LogDbg(LOG, "Terrain is created");
 }
 
 ///////////////////////////////////////////////////////////
@@ -741,7 +739,7 @@ void CreateSkull(ECS::EntityMgr& mgr, const BasicModel& model)
 {
     // create and setup a skull entity
 
-    LogDbg("create skull");
+    LogDbg(LOG, "create skull");
 
     try
     {
@@ -780,7 +778,7 @@ void CreateSkull(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateTreesPine(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    LogDbg("create tree pine entities");
+    LogDbg(LOG, "create tree pine entities");
 
     using enum ECS::eRenderState;
     constexpr size numEntts = 100;
@@ -874,7 +872,7 @@ void CreateTreesPine(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateTreesSpruce(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    LogDbg("create tree spruce entities");
+    LogDbg(LOG, "create tree spruce entities");
 
     using enum ECS::eRenderState;
     constexpr int numEntts = 100;
@@ -956,7 +954,7 @@ void CreateTreesSpruce(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreatePowerLine(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    LogDbg("create power line entities");
+    LogDbg(LOG, "create power line entities");
 
     // create and setup an entity
     constexpr int numEntts = 3;
@@ -1031,7 +1029,7 @@ void CreatePowerLine(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateRadar(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    LogDbg("create a radar entity");
+    LogDbg(LOG, "create a radar entity");
 
     const EntityID enttID = mgr.CreateEntity("stalker_radar");
 
@@ -1086,7 +1084,7 @@ void CreateRadar(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateStalkerFreedom(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    LogDbg("create a stalker entity");
+    LogDbg(LOG, "create a stalker entity");
     
     const EntityID enttID = mgr.CreateEntity("stalker_freedom");
 
@@ -1136,7 +1134,7 @@ void CreateStalkerFreedom(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateTraktor13(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    LogDbg("create a traktor (tr-13) entity");
+    LogDbg(LOG, "create a traktor (tr-13) entity");
     
     const EntityID enttID = mgr.CreateEntity("traktor_13");
 
@@ -1190,7 +1188,7 @@ void CreateTraktor13(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateNanoSuit(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    LogDbg("create nanosuit entity");
+    LogDbg(LOG, "create nanosuit entity");
 
     const EntityID enttID = mgr.CreateEntity();
 
@@ -1227,7 +1225,7 @@ void CreateNanoSuit(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateBuilding(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    LogDbg("create a building entity");
+    LogDbg(LOG, "create a building entity");
 
     const EntityID enttID = mgr.CreateEntity();
 
@@ -1265,7 +1263,7 @@ void CreateBuilding(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateSovietStatue(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    LogDbg("create a soviet statue");
+    LogDbg(LOG, "create a soviet statue");
     const EntityID enttID = mgr.CreateEntity();
 
     // setup transformation params
@@ -1301,7 +1299,7 @@ void CreateSovietStatue(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateApartment(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    LogDbg("create an appartment entity");
+    LogDbg(LOG, "create an appartment entity");
     const EntityID enttID = mgr.CreateEntity();
 
     // setup transformation params
@@ -1337,7 +1335,7 @@ void CreateApartment(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateAk47(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    LogDbg("create ak47 entity");
+    LogDbg(LOG, "create ak47 entity");
 
     const EntityID enttID = mgr.CreateEntity();
 
@@ -1387,7 +1385,7 @@ void CreateAk47(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateSword(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    LogDbg("create sword entity");
+    LogDbg(LOG, "create sword entity");
 
     const EntityID enttID = mgr.CreateEntity();
 
@@ -1486,7 +1484,7 @@ void CreateCastleTower(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateAk74(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    LogDbg("create ak74 entity");
+    LogDbg(LOG, "create ak74 entity");
 
     const EntityID enttID = mgr.CreateEntity();
 
@@ -1531,7 +1529,7 @@ void CreateAk74(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateHouse(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    LogDbg("create a house entity");
+    LogDbg(LOG, "create a house entity");
 
     const EntityID enttID = mgr.CreateEntity();
 
@@ -1569,7 +1567,7 @@ void CreateHouse(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateHouse2(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    LogDbg("create a house entity");
+    LogDbg(LOG, "create a house entity");
 
     const EntityID enttID = mgr.CreateEntity();
 
@@ -1605,7 +1603,7 @@ void CreateHouse2(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreateRocks(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    LogDbg("create rock entities");
+    LogDbg(LOG, "create rock entities");
 
     constexpr int numEntts = 20;
     const cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
@@ -1664,7 +1662,7 @@ void CreateRocks(ECS::EntityMgr& mgr, const BasicModel& model)
 
 void CreatePillar(ECS::EntityMgr& mgr, const BasicModel& model)
 {
-    LogDbg("Create pillar entities");
+    LogDbg(LOG, "Create pillar entities");
 
     const EntityID enttID = mgr.CreateEntity();
 
@@ -1710,17 +1708,19 @@ void PrintImportTimingInfo()
     const double factor = (1.0 / ModelImporter::s_ImportDuration_) * 100.0;
 
 
-    LogMsgf("%-------------------------------------------------", GREEN);
-    LogMsgf(" ");
+    SetConsoleColor(GREEN);
 
-    LogMsgf("%sSummary about import process:", YELLOW);
-    LogMsgf("time spent to import:        %.3f ms (100 %%)", ModelImporter::s_ImportDuration_);
-    LogMsgf("time spent to load scene:    %.3f ms (%.2f %%)", ModelImporter::s_SceneLoading_, ModelImporter::s_SceneLoading_ * factor);
-    LogMsgf("time spent to load nodes:    %.3f ms (%.2f %%)", ModelImporter::s_NodesLoading_, ModelImporter::s_NodesLoading_ * factor);
+    LogMsg("-------------------------------------------------\n");
+    LogMsg("Summary about import process:");
+    LogMsg("time spent to import:        %.3f ms (100 %%)",  ModelImporter::s_ImportDuration_);
+    LogMsg("time spent to load scene:    %.3f ms (%.2f %%)", ModelImporter::s_SceneLoading_, ModelImporter::s_SceneLoading_ * factor);
+    LogMsg("time spent to load nodes:    %.3f ms (%.2f %%)", ModelImporter::s_NodesLoading_, ModelImporter::s_NodesLoading_ * factor);
 
-    LogMsgf("time spent to load vertices: %.3f ms (%.2f %%)", ModelImporter::s_VerticesLoading_, ModelImporter::s_VerticesLoading_ * factor);
-    LogMsgf("time spent to load textures: %.3f ms (%.2f %%)", ModelImporter::s_TexLoadingDuration_, ModelImporter::s_TexLoadingDuration_ * factor);
-    LogMsgf("%s-------------------------------------------------\n", GREEN);
+    LogMsg("time spent to load vertices: %.3f ms (%.2f %%)", ModelImporter::s_VerticesLoading_, ModelImporter::s_VerticesLoading_ * factor);
+    LogMsg("time spent to load textures: %.3f ms (%.2f %%)", ModelImporter::s_TexLoadingDuration_, ModelImporter::s_TexLoadingDuration_ * factor);
+    LogMsg("-------------------------------------------------\n");
+
+    SetConsoleColor(RESET);
 }
 
 ///////////////////////////////////////////////////////////
@@ -1756,7 +1756,7 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     const char* pathSword                   = "data/models/ext/sword/sword.obj";
 #if 1
     // import a model from file by path
-    LogDbg("Start of models importing");
+    LogDbg(LOG, "Start of models importing");
 
     ModelsCreator creator;
 
@@ -1792,7 +1792,7 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
 
     PrintImportTimingInfo();
 
-    LogDbg("All the models are imported successfully");
+    LogDbg(LOG, "All the models are imported successfully");
 
     // get models by its ids
     //BasicModel& building        = g_ModelMgr.GetModelByID(buildingID);
@@ -1882,7 +1882,7 @@ void GenerateAssets(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     const ModelID terrainID     = creator.CreateTerrain(pDevice, terrainConfigPath);
     Core::Terrain& terrain      = g_ModelMgr.GetTerrain();
 #else
-    const ModelID terrainID             = creator.CreateTerrainGeomipmapped(pDevice, terrainConfigPath);
+    const ModelID terrainID             = creator.CreateTerrain(terrainConfigPath);
     Core::TerrainGeomipmapped& terrain  = g_ModelMgr.GetTerrainGeomip();
 #endif
 
@@ -2053,11 +2053,12 @@ bool SceneInitializer::InitModelEntities(ID3D11Device* pDevice, ECS::EntityMgr& 
 {
     // initialize all the models on the scene
 
-    LogMsgf("\n");
-    LogMsgf("------------------------------------------------------------");
-    LogMsgf("                 INITIALIZATION: MODELS                     ");
-    LogMsgf("------------------------------------------------------------");
-    LogMsgf("\n");
+    SetConsoleColor(YELLOW);
+    LogMsg("\n");
+    LogMsg("------------------------------------------------------------");
+    LogMsg("                  INITIALIZATION: MODELS                    ");
+    LogMsg("------------------------------------------------------------\n");
+    SetConsoleColor(RESET);
 
     try
     {

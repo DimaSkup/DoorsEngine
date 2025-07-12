@@ -12,7 +12,6 @@
 #include "../Mesh/MeshHelperTypes.h"
 #include "../Mesh/Material.h"
 #include "../Model/BasicModel.h"
-#include "../Terrain/Terrain.h"
 #include "../Terrain/TerrainGeomipmapped.h"
 
 

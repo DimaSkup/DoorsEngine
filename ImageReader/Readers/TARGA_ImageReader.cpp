@@ -1,10 +1,10 @@
 #include "../Common/pch.h"
-#include "Image.h"
+#include <Image.h>
 #include "TARGA_ImageReader.h"
 
 #pragma warning (disable : 4996)
 
-namespace ImgReader
+namespace Img
 {
 
 // we define the Targa file header structure here to 

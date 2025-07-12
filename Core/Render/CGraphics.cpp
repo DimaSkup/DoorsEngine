@@ -18,14 +18,14 @@ namespace Core
 CGraphics::CGraphics() :
     texturesBuf_(NUM_TEXTURE_TYPES, nullptr)
 {
-    LogDbg("constructor");
+    LogDbg(LOG, "constructor");
 }
 
 CGraphics::~CGraphics() 
 {
-    LogDbg("start of destroying");
+    LogDbg(LOG, "start of destroying");
     Shutdown();
-    LogDbg("is destroyed");
+    LogDbg(LOG, "is destroyed");
 }
 
 
@@ -73,10 +73,12 @@ bool CGraphics::InitHelper(
         InitializeGraphics initGraphics;
         bool result = false;
 
-        LogMsgf("");
-        LogMsgf("%s------------------------------------------------------------", YELLOW);
-        LogMsgf("%s              INITIALIZATION: GRAPHICS SYSTEM               ", YELLOW);
-        LogMsgf("%s------------------------------------------------------------", YELLOW);
+        SetConsoleColor(YELLOW);
+        LogMsg("\n");
+        LogMsg("------------------------------------------------------------");
+        LogMsg("               INITIALIZATION: GRAPHICS SYSTEM              ");
+        LogMsg("------------------------------------------------------------\n");
+        SetConsoleColor(RESET);
 
         pSysState_ = &systemState;
 
@@ -111,7 +113,7 @@ bool CGraphics::InitHelper(
 void CGraphics::Shutdown()
 {
     // Shutdowns all the graphics rendering parts, releases the memory
-    LogDbg("graphics shutdown");
+    LogDbg(LOG, "graphics shutdown");
     d3d_.Shutdown();
 }
 
@@ -790,8 +792,7 @@ void InitMatIconFrameBuffers(
     {
         if (!frameBuffers[i].Initialize(pDevice, frameBufSpec))
         {
-            sprintf(g_String, "can't initialize a frame buffer (idx: %d)", (int)i);
-            LogErr(g_String);
+            LogErr(LOG, "can't initialize a frame buffer (idx: %d)", (int)i);
         }
     }
 }
@@ -1524,8 +1525,9 @@ int CGraphics::TestEnttSelection(const int sx, const int sy, ECS::EntityMgr* pEn
     {
         const std::string& name = pEnttMgr->nameSystem_.GetNameById(selectedEnttID);
 
-        sprintf(g_String, "picked entt (id: %ld; name: %s)", selectedEnttID, name.c_str());
-        LogMsgf("%s%s", YELLOW, g_String);
+        SetConsoleColor(YELLOW);
+        LogMsg("picked entt (id: %ld; name: %s)", selectedEnttID, name.c_str());
+        SetConsoleColor(RESET);
     }
 
     // return ID of the selected entt, or 0 if we didn't pick any

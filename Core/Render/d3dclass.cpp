@@ -36,7 +36,7 @@ D3DClass::D3DClass()
         throw EngineException("you can't create more than only one instance of this class");
     }
 
-    LogDbg("D3DClass is init");
+    LogDbg(LOG, "D3DClass is init");
 }
 
 D3DClass::~D3DClass()
@@ -59,7 +59,7 @@ bool D3DClass::Initialize(
 {
     try
     {
-        LogDbg("D3DClass start of initialization");
+        LogDbg(LOG, "D3DClass start of initialization");
 
         // check if we have any available IDXGI adapter
         CAssert::True(adaptersReader_.GetNumAdapters() > 1, "can't find any IDXGI adapter");
@@ -224,12 +224,8 @@ void D3DClass::GetVideoCardInfo(
 
     // print info about GPU into the console and log file
     LogMsg("Video card info:");
-
-    sprintf(g_String, "Video card name: %s", outCardName);
-    LogMsg(g_String);
-
-    sprintf(g_String,  "Video memory: %d MB", outMemorySize);
-    LogMsg(g_String);
+    LogMsg("Video card name: %s", outCardName);
+    LogMsg("Video memory: %d MB", outMemorySize);
 }
 
 ///////////////////////////////////////////////////////////
@@ -564,7 +560,7 @@ bool D3DClass::ToggleFullscreen(HWND hwnd, bool isFullscreen)
 {
     try
     {
-        LogDbg("ToggleFullscreen(): " + (isFullscreen) ? "true" : "false");
+        LogDbg(LOG, "ToggleFullscreen(): %s", (isFullscreen) ? "true" : "false");
 
         fullScreen_ = isFullscreen;
 

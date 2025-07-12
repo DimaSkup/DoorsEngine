@@ -5,17 +5,23 @@
 // Created:         12.02.24
 // ************************************************************************************
 #include <CoreCommon/pch.h>
-#include "ModelsCreator.h"
 
+// common stuff
 #include "ModelMath.h"
 #include "../Engine/Settings.h"
+#include "../Render/d3dclass.h"
 
+// models stuff
+#include "ModelsCreator.h"
 #include "GeometryGenerator.h"
 #include "../Model/ModelLoader.h"
 #include "../Model/BasicModel.h"
-#include "../Terrain/Terrain.h"
 #include "ModelImporter.h"
 
+// terrain stuff
+#include "../Terrain/TerrainCreator.h"
+
+// managers
 #include "../Model/ModelMgr.h"
 #include "../Texture/TextureMgr.h"
 
@@ -48,8 +54,7 @@ ModelID ModelsCreator::CreateFromDE3D(ID3D11Device* pDevice, const char* modelPa
         const bool isLoaded = loader.Load(relativePath, model);
         if (!isLoaded)
         {
-            sprintf(g_String, "can't load model from file: %s", relativePath);
-            LogErr(g_String);
+            LogErr(LOG, "can't load model from file: %s", relativePath);
             return INVALID_MODEL_ID;
         }
 
@@ -65,8 +70,7 @@ ModelID ModelsCreator::CreateFromDE3D(ID3D11Device* pDevice, const char* modelPa
     catch (EngineException& e)
     {
         LogErr(e);
-        sprintf(g_String, "can't load model by path: %s", relativePath);
-        LogErr(g_String);
+        LogErr(LOG, "can't load model by path: %s", relativePath);
         return INVALID_MODEL_ID;
     }
 }
@@ -104,8 +108,7 @@ ModelID ModelsCreator::ImportFromFile(
     catch (EngineException& e)
     {
         LogErr(e);
-        sprintf(g_String, "can't import a model from file: %s", modelPath);
-        LogErr(g_String);
+        LogErr(LOG, "can't import a model from file: %s", modelPath);
         return INVALID_MODEL_ID;
     }
 }
@@ -473,428 +476,14 @@ ModelID ModelsCreator::CreateCylinder(
     return model.id_;
 }
 
-///////////////////////////////////////////////////////////
-
-void GenerateHeightsForTerrainGrid(BasicModel& grid)
+//---------------------------------------------------------
+// Desc:   create and setup a terrain
+// Args:   - configFilename: path to a file with params for terrain
+//---------------------------------------------------------
+bool ModelsCreator::CreateTerrain(const char* configFilename)
 {
-    // generate height for the input grid by some particular function;
-    // (there can be several different types of height generation)
-
-    Vertex3D* vertices = grid.vertices_;
-
-#if 1
-    for (u32 i = 0; i < grid.numVertices_; ++i)
-    {
-        DirectX::XMFLOAT3& pos = vertices[i].position;
-
-        // a function for making hills for the terrain
-        pos.y = 0.1f * (pos.z * sinf(0.1f * pos.x) + pos.x * cosf(0.1f * pos.z));
-
-        // get hill normal
-        // n = (-df/dx, 1, -df/dz)
-        DirectX::XMVECTOR normalVec{
-           -0.03f * pos.z * cosf(0.1f * pos.x) - 0.3f * cosf(0.1f * pos.z),
-           1.0f,
-           -0.3f * sinf(0.1f * pos.x) + 0.03f * pos.x * sinf(0.1f * pos.z) };
-
-        normalVec = DirectX::XMVector3Normalize(normalVec);
-        DirectX::XMStoreFloat3(&vertices[i].normal, normalVec);
-    }
-
-#elif 1
-
-    // generate heights for the grid
-    float m = 100.0f;
-    float n = 100.0f;
-    const float sin_step = DirectX::XM_PI / m * 3.0f;
-    const float cos_step = DirectX::XM_PI / n * 5.0f;
-    float valForSin = 0.0f;
-    float valForCos = 0.0f;
-
-    for (UINT i = 0; i < m; ++i)
-    {
-        valForSin = 0.0f;
-        for (UINT j = 0; j < n; ++j)
-        {
-            const UINT idx = i * n + j;
-            grid.vertices[idx].position.y = 30 * (sinf(valForSin) - cosf(valForCos));
-
-            valForSin += sin_step;
-        }
-        valForCos += cos_step;
-    }
-
-#endif
-
-    // after creation of heights we compute tangent for each vertex
-    GeometryGenerator geoGen;
-    geoGen.ComputeTangents(grid.vertices_, grid.indices_, grid.numIndices_);
+    return TerrainCreator::CreateTerrain(g_pDevice, configFilename);
 }
 
-///////////////////////////////////////////////////////////
-
-void ComputeAveragedNormals(
-    Vertex3dTerrain* vertices,
-    const UINT* indices,
-    const int numVertices,
-    const int numIndices)
-{
-    // compute normal-vectors for input vertices with vertex normal averaging
-    //                  n0 + n1 + n2 + n3
-    //        Navg = -----------------------
-    //               || n0 + n1 + n2 + n3 ||
-
-    // check input params
-    if (!vertices || !indices)
-    {
-        LogErr("input arr of vertices/indices == nullptr");
-        return;
-    }
-
-    if ((numVertices <= 0) || (numIndices <= 0))
-    {
-        LogErr("input number of vertices/indices must be > 0");
-        return;
-    }
-
-    // for each triangle
-    for (int i = 0; i < numIndices / 3; ++i)
-    {
-        // indices of the ith triangle 
-        int baseIdx = i * 3;
-        UINT i0 = indices[baseIdx + 0];
-        UINT i1 = indices[baseIdx + 1];
-        UINT i2 = indices[baseIdx + 2];
-
-        // positions of vertices of ith triangle stored as XMVECTOR
-        XMVECTOR v0 = DirectX::XMLoadFloat3(&vertices[i0].position);
-        XMVECTOR v1 = DirectX::XMLoadFloat3(&vertices[i1].position);
-        XMVECTOR v2 = DirectX::XMLoadFloat3(&vertices[i2].position);
-
-        // compute face normal
-        XMVECTOR e0 = v1 - v0;
-        XMVECTOR e1 = v2 - v0;
-        XMVECTOR normalVec = DirectX::XMVector3Cross(e0, e1);
-        XMFLOAT3 faceNormal;
-        DirectX::XMStoreFloat3(&faceNormal, normalVec);
-
-        // this triangle shares the following three vertices, 
-        // so add this face normal into the average of these vertex normals
-        vertices[i0].normal += faceNormal;
-        vertices[i1].normal += faceNormal;
-        vertices[i2].normal += faceNormal;
-    }
-
-    // for each vertex v, we have summed the face normals of all
-    // the triangles that share v, so now we just need to normalize
-    for (int i = 0; i < numVertices; ++i)
-        vertices[i].normal = DirectX::XMFloat3Normalize(vertices[i].normal);
-}
-
-//---------------------------------------------------------
-// Desc:   generate terrain's height map or load it from file
-// Args:   - terrain:    actual terrain's class
-//         - terrainCfg: container for different configs for terrain
-//---------------------------------------------------------
-bool TerrainInitHeight(TerrainGeomipmapped& terrain, const TerrainConfig& terrainCfg)
-{
-    bool hasHeights = false;
-    const int heightMapSize = terrainCfg.width;
-
-    if (terrainCfg.generateHeights)
-    {
-        // use "Fault formation" algorithm for height generation
-        if (terrainCfg.useGenFaultFormation)
-        {
-            hasHeights = terrain.GenHeightFaultFormation(
-                heightMapSize,
-                terrainCfg.numIterations,
-                terrainCfg.minDelta,
-                terrainCfg.maxDelta,
-                terrainCfg.filter);
-        }
-
-        // use "midpoint displacement" for height generation
-        else
-        {
-            // bigger value makes smother terrain
-            const float roughness = terrainCfg.roughness;
-            hasHeights = terrain.GenHeightMidpointDisplacement(heightMapSize, roughness);
-        }
-
-        // also save this generated height map into the file
-        //terrain.SaveHeightMap(terrainCfg.pathSaveHeightMap);
-    }
-    else
-    {
-        // load a height map from the file
-        hasHeights = terrain.LoadHeightMap(terrainCfg.pathHeightMap, heightMapSize);
-
-        //terrain.SaveHeightMap(terrainCfg.pathSaveHeightMap);
-    }
-
-
-    // set heights for the terrain at particular positions
-#if 1
-    if (hasHeights)
-    {
-        for (int i = 0; i < terrain.GetNumVertices(); ++i)
-        {
-            XMFLOAT3& pos = terrain.vertices_[i].position;
-            pos.y = terrain.GetScaledHeightAtPoint((int)pos.x, (int)pos.z);
-        }
-    }
-#endif
-
-    return hasHeights;
-}
-
-//---------------------------------------------------------
-// Desc:   generate terrain's tile map or load it from file
-// Args:   - terrain:    actual terrain's class
-//         - terrainCfg: container for different configs for terrain
-//---------------------------------------------------------
-bool TerrainInitTileMap(TerrainGeomipmapped& terrain, const TerrainConfig& terrainCfg)
-{
-    bool result = false;
-
-    // generate new texture map 
-    if (terrainCfg.generateTextureMap)
-    {
-        // load tiles which will be used to generate texture map for terrain
-        terrain.LoadTile(LOWEST_TILE,  terrainCfg.pathLowestTile);
-        terrain.LoadTile(LOW_TILE,     terrainCfg.pathLowTile);
-        terrain.LoadTile(HIGH_TILE,    terrainCfg.pathHighTile);
-        terrain.LoadTile(HIGHEST_TILE, terrainCfg.pathHighestTile);
-
-        // generate texture map based on loaded tiles and height map
-        result = terrain.GenerateTextureMap(terrainCfg.textureMapSize);
-
-        Image& tileMap = terrain.texture_;
-        constexpr bool mipMapped = true;
-
-        // create texture resource
-        const TexID tileMapTexId = g_TextureMgr.CreateTextureFromRawData(
-            "terrain_tile_map",
-            tileMap.GetData(),
-            tileMap.GetWidth(),
-            tileMap.GetHeight(),
-            tileMap.GetBPP(),
-            mipMapped);
-
-        if (tileMapTexId)
-        {
-            LogDbg("terrain_tile_map texture is created");
-            tileMap.SetID(tileMapTexId);
-        }
-        else
-        {
-            LogErr("can't create texture resource for terrain's tile map");
-            result = false;
-        }
-
-        //terrain.SaveTextureMap(terrainCfg.pathSaveTextureMap);
-    }
-    // load texture map from file
-    else
-    {
-        result = terrain.LoadTextureMap(terrainCfg.pathTextureMap);
-    }
-
-    return result;
-}
-
-//---------------------------------------------------------
-// Desc:   generate lightmap or load it from file
-// Args:   - terrain:    actual terrain's class
-//         - terrainCfg: container for different configs for terrain
-//---------------------------------------------------------
-bool TerrainInitLightMap(TerrainGeomipmapped& terrain, const TerrainConfig& terrainCfg)
-{
-    bool result = false;
-
-    if (terrainCfg.generateLightMap)
-    {
-        // setup the terrain's lighting system
-        terrain.SetLightingType(terrainCfg.lightingType);
-        terrain.SetLightColor(terrainCfg.lightColor);
-
-        terrain.CustomizeSlopeLighting(
-            terrainCfg.lightDirX,
-            terrainCfg.lightDirZ,
-            terrainCfg.lightMinBrightness,
-            terrainCfg.lightMaxBrightness,
-            terrainCfg.shadowSoftness);
-
-        // compute pixel raw data for the lightmap texture
-        result = terrain.CalculateLighting();
-
-        //terrain.SaveLightMap(terrainCfg.pathSaveLightMap);
-    }
-    else
-    {
-        result = terrain.LoadLightMap(terrainCfg.pathLightMap);
-        terrain.SaveLightMap(terrainCfg.pathSaveLightMap);
-    }
-
-    // if we successfully loaded/generated lightmap's raw data
-    if (result)
-    {
-        LightmapData& lightmap = terrain.lightmap_;
-
-        // create texture resource
-        const TexID lightmapTexId = g_TextureMgr.CreateTextureFromRawData(
-            "terrain_light_map",
-            lightmap.pData,
-            lightmap.size,
-            lightmap.size,
-            8,                 // bits per pixel
-            false);
-
-        if (lightmapTexId)
-        {
-            LogDbg("terrain_light_map texture is created");
-            terrain.lightmap_.id = lightmapTexId;
-        }
-        else
-        {
-            LogErr("can't create texture resource for terrain's lightmap");
-            result = false;
-        }
-    }
-
-    return result;
-}
-
-//---------------------------------------------------------
-// Desc:   create terrain which will be used together with
-//         geomipmapping CLOD algorithm
-// Args:   - pDevice:        ptr to DirectX11 device
-//         - configFilename: path to file with params for terrain
-//---------------------------------------------------------
-bool ModelsCreator::CreateTerrainGeomipmapped(
-    ID3D11Device* pDevice,
-    const char* configFilename)
-{
-    if (StrHelper::IsEmpty(configFilename))
-    {
-        LogErr("intput path to terrain config file is empty!");
-        return false;
-    }
-
-    TerrainGeomipmapped& terrain = g_ModelMgr.GetTerrainGeomip();
-    GeometryGenerator    geoGen;
-    TerrainConfig        terrainCfg;
-
-    // load from the file meta-info about the terrain 
-    terrain.LoadSetupFile(configFilename, terrainCfg);
-
-    const int width = terrainCfg.width;
-    const int depth = terrainCfg.depth;
-
-    // generate terrain flat grid's vertices and indices by input params
-    int numVertices = 0;
-    int numIndices = 0;
-
-    terrain.ClearMemory();
-
-    geoGen.GenerateTerrainFlatGrid(
-        width,
-        depth,
-        width + 1,
-        depth + 1,
-        &terrain.vertices_,
-        &terrain.indices_,
-        numVertices,
-        numIndices);
-
-    terrain.numVertices_ = (uint32)numVertices;
-    terrain.numIndices_  = (uint32)numIndices;
-
-    // ------------------------------------------
-
-    // generate a height map or load it from file
-    if (!TerrainInitHeight(terrain, terrainCfg))
-    {
-        LogErr("can't initialize the terrain heights");
-        exit(-1);
-    }
-
-    // generate a tile map or load it from file
-    if (!TerrainInitTileMap(terrain, terrainCfg))
-    {
-        LogErr("can't initialize the terrain's tile map");
-        exit(-1);
-    }
-
-    if (!TerrainInitLightMap(terrain, terrainCfg))
-    {
-        LogErr("can't initialize the terrain's light map");
-        exit(-1);
-    }
-
-    if (!terrain.LoadDetailMap(terrainCfg.pathDetailMap))
-    {
-        LogErr("can't load the terrain's detail map");
-        exit(-1);
-    }
-
-
-    // ------------------------------------------
-    // Create DirectX textures for the terrain
-    //
-    constexpr bool mipMapped = true;
-   
-    Image&         detailMap = terrain.detailMap_;
-   
-    const TexID detailMapTexId = g_TextureMgr.CreateTextureFromRawData(
-        "terrain_detail_map",
-        detailMap.GetData(),
-        detailMap.GetWidth(),
-        detailMap.GetHeight(),
-        detailMap.GetBPP(),
-        mipMapped);
-
-    if (detailMapTexId)
-        LogDbg("terrain_detail_map texture is created");
-
-  
-    detailMap.SetID(detailMapTexId);
-   
-#if 0
-    ComputeAveragedNormals(
-        terrain.vertices_,
-        terrain.indices_,
-        terrain.numVertices_,
-        terrain.numIndices_);
-#endif
-
-    terrain.ClearMemory();
-    terrain.AllocateMemory(1000000, 1);
-    UINT indices[1]{ 0 };
-
-    // initialize vertex/index buffers
-    terrain.InitBuffers(
-        pDevice,
-        terrain.vertices_,
-        indices, //terrain.indices_,
-        terrain.numVertices_,
-        1);      // terrain.numIndices_);
-
-    terrain.InitGeomipmapping(terrainCfg.patchSize);
-
-    // compute the bounding box of the terrain
-    const DirectX::XMFLOAT3 center = { 0,0,0 };
-    const DirectX::XMFLOAT3 extents = { (float)width, 1.0f, (float)depth };
-
-    // setup axis-aligned bounding box
-    terrain.SetAABB(center, extents);
-
-    // release CPU copy of transient data since we're already loaded
-    // all the necessary stuff on GPU
-    //terrain.ClearMemoryFromMaps();
-
-    return true;
-}
 
 } // namespace Core
