@@ -16,7 +16,7 @@ CpuClass::CpuClass(const CpuClass& copy) {}
 
 CpuClass::~CpuClass()
 {
-	LogDbg("destroyment");
+	LogDbg(LOG, "destroyment");
 }
 
 
@@ -28,7 +28,7 @@ void CpuClass::Initialize()
     // will setup the handle for querying the cpu on its usage
 
 	return;
-	LogDbg("init");
+	LogDbg(LOG, "init");
 
 	PDH_STATUS status;  // performance data helper status
 	HANDLE hPdhLibrary = NULL;
@@ -96,7 +96,7 @@ void CpuClass::Shutdown()
 {
 	// releases the handle we used to query the cpu usage
 
-	LogDbg("shutdown");
+	LogDbg(LOG, "shutdown");
 
 	if (m_canReadCpu)
 	{

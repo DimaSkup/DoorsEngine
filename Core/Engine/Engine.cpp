@@ -9,7 +9,6 @@
 #include "DumpGenerator.h"
 #include "ImGuizmo.h"
 
-#include "../Terrain/Terrain.h"
 #include "../Texture/TextureMgr.h"
 #include "../Model/ModelMgr.h"
 //#include <winuser.h>
@@ -22,7 +21,7 @@ namespace Core
 
 Engine::Engine()
 {
-    LogDbg("init");
+    LogDbg(LOG, "init");
     timer_.Reset();       // reset the engine/game timer
 }
 
@@ -30,11 +29,13 @@ Engine::Engine()
 
 Engine::~Engine()
 {
-    LogMsgf(" ");
-    LogMsgf("%s%s", YELLOW, "-------------------------------------------------");
-    LogMsgf("%s%s", YELLOW, "            START OF THE DESTROYMENT:            ");
-    LogMsgf("%s%s", YELLOW, "-------------------------------------------------");
-
+    SetConsoleColor(YELLOW);
+    LogMsg("\n");
+    LogMsg("-------------------------------------------------");
+    LogMsg("            START OF THE DESTROYMENT:            ");
+    LogMsg("-------------------------------------------------");
+    LogMsg("\n");
+    SetConsoleColor(RESET);
 
     // unregister the window class, destroys the window,
     // reset the responsible members;
@@ -45,7 +46,7 @@ Engine::~Engine()
         hwnd_ = NULL;
         hInstance_ = NULL;
 
-        LogDbg("engine desctuctor");
+        LogDbg(LOG, "engine desctuctor");
     }
 
     imGuiLayer_.Shutdown();
@@ -688,7 +689,7 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
             case VK_ESCAPE:
             {
                 // if we pressed the ESC button we exit from the application
-                LogDbg("Esc is pressed");
+                LogDbg(LOG, "Esc is pressed");
                 isExit_ = true;
                 break;
             }
@@ -788,7 +789,7 @@ void Engine::HandleGameEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* pEn
             case VK_ESCAPE:
             {
                 // if we pressed the ESC button we exit from the application
-                LogDbg("Esc is pressed");
+                LogDbg(LOG, "Esc is pressed");
                 isExit_ = true;
                 break;
             }

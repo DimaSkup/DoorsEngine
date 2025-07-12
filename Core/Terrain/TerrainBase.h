@@ -16,11 +16,13 @@
 // 
 // =================================================================================
 #pragma once
-#include "../Texture/Image.h"
-#include <d3d11.h>
+
+#include <Image.h>
+#include <DMath.h>
 
 namespace Core
 {
+
 // =================================================================================
 // Enums
 // =================================================================================
@@ -75,6 +77,9 @@ struct TerrainConfig
     uint8   generateLightMap            :1 = 1;
     uint8   useGenFaultFormation        :1 = 1;   // what kind of heights generator will we use?
     uint8   useGenMidpointDisplacement  :1 = 0;
+    uint8   saveTextureMap              :1 = 1;
+    uint8   saveHeightMap               :1 = 1;
+    uint8   saveLightMap                :1 = 1;
 
     // params related to the "Fault formation" algorithm of heights generation
     int     numIterations   = 64;      
@@ -90,7 +95,7 @@ struct TerrainConfig
 
     // lightmap generation params
     eLightingTypes      lightingType       = HEIGHT_BASED;
-    DirectX::XMVECTOR   lightColor         = { 0.5f, 0.5f, 0.5f, 1.0f };
+    Vec3                lightColor         = { 0.5f, 0.5f, 0.5f };
     int                 lightDirX          = 0;
     int                 lightDirZ          = 0;
     float               lightMinBrightness = 0.0f;
@@ -352,8 +357,8 @@ public:
     // Desc:   set the color of the terrain's lighting system
     // Args:   - vecColor: the color of the light
     //--------------------------------------------------------------
-    inline void SetLightColor(const DirectX::XMVECTOR vecColor)
-    {   vecLightColor_ = vecColor;  }
+    inline void SetLightColor(const Vec3 vecColor)
+    {   lightColor_ = vecColor;  }
 
     //--------------------------------------------------------------
     // Desc:   customize the parameters for slope lighting
@@ -402,14 +407,14 @@ public:
     bool                detailMapped_ = false;
 
     // lighting info
-    eLightingTypes      lightingType_ = HEIGHT_BASED;
+    eLightingTypes      lightingType_  = HEIGHT_BASED;
     LightmapData        lightmap_;
-    DirectX::XMVECTOR   vecLightColor_ = {1,1,1,1};
+    Vec3                lightColor_    = {1,1,1};
     float               minBrightness_ = 0.0f;
     float               maxBrightness_ = 0.0f;
     float               lightSoftness_ = 0.0f;
-    int                 directionX_ = 0;
-    int                 directionZ_ = 0;
+    int                 directionX_    = 0;
+    int                 directionZ_    = 0;
 
     // stat variables
     int vertsPerFrame_ = 0;

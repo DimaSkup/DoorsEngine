@@ -37,11 +37,13 @@ public:
     void GetDirections   (const EntityID* ids, const size numEntts, cvector<XMVECTOR>& outDirections) const;
     void GetUniformScales(const EntityID* ids, const size numEntts, cvector<float>& outScales)        const;
 
-    const XMFLOAT3  GetPosition     (const EntityID id) const;
-    const XMVECTOR  GetPositionVec  (const EntityID id) const;
-    const XMVECTOR& GetDirectionVec (const EntityID id) const;
-    const XMFLOAT3  GetDirection    (const EntityID id) const;
-    const float     GetUniformScale (const EntityID id) const;
+    XMFLOAT3  GetPosition      (const EntityID id) const;
+    XMFLOAT4  GetPositionFloat4(const EntityID id) const;
+    XMVECTOR  GetPositionVec   (const EntityID id) const;
+
+    const XMVECTOR& GetDirectionVec  (const EntityID id) const;
+    const XMFLOAT3  GetDirection     (const EntityID id) const;
+    const float     GetUniformScale  (const EntityID id) const;
 
     // get position and direction for multiple entities / single entity
     void GetPositionsAndDirections(

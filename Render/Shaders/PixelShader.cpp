@@ -124,7 +124,7 @@ bool PixelShader::CompileShaderFromFile(
 
 void PixelShader::Shutdown()
 {
-    LogDbg("shutdown");
+    LogDbg(LOG, "shutdown");
     SafeRelease(&pShader_);
 }
 

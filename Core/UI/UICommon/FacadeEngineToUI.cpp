@@ -336,8 +336,7 @@ bool FacadeEngineToUI::GetEnttDirectedLightData(
     }
     else
     {
-        snprintf(g_String, g_StrLim, "can't get directed light data of the entity by ID: %ld", id);
-        LogErr(g_String);
+        LogErr(LOG, "can't get directed light data of the entity by ID: %ld", id);
         return false;
     }
 }
@@ -368,8 +367,7 @@ bool FacadeEngineToUI::GetEnttPointLightData(
     }
     else
     {
-        snprintf(g_String, g_StrLim, "can't get point light data of the entity by ID: %ld", id);
-        LogErr(g_String);
+        LogErr(LOG, "can't get point light data of the entity by ID: %ld", id);
         return false;
     }
 }
@@ -401,8 +399,7 @@ bool FacadeEngineToUI::GetEnttSpotLightData(
     }
     else
     {
-        snprintf(g_String, g_StrLim, "can't get spotlight data of the entity by ID: %ld", id);
-        LogErr(g_String);
+        LogErr(LOG, "can't get spotlight data of the entity by ID: %ld", id);
         return false;
     }
 }
@@ -789,8 +786,7 @@ bool FacadeEngineToUI::GetTextureIdByIdx(const index idx, TexID& outTextureID) c
     // if we got an "invalid" texture ID
     if (outTextureID == 0)
     {
-        snprintf(g_String, g_StrLim, "there is no texture ID by idx: %lld", idx);
-        LogErr(g_String);
+        LogErr(LOG, "there is no texture ID by idx: %lld", idx);
         return false;
     }
 

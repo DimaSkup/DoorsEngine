@@ -52,8 +52,7 @@ void ModelExporter::ExportIntoDE3D(
     std::ofstream fout(fullPath, std::ios::out | std::ios::binary);
     if (!fout)
     {
-        sprintf(g_String, "can't open a file for model exporting (into .de3d format): %s", fullPath);
-        LogErr(g_String);
+        LogErr(LOG, "can't open a file for model exporting (into .de3d format): %s", fullPath);
         return;
     }
     
@@ -119,8 +118,7 @@ void WriteTextureIntoFile(
 
         if (FAILED(hr))
         {
-            sprintf(g_String, "can't get metadata from texture file: %s", texFullPath.string().c_str());
-            LogErr(g_String);
+            LogErr(LOG, "can't get metadata from texture file: %s", texFullPath.string().c_str());
             return;
         }
 
@@ -138,7 +136,7 @@ void WriteTextureIntoFile(
     // load a texture data from memory and store it as .dds file
     DirectX::ScratchImage srcImage;
     DirectX::ScratchImage dstImage;
-    ImgReader::ImgConverter converter;
+    Img::ImgConverter converter;
 
     converter.LoadFromMemory(pDevice, pContext, pTexResource, srcImage);
 

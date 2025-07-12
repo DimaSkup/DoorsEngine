@@ -19,7 +19,7 @@ TextStore::TextStore()
 
 TextStore::~TextStore() 
 {
-    LogDbg("");
+    LogDbg(LOG, "destructor");
 }
 
 

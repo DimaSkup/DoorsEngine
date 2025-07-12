@@ -131,8 +131,7 @@ void ConvertInto32bits(
     }
     else
     {
-        sprintf(g_String, "wrong number of bits per pixel (expected: 8 or 24; received: %d)", bpp);
-        LogErr(g_String);
+        LogErr(LOG, "wrong number of bits per pixel (expected: 8 or 24; received: %d)", bpp);
     }
 }
 
@@ -198,9 +197,8 @@ TexID TextureMgr::CreateTextureFromRawData(
     }
     catch (std::bad_alloc& e)
     {
-        sprintf(g_String, "can't allocate memory for the texture: %s", name);
         LogErr(e.what());
-        LogErr(g_String);
+        LogErr(LOG, "can't allocate memory for the texture: %s", name);
         return INVALID_TEXTURE_ID;
     }
     catch (EngineException& e)
@@ -270,9 +268,8 @@ void TextureMgr::RecreateTextureFromRawData(
     }
     catch (std::bad_alloc& e)
     {
-        sprintf(g_String, "can't allocate memory for the terrain texture: %s", name);
         LogErr(e.what());
-        LogErr(g_String);
+        LogErr(LOG, "can't allocate memory for the terrain texture: %s", name);
     }
     catch (EngineException& e)
     {
@@ -296,8 +293,7 @@ void TextureMgr::SetTexName(const TexID id, const char* inName)
 
     if (ids_[idx] != id)
     {
-        sprintf(g_String, "there is no texture by ID: %ud", id);
-        LogErr(g_String);
+        LogErr(LOG, "there is no texture by ID: %ud", id);
         return;
     }
 
@@ -410,7 +406,9 @@ TexID TextureMgr::LoadFromFile(const char* dirPath, const char* texturePath)
     }
 
     // create a full path to the texture (relatively to the project working directory) and load this texture
-    sprintf(g_String, "%s%s", dirPath, texturePath);
+    memset(g_String, 0, LOG_BUF_SIZE);
+    strcat(g_String, dirPath);
+    strcat(g_String, texturePath);
     return LoadFromFile(g_String);
 }
 
@@ -448,8 +446,8 @@ TexID TextureMgr::LoadFromFile(const char* path)
     }
     catch (EngineException& e)
     {
-        sprintf(g_String, "can't create a texture from file: %s", path);
         LogErr(e);
+        LogErr(LOG, "can't load a texture from file: %s", path);
         return INVALID_TEXTURE_ID;
     }
 }

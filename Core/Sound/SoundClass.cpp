@@ -16,7 +16,7 @@ SoundClass::SoundClass()
 
 SoundClass::~SoundClass() 
 { 
-    LogDbg("destroyment");
+    LogDbg(LOG, "destroyment");
     Shutdown();
 };
 
@@ -34,7 +34,7 @@ bool SoundClass::Initialize(HWND hwnd)
     // the .wav file once
     try
     {
-        LogDbg("init");
+        LogDbg(LOG, "init");
 
         bool result = false;
 
@@ -77,7 +77,7 @@ void SoundClass::Shutdown()
     SafeRelease(&pPrimaryBuffer_);            // release the primary sound buffer pointer
     SafeRelease(&pDirectSound_);              // release the direct sound interface pointer
 
-    LogDbg(" ");
+    LogMsg(" ");
 }
 
 ///////////////////////////////////////////////////////////

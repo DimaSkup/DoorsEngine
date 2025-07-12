@@ -32,7 +32,7 @@ bool RenderWindow::Initialize(
 	// this function setups the window params,
 	// registers the window class and show us a new window;
 
-	LogDbg("init");
+	LogDbg(LOG, "init");
 	bool RegisterWindowClassResult = false;
 
 	windowWidth_     = width;
@@ -80,7 +80,7 @@ void RenderWindow::RegisterWindowClass(const HINSTANCE hInstance)
 {
 	// this function registers the window class
 
-	LogDbg("register window class");
+	LogDbg(LOG, "register window class");
 
 	// our window class (this has to be filled before our window can be created)
 	WNDCLASSEX wc;  
@@ -115,7 +115,7 @@ bool RenderWindow::CreateWindowExtended(
 	const bool isFullScreen)
 {
 	// this function creates the window
-	LogDbg("create wnd");
+	LogDbg(LOG, "create wnd");
 	
 	RECT winRect{0,0,0,0};
 

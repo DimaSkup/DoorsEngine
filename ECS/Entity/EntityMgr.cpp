@@ -27,7 +27,7 @@ EntityMgr::EntityMgr() :
     playerSystem_       { &transformSystem_, &cameraSystem_, &hierarchySystem_ }
    
 {
-    LogDbg("start of entity mgr init");
+    LogDbg(LOG, "start of entity mgr init");
 
     constexpr int reserveMemForEnttsCount = 100;
 
@@ -56,14 +56,14 @@ EntityMgr::EntityMgr() :
     ids_.push_back(INVALID_ENTITY_ID);
     componentHashes_.push_back(0);
 
-    LogDbg("entity mgr is initialized");
+    LogDbg(LOG, "entity mgr is initialized");
 }
 
 ///////////////////////////////////////////////////////////
 
 EntityMgr::~EntityMgr()
 {
-    LogDbg("ECS destroyment");
+    LogDbg(LOG, "ECS destroyment");
 }
 
 ///////////////////////////////////////////////////////////
@@ -105,7 +105,7 @@ void EntityMgr::SetupLogger(FILE* pFile)
     // setup a file for writing log msgs into it;
     // also setup a list which will be filled with log messages;
     
-    LogDbg("logger is setup successfully");
+    LogDbg(LOG, "logger is setup successfully");
 }
 
 

@@ -19,7 +19,7 @@
 namespace fs = std::filesystem;
 
 
-namespace ImgReader
+namespace Img
 {
     
 class ImgConverter

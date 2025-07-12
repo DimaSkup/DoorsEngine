@@ -36,8 +36,7 @@ bool CreateTexturesFromFiles(
 #if DEBUG || _DEBUG
         if (!FileSys::Exists(texturesNames[i].c_str()))
         {
-            sprintf(g_String, "there is no texture file: %s", texturesNames[i].c_str());
-            LogErr(g_String);
+            LogErr(LOG, "there is no texture file: %s", texturesNames[i].c_str());
             return false;
         }
 #endif
@@ -74,8 +73,7 @@ bool CreateTexturesFromFiles(
             for (index idx = 0; idx < i; ++idx)
                 SafeRelease(&outTextures[idx]);
 
-            sprintf(g_String, "can't create a texture from file: %s", texturesNames[i].c_str());
-            LogErr(g_String);
+            LogErr(LOG, "can't create a texture from file: %s", texturesNames[i].c_str());
             return false;
         }
     }
@@ -109,8 +107,7 @@ bool FillTextureArray(
             HRESULT hr = pContext->Map(srcTextures[texElem], mipLevel, D3D11_MAP_READ, 0, &mappedTex2D);
             if (FAILED(hr))
             {
-                sprintf(g_String, "can't map a texture by idx: %d", texElem);
-                LogErr(g_String);
+                LogErr(LOG, "can't map a texture by idx: %d", texElem);
                 return false;
             }
 
@@ -184,9 +181,8 @@ Texture::Texture(ID3D11Device* pDevice, const char* filePath) :
     }
     catch (EngineException & e)
     {
-        sprintf(g_String, "can't create a texture from file: %s", filePath);
         LogErr(e);
-        LogErr(g_String);
+        LogErr(LOG, "can't create a texture from file: %s", filePath);
     }
 }
 
@@ -386,7 +382,7 @@ bool Texture::Initialize(
         Release();
        
         D3D11_TEXTURE2D_DESC     textureDesc;
-        ImgReader::ImgConverter  imgConv;
+        Img::ImgConverter        imgConv;
         DirectX::Image           img;
         DirectX::TexMetadata     metadata;
    
@@ -613,15 +609,14 @@ void Texture::LoadFromFile(ID3D11Device* pDevice, const char* filePath)
     {
         CAssert::True((filePath != nullptr) && (filePath[0] != '\0'), "input path to texture is empty");
 
-        ImgReader::ImageReader imageReader;
-        ImgReader::DXTextureData data(filePath, &pTexture_, &pTextureView_);
+        Img::ImageReader imageReader;
+        Img::DXTextureData data(filePath, &pTexture_, &pTextureView_);
 
         bool result = imageReader.LoadTextureFromFile(pDevice, data);
 
         if (!result)
         {
-            sprintf(g_String, "can't load a texture from file: %s", filePath);
-            LogErr(g_String);
+            LogErr(LOG, "can't load a texture from file: %s", filePath);
 
             // if we didn't manage to initialize a texture from the file 
             // we create a 1x1 color texture for this texture object

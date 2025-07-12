@@ -75,7 +75,7 @@ void GeometryShader::Shutdown()
 {
     // Shutting down of the class object, releasing of the memory, etc.
 
-    LogDbg("Shutdown");
+    LogDbg(LOG, "Shutdown");
     SafeDeleteArr(pShaderBuffer_);
     SafeRelease(&pShader_);
 }

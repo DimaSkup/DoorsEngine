@@ -23,11 +23,12 @@ bool InitRender::InitializeShaders(
     // initializes all the shader classes (color, texture, light, etc.)
     // and the HLSL shaders as well
 
-    LogMsgf("\n");
-    LogMsgf("%s%s", YELLOW, "---------------------------------------------------------");
-    LogMsgf("%s%s", YELLOW, "                INITIALIZATION: SHADERS                  ");
-    LogMsgf("%s%s", YELLOW, "---------------------------------------------------------");
-    LogDbg("shaders initialization: start");
+    SetConsoleColor(YELLOW);
+    LogMsg("\n");
+    LogMsg("---------------------------------------------------------");
+    LogMsg("                INITIALIZATION: SHADERS                  ");
+    LogMsg("---------------------------------------------------------");
+    LogDbg(LOG, "shaders initialization: start");
 
     try
     {
@@ -77,9 +78,11 @@ bool InitRender::InitializeShaders(
         CAssert::True(result, "can't initialize the terrain shader");
 
         
-        LogDbg("shaders initialization: finished successfully");
-        LogMsgf("%s%s", YELLOW, "---------------------------------------------------------");
-        LogMsg("\n");
+        LogDbg(LOG, "shaders initialization: finished successfully");
+        SetConsoleColor(YELLOW);
+        LogMsg("---------------------------------------------------------\n");
+        SetConsoleColor(RESET);
+
     }
     catch (EngineException& e) 
     {

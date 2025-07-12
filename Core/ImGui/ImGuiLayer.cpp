@@ -43,20 +43,17 @@ bool ImGuiLayer::Initialize(
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
     // setup fonts
-    //char defaultFontPath[64]{ '\0' };
-    //sprintf(defaultFontPath, "%s%s", g_RelPathUIDataDir, "arial.ttf");
+    const char* pathFont = "data/ui/arial.ttf";
+    const float fontSize = 16.0f;
 
-    // check if such font file exists
-    if (!fs::exists("data/ui/arial.ttf"))
+    ImFont* pFont = io.Fonts->AddFontFromFileTTF(pathFont, fontSize);
+    if (!pFont)
     {
-        sprintf(g_String, "there is no font file: %s", "data/ui/arial.ttf");
-        LogErr(g_String);
+        LogErr(LOG, "can't load a font from file: %s", "data/ui/arial.ttf");
         return false;
     }
 
-    io.Fonts->AddFontFromFileTTF("data/ui/arial.ttf", 16.0f);
     io.FontDefault = io.Fonts->AddFontFromFileTTF("data/ui/arial.ttf", 16.0f);
-
     io.ConfigWindowsMoveFromTitleBarOnly = true;
 
     // Setup Dear ImGui style

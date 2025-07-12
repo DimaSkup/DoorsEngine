@@ -25,7 +25,7 @@ void FontClass::Initialize(
 {
 	// this function will load the font data and the font texture
 
-	LogDbg("init");
+	LogDbg(LOG, "init");
 
 	try
 	{

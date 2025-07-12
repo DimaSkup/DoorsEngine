@@ -22,9 +22,11 @@
     <ClInclude Include="CAssert.h" />
     <ClInclude Include="Convert.h" />
     <ClInclude Include="cvector.h" />
+    <ClInclude Include="DMath.h" />
     <ClInclude Include="EngineException.h" />
     <ClInclude Include="FileSystem.h" />
     <ClInclude Include="FileSystemPaths.h" />
+    <ClInclude Include="Image.h" />
     <ClInclude Include="log.h" />
     <ClInclude Include="MathHelper.h" />
     <ClInclude Include="MemHelpers.h" />
@@ -36,6 +38,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="EngineException.cpp" />
+    <ClCompile Include="Image.cpp" />
     <ClCompile Include="log.cpp" />
     <ClCompile Include="MathHelper.cpp" />
   </ItemGroup>

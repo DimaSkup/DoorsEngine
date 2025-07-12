@@ -18,7 +18,11 @@ Application::Application() : wndContainer_(mainHWND_)
 
 Application::~Application()
 {
-    delete pFacadeEngineToUI_;
+    if (pFacadeEngineToUI_)
+    {
+        delete pFacadeEngineToUI_;
+        pFacadeEngineToUI_ = nullptr;
+    }
 }
 
 ///////////////////////////////////////////////////////////
@@ -27,9 +31,6 @@ void Application::Initialize()
 {
     // compute duration of importing process
     auto initStartTime = std::chrono::steady_clock::now();
-
-    // ATTENTION: put the declation of logger before all the others; this instance is necessary to create a logger text file
-    InitLogger("DoorsEngineLog.txt");
 
     // explicitly init Windows Runtime and COM
     HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
@@ -65,15 +66,16 @@ void Application::Initialize()
     std::chrono::duration<float, std::milli> initDuration = initEndTime - initStartTime;
 
     // create a str with duration time about the engine initialization process
-    char initTimeBuf[256]{ '\0' };
     const POINT drawAt = { 10, 350 };
 
-    sprintf(initTimeBuf, "Init time: %d ms", (int)initDuration.count());
-    userInterface_.CreateConstStr(pDevice, initTimeBuf, drawAt);
+    sprintf(g_String, "Init time: %d ms", (int)initDuration.count());
+    userInterface_.CreateConstStr(pDevice, g_String, drawAt);
 
-    LogMsgf("%s---------------------------------------------\n", GREEN);
-    LogMsg(initTimeBuf);
-    LogMsgf("%s---------------------------------------------\n", GREEN);
+    SetConsoleColor(GREEN);
+    LogMsg("---------------------------------------------");
+    LogMsg(g_String);
+    LogMsg("---------------------------------------------");
+    SetConsoleColor(RESET);
 }
 
 ///////////////////////////////////////////////////////////
@@ -242,10 +244,11 @@ bool Application::InitGUI(
 {
     // this function initializes the GUI of the game/engine (interface elements, text, etc.);
 
-    LogMsgf(" ");
-    LogMsgf("%s----------------------------------------------------------", YELLOW);
-    LogMsgf("%s                   INITIALIZATION: GUI                    ", YELLOW);
-    LogMsgf("%s----------------------------------------------------------", YELLOW);
+    SetConsoleColor(YELLOW);
+    LogMsg("");
+    LogMsg("----------------------------------------------------------");
+    LogMsg("                    INITIALIZATION: GUI                   ");
+    LogMsg("----------------------------------------------------------\n");
 
     try
     {

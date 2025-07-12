@@ -14,9 +14,8 @@ Settings::Settings()
 {
     if (!LoadSettingsFromFile())
     {
-        sprintf(g_String, "can't load settings for the engine");
-        LogErr(g_String);
-        throw EngineException(g_String);
+        LogErr(LOG, "can't load settings for the engine");
+        exit(-1);
     }
 }
 
@@ -37,8 +36,7 @@ bool Settings::LoadSettingsFromFile()
     FILE* pFile = nullptr;
     if ((pFile = fopen(pathSettingsFile, "r")) == nullptr)
     {
-        sprintf(g_String, "can't open the settings file: %s", pathSettingsFile);
-        LogErr(g_String);
+        LogErr(LOG, "can't open the settings file: %s", pathSettingsFile);
         return false;
     }
 
@@ -60,8 +58,7 @@ bool Settings::LoadSettingsFromFile()
         if (!settingsList_.insert({ key, val }).second) 
         {
             fclose(pFile);
-            sprintf(g_String, "can't insert a pair [key=>value] into the settings list: [key: %s => value: %s]", key, val);
-            LogErr(g_String);
+            LogErr(LOG, "can't insert a pair [key=>value] into the settings list: [key: %s => value: %s]", key, val);
             return false;
         }
     }
@@ -83,9 +80,8 @@ int Settings::GetInt(const char* key) const
     }
     else
     {
-        sprintf(g_String, "there is no integer value by key: %s", key);
-        LogErr(g_String);
-        exit(-1);
+        LogErr(LOG, "there is no integer value by key: %s", key);
+        return 0;
     }
 }
 
@@ -102,9 +98,8 @@ float Settings::GetFloat(const char* key) const
     }
     else
     {
-        sprintf(g_String, "there is no float value by key: %s", key);
-        LogErr(g_String);
-        exit(-1);
+        LogErr(LOG, "there is no float value by key: %s", key);
+        return 0;
     }
 }
 
@@ -127,15 +122,13 @@ bool Settings::GetBool(const char* key) const
             return false;
         }
 
-        sprintf(g_String, "we have some invalid value for setting by key: %s", key);
-        LogErr(g_String);
-        exit(-1);
+        LogErr(LOG, "we have some invalid value for setting by key: %s", key);
+        return false;
     }
     else
     {
-        sprintf(g_String, "there is no boolean value by key: %s", key);
-        LogErr(g_String);
-        exit(-1);
+        LogErr(LOG, "there is no boolean value by key: %s", key);
+        return false;
     }
 }
 
@@ -150,8 +143,7 @@ const char* Settings::GetString(const char* key) const
     }
     else
     {
-        sprintf(g_String, "there is no string value by key: %s", key);
-        LogErr(g_String);
+        LogErr(LOG, "there is no string value by key: %s", key);
         exit(-1);
     }
 }
@@ -167,8 +159,7 @@ void Settings::UpdateSettingByKey(const char* key, const std::string& val)
 
     if (val.empty())
     {
-        sprintf(g_String, "can't update setting by key (%s): input value is empty", key);
-        LogErr(g_String);
+        LogErr(LOG, "can't update setting by key (%s): input value is empty", key);
     }
 
     // ------------------------------------------
@@ -179,8 +170,7 @@ void Settings::UpdateSettingByKey(const char* key, const std::string& val)
     }
     else
     {
-        sprintf(g_String, "there is no setting by key: %s", key);
-        LogErr(g_String);
+        LogErr(LOG, "there is no setting by key: %s", key);
     }
 }
 

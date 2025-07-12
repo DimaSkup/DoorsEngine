@@ -1298,8 +1298,7 @@ void GeometryGenerator::GenerateSkyDome(
 
     vertices[vIdx] = bottomVertex;
 
-    sprintf(g_String, "sky dome has %d vertices", verticesCount);
-    LogErr(g_String);
+    LogErr(LOG, "sky dome has %d vertices", verticesCount);
 
 
     //

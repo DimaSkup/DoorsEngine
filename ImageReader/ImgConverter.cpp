@@ -8,7 +8,7 @@
 using namespace DirectX;
 
 
-namespace ImgReader
+namespace Img
 {
 
 // *********************************************************************************
@@ -186,9 +186,7 @@ void ImgConverter::Convert(
     if (srcFormat == dstFormat) 
         return;
 
-    sprintf(g_String, "convert format (from -> to): %d => %d", srcFormat, dstFormat);
-    LogDbg(g_String);
-
+    LogDbg(LOG, "convert format (from -> to): %d => %d", srcFormat, dstFormat);
 
     const bool isSrcCompressed = DirectX::IsCompressed(srcFormat);
     const bool isDstCompressed = DirectX::IsCompressed(dstFormat);
@@ -220,8 +218,7 @@ void ImgConverter::Decompress(
 
     const DXGI_FORMAT srcFormat = srcImage.GetMetadata().format;
 
-    sprintf(g_String, "decompress image (from -> to): %d => %d", srcFormat, dstFormat);
-    LogDbg(g_String);
+    LogDbg(LOG, "decompress image (from -> to): %d => %d", srcFormat, dstFormat);
 
 
     const bool isSrcCompressed = DirectX::IsCompressed(srcFormat);
@@ -262,8 +259,7 @@ void ImgConverter::Compress(
     // COMPRESS: uncompressed => compressed
     if (!isSrcCompressed && isDstCompressed)
     {
-        sprintf(g_String, "compress image: %d => %d", srcFormat, dstFormat);
-        LogDbg(g_String);
+        LogDbg(LOG, "compress image: %d => %d", srcFormat, dstFormat);
 
         hr = CompressEx(
             srcImg.GetImages(),
@@ -277,8 +273,7 @@ void ImgConverter::Compress(
     // RECOMPRESS: compressed => compressed
     else if (isSrcCompressed && isDstCompressed) 
     {
-        sprintf(g_String, "recompress image: %d => %d", srcFormat, dstFormat);
-        LogDbg(g_String);
+        LogDbg(LOG, "recompress image: %d => %d", srcFormat, dstFormat);
 
         ScratchImage tempImg;
 

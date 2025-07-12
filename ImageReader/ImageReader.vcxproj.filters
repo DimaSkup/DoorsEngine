@@ -33,14 +33,8 @@
     <ClInclude Include="Common\pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Readers\Image.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Readers\DDS_ImageReader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ImageReader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -54,9 +48,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Common\pch.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Readers\Image.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

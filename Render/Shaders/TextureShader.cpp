@@ -32,13 +32,13 @@ bool TextureShader::Initialize(
         CAssert::True(!StrHelper::IsEmpty(psPath), "input path to pixel shader is empty");
 
         InitializeShaders(pDevice, vsPath, psPath);
-        LogDbg("is initialized");
+        LogDbg(LOG, "is initialized");
         return true;
     }
     catch (EngineException& e)
     {
         LogErr(e, true);
-        LogErr("can't initialize the texture shader class");
+        LogErr(LOG, "can't initialize the texture shader class");
         return false;
     }
 }

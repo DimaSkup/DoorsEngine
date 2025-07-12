@@ -24,7 +24,7 @@ inline void BuffersSafeRelease(
     ID3D11InputLayout* pInputLayout)
 {
     // a helper to release objects 
-    LogDbg("Shutdown");
+    LogDbg(LOG, "Shutdown");
 
     SafeRelease(&pShader);
     SafeRelease(&pShaderBuffer);
@@ -172,7 +172,7 @@ bool VertexShader::CompileShaderFromFile(
 void VertexShader::Shutdown()
 {
     // Shutting down of the class object, releasing of the memory, etc.
-    LogDbg("Shutdown");
+    LogDbg(LOG, "Shutdown");
 
     SafeRelease(&pInputLayout_);
     SafeRelease(&pShader_);

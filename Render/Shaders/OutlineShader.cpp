@@ -31,13 +31,13 @@ bool OutlineShader::Initialize(
 	try
 	{
         InitializeShaders(pDevice, vsFilePath, psFilePath);
-        LogDbg("is initialized");
+        LogDbg(LOG, "is initialized");
 		return true;
 	}
 	catch (EngineException& e)
 	{
 		LogErr(e, true);
-		LogErr("can't initialize the outline shader class");
+		LogErr(LOG, "can't initialize the outline shader class");
 		return false;
 	}
 }

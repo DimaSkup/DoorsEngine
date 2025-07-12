@@ -68,8 +68,7 @@ ID3D11BlendState* RenderStates::GetBS(const eRenderState state)
     }
     catch (const std::out_of_range&)
     {
-        sprintf(g_String, "unknown blend state key: %d", state);
-        LogErr(g_String);
+        LogErr(LOG, "unknown blend state key: %d", state);
         return nullptr;
     }
 }
@@ -93,8 +92,7 @@ ID3D11DepthStencilState* RenderStates::GetDSS(const eRenderState state)
     }
     catch (const std::out_of_range&)
     {
-        sprintf(g_String, "there is no depth stencil state by key: %d", state);
-        LogErr(g_String);
+        LogErr(LOG, "there is no depth stencil state by key: %d", state);
         return nullptr;
     }
 }
@@ -163,15 +161,13 @@ void RenderStates::SetBS(ID3D11DeviceContext* pContext, const eRenderState state
             }
             default:
             {
-                sprintf(g_String, "there is no case for handling blend state: %d", state);
-                LogErr(g_String);
+                LogErr(LOG, "there is no case for handling blend state: %d", state);
             }
         }
     }
     catch (const std::out_of_range&)
     {
-        sprintf(g_String, "there is no blend state (BS) by key: %d", state);
-        LogErr(g_String);
+        LogErr(LOG, "there is no blend state (BS) by key: %d", state);
         pContext->OMSetBlendState(nullptr, NULL, 0xFFFFFFFF);
     }
 
@@ -191,8 +187,7 @@ void RenderStates::SetDSS(
     }
     catch (const std::out_of_range&)
     {
-        sprintf(g_String, "there is no depth stencil state (DSS) by key: %d", state);
-        LogErr(g_String);
+        LogErr(LOG, "there is no depth stencil state (DSS) by key: %d", state);
         pContext->OMSetDepthStencilState(0, 0);
     }
 }
@@ -650,8 +645,7 @@ ID3D11RasterizerState* RenderStates::GetRasterStateByHash(const uint8_t hash)
     }
     catch (const std::out_of_range&)
     {
-        sprintf(g_String, "there is no rasterizer state by hash: %x", hash);
-        LogErr(g_String);
+        LogErr(LOG, "there is no rasterizer state by hash: %x", hash);
         PrintErrAboutRSHash(hash);
         return nullptr;
     }
@@ -699,8 +693,7 @@ void RenderStates::UpdateRSHash(const std::set<eRenderState>& rsParams)
             }
             default:
             {
-                sprintf(g_String, "unknown rasterizer state parameter: %d", param);
-                LogErr(g_String);
+                LogErr(LOG, "unknown rasterizer state parameter: %d", param);
                 return;
             }
         }
@@ -743,10 +736,12 @@ void RenderStates::PrintErrAboutRSHash(const uint8_t bitfield)
     }
 
     // print error info about not existent rasterizer state
-    LogErr("can't get a raster state ptr by hash:");
-    LogMsgf("%s%s", RED, bitfieldChars);
-    LogMsgf("%s%s", RED, "which is responsible to such params(at the same time) :");
-    LogMsgf("%s%s", RED, rasterStatesNamesBuf);
+    LogErr(LOG, "can't get a raster state ptr by hash: %s", bitfieldChars);
+
+    SetConsoleColor(RED);
+    LogMsg("which is responsible to such params(at the same time) :");
+    LogMsg(rasterStatesNamesBuf);
+    SetConsoleColor(RESET);
 }
 
 } // namespace Core

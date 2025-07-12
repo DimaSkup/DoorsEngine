@@ -13,17 +13,13 @@
 #include <DirectXMath.h>
 #include <DirectXCollision.h>
 
+
 using namespace DirectX;
 
-#define COMPUTE_NORMALS                 1
-#define COMPUTE_AVERAGED_MID_NORMALS    1
-#define COMPUTE_AVERAGED_CENTER_NORMALS 1
+#define COMPUTE_NORMALS                 0
+#define COMPUTE_AVERAGED_MID_NORMALS    0
+#define COMPUTE_AVERAGED_CENTER_NORMALS 0
 
-//---------------------------------------
-// Desc:   helpers to get a square of input value
-//---------------------------------------
-inline int   SQR(const int number)   { return number * number; }
-inline float SQR(const float number) { return number * number; }
 
 
 namespace Core
@@ -146,8 +142,9 @@ bool TerrainGeomipmapped::InitGeomipmapping(const int patchSize)
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   initialize DirectX vertex/index buffers with input data
+//---------------------------------------------------------
 bool TerrainGeomipmapped::InitBuffers(
     ID3D11Device* pDevice,
     const Vertex3dTerrain* vertices,
@@ -155,17 +152,30 @@ bool TerrainGeomipmapped::InitBuffers(
     const int numVertices,
     const int numIndices)
 {
-    // init vertex/index buffers with input data
     try
     {
+        // check input args
         CAssert::True(vertices,         "input ptr to arr of vertices == nullptr");
         CAssert::True(indices,          "input ptr to arr of indices == nullptr");
         CAssert::True(numVertices > 0,  "input number of vertices must be > 0");
         CAssert::True(numIndices > 0,   "input number of indices must be > 0");
 
+        // initialize the vertex buffer
         constexpr bool isDynamic = true;
-        vb_.Initialize(pDevice, vertices, numVertices, isDynamic);
-        ib_.Initialize(pDevice, indices, numIndices);
+        if (!vb_.Initialize(pDevice, vertices, numVertices, isDynamic))
+        {
+            LogErr(LOG, "can't initialize a vertex buffer for terrain");
+            Shutdown();
+            return false;
+        }
+
+        // initialize the index buffer
+        if (!ib_.Initialize(pDevice, indices, numIndices))
+        {
+            LogErr(LOG, "can't initialize an index buffer for terrain");
+            Shutdown();
+            return false;
+        }
 
         return true;
     }
@@ -175,8 +185,6 @@ bool TerrainGeomipmapped::InitBuffers(
         return false;
     }
 }
-
-#define USE_DX_FRUSTUM false
 
 //---------------------------------------------------------
 // Desc:   test if we are currently in the patch by input coords
@@ -450,6 +458,29 @@ XMFLOAT3 ComputeFaceNormal(
 }
 
 //---------------------------------------------------------
+//---------------------------------------------------------
+void ComputeFaceNormal(
+    Vertex3dTerrain& v0,
+    Vertex3dTerrain& v1,
+    Vertex3dTerrain& v2)
+{
+    using namespace DirectX;
+
+    // compute face normal for the first triangle
+    XMVECTOR pos0 = XMLoadFloat3(&v0.position);
+    XMVECTOR pos1 = XMLoadFloat3(&v1.position);
+    XMVECTOR pos2 = XMLoadFloat3(&v2.position);
+
+    XMVECTOR e0 = pos1 - pos0;
+    XMVECTOR e1 = pos2 - pos0;
+
+    XMVECTOR normal = XMVector3Normalize(XMVector3Cross(e0, e1));
+
+    XMStoreFloat3(&v0.normal, normal);
+    XMStoreFloat3(&v1.normal, normal);
+    XMStoreFloat3(&v2.normal, normal);
+}
+//---------------------------------------------------------
 // Desc:   compute a single fan geometry
 // Args:   - cx, cz:   center of the triangle fan to render
 //         - size:     the fan's entire size
@@ -464,28 +495,20 @@ void TerrainGeomipmapped::ComputeFan(
     const float halfSize       = size * 0.5f;
     const float invTerrainSize = 1.0f / heightMap_.GetWidth();
 
+    // vertices positions
+    const float fLeft     = cx - halfSize;
+    const float fRight    = cx + halfSize;
+    const float fDown     = cz - halfSize;
+    const float fUp       = cz + halfSize;
+
     // calc the texture coords
-    const float texLeft   = fabsf(cx - halfSize) * invTerrainSize;
-    const float texBottom = fabsf(cz - halfSize) * invTerrainSize;
-    const float texRight  = fabsf(cx + halfSize) * invTerrainSize;
-    const float texTop    = fabsf(cz + halfSize) * invTerrainSize;
+    const float texLeft   = fabsf(fLeft)  * invTerrainSize;
+    const float texRight  = fabsf(fRight) * invTerrainSize;
+    const float texBottom = fabsf(fDown)  * invTerrainSize;
+    const float texTop    = fabsf(fUp)    * invTerrainSize;
 
     const float midX      = (texLeft + texRight) * 0.5f;
     const float midZ      = (texBottom + texTop) * 0.5f;
-
-    // vertices positions
-    const int   centerX   = (int)cx;
-    const int   centerZ   = (int)cz;
-
-    const float fLeft     = cx - halfSize;
-    const float fRight    = cx + halfSize;
-    const float fUp       = cz + halfSize;
-    const float fDown     = cz - halfSize;
-
-    const int   iLeft     = (int)(fLeft);
-    const int   iRight    = (int)(fRight);
-    const int   iUp       = (int)(fUp);
-    const int   iDown     = (int)(fDown);
 
 
     /*
@@ -512,45 +535,42 @@ void TerrainGeomipmapped::ComputeFan(
     Vertex3dTerrain vertices[9];
 
     // CENTER vertex (0)
-    //height               = GetScaledHeightAtPoint((int)cx, (int)cz);
     height               = GetScaledInterpolatedHeightAtPoint(cx, cz);
     vertices[0].position = { cx, height, cz };
     vertices[0].texture  = { midX, midZ };
 
     // LOWER-LEFT vertex (1)
-    //height               = GetScaledHeightAtPoint(iLeft, iDown);
     height               = GetScaledInterpolatedHeightAtPoint(fLeft, fDown);
     vertices[1].position = { fLeft, height, fDown};
     vertices[1].texture  = { texLeft, texBottom };
 
     // UPPER-LEFT vertex (3)
-    //height               = GetScaledHeightAtPoint(iLeft, iUp);
     height               = GetScaledInterpolatedHeightAtPoint(fLeft, fUp);
     vertices[3].position = { fLeft, height, fUp };
     vertices[3].texture  = { texLeft, texTop };
 
     // UPPER-RIGHT vertex (5)
-    //height               = GetScaledHeightAtPoint(iRight, iUp);
     height               = GetScaledInterpolatedHeightAtPoint(fRight, fUp);
     vertices[5].position = { fRight, height, fUp };
     vertices[5].texture  = { texRight, texTop };
    
     // LOWER-RIGHT vertex (7)
-    //height               = GetScaledHeightAtPoint(iRight, iDown);
     height               = GetScaledInterpolatedHeightAtPoint(fRight, fDown);
     vertices[7].position = { fRight, height, fDown };
     vertices[7].texture  = { texRight, texBottom };
 
+
     // ----------------------------------------------------
+
 
     Vertex3dTerrain vertexBuf[24];
     int   numVerts = 0;  // number of vertices in this fan
+
 
     // add vertex 2 (so we have two triangles on the left side fan)
     if (neighbor.left)                          
     {
         // MID-LEFT vertex (2): use this vertex if the left patch is NOT of a lower LOD
-        //height               = GetScaledHeightAtPoint(iLeft, centerZ);
         height               = GetScaledInterpolatedHeightAtPoint(fLeft, cz);
         vertices[2].position = { fLeft, height, cz };
         vertices[2].texture  = { texLeft, midZ };
@@ -565,38 +585,21 @@ void TerrainGeomipmapped::ComputeFan(
 
 #if COMPUTE_NORMALS
         // compute normal vectors for the first and second triangle
-        XMFLOAT3 normal1 = ComputeFaceNormal(
-                                vertexBuf[numVerts + 0].position,
-                                vertexBuf[numVerts + 1].position,
-                                vertexBuf[numVerts + 2].position);
-
-        XMFLOAT3 normal2 = ComputeFaceNormal(
-                                vertexBuf[numVerts + 3].position,
-                                vertexBuf[numVerts + 4].position,
-                                vertexBuf[numVerts + 5].position);
-
-        // --------------------------------------
-
-        vertexBuf[numVerts + 0].normal = normal1;
-        vertexBuf[numVerts + 1].normal = normal1;
-        vertexBuf[numVerts + 2].normal = normal1;
-
-        vertexBuf[numVerts + 3].normal = normal2;
-        vertexBuf[numVerts + 4].normal = normal2;
-        vertexBuf[numVerts + 5].normal = normal2;
+        ComputeFaceNormal(vertexBuf[numVerts+0], vertexBuf[numVerts+1], vertexBuf[numVerts+2]);
+        ComputeFaceNormal(vertexBuf[numVerts+3], vertexBuf[numVerts+4], vertexBuf[numVerts+5]);
 
         // average the normal vector for vertex 2 in this triangle
-        XMFLOAT3 avgNormal = vertexBuf[numVerts+2].normal + vertexBuf[numVerts+4].normal;
-        avgNormal *= 0.5f;
-        const XMFLOAT3 normalizedAvgNormal = DirectX::XMFloat3Normalize(avgNormal);
+        XMFLOAT3& n2 = vertexBuf[numVerts + 2].normal;
+        XMFLOAT3& n4 = vertexBuf[numVerts + 4].normal;
+
+        const XMFLOAT3 normalizedAvgNormal = DirectX::XMFloat3Normalize((n2+n4) * 0.5f);
 
         vertexBuf[numVerts + 2].normal = normalizedAvgNormal;
         vertexBuf[numVerts + 4].normal = normalizedAvgNormal;
-
-        // --------------------------------------
 #endif
         numVerts += 6;
     }
+
     // we have no mid-left vertex
     else
     {                                           //  3
@@ -606,23 +609,17 @@ void TerrainGeomipmapped::ComputeFan(
                                                 //  1
 #if COMPUTE_NORMALS
          // compute normal vectors for the triangle
-        XMFLOAT3 normal = ComputeFaceNormal(
-            vertexBuf[numVerts + 0].position,
-            vertexBuf[numVerts + 1].position,
-            vertexBuf[numVerts + 2].position);
-
-        vertexBuf[numVerts + 0].normal = normal;
-        vertexBuf[numVerts + 1].normal = normal;
-        vertexBuf[numVerts + 2].normal = normal;
+        ComputeFaceNormal(vertexBuf[numVerts+0], vertexBuf[numVerts+1], vertexBuf[numVerts+2]);
 #endif
         numVerts += 3;
     }
+
+    // ----------------------------------------------------
 
     // add vertex 4 (so we have two triangles on the upper side of the fan)
     if (neighbor.up)
     {
         // UPPER-MID vertex (4): use this vertex if the upper patch is NOT of a lower LOD
-        //height               = GetScaledHeightAtPoint(centerX, iUp);
         height               = GetScaledInterpolatedHeightAtPoint(cx, fUp);
         vertices[4].position = { cx, height, fUp };
         vertices[4].texture  = { midX, texTop };
@@ -637,39 +634,21 @@ void TerrainGeomipmapped::ComputeFan(
 
 #if COMPUTE_NORMALS
         // compute normal vectors for the first and second triangle
-        XMFLOAT3 normal1 = ComputeFaceNormal(
-            vertexBuf[numVerts + 0].position,
-            vertexBuf[numVerts + 1].position,
-            vertexBuf[numVerts + 2].position);
+        ComputeFaceNormal(vertexBuf[numVerts+0], vertexBuf[numVerts+1], vertexBuf[numVerts+2]);
+        ComputeFaceNormal(vertexBuf[numVerts+3], vertexBuf[numVerts+4], vertexBuf[numVerts+5]);
 
-        XMFLOAT3 normal2 = ComputeFaceNormal(
-            vertexBuf[numVerts + 3].position,
-            vertexBuf[numVerts + 4].position,
-            vertexBuf[numVerts + 5].position);
+        // average the normal vector for vertex 2 in this triangle
+        XMFLOAT3& n2 = vertexBuf[numVerts + 2].normal;
+        XMFLOAT3& n4 = vertexBuf[numVerts + 4].normal;
 
-        // --------------------------------------
-
-        vertexBuf[numVerts + 0].normal = normal1;
-        vertexBuf[numVerts + 1].normal = normal1;
-        vertexBuf[numVerts + 2].normal = normal1;
-
-        vertexBuf[numVerts + 3].normal = normal2;
-        vertexBuf[numVerts + 4].normal = normal2;
-        vertexBuf[numVerts + 5].normal = normal2;
-
-        // average the normal vector for vertex 4 in this triangle
-        XMFLOAT3 avgNormal = (normal1 + normal2);
-        avgNormal *= 0.5f;
-        const XMFLOAT3 normalizedAvgNormal = DirectX::XMFloat3Normalize(avgNormal);
+        const XMFLOAT3 normalizedAvgNormal = DirectX::XMFloat3Normalize((n2+n4) * 0.5f);
 
         vertexBuf[numVerts + 2].normal = normalizedAvgNormal;
         vertexBuf[numVerts + 4].normal = normalizedAvgNormal;
-
-        // --------------------------------------
 #endif
-
         numVerts += 6;
     }
+
     // we have no upper-mid vertex
     else
     {
@@ -677,27 +656,19 @@ void TerrainGeomipmapped::ComputeFan(
         vertexBuf[numVerts+1] = vertices[3];    //   \   /
         vertexBuf[numVerts+2] = vertices[5];    //     0
 
-
 #if COMPUTE_NORMALS
         // compute normal vectors for the triangle
-        XMFLOAT3 normal = ComputeFaceNormal(
-            vertexBuf[numVerts + 0].position,
-            vertexBuf[numVerts + 1].position,
-            vertexBuf[numVerts + 2].position);
-
-        vertexBuf[numVerts + 0].normal = normal;
-        vertexBuf[numVerts + 1].normal = normal;
-        vertexBuf[numVerts + 2].normal = normal;
+        ComputeFaceNormal(vertexBuf[numVerts+0], vertexBuf[numVerts+1], vertexBuf[numVerts+2]);
 #endif
-
         numVerts += 3;
     }
+
+    // ----------------------------------------------------
 
     // add vertex 6 (so we have two triangles on the right side of the fan)
     if (neighbor.right)
     {
         // MID-RIGHT vertex(6): use this vertex if the right patch is NOT of a lower LOD
-        //height               = GetScaledHeightAtPoint(iRight, centerZ);
         height               = GetScaledInterpolatedHeightAtPoint(fRight, cz);
         vertices[6].position = { fRight, height, cz };
         vertices[6].texture  = { texRight, midZ };
@@ -712,39 +683,21 @@ void TerrainGeomipmapped::ComputeFan(
 
 #if COMPUTE_NORMALS
         // compute normal vectors for the first and second triangle
-        XMFLOAT3 normal1 = ComputeFaceNormal(
-            vertexBuf[numVerts + 0].position,
-            vertexBuf[numVerts + 1].position,
-            vertexBuf[numVerts + 2].position);
+        ComputeFaceNormal(vertexBuf[numVerts+0], vertexBuf[numVerts+1], vertexBuf[numVerts+2]);
+        ComputeFaceNormal(vertexBuf[numVerts+3], vertexBuf[numVerts+4], vertexBuf[numVerts+5]);
 
-        XMFLOAT3 normal2 = ComputeFaceNormal(
-            vertexBuf[numVerts + 3].position,
-            vertexBuf[numVerts + 4].position,
-            vertexBuf[numVerts + 5].position);
+        // average the normal vector for vertex 2 in this triangle
+        XMFLOAT3& n2 = vertexBuf[numVerts + 2].normal;
+        XMFLOAT3& n4 = vertexBuf[numVerts + 4].normal;
 
-        // --------------------------------------
-
-        vertexBuf[numVerts + 0].normal = normal1;
-        vertexBuf[numVerts + 1].normal = normal1;
-        vertexBuf[numVerts + 2].normal = normal1;
-
-        vertexBuf[numVerts + 3].normal = normal2;
-        vertexBuf[numVerts + 4].normal = normal2;
-        vertexBuf[numVerts + 5].normal = normal2;
-
-        // average the normal vector for vertex 6 in this triangle
-        XMFLOAT3 avgNormal = vertexBuf[numVerts + 2].normal + vertexBuf[numVerts + 4].normal;
-        avgNormal *= 0.5f;
-        const XMFLOAT3 normalizedAvgNormal = DirectX::XMFloat3Normalize(avgNormal);
+        const XMFLOAT3 normalizedAvgNormal = DirectX::XMFloat3Normalize((n2+n4) * 0.5f);
 
         vertexBuf[numVerts + 2].normal = normalizedAvgNormal;
         vertexBuf[numVerts + 4].normal = normalizedAvgNormal;
-
 #endif
-        // --------------------------------------
-
         numVerts += 6;
     }
+
     // we have no mid-right vertex
     else
     {                                           //     5
@@ -752,27 +705,19 @@ void TerrainGeomipmapped::ComputeFan(
         vertexBuf[numVerts+1] = vertices[5];    //  0  |
         vertexBuf[numVerts+2] = vertices[7];    //   \ |
                                                 //     7
-
 #if COMPUTE_NORMALS
-        // compute normal vectors for the triangle
-        XMFLOAT3 normal = ComputeFaceNormal(
-            vertexBuf[numVerts + 0].position,
-            vertexBuf[numVerts + 1].position,
-            vertexBuf[numVerts + 2].position);
-
-        vertexBuf[numVerts + 0].normal = normal;
-        vertexBuf[numVerts + 1].normal = normal;
-        vertexBuf[numVerts + 2].normal = normal;
+         // compute normal vectors for the triangle
+        ComputeFaceNormal(vertexBuf[numVerts+0], vertexBuf[numVerts+1], vertexBuf[numVerts+2]);
 #endif
         numVerts += 3;
-
     }
+
+    // ----------------------------------------------------
 
     // add vertex 8 (so we have two triangles on the bottom side of the fan)
     if (neighbor.down)
     {
         // LOWER-MID vertex (8): use this vertex if the bottom patch is NOT of a lower LOD
-        //height               = GetScaledHeightAtPoint(centerX, iDown);
         height               = GetScaledInterpolatedHeightAtPoint(cx, fDown);
         vertices[8].position = { cx, height, fDown };
         vertices[8].texture  = { midX, texBottom };
@@ -787,39 +732,21 @@ void TerrainGeomipmapped::ComputeFan(
 
 #if COMPUTE_NORMALS
         // compute normal vectors for the first and second triangle
-        XMFLOAT3 normal1 = ComputeFaceNormal(
-            vertexBuf[numVerts + 0].position,
-            vertexBuf[numVerts + 1].position,
-            vertexBuf[numVerts + 2].position);
+        ComputeFaceNormal(vertexBuf[numVerts+0], vertexBuf[numVerts+1], vertexBuf[numVerts+2]);
+        ComputeFaceNormal(vertexBuf[numVerts+3], vertexBuf[numVerts+4], vertexBuf[numVerts+5]);
 
-        XMFLOAT3 normal2 = ComputeFaceNormal(
-            vertexBuf[numVerts + 3].position,
-            vertexBuf[numVerts + 4].position,
-            vertexBuf[numVerts + 5].position);
+        // average the normal vector for vertex 2 in this triangle
+        XMFLOAT3& n2 = vertexBuf[numVerts + 2].normal;
+        XMFLOAT3& n4 = vertexBuf[numVerts + 4].normal;
 
-        // --------------------------------------
-
-        vertexBuf[numVerts + 0].normal = normal1;
-        vertexBuf[numVerts + 1].normal = normal1;
-        vertexBuf[numVerts + 2].normal = normal1;
-
-        vertexBuf[numVerts + 3].normal = normal2;
-        vertexBuf[numVerts + 4].normal = normal2;
-        vertexBuf[numVerts + 5].normal = normal2;
-
-        // average the normal vector for vertex 8 in this triangle
-        XMFLOAT3 avgNormal = vertexBuf[numVerts + 2].normal + vertexBuf[numVerts + 4].normal;
-        avgNormal *= 0.5f;
-        const XMFLOAT3 normalizedAvgNormal = DirectX::XMFloat3Normalize(avgNormal);
+        const XMFLOAT3 normalizedAvgNormal = DirectX::XMFloat3Normalize((n2+n4) * 0.5f);
 
         vertexBuf[numVerts + 2].normal = normalizedAvgNormal;
         vertexBuf[numVerts + 4].normal = normalizedAvgNormal;
 #endif
-
-        // --------------------------------------
-
         numVerts += 6;
     }
+
     // we have no bottom-mid vertex
     else
     {
@@ -828,19 +755,13 @@ void TerrainGeomipmapped::ComputeFan(
         vertexBuf[numVerts+2] = vertices[1];    //  1-----7
 
 #if COMPUTE_NORMALS
-           // compute normal vectors for the triangle
-        XMFLOAT3 normal = ComputeFaceNormal(
-            vertexBuf[numVerts + 0].position,
-            vertexBuf[numVerts + 1].position,
-            vertexBuf[numVerts + 2].position);
-
-        vertexBuf[numVerts + 0].normal = normal;
-        vertexBuf[numVerts + 1].normal = normal;
-        vertexBuf[numVerts + 2].normal = normal;
+        // compute normal vectors for the triangle
+        ComputeFaceNormal(vertexBuf[numVerts+0], vertexBuf[numVerts+1], vertexBuf[numVerts+2]);
 #endif
         numVerts += 3;
-
     }
+
+    // ----------------------------------------------------
 
 #if COMPUTE_AVERAGED_CENTER_NORMALS
     XMFLOAT3 centralNormal{0,0,0};
@@ -858,7 +779,7 @@ void TerrainGeomipmapped::ComputeFan(
     // set averaged central normal for each triangle
     for (int i = 0; i < numVerts / 3; ++i)
     {
-        vertexBuf[i*3+ 0].normal = centralNormal;
+        vertexBuf[i*3 + 0].normal = centralNormal;
     }
 #endif
 
@@ -901,15 +822,13 @@ void TerrainGeomipmapped::SetTexture(const int idx, const TexID texID)
 
     if ((idx < 0) || (idx >= NUM_TEXTURE_TYPES))
     {
-        sprintf(g_String, "wrong input idx: %d", idx);
-        LogErr(g_String);
+        LogErr(LOG, "wrong input idx: %d", idx);
         return;
     }
 
     if (texID == 0)
     {
-        sprintf(g_String, "wrong input texture ID: %ld", texID);
-        LogErr(g_String);
+        LogErr(LOG, "wrong input texture ID: %ld", texID);
         return;
     }
 
