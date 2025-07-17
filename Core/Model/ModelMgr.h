@@ -35,7 +35,7 @@ public:
     void        GetModelsNamesList(cvector<ModelName>& names);
 
     //inline Terrain&             GetTerrain()         { return terrain_; }
-    inline TerrainGeomipmapped& GetTerrainGeomip()   { return terrainGeomip_; }
+    inline TerrainGeomip& GetTerrainGeomip()   { return terrainGeomip_; }
     inline TerrainQuadtree&     GetTerrainQuadtree() { return terrainQuadtree_; }
     inline SkyModel&            GetSky()             { return sky_; }
 
@@ -48,7 +48,7 @@ private:
 
     SkyModel            sky_;
     //Terrain             terrain_;
-    TerrainGeomipmapped terrainGeomip_;
+    TerrainGeomip terrainGeomip_;
     TerrainQuadtree     terrainQuadtree_;
 
     static ModelMgr*    pInstance_;

@@ -175,10 +175,11 @@ private:
     // ------------------------------------------
 
     // render bounding boxes of models/meshes/light_sources/etc.
-    void RenderBoundingLineBoxes(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);
+    void RenderBoundingLineBoxes  (Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);
     void RenderBoundingLineSpheres();
-    void RenderSkyDome(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);
-    void RenderTerrain(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);
+    void RenderSkyDome            (Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);
+    void RenderTerrainGeomip      (Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);
+    void RenderTerrainQuadtree    (Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);
 
 #if 0
     void UpdateInstanceBuffAndRenderInstances(

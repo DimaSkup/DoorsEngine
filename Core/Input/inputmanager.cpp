@@ -27,7 +27,6 @@ LRESULT InputManager::HandleKeyboardMessage(
 					keyboard.OnKeyPressed(static_cast<unsigned char>(wParam));
 				}
 			}
-			
 			return 0;
 		}
 		case WM_KEYUP:

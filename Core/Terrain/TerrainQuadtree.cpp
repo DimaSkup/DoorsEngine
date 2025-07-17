@@ -12,6 +12,25 @@ namespace Core
 // yes, I did it
 #define NEW new (std::nothrow)
 
+// =================================================================================
+// Constants
+// =================================================================================
+
+// QT - quad tree
+// LR - lower right
+// LL - lower left
+// UL - upper left
+// UR - upper right
+#define QT_LR_NODE 0
+#define QT_LL_NODE 1
+#define QT_UL_NODE 2
+#define QT_UR_NODE 3
+
+// bit codes
+#define QT_COMPLETE_FAN 0
+#define QT_LL_UR        10
+#define QT_LR_UL        5
+#define QT_NO_FAN       15
 
 
 //---------------------------------------------------------
@@ -24,18 +43,28 @@ bool TerrainQuadtree::Init(void)
 {
 
     const int size = (int)heightMap_.GetWidth();
+    terrainSize_ = size;
+
+    if (!heightMap_.IsLoaded() || (size == 0))
+    {
+        LogErr(LOG, "can't init terrain's quadtree: the height map is wrong");
+        return false;
+    }
 
     // alloc memory for the quadtree matrix
-    quadMatrix_ = NEW uint8[SQR(size)];
+    quadMatrix_ = new uint8[size*size]{0};
     if (!quadMatrix_)
     {
         LogErr("can't allocate memory for the quadtree matrix");
         return false;
     }
 
+
     // TODO: replace with memset?
     // 
     // initialize the quadtree matrix to 'true' (for all the possible nodes)
+    memset(quadMatrix_, 1, size*size);
+#if 0
     for (int z = 0; z < size; ++z)
     {
         for (int x = 0; x < size; ++x)
@@ -43,8 +72,29 @@ bool TerrainQuadtree::Init(void)
             quadMatrix_[GetMatrixIdx(x, z)] = 1; // true
         }
     }
+#endif
 
-    PropagateRoughness();
+
+    //PropagateRoughness();
+
+
+#if 0
+
+    // calculate the center of the terrain mesh
+    const float center = size * 0.5f;
+
+    // build the mesh through top-down quadtree traversal
+    CameraParams params;
+    params.posX = 0;
+    params.posY = 0;
+    params.posZ = 0;
+    RefineNode(center, center, size, params);
+
+    GenerateNode(center, center, size);
+
+    vb_.UpdateDynamic(g_pContext, vertices_, verticesOffset_);
+#endif
+
 
     // initialization was successful
     LogMsg("The quadtree terrain has been successfully initialized");
@@ -78,8 +128,9 @@ bool TerrainQuadtree::AllocateMemory(const int numVertices, const int numIndices
     assert(numVertices > 0);
     assert(numIndices > 0);
 
-    // prepare memory
-    Release();
+    // release memory from the CPU copy of vertices/indices if we have any
+    SafeDeleteArr(vertices_);
+    SafeDeleteArr(indices_);
 
     numVertices_ = numVertices;
     numIndices_ = numIndices;
@@ -127,8 +178,13 @@ bool TerrainQuadtree::InitBuffers(
         return false;
     }
 
-    // initialize the vertex buffer
+    // release memory from the vertex/index buffers
+    vb_.Shutdown();
+    ib_.Shutdown();
+
     constexpr bool isDynamic = true;
+
+    // initialize the vertex buffer
     if (!vb_.Initialize(g_pDevice, vertices, numVertices, isDynamic))
     {
         LogErr(LOG, "can't initialize a vertex buffer for terrain");
@@ -137,7 +193,7 @@ bool TerrainQuadtree::InitBuffers(
     }
 
     // initialize the index buffer
-    if (!ib_.Initialize(g_pDevice, indices, numIndices))
+    if (!ib_.Initialize(g_pDevice, indices, numIndices, isDynamic))
     {
         LogErr(LOG, "can't initialize the index buffer for terrain");
         Release();
@@ -154,13 +210,21 @@ bool TerrainQuadtree::InitBuffers(
 //---------------------------------------------------------
 void TerrainQuadtree::Update(const CameraParams& params)
 {
-    const int size = heightMap_.GetWidth();
+    const int size = terrainSize_;
 
     // calculate the center of the terrain mesh
-    const float center = size * 0.5f;
+    const float center = (float)(size-1) * 0.5f;
+
+    // reset the counting variables
+    verticesOffset_ = 0;
+    indicesOffset_ = 0;
 
     // build the mesh through top-down quadtree traversal
     RefineNode(center, center, size, params);
+
+    GenerateNode(center, center, size);
+
+    vb_.UpdateDynamic(g_pContext, vertices_, verticesOffset_);
 }
 
 //---------------------------------------------------------
@@ -197,8 +261,8 @@ void TerrainQuadtree::SetNumIndices(const int num)
 //---------------------------------------------------------
 void TerrainQuadtree::PropagateRoughness(void)
 {
-    const int   terrainSize = heightMap_.GetWidth();
-    const float upperBound  = minResolution_ / (2.0f * (minResolution_ - 1.0f));
+    const int   terrainSize = terrainSize_;
+    const float upperBound  = 1.0f * minResolution_ / (2.0f * (minResolution_ - 1.0f));
 
     int dh      = 0;
     int d2      = 0;
@@ -240,7 +304,7 @@ void TerrainQuadtree::PropagateRoughness(void)
                 const uint8 heightMidR   = GetTrueHeightAtPoint(right, z);
 
                 // TODO: replace abs/max/etc with functions which based on fast bithacks
-                int absolute = 0;
+                float absolute = 0;
 
                 // compute "localD2" values for this node
                 // upper-mid
@@ -273,7 +337,7 @@ void TerrainQuadtree::PropagateRoughness(void)
                 localD2  = max(localD2, dh);
 
                 // make localD2 a value btw 0-255
-                localD2 = (int)ceil(localD2 * 3 / edgeLen);
+                localD2 = (int)ceil((localD2 * 3) / edgeLen);
 
                 // test minimally sized block
                 if (edgeLen == 3)
@@ -310,16 +374,16 @@ void TerrainQuadtree::PropagateRoughness(void)
                     const float t4 = upperBound * (float)GetQuadMatrixData(x, up);
                     const float t5 = upperBound * (float)GetQuadMatrixData(x, down);
 
-                    float fD2 = 0;
+                    //float fD2 = 0;
 
                     // use d2 value from farther up on the quadtree
-                    fD2 = ceilf(max(t1, (float)localD2));
-                    fD2 = ceilf(max(t2, fD2));
-                    fD2 = ceilf(max(t3, fD2));
-                    fD2 = ceilf(max(t4, fD2));
-                    fD2 = ceilf(max(t5, fD2));
+                    d2 = (int)ceilf(max(t1, (float)localD2));
+                    d2 = (int)ceilf(max(t2, (float)d2));
+                    d2 = (int)ceilf(max(t3, (float)d2));
+                    d2 = (int)ceilf(max(t4, (float)d2));
+                    d2 = (int)ceilf(max(t5, (float)d2));
 
-                    d2 = (int)fD2;
+                    //d2 = (int)fD2;
 
                     // get the max local height values of the 4 nodes (LL, LR, UL, UR)
                     const int childL = x - childOffset;
@@ -386,9 +450,9 @@ void TerrainQuadtree::RefineNode(
     // TODO: simplify
     const float minRes = minResolution_;
     const float desRes = desiredResolution_;
-    const float c      = desRes * (float)GetQuadMatrixData(iX - 1, iZ) / 3.0f;
+    const float c      = desRes * GetQuadMatrixData(iX-1, iZ) / 3;
 
-    const float f = viewDistance / (float)edgeLen * minRes * max(c, 1.0f);
+    const float f = viewDistance / ((float)edgeLen * minRes * max(c, 1.0f));
 
     const bool subdivide = (f < 1.0f);
 
@@ -399,7 +463,7 @@ void TerrainQuadtree::RefineNode(
     {
         // we need to recurse down farther into the quadtree
         // (3 is node's min edge length)
-        if (edgeLen > 3)
+        if (!(edgeLen <= 3))
         {
             const float childOffset  = (float)((edgeLen-1) >> 2);
             const int   childEdgeLen = (edgeLen+1) >> 1;
@@ -418,6 +482,15 @@ void TerrainQuadtree::RefineNode(
             RefineNode(x+childOffset, z+childOffset, childEdgeLen, camera);
         }
     }
+}
+
+inline void AddTriangle(
+    Vertex3dTerrain* vertices,
+    const Vertex3dTerrain& v0,
+    const Vertex3dTerrain& v1,
+    const Vertex3dTerrain& v2)
+{
+
 }
 
 //---------------------------------------------------------
@@ -444,19 +517,38 @@ void TerrainQuadtree::GenerateNode(
     const int   adjOffset   = edgeLen - 1;
 
     // compute the edge offset of the current node
-    const int   iEdgeOffset = adjOffset >> 1;
-    const float fEdgeOffset = adjOffset * 0.5f;
+    const int   iEdgeOffset    = adjOffset >> 1;
+    const float fEdgeOffset    = adjOffset * 0.5f;
 
-    // compute the position coordinates
-    const float left      = cx - fEdgeOffset;
-    const float right     = cx + fEdgeOffset;
-    const float up        = cz + fEdgeOffset;
-    const float down      = cz - fEdgeOffset;
-
-    // calculate the texture coordinates
-    const int   terrainSize    = heightMap_.GetWidth();
+    const int   terrainSize    = terrainSize_;
     const float invTerrainSize = 1.0f / (float)terrainSize;
 
+    // compute the position coordinates
+    float left  = cx-fEdgeOffset;
+    float right = cx+fEdgeOffset;
+    float up    = cz+fEdgeOffset;
+    float down  = cz-fEdgeOffset;
+
+    // clamp values if necessary
+    if (left < 0)
+        left = 0;
+
+    if (right > terrainSize)
+        right = terrainSize;
+
+    if (up > terrainSize)
+        up = terrainSize;
+
+    if (down < 0)
+        down = 0;
+
+    // integer positions
+    const int iLeft  = (int)left;
+    const int iRight = (int)right;
+    const int iUp    = (int)up;
+    const int iDown  = (int)down;
+
+    // calculate the texture coordinates
     const float texLeft   = fabsf(left)  * invTerrainSize;
     const float texRight  = fabsf(right) * invTerrainSize;
     const float texTop    = fabsf(up)    * invTerrainSize;
@@ -464,7 +556,6 @@ void TerrainQuadtree::GenerateNode(
 
     const float texMidX   = (texLeft + texRight) * 0.5f;
     const float texMidY   = (texTop + texBottom) * 0.5f;
-
 
 /*
     Fan visualization
@@ -489,72 +580,73 @@ void TerrainQuadtree::GenerateNode(
 
 */
 
-    float height = 0;
-    Vertex3dTerrain vertices[9];
-
 
     // is this the smallest node?
     if (edgeLen <= 3)
     {
+#if 1
         // flags to define if we have optional vertices in the fan
         const bool hasMidLeft  = ((iX-adjOffset) < 0)            || GetQuadMatrixData(iX-adjOffset, iZ);
         const bool hasMidRight = ((iX+adjOffset) >= terrainSize) || GetQuadMatrixData(iX+adjOffset, iZ);
         const bool hasUpperMid = ((iZ+adjOffset) >= terrainSize) || GetQuadMatrixData(iX,           iZ+adjOffset);
         const bool hasLowerMid = ((iZ-adjOffset) < 0)            || GetQuadMatrixData(iX,           iZ-adjOffset);
 
+        float height = 0;
+        Vertex3dTerrain vertices[9];
+
         // CENTER vertex (0)
-        height               = GetScaledHeightAtPoint(cx, cz);
+        height               = GetScaledHeightAtPoint(iX, iZ);
         vertices[0].position = { cx, height, cz };
         vertices[0].texture  = { texMidX, texMidY };
 
         // LOWER-LEFT vertex (1)
-        height               = GetScaledHeightAtPoint(left, down);
+        height               = GetScaledHeightAtPoint(iLeft, iDown);
         vertices[1].position = { left, height, down };
         vertices[1].texture  = { texLeft, texBottom };
 
         // MID-LEFT vertex (2, skip if the adjacent node is of a lower detail level)
         if (hasMidLeft)
         {
-            height               = GetScaledHeightAtPoint(left, cz);
+            height               = GetScaledHeightAtPoint(iLeft, iZ);
             vertices[2].position = { left, height, cz };
             vertices[2].texture  = { texLeft, texMidY };
         }
 
         // UPPER-LEFT vertex (3)
-        height               = GetScaledHeightAtPoint(left, up);
+        height               = GetScaledHeightAtPoint(iLeft, iUp);
         vertices[3].position = { left, height, up };
         vertices[3].texture  = { texLeft, texTop };
 
         // UPPER-MID vertex (4, skip if the adjacent node is of a lower detail level)
         if (hasUpperMid)
         {
-            height               = GetScaledHeightAtPoint(cx, up);
+            height               = GetScaledHeightAtPoint(iX, iUp);
             vertices[4].position = { cx, height, up };
-            vertices[5].texture  = { texMidX, texTop };
+            vertices[4].texture  = { texMidX, texTop };
         }
 
         // UPPER-RIGHT vertex (5)
-        height               = GetScaledHeightAtPoint(right, up);
+        height               = GetScaledHeightAtPoint(iRight, iUp);
         vertices[5].position = { right, height, up };
         vertices[5].texture  = { texRight, texTop };
 
         // MID-RIGHT vertex (6, skip if the adjacent node is of a lower detail level)
         if (hasMidRight)
         {
-            height               = GetScaledHeightAtPoint(right, cz);
+            height               = GetScaledHeightAtPoint(iRight, iZ);
             vertices[6].position = { right, height, cz };
             vertices[6].texture  = { texRight, texMidY };
         }
 
         // LOWER-RIGHT vertex (7)
-        height               = GetScaledHeightAtPoint(right, down);
+        height               = GetScaledHeightAtPoint(iRight, iDown);
         vertices[7].position = { right, height, down };
         vertices[7].texture  = { texRight, texBottom };
 
         // LOWER-MID vertex (8, skip if the adjacent node is of a lower detail level)
         if (hasLowerMid)
         {
-            height               = GetScaledHeightAtPoint(cx, down);
+            height               = GetScaledHeightAtPoint(iX, iDown);
             vertices[8].position = { cx, height, down };
             vertices[8].texture  = { texMidX, texBottom };
         }
@@ -673,6 +765,7 @@ void TerrainQuadtree::GenerateNode(
         // will load all of them into GPU
         memcpy(&vertices_[verticesOffset_], vertexBuf, sizeof(Vertex3dTerrain)*numVerts);
         verticesOffset_ += numVerts;
+#endif
     }
 
     // go down to smaller quadtrees nodes
@@ -742,6 +835,7 @@ void TerrainQuadtree::GenerateNode(
             return;
         }
 
+#if 1
         // generate the lower left and upper right fans (quads)
         if (fanCode == QT_LL_UR)
         {
@@ -761,37 +855,37 @@ void TerrainQuadtree::GenerateNode(
             float height = 0;
 
             // center vertex (0)
-            height                  = GetScaledHeightAtPoint(cx, cz);
+            height                  = GetScaledHeightAtPoint(iX, iZ);
             vertices[0].position    = { cx, height, cz };
             vertices[0].texture     = { texMidX, texMidY };
 
             // upper-mid vertex (1)
-            height                  = GetScaledHeightAtPoint(cx, up);
+            height                  = GetScaledHeightAtPoint(iX, iUp);
             vertices[1].position    = { cx, height, up };
             vertices[1].texture     = { texMidX, texTop };
 
             // upper-right vertex (2)
-            height                  = GetScaledHeightAtPoint(right, up);
+            height                  = GetScaledHeightAtPoint(iRight, iUp);
             vertices[2].position    = { right, height, up };
             vertices[2].texture     = { texRight, texTop };
 
             // mid-right vertex (3)
-            height                  = GetScaledHeightAtPoint(right, cz);
+            height                  = GetScaledHeightAtPoint(iRight, iZ);
             vertices[3].position    = { right, height, cz };
             vertices[3].texture     = { texRight, texMidY };
 
             // bottom-mid vertex (4)
-            height                  = GetScaledHeightAtPoint(cx, down);
+            height                  = GetScaledHeightAtPoint(iX, iDown);
             vertices[4].position    = { cx, height, down };
             vertices[4].texture     = { texMidX, texBottom };
 
             // bottom-left vertex (5)
-            height                  = GetScaledHeightAtPoint(left, down);
+            height                  = GetScaledHeightAtPoint(iLeft, iDown);
             vertices[5].position    = { left, height, down };
             vertices[5].texture     = { texLeft, texBottom };
 
             // mid-left vertex (6)
-            height                  = GetScaledHeightAtPoint(left, cz);
+            height                  = GetScaledHeightAtPoint(iLeft, iZ);
             vertices[6].position    = { left, height, cz };
             vertices[6].texture     = { texLeft, texMidY };
 
@@ -829,6 +923,10 @@ void TerrainQuadtree::GenerateNode(
 
             return;
         }
+#endif
+
+
+#if 1
 
         // generate the lower-right and upper left triangles fans
         if (fanCode == QT_LR_UL)
@@ -849,37 +947,37 @@ void TerrainQuadtree::GenerateNode(
             float height = 0;
 
             // center vertex (0)
-            height                  = GetScaledHeightAtPoint(cx, cz);
+            height                  = GetScaledHeightAtPoint(iX, iZ);
             vertices[0].position    = { cx, height, cz };
             vertices[0].texture     = { texMidX, texMidY };
 
             // mid-left vertex (1)
-            height                  = GetScaledHeightAtPoint(left, cz);
+            height                  = GetScaledHeightAtPoint(iLeft, iZ);
             vertices[1].position    = { left, height, cz };
             vertices[1].texture     = { texLeft, texMidY };
 
             // upper-left vertex (2)
-            height                  = GetScaledHeightAtPoint(left, up);
+            height                  = GetScaledHeightAtPoint(iLeft, iUp);
             vertices[2].position    = { left, height, up };
             vertices[2].texture     = { texLeft, texTop };
 
             // upper-mid vertex (3)
-            height                  = GetScaledHeightAtPoint(cx, up);
+            height                  = GetScaledHeightAtPoint(iX, iUp);
             vertices[3].position    = { cx, height, up };
             vertices[3].texture     = { texMidX, texTop };
 
             // mid-right vertex (4)
-            height                  = GetScaledHeightAtPoint(right, cz);
+            height                  = GetScaledHeightAtPoint(iRight, iZ);
             vertices[4].position    = { right, height, cz };
             vertices[4].texture     = { texRight, texMidY };
 
             // lower-right vertex (5)
-            height                  = GetScaledHeightAtPoint(right, down);
+            height                  = GetScaledHeightAtPoint(iRight, iDown);
             vertices[5].position    = { right ,height, down };
             vertices[5].texture     = { texRight, texBottom };
 
             // lower-mid vertex (6)
-            height                  = GetScaledHeightAtPoint(cx, down);
+            height                  = GetScaledHeightAtPoint(iX, iDown);
             vertices[6].position    = { cx, height, down };
             vertices[6].texture     = { texMidX, texBottom };
 
@@ -912,13 +1010,16 @@ void TerrainQuadtree::GenerateNode(
             // --------------------------------------------
 
             // resurse further down to the upper-right and lower-left nodes
-            GenerateNode(right, up,   childEdgeLen);
-            GenerateNode(left,  down, childEdgeLen);
+            GenerateNode(childR, childU, childEdgeLen);
+            GenerateNode(childL, childD, childEdgeLen);
 
             return;
         }
+#endif
 
-        // this node is a left-node, generate a complete fan
+
+#if 1
+        // this node is a leaf-node, generate a complete fan
         if (fanCode == QT_COMPLETE_FAN)
         {
             /*
@@ -947,58 +1048,58 @@ void TerrainQuadtree::GenerateNode(
             Vertex3dTerrain vertices[9];
 
             // center vertex (0)
-            height                   = GetScaledHeightAtPoint(cx, cz);
+            height                   = GetScaledHeightAtPoint(iX, iZ);
             vertices[0].position     = { cx, height, cz };
             vertices[0].texture      = { texMidX, texMidY };
 
             // lower-left vertex (1)
-            height                   = GetScaledHeightAtPoint(left, down);
+            height                   = GetScaledHeightAtPoint(iLeft, iDown);
             vertices[1].position     = { left, height, down };
             vertices[1].texture      = { texLeft, texBottom };
 
             // mid-left vertex (2, skip if the adjacent node is of a lower detail level)
             if (hasMidLeft)
             {
-                height               = GetScaledHeightAtPoint(left, cz);
+                height               = GetScaledHeightAtPoint(iLeft, iZ);
                 vertices[2].position = { left, height, cz };
                 vertices[2].texture  = { texLeft, texMidY };
             }
 
             // upper-left vertex (3)
-            height                   = GetScaledHeightAtPoint(left, up);
+            height                   = GetScaledHeightAtPoint(iLeft, iUp);
             vertices[3].position     = { left, height, up };
             vertices[3].texture      = { texLeft, texTop };
 
             // upper-mid vertex (4, skip if the adjacent node is of a lower detail level)
             if (hasUpperMid)
             {
-                height               = GetScaledHeightAtPoint(cx, up);
+                height               = GetScaledHeightAtPoint(iX, iUp);
                 vertices[4].position = { cx, height, up };
                 vertices[4].texture  = { texMidX, texTop };
             }
 
             // upper-right vertex (5)
-            height                   = GetScaledHeightAtPoint(right, up);
+            height                   = GetScaledHeightAtPoint(iRight, iUp);
             vertices[5].position     = { right, height, up };
             vertices[5].texture      = { texRight, texTop };
 
             // mid-right vertex (6, skip if the adjacent node is of a lower detail level)
             if (hasMidRight)
             {
-                height               = GetScaledHeightAtPoint(right, cz);
+                height               = GetScaledHeightAtPoint(iRight, iZ);
                 vertices[6].position = { right, height, cz };
                 vertices[6].texture  = { texRight, texMidY };
             }
 
             // lower-right vertex (7)
-            height                   = GetScaledHeightAtPoint(right, down);
+            height                   = GetScaledHeightAtPoint(iRight, iDown);
             vertices[7].position     = { right, height, down };
             vertices[7].texture      = { texRight, texBottom };
 
             // lower-mid vertex (8, skip if the adjacent node is of a lower detail level)
             if (hasLowerMid)
             {
-                height               = GetScaledHeightAtPoint(cx, down);
+                height               = GetScaledHeightAtPoint(iX, iDown);
                 vertices[8].position = { cx, height, down };
                 vertices[8].texture  = { texMidX, texBottom };
             }
@@ -1123,6 +1224,8 @@ void TerrainQuadtree::GenerateNode(
             return;
         }
 
+#endif
+
         /*
                            |
                            |
@@ -1135,7 +1238,7 @@ void TerrainQuadtree::GenerateNode(
                 LL Node*2  |   LR Node*1
         */
 
-        // globals
+   
         constexpr uint8 s_FanStart[] = { 3,  3, 0,  3, 1, 0,  0,  3, 2,  2, 0,  2,  1,  1,  0, 0 };
         constexpr uint8 s_FanCode[]  = { 10, 8, 8, 12, 8, 0, 12, 14, 8, 12, 0, 14, 12, 14, 14, 0 };
 
@@ -1147,29 +1250,26 @@ void TerrainQuadtree::GenerateNode(
 
         // calculate the fan length by computing the index of
         // the first non-zero bit in s_FanCode array
-        while (!(code & (1 << fanLen)) && fanLen < 8)
+        while (!(code & (1 << fanLen)) && fanLen<8)
             fanLen++;
 
         //-------------------------------------------------
 
         // generate a triangle fan
 
-#if 0
-       
-        Vertex3dTerrain center;
-        height          = GetScaledHeightAtPoint(cx, cz);
-        center.position = { cx, height, cz };
-        center.texture  = { texMidX, texMidY };
+#if 1
+        height                 = GetScaledHeightAtPoint(iX, iZ);
+        Vertex3dTerrain center = { cx, height, cz, texMidX, texMidY };
 
-        const int adjLX = iX-adjOffset;   // adjacent left X
-        const int adjRX = iX+adjOffset;   // adjacent right X
-        const int adjDZ = iZ-adjOffset;   // adjacent down (lower) Z
-        const int adjUZ = iZ+adjOffset;   // adjacent upper Z
+        const int adjLX      = iX-adjOffset;   // adjacent left X
+        const int adjRX      = iX+adjOffset;   // adjacent right X
+        const int adjDZ      = iZ-adjOffset;   // adjacent down (lower) Z
+        const int adjUZ      = iZ+adjOffset;   // adjacent upper Z
 
-        const bool hasLowerMid = (adjDZ < 0)            || GetQuadMatrixData(iX, adjDZ);
-        const bool hasLeftMid  = (adjLX < 0)            || GetQuadMatrixData(adjLX, iZ);
-        const bool hadRightMid = (adjRX >= terrainSize) || GetQuadMatrixData(adjRX, iZ);
-        const bool hasUpperMid = (adjUZ >= terrainSize) || GetQuadMatrixData(iX, adjUZ);
+        const bool hasLowerM = ((adjDZ < 0)            || GetQuadMatrixData(iX, adjDZ));
+        const bool hasMidL   = ((adjLX < 0)            || GetQuadMatrixData(adjLX, iZ));
+        const bool hasMidR   = ((adjRX >= terrainSize) || GetQuadMatrixData(adjRX, iZ));
+        const bool hasUpperM = ((adjUZ >= terrainSize) || GetQuadMatrixData(iX, adjUZ));
 
 
         for (int fanPos = fanLen; fanPos > 0; fanPos--)
@@ -1181,36 +1281,47 @@ void TerrainQuadtree::GenerateNode(
                 // lower right node
                 case QT_LR_NODE:
                 {
-                    Vertex3dTerrain vertexBuf[6] = {
-                        center,
-                        Vertex3dTerrain(),
-                        Vertex3dTerrain(),
-                        center,
-                        Vertex3dTerrain(),
-                        Vertex3dTerrain()
-                    };
+                    // lower right vertex
+                    height = GetScaledHeightAtPoint(iRight, iDown);
+                    Vertex3dTerrain lowerR = { right, height, down, texRight, texBottom };
 
                     // lower mid, skip if the adjacent node is of a lower detail level
-                    if (hasLowerMid || isBegin)
+                    //
+                    //      0
+                    //      | \ 
+                    //      |   \
+                    //      2----1
+                    //
+                    if (hasLowerM || isBegin)
                     {
-                        height = GetScaledHeightAtPoint(iX, down);
-                        Vertex3dTerrain lowerMid{ cx, height, down, texMidX, texBottom };
+                        height = GetScaledHeightAtPoint(iX, iDown);
+                        Vertex3dTerrain lowerM = { cx, height, down, texMidX, texBottom };
+
+                        vertices_[verticesOffset_ + 0] = center;
+                        vertices_[verticesOffset_ + 1] = lowerR;
+                        vertices_[verticesOffset_ + 2] = lowerM;
+
+                        verticesOffset_ += 3;
                     }
-
-                    // lower right vertex
-
 
                     // finish off the fan with a right mid vertex
+                    //
+                    //      0----1
+                    //       \   |
+                    //         \ |
+                    //           2
+                    //
                     if (fanPos == 1)
                     {
+                        height = GetScaledHeightAtPoint(iRight, iZ);
+                        Vertex3dTerrain midR = { right, height, cz, texRight, texMidY };
 
+                        vertices_[verticesOffset_ + 0] = center;
+                        vertices_[verticesOffset_ + 1] = midR;
+                        vertices_[verticesOffset_ + 2] = lowerR;
+
+                        verticesOffset_ += 3;
                     }
-
-                    // copy vertices into the CPU-side vertices buffer so later we
-                    // will load all of them into GPU
-                    memcpy(&vertices_[verticesOffset_], vertexBuf, sizeof(Vertex3dTerrain)* numVerts);
-                    verticesOffset_ += numVerts;
-
 
                     break;
                 }
@@ -1218,51 +1329,178 @@ void TerrainQuadtree::GenerateNode(
                 // lower left node
                 case QT_LL_NODE:
                 {
+                    height = GetScaledHeightAtPoint(iLeft, iDown);
+                    Vertex3dTerrain lowerL = { left, height, down, texLeft, texBottom };
+
+                    // left mid, skip if the adjacent node is of a lower detail level
+                    //
+                    //      2----0
+                    //      |   /
+                    //      | /  
+                    //      1    
+                    //
+                    if (hasMidL || isBegin)
+                    {
+                        height = GetScaledHeightAtPoint(iLeft, iZ);
+                        Vertex3dTerrain midL = { left, height, cz, texLeft, texMidY };
+
+                        vertices_[verticesOffset_ + 0] = center;
+                        vertices_[verticesOffset_ + 1] = lowerL;
+                        vertices_[verticesOffset_ + 2] = midL;
+
+                        verticesOffset_ += 3;
+                    }
+
+                    // finish off the fan with a lower mid vertex
+                    //
+                    //           0
+                    //         / |
+                    //       /   |
+                    //      2----1
+                    //
+                    if (fanPos == 1)
+                    {
+                        height = GetScaledHeightAtPoint(iX, iDown);
+                        Vertex3dTerrain lowerM = { cx, height, down, texMidX, texBottom };
+
+                        vertices_[verticesOffset_ + 0] = center;
+                        vertices_[verticesOffset_ + 1] = lowerM;
+                        vertices_[verticesOffset_ + 2] = lowerL;
+
+                        verticesOffset_ += 3;
+                    }
+
                     break;
                 }
 
                 // upper left node
                 case QT_UL_NODE:
                 {
+                    height = GetScaledHeightAtPoint(iLeft, iUp);
+                    Vertex3dTerrain upperL = { left, height, up, texLeft, texTop };
+
+                    // upper mid, skip if the adjacent node is of a lower detail level
+                    //
+                    //    1----2
+                    //     \   |
+                    //       \ |
+                    //         0
+                    //
+                    if (hasUpperM || isBegin)
+                    {
+                        height = GetScaledHeightAtPoint(iX, iUp);
+                        Vertex3dTerrain upperM = { cx, height, up, texMidX, texTop };
+
+                        vertices_[verticesOffset_ + 0] = center;
+                        vertices_[verticesOffset_ + 1] = upperL;
+                        vertices_[verticesOffset_ + 2] = upperM;
+
+                        verticesOffset_ += 3;
+                    }
+
+                    // finish off the fan with a left mid vertex
+                    //
+                    //    2
+                    //    | \
+                    //    |   \
+                    //    1----0
+                    //
+                    if (fanPos == 1)
+                    {
+                        height = GetScaledHeightAtPoint(iLeft, iZ);
+                        Vertex3dTerrain midL = { left, height, cz, texLeft, texMidY };
+
+                        vertices_[verticesOffset_ + 0] = center;
+                        vertices_[verticesOffset_ + 1] = midL;
+                        vertices_[verticesOffset_ + 2] = upperL;
+
+                        verticesOffset_ += 3;
+                    }
+
                     break;
                 }
 
                 // upper right node
                 case QT_UR_NODE:
                 {
-                    break;
-                }
+                    height = GetScaledHeightAtPoint(iRight, iUp);
+                    Vertex3dTerrain upperR = { right, height, up, texRight, texTop };
 
-                start--;
-                start &= 3;   // -1 & 3  == 3
-            }
-        }
+                    // right mid, skip if the adjacent node is of a lower detail level
+                    //
+                    //         1
+                    //       / |
+                    //     /   |
+                    //    0----2
+                    //
+                    if (hasMidR || isBegin)
+                    {
+                        height = GetScaledHeightAtPoint(iRight, iZ);
+                        Vertex3dTerrain midR = { right, height, cz, texRight, texMidY };
+
+                        vertices_[verticesOffset_ + 0] = center;
+                        vertices_[verticesOffset_ + 1] = upperR;
+                        vertices_[verticesOffset_ + 2] = midR;
+
+                        verticesOffset_ += 3;
+                    }
+
+                    // finish off the fan with a top mid vertex
+                    //
+                    //     1----2
+                    //     |   /
+                    //     | /
+                    //     0
+                    //
+                    if (fanPos == 1)
+                    {
+                        height = GetScaledHeightAtPoint(iX, iUp);
+                        Vertex3dTerrain upperM = { cx, height, up, texMidX, texTop };
+
+                        vertices_[verticesOffset_ + 0] = center;
+                        vertices_[verticesOffset_ + 1] = upperM;
+                        vertices_[verticesOffset_ + 2] = upperR;
+
+                        verticesOffset_ += 3;
+                    }
+
+                    break;
+
+                } // case
+            } // switch
+
+            start--;
+            start &= 3;   // -1 & 3  == 3
+
+        } // for
+
+
 #endif
 
-
-        // now, recurse down to childrent (special cases that were'nt handled earlier)
+#if 1
+        // now, recurse down to children (special cases that were'nt handled earlier)
         for (int fanPos = (4-fanLen); fanPos > 0; fanPos--)
         {
             switch (start)
             {
                 // lower right node
                 case QT_LR_NODE:
-                    GenerateNode(right, down, childEdgeLen);
+                    GenerateNode(childR, childD, childEdgeLen);
                     break;
 
                 // lower left node
                 case QT_LL_NODE:
-                    GenerateNode(left, down, childEdgeLen);
+                    GenerateNode(childL, childD, childEdgeLen);
                     break;
 
                 // upper left node
                 case QT_UL_NODE:
-                    GenerateNode(left, up, childEdgeLen);
+                    GenerateNode(childL, childU, childEdgeLen);
                     break;
 
                 // upper right node
                 case QT_UR_NODE:
-                    GenerateNode(right, up, childEdgeLen);
+                    GenerateNode(childR, childU, childEdgeLen);
                     break;
             }
 
@@ -1270,9 +1508,37 @@ void TerrainQuadtree::GenerateNode(
             start &= 3;    //  -1 & 3  = 3
         }
 
+#endif
         return;
     }
 }
 
+//---------------------------------------------------------
+// Desc:   set axis-aligned bounding box for the terrain
+// Args:   - center:   3d point which define the center of AABB
+//         - extents:  3d vector from center to any point of AABB
+//---------------------------------------------------------
+void TerrainQuadtree::SetAABB(const DirectX::XMFLOAT3& center, const DirectX::XMFLOAT3& extents)
+{
+    center_  = center;
+    extents_ = extents;
+}
+
+//---------------------------------------------------------
+// Desc:   setup the material ID for the terrain
+// Args:   - matID:   material identifier (for details look at: MaterialMgr)
+//---------------------------------------------------------
+void TerrainQuadtree::SetMaterial(const MaterialID matID)
+{
+    if (matID != INVALID_MATERIAL_ID)
+    {
+        materialId_ = matID;
+    }
+    else
+    {
+        LogErr("can't setup material ID because input ID == 0");
+        return;
+    }
+}
 
 }; // namespace Core

@@ -171,13 +171,13 @@ bool VertexBuffer<T>::Initialize(
     // accordingly to the isDynamic flag we setup the vertex buffer description
     if (isDynamic)
     {
-        desc.Usage = D3D11_USAGE_DYNAMIC;                    // specify how the buffer will be used
+        desc.Usage          = D3D11_USAGE_DYNAMIC;           // specify how the buffer will be used
         desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;        // specify how the CPU will access the buffer
     }
     else
     {
-        desc.Usage = D3D11_USAGE_IMMUTABLE;
-        //desc.Usage = D3D11_USAGE_DEFAULT;                  // specify how the buffer will be used
+        //desc.Usage        = D3D11_USAGE_DEFAULT;           // specify how the buffer will be used
+        desc.Usage          = D3D11_USAGE_IMMUTABLE;
         desc.CPUAccessFlags = 0;                             // specify how the CPU will access the buffer
     }
     

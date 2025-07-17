@@ -50,7 +50,7 @@ public:
     void EndScene();
     
 
-    void GetDeviceAndDeviceContext(ID3D11Device*& pDevice, ID3D11DeviceContext*& pContext);
+    void GetDeviceAndContext(ID3D11Device*& pDevice, ID3D11DeviceContext*& pContext);
     void GetVideoCardInfo(char* outCardName, const int maxCardNameSize, int& outMemorySize);
 
     //

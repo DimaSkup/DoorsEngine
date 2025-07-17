@@ -86,7 +86,7 @@ bool CGraphics::InitHelper(
         CAssert::True(result, "can't initialize D3DClass");
 
         // after initialization of the DirectX we can use pointers to the device and device context
-        d3d_.GetDeviceAndDeviceContext(pDevice_, pDeviceContext_);
+        d3d_.GetDeviceAndContext(pDevice_, pDeviceContext_);
 
         // initializer the textures global manager (container)
         g_TextureMgr.Initialize(pDevice_);
@@ -132,7 +132,7 @@ void CGraphics::UpdateHelper(
     // update all the graphics related stuff for this frame
 
 
-    TerrainGeomipmapped& terrain = g_ModelMgr.GetTerrainGeomip();
+    TerrainGeomip& terrain = g_ModelMgr.GetTerrainGeomip();
     
 
     // ---------------------------------------------
@@ -142,7 +142,6 @@ void CGraphics::UpdateHelper(
 
     if (isGameMode_)
     {
-#if 1
         ECS::PlayerSystem& player = pEnttMgr->playerSystem_;
         XMFLOAT3 playerPos = player.GetPosition();
 
@@ -172,64 +171,29 @@ void CGraphics::UpdateHelper(
             const float terrainHeight = terrain.GetScaledInterpolatedHeightAtPoint(playerPos.x, playerPos.z);
             const float offsetOverTerrain = 2;
 
+            // moving up and down the camera during movement
+            //float f = sinf(playerPos.x * 4.0f) + cosf(playerPos.z * 4.0f);
+            //f /= 35.0f;
+            //player.SetMinVerticalOffset(terrainHeight + offsetOverTerrain + f);
+
             player.SetMinVerticalOffset(terrainHeight + offsetOverTerrain);
-
-#if 0
-            // if we aren't in jump
-            if (!player.IsJump())
-            {
-                // make player's offset by Y-axis to be at fixed height over the terrain
-                const float terrainHeight = terrain.GetScaledInterpolatedHeightAtPoint(playerPos.x, playerPos.z);
-                const float offsetOverTerrain = 2;
-
-                playerPos.y = terrainHeight + offsetOverTerrain;
-
-                // set new position for the player
-                const EntityID playerID = player.GetPlayerID();
-                ECS::EventTranslate evnt(playerID, playerPos.x, playerPos.y, playerPos.z);
-                pEnttMgr->AddEvent(evnt);
-            }
-            // we're in jump and check player's height to prevent falling through
-            // the terrain when move both vertically and horizontally
-            else
-            {
-#if 1
-                if (playerPos.y < terrainHeight + offsetOverTerrain)
-                {
-                    player.StopJump();
-
-                    playerPos.y = terrainHeight + offsetOverTerrain;
-
-                    // set new position for the player
-                    const EntityID playerID = player.GetPlayerID();
-                    ECS::EventTranslate evnt(playerID, playerPos.x, playerPos.y, playerPos.z);
-                    pEnttMgr->AddEvent(evnt);
-                }
-#endif
-            }
-#endif
         }
 
 
         sysState.cameraPos = { playerPos.x, playerPos.y, playerPos.z };
-#else
-        const ECS::PlayerSystem& player = pEnttMgr->playerSystem_;
-        XMFLOAT3 playerPos = player.GetPosition();
-        sysState.cameraPos = { playerPos.x, playerPos.y, playerPos.z };
-#endif
     }
     else
     {
         sysState.cameraPos = pEnttMgr->transformSystem_.GetPosition(currCamID);
     }
 
-    sysState.cameraDir  = pEnttMgr->transformSystem_.GetDirection(currCamID);
+    sysState.cameraDir = pEnttMgr->transformSystem_.GetDirection(currCamID);
 
     pEnttMgr->cameraSystem_.UpdateView(currCamID);
 
     sysState.cameraView = pEnttMgr->cameraSystem_.GetView(currCamID);
     sysState.cameraProj = pEnttMgr->cameraSystem_.GetProj(currCamID);
-    viewProj_           = sysState.cameraView * sysState.cameraProj;
+    viewProj_ = sysState.cameraView * sysState.cameraProj;
 
     // build the frustum in view space from the projection matrix
     DirectX::BoundingFrustum::CreateFromMatrix(frustums_[0], sysState.cameraProj);
@@ -250,11 +214,11 @@ void CGraphics::UpdateHelper(
     memcpy(camParams.viewMatrix, &sysState.cameraView.r->m128_f32, 16 * sizeof(float));
     memcpy(camParams.projMatrix, &sysState.cameraProj.r->m128_f32, 16 * sizeof(float));
 
-    camParams.fovX  = pEnttMgr->cameraSystem_.GetFovX(currCamID);
-    camParams.fovY  = pEnttMgr->cameraSystem_.GetFovY(currCamID);
+    camParams.fovX = pEnttMgr->cameraSystem_.GetFovX(currCamID);
+    camParams.fovY = pEnttMgr->cameraSystem_.GetFovY(currCamID);
 
     camParams.nearZ = pEnttMgr->cameraSystem_.GetNearZ(currCamID);
-    camParams.farZ  = pEnttMgr->cameraSystem_.GetFarZ(currCamID);
+    camParams.farZ = pEnttMgr->cameraSystem_.GetFarZ(currCamID);
 
 
     // 6 planes representation of frustum
@@ -274,6 +238,25 @@ void CGraphics::UpdateHelper(
     // recompute terrain patches and load them into GPU
     terrain.Update(camParams);
     terrain.vb_.UpdateDynamic(pDeviceContext_, terrain.vertices_, terrain.verticesOffset_);
+    terrain.ib_.Update(pDeviceContext_, terrain.indices_, terrain.indicesOffset_);
+
+
+    static XMFLOAT3 prevCamPos = { 0,0,0 };
+    bool updateTerrain = false;
+
+    if (prevCamPos != sysState.cameraPos)
+    {
+        updateTerrain = true;
+        prevCamPos = sysState.cameraPos;
+    }
+
+    // recompute terrain's quadtree
+    if (updateTerrain)
+    {
+        //TerrainQuadtree& trnQuadtree = g_ModelMgr.GetTerrainQuadtree();
+        //trnQuadtree.Update(camParams);
+    }
+
 
 
     // ------------------------------------------
@@ -696,7 +679,8 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
 
         RenderEnttsDefault(pRender);
         RenderEnttsAlphaClipCullNone(pRender);
-        RenderTerrain(pRender, pEnttMgr);
+        RenderTerrainGeomip(pRender, pEnttMgr);
+        //RenderTerrainQuadtree(pRender, pEnttMgr);
         RenderSkyDome(pRender, pEnttMgr);
         //RenderFoggedBillboards(pRender, pEnttMgr);
 
@@ -1262,17 +1246,21 @@ void CGraphics::RenderSkyDome(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr
 // Args:   - pRender: a pointer to the renderer (look at Render module)
 //         - pEnttMgr: a pointer to the ECS manager (look at ECS module)
 //---------------------------------------------------------
-void CGraphics::RenderTerrain(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr)
+void CGraphics::RenderTerrainGeomip(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr)
 {
-    const EntityID terrainID = pEnttMgr->nameSystem_.GetIdByName("terrain");
+    const char* terrainName = "terrain_geomipmap";
+    const EntityID terrainID = pEnttMgr->nameSystem_.GetIdByName(terrainName);
 
     // if we haven't any terrain entity
     if (terrainID == INVALID_ENTITY_ID)
+    {
+        LogErr(LOG, "can't find terrain by name: %s", terrainName);
         return;
+    }
 
 
     // prepare the terrain instance
-    TerrainGeomipmapped& terrain = g_ModelMgr.GetTerrainGeomip();
+    TerrainGeomip& terrain = g_ModelMgr.GetTerrainGeomip();
     Render::TerrainInstance instance;
 
     // prepare material
@@ -1291,18 +1279,15 @@ void CGraphics::RenderTerrain(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr
     instance.pVB            = terrain.GetVertexBuffer();
     instance.pIB            = terrain.GetIndexBuffer();
     instance.numVertices    = terrain.verticesOffset_;
-    instance.indexCount     = terrain.GetNumIndices();
+    instance.indexCount     = terrain.indicesOffset_;
 
     // for debugging
-    instance.wantDebug = terrain.wantDebug_;
+    //instance.wantDebug = terrain.wantDebug_;
 
-    // setup rendering pipeline before rendering of the sky dome
-   
-    RenderStates& renderStates = d3d_.GetRenderStates();
+    // setup rendering pipeline before rendering of the terrain
+    RenderStates&        renderStates = d3d_.GetRenderStates();
+    ID3D11DeviceContext* pContext     = pDeviceContext_;
 
-     ID3D11DeviceContext* pContext = pDeviceContext_;
-
-    // setup states before rendering
     if (pRender->shadersContainer_.debugShader_.GetDebugType() == Render::eDebugState::DBG_WIREFRAME)
     {
         renderStates.SetRS(pDeviceContext_, { FILL_WIREFRAME, CULL_BACK, FRONT_CLOCKWISE });
@@ -1316,13 +1301,82 @@ void CGraphics::RenderTerrain(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr
         renderStates.ResetDSS(pContext);
     }
 
-    pRender->shadersContainer_.terrainShader_.RenderVertices(pContext, instance);
+    pRender->shadersContainer_.terrainShader_.Render(pContext, instance);
 
     // compute how many vertices we already rendered
-    pSysState_->visibleVerticesCount += (uint32_t)terrain.verticesOffset_;
+    pSysState_->visibleVerticesCount += (uint32_t)instance.numVertices;
     //pSysState_->visibleVerticesCount += terrain.vb_.GetVertexCount();
 
-    terrain.wantDebug_ = false;
+    //terrain.wantDebug_ = false;
+}
+
+//---------------------------------------------------------
+// Desc:   render quadtree terrain onto the screen
+// Args:   - pRender:  a ptr to the Render class from Render module
+//         - pEnttMgr: a ptr to the Entity manager from ECS module
+//---------------------------------------------------------
+void CGraphics::RenderTerrainQuadtree(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr)
+{
+    const char* terrainName = "terrain_quadtree";
+    const EntityID terrainID = pEnttMgr->nameSystem_.GetIdByName(terrainName);
+
+    // if we haven't any terrain entity
+    if (terrainID == INVALID_ENTITY_ID)
+    {
+        LogErr(LOG, "can't find terrain by name: %s", terrainName);
+        return;
+    }
+
+
+    // prepare the terrain instance
+    TerrainQuadtree& terrain = g_ModelMgr.GetTerrainQuadtree();
+    Render::TerrainInstance instance;
+
+    // prepare material
+    const Material& mat = g_MaterialMgr.GetMaterialByID(terrain.GetMaterialId());
+    memcpy(&instance.material.ambient_.x,  &mat.ambient.x,  sizeof(float) * 4);
+    memcpy(&instance.material.diffuse_.x,  &mat.diffuse.x,  sizeof(float) * 4);
+    memcpy(&instance.material.specular_.x, &mat.specular.x, sizeof(float) * 4);
+    memcpy(&instance.material.reflect_.x,  &mat.reflect.x,  sizeof(float) * 4);
+
+    // prepare textures
+    g_TextureMgr.GetSRVsByTexIDs(mat.textureIDs, NUM_TEXTURE_TYPES, texturesBuf_);
+    memcpy(instance.textures, texturesBuf_.begin(), NUM_TEXTURE_TYPES * sizeof(ID3D11ShaderResourceView*));
+
+    // prepare vertex/index buffers data
+   
+    instance.pVB          = terrain.GetVertexBuffer();
+    instance.vertexStride = terrain.GetVertexStride();
+    instance.pIB          = terrain.GetIndexBuffer();
+    instance.numVertices  = terrain.GetQuadtreeNumVertices();
+    instance.indexCount   = terrain.GetNumIndices();
+
+    // for debugging
+    //instance.wantDebug = terrain.wantDebug_;
+
+    // setup rendering pipeline before rendering of the terrain
+    RenderStates&        renderStates = d3d_.GetRenderStates();
+    ID3D11DeviceContext* pContext     = pDeviceContext_;
+
+    if (pRender->shadersContainer_.debugShader_.GetDebugType() == Render::eDebugState::DBG_WIREFRAME)
+    {
+        renderStates.SetRS(pDeviceContext_, { FILL_WIREFRAME, CULL_BACK, FRONT_CLOCKWISE });
+        renderStates.ResetBS(pContext);
+        renderStates.ResetDSS(pContext);
+    }
+    else
+    {
+        renderStates.ResetRS(pContext);
+        renderStates.ResetBS(pContext);
+        renderStates.ResetDSS(pContext);
+    }
+
+    pRender->shadersContainer_.terrainShader_.Render(pContext, instance);
+
+    // compute how many vertices we already rendered
+    pSysState_->visibleVerticesCount += (uint32_t)instance.numVertices;
+
+    //terrain.wantDebug_ = false;
 }
 
 ///////////////////////////////////////////////////////////

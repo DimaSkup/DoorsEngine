@@ -59,8 +59,8 @@ public:
     virtual bool AddBoundingComponent (const EntityID id, const int boundType, const DirectX::BoundingBox& aabb)            override;
 
     virtual bool     GetAllEnttsIDs   (const EntityID*& outPtrToEnttsIDsArr, int& outNumEntts)                        const override;
-    virtual EntityID GetEnttIDByName  (const std::string& name)                                                       const override;
-    virtual bool     GetEnttNameByID  (const EntityID id, std::string& outName)                                       const override;
+    virtual EntityID GetEnttIdByName  (const std::string& name)                                                       const override;
+    virtual bool     GetEnttNameById  (const EntityID id, std::string& outName)                                       const override;
 
     // extract entities with particular component
     virtual bool GetEnttsOfModelType  (const EntityID*& enttsIDs, int& numEntts)                                            override;

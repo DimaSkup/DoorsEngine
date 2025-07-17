@@ -100,7 +100,6 @@ public:
     bool Create(const uint width, const uint height, const uint bpp);
   
     bool LoadData        (const char* filename);
-    bool Load            (const char* filename, const bool mipmapped = false);
     bool LoadGrayscaleBMP(const char* filename);
 
     bool Save    (const char* filename);
@@ -184,9 +183,17 @@ public:
     inline uint   GetID()     const { return id_; }       // get the identifying of ID of texture
 
 
-    inline void   SetID(const uint id) { id_ = id; }      // set the texture's identifying ID
-    inline bool   IsLoaded()  const { return isLoaded_; } // find out if the texture has been loaded or not
+    // ----------------------------------------------------
+    // inline setters
+    // ----------------------------------------------------
 
+    // set the texture's identifying ID (for detail watch: TextureMgr class)
+    inline void   SetID(const uint id)         { id_ = id; }      
+    inline void   SetWidth(const uint width)   { width_ = width; }
+    inline void   SetHeight(const uint height) { height_ = height; }
+    inline void   SetBPP(const uint bpp)       { bpp_ = bpp; }
+    inline bool   IsLoaded()  const            { return isLoaded_; } // find out if the texture has been loaded or not
+    
 
 private:
     bool LoadRgbBMP(const char* filename);

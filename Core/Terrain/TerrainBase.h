@@ -354,13 +354,6 @@ public:
     {   lightmap_.pData[(z*lightmap_.size) + x] = brightness;   }
 
     //--------------------------------------------------------------
-    // Desc:   set the color of the terrain's lighting system
-    // Args:   - vecColor: the color of the light
-    //--------------------------------------------------------------
-    inline void SetLightColor(const Vec3 vecColor)
-    {   lightColor_ = vecColor;  }
-
-    //--------------------------------------------------------------
     // Desc:   customize the parameters for slope lighting
     // Args:   - dirX, dirZ:    direction of the light, which can only be a whole number
     //         - softness:      the softness of the shadows
@@ -401,6 +394,7 @@ public:
     TerrainTextureTiles tiles_;
     Image               texture_;                 // diffuse texture
     Image               heightMap_;
+    //Image               lightMap_;
     Image               detailMap_;
     bool                textureMapped_ = false;
     bool                multitextured_ = false;
@@ -409,7 +403,6 @@ public:
     // lighting info
     eLightingTypes      lightingType_  = HEIGHT_BASED;
     LightmapData        lightmap_;
-    Vec3                lightColor_    = {1,1,1};
     float               minBrightness_ = 0.0f;
     float               maxBrightness_ = 0.0f;
     float               lightSoftness_ = 0.0f;

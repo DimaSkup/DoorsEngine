@@ -169,12 +169,14 @@ Texture::Texture()
 {
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   create and initialize a texture from a file by filePath
+// Args:   - pDevice:   a ptr to DirectX11 device
+//         - filePath:  a path to texture file
+//---------------------------------------------------------
 Texture::Texture(ID3D11Device* pDevice, const char* filePath) :
     name_(filePath)
 {
-    // create and initialize a texture from a file by filePath
     try
     {
         LoadFromFile(pDevice, filePath);

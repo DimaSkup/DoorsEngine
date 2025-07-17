@@ -34,7 +34,7 @@ bool SkyModel::InitializeBuffers(
 
         constexpr bool isDynamic = false;
 	    vb_.Initialize(pDevice, vertices, numVertices, isDynamic);
-	    ib_.Initialize(pDevice, indices, numIndices);
+	    ib_.Initialize(pDevice, indices, numIndices, isDynamic);
 
         return true;
     }

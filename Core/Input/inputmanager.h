@@ -19,7 +19,7 @@ class InputManager
 {
 public:
 	LRESULT HandleKeyboardMessage(KeyboardClass & keyboard, const UINT &message, WPARAM wParam, LPARAM lParam);
-	LRESULT HandleMouseMessage(MouseClass & mouse, const UINT &message, WPARAM wParam, LPARAM lParam);
+	LRESULT HandleMouseMessage   (MouseClass & mouse,       const UINT &message, WPARAM wParam, LPARAM lParam);
 };
 
 

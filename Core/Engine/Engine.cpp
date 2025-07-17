@@ -638,7 +638,7 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
                     break;
 
                 // recompute light map for the terrain
-                TerrainGeomipmapped& terrain = g_ModelMgr.GetTerrainGeomip();
+                TerrainGeomip& terrain = g_ModelMgr.GetTerrainGeomip();
                 TerrainConfig terrainCfg;
 
                 const char* configPath = "data/terrain/terrain.cfg";
@@ -646,7 +646,6 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
 
                 // setup the terrain's lighting system
                 terrain.SetLightingType(terrainCfg.lightingType);
-                terrain.SetLightColor(terrainCfg.lightColor);
 
                 terrain.CustomizeSlopeLighting(
                     terrainCfg.lightDirX,
@@ -681,8 +680,8 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
             }
             case KEY_F5:
             {
-                if (!keyboard_.WasPressedBefore(KEY_F5))
-                    g_ModelMgr.GetTerrainGeomip().wantDebug_ = true;
+                //if (!keyboard_.WasPressedBefore(KEY_F5))
+                //    g_ModelMgr.GetTerrainGeomip().wantDebug_ = true;
 
                 break;
             }

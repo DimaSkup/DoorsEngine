@@ -60,7 +60,7 @@ void EnttEditorController::SetSelectedEntt(const EntityID enttID)
     {
         // get selected entity ID and name
         selectedEnttData_.id = enttID;
-        pFacade_->GetEnttNameByID(enttID, selectedEnttData_.name);
+        pFacade_->GetEnttNameById(enttID, selectedEnttData_.name);
 
         // get names of added components
         pFacade_->GetEntityAddedComponentsTypes(enttID, selectedEnttData_.componentsTypes);

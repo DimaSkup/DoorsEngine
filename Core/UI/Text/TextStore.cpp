@@ -82,7 +82,9 @@ void TextStore::InitDebugText(ID3D11Device* pDevice, FontClass& font)
     // init common index buffer (is used by both debug const and dynamic sentences)
     font.BuildIndexArray(indices.data(), ibSize);
 
-    if (!ibDbgText_.Initialize(pDevice, indices.data(), ibSize))
+    constexpr bool isDynamicBuf = false;
+
+    if (!ibDbgText_.Initialize(pDevice, indices.data(), ibSize, isDynamicBuf))
     {
         LogErr("can't create an index buffer for debug (dynamic) text");
         return;

@@ -113,8 +113,8 @@ public:
 
 
     virtual bool     GetAllEnttsIDs   (const EntityID*& outPtrToEnttsIDsArr, int& outNumEntts)        const { return false; }
-    virtual EntityID GetEnttIDByName  (const std::string& name)                                       const { return 0; }
-    virtual bool     GetEnttNameByID  (const EntityID id, std::string& outName)                       const { return false; }
+    virtual EntityID GetEnttIdByName  (const std::string& name)                                       const { return 0; }
+    virtual bool     GetEnttNameById  (const EntityID id, std::string& outName)                       const { return false; }
 
     // extract entities with particular component
     virtual bool GetEnttsOfModelType  (const EntityID*& enttsIDs, int& numEntts)                             { return false; }

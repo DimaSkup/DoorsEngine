@@ -149,7 +149,8 @@ void MeshGeometry::InitIndexBuffer(
     CAssert::True(indices != nullptr, "input ptr to indices arr == nullptr");
     CAssert::True(numIndices > 0, "input number of indices must be > 0");
 
-    ib_.Initialize(pDevice, indices, numIndices);
+    constexpr bool isDynamic = false;
+    ib_.Initialize(pDevice, indices, numIndices, isDynamic);
 }
 
 ///////////////////////////////////////////////////////////

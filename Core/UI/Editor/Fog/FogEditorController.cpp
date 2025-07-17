@@ -11,21 +11,21 @@ namespace UI
 
 void FogEditorController::Initialize(IFacadeEngineToUI* pFacade)
 {
-	// the facade interface is used to contact with the rest of the engine
-	CAssert::NotNullptr(pFacade, "ptr to the IFacadeEngineToUI interface == nullptr");
-	pFacade_ = pFacade;
+    // the facade interface is used to contact with the rest of the engine
+    CAssert::NotNullptr(pFacade, "ptr to the IFacadeEngineToUI interface == nullptr");
+    pFacade_ = pFacade;
 
 
-	// initialize the fog editor model  
-	ColorRGB fogColor;
-	float    fogStart = 5.0f;
-	float    fogRange = 100.0f;
+    // initialize the fog editor model  
+    ColorRGB fogColor;
+    float    fogStart = 5.0f;
+    float    fogRange = 100.0f;
     bool     fogEnabled = true;
 
-	if (pFacade_->GetFogData(fogColor, fogStart, fogRange, fogEnabled))
-		fogModel_.Update(fogColor, fogStart, fogRange, fogEnabled);
-	else
-		LogErr("can't gather data for the fog editor :(");
+    if (pFacade_->GetFogData(fogColor, fogStart, fogRange, fogEnabled))
+        fogModel_.Update(fogColor, fogStart, fogRange, fogEnabled);
+    else
+        LogErr("can't gather data for the fog editor :(");
 }
 
 ///////////////////////////////////////////////////////////
@@ -44,10 +44,10 @@ void FogEditorController::Execute(const ICommand* pCmd)
         return;
     }
 
-	
-	// execute changes according to the command type
-	switch (pCmd->type_)
-	{
+    
+    // execute changes according to the command type
+    switch (pCmd->type_)
+    {
         case CHANGE_FOG_ENABLED:
         {
             // enable/disable the scene fog
@@ -61,51 +61,51 @@ void FogEditorController::Execute(const ICommand* pCmd)
             }
             break;
         }
-		case CHANGE_FOG_COLOR:
-		{
-			const ColorRGB newFogColor = pCmd->GetColorRGB();
+        case CHANGE_FOG_COLOR:
+        {
+            const ColorRGB newFogColor = pCmd->GetColorRGB();
 
-			if (pFacade_->SetFogColor(newFogColor))
-			{
+            if (pFacade_->SetFogColor(newFogColor))
+            {
                 fogModel_.SetColor(newFogColor);
-				// TODO: store the command into the events history
-			}
-			break;
-		}
+                // TODO: store the command into the events history
+            }
+            break;
+        }
 
-		// distance where for starts
-		case CHANGE_FOG_START:        
-		{
-			const float newFogStart = pCmd->GetFloat();
+        // distance where for starts
+        case CHANGE_FOG_START:        
+        {
+            const float newFogStart = pCmd->GetFloat();
 
-			if (pFacade_->SetFogStart(newFogStart))
-			{
+            if (pFacade_->SetFogStart(newFogStart))
+            {
                 fogModel_.SetStart(newFogStart);
-				// TODO: store the command into the events history
-			}
-			break;
-		}
+                // TODO: store the command into the events history
+            }
+            break;
+        }
 
-		// distance after which the objects are fully fogged
-		case CHANGE_FOG_RANGE:         
-		{
-			const float newFogRange = pCmd->GetFloat();
+        // distance after which the objects are fully fogged
+        case CHANGE_FOG_RANGE:         
+        {
+            const float newFogRange = pCmd->GetFloat();
 
-			if (pFacade_->SetFogRange(newFogRange))
-			{
+            if (pFacade_->SetFogRange(newFogRange))
+            {
                 fogModel_.SetRange(newFogRange);
-				// TODO: store the command into the events history
-			}
-			break;
-		}
-	}
+                // TODO: store the command into the events history
+            }
+            break;
+        }
+    }
 }
 
 ///////////////////////////////////////////////////////////
 
 void FogEditorController::Undo(const ICommand* pCommand, const uint32_t entityID)
 {
-	assert(0 && "TODO: implement it!");
+    assert(0 && "TODO: implement it!");
 }
 
 } // namespace UI

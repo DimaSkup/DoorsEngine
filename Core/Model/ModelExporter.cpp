@@ -6,7 +6,7 @@
 #include "ModelExporter.h"
 
 #include "../Texture/TextureTypes.h"
-#include "ImgConverter.h"
+#include <ImgConverter.h>
 #include "../Texture/TextureMgr.h"
 
 namespace fs = std::filesystem;

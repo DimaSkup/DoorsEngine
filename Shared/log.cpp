@@ -312,7 +312,7 @@ void LogErr(
     vsnprintf(s_StrTmpBuf, LOG_BUF_SIZE - 1, format, args);
 
     // get a relative path to the caller's file
-    char* fileName = s_StrTmpBuf2;
+    char fileName[128]{'\0'};
     GetPathFromProjRoot(fullFilePath, fileName);
 
     const time_t time = clock();
