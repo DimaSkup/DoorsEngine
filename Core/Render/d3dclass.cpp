@@ -24,7 +24,9 @@ ID3D11Device*        g_pDevice;
 ID3D11DeviceContext* g_pContext;
 
 
-
+//---------------------------------------------------------
+// Desc:   default constructor and destructor
+//---------------------------------------------------------
 D3DClass::D3DClass()
 {
     if (D3DClass::pInstance_ == nullptr)
@@ -41,14 +43,13 @@ D3DClass::D3DClass()
 
 D3DClass::~D3DClass()
 {
+    Shutdown();
 }
 
-
-
-// ================================================================================
-//                            public methods
-// ================================================================================
-
+//---------------------------------------------------------
+// Desc:   initialize all the DirectX11 stuff, some common params, depth-stencil, etc.
+// Ret:    true if we managed to initialize
+//---------------------------------------------------------
 bool D3DClass::Initialize(
     HWND hwnd, 
     const bool vsyncEnabled,
@@ -124,16 +125,14 @@ bool D3DClass::Initialize(
     return true;
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// reset the screen state and release the allocated memory
+//---------------------------------------------------------
 void D3DClass::Shutdown()
 {
-    // reset the screen state and release the allocated memory
-
     // set a windowed mode as active
     if (pSwapChain_)
         pSwapChain_->SetFullscreenState(FALSE, nullptr);
-
 
     // release all the depth stencil stuff
     SafeRelease(&pDepthStencilView_);
@@ -145,32 +144,11 @@ void D3DClass::Shutdown()
     SafeRelease(&pSwapChain_);
 }
 
-///////////////////////////////////////////////////////////
-
-void* D3DClass::operator new(size_t i)
-{
-    // memory allocation
-
-    if (void* ptr = _aligned_malloc(i, 16))
-    {
-        return ptr;
-    }
-    
-    LogErr("can't allocate memory for the D3DClass object");
-    throw std::bad_alloc{};
-}
-
-void D3DClass::operator delete(void* p)
-{
-    _aligned_free(p);
-}
-
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:  before rendering of each frame we need to reset buffers
+//---------------------------------------------------------
 void D3DClass::BeginScene()
 {
-    // before rendering of each frame we need to reset buffers
-
     const FLOAT bgColor[4]{ 0, 1, 1, 0 };
     
     // clear the render target view with particular color
@@ -180,30 +158,30 @@ void D3DClass::BeginScene()
     pContext_->ClearDepthStencilView(pDepthStencilView_, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:  present the back buffer content onto the screen
+//---------------------------------------------------------
 void D3DClass::EndScene()
 {
-    // after all the rendering into the back buffer 
-    // we need to present it on the screen
-
     // if vertical synchronization is enabled the first param will be set to 1
     // or in another case it will be set to 0 (no vsync)
     pSwapChain_->Present((UINT)vsyncEnabled_, 0);
 }
 
-///////////////////////////////////////////////////////////
-
-void D3DClass::GetDeviceAndDeviceContext(
-    ID3D11Device*& pDevice,
-    ID3D11DeviceContext*& pContext)
+//---------------------------------------------------------
+// Desc:   get a pointer to the DirectX11 device and device context
+//---------------------------------------------------------
+void D3DClass::GetDeviceAndContext(ID3D11Device*& pDevice, ID3D11DeviceContext*& pContext)
 {
     pDevice  = pDevice_;
     pContext = pContext_;
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   get some info about our video card
+// Out:    - outCardName:  the name of used GPU
+//         - maxCardNameSize: 
+//---------------------------------------------------------
 void D3DClass::GetVideoCardInfo(
     char* outCardName, 
     const int maxCardNameSize,
@@ -221,30 +199,28 @@ void D3DClass::GetVideoCardInfo(
     StrHelper::ToStr(adapterDesc.Description, outCardName);
     outMemorySize = (int)(adapterDesc.DedicatedVideoMemory / bytesInMegabyte);
 
-
     // print info about GPU into the console and log file
+    SetConsoleColor(GREEN);
     LogMsg("Video card info:");
     LogMsg("Video card name: %s", outCardName);
     LogMsg("Video memory: %d MB", outMemorySize);
+    SetConsoleColor(RESET);
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   we call this function to set up a raster state for proper
+//         rendering of 2D elements / UI;
+//         NOTE: we store a hash of the previous RS so later we can set it back
+//---------------------------------------------------------
 void D3DClass::TurnOnRSfor2Drendering()
 {
-    // we call this function to set up a raster state 
-    // for proper rendering of 2D elements / UI;
-    // NOTE: we store a hash of the previous RS so later we can set it back
-
     prevRasterStateHash_ = renderStates_.GetCurrentRSHash();
     renderStates_.SetRS(pContext_, { FILL_SOLID, CULL_BACK, FRONT_CLOCKWISE });
 }
 
-
-
-// ================================================================================= 
-//                             PRIVATE METHODS
-// =================================================================================
+//---------------------------------------------------------
+// Desc:  initialize DirectX11 device, context, swap chain, render target, viewport
+//---------------------------------------------------------
 void D3DClass::InitializeDirectX(
     HWND hwnd,
     const UINT wndWidth,
@@ -275,8 +251,9 @@ void D3DClass::InitializeDirectX(
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:  initialize DirectX11 device and device context
+//---------------------------------------------------------
 void D3DClass::InitializeDevice()
 {
     // creates the Direct3D 11 device and context;
@@ -316,8 +293,11 @@ void D3DClass::InitializeDevice()
     g_pContext = pContext_;
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   resize the swap chain, reinit related stuff, change window's params
+//         (is used when we change the window size or switch btw editor and game modes)
+// Ret:    true if we managed to do all right
+//---------------------------------------------------------
 bool D3DClass::ResizeSwapChain(HWND hwnd, SIZE newSize)
 {
     // handle window resizing
@@ -368,8 +348,12 @@ bool D3DClass::ResizeSwapChain(HWND hwnd, SIZE newSize)
     return true;
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   initialize the DirectX11 swap chain
+// Args:   - hwnd:   window handler
+//         - width:  window width
+//         - height: window height
+//---------------------------------------------------------
 void D3DClass::InitializeSwapChain(HWND hwnd, const int width, const int height)
 {
     HRESULT hr = S_OK;
@@ -379,14 +363,14 @@ void D3DClass::InitializeSwapChain(HWND hwnd, const int width, const int height)
     sd.BufferDesc.Width            = width;                                 // desired back buffer width
     sd.BufferDesc.Height           = height;                                // desired back buffer height
     sd.BufferDesc.Format           = backBufferFormat_;                     // use a simple 32-bit surface 
-    sd.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_PROGRESSIVE;// DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;	// a rasterizer method to render an image on a surface
+    sd.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;	// a rasterizer method to render an image on a surface
     sd.BufferDesc.Scaling          = DXGI_MODE_SCALING_UNSPECIFIED;         // how to scale an image to fit it to the screen resolution
 
-    sd.BufferCount                 = 1;                                     // we have only one back buffer
+    sd.BufferCount                 = 2;                                     // we have only one back buffer
     sd.BufferUsage                 = DXGI_USAGE_RENDER_TARGET_OUTPUT;       // use the back buffer as the render target output
     sd.OutputWindow                = hwnd;                                  // set the current window
     sd.Windowed                    = !fullScreen_;                          // specity true to run in windowed mode or false for full-screen mode
-    sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;              // discard the content of the back buffer after presenting
+    sd.SwapEffect                  = DXGI_SWAP_EFFECT_DISCARD;              // discard the content of the back buffer after presenting
     sd.Flags                       = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 
 
@@ -423,11 +407,11 @@ void D3DClass::InitializeSwapChain(HWND hwnd, const int width, const int height)
     SafeRelease(&pDxgiDevice);
     SafeRelease(&pDxgiAdapter);
     SafeRelease(&pDxgiFactory);
-
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   initialize the DirectX11 render target view
+//---------------------------------------------------------
 void D3DClass::InitializeRenderTargetView()
 {
     // create and set up the render target view to the back buffer;
@@ -455,8 +439,9 @@ void D3DClass::InitializeRenderTargetView()
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:  initialize the DirectX11 depth-stencil stuff
+//---------------------------------------------------------
 void D3DClass::InitializeDepthStencil(const UINT width, const UINT height)
 {
     // creates the depth stencil buffer, depth stencil view
@@ -480,8 +465,9 @@ void D3DClass::InitializeDepthStencil(const UINT width, const UINT height)
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   initialize the DirectX11 depth-stencil buffer
+//---------------------------------------------------------
 void D3DClass::InitializeDepthStencilTextureBuffer(const UINT width, const UINT height)
 {
     // create a depth/stencil buffer texture
@@ -509,8 +495,9 @@ void D3DClass::InitializeDepthStencilTextureBuffer(const UINT width, const UINT 
     CAssert::NotFailed(hr, "can't create the depth stencil buffer");
 } 
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   initialize the DirectX11 depth-stencil view
+//---------------------------------------------------------
 void D3DClass::InitializeDepthStencilView()
 {
 #if 0
@@ -532,15 +519,17 @@ void D3DClass::InitializeDepthStencilView()
     CAssert::NotFailed(hr, "can't create a depth stencil view");
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   initialize the DirectX11 viewport
+//---------------------------------------------------------
 void D3DClass::InitializeViewport(const UINT width, const UINT height)
 {
     SetupViewportParams((float)width, (float)height, 1, 0, 0, 0); 
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   setup/reinit the DirectX11 viewport
+//---------------------------------------------------------
 void D3DClass::SetupViewportParams(
     const float width,
     const float height,
@@ -554,8 +543,9 @@ void D3DClass::SetupViewportParams(
     pContext_->RSSetViewports(1, &viewport_); // bind the viewport
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   switch btw windowed/fullscreen modes
+//---------------------------------------------------------
 bool D3DClass::ToggleFullscreen(HWND hwnd, bool isFullscreen)
 {
     try

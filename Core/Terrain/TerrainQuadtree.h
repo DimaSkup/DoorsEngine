@@ -18,26 +18,6 @@ namespace Core
 
 
 // =================================================================================
-// Constants
-// =================================================================================
-
-// QT - quad tree
-// LR - lower right
-// LL - lower left
-// UL - upper left
-// UR - upper right
-#define QT_LR_NODE 0
-#define QT_LL_NODE 1
-#define QT_UL_NODE 2
-#define QT_UR_NODE 3
-
-// bit codes
-#define QT_COMPLETE_FAN 0
-#define QT_LL_UR        10
-#define QT_LR_UL        5
-#define QT_NO_FAN       15
-
-// =================================================================================
 // Data structures
 // =================================================================================
 struct SqtVertex
@@ -67,26 +47,35 @@ public:
 
     void Update(const CameraParams& params);
 
+    void SetAABB(const DirectX::XMFLOAT3& center, const DirectX::XMFLOAT3& extents);
+    void SetMaterial(const MaterialID matID);
 
     //-----------------------------------------------------
     // inline getters
     //-----------------------------------------------------
-    inline Vertex3dTerrain*  GetVertices()            { return vertices_; }
-    inline Vertex3dTerrain** GetVerticesAddrOf()      { return &vertices_; }
-    inline UINT*             GetIndices()             { return indices_; }
-    inline UINT**            GetIndicesAddrOf()       { return &indices_; }
+    inline Vertex3dTerrain*  GetVertices()                  { return vertices_; }
+    inline Vertex3dTerrain** GetVerticesAddrOf()            { return &vertices_; }
+    inline UINT*             GetIndices()                   { return indices_; }
+    inline UINT**            GetIndicesAddrOf()             { return &indices_; }
 
 
-    inline int              GetNumVertices()    const { return numVertices_; }
-    inline int              GetNumIndices()     const { return numIndices_; }
-    inline uint             GetVertexStride()   const { vb_.GetStride(); }
+    inline int               GetNumVertices()         const { return numVertices_; }
+    inline int               GetNumIndices()          const { return numIndices_; }
+
+    inline ID3D11Buffer*     GetVertexBuffer()        const { return vb_.Get(); }
+    inline ID3D11Buffer*     GetIndexBuffer()         const { return ib_.Get(); }
+    inline uint              GetVertexStride()        const { return vb_.GetStride(); }
+    inline uint32            GetQuadtreeNumVertices() const { return verticesOffset_; }
+
+    inline MaterialID        GetMaterialId()          const { return materialId_; }
+    inline DirectX::XMFLOAT3 GetAABBCenter()          const { return center_; }
+    inline DirectX::XMFLOAT3 GetAABBExtents()         const { return extents_; }
 
     //-----------------------------------------------------
     // setters
     //-----------------------------------------------------
     void SetNumVertices(const int num);
     void SetNumIndices (const int num);
-
 
     //-----------------------------------------------------
     // Desc:   set the quadtree's desired detail level
@@ -108,7 +97,7 @@ public:
     // Ret:    the value stored in the quadtree matrix
     //-----------------------------------------------------
     inline uint8 GetQuadMatrixData(const int x, const int z)
-    {   return quadMatrix_[(z*heightMap_.GetWidth()) + x]; }
+    {   return quadMatrix_[z*terrainSize_ + x]; }
 
 private:
     void PropagateRoughness(void);
@@ -130,7 +119,7 @@ private:
     // Ret:    an index to access info in quadtree matrix
     //-----------------------------------------------------
     inline int GetMatrixIdx(const int x, const int z)
-    {   return (z*heightMap_.GetWidth() + x); }
+    {   return (z*terrainSize_ + x); }
 
 
 private:
@@ -138,7 +127,7 @@ private:
     uint8               vertexStride_       = sizeof(Vertex3dTerrain);
     uint32              numVertices_        = 0;
     uint32              numIndices_         = 0;
-    MaterialID          materialID_         = 0;
+    MaterialID          materialId_         = 0;
     uint8*              quadMatrix_         = nullptr;
 
     // keep CPU copy of the vertices/indices data to read from
@@ -151,10 +140,13 @@ private:
     // detail level variables
     float               desiredResolution_  = 50.0f;
     float               minResolution_      = 10.0f;
+    int                 terrainSize_        = 256;
 
     VertexBuffer<Vertex3dTerrain> vb_;
     IndexBuffer<UINT>             ib_;
 
+    DirectX::XMFLOAT3   center_;
+    DirectX::XMFLOAT3   extents_;
 };
 
 }; // namespace Core

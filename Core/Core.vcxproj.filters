@@ -701,6 +701,9 @@
     <ClInclude Include="Terrain\TerrainQuadtreeCreator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Terrain\TerrainLodMgr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="ECS_Entity\EntityManagerInlineFunc.inl">

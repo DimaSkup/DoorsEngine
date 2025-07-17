@@ -30,6 +30,7 @@ void EditorPanels::Initialize(IFacadeEngineToUI* pFacade)
 
     enttEditorController_.Initialize(pFacadeEngineToUI_);
     fogEditorController_.Initialize(pFacadeEngineToUI_);
+    skyEditorController_.Initialize(pFacadeEngineToUI_);
 
     debugEditor_.Initialize(pFacadeEngineToUI_);
 
@@ -197,7 +198,7 @@ void EditorPanels::RenderEntitiesListWnd(Core::SystemState& sysState)
         // 
         // get a name of each entity on the scene
         for (int i = 0; std::string& name : enttsNames)
-            pFacadeEngineToUI_->GetEnttNameByID(pEnttsIDs[i++], name);
+            pFacadeEngineToUI_->GetEnttNameById(pEnttsIDs[i++], name);
 
         /*
         for (int i = 0; i < numEnttsTypes; ++i)
@@ -287,6 +288,12 @@ void EditorPanels::RenderPropertiesControllerWnd()
         if (ImGui::TreeNodeEx("FogEditor", ImGuiTreeNodeFlags_SpanFullWidth))
         {
             fogEditorController_.Draw();
+            ImGui::TreePop();
+        }
+
+        if (ImGui::TreeNodeEx("SkyEditor", ImGuiTreeNodeFlags_SpanFullWidth))
+        {
+            skyEditorController_.Draw();
             ImGui::TreePop();
         }
     }

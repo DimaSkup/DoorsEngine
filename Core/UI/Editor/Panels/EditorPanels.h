@@ -18,7 +18,7 @@
 #include "../Entity/Controller/EnttEditorController.h"
 #include "../Fog/FogEditorController.h"
 #include "../Entity/Creator/EntityCreatorWnd.h"
-
+#include "../Terrain/Sky/SkyController.h"
 
 namespace UI
 {
@@ -50,6 +50,7 @@ public:
     DebugEditor          debugEditor_;
     EnttEditorController enttEditorController_;
     FogEditorController  fogEditorController_;
+    SkyController        skyEditorController_;
 
 private:
     IFacadeEngineToUI* pFacadeEngineToUI_ = nullptr;

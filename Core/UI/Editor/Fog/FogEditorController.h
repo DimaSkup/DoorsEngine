@@ -31,7 +31,7 @@ public:
 	// execute command and store this change into the events history
 	virtual void Execute(const ICommand* pCommand) override;
 
-	// undo/alt_undo an event from the events history
+	// undo/alt_undo an event (related to fog) from the events history
 	virtual void Undo(const ICommand* pCommand, const uint32_t entityID) override;
 
 

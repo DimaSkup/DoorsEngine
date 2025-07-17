@@ -29,16 +29,12 @@ public:
             return false;
         }
 
-        CreateTerrainQuadtree(pDevice, configFilename);
+        //CreateTerrainQuadtree(pDevice, configFilename);
         CreateTerrainGeomipmapped(pDevice, configFilename);
 
         return true;
     }
 };
-
-
-//==================================================================================
-
 
 //---------------------------------------------------------
 // Desc:   generate height for the input grid by some particular function;
@@ -181,7 +177,7 @@ void ComputeAveragedNormals(
     // for each vertex v, we have summed the face normals of all
     // the triangles that share v, so now we just need to normalize
     for (int i = 0; i < numVertices; ++i)
-        vertices[i].normal = DirectX::XMFloat3Normalize(vertices[i].normal);
+        DirectX::XMFloat3Normalize(vertices[i].normal);
 }
 
 } // namespace Core

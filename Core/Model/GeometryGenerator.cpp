@@ -1195,8 +1195,8 @@ void GeometryGenerator::GenerateSphere(
     assert(params.stackCount_ > 0);
 
     const float radius = params.radius_;
-    const int sliceCount = params.sliceCount_;
-    const int stackCount = params.stackCount_;
+    const int sliceCount = params.sliceCount_;                         // num vertical quads
+    const int stackCount = params.stackCount_;                         // num horizontal quads
 
     const int numVertices = stackCount * sliceCount + 1 + sliceCount;  // +1 because of lowest center vertex
     const int numIndices = numVertices * 6 + (sliceCount * 3);         // + (sliceCount * 3) -- because of the lowest part of sphere

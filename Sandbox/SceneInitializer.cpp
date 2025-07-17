@@ -697,14 +697,14 @@ void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
     }
 }
 
-///////////////////////////////////////////////////////////
-
-void CreateTerrain(ECS::EntityMgr& mgr, const Core::TerrainGeomipmapped& terrain)
+//---------------------------------------------------------
+// Desc:  create and setup terrain (geomipmap) entity
+// Args:  - mgr:     entity manager from ECS module
+//        - terrain: our terrain obj
+//---------------------------------------------------------
+void CreateTerrain(ECS::EntityMgr& mgr, const Core::TerrainGeomip& terrain)
 {
-    //
-    // create and setup terrain elements
-    //
-    LogDbg(LOG, "create terrain");
+    LogDbg(LOG, "create terrain geomipmap");
 
     // create and setup a terrain entity
     const EntityID enttID = mgr.CreateEntity();
@@ -726,11 +726,50 @@ void CreateTerrain(ECS::EntityMgr& mgr, const Core::TerrainGeomipmapped& terrain
 
 
     mgr.AddTransformComponent(enttID);
-    mgr.AddNameComponent(enttID, "terrain");
+    mgr.AddNameComponent(enttID, "terrain_geomipmap");
     mgr.AddBoundingComponent(enttID, boundType, aabb);
     mgr.AddMaterialComponent(enttID, &terrainMatID, numSubsets, areMaterialsMeshBased);
 
-    LogDbg(LOG, "Terrain is created");
+    LogDbg(LOG, "Terrain (geomipmap) is created");
+}
+
+//---------------------------------------------------------
+// Desc:  create and setup terrain (quadtree) entity
+// Args:  - mgr:     entity manager from ECS module
+//        - terrain: our terrain obj
+//---------------------------------------------------------
+void CreateTerrain(ECS::EntityMgr& mgr, const Core::TerrainQuadtree& terrain)
+{
+    //
+    // create and setup terrain elements
+    //
+    LogDbg(LOG, "create terrain quadtree");
+
+    // create and setup a terrain entity
+    const EntityID enttID = mgr.CreateEntity();
+
+    // setup rendering params
+    ECS::RenderInitParams renderParams;
+    renderParams.shaderType = ECS::LIGHT_SHADER;
+    renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+    // setup bounding params
+    constexpr size             numEntts = 1;
+    constexpr size             numSubsets = 1;
+    const ECS::BoundingType    boundType = ECS::BoundingType::BOUND_BOX;
+    const DirectX::BoundingBox aabb = { terrain.GetAABBCenter(), terrain.GetAABBExtents() };
+
+    // setup material params
+    constexpr bool areMaterialsMeshBased = true;
+    const MaterialID terrainMatID = terrain.GetMaterialId();
+
+
+    mgr.AddTransformComponent(enttID);
+    mgr.AddNameComponent(enttID, "terrain_quadtree");
+    mgr.AddBoundingComponent(enttID, boundType, aabb);
+    mgr.AddMaterialComponent(enttID, &terrainMatID, numSubsets, areMaterialsMeshBased);
+
+    LogDbg(LOG, "Terrain (quadtree) is created");
 }
 
 ///////////////////////////////////////////////////////////
@@ -801,7 +840,7 @@ void CreateTreesPine(ECS::EntityMgr& mgr, const BasicModel& model)
     }
 
     // we will set heights according to the terrain's landscape
-    TerrainGeomipmapped& terrain = g_ModelMgr.GetTerrainGeomip();
+    TerrainGeomip& terrain = g_ModelMgr.GetTerrainGeomip();
     const float range = (float)terrain.heightMap_.GetWidth();
     const float maxHeight = 60;// terrain.tiles_.regions[HIGHEST_TILE].lowHeight;
 
@@ -893,7 +932,7 @@ void CreateTreesSpruce(ECS::EntityMgr& mgr, const BasicModel& model)
     }
 
     // we will set heights according to the terrain's landscape
-    TerrainGeomipmapped& terrain = g_ModelMgr.GetTerrainGeomip();
+    TerrainGeomip& terrain = g_ModelMgr.GetTerrainGeomip();
     const float range            = (float)terrain.heightMap_.GetWidth();
     const float maxHeight        = 80;
 
@@ -1434,7 +1473,7 @@ void CreateCastleTower(ECS::EntityMgr& mgr, const BasicModel& model)
     const EntityID enttID = mgr.CreateEntity();
 
     // compute the terrain's middle point
-    TerrainGeomipmapped& terrain = g_ModelMgr.GetTerrainGeomip();
+    TerrainGeomip& terrain = g_ModelMgr.GetTerrainGeomip();
     const float terrainSize = (float)terrain.heightMap_.GetWidth();
     const float posX = terrainSize / 2;
     const float posZ = terrainSize / 2;
@@ -1883,24 +1922,46 @@ void GenerateAssets(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     Core::Terrain& terrain      = g_ModelMgr.GetTerrain();
 #else
     const ModelID terrainID             = creator.CreateTerrain(terrainConfigPath);
-    Core::TerrainGeomipmapped& terrain  = g_ModelMgr.GetTerrainGeomip();
+    Core::TerrainGeomip& terrainGeomip   = g_ModelMgr.GetTerrainGeomip();
+    Core::TerrainQuadtree&     terrainQuadtree = g_ModelMgr.GetTerrainQuadtree();
 #endif
 
-    // load and set a texture for the terrain model
+    //-------------------------------------------
 
-    // create and setup material for terrain
-    Material terrainMat;
-    terrainMat.SetAmbient(0.2f, 0.2f, 0.2f, 1.0f);
-    terrainMat.SetTexture(TEX_TYPE_DIFFUSE, terrain.texture_.GetID());
-    terrainMat.SetTexture(TEX_TYPE_DIFFUSE_ROUGHNESS, terrain.detailMap_.GetID());
-    terrainMat.SetTexture(TEX_TYPE_LIGHTMAP, terrain.lightmap_.id);
+
+    // create and setup material for terrain (geomipmap)
+    Material mat1;
+    mat1.SetAmbient(0.5f, 0.5f, 0.5f, 1.0f);
+    mat1.SetDiffuse(0.8f, 0.8f, 0.8f, 1.0f);
+    mat1.SetTexture(TEX_TYPE_DIFFUSE,           terrainGeomip.texture_.GetID());
+    mat1.SetTexture(TEX_TYPE_DIFFUSE_ROUGHNESS, terrainGeomip.detailMap_.GetID());
+    mat1.SetTexture(TEX_TYPE_LIGHTMAP,          terrainGeomip.lightmap_.id);
     //terrainMat.SetTexture(TEX_TYPE_NORMALS, terrain.normalMap_.GetID());
-    strcpy(terrainMat.name, "terrain_mat_1");
-    const MaterialID terrainMatID = g_MaterialMgr.AddMaterial(std::move(terrainMat));
+    mat1.SetName("terrain_mat_geomip");
 
-    terrain.SetMaterial(terrainMatID);
+    // add a new material into material manager and set its ID to the terrain model
+    terrainGeomip.SetMaterial(g_MaterialMgr.AddMaterial(std::move(mat1)));
 
-    CreateTerrain(mgr, terrain);
+    //-------------------------------------------
+
+
+    // create and setup material for terrain (geomipmap)
+    Material mat2;
+    mat2.SetAmbient(0.5f, 0.5f, 0.5f, 1.0f);
+    mat2.SetDiffuse(0.8f, 0.8f, 0.8f, 1.0f);
+    mat2.SetTexture(TEX_TYPE_DIFFUSE,           terrainGeomip.texture_.GetID());
+    mat2.SetTexture(TEX_TYPE_DIFFUSE_ROUGHNESS, terrainGeomip.detailMap_.GetID());
+    mat2.SetTexture(TEX_TYPE_LIGHTMAP,          terrainGeomip.lightmap_.id);
+    //terrainMat.SetTexture(TEX_TYPE_NORMALS, terrain.normalMap_.GetID());
+    mat2.SetName("terrain_mat_geomip");
+
+    // add a new material into material manager and set its ID to the terrain model
+    terrainQuadtree.SetMaterial(g_MaterialMgr.AddMaterial(std::move(mat2)));
+
+    //-------------------------------------------
+
+    CreateTerrain(mgr, terrainGeomip);
+    CreateTerrain(mgr, terrainQuadtree);
 #endif
 
     // generate some models manually

@@ -15,10 +15,12 @@ namespace Core
 {
 
 // prototypes
-bool TerrainInitHeight  (TerrainQuadtree& terrain, const TerrainConfig& terrainCfg);
-bool TerrainInitTileMap (TerrainQuadtree& terrain, const TerrainConfig& terrainCfg);
-bool TerrainInitLightMap(TerrainQuadtree& terrain, const TerrainConfig& terrainCfg);
-bool TerrainInitHeight  (TerrainQuadtree& terrain, const TerrainConfig& terrainCfg);
+bool TerrainInitHeight   (TerrainQuadtree& terrain, const TerrainConfig& terrainCfg);
+bool TerrainInitTileMap  (TerrainQuadtree& terrain, const TerrainConfig& terrainCfg);
+bool TerrainInitLightMap (TerrainQuadtree& terrain, const TerrainConfig& terrainCfg);
+bool TerrainInitHeight   (TerrainQuadtree& terrain, const TerrainConfig& terrainCfg);
+bool TerrainInitDetailMap(TerrainQuadtree& terrain, const char* filePath);
+
 
 
 //---------------------------------------------------------
@@ -29,20 +31,14 @@ bool TerrainInitHeight  (TerrainQuadtree& terrain, const TerrainConfig& terrainC
 //---------------------------------------------------------
 bool CreateTerrainQuadtree(ID3D11Device* pDevice, const char* configFilename)
 {
-    return true;
 
     // check input args
     if (!pDevice)
-    {
-        LogErr("input ptr to DirectX device == nullptr");
-        return false;
-    }
+        return ErrMsgHelper(LOG, "input ptr to DirectX device == nullptr");
 
-    if (!configFilename || configFilename[0] == '\0')
-    {
-        LogErr("intput path to terrain config file is empty!");
-        return false;
-    }
+    if (StrHelper::IsEmpty(configFilename))
+        return ErrMsgHelper(LOG, "intput path to terrain config file is empty!");
+
 
     TerrainQuadtree&  terrain = g_ModelMgr.GetTerrainQuadtree();
     GeometryGenerator geoGen;
@@ -61,10 +57,10 @@ bool CreateTerrainQuadtree(ID3D11Device* pDevice, const char* configFilename)
     terrain.Release();
 
     geoGen.GenerateTerrainFlatGrid(
-        width,
-        depth,
-        width + 1,
-        depth + 1,
+        width - 1,                      // num quads by X
+        depth - 1,                      // num quads by Z
+        width,                          // num vertices by X
+        depth,                          // num vertices by Z
         terrain.GetVerticesAddrOf(),
         terrain.GetIndicesAddrOf(),
         numVertices,
@@ -75,36 +71,70 @@ bool CreateTerrainQuadtree(ID3D11Device* pDevice, const char* configFilename)
 
     // ------------------------------------------
 
-    // generate a height map or load it from file
+
     if (!TerrainInitHeight(terrain, terrainCfg))
     {
         LogErr(LOG, "can't inialize the terrain heights");
         exit(-1);
     }
 
-    // generate a tile map or load it from file
     if (!TerrainInitTileMap(terrain, terrainCfg))
     {
         LogErr(LOG, "can't initialize the terrain's tile map");
         exit(-1);
     }
 
-    // generate a light map or load it from file
     if (!TerrainInitLightMap(terrain, terrainCfg))
     {
         LogErr(LOG, "can't initialize the terrain's lightmap");
         exit(-1);
     }
 
-    if (!terrain.LoadDetailMap(terrainCfg.pathDetailMap))
+    if (!TerrainInitDetailMap(terrain, terrainCfg.pathDetailMap))
     {
-        LogErr(LOG, "can't load the terrain's detail map");
+        LogErr(LOG, "can't initialize the terrain's detail map");
         exit(-1);
     }
 
+    // ------------------------------------------
 
-    // TEMP
-    terrain.Release();
+
+    // release memory from vertices/indices buffers (CPU-side arrays)
+    SafeDeleteArr(*terrain.GetVerticesAddrOf());
+    SafeDeleteArr(*terrain.GetIndicesAddrOf());
+
+ 
+    // reallocate buffers
+    terrain.AllocateMemory(2000000, 1);
+    UINT indices[1]{0};
+
+    // initialize vertex/index GPU-side buffer
+    terrain.InitBuffers(
+        terrain.GetVertices(),
+        indices,
+        2000000, //terrain.GetNumVertices(),
+        1);      //terrain.GetNumIndices()
+
+    // setup detail level variables
+    terrain.SetDesiredResolution(20);
+    terrain.SetMinResolution(10);
+
+    // initialize the quadtree
+    terrain.Init();
+
+    // compute the bounding box of the terrain
+    const float halfWidth = width * 0.5f;
+    const float halfDepth = depth * 0.5f;
+    const float centerX   = halfWidth;
+    const float centerZ   = halfDepth;
+
+    const DirectX::XMFLOAT3 center  = { centerX, 0, centerZ };
+    const DirectX::XMFLOAT3 extents = { halfWidth, 1.0f, halfDepth };
+
+    // setup axis-aligned bounding box
+    terrain.SetAABB(center, extents);
+
+    //terrain.Release();
 
     // great success!
     LogMsg(LOG, "terrain (quadtree type) is created!");
@@ -115,6 +145,7 @@ bool CreateTerrainQuadtree(ID3D11Device* pDevice, const char* configFilename)
 // Desc:   generate terrain's height map or load it from file
 // Args:   - terrain:     actual terrain's obj
 //         - terrainCfg:  container for different configs for terrain
+// Ret:    true if we managed to successfully initialize a terrain's height map
 //---------------------------------------------------------
 bool TerrainInitHeight(TerrainQuadtree& terrain, const TerrainConfig& terrainCfg)
 {
@@ -134,29 +165,33 @@ bool TerrainInitHeight(TerrainQuadtree& terrain, const TerrainConfig& terrainCfg
                 terrainCfg.maxDelta,
                 terrainCfg.filter);
         }
-
         // use "midpoint displacement"
         else
         {
-            result = terrain.GenHeightMidpointDisplacement(
-                terrainWidth,
-                terrainCfg.roughness);
+            result = terrain.GenHeightMidpointDisplacement(terrainWidth, terrainCfg.roughness);
         }
+
+
+        if (!result)
+            return ErrMsgHelper(LOG, "can't generate heights for terrain");
 
         if (terrainCfg.saveHeightMap)
             terrain.SaveHeightMap(terrainCfg.pathSaveHeightMap);
     }
-
     // load a height map from the file
     else
     {
         result = terrain.LoadHeightMap(terrainCfg.pathHeightMap, terrainWidth);
 
+        if (!result)
+            return ErrMsgHelper(LOG, "can't load a height map for terrain: %s", terrainCfg.pathHeightMap);
+
         if (terrainCfg.saveHeightMap)
             terrain.SaveHeightMap(terrainCfg.pathSaveHeightMap);
     }
 
-    // set heights for the terrain at particular positions
+
+    // setup heights for the terrain at particular positions
     if (result)
     {
         Vertex3dTerrain* vertices = terrain.GetVertices();
@@ -176,6 +211,7 @@ bool TerrainInitHeight(TerrainQuadtree& terrain, const TerrainConfig& terrainCfg
 // Desc:   generate terrain's tile map or load it from file
 // Args:   - terrain:    actual terrain's obj
 //         - terrainCfg: container for different configs for terrain
+// Ret:    true if we managed to successfully initialize a terrain's tile map
 //---------------------------------------------------------
 bool TerrainInitTileMap(TerrainQuadtree& terrain, const TerrainConfig& terrainCfg)
 {
@@ -192,11 +228,9 @@ bool TerrainInitTileMap(TerrainQuadtree& terrain, const TerrainConfig& terrainCf
 
         // generate texture map based on loaded tiles and height map
         result = terrain.GenerateTextureMap(terrainCfg.textureMapSize);
+
         if (!result)
-        {
-            LogErr(LOG, "can't generate a texture map for terrain");
-            return false;
-        }
+            return ErrMsgHelper(LOG, "can't generate a texture map for terrain");
 
         // create a texture resource
         constexpr bool mipMapped = true;
@@ -216,8 +250,7 @@ bool TerrainInitTileMap(TerrainQuadtree& terrain, const TerrainConfig& terrainCf
         }
         else
         {
-            LogErr("can't create a texture resource for terrain's tile map");
-            result = false;
+            return ErrMsgHelper(LOG, "can't create a texture resource for terrain's tile map");
         }
 
         // save the tile map if we want
@@ -230,6 +263,9 @@ bool TerrainInitTileMap(TerrainQuadtree& terrain, const TerrainConfig& terrainCf
     {
         result = terrain.LoadTextureMap(terrainCfg.pathTextureMap);
 
+        if (!result)
+            return ErrMsgHelper(LOG, "can't load terrain's texture map: %s", terrainCfg.pathTextureMap);
+
         if (terrainCfg.saveTextureMap)
             terrain.SaveTextureMap(terrainCfg.pathSaveTextureMap);
     }
@@ -239,10 +275,109 @@ bool TerrainInitTileMap(TerrainQuadtree& terrain, const TerrainConfig& terrainCf
 
 //---------------------------------------------------------
 // Desc:   generate lightmap or load it from file
-// Args:   - terrain:   actual terrain's obj
+// Args:   - terrain:    actual terrain's obj
+//         - terrainCfg: container for different configs for terrain
+// Ret:    true if we managed to successfully initialize a terrain's lightmap
 //---------------------------------------------------------
 bool TerrainInitLightMap(TerrainQuadtree& terrain, const TerrainConfig& terrainCfg)
 {
+    bool result = false;
+
+    // if we want to generate new light map
+    if (terrainCfg.generateLightMap)
+    {
+        // setup the terrain's lighting
+        terrain.SetLightingType(terrainCfg.lightingType);
+
+        terrain.CustomizeSlopeLighting(
+            terrainCfg.lightDirX,
+            terrainCfg.lightDirZ,
+            terrainCfg.lightMinBrightness,
+            terrainCfg.lightMaxBrightness,
+            terrainCfg.shadowSoftness);
+
+        // compute pixel raw data for the lightmap texture
+        result = terrain.CalculateLighting();
+
+        if (!result)
+            return ErrMsgHelper(LOG, "can't calculate terrain's lightmap");
+
+        if (terrainCfg.saveLightMap)
+            terrain.SaveLightMap(terrainCfg.pathSaveLightMap);
+    }
+
+    // load a lightmap from file
+    else
+    {
+        result = terrain.LoadLightMap(terrainCfg.pathLightMap);
+
+        if (!result)
+            return ErrMsgHelper(LOG, "can't load terrain's light map from file: %s", terrainCfg.pathLightMap);
+
+        if (terrainCfg.saveLightMap)
+            terrain.SaveLightMap(terrainCfg.pathSaveLightMap);
+    }
+
+    // create a lightmap's texture resource
+    const TexID lightmapTexId = g_TextureMgr.CreateTextureFromRawData(
+        "terrain_light_map",
+        terrain.lightmap_.pData,
+        terrain.lightmap_.size,
+        terrain.lightmap_.size,
+        8,                        // bits per pixel
+        false);                   // don't generate mipmaps
+
+    if (lightmapTexId != INVALID_TEXTURE_ID)
+    {
+        LogDbg(LOG, "terrain_light_map texture is created");
+        terrain.lightmap_.id = lightmapTexId;
+    }
+    else
+    {
+        return ErrMsgHelper(LOG, "can't create a texture resource for terrain's lightmap");
+    }
+
+    return true;
+}
+
+//---------------------------------------------------------
+// Desc:   load a terrain's detail map from file
+// Args:   - terrain:    actual terrain's obj
+//         - filePath:   a path to texture
+// Ret:    true if we managed to successfully initialize a terrain's detail map
+//---------------------------------------------------------
+bool TerrainInitDetailMap(TerrainQuadtree& terrain, const char* filePath)
+{
+    if (StrHelper::IsEmpty(filePath))
+        return ErrMsgHelper(LOG, "input path to terrain's detail map is empty");
+
+    if (!terrain.LoadDetailMap(filePath))
+    {
+        LogErr(LOG, "can't load the terrain's detail map");
+        return false;
+    }
+
+    // create a DirectX11 texture resource for the terrain's detail map
+    constexpr bool mipMapped = true;
+
+    const TexID detailMapTexId = g_TextureMgr.CreateTextureFromRawData(
+        "terrain_detail_map",
+        terrain.detailMap_.GetData(),
+        terrain.detailMap_.GetWidth(),
+        terrain.detailMap_.GetHeight(),
+        terrain.detailMap_.GetBPP(),
+        mipMapped);
+
+    if (detailMapTexId != INVALID_TEXTURE_ID)
+    {
+        terrain.detailMap_.SetID(detailMapTexId);
+        LogDbg(LOG, "terrain_detail_map texture is created");
+    }
+    else
+    {
+        return ErrMsgHelper(LOG, "can't create a texture resource for terrain's detail map");
+    }
+
     return true;
 }
 

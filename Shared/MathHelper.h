@@ -64,6 +64,13 @@ namespace DirectX
 		return lhs;
 	}
 
+    static void operator+=(XMFLOAT3& lhs, const XMVECTOR& rhs)
+    {
+        lhs.x += rhs.m128_f32[0];
+        lhs.y += rhs.m128_f32[1];
+        lhs.z += rhs.m128_f32[2];
+    }
+
     static XMFLOAT3& operator*=(XMFLOAT3& lhs, const XMFLOAT3& rhs)
     {
         lhs.x *= rhs.x;
@@ -94,6 +101,15 @@ namespace DirectX
         lhs.z *= value;
 
         return lhs;
+    }
+
+    static void XMFloat3Normalize(XMFLOAT3& n)
+    {
+        const float invLen = 1.0f / sqrtf(n.x*n.x + n.y*n.y + n.z*n.z);
+
+        n.x *= invLen;
+        n.y *= invLen;
+        n.z *= invLen;
     }
 
 	static XMFLOAT3 XMFloat3Normalize(const XMFLOAT3& n)

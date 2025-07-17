@@ -9,6 +9,7 @@
 #pragma warning (disable : 4996)
 #pragma warning (disable : 6031)
 
+#define NEW new (std::nothrow)
 
 namespace Core
 {
@@ -201,11 +202,6 @@ bool TerrainBase::LoadSetupFile(const char* filename, TerrainConfig& outConfigs)
 
 
     fgets(buf, bufsize, pFile);
-    sscanf(buf, "Light_color: %f %f %f", &fl[0], &fl[1], &fl[2]);
-
-    outConfigs.lightColor = { fl[0], fl[1], fl[2] };
-
-    fgets(buf, bufsize, pFile);
     sscanf(buf, "Light_direction_x: %d",      &outConfigs.lightDirX);
 
     fgets(buf, bufsize, pFile);
@@ -331,13 +327,17 @@ bool TerrainBase::LoadTextureMap(const char* filename)
     else if (strcmp(extension, ".dds") == 0)
     {
         const TexID tileMapTexId = g_TextureMgr.LoadFromFile(filename);
+        const Texture& texObj = g_TextureMgr.GetTexByID(tileMapTexId);
 
         if (tileMapTexId)
         {
             LogDbg(LOG, "terrain_tile_map texture is created");
 
-            // set the texture's ID
+            // set params of tile map
             texture_.SetID(tileMapTexId);
+            texture_.SetWidth(texObj.GetWidth());
+            texture_.SetHeight(texObj.GetHeight());
+            texture_.SetBPP(32);
         }
         else
         {
@@ -1071,9 +1071,8 @@ void TerrainBase::NormalizeTerrain(float* heightData, const int size)
 }
 
 // --------------------------------------------------------
-// Desc:   load a grayscale RAW light map
+// Desc:   load a grayscale RAW/BMP light map
 // Args:   - filename: the file name of the light map
-//         - size:     the size (power of 2) of the map
 // --------------------------------------------------------
 bool TerrainBase::LoadLightMap(const char* filename)
 {
@@ -1086,15 +1085,78 @@ bool TerrainBase::LoadLightMap(const char* filename)
         if (lightmap_.pData)
             UnloadLightMap();
 
-        // load in data
-        int fileSize = 0;
-        LoadRAW(filename, &lightmap_.pData, fileSize);
+        // get a file extension
+        char extension[8];
+        memset(extension, 0, sizeof(extension));
+        FileSys::GetFileExt(filename, extension);
 
-        // check if lightmap has proper size
-        //CAssert::True(IsPow2(fileSize), "input size must be power of 2");
+        // if we want to load in a light map from bmp-file
+        if (strcmp(extension, ".bmp") == 0)
+        {
+            Image img;
 
-        // width == height
-        lightmap_.size = (int)sqrtf((float)fileSize);
+            if (!img.LoadGrayscaleBMP(filename))
+            {
+                LogErr(LOG, "can't load lightmap from bmp file: %s", filename);
+                return false;
+            }
+
+            const uint size = img.GetWidth();
+            lightmap_.size = size;
+
+            // alloc memory for lightmap data
+            lightmap_.pData = NEW uint8[size*size];
+            if (!lightmap_.pData)
+            {
+                LogErr(LOG, "can't allocate memory for lightmap data from file: %s", filename);
+                return false;
+            }
+
+            memcpy(lightmap_.pData, img.GetData(), size*size);
+        }
+
+        // if we want to load in a light map from raw-file
+        else if (strcmp(extension, ".raw") == 0)
+        {
+            // load in data
+            int fileSize = 0;
+            LoadRAW(filename, &lightmap_.pData, fileSize);
+
+            // width == height
+            lightmap_.size = (int)sqrtf((float)fileSize);
+        }
+
+        // if we want to load in a light map from tga-file
+        else if (strcmp(extension, ".tga") == 0)
+        {
+            Image img;
+
+            if (!img.LoadData(filename))
+            {
+                LogErr(LOG, "can't load lightmap from tga file: %s", filename);
+                return false;
+            }
+
+            const uint size = img.GetWidth();
+            lightmap_.size = size;
+
+            // alloc memory for lightmap data
+            lightmap_.pData = NEW uint8[size * size];
+            if (!lightmap_.pData)
+            {
+                LogErr(LOG, "can't allocate memory for lightmap data from file: %s", filename);
+                return false;
+            }
+
+            memcpy(lightmap_.pData, img.GetData(), size * size);
+        }
+
+        else
+        {
+            LogErr(LOG, "can't load light map: unsupported image format: %s", filename);
+            return false;
+        }
+      
 
         // great success!
         LogMsg(LOG, "Loaded light map: %s", filename);
@@ -1247,58 +1309,58 @@ void TerrainBase::CalculateLightingSlope(
 // --------------------------------------------------------
 bool TerrainBase::CalculateLighting(void)
 {
-    try
+    // a lightmap has already been provided, no need to create another one
+    if (lightingType_ == LIGHTMAP)
+        return true;
+
+    const int size = heightMap_.GetWidth();
+
+    LogDbg(LOG, "wait while light map is generated");
+
+    // check if we have valid terrain size
+    if (size <= 0)
     {
-        // a lightmap has already been provided, no need to create another one
-        if (lightingType_ == LIGHTMAP)
-            return true;
+        LogErr(LOG, "invalid terrain size (%d); must be > 0", size);
+        return false;
+    }
 
-        const int size = heightMap_.GetWidth();
+    // allocate memory if it is needed
+    if ((lightmap_.size != size) || (lightmap_.pData == nullptr))
+    {
+        // delete the memory for the old data
+        SafeDeleteArr(lightmap_.pData);
 
-        LogDbg(LOG, "wait while light map is generated");
-
-        // check if we have valid terrain size
-        if (size <= 0)
+        // allocate memory for the new lightmap data buffer
+        lightmap_.pData = NEW uint8[size*size];
+        if (lightmap_.pData == nullptr)
         {
-            LogErr(LOG, "invalid terrain size (%d); must be > 0", size);
+            LogErr(LOG, "can't allocate memory for terrain's lightmap");
             return false;
         }
 
-        // allocate memory if it is needed
-        if ((lightmap_.size != size) || (lightmap_.pData == nullptr))
-        {
-            // delete the memory for the old data
-            SafeDeleteArr(lightmap_.pData);
+        memset(lightmap_.pData, 0, size*size);
 
-            // allocate memory for the new lightmap data buffer
-            lightmap_.pData = new uint8[size * size]{ 0 };
-            lightmap_.size = size;
-        }
-
-        // use height-based lighting
-        if (lightingType_ == HEIGHT_BASED)
-            CalculateLightingHeightBased(size);
-
-        // use the slope-lighting technique
-        else if (lightingType_ == SLOPE_LIGHT)
-            CalculateLightingSlope(
-                size,
-                directionX_,
-                directionZ_,
-                minBrightness_,
-                maxBrightness_,
-                lightSoftness_);
-
-        LogMsg("light map is generated successfully");
-
-        return true;
+        // setup lightmap width and height
+        lightmap_.size = size;
     }
-    catch (const std::bad_alloc& e)
-    {
-        LogErr(e.what());
-        LogErr("can't allocate memory for the terrain's lightmap");
-        return false;
-    }
+
+    // use height-based lighting
+    if (lightingType_ == HEIGHT_BASED)
+        CalculateLightingHeightBased(size);
+
+    // use the slope-lighting technique
+    else if (lightingType_ == SLOPE_LIGHT)
+        CalculateLightingSlope(
+            size,
+            directionX_,
+            directionZ_,
+            minBrightness_,
+            maxBrightness_,
+            lightSoftness_);
+
+    LogMsg("light map is generated successfully");
+
+    return true;
 }
 
 } // namespace

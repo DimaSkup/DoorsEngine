@@ -63,8 +63,8 @@ void TerrainShader::Render(
     pContext->PSSetShader(ps_.GetShader(), nullptr, 0U);
 
     // set the sampler state and textures
-    pContext->PSSetSamplers(0, 1, samplerState_.GetAddressOf());
-    pContext->PSSetShaderResources(0, NUM_TEXTURE_TYPES, instance.textures);
+    pContext->PSSetSamplers(1U, 1U, samplerState_.GetAddressOf());
+    pContext->PSSetShaderResources(1U, NUM_TEXTURE_TYPES, instance.textures);
 
     // bind vb/ib
     const UINT stride = instance.vertexStride;
@@ -80,9 +80,11 @@ void TerrainShader::Render(
     cbpsMaterialData_.data.reflect  = instance.material.reflect_;
     cbpsMaterialData_.ApplyChanges(pContext);
 
+    pContext->PSSetConstantBuffers(5, 1, cbpsMaterialData_.GetAddressOf());
+
     // render geometry
-    //pContext->DrawIndexed(instance.indexCount, 0U, 0U);
-    pContext->Draw(instance.numVertices, 0);
+    pContext->DrawIndexed(instance.indexCount, 0U, 0U);
+    //pContext->Draw(instance.numVertices, 0);
 }
 
 // --------------------------------------------------------

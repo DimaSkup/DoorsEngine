@@ -1,5 +1,5 @@
 // =================================================================================
-// Filename:  TerrainGeomipmapped.cpp
+// Filename:  TerrainGeomip.cpp
 // Desc:      implementation of terrain geomimapping CLOD algorithm
 //            (CLOD - continuous level of detail)
 //
@@ -9,6 +9,7 @@
 #include <CoreCommon/Frustum.h>
 #include "TerrainGeomipmapped.h"
 #include "../Mesh/MaterialMgr.h"
+#include "../Render/d3dclass.h"
 
 #include <DirectXMath.h>
 #include <DirectXCollision.h>
@@ -16,25 +17,28 @@
 
 using namespace DirectX;
 
-#define COMPUTE_NORMALS                 0
-#define COMPUTE_AVERAGED_MID_NORMALS    0
-#define COMPUTE_AVERAGED_CENTER_NORMALS 0
-
-
 
 namespace Core
 {
 
-void TerrainGeomipmapped::ClearMemory()
+// yes, I did it
+#define NEW new (std::nothrow)
+
+
+//---------------------------------------------------------
+// Desc:   release memory from the CPU copy of vertices/indices
+//---------------------------------------------------------
+void TerrainGeomip::ClearMemory()
 {
-    // release memory from the CPU copy of vertices/indices
+
     SafeDeleteArr(vertices_);
     SafeDeleteArr(indices_);
 }
 
-///////////////////////////////////////////////////////////
-
-void TerrainGeomipmapped::Shutdown()
+//---------------------------------------------------------
+// Desc:   release all the memory related to the terrain
+//---------------------------------------------------------
+void TerrainGeomip::Shutdown()
 {
     ClearMemory();
 
@@ -51,33 +55,42 @@ void TerrainGeomipmapped::Shutdown()
     ib_.Shutdown();
 }
 
-///////////////////////////////////////////////////////////
-
-void TerrainGeomipmapped::AllocateMemory(const int numVertices, const int numIndices)
+//---------------------------------------------------------
+// Desc:   allocate memory for vertices/indices data arrays
+// Args:   - numVertices:  the number of vertices
+//         - numIndices:   the number of indices
+// Ret:    true if we managed to allocate memory
+//---------------------------------------------------------
+bool TerrainGeomip::AllocateMemory(const int numVertices, const int numIndices)
 {
-    // allocate memory for vertices/indices data arrays
-    try
+    assert(numVertices > 0);
+    assert(numIndices > 0);
+
+    // prepare memory
+    ClearMemory();
+
+    numVertices_ = numVertices;
+    numIndices_  = numIndices;
+
+    // alloc vertices array
+    vertices_ = NEW Vertex3dTerrain[numVertices_]{};
+    if (!vertices_)
     {
-        assert(numVertices > 0);
-        assert(numIndices > 0);
-
-        // prepare memory
-        ClearMemory();
-
-        numVertices_ = numVertices;
-        numIndices_  = numIndices;
-
-        vertices_    = new Vertex3dTerrain[numVertices_]{};
-        indices_     = new UINT[numIndices_]{ 0 };
-    }
-    catch (const std::bad_alloc& e)
-    {
+        LogErr(LOG, "can't allocate memory for array of terrain's vertices");
         Shutdown();
-
-        LogErr(e.what());
-        LogErr("can't allocate memory for some data of the model");
-        return;
+        return false;
     }
+
+    // alloc indices array
+    indices_ = NEW UINT[numIndices_];
+    if (!indices_)
+    {
+        LogErr(LOG, "can't allocate memory for array of terrain's indices");
+        Shutdown();
+        return false;
+    }
+
+    return true;
 }
 
 //---------------------------------------------------------
@@ -85,105 +98,110 @@ void TerrainGeomipmapped::AllocateMemory(const int numVertices, const int numInd
 // Args:   - patchSize:  the size of the patch (in vertices)
 //                       a good size is usually around 17 (17x17 verts)
 //---------------------------------------------------------
-bool TerrainGeomipmapped::InitGeomipmapping(const int patchSize)
+bool TerrainGeomip::InitGeomipmapping(const int patchSize)
 {
     int divisor = 0;
     int LOD = 0;
     int numAllPatches = 0;
 
-    try
+    // since terrain is squared the width and height are equal
+    const int terrainSize = heightMap_.GetWidth();
+
+
+    if ((terrainSize - 1) % (patchSize - 1) != 0)
     {
-        // since terrain is squared the width and height are equal
-        const int terrainSize = heightMap_.GetWidth();
-
-        // check some stuff
-        CAssert::True(terrainSize != 0, "terrain's height map size cannot be 0");
-        CAssert::True(patchSize > 0,    "input patch size must be > 0");
-
-        // release all the memory from prev patches data
-        if (patches_)
-            Shutdown();
-
-        // initiate the patch info
-        patchSize_         = patchSize;
-        numPatchesPerSide_ = terrainSize / patchSize;
-
-        numAllPatches      = numPatchesPerSide_ * numPatchesPerSide_;
-        patches_           = new GeomPatch[numAllPatches];
-
-        // figure out the max level of detail for the patch
-        divisor = patchSize - 1;
-
-        while (divisor > 2)
-        {
-            divisor = divisor >> 1;
-            LOD++;
-        }
-
-        // the max amount of detail
-        maxLOD_ = LOD;
-
-        // init the patch values
-        for (int i = 0; i < numAllPatches; ++i)
-        {
-            // init the patches to the lowest level of detail
-            patches_[i].LOD = LOD;
-            patches_[i].isVisible = false;
-        }
-
-        LogMsg("Geomipmapping system successfully initialized");
-        return true;
-    }
-    catch (const std::bad_alloc& e)
-    {
-        LogErr(e.what());
-        LogErr("can't allocate memory for geomipmapping patches");
+        int patchSz = patchSize - 1;
+        int recommendedTerrainSize = ((terrainSize-1 + patchSz) / (patchSz)) * (patchSz) + 1;
+        LogErr(LOG, "terrain size minus 1 (%d) must be divisible by patch size minus 1 (%d)", terrainSize, patchSize);
+        SetConsoleColor(YELLOW);
+        LogMsg("Try using terrain size = %d", recommendedTerrainSize);
         return false;
     }
+
+    if (patchSize < 3)
+    {
+        LogErr(LOG, "the minimum patch size is 3 (%d)", patchSize);
+        return false;
+    }
+
+    if (patchSize % 2 == 0)
+    {
+        LogErr(LOG, "patch size must be an odd number (%d)", patchSize);
+        return false;
+    }
+
+    // release all the memory from prev patches data
+    if (patches_)
+        Shutdown();
+
+    // initiate the patch info
+    patchSize_         = patchSize;
+    numPatchesPerSide_ = terrainSize / patchSize;
+
+    numAllPatches      = numPatchesPerSide_ * numPatchesPerSide_;
+
+    patches_ = NEW GeomPatch[numAllPatches];
+    if (!patches_)
+    {
+        LogErr(LOG, "can't allocate memory for terrain's patches");
+        return false;
+    }
+
+    // figure out the max level of detail for the patch
+    divisor = patchSize - 1;
+
+    while (divisor > 2)
+    {
+        divisor = divisor >> 1;
+        LOD++;
+    }
+
+    // the max amount of detail
+    maxLOD_ = LOD;
+
+    // init the patch values
+    for (int i = 0; i < numAllPatches; ++i)
+    {
+        // init the patches to the lowest level of detail
+        patches_[i].LOD = LOD;
+        patches_[i].isVisible = false;
+    }
+
+    // initialize vertex/index buffers
+    if (!InitBuffers())
+    {
+        LogErr(LOG, "can't initialize vb/ib buffers for the geomip terrain");
+        return false;
+    }
+
+    LogMsg("Geomipmapping system successfully initialized");
+    return true;
 }
 
 //---------------------------------------------------------
-// Desc:   initialize DirectX vertex/index buffers with input data
+// Desc:   initialize DirectX vertex/index buffers
 //---------------------------------------------------------
-bool TerrainGeomipmapped::InitBuffers(
-    ID3D11Device* pDevice,
-    const Vertex3dTerrain* vertices,
-    const UINT* indices,
-    const int numVertices,
-    const int numIndices)
+bool TerrainGeomip::InitBuffers()
 {
-    try
+    constexpr bool isDynamic = true;
+
+    // initialize the vertex buffer
+    if (!vb_.Initialize(g_pDevice, vertices_, numVertices_, isDynamic))
     {
-        // check input args
-        CAssert::True(vertices,         "input ptr to arr of vertices == nullptr");
-        CAssert::True(indices,          "input ptr to arr of indices == nullptr");
-        CAssert::True(numVertices > 0,  "input number of vertices must be > 0");
-        CAssert::True(numIndices > 0,   "input number of indices must be > 0");
-
-        // initialize the vertex buffer
-        constexpr bool isDynamic = true;
-        if (!vb_.Initialize(pDevice, vertices, numVertices, isDynamic))
-        {
-            LogErr(LOG, "can't initialize a vertex buffer for terrain");
-            Shutdown();
-            return false;
-        }
-
-        // initialize the index buffer
-        if (!ib_.Initialize(pDevice, indices, numIndices))
-        {
-            LogErr(LOG, "can't initialize an index buffer for terrain");
-            Shutdown();
-            return false;
-        }
-
-        return true;
-    }
-    catch (EngineException& e)
-    {
-        LogErr(e);
+        LogErr(LOG, "can't initialize a vertex buffer for terrain");
+        Shutdown();
         return false;
     }
+
+    // initialize the index buffer
+    if (!ib_.Initialize(g_pDevice, indices_, numIndices_, isDynamic))
+    {
+        LogErr(LOG, "can't initialize an index buffer for terrain");
+        Shutdown();
+        return false;
+    }
+
+    return true;
 }
 
 //---------------------------------------------------------
@@ -203,11 +221,108 @@ inline bool TestWeInPatch(
            (camPosZ >= cz-halfSize) || (camPosZ <= cz+halfSize);
 }
 
+
+//---------------------------------------------------------
+// Desc:   compute normal vector by 3 input vertices
+// Args:   - v0, v1, v2:  vertices
+//---------------------------------------------------------
+void ComputeFaceNormal(
+    Vertex3dTerrain& v0,
+    Vertex3dTerrain& v1,
+    Vertex3dTerrain& v2)
+{
+    using namespace DirectX;
+
+    // compute face normal for the first triangle
+    XMVECTOR pos0 = XMLoadFloat3(&v0.position);
+    XMVECTOR pos1 = XMLoadFloat3(&v1.position);
+    XMVECTOR pos2 = XMLoadFloat3(&v2.position);
+
+    XMVECTOR e0 = pos1 - pos0;
+    XMVECTOR e1 = pos2 - pos0;
+
+    XMVECTOR normal = XMVector3Normalize(XMVector3Cross(e0, e1));
+
+    XMStoreFloat3(&v0.normal, normal);
+    XMStoreFloat3(&v1.normal, normal);
+    XMStoreFloat3(&v2.normal, normal);
+}
+
+void TerrainGeomip::CalcNormals(
+    Vertex3dTerrain* vertices,
+    const UINT* indices,
+    const int numVertices,
+    const int numIndices)
+{
+    const int depth = terrainDepth_;
+    const int width = terrainWidth_;
+    const int patchSz = patchSize_ - 1;
+
+    UINT idx = 0;
+
+#if 0
+    // accumulate each triangle triangle normal into each of the triangle vertices
+    for (int z = 0; z < depth - 1; z += (patchSz - 1))
+    {
+        for (int x = 0; x < width - 1; x += (patchSz - 1))
+        {
+            const int baseVertexIdx = z * width + x;
+
+            // for each triangle
+            for (int i = 0; i < numIndices; i += 3)
+            {
+                const UINT i0         = baseVertexIdx + indices[i + 0];
+                const UINT i1         = baseVertexIdx + indices[i + 1];
+                const UINT i2         = baseVertexIdx + indices[i + 2];
+
+                const XMVECTOR pos0   = XMLoadFloat3(&vertices[i0].position);
+                const XMVECTOR pos1   = XMLoadFloat3(&vertices[i1].position);
+                const XMVECTOR pos2   = XMLoadFloat3(&vertices[i2].position);
+
+                const XMVECTOR normal = XMVector3Cross(pos1 - pos0, pos2 - pos0);
+
+                //XMFLOAT3 n = { 0,0,0 };
+                //XMStoreFloat3(&n, normal);
+
+                vertices[i0].normal += normal;
+                vertices[i1].normal += normal;
+                vertices[i2].normal += normal;
+            }
+        }
+    }
+#endif
+
+    // for each triangle
+    for (int i = 0; i < numIndices; i += 3)
+    {
+        const UINT i0 = indices[i + 0];
+        const UINT i1 = indices[i + 1];
+        const UINT i2 = indices[i + 2];
+
+        const XMVECTOR pos0 = XMLoadFloat3(&vertices[i0].position);
+        const XMVECTOR pos1 = XMLoadFloat3(&vertices[i1].position);
+        const XMVECTOR pos2 = XMLoadFloat3(&vertices[i2].position);
+
+        const XMVECTOR normal = XMVector3Cross(pos1 - pos0, pos2 - pos0);
+
+        //XMFLOAT3 n = { 0,0,0 };
+        //XMStoreFloat3(&n, normal);
+
+        vertices[i0].normal += normal;
+        vertices[i1].normal += normal;
+        vertices[i2].normal += normal;
+    }
+
+    // normalize all the vertex normals
+    for (int i = 0; i < numVertices; ++i)
+        XMFloat3Normalize(vertices[i].normal);
+}
+
 //---------------------------------------------------------
 // Desc:   update the geomipmapping system
 // Args:   - cameraPos: camera position in the world
 //---------------------------------------------------------
-void TerrainGeomipmapped::Update(const CameraParams& camParams)
+void TerrainGeomip::Update(const CameraParams& camParams)
 {
     const int camPosX = (int)camParams.posX;
     const int camPosY = (int)camParams.posY;
@@ -241,8 +356,10 @@ void TerrainGeomipmapped::Update(const CameraParams& camParams)
         camParams.planes[5]);
 
 
-    const DirectX::XMMATRIX view(camParams.viewMatrix);
-    const int numPerSide = numPatchesPerSide_;
+    const XMMATRIX translateView = DirectX::XMMatrixTranslation(0, 0, +10);
+    const XMMATRIX view          = (XMMATRIX(camParams.viewMatrix) * translateView);
+
+    const int numPerSide         = numPatchesPerSide_;
 
     // go through each patch and define if it is visible and
     // if so compute the squared distance to it 
@@ -305,13 +422,16 @@ void TerrainGeomipmapped::Update(const CameraParams& camParams)
 
     // recompute the geometry for the terrain
     ComputeTesselation();
+
+    // compute normal vectors
+    CalcNormals(vertices_, indices_, verticesOffset_, indicesOffset_);
 }
 
 //---------------------------------------------------------
 // Desc:   compute geometry for each terrain's patch
 //         according to its LOD
 //---------------------------------------------------------
-void TerrainGeomipmapped::ComputeTesselation(void)
+void TerrainGeomip::ComputeTesselation(void)
 {
     // reset the counting variables
     verticesOffset_  = 0;
@@ -341,10 +461,10 @@ void TerrainGeomipmapped::ComputeTesselation(void)
 //---------------------------------------------------------
 // Desc:   compute vertices for this patch
 // Args:   - currPatchNum: the number of current patch
-//         - px: patch location by X-axis
-//         - pz: patch location by Z-axis
+//         - px: patch index by X-axis
+//         - pz: patch index by Z-axis
 //---------------------------------------------------------
-void TerrainGeomipmapped::ComputePatch(
+void TerrainGeomip::ComputePatch(
     const int currPatchNum,
     const int px,
     const int pz)
@@ -433,60 +553,33 @@ void TerrainGeomipmapped::ComputePatch(
     }
 }
 
+
 //---------------------------------------------------------
-// Desc:   compute normal vector by 3 input positions
-// Args:   - pos0, pos1, pos2: positions in 3D space
-// Ret:    - vec3 value:       3D normal vector
+// Desc:    (helper) add indices of vertices into the output idxs array
+//          to make a new triangle
+// Args:    - outIdxs:     output indices array to be filled with idxs
+//          - outNumIdxs:  how many indices we currently have in the output indices arr
+//          - i0, i1, i2:  indices of triangle's vertices
 //---------------------------------------------------------
-XMFLOAT3 ComputeFaceNormal(
-    const XMFLOAT3& pos0,
-    const XMFLOAT3& pos1,
-    const XMFLOAT3& pos2)
+inline void AddTriangle(
+    UINT* outIdxsBuf,
+    int& outNumIdxs,
+    const UINT i0,
+    const UINT i1,
+    const UINT i2)
 {
-    // compute face normal for the first triangle
-    XMVECTOR v0 = DirectX::XMLoadFloat3(&pos0);
-    XMVECTOR v1 = DirectX::XMLoadFloat3(&pos1);
-    XMVECTOR v2 = DirectX::XMLoadFloat3(&pos2);
-
-    XMVECTOR e0 = v1 - v0;
-    XMVECTOR e1 = v2 - v0;
-
-    XMVECTOR normal = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(e0, e1));
-
-    float* n = normal.m128_f32;
-    return { n[0], n[1], n[2] };
+    outIdxsBuf[outNumIdxs++] = i0;
+    outIdxsBuf[outNumIdxs++] = i1;
+    outIdxsBuf[outNumIdxs++] = i2;
 }
 
-//---------------------------------------------------------
-//---------------------------------------------------------
-void ComputeFaceNormal(
-    Vertex3dTerrain& v0,
-    Vertex3dTerrain& v1,
-    Vertex3dTerrain& v2)
-{
-    using namespace DirectX;
-
-    // compute face normal for the first triangle
-    XMVECTOR pos0 = XMLoadFloat3(&v0.position);
-    XMVECTOR pos1 = XMLoadFloat3(&v1.position);
-    XMVECTOR pos2 = XMLoadFloat3(&v2.position);
-
-    XMVECTOR e0 = pos1 - pos0;
-    XMVECTOR e1 = pos2 - pos0;
-
-    XMVECTOR normal = XMVector3Normalize(XMVector3Cross(e0, e1));
-
-    XMStoreFloat3(&v0.normal, normal);
-    XMStoreFloat3(&v1.normal, normal);
-    XMStoreFloat3(&v2.normal, normal);
-}
 //---------------------------------------------------------
 // Desc:   compute a single fan geometry
 // Args:   - cx, cz:   center of the triangle fan to render
 //         - size:     the fan's entire size
 //         - neighbor: the fan's neighbor structure (used to avoid cracking)
 //---------------------------------------------------------
-void TerrainGeomipmapped::ComputeFan(
+void TerrainGeomip::ComputeFan(
     const float cx,
     const float cz,
     const float size,
@@ -544,263 +637,147 @@ void TerrainGeomipmapped::ComputeFan(
     vertices[1].position = { fLeft, height, fDown};
     vertices[1].texture  = { texLeft, texBottom };
 
+    // MID-LEFT vertex (2): use this vertex if the left patch is NOT of a lower LOD
+    height               = GetScaledInterpolatedHeightAtPoint(fLeft, cz);
+    vertices[2].position = { fLeft, height, cz };
+    vertices[2].texture  = { texLeft, midZ };
+
+
     // UPPER-LEFT vertex (3)
     height               = GetScaledInterpolatedHeightAtPoint(fLeft, fUp);
     vertices[3].position = { fLeft, height, fUp };
     vertices[3].texture  = { texLeft, texTop };
 
+    // UPPER-MID vertex (4): use this vertex if the upper patch is NOT of a lower LOD
+    height               = GetScaledInterpolatedHeightAtPoint(cx, fUp);
+    vertices[4].position = { cx, height, fUp };
+    vertices[4].texture  = { midX, texTop };
+
     // UPPER-RIGHT vertex (5)
     height               = GetScaledInterpolatedHeightAtPoint(fRight, fUp);
     vertices[5].position = { fRight, height, fUp };
     vertices[5].texture  = { texRight, texTop };
+
+     // MID-RIGHT vertex(6): use this vertex if the right patch is NOT of a lower LOD
+    height               = GetScaledInterpolatedHeightAtPoint(fRight, cz);
+    vertices[6].position = { fRight, height, cz };
+    vertices[6].texture  = { texRight, midZ };
    
     // LOWER-RIGHT vertex (7)
     height               = GetScaledInterpolatedHeightAtPoint(fRight, fDown);
     vertices[7].position = { fRight, height, fDown };
     vertices[7].texture  = { texRight, texBottom };
 
+     // LOWER-MID vertex (8): use this vertex if the bottom patch is NOT of a lower LOD
+    height               = GetScaledInterpolatedHeightAtPoint(cx, fDown);
+    vertices[8].position = { cx, height, fDown };
+    vertices[8].texture  = { midX, texBottom };
 
     // ----------------------------------------------------
 
 
-    Vertex3dTerrain vertexBuf[24];
-    int   numVerts = 0;  // number of vertices in this fan
+    UINT indices[24]{0};
+    int numIdxs = 0;
 
-
-    // add vertex 2 (so we have two triangles on the left side fan)
+    // (case 1) add vertex 2 (so we have two triangles on the left side fan)
+    // (case 2) we have no mid-left vertex
+    // 
+    //         3                3
+    //         | \              | \
+    //   (1)   2--0        (2)  |  0
+    //         | /              | /
+    //         1                1
     if (neighbor.left)                          
     {
-        // MID-LEFT vertex (2): use this vertex if the left patch is NOT of a lower LOD
-        height               = GetScaledInterpolatedHeightAtPoint(fLeft, cz);
-        vertices[2].position = { fLeft, height, cz };
-        vertices[2].texture  = { texLeft, midZ };
-
-        vertexBuf[numVerts + 0] = vertices[0];    
-        vertexBuf[numVerts + 1] = vertices[1];    //  3
-        vertexBuf[numVerts + 2] = vertices[2];    //  | \ 
-                                                  //  2--0
-        vertexBuf[numVerts + 3] = vertices[0];    //  | /
-        vertexBuf[numVerts + 4] = vertices[2];    //  1
-        vertexBuf[numVerts + 5] = vertices[3];
-
-#if COMPUTE_NORMALS
-        // compute normal vectors for the first and second triangle
-        ComputeFaceNormal(vertexBuf[numVerts+0], vertexBuf[numVerts+1], vertexBuf[numVerts+2]);
-        ComputeFaceNormal(vertexBuf[numVerts+3], vertexBuf[numVerts+4], vertexBuf[numVerts+5]);
-
-        // average the normal vector for vertex 2 in this triangle
-        XMFLOAT3& n2 = vertexBuf[numVerts + 2].normal;
-        XMFLOAT3& n4 = vertexBuf[numVerts + 4].normal;
-
-        const XMFLOAT3 normalizedAvgNormal = DirectX::XMFloat3Normalize((n2+n4) * 0.5f);
-
-        vertexBuf[numVerts + 2].normal = normalizedAvgNormal;
-        vertexBuf[numVerts + 4].normal = normalizedAvgNormal;
-#endif
-        numVerts += 6;
+        AddTriangle(indices, numIdxs, 0, 1, 2);
+        AddTriangle(indices, numIdxs, 0, 2, 3);
     }
-
-    // we have no mid-left vertex
     else
-    {                                           //  3
-        vertexBuf[numVerts+0] = vertices[0];    //  | \ 
-        vertexBuf[numVerts+1] = vertices[1];    //  |  0
-        vertexBuf[numVerts+2] = vertices[3];    //  | /
-                                                //  1
-#if COMPUTE_NORMALS
-         // compute normal vectors for the triangle
-        ComputeFaceNormal(vertexBuf[numVerts+0], vertexBuf[numVerts+1], vertexBuf[numVerts+2]);
-#endif
-        numVerts += 3;
+    {
+        AddTriangle(indices, numIdxs, 0, 1, 3);
     }
 
-    // ----------------------------------------------------
-
-    // add vertex 4 (so we have two triangles on the upper side of the fan)
+    // (case 1) add vertex 4 (so we have two triangles on the upper side of the fan)
+    // (case 2) we have no upper-mid vertex
+    // 
+    //         3--4--5             3-----5
+    //   (1)    \ | /         (2)   \   /
+    //            0                   0
     if (neighbor.up)
     {
-        // UPPER-MID vertex (4): use this vertex if the upper patch is NOT of a lower LOD
-        height               = GetScaledInterpolatedHeightAtPoint(cx, fUp);
-        vertices[4].position = { cx, height, fUp };
-        vertices[4].texture  = { midX, texTop };
-
-        vertexBuf[numVerts + 0] = vertices[0];
-        vertexBuf[numVerts + 1] = vertices[3];    
-        vertexBuf[numVerts + 2] = vertices[4];    //  3--4--5
-                                                  //   \ | /
-        vertexBuf[numVerts + 3] = vertices[0];    //     0
-        vertexBuf[numVerts + 4] = vertices[4];    
-        vertexBuf[numVerts + 5] = vertices[5];
-
-#if COMPUTE_NORMALS
-        // compute normal vectors for the first and second triangle
-        ComputeFaceNormal(vertexBuf[numVerts+0], vertexBuf[numVerts+1], vertexBuf[numVerts+2]);
-        ComputeFaceNormal(vertexBuf[numVerts+3], vertexBuf[numVerts+4], vertexBuf[numVerts+5]);
-
-        // average the normal vector for vertex 2 in this triangle
-        XMFLOAT3& n2 = vertexBuf[numVerts + 2].normal;
-        XMFLOAT3& n4 = vertexBuf[numVerts + 4].normal;
-
-        const XMFLOAT3 normalizedAvgNormal = DirectX::XMFloat3Normalize((n2+n4) * 0.5f);
-
-        vertexBuf[numVerts + 2].normal = normalizedAvgNormal;
-        vertexBuf[numVerts + 4].normal = normalizedAvgNormal;
-#endif
-        numVerts += 6;
+        AddTriangle(indices, numIdxs, 0, 3, 4);
+        AddTriangle(indices, numIdxs, 0, 4, 5);
     }
-
-    // we have no upper-mid vertex
     else
     {
-        vertexBuf[numVerts+0] = vertices[0];    //  3-----5
-        vertexBuf[numVerts+1] = vertices[3];    //   \   /
-        vertexBuf[numVerts+2] = vertices[5];    //     0
-
-#if COMPUTE_NORMALS
-        // compute normal vectors for the triangle
-        ComputeFaceNormal(vertexBuf[numVerts+0], vertexBuf[numVerts+1], vertexBuf[numVerts+2]);
-#endif
-        numVerts += 3;
+        AddTriangle(indices, numIdxs, 0, 3, 5);
     }
 
-    // ----------------------------------------------------
-
-    // add vertex 6 (so we have two triangles on the right side of the fan)
+    // (case 1) add vertex 6 (so we have two triangles on the right side of the fan)
+    // (case 2) we have no mid-right vertex
+    //            5                   5
+    //          / |                 / |
+    //  (1)    0--6         (2)    0  |
+    //          \ |                 \ |
+    //            7                   7
     if (neighbor.right)
     {
-        // MID-RIGHT vertex(6): use this vertex if the right patch is NOT of a lower LOD
-        height               = GetScaledInterpolatedHeightAtPoint(fRight, cz);
-        vertices[6].position = { fRight, height, cz };
-        vertices[6].texture  = { texRight, midZ };
-
-        vertexBuf[numVerts + 0] = vertices[0];
-        vertexBuf[numVerts + 1] = vertices[5];      //     5
-        vertexBuf[numVerts + 2] = vertices[6];      //   / |
-                                                    //  0--6
-        vertexBuf[numVerts + 3] = vertices[0];      //   \ |
-        vertexBuf[numVerts + 4] = vertices[6];      //     7
-        vertexBuf[numVerts + 5] = vertices[7];
-
-#if COMPUTE_NORMALS
-        // compute normal vectors for the first and second triangle
-        ComputeFaceNormal(vertexBuf[numVerts+0], vertexBuf[numVerts+1], vertexBuf[numVerts+2]);
-        ComputeFaceNormal(vertexBuf[numVerts+3], vertexBuf[numVerts+4], vertexBuf[numVerts+5]);
-
-        // average the normal vector for vertex 2 in this triangle
-        XMFLOAT3& n2 = vertexBuf[numVerts + 2].normal;
-        XMFLOAT3& n4 = vertexBuf[numVerts + 4].normal;
-
-        const XMFLOAT3 normalizedAvgNormal = DirectX::XMFloat3Normalize((n2+n4) * 0.5f);
-
-        vertexBuf[numVerts + 2].normal = normalizedAvgNormal;
-        vertexBuf[numVerts + 4].normal = normalizedAvgNormal;
-#endif
-        numVerts += 6;
+        AddTriangle(indices, numIdxs, 0, 5, 6);
+        AddTriangle(indices, numIdxs, 0, 6, 7);
     }
-
-    // we have no mid-right vertex
     else
-    {                                           //     5
-        vertexBuf[numVerts+0] = vertices[0];    //   / |
-        vertexBuf[numVerts+1] = vertices[5];    //  0  |
-        vertexBuf[numVerts+2] = vertices[7];    //   \ |
-                                                //     7
-#if COMPUTE_NORMALS
-         // compute normal vectors for the triangle
-        ComputeFaceNormal(vertexBuf[numVerts+0], vertexBuf[numVerts+1], vertexBuf[numVerts+2]);
-#endif
-        numVerts += 3;
+    {
+        AddTriangle(indices, numIdxs, 0, 5, 7);
     }
 
-    // ----------------------------------------------------
-
-    // add vertex 8 (so we have two triangles on the bottom side of the fan)
+    // (case 1) add vertex 8 (so we have two triangles on the bottom side of the fan)
+    // (case 2) we have no bottom-mid vertex
+    //          0                   0
+    //  (1)   / | \        (2)    /   \
+    //       1--8--7             1-----7
     if (neighbor.down)
     {
-        // LOWER-MID vertex (8): use this vertex if the bottom patch is NOT of a lower LOD
-        height               = GetScaledInterpolatedHeightAtPoint(cx, fDown);
-        vertices[8].position = { cx, height, fDown };
-        vertices[8].texture  = { midX, texBottom };
-
-        vertexBuf[numVerts + 0] = vertices[0];
-        vertexBuf[numVerts + 1] = vertices[7];
-        vertexBuf[numVerts + 2] = vertices[8];      //     0
-                                                    //   / | \ 
-        vertexBuf[numVerts + 3] = vertices[0];      //  1--8--7
-        vertexBuf[numVerts + 4] = vertices[8];    
-        vertexBuf[numVerts + 5] = vertices[1];
-
-#if COMPUTE_NORMALS
-        // compute normal vectors for the first and second triangle
-        ComputeFaceNormal(vertexBuf[numVerts+0], vertexBuf[numVerts+1], vertexBuf[numVerts+2]);
-        ComputeFaceNormal(vertexBuf[numVerts+3], vertexBuf[numVerts+4], vertexBuf[numVerts+5]);
-
-        // average the normal vector for vertex 2 in this triangle
-        XMFLOAT3& n2 = vertexBuf[numVerts + 2].normal;
-        XMFLOAT3& n4 = vertexBuf[numVerts + 4].normal;
-
-        const XMFLOAT3 normalizedAvgNormal = DirectX::XMFloat3Normalize((n2+n4) * 0.5f);
-
-        vertexBuf[numVerts + 2].normal = normalizedAvgNormal;
-        vertexBuf[numVerts + 4].normal = normalizedAvgNormal;
-#endif
-        numVerts += 6;
+        AddTriangle(indices, numIdxs, 0, 7, 8);
+        AddTriangle(indices, numIdxs, 0, 8, 1);
     }
-
-    // we have no bottom-mid vertex
     else
     {
-        vertexBuf[numVerts+0] = vertices[0];    //     0
-        vertexBuf[numVerts+1] = vertices[7];    //   /   \ 
-        vertexBuf[numVerts+2] = vertices[1];    //  1-----7
-
-#if COMPUTE_NORMALS
-        // compute normal vectors for the triangle
-        ComputeFaceNormal(vertexBuf[numVerts+0], vertexBuf[numVerts+1], vertexBuf[numVerts+2]);
-#endif
-        numVerts += 3;
+        AddTriangle(indices, numIdxs, 0, 7, 1);
     }
 
     // ----------------------------------------------------
 
-#if COMPUTE_AVERAGED_CENTER_NORMALS
-    XMFLOAT3 centralNormal{0,0,0};
+    int baseVertexIdx = verticesOffset_;
 
-    // compute averaged normal for central vertex
-    for (int i = 0; i < numVerts/3; ++i)
-    {
-        centralNormal += vertexBuf[i*3].normal;
-    }
-    centralNormal *= 0.125f;
+    // make correction on indices
+    for (int i = 0; i < numIdxs; ++i)
+        indices[i] += baseVertexIdx;
 
-    // normalize averaged central normal vector
-    DirectX::XMFloat3Normalize(centralNormal);
+    // fill in the CPU-side vertex buffer so later we will load vertices onto GPU
+    memcpy(&vertices_[verticesOffset_], vertices, sizeof(Vertex3dTerrain) * 9);
+    verticesOffset_ += 9;
 
-    // set averaged central normal for each triangle
-    for (int i = 0; i < numVerts / 3; ++i)
-    {
-        vertexBuf[i*3 + 0].normal = centralNormal;
-    }
-#endif
-
-
-    // copy vertices into the main buffer so later we will load all of them into GPU
-    memcpy(&vertices_[verticesOffset_], vertexBuf, sizeof(Vertex3dTerrain) * numVerts);
-    verticesOffset_ += numVerts;
+    // fill in the CPU-side index buffer so later we will load indices onto GPU
+    memcpy(&indices_[indicesOffset_], indices, sizeof(UINT)*numIdxs);
+    indicesOffset_ += numIdxs;
 }
 
-///////////////////////////////////////////////////////////
-
-void TerrainGeomipmapped::SetAABB(const DirectX::XMFLOAT3& center, const DirectX::XMFLOAT3& extents)
+//---------------------------------------------------------
+// Desc:   setup axis-aligned bounding box (AABB) for this terrain's geometry
+// Args:   - center:   the center of AABB
+//         - extents:  a vector from the center to any vertex of AABB
+//---------------------------------------------------------
+void TerrainGeomip::SetAABB(const DirectX::XMFLOAT3& center, const DirectX::XMFLOAT3& extents)
 {
-    // set axis-aligned bounding box for the terrain
-    center_ = center;
+    center_  = center;
     extents_ = extents;
 }
 
-///////////////////////////////////////////////////////////
-
-void TerrainGeomipmapped::SetMaterial(const MaterialID matID)
+//---------------------------------------------------------
+// Desc:    setup material for terrain geometry (light props, textures, etc)
+// Args:    - matId:   an identifier of material (for details look at MaterialMgr)
+//---------------------------------------------------------
+void TerrainGeomip::SetMaterial(const MaterialID matID)
 {
     // setup the material ID for the terrain
     if (matID > 0)
@@ -814,17 +791,14 @@ void TerrainGeomipmapped::SetMaterial(const MaterialID matID)
     }
 }
 
-///////////////////////////////////////////////////////////
-
-void TerrainGeomipmapped::SetTexture(const int idx, const TexID texID)
+//---------------------------------------------------------
+// Desc:    setup a texture of type 
+// Args:    - type:    a texture type (diffuse, normal map, etc.)
+//          - texId:   a texture identifier (for detaild look at TextureMgr)
+//---------------------------------------------------------
+void TerrainGeomip::SetTexture(const eTexType type, const TexID texID)
 {
     // set texture (its ID) by input idx
-
-    if ((idx < 0) || (idx >= NUM_TEXTURE_TYPES))
-    {
-        LogErr(LOG, "wrong input idx: %d", idx);
-        return;
-    }
 
     if (texID == 0)
     {
@@ -837,7 +811,55 @@ void TerrainGeomipmapped::SetTexture(const int idx, const TexID texID)
 
     // NOTE: we used slightly different approach of terrain types:
     // for instance ambient texture type can be used for detail map or something like that
-    mat.SetTexture(eTexType(idx), texID);
+    mat.SetTexture(type, texID);
 }
+
+
+
+#if 0
+//==================================================================================
+bool TerrainGeomip::InitGeomipmapping(const int patchSize)
+{
+    int divisor = 0;
+    int LOD = 0;
+    int numAllPatches = 0;
+
+    // since terrain is squared the width and height are equal
+    const int terrainSize = terrainWidth_;
+
+    if ((terrainSize - 1) % (patchSize - 1) != 0)
+    {
+        int patchSz = patchSize - 1;
+        int recommendedTerrainSize = ((terrainSize - 1 + patchSz) / (patchSz)) * (patchSz)+1;
+        LogErr(LOG, "terrain size minus 1 (%d) must be divisible by patch size minus 1 (%d)", terrainSize, patchSize);
+        SetConsoleColor(YELLOW);
+        LogMsg("Try using terrain size = %d", recommendedTerrainSize);
+        return false;
+    }
+
+    if (patchSize < 3)
+    {
+        LogErr(LOG, "the minimum patch size is 3 (%d)", patchSize);
+        return false;
+    }
+
+    if (patchSize % 2 == 0)
+    {
+        LogErr(LOG, "patch size must be an odd number (%d)", patchSize);
+        return false;
+    }
+
+    // release all the memory from prev patches data
+    if (patches_)
+        Shutdown();
+
+    // initiate the patch info
+    patchSize_ = patchSize;
+    numPatchesPerSide_ = (terrainSize-1) / (patchSize-1);
+
+    maxLOD_ = lodManager_.InitLodManager(patchSize, numPatchesPerSide_, numPatchesPerSide_);
+    lodInfo_.resize(maxLOD_ + 1);
+}
+#endif
 
 } // namespace

@@ -162,21 +162,6 @@ bool Image::LoadData(const char* filename)
 }
 
 // --------------------------------------------------------
-// Desc:   completely setup a new texture, first load the data in,
-//         and the setup the texture for use with DirectX. This
-//         function supports both the BMP and TGA formats
-// Args:   - filename: the file to load in
-//         - minFilter / maxFilter:
-//         - mipmapped: flag to define if we need to create mipmaps
-// --------------------------------------------------------
-bool Image::Load(const char* filename, const bool mipmapped)
-{
-    LogErr(LOG, "TODO: do you need me?");
-
-    return true;
-}
-
-// --------------------------------------------------------
 // Desc:   save image into file (supported formats: BMP, RAW)
 // Args:   - filename: where to store the image
 // --------------------------------------------------------
@@ -708,8 +693,8 @@ bool Image::LoadTGA(const char* filename)
         fileData += sizeof(TGAInfoHeader);
 
         // copy pixels raw data into buffer
-        uint imageSize = width*height*(bpp/8);
-        memcpy(pixels_, fileData, imageSize);
+        //uint imageSize = width*height*(bpp/8);
+        //memcpy(pixels_, fileData, imageSize);
 
         // close the file
         fclose(pFile);
@@ -775,6 +760,8 @@ void Image::LoadCompressedTGA24(uint8*& data, const int width, const int height)
     uint           currByte = 0;
     uint8          colorBuf[bytesPerPixel]{ 0 };
 
+    int expectBytes = width * height * 3;
+    int actualBytes = 0;
 
     // check if the pixels buffer is valid
     if (!pixels_)
@@ -807,6 +794,8 @@ void Image::LoadCompressedTGA24(uint8*& data, const int width, const int height)
                     pixels_[currByte + 2] = colorBuf[0];
 
                     currByte += bytesPerPixel;
+
+                    actualBytes += 3;
                 }
             }
             else
@@ -826,10 +815,17 @@ void Image::LoadCompressedTGA24(uint8*& data, const int width, const int height)
                     pixels_[currByte + 2] = colorBuf[0];
 
                     currByte += bytesPerPixel;
+
+                    actualBytes += 3;
                 }
             }
         }
     }
+
+    SetConsoleColor(CYAN);
+    LogMsg("tga: expect bytes: %d", expectBytes);
+    LogMsg("tga: actual bytes: %d", actualBytes);
+    SetConsoleColor(RESET);
 }
 
 //--------------------------------------------------------------

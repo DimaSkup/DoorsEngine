@@ -193,7 +193,7 @@ bool FacadeEngineToUI::GetAllEnttsIDs(
 
 ///////////////////////////////////////////////////////////
 
-EntityID FacadeEngineToUI::GetEnttIDByName(const std::string& name) const
+EntityID FacadeEngineToUI::GetEnttIdByName(const std::string& name) const
 {
     // return 0 if there is no entity by such a name
     return pEntityMgr_->nameSystem_.GetIdByName(name);
@@ -201,7 +201,7 @@ EntityID FacadeEngineToUI::GetEnttIDByName(const std::string& name) const
 
 ///////////////////////////////////////////////////////////
 
-bool FacadeEngineToUI::GetEnttNameByID(const EntityID enttID, std::string& name) const
+bool FacadeEngineToUI::GetEnttNameById(const EntityID enttID, std::string& name) const
 {
     name = pEntityMgr_->nameSystem_.GetNameById(enttID);
     return true;
