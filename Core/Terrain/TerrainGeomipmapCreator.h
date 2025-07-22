@@ -40,7 +40,7 @@ inline bool ErrMsgHelper(
 //---------------------------------------------------------
 bool TerrainInitHeight(TerrainGeomip& terrain, const TerrainConfig& terrainCfg)
 {
-    const int terrainWidth = terrainCfg.width;  // note that terrain is always a square, so size by X == size by Z (width == depth)
+    const int terrainLength = terrainCfg.terrainLength;  // note that terrain is always a square, so size by X == size by Z (width == depth)
     bool result = false;
    
     // if we want to generate heights
@@ -50,7 +50,7 @@ bool TerrainInitHeight(TerrainGeomip& terrain, const TerrainConfig& terrainCfg)
         if (terrainCfg.useGenFaultFormation)
         {
             result = terrain.GenHeightFaultFormation(
-                terrainWidth,
+                terrainLength,
                 terrainCfg.numIterations,
                 terrainCfg.minDelta,
                 terrainCfg.maxDelta,
@@ -59,37 +59,24 @@ bool TerrainInitHeight(TerrainGeomip& terrain, const TerrainConfig& terrainCfg)
         // use "midpoint displacement" for height generation
         else
         {
-            result = terrain.GenHeightMidpointDisplacement(terrainWidth, terrainCfg.roughness);
+            result = terrain.GenHeightMidpointDisplacement(terrainLength, terrainCfg.roughness);
         }
 
         if (!result)
             return ErrMsgHelper(LOG, "can't generate heights for terrain");
-
-        if (terrainCfg.saveHeightMap)
-            terrain.SaveHeightMap(terrainCfg.pathSaveHeightMap);
     }
 
     // load a height map from the file
     else
     {
-        result = terrain.LoadHeightMap(terrainCfg.pathHeightMap, terrainWidth);
+        result = terrain.LoadHeightMap(terrainCfg.pathHeightMap, terrainLength);
 
         if (!result)
             return ErrMsgHelper(LOG, "can't load a height map for terrain: %s", terrainCfg.pathHeightMap);
-
-        if (terrainCfg.saveHeightMap)
-            terrain.SaveHeightMap(terrainCfg.pathSaveHeightMap);
     }
 
-    // set heights for the terrain at particular positions
-    if (result)
-    {
-        for (int i = 0; i < terrain.GetNumVertices(); ++i)
-        {
-            DirectX::XMFLOAT3& pos = terrain.vertices_[i].position;
-            pos.y = terrain.GetScaledHeightAtPoint((int)pos.x, (int)pos.z);
-        }
-    }
+    if (terrainCfg.saveHeightMap)
+        terrain.SaveHeightMap(terrainCfg.pathSaveHeightMap);
 
     return result;
 }
@@ -141,9 +128,7 @@ bool TerrainInitTileMap(TerrainGeomip& terrain, const TerrainConfig& terrainCfg)
             return ErrMsgHelper(LOG, "can't create texture resource for terrain's tile map");
         }
 
-        // save the tile map if we want
-        if (terrainCfg.saveTextureMap)
-            terrain.SaveTextureMap(terrainCfg.pathSaveTextureMap);
+      
     }
     // load texture map from file
     else
@@ -152,10 +137,11 @@ bool TerrainInitTileMap(TerrainGeomip& terrain, const TerrainConfig& terrainCfg)
 
         if (!result)
             return ErrMsgHelper(LOG, "can't load terrain's texture map: %s", terrainCfg.pathTextureMap);
-
-        if (terrainCfg.saveTextureMap)
-            terrain.SaveTextureMap(terrainCfg.pathSaveTextureMap);
     }
+
+    // save the tile map if we want
+    if (terrainCfg.saveTextureMap)
+        terrain.SaveTextureMap(terrainCfg.pathSaveTextureMap);
 
     return true;
 }
@@ -185,25 +171,22 @@ bool TerrainInitLightMap(TerrainGeomip& terrain, const TerrainConfig& terrainCfg
 
         // compute pixel raw data for the lightmap texture
         result = terrain.CalculateLighting();
-
         if (!result)
-            return ErrMsgHelper(LOG, "can't calculate terrain's lightmap");
-
-        if (terrainCfg.saveLightMap)
-            terrain.SaveLightMap(terrainCfg.pathSaveLightMap);
+            return ErrMsgHelper(LOG, "can't calculate a terrain's lightmap");
     }
 
     // load a light map from the file
     else
     {
         result = terrain.LoadLightMap(terrainCfg.pathLightMap);
-
         if (!result)
             return ErrMsgHelper(LOG, "can't load terrain's light map from file: %s", terrainCfg.pathLightMap);
-
-        if (terrainCfg.saveLightMap)
-            terrain.SaveLightMap(terrainCfg.pathSaveLightMap);
     }
+
+    // save the light map into file if we want
+    if (terrainCfg.saveLightMap)
+        terrain.SaveLightMap(terrainCfg.pathSaveLightMap);
+
 
     // create a lightmap's texture resource
     const TexID lightmapTexId = g_TextureMgr.CreateTextureFromRawData(
@@ -223,7 +206,6 @@ bool TerrainInitLightMap(TerrainGeomip& terrain, const TerrainConfig& terrainCfg
     {
         return ErrMsgHelper(LOG, "can't create a texture resource for terrain's lightmap");
     }
-    
 
     return true;
 }
@@ -278,40 +260,27 @@ bool CreateTerrainGeomipmapped(ID3D11Device* pDevice, const char* configFilename
 {
     // check input args
     if (!pDevice)
-        return ErrMsgHelper(LOG, "input ptr to DirectX device == nullptr");
+    {
+        LogErr(LOG, "input ptr to DirectX device == nullptr");
+        exit(-1);
+    }
 
     if (StrHelper::IsEmpty(configFilename))
-        return ErrMsgHelper(LOG, "intput path to terrain config file is empty!");
+    {
+        LogErr(LOG, "intput path to terrain config file is empty!");
+        exit(-1);
+    }
 
 
     TerrainGeomip& terrain = g_ModelMgr.GetTerrainGeomip();
-    GeometryGenerator    geoGen;
-    TerrainConfig        terrainCfg;
+    TerrainConfig  terrainCfg;
 
     // load terrain configs
-    terrain.LoadSetupFile(configFilename, terrainCfg);
-
-    const int width = terrainCfg.width;
-    const int depth = terrainCfg.depth;
-
-    // generate terrain flat grid's vertices and indices by input params
-    int numVertices = 0;
-    int numIndices = 0;
-
-    terrain.ClearMemory();
-
-    geoGen.GenerateTerrainFlatGrid(
-        width-1,                     // num quads by X
-        depth-1,                     // num quads by Z
-        width,                       // num vertices by X
-        depth,                       // num vertices by Z
-        &terrain.vertices_,
-        &terrain.indices_,
-        numVertices,
-        numIndices);
-
-    terrain.numVertices_ = (uint32)numVertices;
-    terrain.numIndices_  = (uint32)numIndices;
+    if (!terrain.LoadSetupFile(configFilename, terrainCfg))
+    {
+        LogErr(LOG, "can't load terrain's configs");
+        exit(-1);
+    }
 
     // ------------------------------------------
 
@@ -341,27 +310,6 @@ bool CreateTerrainGeomipmapped(ID3D11Device* pDevice, const char* configFilename
    
     // ------------------------------------------
 
-#if 0
-    terrain.ClearMemory();
-    terrain.AllocateMemory(1000000, 1);
-    UINT indices[1]{ 0 };
-
-
-    // initialize vertex/index buffers
-    terrain.InitBuffers(
-        pDevice,
-        terrain.vertices_,
-        indices, //terrain.indices_,
-        1000000, //terrain.numVertices_,
-        1);      // terrain.numIndices_);
-#else
-
-
-    for (int i = 0; i < (int)terrain.numIndices_; ++i)
-        terrain.indices_[i] = i;
-
-#endif
-
     if (!terrain.InitGeomipmapping(terrainCfg.patchSize))
     {
         LogErr(LOG, "can't initialize the geomip terrain");
@@ -369,8 +317,9 @@ bool CreateTerrainGeomipmapped(ID3D11Device* pDevice, const char* configFilename
     }
 
     // compute the bounding box of the terrain
-    const DirectX::XMFLOAT3 center = { 0,0,0 };
-    const DirectX::XMFLOAT3 extents = { (float)width, 1.0f, (float)depth };
+    const int terrainSize           = terrain.GetTerrainLength();
+    const DirectX::XMFLOAT3 center  = { 0,0,0 };
+    const DirectX::XMFLOAT3 extents = { (float)terrainSize, 1.0f, (float)terrainSize };
 
     // setup axis-aligned bounding box
     terrain.SetAABB(center, extents);

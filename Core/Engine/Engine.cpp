@@ -61,7 +61,7 @@ Engine::~Engine()
 bool Engine::Initialize(
     HINSTANCE hInstance,
     HWND mainWnd,
-    const Settings& settings,
+    const EngineConfigs& settings,
     const std::string& windowTitle,
     ECS::EntityMgr* pEnttMgr,
     UI::UserInterface* pUserInterface,
@@ -1156,7 +1156,7 @@ void Engine::TurnOnGameMode()
 
     const EntityID gameCamID = pEnttMgr_->nameSystem_.GetIdByName("game_camera");
 
-    graphics_.GetD3DClass().ToggleFullscreen(hwnd_, true);
+    graphics_.GetD3DClass().ToggleFullscreen(hwnd_, false);
     graphics_.SetCurrentCamera(gameCamID);
     graphics_.SetGameMode(true);
 

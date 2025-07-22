@@ -8,6 +8,16 @@
 
 #include <math.h>
 
+// --------------------------------------------------------
+// Desc:   check if input value is power of 2
+// Args:   - value: a value to check
+// Ret:    - true if is power of 2
+// --------------------------------------------------------
+inline bool IsPow2(const int value)
+{
+    return (value && !(value & (value - 1)));
+}
+
 //---------------------------------------
 // swapping values with XOR (NOTE: works only for int values)
 //---------------------------------------

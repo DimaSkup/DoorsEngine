@@ -26,7 +26,7 @@ Index of this file:
 // [SECTION] Multi-select support
 // [SECTION] Docking support
 // [SECTION] Viewport support
-// [SECTION] Settings support
+// [SECTION] EngineConfigs support
 // [SECTION] Localization support
 // [SECTION] Error handling, State recovery support
 // [SECTION] Metrics, Debug tools
@@ -717,7 +717,7 @@ struct ImPool
 
 // Helper: ImChunkStream<>
 // Build and iterate a contiguous stream of variable-sized structures.
-// This is used by Settings to store persistent data while reducing allocation count.
+// This is used by EngineConfigs to store persistent data while reducing allocation count.
 // We store the chunk size first, and align the final size on 4 bytes boundaries.
 // The tedious/zealous amount of casting is to avoid -Wcast-align warnings.
 template<typename T>
@@ -2045,7 +2045,7 @@ struct ImGuiViewportP : public ImGuiViewport
 };
 
 //-----------------------------------------------------------------------------
-// [SECTION] Settings support
+// [SECTION] EngineConfigs support
 //-----------------------------------------------------------------------------
 
 // Windows data saved in imgui.ini file
@@ -2054,7 +2054,7 @@ struct ImGuiViewportP : public ImGuiViewport
 struct ImGuiWindowSettings
 {
     ImGuiID     ID;
-    ImVec2ih    Pos;            // NB: Settings position are stored RELATIVE to the viewport! Whereas runtime ones are absolute positions.
+    ImVec2ih    Pos;            // NB: EngineConfigs position are stored RELATIVE to the viewport! Whereas runtime ones are absolute positions.
     ImVec2ih    Size;
     ImVec2ih    ViewportPos;
     ImGuiID     ViewportId;
@@ -2548,9 +2548,9 @@ struct ImGuiContext
     ImGuiDockContext        DockContext;
     void                    (*DockNodeWindowMenuHandler)(ImGuiContext* ctx, ImGuiDockNode* node, ImGuiTabBar* tab_bar);
 
-    // Settings
+    // EngineConfigs
     bool                    SettingsLoaded;
-    float                   SettingsDirtyTimer;                 // Save .ini Settings to memory when time reaches zero
+    float                   SettingsDirtyTimer;                 // Save .ini EngineConfigs to memory when time reaches zero
     ImGuiTextBuffer         SettingsIniData;                    // In memory .ini settings
     ImVector<ImGuiSettingsHandler>      SettingsHandlers;       // List of .ini settings handlers
     ImChunkStream<ImGuiWindowSettings>  SettingsWindows;        // ImGuiWindow .ini settings entries
@@ -2834,7 +2834,7 @@ enum ImGuiTabBarFlagsPrivate_
 {
     ImGuiTabBarFlags_DockNode                   = 1 << 20,  // Part of a dock node [we don't use this in the master branch but it facilitate branch syncing to keep this around]
     ImGuiTabBarFlags_IsFocused                  = 1 << 21,
-    ImGuiTabBarFlags_SaveSettings               = 1 << 22,  // FIXME: Settings are handled by the docking system, this only request the tab bar to mark settings dirty when reordering tabs
+    ImGuiTabBarFlags_SaveSettings               = 1 << 22,  // FIXME: EngineConfigs are handled by the docking system, this only request the tab bar to mark settings dirty when reordering tabs
 };
 
 // Extend ImGuiTabItemFlags_
@@ -3280,7 +3280,7 @@ namespace ImGui
     IMGUI_API const ImGuiPlatformMonitor*   GetViewportPlatformMonitor(ImGuiViewport* viewport);
     IMGUI_API ImGuiViewportP*               FindHoveredViewportFromPlatformWindowStack(const ImVec2& mouse_platform_pos);
 
-    // Settings
+    // EngineConfigs
     IMGUI_API void                  MarkIniSettingsDirty();
     IMGUI_API void                  MarkIniSettingsDirty(ImGuiWindow* window);
     IMGUI_API void                  ClearIniSettings();
@@ -3288,7 +3288,7 @@ namespace ImGui
     IMGUI_API void                  RemoveSettingsHandler(const char* type_name);
     IMGUI_API ImGuiSettingsHandler* FindSettingsHandler(const char* type_name);
 
-    // Settings - Windows
+    // EngineConfigs - Windows
     IMGUI_API ImGuiWindowSettings*  CreateNewWindowSettings(const char* name);
     IMGUI_API ImGuiWindowSettings*  FindWindowSettingsByID(ImGuiID id);
     IMGUI_API ImGuiWindowSettings*  FindWindowSettingsByWindow(ImGuiWindow* window);
@@ -3646,7 +3646,7 @@ namespace ImGui
     IMGUI_API void          TableGcCompactTransientBuffers(ImGuiTableTempData* table);
     IMGUI_API void          TableGcCompactSettings();
 
-    // Tables: Settings
+    // Tables: EngineConfigs
     IMGUI_API void                  TableLoadSettings(ImGuiTable* table);
     IMGUI_API void                  TableSaveSettings(ImGuiTable* table);
     IMGUI_API void                  TableResetSettings(ImGuiTable* table);

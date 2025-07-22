@@ -66,8 +66,8 @@ public:
     inline int                       GetWindowWidth()      const { return wndWidth_; }
     inline int                       GetWindowHeight()     const { return wndHeight_; }
     inline float                     GetAspectRatio()      const { return (float)wndWidth_ / (float)wndHeight_; }
-    inline float                     GetScreenNear()       const { return screenNear_; }
-    inline float                     GetScreenDepth()      const { return screenDepth_; }
+    inline float                     GetNearZ()            const { return nearZ_; }
+    inline float                     GetFarZ()             const { return farZ_; }
 
     // get world/ortho matrix
     //inline const DirectX::XMMATRIX& GetWorldMatrix()       const { return worldMatrix_; }
@@ -157,8 +157,8 @@ private:
     int   windowedModeHeight_   = 600;       // current wnd height for the windowed mode
     int   fullScreenWndWidth_   = 800;       // current wnd width for the full screen mode
     int   fullScreenWndHeight_  = 600;       // current wnd height for the full screen mode
-    float screenNear_           = 0.0f;
-    float screenDepth_          = 100.0f;
+    float nearZ_                = 0.0f;
+    float farZ_                 = 100.0f;
     
     bool enableAltEnter_        = true;
     bool vsyncEnabled_          = false;

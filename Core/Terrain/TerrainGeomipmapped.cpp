@@ -14,41 +14,25 @@
 #include <DirectXMath.h>
 #include <DirectXCollision.h>
 
-
 using namespace DirectX;
 
 
 namespace Core
 {
 
-// yes, I did it
-#define NEW new (std::nothrow)
+// 0 - we don't execute any smoothing computations during terrain initialization
+// 1 - mid smothing
+// 2 - hard smoothing
+constexpr int TERRAIN_SMOOTHING_LEVEL = 2;
 
 
 //---------------------------------------------------------
-// Desc:   release memory from the CPU copy of vertices/indices
+// Desc:   release memory from the vertices/indices buffers
 //---------------------------------------------------------
-void TerrainGeomip::ClearMemory()
+void TerrainGeomip::ReleaseBuffers()
 {
-
     SafeDeleteArr(vertices_);
     SafeDeleteArr(indices_);
-}
-
-//---------------------------------------------------------
-// Desc:   release all the memory related to the terrain
-//---------------------------------------------------------
-void TerrainGeomip::Shutdown()
-{
-    ClearMemory();
-
-    // delete the patch number
-    SafeDeleteArr(patches_);
-
-    // reset patch values
-    patchSize_          = 0;
-    numPatchesPerSide_  = 0;
-    maxLOD_             = 0;
 
     // release memory from the vertex buffer and index buffer
     vb_.Shutdown();
@@ -56,41 +40,12 @@ void TerrainGeomip::Shutdown()
 }
 
 //---------------------------------------------------------
-// Desc:   allocate memory for vertices/indices data arrays
-// Args:   - numVertices:  the number of vertices
-//         - numIndices:   the number of indices
-// Ret:    true if we managed to allocate memory
+// Desc:   release all the memory related to the terrain
 //---------------------------------------------------------
-bool TerrainGeomip::AllocateMemory(const int numVertices, const int numIndices)
+void TerrainGeomip::Shutdown()
 {
-    assert(numVertices > 0);
-    assert(numIndices > 0);
-
-    // prepare memory
-    ClearMemory();
-
-    numVertices_ = numVertices;
-    numIndices_  = numIndices;
-
-    // alloc vertices array
-    vertices_ = NEW Vertex3dTerrain[numVertices_]{};
-    if (!vertices_)
-    {
-        LogErr(LOG, "can't allocate memory for array of terrain's vertices");
-        Shutdown();
-        return false;
-    }
-
-    // alloc indices array
-    indices_ = NEW UINT[numIndices_];
-    if (!indices_)
-    {
-        LogErr(LOG, "can't allocate memory for array of terrain's indices");
-        Shutdown();
-        return false;
-    }
-
-    return true;
+    ReleaseBuffers();
+    ClearMemoryFromMaps();
 }
 
 //---------------------------------------------------------
@@ -105,14 +60,16 @@ bool TerrainGeomip::InitGeomipmapping(const int patchSize)
     int numAllPatches = 0;
 
     // since terrain is squared the width and height are equal
-    const int terrainSize = heightMap_.GetWidth();
+    const int terrainLen = GetTerrainLength();
 
+    LogMsg(LOG, "start initialization of terrain geometry and buffers (geomip)");
 
-    if ((terrainSize - 1) % (patchSize - 1) != 0)
+    // check if we actually able to properly initialize the terrain's geometry 
+    if ((terrainLen - 1) % (patchSize - 1) != 0)
     {
         int patchSz = patchSize - 1;
-        int recommendedTerrainSize = ((terrainSize-1 + patchSz) / (patchSz)) * (patchSz) + 1;
-        LogErr(LOG, "terrain size minus 1 (%d) must be divisible by patch size minus 1 (%d)", terrainSize, patchSize);
+        int recommendedTerrainSize = ((terrainLen -1 + patchSz) / (patchSz)) * (patchSz) + 1;
+        LogErr(LOG, "terrain length minus 1 (%d) must be divisible by patch size minus 1 (%d)", terrainLen, patchSize);
         SetConsoleColor(YELLOW);
         LogMsg("Try using terrain size = %d", recommendedTerrainSize);
         return false;
@@ -130,49 +87,13 @@ bool TerrainGeomip::InitGeomipmapping(const int patchSize)
         return false;
     }
 
-    // release all the memory from prev patches data
-    if (patches_)
-        Shutdown();
+    // init the LOD manager
+    const int numPatchesPerSide = (terrainLen-1) / (patchSize-1);
+    const int maxLod = lodMgr_.Init(patchSize, numPatchesPerSide);
+    lodInfo_.resize(maxLod + 1);
 
-    // initiate the patch info
-    patchSize_         = patchSize;
-    numPatchesPerSide_ = terrainSize / patchSize;
-
-    numAllPatches      = numPatchesPerSide_ * numPatchesPerSide_;
-
-    patches_ = NEW GeomPatch[numAllPatches];
-    if (!patches_)
-    {
-        LogErr(LOG, "can't allocate memory for terrain's patches");
-        return false;
-    }
-
-    // figure out the max level of detail for the patch
-    divisor = patchSize - 1;
-
-    while (divisor > 2)
-    {
-        divisor = divisor >> 1;
-        LOD++;
-    }
-
-    // the max amount of detail
-    maxLOD_ = LOD;
-
-    // init the patch values
-    for (int i = 0; i < numAllPatches; ++i)
-    {
-        // init the patches to the lowest level of detail
-        patches_[i].LOD = LOD;
-        patches_[i].isVisible = false;
-    }
-
-    // initialize vertex/index buffers
-    if (!InitBuffers())
-    {
-        LogErr(LOG, "can't initialize vb/ib buffers for the geomip terrain");
-        return false;
-    }
+    // init vertex/index buffers
+    PopulateBuffers();
 
     LogMsg("Geomipmapping system successfully initialized");
     return true;
@@ -181,12 +102,16 @@ bool TerrainGeomip::InitGeomipmapping(const int patchSize)
 //---------------------------------------------------------
 // Desc:   initialize DirectX vertex/index buffers
 //---------------------------------------------------------
-bool TerrainGeomip::InitBuffers()
+bool TerrainGeomip::InitBuffers(
+    const Vertex3dTerrain* vertices,
+    const UINT* indices,
+    const int numVertices,
+    const int numIndices)
 {
-    constexpr bool isDynamic = true;
+    constexpr bool isDynamic = false;
 
     // initialize the vertex buffer
-    if (!vb_.Initialize(g_pDevice, vertices_, numVertices_, isDynamic))
+    if (!vb_.Initialize(g_pDevice, vertices, numVertices, isDynamic))
     {
         LogErr(LOG, "can't initialize a vertex buffer for terrain");
         Shutdown();
@@ -194,7 +119,7 @@ bool TerrainGeomip::InitBuffers()
     }
 
     // initialize the index buffer
-    if (!ib_.Initialize(g_pDevice, indices_, numIndices_, isDynamic))
+    if (!ib_.Initialize(g_pDevice, indices, numIndices, isDynamic))
     {
         LogErr(LOG, "can't initialize an index buffer for terrain");
         Shutdown();
@@ -202,6 +127,204 @@ bool TerrainGeomip::InitBuffers()
     }
 
     return true;
+}
+
+//---------------------------------------------------------
+// Desc:   init all the vertices of the terrain (its positions, texture coords, etc.)
+// Args:   - vertices:      array of vertices
+//         - numVertices:   number of vertices in the array
+//---------------------------------------------------------
+void TerrainGeomip::InitVertices(Vertex3dTerrain* vertices, const int numVertices)
+{
+    int idx = 0;
+    const int   terrainLen    = GetTerrainLength();
+    const float invTerrainLen = 1.0f / (float)terrainLen;
+
+    float yUp    = 0;
+    float yRight = 0;
+    float yDown  = 0;
+    float yLeft  = 0;
+
+
+    // no smoothing computations
+    if constexpr (TERRAIN_SMOOTHING_LEVEL == 0)
+    {
+        for (int z = 0; z < terrainLen; z++)
+        {
+            for (int x = 0; x < terrainLen; x++)
+            {
+                assert(idx < numVertices);
+
+                const float fX = (float)x;
+                const float fY = GetScaledHeightAtPoint(x, z);
+                const float fZ = (float)z;
+                const float texU = fX * invTerrainLen;
+                const float texV = fZ * invTerrainLen;
+
+                vertices[idx] = { fX, fY, fZ, texU, texV };
+                idx++;
+            }
+        }
+    }
+
+    //-------------------------------------------------
+    // do some smoothing
+    if constexpr (TERRAIN_SMOOTHING_LEVEL == 1)
+    {
+        for (int z = 0; z < terrainLen; z++)
+        {
+            for (int x = 0; x < terrainLen; x++)
+            {
+                assert(idx < numVertices);
+
+                // compute averaged interpolated height to make our terrain smoother
+                float heightSum = 0;
+                int numHeights = 0;
+
+                /*
+                    v - our vertex
+                    * - neighbours which used for interpolation
+                        
+                        *
+                        |
+                    *---v---*
+                        |
+                        *
+                */
+
+                // get and sum bottom height if we have such
+                if (z > 0)
+                {
+                    heightSum += GetScaledHeightAtPoint(x, z - 1);
+                    numHeights++;
+                }
+
+                // get and sum left height if we have such
+                if (x > 0)
+                {
+                    heightSum += GetScaledHeightAtPoint(x - 1, z);
+                    numHeights++;
+                }
+
+                // get and sum right height if we have such
+                if (x < terrainLen)
+                {
+                    heightSum += GetScaledHeightAtPoint(x + 1, z);
+                    numHeights++;
+                }
+
+                // get and sum upper height if we have such
+                if (z < terrainLen)
+                {
+                    heightSum += GetScaledHeightAtPoint(x, z + 1);
+                    numHeights++;
+                }
+
+                const float heightInterpolated = (heightSum / numHeights);
+
+                const float fX = (float)x;
+                const float fY = (GetScaledHeightAtPoint(x, z) + heightInterpolated) * 0.5f;
+                const float fZ = (float)z;
+                const float texU = fX * invTerrainLen;
+                const float texV = fZ * invTerrainLen;
+
+                vertices[idx] = { fX, fY, fZ, texU, texV };
+                idx++;
+            }
+        }
+    }
+
+    //-------------------------------------------------
+    // hard smoothing
+    if constexpr (TERRAIN_SMOOTHING_LEVEL == 2)
+    {
+        for (int z = 0; z < terrainLen; z++)
+        {
+            for (int x = 0; x < terrainLen; x++)
+            {
+                assert(idx < numVertices);
+
+                // compute averaged interpolated height to make our terrain smoother
+                float heightSum = 0;
+                int numHeights = 0;
+
+                /*
+                    v - our vertex
+                    * - neighbours which used for interpolation
+                        
+                    *---*---*
+                    |   |   |
+                    *---v---*
+                    |   |   |
+                    *---*---*
+                */
+
+                // if we aren't on the edge of the terrain
+                if ((x > 0 && z > 0) && (x < terrainLen && z < terrainLen))
+                {
+                    // bottom line of quad
+                    heightSum += GetScaledHeightAtPoint(x-1, z-1);
+                    heightSum += GetScaledHeightAtPoint(x,   z-1);
+                    heightSum += GetScaledHeightAtPoint(x+1, z-1);
+
+                    // middle line of quad
+                    heightSum += GetScaledHeightAtPoint(x-1, z);
+                    heightSum += GetScaledHeightAtPoint(x+1, z);
+
+                    // top line of quad
+                    heightSum += GetScaledHeightAtPoint(x-1, z+1);
+                    heightSum += GetScaledHeightAtPoint(x,   z+1);
+                    heightSum += GetScaledHeightAtPoint(x+1, z+1);
+
+                    numHeights += 8;
+                }
+                // handle specific cases
+                else
+                {
+                    // get and sum bottom height if we have such
+                    if (z > 0)
+                    {
+                        heightSum += GetScaledHeightAtPoint(x, z - 1);
+                        numHeights++;
+                    }
+
+                    // get and sum left height if we have such
+                    if (x > 0)
+                    {
+                        heightSum += GetScaledHeightAtPoint(x - 1, z);
+                        numHeights++;
+                    }
+
+                    // get and sum right height if we have such
+                    if (x < terrainLen)
+                    {
+                        heightSum += GetScaledHeightAtPoint(x + 1, z);
+                        numHeights++;
+                    }
+
+                    // get and sum upper height if we have such
+                    if (z < terrainLen)
+                    {
+                        heightSum += GetScaledHeightAtPoint(x, z + 1);
+                        numHeights++;
+                    }
+                }
+
+                const float heightInterpolated = (heightSum / numHeights);
+
+                const float fX = (float)x;
+                const float fY = (GetScaledHeightAtPoint(x, z) + heightInterpolated) * 0.5f;
+                const float fZ = (float)z;
+                const float texU = fX * invTerrainLen;
+                const float texV = fZ * invTerrainLen;
+
+                vertices[idx] = { fX, fY, fZ, texU, texV };
+                idx++;
+            }
+        }
+    }
+
+    assert(idx == numVertices);
 }
 
 //---------------------------------------------------------
@@ -221,96 +344,52 @@ inline bool TestWeInPatch(
            (camPosZ >= cz-halfSize) || (camPosZ <= cz+halfSize);
 }
 
-
 //---------------------------------------------------------
-// Desc:   compute normal vector by 3 input vertices
-// Args:   - v0, v1, v2:  vertices
+// Desc:   calculate a normal vector for each terrain's vertex
+// Args:   - vertices:  arr of terrain's vertices
+//         - indices:   arr of terrain's indices
+//         - numVertices:  how many vertices in the vertices arr
 //---------------------------------------------------------
-void ComputeFaceNormal(
-    Vertex3dTerrain& v0,
-    Vertex3dTerrain& v1,
-    Vertex3dTerrain& v2)
-{
-    using namespace DirectX;
-
-    // compute face normal for the first triangle
-    XMVECTOR pos0 = XMLoadFloat3(&v0.position);
-    XMVECTOR pos1 = XMLoadFloat3(&v1.position);
-    XMVECTOR pos2 = XMLoadFloat3(&v2.position);
-
-    XMVECTOR e0 = pos1 - pos0;
-    XMVECTOR e1 = pos2 - pos0;
-
-    XMVECTOR normal = XMVector3Normalize(XMVector3Cross(e0, e1));
-
-    XMStoreFloat3(&v0.normal, normal);
-    XMStoreFloat3(&v1.normal, normal);
-    XMStoreFloat3(&v2.normal, normal);
-}
-
 void TerrainGeomip::CalcNormals(
     Vertex3dTerrain* vertices,
     const UINT* indices,
     const int numVertices,
     const int numIndices)
 {
-    const int depth = terrainDepth_;
-    const int width = terrainWidth_;
-    const int patchSz = patchSize_ - 1;
+    const int terrainLen = GetTerrainLength();
+    const int numQuadsPerSide = terrainLen - 1;
+    const int patchLen = lodMgr_.patchSize_ - 1;
 
     UINT idx = 0;
 
-#if 0
     // accumulate each triangle triangle normal into each of the triangle vertices
-    for (int z = 0; z < depth - 1; z += (patchSz - 1))
+    for (int z = 0; z < numQuadsPerSide; z += patchLen)
     {
-        for (int x = 0; x < width - 1; x += (patchSz - 1))
+        for (int x = 0; x < numQuadsPerSide; x += patchLen)
         {
-            const int baseVertexIdx = z * width + x;
+            const int baseVertexIdx = (z * terrainLen) + x;
+
+            // get number of indices of the patch with maximal detalization level
+            const int numIdxs = lodInfo_[0].info[0][0][0][0].count;
 
             // for each triangle
-            for (int i = 0; i < numIndices; i += 3)
+            for (int i = 0; i < numIdxs; i += 3)
             {
                 const UINT i0         = baseVertexIdx + indices[i + 0];
                 const UINT i1         = baseVertexIdx + indices[i + 1];
                 const UINT i2         = baseVertexIdx + indices[i + 2];
 
-                const XMVECTOR pos0   = XMLoadFloat3(&vertices[i0].position);
-                const XMVECTOR pos1   = XMLoadFloat3(&vertices[i1].position);
-                const XMVECTOR pos2   = XMLoadFloat3(&vertices[i2].position);
+                const XMVECTOR pos0   = DirectX::XMLoadFloat3(&vertices[i0].position);
+                const XMVECTOR pos1   = DirectX::XMLoadFloat3(&vertices[i1].position);
+                const XMVECTOR pos2   = DirectX::XMLoadFloat3(&vertices[i2].position);
 
                 const XMVECTOR normal = XMVector3Cross(pos1 - pos0, pos2 - pos0);
-
-                //XMFLOAT3 n = { 0,0,0 };
-                //XMStoreFloat3(&n, normal);
 
                 vertices[i0].normal += normal;
                 vertices[i1].normal += normal;
                 vertices[i2].normal += normal;
             }
         }
-    }
-#endif
-
-    // for each triangle
-    for (int i = 0; i < numIndices; i += 3)
-    {
-        const UINT i0 = indices[i + 0];
-        const UINT i1 = indices[i + 1];
-        const UINT i2 = indices[i + 2];
-
-        const XMVECTOR pos0 = XMLoadFloat3(&vertices[i0].position);
-        const XMVECTOR pos1 = XMLoadFloat3(&vertices[i1].position);
-        const XMVECTOR pos2 = XMLoadFloat3(&vertices[i2].position);
-
-        const XMVECTOR normal = XMVector3Cross(pos1 - pos0, pos2 - pos0);
-
-        //XMFLOAT3 n = { 0,0,0 };
-        //XMStoreFloat3(&n, normal);
-
-        vertices[i0].normal += normal;
-        vertices[i1].normal += normal;
-        vertices[i2].normal += normal;
     }
 
     // normalize all the vertex normals
@@ -324,235 +403,8 @@ void TerrainGeomip::CalcNormals(
 //---------------------------------------------------------
 void TerrainGeomip::Update(const CameraParams& camParams)
 {
-    const int camPosX = (int)camParams.posX;
-    const int camPosY = (int)camParams.posY;
-    const int camPosZ = (int)camParams.posZ;
-
-    const int patchSize     = patchSize_;
-    const int halfPatchSize = patchSize / 2;
-    const float fHalfPatchSz = (float)halfPatchSize;
-
-    // BAD way to determine patch LOD
-    constexpr int nearDist      = 100;
-    constexpr int midDist       = 150;
-    constexpr int farDist       = 200;
-    constexpr int nearDistSqr   = nearDist * nearDist;
-    constexpr int midDistSqr    = midDist * midDist;
-    constexpr int farDistSqr    = farDist * farDist;
-
-    // radius of each patch
-    const float radius = sqrtf(SQR(fHalfPatchSz) + SQR(fHalfPatchSz) + SQR(fHalfPatchSz));
-    
-
-    // compute frustum by input camera's params
-    Frustum frustum;
-
-    frustum.Initialize(
-        camParams.planes[0],
-        camParams.planes[1],
-        camParams.planes[2],
-        camParams.planes[3],
-        camParams.planes[4],
-        camParams.planes[5]);
-
-
-    const XMMATRIX translateView = DirectX::XMMatrixTranslation(0, 0, +10);
-    const XMMATRIX view          = (XMMATRIX(camParams.viewMatrix) * translateView);
-
-    const int numPerSide         = numPatchesPerSide_;
-
-    // go through each patch and define if it is visible and
-    // if so compute the squared distance to it 
-    for (int z = 0; z < numPerSide; ++z)
-    {
-        // patch center by Z-axis
-        const int pz = (z * patchSize) + halfPatchSize;
-
-        for (int x = 0; x < numPerSide; ++x)
-        {
-            // compute patch center
-            const int  px    = (x * patchSize) + halfPatchSize;
-            const int  py    = (int)GetScaledHeightAtPoint(px, pz);
-            GeomPatch& patch = patches_[GetPatchNumber(x, z)];
-
-            // transform the patch center from world space into camera (view) space
-            DirectX::XMVECTOR center = { (float)px, (float)py, (float)pz };
-            center = DirectX::XMVector3Transform(center, view);
-            DirectX::XMFLOAT3 c;                
-            DirectX::XMStoreFloat3(&c, center);
-
-            //---------------------------------------------
-            // cull non-visible patches
-
-            // first of all we execute frustum/sphere test because of simple computations
-            patch.isVisible = frustum.SphereTest(c.x, c.y, c.z, radius);
-
-#if 1
-            // if we passed frustum/sphere test then we execute frustum/cube
-            // test for higher precision
-            if (patch.isVisible)
-            {
-                bool cubeTest = frustum.CubeTest(c.x, c.y, c.z, fHalfPatchSz);
-                bool weInPatch = TestWeInPatch(camPosX, camPosZ, px, pz, halfPatchSize);
-
-                patch.isVisible = cubeTest || weInPatch;
-            }
-            // we don't see this patch so just move to the next patch computation
-            else
-            {
-                continue;
-            }
-#endif
-
-            if (patch.isVisible)
-            {
-                // get the square of the distance from the camera to the patch
-                patch.distSqr = (SQR(px-camPosX) + SQR(py-camPosY) + SQR(pz-camPosZ));
-
-                const int distSqr = patch.distSqr;
-
-                // if we see this patch then compute its LOD
-                patch.LOD =                                                    // LOD_0: by default (when distSqr < nearDistSqr)
-                    1 * ((distSqr >= nearDistSqr) & (distSqr < midDistSqr)) +  // LOD_1: distSqr in range [nearDistSqr, midDistSqr)
-                    2 * ((distSqr >= midDistSqr)  & (distSqr < farDistSqr)) +  // LOD_2: distSqr in range [midDistSqr, farDistSqr)
-                    3 *  (distSqr >= farDistSqr);                              // LOD_3: distSqr is >= farDistSqr
-            }
-        }
-    }
-
-    // recompute the geometry for the terrain
-    ComputeTesselation();
-
-    // compute normal vectors
-    CalcNormals(vertices_, indices_, verticesOffset_, indicesOffset_);
+    lodMgr_.Update(camParams.posX, camParams.posY, camParams.posZ);
 }
-
-//---------------------------------------------------------
-// Desc:   compute geometry for each terrain's patch
-//         according to its LOD
-//---------------------------------------------------------
-void TerrainGeomip::ComputeTesselation(void)
-{
-    // reset the counting variables
-    verticesOffset_  = 0;
-    indicesOffset_   = 0;
-    patchesPerFrame_ = 0;
-    vertsPerFrame_   = 0;
-    trisPerFrame_    = 0;
-
-    const int numPerSide = numPatchesPerSide_;
-
-    // go through each patch
-    for (int z = 0; z < numPerSide; ++z)
-    {
-        for (int x = 0; x < numPerSide; ++x)
-        {
-            int num = GetPatchNumber(x, z);
-
-            if (patches_[num].isVisible)
-            {
-                ComputePatch(num, x, z);
-                patchesPerFrame_++;
-            }
-        }
-    }
-}
-
-//---------------------------------------------------------
-// Desc:   compute vertices for this patch
-// Args:   - currPatchNum: the number of current patch
-//         - px: patch index by X-axis
-//         - pz: patch index by Z-axis
-//---------------------------------------------------------
-void TerrainGeomip::ComputePatch(
-    const int currPatchNum,
-    const int px,
-    const int pz)
-{
-    GeomNeighbor patchNeighbor;
-    GeomNeighbor fanNeighbor;
-
-    uint32 LOD = patches_[currPatchNum].LOD;
-
-    int patchNumLeft  = GetPatchNumber(px-1, pz);
-    int patchNumUp    = GetPatchNumber(px,   pz+1);
-    int patchNumRight = GetPatchNumber(px+1, pz);
-    int patchNumDown  = GetPatchNumber(px,   pz-1);
-
-    // find out info about the patch to the current patch's left, if the patch is of
-    // a greater detail or there is no patch to the left, we cant render the
-    
-    // the left patch
-    patchNeighbor.left  = (patches_[patchNumLeft].LOD <= LOD || px == 0);
-
-    // the upper patch
-    patchNeighbor.up    = (patches_[patchNumUp].LOD <= LOD || pz == numPatchesPerSide_);
-
-    // the right patch
-    patchNeighbor.right = (patches_[patchNumRight].LOD <= LOD || px == numPatchesPerSide_);
-
-    // lower patch
-    patchNeighbor.down  = (patches_[patchNumDown].LOD <= LOD || pz == 0);
-
-
-    // determine the distance btw each triangle-fan that we will be rendering
-    const int   iPatchSize = patchSize_;
-    const float fPatchSize = (float)iPatchSize;
-
-    // find out how many fan divisions we are going to have
-    const int   divisor    = (iPatchSize - 1) >> (LOD + 1);
-
-    // the size btw the center of each triangle fan (for instance: LOD_3 --> divisor = 1, size = 17, halfSize = 8)
-    const float size       = fPatchSize / divisor;
-    
-    // half the size btw the center of each triangle fan (this will be the size btw each vertex)
-    const float halfSize   = size * 0.5f;
-   
-
-    // go through each subpatch
-    for (float z = halfSize; (z + halfSize) < fPatchSize + 1; z += size)
-    {
-
-        // if this fan is in the bottom row, we may need to adjust it's rendering
-        // to prevent cracks
-        if (z == halfSize)
-            fanNeighbor.down = patchNeighbor.down;
-        else
-            fanNeighbor.down = true;
-
-        // if this fan is in the top row, we may need to adjust it's rendering
-        // to prevent cracks
-        if (z >= (fPatchSize - halfSize))
-            fanNeighbor.up = patchNeighbor.up;
-        else
-            fanNeighbor.up = true;
-
-        const float patchCenterZ = pz * fPatchSize + z;
-
-
-        for (float x = halfSize; (x + halfSize) < fPatchSize + 1; x += size)
-        {
-            // if this fan is in the left row, we may need to adjust it's rendering
-            // to prevent cracks
-            if (x == halfSize)
-                fanNeighbor.left = patchNeighbor.left;
-            else
-                fanNeighbor.left = true;
-
-            // if this fan is in the right row, we may need to adjust it's rendering
-            // to prevent cracks
-            if (x >= (fPatchSize - halfSize))
-                fanNeighbor.right = patchNeighbor.right;
-            else
-                fanNeighbor.right = true;
-
-
-            // compute the triangle fan
-            ComputeFan(px*fPatchSize + x, patchCenterZ, size, fanNeighbor);
-        }
-    }
-}
-
 
 //---------------------------------------------------------
 // Desc:    (helper) add indices of vertices into the output idxs array
@@ -573,193 +425,19 @@ inline void AddTriangle(
     outIdxsBuf[outNumIdxs++] = i2;
 }
 
-//---------------------------------------------------------
-// Desc:   compute a single fan geometry
-// Args:   - cx, cz:   center of the triangle fan to render
-//         - size:     the fan's entire size
-//         - neighbor: the fan's neighbor structure (used to avoid cracking)
-//---------------------------------------------------------
-void TerrainGeomip::ComputeFan(
-    const float cx,
-    const float cz,
-    const float size,
-    const GeomNeighbor& neighbor)
+inline int AddTriangle(
+    int idx,
+    cvector<UINT>& indices,
+    const uint i0,
+    const uint i1,
+    const uint i2)
 {
-    const float halfSize       = size * 0.5f;
-    const float invTerrainSize = 1.0f / heightMap_.GetWidth();
+    indices[idx++] = i0;
+    indices[idx++] = i1;
+    indices[idx++] = i2;
 
-    // vertices positions
-    const float fLeft     = cx - halfSize;
-    const float fRight    = cx + halfSize;
-    const float fDown     = cz - halfSize;
-    const float fUp       = cz + halfSize;
+    return idx;
 
-    // calc the texture coords
-    const float texLeft   = fabsf(fLeft)  * invTerrainSize;
-    const float texRight  = fabsf(fRight) * invTerrainSize;
-    const float texBottom = fabsf(fDown)  * invTerrainSize;
-    const float texTop    = fabsf(fUp)    * invTerrainSize;
-
-    const float midX      = (texLeft + texRight) * 0.5f;
-    const float midZ      = (texBottom + texTop) * 0.5f;
-
-
-    /*
-        Fan visualization
-
-        NOTE: Vertex by number in braces is optional according
-              to LOD of its neighbor patch
-
-        3 -------- (4) -------- 5
-        | \         |         / |
-        |    \      |      /    |
-        |      \    |    /      |
-        |         \ | /         |
-       (2) -------- 0 -------- (6)
-        |         / | \         |
-        |      /    |    \      |
-        |    /      |      \    |
-        | /         |         \ |
-        1 -------- (8) -------- 7
-
-    */
-
-    float height = 0;
-    Vertex3dTerrain vertices[9];
-
-    // CENTER vertex (0)
-    height               = GetScaledInterpolatedHeightAtPoint(cx, cz);
-    vertices[0].position = { cx, height, cz };
-    vertices[0].texture  = { midX, midZ };
-
-    // LOWER-LEFT vertex (1)
-    height               = GetScaledInterpolatedHeightAtPoint(fLeft, fDown);
-    vertices[1].position = { fLeft, height, fDown};
-    vertices[1].texture  = { texLeft, texBottom };
-
-    // MID-LEFT vertex (2): use this vertex if the left patch is NOT of a lower LOD
-    height               = GetScaledInterpolatedHeightAtPoint(fLeft, cz);
-    vertices[2].position = { fLeft, height, cz };
-    vertices[2].texture  = { texLeft, midZ };
-
-
-    // UPPER-LEFT vertex (3)
-    height               = GetScaledInterpolatedHeightAtPoint(fLeft, fUp);
-    vertices[3].position = { fLeft, height, fUp };
-    vertices[3].texture  = { texLeft, texTop };
-
-    // UPPER-MID vertex (4): use this vertex if the upper patch is NOT of a lower LOD
-    height               = GetScaledInterpolatedHeightAtPoint(cx, fUp);
-    vertices[4].position = { cx, height, fUp };
-    vertices[4].texture  = { midX, texTop };
-
-    // UPPER-RIGHT vertex (5)
-    height               = GetScaledInterpolatedHeightAtPoint(fRight, fUp);
-    vertices[5].position = { fRight, height, fUp };
-    vertices[5].texture  = { texRight, texTop };
-
-     // MID-RIGHT vertex(6): use this vertex if the right patch is NOT of a lower LOD
-    height               = GetScaledInterpolatedHeightAtPoint(fRight, cz);
-    vertices[6].position = { fRight, height, cz };
-    vertices[6].texture  = { texRight, midZ };
-   
-    // LOWER-RIGHT vertex (7)
-    height               = GetScaledInterpolatedHeightAtPoint(fRight, fDown);
-    vertices[7].position = { fRight, height, fDown };
-    vertices[7].texture  = { texRight, texBottom };
-
-     // LOWER-MID vertex (8): use this vertex if the bottom patch is NOT of a lower LOD
-    height               = GetScaledInterpolatedHeightAtPoint(cx, fDown);
-    vertices[8].position = { cx, height, fDown };
-    vertices[8].texture  = { midX, texBottom };
-
-    // ----------------------------------------------------
-
-
-    UINT indices[24]{0};
-    int numIdxs = 0;
-
-    // (case 1) add vertex 2 (so we have two triangles on the left side fan)
-    // (case 2) we have no mid-left vertex
-    // 
-    //         3                3
-    //         | \              | \
-    //   (1)   2--0        (2)  |  0
-    //         | /              | /
-    //         1                1
-    if (neighbor.left)                          
-    {
-        AddTriangle(indices, numIdxs, 0, 1, 2);
-        AddTriangle(indices, numIdxs, 0, 2, 3);
-    }
-    else
-    {
-        AddTriangle(indices, numIdxs, 0, 1, 3);
-    }
-
-    // (case 1) add vertex 4 (so we have two triangles on the upper side of the fan)
-    // (case 2) we have no upper-mid vertex
-    // 
-    //         3--4--5             3-----5
-    //   (1)    \ | /         (2)   \   /
-    //            0                   0
-    if (neighbor.up)
-    {
-        AddTriangle(indices, numIdxs, 0, 3, 4);
-        AddTriangle(indices, numIdxs, 0, 4, 5);
-    }
-    else
-    {
-        AddTriangle(indices, numIdxs, 0, 3, 5);
-    }
-
-    // (case 1) add vertex 6 (so we have two triangles on the right side of the fan)
-    // (case 2) we have no mid-right vertex
-    //            5                   5
-    //          / |                 / |
-    //  (1)    0--6         (2)    0  |
-    //          \ |                 \ |
-    //            7                   7
-    if (neighbor.right)
-    {
-        AddTriangle(indices, numIdxs, 0, 5, 6);
-        AddTriangle(indices, numIdxs, 0, 6, 7);
-    }
-    else
-    {
-        AddTriangle(indices, numIdxs, 0, 5, 7);
-    }
-
-    // (case 1) add vertex 8 (so we have two triangles on the bottom side of the fan)
-    // (case 2) we have no bottom-mid vertex
-    //          0                   0
-    //  (1)   / | \        (2)    /   \
-    //       1--8--7             1-----7
-    if (neighbor.down)
-    {
-        AddTriangle(indices, numIdxs, 0, 7, 8);
-        AddTriangle(indices, numIdxs, 0, 8, 1);
-    }
-    else
-    {
-        AddTriangle(indices, numIdxs, 0, 7, 1);
-    }
-
-    // ----------------------------------------------------
-
-    int baseVertexIdx = verticesOffset_;
-
-    // make correction on indices
-    for (int i = 0; i < numIdxs; ++i)
-        indices[i] += baseVertexIdx;
-
-    // fill in the CPU-side vertex buffer so later we will load vertices onto GPU
-    memcpy(&vertices_[verticesOffset_], vertices, sizeof(Vertex3dTerrain) * 9);
-    verticesOffset_ += 9;
-
-    // fill in the CPU-side index buffer so later we will load indices onto GPU
-    memcpy(&indices_[indicesOffset_], indices, sizeof(UINT)*numIdxs);
-    indicesOffset_ += numIdxs;
 }
 
 //---------------------------------------------------------
@@ -814,52 +492,301 @@ void TerrainGeomip::SetTexture(const eTexType type, const TexID texID)
     mat.SetTexture(type, texID);
 }
 
-
-
-#if 0
-//==================================================================================
-bool TerrainGeomip::InitGeomipmapping(const int patchSize)
+//---------------------------------------------------------
+// Desc:   calculate the summary number of indices for
+//         a single patch for all its LODs
+// Ret:    summary number of indices
+//---------------------------------------------------------
+int TerrainGeomip::CalcNumIndices()
 {
-    int divisor = 0;
-    int LOD = 0;
-    int numAllPatches = 0;
+    const int maxPermutationsPerLevel = 16;     // true/false for each of the four sides
+    const int indicesPerQuad          = 6;      // two triangles
+    int       numQuads                = SQR(lodMgr_.patchSize_ - 1);
+    int       numIndices              = 0;
 
-    // since terrain is squared the width and height are equal
-    const int terrainSize = terrainWidth_;
+    SetConsoleColor(CYAN);
 
-    if ((terrainSize - 1) % (patchSize - 1) != 0)
+    for (int lod = 0; lod <= lodMgr_.maxLOD_; ++lod)
     {
-        int patchSz = patchSize - 1;
-        int recommendedTerrainSize = ((terrainSize - 1 + patchSz) / (patchSz)) * (patchSz)+1;
-        LogErr(LOG, "terrain size minus 1 (%d) must be divisible by patch size minus 1 (%d)", terrainSize, patchSize);
-        SetConsoleColor(YELLOW);
-        LogMsg("Try using terrain size = %d", recommendedTerrainSize);
-        return false;
+        LogMsg("LOD %d: numQuads %d", lod, numQuads);
+        numIndices += (numQuads * indicesPerQuad * maxPermutationsPerLevel);
+        numQuads /= 4;
     }
 
-    if (patchSize < 3)
-    {
-        LogErr(LOG, "the minimum patch size is 3 (%d)", patchSize);
-        return false;
-    }
+    LogMsg("initial number of indices: %d", numIndices);
+    SetConsoleColor(RESET);
 
-    if (patchSize % 2 == 0)
-    {
-        LogErr(LOG, "patch size must be an odd number (%d)", patchSize);
-        return false;
-    }
-
-    // release all the memory from prev patches data
-    if (patches_)
-        Shutdown();
-
-    // initiate the patch info
-    patchSize_ = patchSize;
-    numPatchesPerSide_ = (terrainSize-1) / (patchSize-1);
-
-    maxLOD_ = lodManager_.InitLodManager(patchSize, numPatchesPerSide_, numPatchesPerSide_);
-    lodInfo_.resize(maxLOD_ + 1);
+    return numIndices;
 }
-#endif
+
+//---------------------------------------------------------
+// Desc:   initialize indices for each lod and each patch subtype
+//         (for different neighbours)
+// Args:   - indices:   array of indices to be filled
+//---------------------------------------------------------
+int TerrainGeomip::InitIndices(cvector<UINT>& indices)
+{
+    int idx = 0;
+
+    SetConsoleColor(CYAN);
+
+    for (int lod = 0; lod <= lodMgr_.maxLOD_; ++lod)
+    {
+        LogMsg("*** init indices lod %d ***", lod);
+        idx = InitIndicesLOD(idx, indices, lod);
+    }
+
+    SetConsoleColor(RESET);
+    return idx;
+}
+
+//---------------------------------------------------------
+// Desc:   init indices for each patch type of the current lod
+// Args:   - idx:      start index position in the buffer
+//         - indices:  array of all the indices
+//         - lod:      level of detail (can be: 0,1,2,etc.)
+//---------------------------------------------------------
+int TerrainGeomip::InitIndicesLOD(int idx, cvector<UINT>& indices, const int lod)
+{
+    int totalIdxsForLOD = 0;
+
+    for (int l = 0; l < LEFT; ++l)
+    {
+        for (int r = 0; r < RIGHT; ++r)
+        {
+            for (int t = 0; t < TOP; ++t)
+            {
+                for (int b = 0; b < BOTTOM; ++b)
+                {
+                    SingleLodInfo& info = lodInfo_[lod].info[l][r][t][b];
+
+                    // where we start if we want to use indices for this lod
+                    info.start = idx;
+
+                    // init indices for the current lod type
+                    idx = InitIndicesLODSingle(idx, indices, lod, lod+l, lod+r, lod+t, lod+b);
+
+                    // how many indices we have for this type of lod 
+                    info.count = idx - info.start;
+
+                    totalIdxsForLOD += info.count;
+                }
+            }
+        }
+    }
+
+    SetConsoleColor(CYAN);
+    LogMsg("Total indices for LOD: %d", totalIdxsForLOD);
+    SetConsoleColor(RESET);
+
+    return idx;
+}
+
+//---------------------------------------------------------
+// Desc:   init indices for patch of the current type and LOD
+// Args:   - idx:       start index position
+//         - indices:   array of all indices
+//         - lodCore:   the number of current LOD (can be: 0,1,2,etc.)
+//         - lodLeft:   LOD number of the left neighbour's patch
+//         - lodRight:  LOD number of the right neighbour's patch
+//         - lodTop:    LOD number of the top neighbour's patch
+//         - lodBottom: LOD number of the bottom neighbour's patch
+// Ret:    index where the next subset of indices starts
+//---------------------------------------------------------
+int TerrainGeomip::InitIndicesLODSingle(
+    int idx,
+    cvector<UINT>& indices,
+    const int lodCore,
+    const int lodLeft,
+    const int lodRight,
+    const int lodTop,
+    const int lodBottom)
+{
+    const int fanStep = (int)pow(2, lodCore+1);            // lod0 --> 2, lod1 --> 4, lod2 --> 8, etc.
+    const int endPos  = lodMgr_.patchSize_ - 1 - fanStep;  // patch size 5, fan step 2 --> end pos = 2;
+                                                           // patch size 9, fan step 2 --> end pos = 6
+
+    for (int z = 0; z <= endPos; z += fanStep)
+    {
+        for (int x = 0; x <= endPos; x += fanStep)
+        {
+            // define types of neighbours LODs
+            int lLeft   = (x == 0)      ? lodLeft   : lodCore;
+            int lRight  = (x == endPos) ? lodRight  : lodCore;
+            int lBottom = (z == 0)      ? lodBottom : lodCore;
+            int lTop    = (z == endPos) ? lodTop    : lodCore;
+
+            idx = CreateTriangleFan(idx, indices, lodCore, lLeft, lRight, lTop, lBottom, x, z);
+        }
+    }
+
+    return idx;
+}
+
+//---------------------------------------------------------
+// Desc:   init indices for fan at particular position
+//         of the current patch type and LOD
+// Args:   - idx:       start index position
+//         - indices:   array of all indices
+//         - lodCore:   the number of current LOD (can be: 0,1,2,etc.)
+//         - lodLeft:   LOD number of the left neighbour's patch
+//         - lodRight:  LOD number of the right neighbour's patch
+//         - lodTop:    LOD number of the top neighbour's patch
+//         - lodBottom: LOD number of the bottom neighbour's patch
+//         - x, z:      position in 3d space
+// Ret:    index where the next subset of indices starts
+//---------------------------------------------------------
+int TerrainGeomip::CreateTriangleFan(
+    int idx,
+    cvector<UINT>& indices,
+    const int lodCore,
+    const int lodLeft,
+    const int lodRight,
+    const int lodTop,
+    const int lodBottom,
+    const int x,
+    const int z)
+{
+    // step ALONG side
+    const int stepLeft    = powi(2, lodLeft);   // because LOD starts at zero...
+    const int stepRight   = powi(2, lodRight);
+    const int stepTop     = powi(2, lodTop);
+    const int stepBottom  = powi(2, lodBottom);
+    const int stepCenter  = powi(2, lodCore);   // how many vertices we need to step over to get the center of the fan
+
+    const UINT terrainLen = (UINT)terrainLength_;
+
+    // indices to make triangles
+    const UINT idxCenter  = ((z + stepCenter) * terrainLen) + x + stepCenter;
+    UINT i1 = 0;
+    UINT i2 = 0;
+
+    /*
+        Fan visualization
+
+        NOTE: Vertex by number in braces is optional according
+              to LOD of its neighbor patch
+
+        3 -------- (4) -------- 5
+        | \         |         / |
+        |    \      |      /    |
+        |      \    |    /      |
+        |         \ | /         |
+       (2) -------- 0 -------- (6)
+        |         / | \         |
+        |      /    |    \      |
+        |    /      |      \    |
+        | /         |         \ |
+        1 -------- (8) -------- 7
+
+    */
+
+    // first up
+    // (case 1) add vertex 2 (so we have two triangles on the left side fan)
+    // (case 2) we have no mid-left vertex
+    // 
+    //         3                3
+    //         | \              | \
+    //   (1)   2--0        (2)  |  0
+    //         | /              | /
+    //         1                1
+    i1 = z * terrainLen + x;
+    i2 = (z + stepLeft) * terrainLen + x;
+    idx = AddTriangle(idx, indices, idxCenter, i1, i2);
+
+    // second up
+    if (lodLeft == lodCore)
+    {
+        i1 = i2;
+        i2 += stepLeft * terrainLen;
+        idx = AddTriangle(idx, indices, idxCenter, i1, i2);
+    }
+
+    // first right
+    // (case 1) add vertex 4 (so we have two triangles on the upper side of the fan)
+    // (case 2) we have no upper-mid vertex
+    // 
+    //         3--4--5             3-----5
+    //   (1)    \ | /         (2)   \   /
+    //            0                   0
+    i1 = i2;
+    i2 += stepTop;
+    idx = AddTriangle(idx, indices, idxCenter, i1, i2);
+
+    // second right
+    // (case 1) add vertex 6 (so we have two triangles on the right side of the fan)
+    // (case 2) we have no mid-right vertex
+    //            5                   5
+    //          / |                 / |
+    //  (1)    0--6         (2)    0  |
+    //          \ |                 \ |
+    //            7                   7
+    if (lodTop == lodCore)
+    {
+        i1 = i2;
+        i2 += stepTop;
+        idx = AddTriangle(idx, indices, idxCenter, i1, i2);
+    }
+
+    // first down
+    i1 = i2;
+    i2 -= stepRight * terrainLen;
+    idx = AddTriangle(idx, indices, idxCenter, i1, i2);
+
+    // second down
+    if (lodRight == lodCore)
+    {
+        i1 = i2;
+        i2 -= stepRight * terrainLen;
+        idx = AddTriangle(idx, indices, idxCenter, i1, i2);
+    }
+
+    // first left
+    // (case 1) add vertex 8 (so we have two triangles on the bottom side of the fan)
+    // (case 2) we have no bottom-mid vertex
+    //          0                   0
+    //  (1)   / | \        (2)    /   \
+    //       1--8--7             1-----7
+    i1 = i2;
+    i2 -= stepBottom;
+    idx = AddTriangle(idx, indices, idxCenter, i1, i2);
+
+    // second left
+    if (lodBottom == lodCore)
+    {
+        i1 = i2;
+        i2 -= stepBottom;
+        idx = AddTriangle(idx, indices, idxCenter, i1, i2);
+    }
+
+    return idx;
+}
+
+//---------------------------------------------------------
+// Desc:   fill in the vertex and index buffers with data
+//---------------------------------------------------------
+void TerrainGeomip::PopulateBuffers()
+{
+    // compute vertices
+    numVertices_ = SQR(terrainLength_);
+    cvector<Vertex3dTerrain> vertices(numVertices_);
+
+    LogMsg(LOG, "preparing size for %d vertices", numVertices_);
+    InitVertices(vertices.data(), numVertices_);
+
+    // compute indices
+    numIndices_ = CalcNumIndices();
+    cvector<UINT> indices(numIndices_);
+    
+    numIndices_ = InitIndices(indices);
+    LogMsg(LOG, "final number of indices %d", numIndices_);
+
+
+    // compute normal vector of each terrain's vertex
+    CalcNormals(vertices.data(), indices.data(), numVertices_, numIndices_);
+
+    // create GPU-side vertex and index buffers
+    InitBuffers(vertices.data(), indices.data(), numVertices_, numIndices_);
+}
 
 } // namespace

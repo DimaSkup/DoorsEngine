@@ -129,7 +129,7 @@ bool Application::InitEngine()
 
 ///////////////////////////////////////////////////////////
 
-bool Application::InitScene(ID3D11Device* pDevice, const Settings& settings)
+bool Application::InitScene(ID3D11Device* pDevice, const EngineConfigs& settings)
 {
     const Core::D3DClass& d3d = engine_.GetGraphicsClass().GetD3DClass();
     const SIZE windowedSize   = d3d.GetWindowedWndSize();
@@ -184,7 +184,7 @@ bool Application::InitScene(ID3D11Device* pDevice, const Settings& settings)
 
 bool Application::InitRenderModule(
     ID3D11Device* pDevice,
-    const Settings& settings,
+    const EngineConfigs& settings,
     Render::CRender* pRender)
 {
     // setup render initial params

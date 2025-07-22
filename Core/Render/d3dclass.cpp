@@ -102,8 +102,8 @@ bool D3DClass::Initialize(
         vsyncEnabled_ = vsyncEnabled;        // define if VSYNC is enabled or not
         fullScreen_   = fullScreen;          // define if window is full screen or not
         enable4xMsaa_ = enable4xMSAA;        // use 4X MSAA?
-        screenNear_   = screenNear;
-        screenDepth_  = screenDepth;
+        nearZ_        = screenNear;
+        farZ_         = screenDepth;
 
 
         // initialize all the main parts of DirectX

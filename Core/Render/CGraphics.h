@@ -9,38 +9,27 @@
 
 // engine stuff
 #include <CoreCommon/SystemState.h>     // contains the current information about the engine
-#include "../Engine/Settings.h"
+#include "../Engine/EngineConfigs.h"
 
 // input devices events
 #include "../Input/KeyboardEvent.h"
 #include "../Input/MouseEvent.h"
 
-#include "RenderDataPreparator.h"
-
 // render stuff
+#include "d3dclass.h"
+#include "RenderDataPreparator.h"
 #include "CRender.h"
-#include "InitializeGraphics.h"        // for initialization of the graphics
 #include "FrameBuffer.h"      // for rendering to some particular texture
 
 // Entity-Component-System
 #include "Entity/EntityMgr.h"
 
-#include <map>
+//#include <map>
 #include <DirectXCollision.h>
 
 namespace Core
 {
 
-// container for the light sources temp data during update process
-struct LightTempData
-{
-    cvector<DirectX::XMVECTOR>  dirLightsDirections;
-    cvector<ECS::PointLight>    pointLightsData;
-    cvector<DirectX::XMFLOAT3>  pointLightsPositions;
-    cvector<ECS::SpotLight>     spotLightsData;
-    cvector<DirectX::XMFLOAT3>  spotLightsPositions;
-    cvector<DirectX::XMFLOAT3>  spotLightsDirections;
-};
 
 // --------------------------------------------------------
 
@@ -67,7 +56,7 @@ public:
     bool Initialize(
         HWND hwnd,
         SystemState& sysState,
-        const Settings& settings,
+        const EngineConfigs& cfg,
         ECS::EntityMgr* pEnttMgr,
         Render::CRender* pRender);
 
@@ -138,12 +127,12 @@ private:
     bool InitHelper(
         HWND hwnd,
         SystemState& systemState,
-        const Settings& settings,
+        const EngineConfigs& settings,
         ECS::EntityMgr* pEnttMgr,
         Render::CRender* pRender);
 
     void InitRenderModule(
-        const Settings& settings,
+        const EngineConfigs& settings,
         Render::CRender* pRender);
 
     void UpdateHelper(
@@ -181,14 +170,6 @@ private:
     void RenderTerrainGeomip      (Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);
     void RenderTerrainQuadtree    (Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);
 
-#if 0
-    void UpdateInstanceBuffAndRenderInstances(
-        ID3D11DeviceContext* pDeviceContext,
-        const Render::ShaderTypes type,
-        const Render::InstBuffData& instanceBuffData,
-        const std::vector<Render::Instance>& instances);
-#endif
-
     // ------------------------------------------
 
     void SetupLightsForFrame(ECS::EntityMgr* pEnttMgr, Render::PerFrameData& perFrameData);
@@ -202,24 +183,19 @@ public:
     DirectX::XMMATRIX orthoMatrix_    = DirectX::XMMatrixIdentity();  // for UI rendering
 
     // for furstum culling and picking
-    std::vector<DirectX::XMMATRIX> enttsLocalSpaces_;                 // local space of each currently visible entt
-    std::vector<DirectX::BoundingOrientedBox> enttsBoundBoxes_;
-
     ID3D11Device*         pDevice_ = nullptr;
     ID3D11DeviceContext*  pDeviceContext_ = nullptr;
     SystemState*          pSysState_ = nullptr;                       // we got this ptr during init
 
-    std::vector<DirectX::BoundingFrustum> frustums_;
+    cvector<DirectX::BoundingFrustum> frustums_;
 
     D3DClass              d3d_;
     RenderDataPreparator  prep_;
     FrameBuffer           frameBuffer_;                           // for rendering to some texture
-    EntityID currCameraID_ = 0;
+    EntityID              currCameraID_ = 0;
     
     // for rendering
     ECS::RenderStatesSystem::EnttsRenderStatesData rsDataToRender_;
-
-    LightTempData lightTempData_;
 
     FrameBuffer                         materialBigIconFrameBuf_;
     cvector<FrameBuffer>                materialsFrameBuffers_;   // frame buffers which are used to render materials icons (for editor's material browser)

@@ -73,17 +73,6 @@ void TextureMgr::Initialize(ID3D11Device* pDevice)
 }
 
 // --------------------------------------------------------
-// Desc:   check if input value is power of 2
-// Args:   - value: a value to check
-// Ret:    - true if is power of 2
-// --------------------------------------------------------
-inline bool IsPow2(const int value)
-{
-    return (value && !(value & (value - 1)));
-}
-
-
-// --------------------------------------------------------
 // Desc:   convert input image raw data into 32 bits per pixel data
 // Args:   - data:      actual pixels data (one element per channel)
 //         - width:     the texture width

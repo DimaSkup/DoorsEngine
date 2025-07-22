@@ -43,7 +43,7 @@ bool TerrainQuadtree::Init(void)
 {
 
     const int size = (int)heightMap_.GetWidth();
-    terrainSize_ = size;
+    terrainLength_ = size;
 
     if (!heightMap_.IsLoaded() || (size == 0))
     {
@@ -210,7 +210,7 @@ bool TerrainQuadtree::InitBuffers(
 //---------------------------------------------------------
 void TerrainQuadtree::Update(const CameraParams& params)
 {
-    const int size = terrainSize_;
+    const int size = terrainLength_;
 
     // calculate the center of the terrain mesh
     const float center = (float)(size-1) * 0.5f;
@@ -261,7 +261,7 @@ void TerrainQuadtree::SetNumIndices(const int num)
 //---------------------------------------------------------
 void TerrainQuadtree::PropagateRoughness(void)
 {
-    const int   terrainSize = terrainSize_;
+    const int   terrainSize = terrainLength_;
     const float upperBound  = 1.0f * minResolution_ / (2.0f * (minResolution_ - 1.0f));
 
     int dh      = 0;
@@ -520,7 +520,7 @@ void TerrainQuadtree::GenerateNode(
     const int   iEdgeOffset    = adjOffset >> 1;
     const float fEdgeOffset    = adjOffset * 0.5f;
 
-    const int   terrainSize    = terrainSize_;
+    const int   terrainSize    = terrainLength_;
     const float invTerrainSize = 1.0f / (float)terrainSize;
 
     // compute the position coordinates

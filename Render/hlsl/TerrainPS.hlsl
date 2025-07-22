@@ -51,6 +51,7 @@ cbuffer cbTerrain : register(b5)
     float4 gReflect;
 };
 
+
 //
 // TYPEDEFS
 //

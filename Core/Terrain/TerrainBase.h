@@ -67,15 +67,14 @@ struct TerrainConfig
     char    pathSaveTextureMap[64]{ '\0' };
     char    pathSaveLightMap[64]{ '\0' };
 
-    int     depth       = 256;                  // terrain length by Z-axis
-    int     width       = 256;                  // terrain length by X-axis
-    float   heightScale = 0.4f;                 // scale factor for terrain heights
+    int     terrainLength = 257;                    // terrain length by X and Z-axis
+    float   heightScale   = 0.4f;                   // scale factor for terrain heights
 
 
-    uint8   generateTextureMap          :1 = 1;   // do we use any terrain texture map generation or load it from file?
-    uint8   generateHeights             :1 = 1;   // do we use any terrain heights generation algorithm or load it from file?
+    uint8   generateTextureMap          :1 = 1;     // do we use any terrain texture map generation or load it from file?
+    uint8   generateHeights             :1 = 1;     // do we use any terrain heights generation algorithm or load it from file?
     uint8   generateLightMap            :1 = 1;
-    uint8   useGenFaultFormation        :1 = 1;   // what kind of heights generator will we use?
+    uint8   useGenFaultFormation        :1 = 1;     // what kind of heights generator will we use?
     uint8   useGenMidpointDisplacement  :1 = 0;
     uint8   saveTextureMap              :1 = 1;
     uint8   saveHeightMap               :1 = 1;
@@ -83,15 +82,15 @@ struct TerrainConfig
 
     // params related to the "Fault formation" algorithm of heights generation
     int     numIterations   = 64;      
-    int     minDelta        = 0;       // min height
-    int     maxDelta        = 255;     // max height
-    float   filter          = 0.2f;    // bigger value makes smoother terrain
+    int     minDelta        = 0;                    // min height
+    int     maxDelta        = 255;                  // max height
+    float   filter          = 0.2f;                 // bigger value makes smoother terrain
 
     // params related to the "Midpoint displacement" algorithm of heights generation
-    float   roughness       = 1.0f;    // bigger value makes smoother terrain
+    float   roughness       = 1.0f;                 // bigger value makes smoother terrain
 
     // params related to texture map properties
-    int     textureMapSize  = 1024;    // generated texture map width and height
+    int     textureMapSize  = 1024;                 // generated texture map width and height
 
     // lightmap generation params
     eLightingTypes      lightingType       = HEIGHT_BASED;
@@ -177,6 +176,9 @@ public:
     {
         ClearMemoryFromMaps();
     }
+
+    inline int   GetTerrainLength() const { return terrainLength_; }
+    inline float GetHeightScale()   const { return heightScale_; }
 
     void ClearMemoryFromMaps(void );
 
@@ -267,9 +269,6 @@ public:
 
     // ----------------------------------------------------
 
-    inline int   GetDepth()       const { return terrainDepth_; }
-    inline int   GetWidth()       const { return terrainWidth_; }
-    inline float GetHeightScale() const { return heightScale_; }
 
     // heightmap generators
     bool  GenHeightFaultFormation      (const int size, const int numIterations, const int minDelta, const int maxDelta, const float filter, const bool trueRandom = true);
@@ -386,8 +385,7 @@ private:
 
 public:
     //int                 heightMapSize_ = 0;             // must be power of two
-    int                 terrainDepth_ = 0;              // size by Z-axis
-    int                 terrainWidth_  = 0;             // size by X-axis
+    int                 terrainLength_ = 0;    // since the terrain is always a square its width==depth (size by X == size by Z)
     float               heightScale_   = 1.0f;          // it lets us dynamically scale the heights of the terrain
 
     // texture info

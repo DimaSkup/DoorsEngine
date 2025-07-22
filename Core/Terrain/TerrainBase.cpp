@@ -33,16 +33,6 @@ void TerrainBase::ClearMemoryFromMaps(void)
 }
 
 // --------------------------------------------------------
-// Desc:   check if input value is power of 2
-// Args:   - value: a value to check
-// Ret:    - true if is power of 2
-// --------------------------------------------------------
-inline bool IsPow2(const int value)
-{
-    return (value && !(value & (value - 1)));
-}
-
-// --------------------------------------------------------
 // Desc:  load a file with terrain's settings
 // Args:  - filename: path to the setup file
 // --------------------------------------------------------
@@ -84,20 +74,16 @@ bool TerrainBase::LoadSetupFile(const char* filename, TerrainConfig& outConfigs)
     fgets(buf, bufsize, pFile);
     sscanf(buf, "Path_light_map: %s", outConfigs.pathLightMap);
 
-    // depth, width, height_scale
+    // width==depth, height_scale
     fgets(buf, bufsize, pFile);
-    sscanf(buf, "Terrain_depth: %d", &outConfigs.depth);
-
-    fgets(buf, bufsize, pFile);
-    sscanf(buf, "Terrain_width: %d", &outConfigs.width);
+    sscanf(buf, "Terrain_length: %d", &outConfigs.terrainLength);
 
     fgets(buf, bufsize, pFile);
     sscanf(buf, "Height_scaling: %f", &outConfigs.heightScale);
 
     // setup data fields
-    terrainDepth_ = outConfigs.depth;
-    terrainWidth_ = outConfigs.width;
-    heightScale_  = outConfigs.heightScale;
+    terrainLength_ = outConfigs.terrainLength;
+    heightScale_   = outConfigs.heightScale;
 
     // --------------------------------
 

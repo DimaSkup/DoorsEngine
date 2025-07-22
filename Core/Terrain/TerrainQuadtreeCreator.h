@@ -47,8 +47,7 @@ bool CreateTerrainQuadtree(ID3D11Device* pDevice, const char* configFilename)
     // load terrain configs
     terrain.LoadSetupFile(configFilename, terrainCfg);
 
-    const int width = terrainCfg.width;
-    const int depth = terrainCfg.depth;
+    const int terrainLength = terrainCfg.terrainLength;
 
     // generate terrain's flag grid
     int numVertices = 0;
@@ -57,10 +56,10 @@ bool CreateTerrainQuadtree(ID3D11Device* pDevice, const char* configFilename)
     terrain.Release();
 
     geoGen.GenerateTerrainFlatGrid(
-        width - 1,                      // num quads by X
-        depth - 1,                      // num quads by Z
-        width,                          // num vertices by X
-        depth,                          // num vertices by Z
+        terrainLength - 1,              // num quads by X
+        terrainLength - 1,              // num quads by Z
+        terrainLength,                  // num vertices by X
+        terrainLength,                  // num vertices by Z
         terrain.GetVerticesAddrOf(),
         terrain.GetIndicesAddrOf(),
         numVertices,
@@ -123,13 +122,14 @@ bool CreateTerrainQuadtree(ID3D11Device* pDevice, const char* configFilename)
     terrain.Init();
 
     // compute the bounding box of the terrain
-    const float halfWidth = width * 0.5f;
-    const float halfDepth = depth * 0.5f;
-    const float centerX   = halfWidth;
-    const float centerZ   = halfDepth;
+    
+    const int   terrainLen = terrain.GetTerrainLength();
+    const float halfLen = terrainLen * 0.5f;
+    const float centerX = halfLen;
+    const float centerZ = halfLen;
 
     const DirectX::XMFLOAT3 center  = { centerX, 0, centerZ };
-    const DirectX::XMFLOAT3 extents = { halfWidth, 1.0f, halfDepth };
+    const DirectX::XMFLOAT3 extents = { halfLen, 1.0f, halfLen };
 
     // setup axis-aligned bounding box
     terrain.SetAABB(center, extents);
@@ -149,7 +149,7 @@ bool CreateTerrainQuadtree(ID3D11Device* pDevice, const char* configFilename)
 //---------------------------------------------------------
 bool TerrainInitHeight(TerrainQuadtree& terrain, const TerrainConfig& terrainCfg)
 {
-    const int terrainWidth = terrainCfg.width;  // note that terrain is always a square
+    const int terrainLength = terrainCfg.terrainLength;  // note that terrain is always a square
     bool result = false;
   
     // if we want to generate heights
@@ -159,7 +159,7 @@ bool TerrainInitHeight(TerrainQuadtree& terrain, const TerrainConfig& terrainCfg
         if (terrainCfg.useGenFaultFormation)
         {
             result = terrain.GenHeightFaultFormation(
-                terrainWidth,
+                terrainLength,
                 terrainCfg.numIterations,
                 terrainCfg.minDelta,
                 terrainCfg.maxDelta,
@@ -168,7 +168,7 @@ bool TerrainInitHeight(TerrainQuadtree& terrain, const TerrainConfig& terrainCfg
         // use "midpoint displacement"
         else
         {
-            result = terrain.GenHeightMidpointDisplacement(terrainWidth, terrainCfg.roughness);
+            result = terrain.GenHeightMidpointDisplacement(terrainLength, terrainCfg.roughness);
         }
 
 
@@ -181,7 +181,7 @@ bool TerrainInitHeight(TerrainQuadtree& terrain, const TerrainConfig& terrainCfg
     // load a height map from the file
     else
     {
-        result = terrain.LoadHeightMap(terrainCfg.pathHeightMap, terrainWidth);
+        result = terrain.LoadHeightMap(terrainCfg.pathHeightMap, terrainLength);
 
         if (!result)
             return ErrMsgHelper(LOG, "can't load a height map for terrain: %s", terrainCfg.pathHeightMap);
