@@ -60,13 +60,13 @@ public:
     bool Initialize(
         HINSTANCE hInstance,
         HWND hwnd,
-        const Settings& engineSettings,
+        const EngineConfigs& cfg,
         const std::string& windowTitle,
         ECS::EntityMgr* pEnttMgr,
         UI::UserInterface* pUserInterface,
         Render::CRender* pRender);
 
-    bool InitializeGUI(D3DClass& d3d, const Settings& settings);
+    bool InitializeGUI(D3DClass& d3d, const EngineConfigs& cfg);
 
     // update the state of the engine/game for the current frame
     void Update();                         
@@ -128,7 +128,7 @@ private:
 
     std::string windowTitle_{ "" };             // window title/caption
 
-    //Settings           settings_;             // settings container							   
+    //EngineConfigs           settings_;             // settings container							   
     SystemState         systemState_;           // contains different info about the state of the engine
     CpuClass            cpu_;                   // cpu usage counter
     GameTimer           timer_;                 // used to keep track of the "delta-time" and game time

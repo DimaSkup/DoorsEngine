@@ -36,13 +36,10 @@ public:
         const char* vsFileName,
         const char* psFileName);
 
-    void Render(
-        ID3D11DeviceContext* pContext,
-        const TerrainInstance& instance);
-
-    void RenderVertices(
-        ID3D11DeviceContext* pContext,
-        const TerrainInstance& instance);
+    void Render        (ID3D11DeviceContext* pContext, const TerrainInstance& instance);
+    void RenderVertices(ID3D11DeviceContext* pContext, const TerrainInstance& instance);
+    void Prepare       (ID3D11DeviceContext* pContext, const TerrainInstance& instance);
+    void RenderPatch   (ID3D11DeviceContext* pContext, const TerrainInstance& instance);
 
     void ShaderHotReload(
         ID3D11Device* pDevice,

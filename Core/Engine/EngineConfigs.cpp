@@ -1,16 +1,15 @@
 ////////////////////////////////////////////////////////////////////
-// Filename:    Settings.cpp
-// Description: contains settings for the engine; uses a singleton pattern
+// Filename:    EngineConfigs.cpp
 //
 // Revising:    27.11.22
 ////////////////////////////////////////////////////////////////////
-#include "Settings.h"
+#include "EngineConfigs.h"
 
 
 namespace Core
 {
 
-Settings::Settings()
+EngineConfigs::EngineConfigs()
 {
     if (!LoadSettingsFromFile())
     {
@@ -19,14 +18,14 @@ Settings::Settings()
     }
 }
 
-Settings::~Settings()
+EngineConfigs::~EngineConfigs()
 {
     settingsList_.clear();
 }
 
 ///////////////////////////////////////////////////////////
 
-bool Settings::LoadSettingsFromFile()
+bool EngineConfigs::LoadSettingsFromFile()
 {
     // load engine settings from the "settings.txt" file
 
@@ -69,7 +68,7 @@ bool Settings::LoadSettingsFromFile()
 
 ///////////////////////////////////////////////////////////
 
-int Settings::GetInt(const char* key) const
+int EngineConfigs::GetInt(const char* key) const
 {
     // get an integer setting parameter by the input key
 
@@ -87,7 +86,7 @@ int Settings::GetInt(const char* key) const
 
 ///////////////////////////////////////////////////////////
 
-float Settings::GetFloat(const char* key) const 
+float EngineConfigs::GetFloat(const char* key) const 
 {
     // get a float setting parameter by the input key
 
@@ -105,7 +104,7 @@ float Settings::GetFloat(const char* key) const
 
 ///////////////////////////////////////////////////////////
 
-bool Settings::GetBool(const char* key) const
+bool EngineConfigs::GetBool(const char* key) const
 {
     // get a boolean setting parameter by the input key
 
@@ -134,7 +133,7 @@ bool Settings::GetBool(const char* key) const
 
 ///////////////////////////////////////////////////////////
 
-const char* Settings::GetString(const char* key) const
+const char* EngineConfigs::GetString(const char* key) const
 {
     // get a string setting parameter by the input key
     if (settingsList_.contains(key))
@@ -150,7 +149,7 @@ const char* Settings::GetString(const char* key) const
 
 ///////////////////////////////////////////////////////////
 
-void Settings::UpdateSettingByKey(const char* key, const std::string& val)
+void EngineConfigs::UpdateSettingByKey(const char* key, const std::string& val)
 {
     if ((key == nullptr) || (key[0] == '\0'))
     {

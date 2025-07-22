@@ -84,12 +84,10 @@ public:
     TerrainGeomip()  { }
     ~TerrainGeomip() { Shutdown(); }
 
-    void ClearMemory();
+    void ReleaseBuffers();
     void Shutdown();
 
-    bool AllocateMemory   (const int numVertices, const int numIndices);
     bool InitGeomipmapping(const int patchSize);
- 
 
     void Update(const CameraParams& camParams);
  
@@ -98,19 +96,41 @@ public:
     // ------------------------------------------
     // getters
     // ------------------------------------------
-    inline int  GetNumVertices()                 const { return numVertices_; }
-    inline int  GetNumIndices()                  const { return numIndices_; }
-    inline uint GetVertexStride()                const { return vb_.GetStride(); }
+    inline int  GetNumVertices()              const { return numVertices_; }
+    inline int  GetNumIndices()               const { return numIndices_; }
+    inline uint GetVertexStride()             const { return vb_.GetStride(); }
 
-    inline ID3D11Buffer* GetVertexBuffer()       const { return vb_.Get(); }
-    inline ID3D11Buffer* GetIndexBuffer()        const { return ib_.Get(); }
+    inline const Vertex3dTerrain* GetVertices() const { return vertices_; }
+
+    inline ID3D11Buffer* GetVertexBuffer()    const { return vb_.Get(); }
+    inline ID3D11Buffer* GetIndexBuffer()     const { return ib_.Get(); }
+
+    inline const TerrainLodMgr& GetLodMgr()   const { return lodMgr_; }
+    inline int GetNumPatchesPerSide(void)     const { return lodMgr_.numPatchesPerSide_; }
 
     // get the number of patches being rendered per frame
-    inline int GetNumPatchesPerFrame(void)       const { return patchesPerFrame_;   }
+    //inline int GetNumPatchesPerFrame(void)    const { return patchesPerFrame_;   }
 
     // get the current patch number by input coords
-    inline int GetPatchNumber(int px, int pz)    const { return (pz*numPatchesPerSide_) + px;   }
+    inline int GetPatchNumber(int px, int pz) const { return (pz*lodMgr_.numPatchesPerSide_) + px;   }
 
+
+    inline void GetLodInfoByPatch(
+        const TerrainLodMgr::PatchLod& plod,
+        UINT& outBaseIndex,
+        UINT& outIndexCount)
+    {
+        const int c = plod.core;
+        const int l = plod.left;
+        const int r = plod.right;
+        const int t = plod.top;
+        const int b = plod.bottom;
+
+        const SingleLodInfo& info = lodInfo_[c].info[l][r][t][b];
+
+        outBaseIndex  = info.start;
+        outIndexCount = info.count;
+    }
 
     // ------------------------------------------
     // setters
@@ -120,10 +140,45 @@ public:
     void SetTexture (const eTexType type, const TexID texID);
 
 private:
-    bool InitBuffers();
+    void InitVertices(Vertex3dTerrain* vertices, const int numVertices);
+    int  CalcNumIndices();
+    int  InitIndices(cvector<UINT>& indices);
+    int  InitIndicesLOD(int idx, cvector<UINT>& indices, const int lod);
+    void PopulateBuffers();
+
+    int InitIndicesLODSingle(
+        int idx,
+        cvector<UINT>& indices,
+        const int lodCore,
+        const int lodLeft,
+        const int lodRight,
+        const int lodTop,
+        const int lodBottom);
+
+    int CreateTriangleFan(
+        int idx,
+        cvector<UINT>& indices,
+        const int lodCore,
+        const int lodLeft,
+        const int lodRight,
+        const int lodTop,
+        const int lodBottom,
+        const int x,
+        const int z);
+
+    bool InitBuffers(
+        const Vertex3dTerrain* vertices,
+        const UINT* indices,
+        const int numVertices,
+        const int numIndices);
 
     void ComputeTesselation(void);
-    void ComputePatch(const int currPatchNum, const int px, const int pz);
+
+    void ComputePatch(
+        const int currPatchNum,
+        const int px,
+        const int pz,
+        const int numPatchesPerSide);
 
     void ComputeFan(
         const float cx,
@@ -153,35 +208,35 @@ public:
     Vertex3dTerrain*    vertices_           = nullptr;
     UINT*               indices_            = nullptr;
 
-    int                 verticesOffset_ = 0;
-    int                 indicesOffset_ = 0;
+    //int                 verticesOffset_ = 0;
+    //int                 indicesOffset_ = 0;
 
-    GeomPatch*          patches_            = nullptr;  // array of terrain's patches (geometry sets)
-    int                 patchSize_          = 17;       // size (width and depth) of a single patch
-    int                 numPatchesPerSide_  = 0;        // for instance: 256 + 1 (terrain width) / 16 + 1 (patch size)
-    int                 maxLOD_             = 4;        // the number of LOD's for this terrain
-    int                 patchesPerFrame_    = 0;
+    //GeomPatch*          patches_            = nullptr;  // array of terrain's patches (geometry sets)
+    //int                 patchSize_          = 17;       // size (width and depth) of a single patch
+    //int                 numPatchesPerSide_  = 0;        // for instance: 256 + 1 (terrain width) / 16 + 1 (patch size)
+    //int                 maxLOD_             = 4;        // the number of LOD's for this terrain
+    //int                 patchesPerFrame_    = 0;
 
     //bool                wantDebug_          = false;
 
 private:
+    #define LEFT   2
+    #define RIGHT  2
+    #define TOP    2
+    #define BOTTOM 2
+
     struct SingleLodInfo
     {
         int start = 0;
         int count = 0;
     };
 
-    #define LEFT   2
-    #define RIGHT  2
-    #define TOP    2
-    #define BOTTOM 2
-
-    struct LogInfo
+    struct LodInfo
     {
         SingleLodInfo info[LEFT][RIGHT][TOP][BOTTOM];
     };
 
-    cvector<LogInfo> lodInfo_;
+    cvector<LodInfo> lodInfo_;
     TerrainLodMgr    lodMgr_;
 };
 

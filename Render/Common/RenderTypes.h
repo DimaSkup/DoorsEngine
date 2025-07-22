@@ -271,11 +271,13 @@ struct SkyInstance
 struct TerrainInstance
 {
     // data of the terrain model
-    UINT          numVertices = 0;
-    UINT          indexCount = 0;
-    UINT          vertexStride = 0;
-    ID3D11Buffer* pVB = nullptr;
-    ID3D11Buffer* pIB = nullptr;
+    UINT          numVertices   = 0;
+    UINT          indexCount    = 0;
+    UINT          baseIndex     = 0;
+    UINT          baseVertex    = 0;
+    UINT          vertexStride  = 0;
+    ID3D11Buffer* pVB           = nullptr;
+    ID3D11Buffer* pIB           = nullptr;
     SRV*          skyBoxTexture = nullptr;
     SRV*          textures[NUM_TEXTURE_TYPES]{nullptr};
     Material      material;

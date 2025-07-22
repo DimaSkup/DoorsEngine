@@ -2,7 +2,7 @@
 #include "SceneInitializer.h"
 #include "LightEnttsInitializer.h"
 #include "SetupModels.h"
-#include "../Core/Engine/Settings.h"
+#include "../Core/Engine/EngineConfigs.h"
 
 using namespace Core;
 
@@ -933,8 +933,8 @@ void CreateTreesSpruce(ECS::EntityMgr& mgr, const BasicModel& model)
 
     // we will set heights according to the terrain's landscape
     TerrainGeomip& terrain = g_ModelMgr.GetTerrainGeomip();
-    const float range            = (float)terrain.heightMap_.GetWidth();
-    const float maxHeight        = 80;
+    const float range      = (float)terrain.GetTerrainLength();
+    const float maxHeight  = 150;
 
     // generate positions
     for (XMFLOAT3& pos : positions)

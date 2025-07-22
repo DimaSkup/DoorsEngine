@@ -18,10 +18,12 @@
 namespace Render
 {
 
+//---------------------------------------------------------
+// Desc:  this struct contains init params for the rendering
+//---------------------------------------------------------
 struct InitParams
 {
-    // this struct contains init params for the rendering
-
+    
     // for 2D rendering
     DirectX::XMMATRIX worldViewOrtho = DirectX::XMMatrixIdentity();
 
@@ -31,8 +33,9 @@ struct InitParams
     float             fogRange = 200;                // max distance after which all the objects are fogged
 };
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Class
+//---------------------------------------------------------
 class CRender
 {
 public:
@@ -160,9 +163,9 @@ private:
         const int numSpotLights);
 
 public:
-    ID3D11DeviceContext*                       pContext_ = nullptr;
+    ID3D11DeviceContext*                          pContext_ = nullptr;
 
-    ID3D11Buffer*                              pInstancedBuffer_ = nullptr;
+    ID3D11Buffer*                                 pInstancedBuffer_ = nullptr;
     cvector<ConstBufType::InstancedData>          instancedData_;    // instances common buffer
 
     // const buffers for vertex shaders

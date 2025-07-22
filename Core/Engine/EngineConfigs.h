@@ -1,6 +1,6 @@
 // =================================================================================
-// Filename:    Settings.h
-// Description: contains settings for the engine; uses a singleton pattern
+// Filename:    EngineConfigs.h
+// Description: configs container for the engine
 //
 // Revising:    27.11.22
 // =================================================================================
@@ -15,14 +15,14 @@
 namespace Core
 {
 
-class Settings
+class EngineConfigs
 {
 public:
-    Settings();
-    ~Settings();
+    EngineConfigs();
+    ~EngineConfigs();
 
-    Settings(Settings& other) = delete;        // should not be cloneable
-    void operator=(const Settings&) = delete;  // should not be assignable
+    EngineConfigs(EngineConfigs& other) = delete;   // should not be cloneable
+    void operator=(const EngineConfigs&) = delete;  // should not be assignable
 
 
     // get a setting value in a particular type
@@ -48,7 +48,7 @@ private:
 ///////////////////////////////////////////////////////////
 
 template<typename T>
-void Settings::UpdateSettingByKey(const char* key, T val)
+void EngineConfigs::UpdateSettingByKey(const char* key, T val)
 {
     // update a setting parameter with new value by a particular key
 

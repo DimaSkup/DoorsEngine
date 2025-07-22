@@ -11,9 +11,23 @@
 
 using namespace DirectX;
 
+#define TERRAIN_V1 false
 
 namespace Core
 {
+
+// container for the light sources temp data during update process
+struct LightTempData
+{
+    cvector<DirectX::XMVECTOR>  dirLightsDirections;
+    cvector<ECS::PointLight>    pointLightsData;
+    cvector<DirectX::XMFLOAT3>  pointLightsPositions;
+    cvector<ECS::SpotLight>     spotLightsData;
+    cvector<DirectX::XMFLOAT3>  spotLightsPositions;
+    cvector<DirectX::XMFLOAT3>  spotLightsDirections;
+} s_LightTmpData;
+
+//---------------------------------------------------------
 
 CGraphics::CGraphics() :
     texturesBuf_(NUM_TEXTURE_TYPES, nullptr)
@@ -35,11 +49,11 @@ CGraphics::~CGraphics()
 bool CGraphics::Initialize(
     HWND hwnd,
     SystemState& systemState,
-    const Settings& settings,
+    const EngineConfigs& cfg,
     ECS::EntityMgr* pEnttMgr,
     Render::CRender* pRender)
 {
-    return InitHelper(hwnd, systemState, settings, pEnttMgr, pRender);
+    return InitHelper(hwnd, systemState, cfg, pEnttMgr, pRender);
 }
 
 void CGraphics::Update(
@@ -64,13 +78,12 @@ void CGraphics::Render3D(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
 bool CGraphics::InitHelper(
     HWND hwnd, 
     SystemState& systemState,
-    const Settings& settings,
+    const EngineConfigs& cfg,
     ECS::EntityMgr* pEnttMgr,
     Render::CRender* pRender)
 {
     try
     {
-        InitializeGraphics initGraphics;
         bool result = false;
 
         SetConsoleColor(YELLOW);
@@ -82,8 +95,18 @@ bool CGraphics::InitHelper(
 
         pSysState_ = &systemState;
 
-        result = initGraphics.InitializeDirectX(d3d_, hwnd, settings);
-        CAssert::True(result, "can't initialize D3DClass");
+        result = d3d_.Initialize(
+            hwnd,
+            cfg.GetBool("VSYNC_ENABLED"),
+            cfg.GetBool("FULL_SCREEN"),
+            cfg.GetBool("ENABLE_4X_MSAA"),
+            cfg.GetFloat("NEAR_Z"),
+            cfg.GetFloat("FAR_Z"));         // how far we can see
+
+        CAssert::True(result, "can't initialize the D3DClass");
+
+        // setup the rasterizer state to default params
+        d3d_.SetRS({ eRenderState::CULL_BACK, eRenderState::FILL_SOLID });
 
         // after initialization of the DirectX we can use pointers to the device and device context
         d3d_.GetDeviceAndContext(pDevice_, pDeviceContext_);
@@ -237,9 +260,11 @@ void CGraphics::UpdateHelper(
 
     // recompute terrain patches and load them into GPU
     terrain.Update(camParams);
+
+#if TERRAIN_V1
     terrain.vb_.UpdateDynamic(pDeviceContext_, terrain.vertices_, terrain.verticesOffset_);
     terrain.ib_.Update(pDeviceContext_, terrain.indices_, terrain.indicesOffset_);
-
+#endif
 
     static XMFLOAT3 prevCamPos = { 0,0,0 };
     bool updateTerrain = false;
@@ -806,8 +831,8 @@ bool CGraphics::RenderBigMaterialIcon(
     D3DClass& d3d                 = GetD3DClass();
     ID3D11Device* pDevice         = d3d.GetDevice();
     ID3D11DeviceContext* pContext = d3d.GetDeviceContext();
-    const float nearZ             = d3d.GetScreenNear();
-    const float farZ              = d3d.GetScreenDepth();
+    const float nearZ             = d3d.GetNearZ();
+    const float farZ              = d3d.GetFarZ();
 
     if (!materialBigIconFrameBuf_.IsInit())
         InitMatIconFrameBuffer(pDevice, materialBigIconFrameBuf_, iconWidth, iconHeight, nearZ, farZ);
@@ -892,8 +917,8 @@ void CGraphics::RenderMaterialsIcons(
     D3DClass& d3d                 = GetD3DClass();
     ID3D11Device* pDevice         = d3d.GetDevice();
     ID3D11DeviceContext* pContext = d3d.GetDeviceContext();
-    const float nearZ             = d3d.GetScreenNear();
-    const float farZ              = d3d.GetScreenDepth();
+    const float nearZ             = d3d.GetNearZ();
+    const float farZ              = d3d.GetFarZ();
 
     InitMatIconFrameBuffers(pDevice, materialsFrameBuffers_, numIcons, iconWidth, iconHeight, nearZ, farZ);
 
@@ -1274,6 +1299,7 @@ void CGraphics::RenderTerrainGeomip(Render::CRender* pRender, ECS::EntityMgr* pE
     g_TextureMgr.GetSRVsByTexIDs(mat.textureIDs, NUM_TEXTURE_TYPES, texturesBuf_);
     memcpy(instance.textures, texturesBuf_.begin(), NUM_TEXTURE_TYPES * sizeof(ID3D11ShaderResourceView*));
 
+#if TERRAIN_V1
     // vertex/index buffers data
     instance.vertexStride   = terrain.GetVertexStride();
     instance.pVB            = terrain.GetVertexBuffer();
@@ -1301,11 +1327,65 @@ void CGraphics::RenderTerrainGeomip(Render::CRender* pRender, ECS::EntityMgr* pE
         renderStates.ResetDSS(pContext);
     }
 
+
     pRender->shadersContainer_.terrainShader_.Render(pContext, instance);
 
     // compute how many vertices we already rendered
     pSysState_->visibleVerticesCount += (uint32_t)instance.numVertices;
     //pSysState_->visibleVerticesCount += terrain.vb_.GetVertexCount();
+#else
+    // vertex/index buffers data
+    instance.vertexStride   = terrain.GetVertexStride();
+    instance.pVB            = terrain.GetVertexBuffer();
+    instance.pIB            = terrain.GetIndexBuffer();
+
+    const TerrainLodMgr& lodMgr = terrain.GetLodMgr();
+    const int terrainLen        = terrain.GetTerrainLength();
+    const int numPatchesPerSide = terrain.GetNumPatchesPerSide();
+    const int patchSize = lodMgr.GetPatchSize();
+    //const int numPatchesPerSide = (terrainLen - 1) / (patchSize - 1);
+    
+
+    // setup rendering pipeline before rendering of the terrain
+    RenderStates& renderStates = d3d_.GetRenderStates();
+    ID3D11DeviceContext* pContext = pDeviceContext_;
+
+    if (pRender->shadersContainer_.debugShader_.GetDebugType() == Render::eDebugState::DBG_WIREFRAME)
+    {
+        renderStates.SetRS(pDeviceContext_, { FILL_WIREFRAME, CULL_BACK, FRONT_CLOCKWISE });
+        renderStates.ResetBS(pContext);
+        renderStates.ResetDSS(pContext);
+    }
+    else
+    {
+        renderStates.ResetRS(pContext);
+        renderStates.ResetBS(pContext);
+        renderStates.ResetDSS(pContext);
+    }
+
+    Render::TerrainShader& shader = pRender->shadersContainer_.terrainShader_;
+    shader.Prepare(pContext, instance);
+
+
+    // 
+    for (int patchZ = 0; patchZ < numPatchesPerSide; ++patchZ)
+    {
+        for (int patchX = 0; patchX < numPatchesPerSide; ++patchX)
+        {
+            const TerrainLodMgr::PatchLod& plod = lodMgr.GetPatchLodInfo(patchX, patchZ);
+
+            terrain.GetLodInfoByPatch(plod, instance.baseIndex, instance.indexCount);
+
+            const int z = patchZ * (patchSize - 1);
+            const int x = patchX * (patchSize - 1);
+            instance.baseVertex = (UINT)(z*terrainLen + x);
+
+            shader.RenderPatch(pContext, instance);      
+        }
+    }
+#endif
+
+
 
     //terrain.wantDebug_ = false;
 }
@@ -1412,22 +1492,22 @@ void CGraphics::SetupLightsForFrame(
         lightSys.GetPointLightsData(
             visPointLights.data(),
             numVisPointLightSources,
-            lightTempData_.pointLightsData,
-            lightTempData_.pointLightsPositions);
+            s_LightTmpData.pointLightsData,
+            s_LightTmpData.pointLightsPositions);
 
         // store light properties, range, and attenuation
         for (index i = 0; i < numVisPointLightSources; ++i)
         {
-            outData.pointLights[i].ambient  = lightTempData_.pointLightsData[i].ambient;
-            outData.pointLights[i].diffuse  = lightTempData_.pointLightsData[i].diffuse;
-            outData.pointLights[i].specular = lightTempData_.pointLightsData[i].specular;
-            outData.pointLights[i].att      = lightTempData_.pointLightsData[i].att;
-            outData.pointLights[i].range    = lightTempData_.pointLightsData[i].range;
+            outData.pointLights[i].ambient  = s_LightTmpData.pointLightsData[i].ambient;
+            outData.pointLights[i].diffuse  = s_LightTmpData.pointLightsData[i].diffuse;
+            outData.pointLights[i].specular = s_LightTmpData.pointLightsData[i].specular;
+            outData.pointLights[i].att      = s_LightTmpData.pointLightsData[i].att;
+            outData.pointLights[i].range    = s_LightTmpData.pointLightsData[i].range;
         }
 
         // store positions
         for (index i = 0; i < numVisPointLightSources; ++i)
-            outData.pointLights[i].position = lightTempData_.pointLightsPositions[i];
+            outData.pointLights[i].position = s_LightTmpData.pointLightsPositions[i];
     }
 
     // ----------------------------------------------------
@@ -1443,9 +1523,9 @@ void CGraphics::SetupLightsForFrame(
     pEnttMgr->transformSystem_.GetDirections(
         dirLights.ids.data(),
         numDirLights,
-        lightTempData_.dirLightsDirections);
+        s_LightTmpData.dirLightsDirections);
 
-    for (int i = 0; const XMVECTOR& dirQuat : lightTempData_.dirLightsDirections)
+    for (int i = 0; const XMVECTOR& dirQuat : s_LightTmpData.dirLightsDirections)
     {
         DirectX::XMStoreFloat3(&outData.dirLights[i].direction, dirQuat);
         ++i;
@@ -1457,24 +1537,24 @@ void CGraphics::SetupLightsForFrame(
     lightSys.GetSpotLightsData(
         spotLights.ids.data(),
         numSpotLights,
-        lightTempData_.spotLightsData,
-        lightTempData_.spotLightsPositions,
-        lightTempData_.spotLightsDirections);
+        s_LightTmpData.spotLightsData,
+        s_LightTmpData.spotLightsPositions,
+        s_LightTmpData.spotLightsDirections);
 
     for (index i = 0; i < numSpotLights; ++i)
     {
-        outData.spotLights[i].ambient  = lightTempData_.spotLightsData[i].ambient;
-        outData.spotLights[i].diffuse  = lightTempData_.spotLightsData[i].diffuse;
-        outData.spotLights[i].specular = lightTempData_.spotLightsData[i].specular;
-        outData.spotLights[i].range    = lightTempData_.spotLightsData[i].range;
-        outData.spotLights[i].spot     = lightTempData_.spotLightsData[i].spot;
-        outData.spotLights[i].att      = lightTempData_.spotLightsData[i].att;
+        outData.spotLights[i].ambient  = s_LightTmpData.spotLightsData[i].ambient;
+        outData.spotLights[i].diffuse  = s_LightTmpData.spotLightsData[i].diffuse;
+        outData.spotLights[i].specular = s_LightTmpData.spotLightsData[i].specular;
+        outData.spotLights[i].range    = s_LightTmpData.spotLightsData[i].range;
+        outData.spotLights[i].spot     = s_LightTmpData.spotLightsData[i].spot;
+        outData.spotLights[i].att      = s_LightTmpData.spotLightsData[i].att;
     }
 
-    for (int i = 0; const XMFLOAT3& pos : lightTempData_.spotLightsPositions)
+    for (int i = 0; const XMFLOAT3& pos : s_LightTmpData.spotLightsPositions)
         outData.spotLights[i++].position = pos;
 
-    for (int i = 0; const XMFLOAT3& dir : lightTempData_.spotLightsDirections)
+    for (int i = 0; const XMFLOAT3& dir : s_LightTmpData.spotLightsDirections)
         outData.spotLights[i++].direction = dir;
 }
 

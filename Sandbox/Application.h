@@ -7,7 +7,7 @@
 #pragma once
 
 #include "Engine/Engine.h"
-#include "Engine/Settings.h"
+#include "Engine/EngineConfigs.h"
 #include <EngineException.h>
 #include <FileSystemPaths.h>
 
@@ -36,8 +36,8 @@ public:
 
     bool InitWindow();
     bool InitEngine();
-    bool InitScene(ID3D11Device* pDevice, const Settings& settings);
-    bool InitRenderModule(ID3D11Device* pDevice, const Core::Settings& settings, Render::CRender* pRender);
+    bool InitScene(ID3D11Device* pDevice, const EngineConfigs& cfg);
+    bool InitRenderModule(ID3D11Device* pDevice, const EngineConfigs& cfg, Render::CRender* pRender);
     bool InitGUI(ID3D11Device* pDevice, const int wndWidth, const int wndHeight);
 
 
@@ -52,7 +52,7 @@ private:
     UI::IFacadeEngineToUI* pFacadeEngineToUI_ = nullptr;  // a facade interface which are used by UI to contact with some engine's parts
 
     HWND                  mainHWND_;
-    Core::Settings        settings_;
+    Core::EngineConfigs        settings_;
     EventHandler          eventHandler_;
     Core::WindowContainer wndContainer_;
     bool                  startInGameMode_ = false;

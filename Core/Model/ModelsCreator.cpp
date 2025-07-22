@@ -8,7 +8,7 @@
 
 // common stuff
 #include "ModelMath.h"
-#include "../Engine/Settings.h"
+//#include "../Engine/EngineConfigs.h"
 #include "../Render/d3dclass.h"
 
 // models stuff

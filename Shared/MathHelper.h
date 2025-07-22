@@ -131,6 +131,10 @@ namespace DirectX
 	};
 };
 
+inline int powi(const int value, const int power)
+{
+    return (int)exp(log(value) * power);
+}
 
 class MathHelper
 {
