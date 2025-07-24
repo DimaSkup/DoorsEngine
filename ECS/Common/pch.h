@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <sstream>
 #include <map>
+#include <new>
 
 #include "log.h"
 #include "CAssert.h"
@@ -18,5 +19,8 @@
 #include "Types.h"
 #include "UtilsFilesystem.h"
 #include "ECSTypes.h"
+#include "DMath.h"
 
 #pragma warning (disable : 4996)
+
+#define NEW new(std::nothrow)

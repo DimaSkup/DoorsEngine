@@ -20,15 +20,18 @@ cbuffer cbPerFrame : register(b0)
 // ==========================
 struct GS_IN
 {
-	float4x4 material    : MATERIAL;
-	float3   centerW     : POSITION;       // billboard center pos in a world space
-	float2   sizeW       : SIZE;           // width and height of the billboard
+	float3 centerW  : POSITION;       // billboard center pos in a world space
+    float   translucency : TRANSLUCENCY;
+    float3 color    : COLOR;
+	float2 sizeW    : SIZE;           // width and height of the billboard
 };
 
 struct GS_OUT
 {
 	float4 posH    : SV_POSITION;
 	float3 posW    : POSITION;
+    float   translucency : TRANSLUCENCY;
+    float3 color   : COLOR;
 	float3 normalW : NORMAL;
 	float2 tex     : TEXCOORD;
 	uint   primID  : SV_PrimitiveID;
@@ -77,21 +80,23 @@ void GS(
 	//float halfHeight = 10;
 
 	float4 v[4];
-	v[0] = float4(gin[0].centerW + halfWidth * right - halfHeight * up, 1.0f);
-	v[1] = float4(gin[0].centerW + halfWidth * right + halfHeight * up, 1.0f);
-	v[2] = float4(gin[0].centerW - halfWidth * right - halfHeight * up, 1.0f);
-	v[3] = float4(gin[0].centerW - halfWidth * right + halfHeight * up, 1.0f);
+	v[0] = float4(gin[0].centerW + (halfWidth * right) - (halfHeight * up), 1.0f);
+	v[1] = float4(gin[0].centerW + (halfWidth * right) + (halfHeight * up), 1.0f);
+	v[2] = float4(gin[0].centerW - (halfWidth * right) - (halfHeight * up), 1.0f);
+	v[3] = float4(gin[0].centerW - (halfWidth * right) + (halfHeight * up), 1.0f);
 
 	// transform quad vertices to world space and output them as a triangle strip
 	GS_OUT gout;
 	[unroll]
 	for (int i = 0; i < 4; ++i)
 	{
-		gout.posH = mul(v[i], gViewProj);
-		gout.posW = v[i].xyz;
+		gout.posH    = mul(v[i], gViewProj);
+		gout.posW    = v[i].xyz;
+        gout.translucency = gin[0].translucency;
+        gout.color   = gin[0].color;
 		gout.normalW = look;
-		gout.tex = gTexC[i];
-		gout.primID = primID;
+		gout.tex     = gTexC[i];
+		gout.primID  = primID;
 		triStream.Append(gout);
 	}
 }

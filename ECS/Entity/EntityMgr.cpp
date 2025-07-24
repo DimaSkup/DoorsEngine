@@ -56,6 +56,42 @@ EntityMgr::EntityMgr() :
     ids_.push_back(INVALID_ENTITY_ID);
     componentHashes_.push_back(0);
 
+    // init and setup the particles engine and systems
+    constexpr int maxNumParticles = 10000;
+    ParticleSystem& sys1 = particleEngine_.AddNewParticleSys(maxNumParticles);
+    ParticleSystem& sys2 = particleEngine_.AddNewParticleSys(maxNumParticles);
+    ParticleSystem& sys3 = particleEngine_.AddNewParticleSys(maxNumParticles);
+
+    sys1.SetLife(1000);
+    sys1.SetEmitPos(250, 20, 215);
+    sys1.SetColor(0.1f, 1.0f, 0.25f);
+    sys1.SetSize(0.05f);
+    sys1.SetMass(1.25f);
+    sys1.SetFriction(0.01f);
+    sys1.SetExternalForces(0.0f, -0.001f, 0.0f);
+
+
+    sys2.SetLife(1000);
+    sys2.SetEmitPos(270, 20, 215);
+    sys2.SetColor(1.0f, 0.96f, 0.0f);
+    sys2.SetSize(0.05f);
+    sys2.SetMass(1.25f);
+    sys2.SetFriction(0.05f);
+    sys2.SetExternalForces(0.0f, 0.01f, 0.0f);
+
+    sys3.SetLife(1000);
+    sys3.SetEmitPos(260, 20, 220);
+    sys3.SetColor(1.0f, 0.96f, 0.0f);
+    sys3.SetSize(0.05f);
+    sys3.SetMass(0.5f);
+    sys3.SetFriction(0.01f);
+    sys3.SetExternalForces(0.0f, 0.0001f, 0.0f);
+
+    //particleEngine_.Explode(0.1f, 100);
+
+
+    //particleEngine_.Explode(0.0001f, 100);
+
     LogDbg(LOG, "entity mgr is initialized");
 }
 
@@ -300,6 +336,7 @@ void EntityMgr::Update(const float totalGameTime, const float deltaTime)
 
 
     playerSystem_.Update(deltaTime);
+    particleEngine_.Update(deltaTime);
 
     // we handled all the events so clear the list of event
     events_.clear();

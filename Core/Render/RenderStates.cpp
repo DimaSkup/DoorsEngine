@@ -427,10 +427,11 @@ void RenderStates::InitAllBlendStates(ID3D11Device* pDevice)
     blendDesc.IndependentBlendEnable = false;
 
     rtbd.BlendEnable    = TRUE;
-    rtbd.SrcBlend       = D3D11_BLEND_ONE;
+    //rtbd.SrcBlend       = D3D11_BLEND_ONE;
+    rtbd.SrcBlend = D3D11_BLEND_SRC_ALPHA;
     rtbd.DestBlend      = D3D11_BLEND_ONE;
     rtbd.BlendOp        = D3D11_BLEND_OP_ADD;
-    rtbd.SrcBlendAlpha  = D3D11_BLEND_ONE;
+    rtbd.SrcBlendAlpha  = D3D11_BLEND_ZERO;
     rtbd.DestBlendAlpha = D3D11_BLEND_ZERO;
     rtbd.BlendOpAlpha   = D3D11_BLEND_OP_ADD;
     rtbd.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;

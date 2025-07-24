@@ -950,6 +950,9 @@ inline void cvector<T>::realloc_buffer(const vsize newCapacity)
             for (vsize i = 0; i < size_; ++i)
                 newData[i] = std::move(data_[i]);
 
+            //for (vsize i = 0; i < size_; ++i)
+            //    newData[i] = data_[i];
+
             // release memory from the old buffer
             delete[] data_;
 

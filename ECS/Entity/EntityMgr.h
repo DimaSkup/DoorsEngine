@@ -37,6 +37,10 @@
 #include "../Systems/PlayerSystem.h"
 #include "../Systems/HierarchySystem.h"
 
+// particles stuff
+#include "../Systems/Particles/ParticleEngine.h"
+#include "../Systems/Particles/ParticleSystem.h"
+
 // events (ECS)
 #include "../Events/IEvent.h"
 
@@ -270,6 +274,7 @@ public:
     CameraSystem            cameraSystem_;
     PlayerSystem            playerSystem_;
     HierarchySystem         hierarchySystem_;
+    ParticleEngine          particleEngine_;
     
 
     // "ID" of an entity is just a numeral index

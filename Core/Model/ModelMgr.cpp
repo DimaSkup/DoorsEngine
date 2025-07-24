@@ -69,6 +69,24 @@ void SerializeModels(
 
 ///////////////////////////////////////////////////////////
 
+bool ModelMgr::InitBillboardBuffer()
+{
+    // initialize a billboards buffer 
+    constexpr int  maxNumBillboards = 30000;
+    constexpr bool isDynamic = true;
+
+    cvector<BillboardSprite> vertices(maxNumBillboards);
+    if (!billboards_.Initialize(g_pDevice, vertices.data(), maxNumBillboards, isDynamic))
+    {
+        LogErr(LOG, "can't create a vertex buffer for billboard sprites");
+        return false;
+    }
+
+    return true;
+}
+
+///////////////////////////////////////////////////////////
+
 void ModelMgr::Serialize(ID3D11Device* pDevice)
 {
     // 1. write model storage's data into the file

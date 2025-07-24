@@ -36,10 +36,12 @@ struct VertexFont
 
 // =================================================================================
 
-struct TreePointSprite
+struct BillboardSprite
 {
-	DirectX::XMFLOAT3 pos;
-	DirectX::XMFLOAT2 size;
+	DirectX::XMFLOAT3 pos          = { 0,0,0 };
+    float             translucency = 1.0f;
+    DirectX::XMFLOAT3 color        = { 1,0,0 };   
+	DirectX::XMFLOAT2 size         = { 1,1 };
 };
 
 // =================================================================================

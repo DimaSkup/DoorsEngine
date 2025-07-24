@@ -4,9 +4,8 @@
 #include "GeometryShader.h"
 #include "PixelShader.h"
 #include "SamplerState.h"
-#include "../Common/ConstBufferTypes.h"
-#include "../Common/RenderTypes.h"
-
+//#include "../Common/ConstBufferTypes.h"
+//#include "../Common/RenderTypes.h"
 #include <d3d11.h>
 
 namespace Render
@@ -31,25 +30,12 @@ public:
         const char* psFilePath,
         const char* gsFilePath);
 
-    void UpdateInstancedBuffer(
-        ID3D11DeviceContext* pContext,
-        const Material* materials,
-        const DirectX::XMFLOAT3* positions,   // positions in world space
-        const DirectX::XMFLOAT2* sizes,       // sizes of billboards (width, height)
-        const int numBillboards);
-
     void Render(
         ID3D11DeviceContext* pContext,
-        ID3D11Buffer* pBillboardVB,
-        ID3D11Buffer* pBillboardIB,
+        ID3D11Buffer* pVB,
         SRV* const* ppTextureArrSRV,
-        const UINT stride,            // vertex stride
-        const DirectX::XMFLOAT3 position);
-
-    // Public rendering API
-    void Render(ID3D11DeviceContext* pContext, const Instance& instance);
-
-    void Shutdown();
+        const UINT stride,
+        const UINT numVertices);
 
     // Public query API
     inline const char* GetShaderName() const { return className_; }
@@ -67,12 +53,7 @@ private:
     PixelShader         ps_;
     SamplerState        samplerState_;
 
-    ID3D11Buffer*                               pInstancedBuffer_ = nullptr;
-    cvector<ConstBufType::InstancedDataBillboards> instancedData_;
-
     char className_[32]{"BillboardShader"};
-    const int numMaxInstances_ = 500;                     // limit of instances
-    int numCurrentInstances_ = 0;                         // how many instances will we render for this frame?
 };
 
 }  // namespace Render

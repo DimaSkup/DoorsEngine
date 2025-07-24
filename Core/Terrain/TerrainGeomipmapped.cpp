@@ -69,9 +69,11 @@ bool TerrainGeomip::InitGeomipmapping(const int patchSize)
     {
         int patchSz = patchSize - 1;
         int recommendedTerrainSize = ((terrainLen -1 + patchSz) / (patchSz)) * (patchSz) + 1;
+		
         LogErr(LOG, "terrain length minus 1 (%d) must be divisible by patch size minus 1 (%d)", terrainLen, patchSize);
         SetConsoleColor(YELLOW);
         LogMsg("Try using terrain size = %d", recommendedTerrainSize);
+		
         return false;
     }
 

@@ -30,6 +30,7 @@
     <ClInclude Include="Components\Model.h" />
     <ClInclude Include="Components\Movement.h" />
     <ClInclude Include="Components\Name.h" />
+    <ClInclude Include="Components\ParticleEmitter.h" />
     <ClInclude Include="Components\Player.h" />
     <ClInclude Include="Components\Rendered.h" />
     <ClInclude Include="Components\RenderStates.h" />
@@ -45,6 +46,8 @@
     <ClInclude Include="Systems\ModelSystem.h" />
     <ClInclude Include="Systems\MoveSystem.h" />
     <ClInclude Include="Systems\NameSystem.h" />
+    <ClInclude Include="Systems\Particles\ParticleEngine.h" />
+    <ClInclude Include="Systems\Particles\ParticleSystem.h" />
     <ClInclude Include="Systems\PlayerSystem.h" />
     <ClInclude Include="Systems\RenderStatesSystem.h" />
     <ClInclude Include="Systems\RenderSystem.h" />
@@ -65,6 +68,14 @@
     <ClCompile Include="Systems\ModelSystem.cpp" />
     <ClCompile Include="Systems\MoveSystem.cpp" />
     <ClCompile Include="Systems\NameSystem.cpp" />
+    <ClCompile Include="Systems\Particles\ParticleEngine.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Systems\Particles\ParticleSystem.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="Systems\PlayerSystem.cpp" />
     <ClCompile Include="Systems\RenderStatesSystem.cpp" />
     <ClCompile Include="Systems\RenderSystem.cpp" />

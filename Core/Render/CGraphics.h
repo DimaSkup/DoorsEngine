@@ -158,7 +158,7 @@ private:
     void RenderEnttsDefault          (Render::CRender* pRender);
     void RenderEnttsAlphaClipCullNone(Render::CRender* pRender);
     void RenderEnttsBlended          (Render::CRender* pRender);
-    void RenderFoggedBillboards      (Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);
+    void RenderBillboards            (Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);
     void RenderMaterialSphere        (const int matIdx, Render::CRender* pRender);
 
     // ------------------------------------------
@@ -201,10 +201,7 @@ public:
     cvector<FrameBuffer>                materialsFrameBuffers_;   // frame buffers which are used to render materials icons (for editor's material browser)
     cvector<ID3D11ShaderResourceView*>  texturesBuf_;             // to avoid reallocation each time we use this shared buffer
 
-    // temp for geometry buffer testing
-    void BuildGeometryBuffers();
-    ID3D11Buffer* pGeomVB_ = nullptr;
-    ID3D11Buffer* pGeomIB_ = nullptr;
+
     
     // different boolean flags             
     bool isWireframeMode_ = false;             // do we render everything is the WIREFRAME mode?
