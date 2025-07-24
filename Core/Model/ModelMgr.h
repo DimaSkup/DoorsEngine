@@ -21,6 +21,8 @@ class ModelMgr
 public:
     ModelMgr();
 
+    bool        InitBillboardBuffer();
+
     void        Serialize  (ID3D11Device* pDevice);
     void        Deserialize(ID3D11Device* pDevice);
 
@@ -33,16 +35,22 @@ public:
     ModelID     GetModelIdByName(const char* name);
 
     void        GetModelsNamesList(cvector<ModelName>& names);
+    
 
     //inline Terrain&             GetTerrain()         { return terrain_; }
-    inline TerrainGeomip& GetTerrainGeomip()   { return terrainGeomip_; }
-    inline TerrainQuadtree&     GetTerrainQuadtree() { return terrainQuadtree_; }
-    inline SkyModel&            GetSky()             { return sky_; }
+    inline TerrainGeomip&   GetTerrainGeomip()   { return terrainGeomip_; }
+    inline TerrainQuadtree& GetTerrainQuadtree() { return terrainQuadtree_; }
+    inline SkyModel&        GetSky()             { return sky_; }
+
+    inline VertexBuffer<BillboardSprite>& GetBillboardsBuffer() { return billboards_; }
 
     inline int                  GetNumAssets() const { return (int)std::ssize(ids_); }
 
+
     
 private:
+    VertexBuffer<BillboardSprite> billboards_;
+
     cvector<ModelID>    ids_;
     cvector<BasicModel> models_;
 
@@ -53,6 +61,7 @@ private:
 
     static ModelMgr*    pInstance_;
     static ModelID      lastModelID_;
+
 };
 
 

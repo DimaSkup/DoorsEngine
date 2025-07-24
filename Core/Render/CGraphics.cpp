@@ -116,8 +116,6 @@ bool CGraphics::InitHelper(
     
         // create frustums for frustum culling
         frustums_.push_back(DirectX::BoundingFrustum());
-
-        BuildGeometryBuffers();
     }
     catch (EngineException & e)
     {
@@ -706,8 +704,9 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
         RenderEnttsAlphaClipCullNone(pRender);
         RenderTerrainGeomip(pRender, pEnttMgr);
         //RenderTerrainQuadtree(pRender, pEnttMgr);
+        RenderBillboards(pRender, pEnttMgr);
         RenderSkyDome(pRender, pEnttMgr);
-        //RenderFoggedBillboards(pRender, pEnttMgr);
+        
 
 #if 0
         pDeviceContext_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
@@ -735,15 +734,6 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
         LogErr("can't render 3D entts onto the scene");
     }
 }
-
-///////////////////////////////////////////////////////////
-
-void CGraphics::RenderModel(BasicModel& model, const DirectX::XMMATRIX& world)
-{
-    // for specific purposes:
-    // just render a single asset/model at the center of the world
-}
-
 ///////////////////////////////////////////////////////////
 
 void InitMatIconFrameBuffer(
@@ -1172,56 +1162,66 @@ void CGraphics::RenderBoundingLineSpheres()
 
 ///////////////////////////////////////////////////////////
 
-void CGraphics::RenderFoggedBillboards(
+void CGraphics::RenderBillboards(
     Render::CRender* pRender,
     ECS::EntityMgr* pEnttMgr)
 {
     // render billboard of entities which are fully fogged so we see only its silhouette
 
-    const EntityID* foggedEntts = rsDataToRender_.enttsFogged_.ids_.data();
-    const size numFoggedEntts = rsDataToRender_.enttsFogged_.ids_.size();
+    //const EntityID* foggedEntts = rsDataToRender_.enttsFogged_.ids_.data();
+    //const size numFoggedEntts   = rsDataToRender_.enttsFogged_.ids_.size();
 
     // if we don't have any billboard to render we just go out
-    if (numFoggedEntts == 0)
+    //if (numFoggedEntts == 0)
+    //    return;
+
+
+
+
+    
+
+    ECS::ParticleEngine& particleEngine = pEnttMgr->particleEngine_;
+
+    // if we don't have any particles to render
+    if (!particleEngine.HasParticlesToRender())
         return;
 
-    d3d_.TurnOnBlending(ALPHA_TO_COVERAGE);
+    const cvector<ECS::ParticleRenderInstance>& particlesToRender = particleEngine.GetParticlesToRender();
 
+    d3d_.TurnOnBlending(ALPHA_TO_COVERAGE);
     RenderStates& renderStates = d3d_.GetRenderStates();
     renderStates.SetRS(pDeviceContext_, CULL_NONE);
-    pRender->SwitchAlphaClipping(pDeviceContext_, true);
+    //pRender->SwitchAlphaClipping(pDeviceContext_, true);
 
-    //
-    // prepare billboards data for rendering
-    //
-    std::vector<Render::Material> materials(numFoggedEntts);
-    cvector<DirectX::XMFLOAT3> foggedPositions;
-    std::vector<DirectX::XMFLOAT2> sizes(numFoggedEntts, { 30, 30 });
+    VertexBuffer<BillboardSprite>& vb = g_ModelMgr.GetBillboardsBuffer();
 
-    pEnttMgr->transformSystem_.GetPositions(foggedEntts, numFoggedEntts, foggedPositions);
+    const int numVertices = (int)particlesToRender.size();
+    cvector<BillboardSprite> vertices(numVertices);
 
-    pRender->shadersContainer_.billboardShader_.UpdateInstancedBuffer(
-        pDeviceContext_,
-        materials.data(),
-        foggedPositions.data(),
-        sizes.data(),
-        (int)numFoggedEntts);
+    for (int i = 0; const ECS::ParticleRenderInstance& particle : particlesToRender)
+    {
+        vertices[i].pos          = particle.pos;
+        vertices[i].translucency = particle.translucency;
+        vertices[i].color        = particle.color;
+        vertices[i].size         = particle.size;
+        ++i;
+    }
 
+    vb.UpdateDynamic(g_pContext, vertices.data(), numVertices);
 
-    //
-    // render billboards instances
-    //
-    Render::Instance instance;
-    instance.pVB = pGeomVB_;
-    instance.pIB = pGeomIB_;
-    instance.texSRVs = { g_TextureMgr.GetTexPtrByName("tree_billboard")->GetTextureResourceView() };
-    instance.vertexStride = sizeof(TreePointSprite);
+    ID3D11ShaderResourceView* texSRVs = { g_TextureMgr.GetTexPtrByName("tree_billboard")->GetTextureResourceView() };
+    const UINT vertexStride = sizeof(BillboardSprite);
 
-    pRender->shadersContainer_.billboardShader_.Render(pDeviceContext_, instance);
+    pRender->shadersContainer_.billboardShader_.Render(
+        g_pContext,
+        vb.Get(),
+        &texSRVs,
+        vertexStride,
+        numVertices);
 
     // reset rendering pipeline
     renderStates.ResetRS(pDeviceContext_);
-    pRender->SwitchAlphaClipping(pDeviceContext_, false);
+    //pRender->SwitchAlphaClipping(pDeviceContext_, false);
    
 }
 
@@ -1666,52 +1666,6 @@ int CGraphics::TestEnttSelection(const int sx, const int sy, ECS::EntityMgr* pEn
 
     // return ID of the selected entt, or 0 if we didn't pick any
     return selectedEnttID;
-}
-
-///////////////////////////////////////////////////////////
-
-void CGraphics::BuildGeometryBuffers()
-{
-    HRESULT hr = S_OK;
-    TreePointSprite spriteVertex;
-
-    spriteVertex.pos = { 0,0,0 };
-    spriteVertex.size = { 30, 30 };
-
-    //
-    // Create VB
-    //
-    D3D11_BUFFER_DESC vbd;
-    vbd.Usage = D3D11_USAGE_IMMUTABLE;
-    vbd.ByteWidth = sizeof(TreePointSprite);
-    vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-    vbd.CPUAccessFlags = 0;
-    vbd.MiscFlags = 0;
-
-    D3D11_SUBRESOURCE_DATA vbInitData;
-    vbInitData.pSysMem = &spriteVertex;
-
-    hr = pDevice_->CreateBuffer(&vbd, &vbInitData, &pGeomVB_);
-    CAssert::NotFailed(hr, "can't create a vertex buffer for tree sprite");
-
-
-    //
-    // Create IB
-    //
-    UINT indices = 0;
-
-    D3D11_BUFFER_DESC ibd;
-    ibd.Usage = D3D11_USAGE_IMMUTABLE;
-    ibd.ByteWidth = sizeof(UINT);
-    ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
-    ibd.CPUAccessFlags = 0;
-    ibd.MiscFlags = 0;
-
-    D3D11_SUBRESOURCE_DATA ibInitData;
-    ibInitData.pSysMem = &indices;
-
-    hr = pDevice_->CreateBuffer(&ibd, &ibInitData, &pGeomIB_);
-    CAssert::NotFailed(hr, "can't create an index buffer for tree sprite");
 }
 
 } // namespace Core

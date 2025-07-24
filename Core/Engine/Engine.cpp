@@ -119,6 +119,12 @@ bool Engine::Initialize(
         cpu_.Initialize();
         imGuiLayer_.Initialize(hwnd_, pDevice, pContext);
 
+        // initialize a vertex buffer which will be used for billboards rendering 
+        if (!g_ModelMgr.InitBillboardBuffer())
+        {
+            throw EngineException("can't initialize the billboards buffer");
+        }
+
         LogMsg("is initialized!");
     }
     catch (EngineException& e)
@@ -174,6 +180,7 @@ void Engine::Update()
         keyboard_.Update();
     }
 
+    pEnttMgr_->particleEngine_.Explode(0.15f, 100);
     graphics_.Update(systemState_, deltaTime_, timer_.GetGameTime(), pEnttMgr_, pRender_);
 
     // compute the duration of the engine's update process
@@ -600,9 +607,15 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
                     pUI->SetGizmoOperation(ImGuizmo::OPERATION::TRANSLATE);
                 break;
             }
+            case KEY_E:
+            {
+                //if (!keyboard_.WasPressedBefore(KEY_E))
+                    pEnttMgr->particleEngine_.Explode(0.15f, 10);
+                break;
+            }
             case KEY_R:
             {
-                if (keyboard_.IsPressed(KEY_CONTROL))
+                if (!keyboard_.WasPressedBefore(KEY_CONTROL))
                     pUI->SetGizmoOperation(ImGuizmo::OPERATION::ROTATE);
                 break;
             }
@@ -826,6 +839,12 @@ void Engine::HandleGameEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* pEn
             case KEY_SPACE:
             {
                 HandlePlayerActions(code, deltaTime_, pEnttMgr, pRender_);
+                break;
+            }
+            case KEY_E:
+            {
+                //if (!keyboard_.WasPressedBefore(KEY_E))
+                pEnttMgr->particleEngine_.Explode(0.15f, 10);
                 break;
             }
         }

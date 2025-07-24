@@ -21,7 +21,7 @@ namespace Core
 {
 
 template <typename T>
-class VertexBuffer final
+class VertexBuffer
 {
 public:
     VertexBuffer() {}
