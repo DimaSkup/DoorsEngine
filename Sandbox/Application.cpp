@@ -1,5 +1,5 @@
 // =================================================================================
-// Filename:      Application.cpp
+// Filename:      App.cpp
 // 
 // Created:       21.04.25  by DimaSkup
 // =================================================================================
@@ -10,24 +10,18 @@
 namespace Game
 {
 
-Application::Application() : wndContainer_(mainHWND_)
+App::App() : wndContainer_(mainHWND_)
 {
+}
+
+App::~App()
+{
+    SafeDelete(pFacadeEngineToUI_);
 }
 
 ///////////////////////////////////////////////////////////
 
-Application::~Application()
-{
-    if (pFacadeEngineToUI_)
-    {
-        delete pFacadeEngineToUI_;
-        pFacadeEngineToUI_ = nullptr;
-    }
-}
-
-///////////////////////////////////////////////////////////
-
-void Application::Initialize()
+void App::Initialize()
 {
     // compute duration of importing process
     auto initStartTime = std::chrono::steady_clock::now();
@@ -40,27 +34,35 @@ void Application::Initialize()
         exit(-1);
     }
 
-    eventHandler_.AddEventListener(&engine_);         // set engine class as one of the window events listeners
+    eventHandler_.AddEventListener(&engine_);        // set engine class as one of the window events listeners
     wndContainer_.SetEventHandler(&eventHandler_);    // set an event handler for the window container
 
     InitWindow();
     InitEngine();
 
-    Core::D3DClass& d3d   = engine_.GetGraphicsClass().GetD3DClass();
-    ID3D11Device* pDevice = d3d.GetDevice();
 
-    InitScene(pDevice, settings_);
+
+    Core::CGraphics&     graphics = engine_.GetGraphicsClass();
+    Core::D3DClass&      d3d      = graphics.GetD3DClass();
+    ID3D11Device*        pDevice  = d3d.GetDevice();
+    ID3D11DeviceContext* pContext = d3d.GetDeviceContext();
+
+    InitScene       (pDevice, settings_);
     InitRenderModule(pDevice, settings_, &render_);
 
     // create a facade btw the UI and the engine parts
     pFacadeEngineToUI_ = new UI::FacadeEngineToUI(
-        d3d.GetDeviceContext(),
+        pContext,
         &render_,
         &entityMgr_,
-        &engine_.GetGraphicsClass());
+        &graphics);
 
     // initialize the main UserInterface class
     InitGUI(pDevice, d3d.GetWindowWidth(), d3d.GetWindowHeight());
+
+    // after all init all the game related stuff
+    game_.Init(&engine_, &entityMgr_, &render_);
+
 
     auto initEndTime = std::chrono::steady_clock::now();
     std::chrono::duration<float, std::milli> initDuration = initEndTime - initStartTime;
@@ -71,6 +73,7 @@ void Application::Initialize()
     sprintf(g_String, "Init time: %d ms", (int)initDuration.count());
     userInterface_.CreateConstStr(pDevice, g_String, drawAt);
 
+    // print into console and log file info about duration of the initialization 
     SetConsoleColor(GREEN);
     LogMsg("---------------------------------------------");
     LogMsg(g_String);
@@ -80,7 +83,7 @@ void Application::Initialize()
 
 ///////////////////////////////////////////////////////////
 
-bool Application::InitWindow()
+bool App::InitWindow()
 {
      // get main params for the window initialization
     const bool isFullScreen     = settings_.GetBool("FULL_SCREEN");
@@ -107,7 +110,7 @@ bool Application::InitWindow()
 
 ///////////////////////////////////////////////////////////
 
-bool Application::InitEngine()
+bool App::InitEngine()
 {
     const std::string wndTitle = settings_.GetString("WINDOW_TITLE");
 
@@ -129,7 +132,7 @@ bool Application::InitEngine()
 
 ///////////////////////////////////////////////////////////
 
-bool Application::InitScene(ID3D11Device* pDevice, const EngineConfigs& settings)
+bool App::InitScene(ID3D11Device* pDevice, const EngineConfigs& settings)
 {
     const Core::D3DClass& d3d = engine_.GetGraphicsClass().GetD3DClass();
     const SIZE windowedSize   = d3d.GetWindowedWndSize();
@@ -172,17 +175,16 @@ bool Application::InitScene(ID3D11Device* pDevice, const EngineConfigs& settings
     graphics.SetCurrentCamera(editorCamID);
 
     // setup distance after which the objects are fully fogged
-    const float fogStart = settings.GetFloat("FOG_START");
-    const float fogRange = settings.GetFloat("FOG_RANGE");
-    const float fullFogDistance = fogStart + fogRange;
-    graphics.SetFullFogDist((int)fullFogDistance);
+    //const float fogStart = settings.GetFloat("FOG_START");
+    //const float fogRange = settings.GetFloat("FOG_RANGE");
+    //const float fullFogDistance = fogStart + fogRange;
 
     return true;
 }
 
 ///////////////////////////////////////////////////////////
 
-bool Application::InitRenderModule(
+bool App::InitRenderModule(
     ID3D11Device* pDevice,
     const EngineConfigs& settings,
     Render::CRender* pRender)
@@ -237,7 +239,7 @@ bool Application::InitRenderModule(
 
 ///////////////////////////////////////////////////////////
 
-bool Application::InitGUI(
+bool App::InitGUI(
     ID3D11Device* pDevice,
     const int wndWidth,
     const int wndHeight)
@@ -289,13 +291,16 @@ bool Application::InitGUI(
 
 ///////////////////////////////////////////////////////////
 
-void Application::Run()
+void App::Run()
 {
     // run the engine
     while (wndContainer_.renderWindow_.ProcessMessages(hInstance_, mainHWND_) == true)
     {
         if (!engine_.IsPaused())
         {
+            const float deltaTime = engine_.GetTimer().GetDeltaTime();
+
+            game_.Update(deltaTime);
             engine_.Update();
             engine_.RenderFrame();
         }
@@ -311,8 +316,9 @@ void Application::Run()
 
 ///////////////////////////////////////////////////////////
 
-void Application::Close()
+void App::Close()
 {
+    eventHandler_.DetachAllEventListeners();
     wndContainer_.renderWindow_.UnregisterWindowClass(hInstance_);
     CloseLogger();
 }

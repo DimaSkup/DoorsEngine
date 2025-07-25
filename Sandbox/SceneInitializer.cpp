@@ -126,7 +126,7 @@ bool SceneInitializer::InitCameras(
        // EntityID matBrowserCamID = enttMgr.CreateEntity("material_browser_camera");
 
         // add transform component: positions and directions
-        const XMFLOAT3 editorCamPos = { 0, 10, 0 };
+        const XMFLOAT3 editorCamPos = { 260, 20, 190 };
         const XMFLOAT3 gameCamPos   = { 0, 0, 0 };
         const XMFLOAT3 matBrowserCamPos = { 0, 0, -2.0f };
 

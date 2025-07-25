@@ -108,7 +108,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Input\MouseClass.cpp">
+    <ClCompile Include="Input\Mouse.cpp">
       <Filter>Source Files\Mouse</Filter>
     </ClCompile>
     <ClCompile Include="Window\RenderWindow.cpp">
@@ -132,7 +132,7 @@
     <ClCompile Include="Render\CGraphics.cpp">
       <Filter>Source Files\Render</Filter>
     </ClCompile>
-    <ClCompile Include="Input\KeyboardClass.cpp">
+    <ClCompile Include="Input\Keyboard.cpp">
       <Filter>Source Files\Keyboard</Filter>
     </ClCompile>
     <ClCompile Include="Engine\EngineConfigs.cpp">
@@ -308,7 +308,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Input\MouseClass.h">
+    <ClInclude Include="Input\Mouse.h">
       <Filter>Header Files\Mouse</Filter>
     </ClInclude>
     <ClInclude Include="Input\MouseEvent.h">
@@ -341,7 +341,7 @@
     <ClInclude Include="Render\CGraphics.h">
       <Filter>Header Files\Render</Filter>
     </ClInclude>
-    <ClInclude Include="Input\KeyboardClass.h">
+    <ClInclude Include="Input\Keyboard.h">
       <Filter>Header Files\Keyboard</Filter>
     </ClInclude>
     <ClInclude Include="CoreCommon\SystemState.h">

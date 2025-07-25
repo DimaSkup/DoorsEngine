@@ -6,7 +6,7 @@
 
 
 LRESULT InputManager::HandleKeyboardMessage(
-	KeyboardClass & keyboard, 
+	Keyboard & keyboard, 
 	const UINT & message, 
 	WPARAM wParam, 
 	LPARAM lParam)
@@ -63,7 +63,7 @@ LRESULT InputManager::HandleKeyboardMessage(
 ///////////////////////////////////////////////////////////
 
 LRESULT InputManager::HandleMouseMessage(
-	MouseClass & mouse, 
+	Mouse & mouse, 
 	const UINT& uMsg, 
 	WPARAM wParam,
 	LPARAM lParam)

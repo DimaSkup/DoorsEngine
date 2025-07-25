@@ -16,10 +16,11 @@ namespace Core
 class SystemState
 {
 public:
+    bool isGameMode = false;
 	bool isEditorMode = true;                // to define if we want to render the engine's GUI onto the screen
 	bool isShowDbgInfo = false;              // show/hide debug text info in the game mode
 	bool intersect = false;                  // the flag to define if we clicked on some model or not
-	//bool needComputeFrustumCulling_ = true;  // the flag to define if we need to compute frustum culling for this frame (if camera doesn't move/rotate we have no need to compute it each frame)
+
 	int mouseX = 0;                          // the mouse cursor X position in the window
 	int mouseY = 0;                          // the mouse cursor Y position in the window
 	int fps = 0;                             // framerate
