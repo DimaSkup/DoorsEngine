@@ -142,7 +142,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>Core.lib;ECS.lib;ImageReader.lib;Render.lib;ImGui.lib;DirectXTex.lib;assimp\assimp-vc143-mtd.lib;Shared.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Core.lib;ECS.lib;Image.lib;Render.lib;ImGui.lib;DirectXTex.lib;assimp\assimp-vc143-mtd.lib;Shared.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
