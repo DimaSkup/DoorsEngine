@@ -91,21 +91,15 @@ void ParticleSystem::CreateParticles(const ParticleInitData* data, const int num
 }
 
 //---------------------------------------------------------
-// Desc:   update the particle engine
+// Desc:   update the particle system
 //---------------------------------------------------------
 void ParticleSystem::Update(const float deltaTime)
 {
-    XMVECTOR vecMomentum;
-
     const float invLife = 1.0f / life_;
-    int curNumParticles = (int)particles_.size();
-
 
     // loop through all the particles
-    for (int i = 0; i < curNumParticles; ++i)
+    for (Particle& particle : particles_)
     {
-        Particle& particle = particles_[i];
-
         // age the particle
         particle.ageMs -= deltaTime;
 
@@ -115,17 +109,14 @@ void ParticleSystem::Update(const float deltaTime)
         {
             particle = particles_.back();
             particles_.pop_back();
-            curNumParticles--;
             continue;
         }
 
         // our particle is still alive so update its params
         else
         {
-            vecMomentum = particle.vel * particle.mass;
-
             // update the particle's position
-            particle.pos += vecMomentum;
+            particle.pos += (particle.vel * particle.mass);
 
             // now it's time for the external forces to take their toll
             particle.vel *= (1 - particle.friction);
@@ -149,9 +140,9 @@ void ParticleSystem::GetParticlesToRender(cvector<ParticleRenderInstance>& outIn
     const vsize prevNumInstances = outInstances.size();
     outInstances.resize(prevNumInstances + curNumAliveParticles);
 
-    // store data of each alive particle
     index idx = prevNumInstances;
 
+    // store data of each alive particle
     for (int i = 0; i < curNumAliveParticles; ++i)
     {
         // copy position

@@ -11,7 +11,6 @@
 
 #include "../Texture/TextureMgr.h"
 #include "../Model/ModelMgr.h"
-//#include <winuser.h>
 
 #pragma warning (disable : 4996)
 
@@ -19,13 +18,18 @@
 namespace Core
 {
 
+// Global instance of the engine (I don't care)
+//Engine g_Engine;
+
+
+//---------------------------------------------------------
+// Default constructor / destructor
+//---------------------------------------------------------
 Engine::Engine()
 {
     LogDbg(LOG, "init");
     timer_.Reset();       // reset the engine/game timer
 }
-
-///////////////////////////////////////////////////////////
 
 Engine::~Engine()
 {
@@ -160,28 +164,33 @@ void Engine::Update()
     systemState_.deltaTime = deltaTime_;
     systemState_.frameTime = deltaTime_ * 1000.0f;
 
-    // update the entities and related data
-    pEnttMgr_->Update(timer_.GetGameTime(), deltaTime_);
-
     // compute fps and frame time (ms)
     CalculateFrameStats();
-
-    pUserInterface_->Update(graphics_.GetD3DClass().GetDeviceContext(), systemState_);
 
     // handle keyboard imput
     if (keyboard_.IsAnyPressed() || keyboard_.HasReleasedEvents())
     {
-        // according to the engine mode (editor/game) we call a respective keyboard handler
         if (systemState_.isEditorMode)
             HandleEditorEventKeyboard(pUserInterface_, pEnttMgr_);
-        else
-            HandleGameEventKeyboard(pUserInterface_, pEnttMgr_);
-
-        keyboard_.Update();
     }
 
-    pEnttMgr_->particleEngine_.Explode(0.15f, 100);
+    // update the entities and related data
+    pEnttMgr_->Update(timer_.GetGameTime(), deltaTime_);
+
+    pUserInterface_->Update(graphics_.GetD3DClass().GetDeviceContext(), systemState_);
+    keyboard_.Update();
     graphics_.Update(systemState_, deltaTime_, timer_.GetGameTime(), pEnttMgr_, pRender_);
+
+    // if we want to switch btw game/editor mode
+    if (switchEngineMode_)
+    {
+        switchEngineMode_ = false;
+
+        if (IsGameMode())
+            TurnOnEditorMode();
+        else
+            TurnOnGameMode();
+    }
 
     // compute the duration of the engine's update process
     auto updateEndTime = std::chrono::steady_clock::now();
@@ -440,7 +449,7 @@ void HandleEditorCameraMovement(
     const eKeyCodes code,
     const float deltaTime,
     ECS::EntityMgr* pEnttMgr,
-    const KeyboardClass& keyboard)
+    const Keyboard& keyboard)
 {
     ECS::CameraSystem& camSys = pEnttMgr->cameraSystem_;
     const EntityID     camID = pEnttMgr->nameSystem_.GetIdByName("editor_camera");
@@ -607,12 +616,6 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
                     pUI->SetGizmoOperation(ImGuizmo::OPERATION::TRANSLATE);
                 break;
             }
-            case KEY_E:
-            {
-                //if (!keyboard_.WasPressedBefore(KEY_E))
-                    pEnttMgr->particleEngine_.Explode(0.15f, 10);
-                break;
-            }
             case KEY_R:
             {
                 if (!keyboard_.WasPressedBefore(KEY_CONTROL))
@@ -623,7 +626,7 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
             {
                 // switch to the game mode
                 if (!keyboard_.WasPressedBefore(KEY_F1))
-                    TurnOnGameMode();
+                    SwitchEngineMode();
                 break;
             }
             case KEY_F2:
@@ -634,8 +637,6 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
                     ECS::PlayerSystem& player = pEnttMgr->playerSystem_;
                     player.SetFreeFlyMode(!player.IsFreeFlyMode());
                 }
-                
-
                 break;
             }
             case KEY_F3:
@@ -725,147 +726,6 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
 
 ///////////////////////////////////////////////////////////
 
-void Engine::HandlePlayerActions(
-    const eKeyCodes code,
-    const float deltaTime,
-    ECS::EntityMgr* pEnttMgr,
-    Render::CRender* pRender)
-{
-    using namespace ECS;
-    PlayerSystem& player = pEnttMgr->playerSystem_;
-    //const float step = player.GetSpeed() * deltaTime;
-    
-    switch (code)
-    {
-        case KEY_SHIFT:
-        {
-            pEnttMgr->AddEvent(ECS::EventPlayerRun(true));
-            break;
-        }
-        case KEY_A:
-        {
-            pEnttMgr->AddEvent(EventPlayerMove(EVENT_PLAYER_MOVE_LEFT));
-            break;
-        }
-        case KEY_D:
-        {
-            pEnttMgr->AddEvent(EventPlayerMove(EVENT_PLAYER_MOVE_RIGHT));
-            break;
-        }
-        case KEY_L:
-        {
-            // switch the flashlight
-            if (!keyboard_.WasPressedBefore(KEY_L))
-                SwitchFlashLight(*pEnttMgr, *pRender);
-            break;
-        }
-        case KEY_S:
-        {
-            pEnttMgr->AddEvent(EventPlayerMove(EVENT_PLAYER_MOVE_BACK));
-            break;
-        }
-        case KEY_W:
-        {
-            pEnttMgr->AddEvent(EventPlayerMove(EVENT_PLAYER_MOVE_FORWARD));
-            break;
-        }
-        case KEY_Z:
-        {
-            if (player.IsFreeFlyMode())
-                pEnttMgr->AddEvent(EventPlayerMove(EVENT_PLAYER_MOVE_DOWN));
-            break;
-        }
-        case KEY_SPACE:
-        {
-            if (player.IsFreeFlyMode())
-                pEnttMgr->AddEvent(EventPlayerMove(EVENT_PLAYER_MOVE_UP));
-            else
-                pEnttMgr->AddEvent(EventPlayerMove(EVENT_PLAYER_JUMP));
-
-            break;
-        }
-    } // switch
-}
-
-///////////////////////////////////////////////////////////
-
-void Engine::HandleGameEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr)
-{
-    ECS::PlayerSystem& player = pEnttMgr->playerSystem_;
-
-    // go through each currently pressed key and handle related events
-    for (const eKeyCodes code : keyboard_.GetPressedKeysList())
-    {
-        switch (code)
-        {
-            case VK_ESCAPE:
-            {
-                // if we pressed the ESC button we exit from the application
-                LogDbg(LOG, "Esc is pressed");
-                isExit_ = true;
-                break;
-            }
-            case KEY_F1:
-            {
-                // switch from game to the editor mode
-                if (!keyboard_.WasPressedBefore(KEY_F1))
-                    TurnOnEditorMode();
-
-                break;
-            }
-            case KEY_F2:
-            {
-                // switch btw cameras modes (free / game)
-                if (!keyboard_.WasPressedBefore(KEY_F2))
-                    player.SetFreeFlyMode(!player.IsFreeFlyMode());
-
-                break;
-            }
-            case KEY_F3:
-            {
-                // show/hide debug info in the game mode
-                if (!keyboard_.WasPressedBefore(KEY_F3))
-                    systemState_.isShowDbgInfo = !systemState_.isShowDbgInfo;
-
-                break;
-            }
-            case KEY_SHIFT:
-            case KEY_A:
-            case KEY_D:
-            case KEY_L:
-            case KEY_S:
-            case KEY_W:
-            case KEY_Z:
-            case KEY_SPACE:
-            {
-                HandlePlayerActions(code, deltaTime_, pEnttMgr, pRender_);
-                break;
-            }
-            case KEY_E:
-            {
-                //if (!keyboard_.WasPressedBefore(KEY_E))
-                pEnttMgr->particleEngine_.Explode(0.15f, 10);
-                break;
-            }
-        }
-    }
-
-    // handle released keys
-    while (int key = keyboard_.ReadReleasedKey())
-    {
-        switch (key)
-        {
-            case KEY_SHIFT:
-            {
-                pEnttMgr->AddEvent(ECS::EventPlayerRun(false));
-                break;
-            }
-        }
-    }
-}
-
-///////////////////////////////////////////////////////////
-
 void Engine::EventKeyboard(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     // a handler for all the keyboard events
@@ -876,32 +736,6 @@ void Engine::EventKeyboard(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 // =================================================================================
 // Mouse events handlers
 // =================================================================================
-void Engine::SwitchFlashLight(ECS::EntityMgr& mgr, Render::CRender& render)
-{
-    // switch on/off the player's flashlight
-
-    ECS::PlayerSystem& player = mgr.playerSystem_;
-    const bool isFlashlightActive = !player.IsFlashLightActive();;   
-    player.SwitchFlashLight(isFlashlightActive);
-
-    // update the state of the flashlight entity
-    const EntityID flashlightID = mgr.nameSystem_.GetIdByName("flashlight");
-    mgr.lightSystem_.SetLightIsActive(flashlightID, isFlashlightActive);
-    
-    // set of flashlight is visible
-    ID3D11DeviceContext* pContext = graphics_.GetD3DClass().GetDeviceContext();
-    render.SwitchFlashLight(pContext, isFlashlightActive);
-
-
-    // if we just turned on the flashlight we update its position and direction
-    if (isFlashlightActive)
-    {
-        mgr.transformSystem_.SetPosition(flashlightID, player.GetPosition());
-        mgr.transformSystem_.SetDirection(flashlightID, player.GetDirVec());
-    }
-}
-
-///////////////////////////////////////////////////////////
 
 void Engine::HandleEditorEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr)
 {
@@ -1005,44 +839,6 @@ void Engine::HandleEditorEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnt
             {
                 return;
                 assert(0 && "FIXME: double click");
-    #if 0
-                // handle double click right on selected entity
-                if (pUI->IsSceneWndHovered() && (pUI->GetSelectedEntt() != 0))
-                {
-                    using namespace DirectX;
-
-                    Camera& cam = graphics_.editorCamera_;
-                    EntityID selectedEnttID = pUI->GetSelectedEntt();
-                    XMFLOAT3 enttPos = pEnttMgr->transformSystem_.GetPositionByID(selectedEnttID);
-
-                    // fix on the entt and move closer to it
-                    if (keyboard_.IsPressed(KEY_CONTROL))
-                    {
-                        // compute new position for the camera
-                        XMVECTOR lookAt = DirectX::XMLoadFloat3(&enttPos);
-                        XMVECTOR camOldPos = cam.GetPositionVec();
-                        XMVECTOR camDir = lookAt - camOldPos;
-
-                        // p = p0 + v*t
-                        XMVECTOR newPos = lookAt - (camDir * 0.1f);
-
-                        // focus camera on entity
-                        cam.LookAt(newPos, lookAt, { 0,1,0 });
-
-                        // set fixed focus on the selected entity so we will move around it
-                        // (to turn off fixed focus just click aside of the entity)
-                        cam.SetFixedLookState(true);
-                        cam.SetFixedLookAtPoint(lookAt);
-                    }
-                    else
-                    {
-                        // focus (but not fix) camera on entity
-                        cam.LookAt(cam.GetPosition(), enttPos, { 0,1,0 });
-                    }
-                
-                    //userInterface_.SetGizmoOperation(ImGuizmo::OPERATION::TRANSLATE);
-                }
-    #endif
                 break;
             } // case LeftDoubleClick:
         } // switch
@@ -1084,25 +880,15 @@ void Engine::HandleGameEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnttM
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   handler for all the mouse events
+//---------------------------------------------------------
 void Engine::EventMouse(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    // handler for all the mouse events;
-
     inputMgr_.HandleMouseMessage(mouse_, uMsg, wParam, lParam);
 
-    // according to the engine mode we call a respective keyboard handler
     if (systemState_.isEditorMode)
-    {
-        
-            HandleEditorEventMouse(pUserInterface_, pEnttMgr_);
-    }
-    else
-    {
-        while (!mouse_.EventBufferIsEmpty())
-            HandleGameEventMouse(pUserInterface_, pEnttMgr_);
-    }
+        HandleEditorEventMouse(pUserInterface_, pEnttMgr_);
 }
 
 
@@ -1118,7 +904,8 @@ void Engine::TurnOnEditorMode()
 
     d3d.ToggleFullscreen(hwnd_, false);
     graphics_.SetCurrentCamera(editorCamID);
-    graphics_.SetGameMode(false);
+    systemState_.isGameMode = false;
+    systemState_.isEditorMode = true;
 
 #if 0
     // update the camera proj matrix according to new window size
@@ -1135,7 +922,7 @@ void Engine::TurnOnEditorMode()
     // when go to a 'pause' to get out of 'mouse-look' behavior like this.
     ClipCursor(nullptr);
 
-    systemState_.isEditorMode = true;
+    
     ShowCursor(TRUE);
 
     const DirectX::XMMATRIX& baseView   = pEnttMgr_->cameraSystem_.GetBaseView(editorCamID);
@@ -1177,8 +964,7 @@ void Engine::TurnOnGameMode()
 
     graphics_.GetD3DClass().ToggleFullscreen(hwnd_, false);
     graphics_.SetCurrentCamera(gameCamID);
-    graphics_.SetGameMode(true);
-
+    systemState_.isGameMode = true;
     systemState_.isEditorMode = false;
 
     ShowCursor(FALSE);

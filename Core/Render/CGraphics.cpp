@@ -143,6 +143,9 @@ void CGraphics::Shutdown()
 // Update / prepare scene
 // =================================================================================
 
+//---------------------------------------------------------
+// Desc:   update all the graphics related stuff for this frame
+//---------------------------------------------------------
 void CGraphics::UpdateHelper(
     SystemState& sysState,
     const float deltaTime,
@@ -150,18 +153,13 @@ void CGraphics::UpdateHelper(
     ECS::EntityMgr* pEnttMgr,
     Render::CRender* pRender)
 {
-    // update all the graphics related stuff for this frame
-
-
     TerrainGeomip& terrain = g_ModelMgr.GetTerrainGeomip();
-    
+    const EntityID currCamID = currCameraID_;
 
     // ---------------------------------------------
     // update the cameras states
 
-    const EntityID currCamID = currCameraID_;
-
-    if (isGameMode_)
+    if (sysState.isGameMode)
     {
         ECS::PlayerSystem& player = pEnttMgr->playerSystem_;
         XMFLOAT3 playerPos = player.GetPosition();
@@ -203,6 +201,8 @@ void CGraphics::UpdateHelper(
 
         sysState.cameraPos = { playerPos.x, playerPos.y, playerPos.z };
     }
+
+    // we aren't in the game mode (now is the editor mode)
     else
     {
         sysState.cameraPos = pEnttMgr->transformSystem_.GetPosition(currCamID);
@@ -297,67 +297,6 @@ void CGraphics::UpdateHelper(
     pEnttMgr->renderStatesSystem_.SeparateEnttsByRenderStates(visibleEntts, rsDataToRender_);
 
     pSysState_->visibleVerticesCount = 0;
-
-
-#if 0
-    //
-    // separate entts by distance
-    //
-
-    // render as lit entts only that entts which are closer than some distance
-    // all entts that are farther will be rendered as fully fogged with a single fog color
-    cvector<EntityID>& alphaClippedEntts = rsDataToRender_.enttsAlphaClipping_.ids_;
-    const size numVisEntts = alphaClippedEntts.size();
-
-  
-    if (numVisEntts > 0)
-    {
-        using namespace DirectX;
-
-
-        size count = 0;
-        std::vector<index> idxs(numVisEntts);
-        cvector<XMFLOAT3> positions;
-
-
-        pEnttMgr->transformSystem_.GetPositions(alphaClippedEntts.data(), numVisEntts, positions);
-        const int fullFogDistSqr = (fullFogDistance_ * fullFogDistance_);
-        const XMVECTOR camPos = XMLoadFloat3(&sysState.cameraPos);
-
-        // check if entity by idx is farther than fog range if so we store its idx
-        for (index i = 0; i < numVisEntts; ++i)
-        {
-            const XMVECTOR enttPos      = XMLoadFloat3(&positions[i]);
-            const XMVECTOR camToEnttVec = DirectX::XMVectorSubtract(enttPos, camPos);
-            const int distSqr           = (int)DirectX::XMVectorGetX(DirectX::XMVector3Dot(camToEnttVec, camToEnttVec));
-
-            if (distSqr > fullFogDistSqr)
-            {
-                idxs[count] = i;
-                ++count;
-            }
-        }
-
-        idxs.resize(count);
-        cvector<EntityID>& foggedEntts = rsDataToRender_.enttsFogged_.ids_;
-        foggedEntts.resize(count);
-
-        // store IDs of entts which are farther than fog range
-        for (index i = 0; const index enttIdx : idxs)
-        {
-            foggedEntts[i++] = alphaClippedEntts[enttIdx];
-        }
-
-        // erase IDs of entts which are farther than fog range from the origin IDs array
-        for (index i = 0; const index idx : idxs)
-        {
-            alphaClippedEntts.erase(idx - i);
-            i++;
-        }
-
-        idxs.clear();
-    }
-#endif
 
     // ----------------------------------------------------
     // prepare data for each entts set
@@ -1218,6 +1157,8 @@ void CGraphics::RenderBillboards(
         &texSRVs,
         vertexStride,
         numVertices);
+
+    pSysState_->visibleVerticesCount += numVertices;
 
     // reset rendering pipeline
     renderStates.ResetRS(pDeviceContext_);

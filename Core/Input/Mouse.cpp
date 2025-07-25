@@ -1,52 +1,52 @@
-#include "MouseClass.h"
+#include "Mouse.h"
 
-void MouseClass::OnLeftPressed(int x, int y)
+void Mouse::OnLeftPressed(int x, int y)
 {
 	leftIsDown_ = true;
 	eventBuffer_.push(MouseEvent(MouseEvent::EventType::LPress, x, y));
 }
 
-void MouseClass::OnLeftReleased(int x, int y)
+void Mouse::OnLeftReleased(int x, int y)
 {
 	leftIsDown_ = false;
 	eventBuffer_.push(MouseEvent(MouseEvent::EventType::LRelease, x, y));
 }
 
-void MouseClass::OnRightPressed(int x, int y)
+void Mouse::OnRightPressed(int x, int y)
 {
 	rightIsDown_ = true;
 	eventBuffer_.push(MouseEvent(MouseEvent::EventType::RPress, x, y));
 }
 
-void MouseClass::OnRightReleased(int x, int y)
+void Mouse::OnRightReleased(int x, int y)
 {
 	rightIsDown_ = false;
 	eventBuffer_.push(MouseEvent(MouseEvent::EventType::RRelease, x, y));
 }
 
-void MouseClass::OnMiddlePressed(int x, int y)
+void Mouse::OnMiddlePressed(int x, int y)
 {
 	mbuttonDown_ = true;
 	eventBuffer_.push(MouseEvent(MouseEvent::EventType::MPress, x, y));
 }
 
-void MouseClass::OnMiddleReleased(int x, int y)
+void Mouse::OnMiddleReleased(int x, int y)
 {
 	mbuttonDown_ = false;
 	eventBuffer_.push(MouseEvent(MouseEvent::EventType::MRelease, x, y));
 }
 
-void MouseClass::OnWheelUp(int x, int y)
+void Mouse::OnWheelUp(int x, int y)
 {
 	eventBuffer_.push(MouseEvent(MouseEvent::EventType::WheelUp, x, y));
 }
 
-void MouseClass::OnWheelDown(int x, int y)
+void Mouse::OnWheelDown(int x, int y)
 {
 	eventBuffer_.push(MouseEvent(MouseEvent::EventType::WheelDown, x, y));
 }
 
-void MouseClass::OnMouseMove(int x, int y)
+void Mouse::OnMouseMove(int x, int y)
 {
 	x_ = x;
 	y_ = y;
@@ -54,18 +54,18 @@ void MouseClass::OnMouseMove(int x, int y)
 }
 
 // handles the relative changes of the mouse position
-void MouseClass::OnMouseMoveRaw(int x, int y)
+void Mouse::OnMouseMoveRaw(int x, int y)
 {
 	eventBuffer_.push(MouseEvent(MouseEvent::EventType::RAW_MOVE, x, y));
 }
 
-void MouseClass::OnLeftDoubleClick()
+void Mouse::OnLeftDoubleClick()
 {
 	// handle left button double clicking
 	eventBuffer_.push(MouseEvent(MouseEvent::EventType::LeftDoubleClick, 0, 0));
 }
 
-MouseEvent MouseClass::ReadEvent()
+MouseEvent Mouse::ReadEvent()
 {
 	if (!eventBuffer_.empty())
 	{

@@ -282,7 +282,7 @@ if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mtd.dll" xcopy /Y /f "$(
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Render\d3dclass.cpp" />
-    <ClCompile Include="Input\KeyboardClass.cpp">
+    <ClCompile Include="Input\Keyboard.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -343,7 +343,7 @@ if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mtd.dll" xcopy /Y /f "$(
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Input\MouseClass.cpp">
+    <ClCompile Include="Input\Mouse.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -470,7 +470,7 @@ if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mtd.dll" xcopy /Y /f "$(
     <ClInclude Include="Render\Color.h" />
     <ClInclude Include="Render\d3dclass.h" />
     <ClInclude Include="Render\InitGraphicsHelperDataTypes.h" />
-    <ClInclude Include="Input\KeyboardClass.h" />
+    <ClInclude Include="Input\Keyboard.h" />
     <ClInclude Include="Texture\textureclass.h" />
     <ClInclude Include="Render\RenderDataPreparator.h" />
     <ClInclude Include="Render\RenderStates.h" />
@@ -483,7 +483,7 @@ if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mtd.dll" xcopy /Y /f "$(
     <ClInclude Include="Input\inputcodes.h" />
     <ClInclude Include="Input\inputlistener.h" />
     <ClInclude Include="Input\inputmanager.h" />
-    <ClInclude Include="Input\MouseClass.h" />
+    <ClInclude Include="Input\Mouse.h" />
     <ClInclude Include="Input\MouseEvent.h" />
     <ClInclude Include="Mesh\Vertex.h" />
     <ClInclude Include="Mesh\VertexBuffer.h" />

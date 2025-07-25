@@ -12,6 +12,7 @@ public:
 	EventHandler() {}
 
 	void AddEventListener(EventListener* eventListener);
+    void DetachAllEventListeners();
 
 	void HandleEvent(HWND hwnd,	UINT uMsg, WPARAM wParam, LPARAM lParam);
 

@@ -18,8 +18,8 @@
 
 // input
 #include "../Input/inputmanager.h"
-#include "../Input/KeyboardClass.h"
-#include "../Input/MouseClass.h"
+#include "../Input/Keyboard.h"
+#include "../Input/Mouse.h"
 #include "../Input/inputcodes.h"
 
 // window module
@@ -39,7 +39,6 @@
 // from the ECS module: Entity-Component-System
 #include "Entity/EntityMgr.h"
 #include "../UI/UserInterface.h"
-
 
 
 namespace Core
@@ -66,26 +65,34 @@ public:
         UI::UserInterface* pUserInterface,
         Render::CRender* pRender);
 
-    bool InitializeGUI(D3DClass& d3d, const EngineConfigs& cfg);
-
     // update the state of the engine/game for the current frame
-    void Update();                         
+    void Update();
 
-    void CalculateFrameStats();            // measure the number of frames being rendered per second (FPS)
-    void RenderFrame();                    // do all the rendering onto the screen
-    void RenderUI(UI::UserInterface* pUI, Render::CRender* pRender);
+    void        CalculateFrameStats();            // measure the number of frames being rendered per second (FPS)
+    void        RenderFrame();                    // do all the rendering onto the screen
+    void        RenderUI(UI::UserInterface* pUI, Render::CRender* pRender);
 
-    inline bool IsPaused()                   const { return isPaused_; }
-    inline bool IsExit()                     const { return isExit_; }
+    // switch game/editor mode
+    inline void SwitchEngineMode()                  { switchEngineMode_ = true; }
 
-    // access functions return a copy of the main window handle or app instance handle;
-    inline HWND           GetHWND()          const { return hwnd_; }
-    inline HINSTANCE      GetInstance()      const { return hInstance_; }
-    inline CGraphics& GetGraphicsClass()       { return graphics_; }
-    inline GameTimer&     GetTimer()               { return timer_; }
+    inline bool IsGameMode()                  const { return systemState_.isGameMode; }
+    inline bool IsPaused()                    const { return isPaused_; }
+    inline bool IsExit()                      const { return isExit_; }
+    inline void DoExit()                            { isExit_ = true; }
+
+    // inline getters
+    inline HWND            GetHWND()          const { return hwnd_; }
+    inline HINSTANCE       GetInstance()      const { return hInstance_; }
+    inline CGraphics&      GetGraphicsClass()       { return graphics_; }
+    inline D3DClass&       GetD3DClass()            { return graphics_.GetD3DClass(); }
+    inline GameTimer&      GetTimer()               { return timer_; }
+    inline SystemState&    GetSystemState()         { return systemState_; }
+
+    inline Keyboard&       GetKeyboard()            { return keyboard_; }
+    inline Mouse&          GetMouse()               { return mouse_; }
 
     // event listener methods implementation
-    virtual void EventActivate(const APP_STATE state) override;
+    virtual void EventActivate    (const APP_STATE state) override;
     virtual void EventWindowMove  (HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
     virtual void EventWindowResize(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
     virtual void EventWindowSizing(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
@@ -93,23 +100,8 @@ public:
     virtual void EventMouse       (HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 
     void HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr);
-    void HandleGameEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr);
-    void HandlePlayerActions(
-        const eKeyCodes code,
-        const float deltaTime,
-        ECS::EntityMgr* pEnttMgr,
-        Render::CRender* pRender);
-
-    void SwitchFlashLight(ECS::EntityMgr& mgr, Render::CRender& render);
-
-    void HandleEditorEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr);
-    void HandleGameEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr);
-
-    void RenderModelIntoTexture(
-        ID3D11DeviceContext* pContext,
-        FrameBuffer& frameBuffer);
-
-
+    void HandleEditorEventMouse   (UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr);
+    void HandleGameEventMouse     (UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr);
 
 private:
     void TurnOnEditorMode();
@@ -124,6 +116,7 @@ private:
     bool      isMinimized_  = false;            // is the window minimized?
     bool      isMaximized_  = true;             // is the window maximized?
     bool      isResizing_   = false;            // are we resizing the window?
+    bool      switchEngineMode_ = false;        // a flag to define if we want to switch btw game/editor mode
     float     deltaTime_    = 0.0f;             // the time since the previous frame
 
     std::string windowTitle_{ "" };             // window title/caption
@@ -134,8 +127,8 @@ private:
     GameTimer           timer_;                 // used to keep track of the "delta-time" and game time
 
     InputManager        inputMgr_;
-    KeyboardClass       keyboard_;              // represents a keyboard device
-    MouseClass          mouse_;                 // represents a mouse device
+    Keyboard            keyboard_;              // represents a keyboard device
+    Mouse               mouse_;                 // represents a mouse device
     CGraphics           graphics_;              // rendering system
 
     ImGuiLayer          imGuiLayer_;
@@ -156,5 +149,10 @@ private:
     UINT clientWidth_   = 0;
     UINT clientHeight_ = 0;
 };
+
+//==================================================================================
+// Global instance of the engine (I don't care)
+//==================================================================================
+//extern Engine g_Engine;
 
 } // namespace Core

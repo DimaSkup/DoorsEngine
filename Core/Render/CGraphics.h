@@ -99,9 +99,8 @@ public:
 
     // ----------------------------------
 
-    inline void SetGameMode(bool enableGameMode)                    { isGameMode_ = enableGameMode; }
+    
     inline void SetAABBShowMode(const AABBShowMode mode)            { aabbShowMode_ = mode; }
-    inline void SetFullFogDist(const int dist)                      { if (dist > 0) fullFogDistance_ = dist; }  // after this distance we use only billboards (I hope for it)
 
     inline void     SetCurrentCamera(const EntityID cameraID)       { currCameraID_ = cameraID; }
     inline EntityID GetCurrentCamera()                        const { return currCameraID_; }
@@ -109,7 +108,7 @@ public:
     // ---------------------------------------
     // INLINE GETTERS/SETTERS
 
-    inline D3DClass&       GetD3DClass()                      { return d3d_; }
+    inline D3DClass& GetD3DClass() { return d3d_; }
 
     // ---------------------------------------
 
@@ -201,18 +200,7 @@ public:
     cvector<FrameBuffer>                materialsFrameBuffers_;   // frame buffers which are used to render materials icons (for editor's material browser)
     cvector<ID3D11ShaderResourceView*>  texturesBuf_;             // to avoid reallocation each time we use this shared buffer
 
-
-    
-    // different boolean flags             
-    bool isWireframeMode_ = false;             // do we render everything is the WIREFRAME mode?
-    bool isCullBackMode_ = true;               // do we cull back faces?
-    bool isBeginCheck_ = false;                // a variable which is used to determine if the user has clicked on the screen or not
-    bool isIntersect_ = false;                 // a flag to define if we clicked on some model or not
-    bool isGameMode_ = false;
-
     AABBShowMode aabbShowMode_ = NONE;
-
-    int fullFogDistance_    = 0;
 };
 
 } // namespace Core

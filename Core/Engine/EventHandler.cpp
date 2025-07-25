@@ -7,10 +7,18 @@ void EventHandler::AddEventListener(EventListener* eventListener)
 	pEventListener_ = eventListener;
 }
 
+void EventHandler::DetachAllEventListeners()
+{
+    pEventListener_ = nullptr;
+}
+
 ///////////////////////////////////////////////////////////
 
 void EventHandler::HandleEvent(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+    if (!pEventListener_)
+        return;
+
 	static bool isResizing = false;
 
 	switch (uMsg)

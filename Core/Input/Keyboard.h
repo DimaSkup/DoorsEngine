@@ -1,5 +1,5 @@
 // =================================================================================
-// Filename:      KeyboardClass.h
+// Filename:      Keyboard.h
 // Description:   this class is responsible containing and 
 //                handling keyboard events, containing the list of 
 //                the pressed keys.
@@ -11,10 +11,10 @@
 #include "KeyboardEvent.h"
 #include <list>
 
-class KeyboardClass
+class Keyboard
 {
 public:
-	KeyboardClass();
+	Keyboard();
 
 	void Update();
 	bool WasPressedBefore(const unsigned char keycode);
