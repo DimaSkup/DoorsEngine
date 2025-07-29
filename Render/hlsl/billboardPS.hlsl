@@ -4,8 +4,9 @@
 // ==========================
 // GLOBALS
 // ==========================
-Texture2DArray gTreeMapArray;
-SamplerState gSampleType   : register(s0);
+Texture2DArray gTreeMapArray : register(t1);
+Texture2D      gTextures[22] : register(t2);
+SamplerState   gSampleType   : register(s0);
 
 
 // ==========================
@@ -93,5 +94,12 @@ float4 PS(PS_INPUT pin) : SV_TARGET
     }
     */
 
-    return float4(pin.color, pin.translucency);
+    // default to multiplicative identity
+   //float4 texColor = float4(1, 1, 1, 1);
+
+   // sample texture
+   float4 texColor = gTextures[0].Sample(gSampleType, pin.tex);
+   float3 finalColor = texColor.xyz * pin.color;
+
+   return float4(finalColor, pin.translucency);
 }

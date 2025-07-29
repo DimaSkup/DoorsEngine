@@ -34,17 +34,60 @@ MaterialMgr::MaterialMgr()
     }
     else
     {
-        LogErr("can't create new instance: there is already an instance of the MaterialMgr");
+        LogErr(LOG, "can't create new instance: there is already an instance of the MaterialMgr");
         return;
     }
 }
 
-///////////////////////////////////////////////////////////
+//---------------------------------------------------------
+// Desc:   add a new EMPTY material
+// Args:   - matName:  each material must have its unique name
+// Ret:    a ref to the added material
+//---------------------------------------------------------
+Material& MaterialMgr::AddMaterial(const char* matName)
+{
+    if (!matName || matName[0] == '\0')
+    {
+        LogErr(LOG, "can't add a new empty material: input name is empty");
+        return materials_[INVALID_MATERIAL_ID];
+    }
 
+    // generate id
+    const MaterialID id = lastMaterialID_;
+    ++lastMaterialID_;
+
+    ids_.push_back(id);
+    materials_.push_back(Material(matName));
+
+    Material& mat = materials_.back();
+    mat.id = id;
+
+    return mat;
+}
+
+//---------------------------------------------------------
+// Desc:   add a new material into the manager, generate an ID
+// Args:   - material:   setup material
+// Ret:    id of added material
+//---------------------------------------------------------
+MaterialID MaterialMgr::AddMaterial(const Material& material)
+{
+    const MaterialID id = lastMaterialID_;
+    ++lastMaterialID_;
+
+    ids_.push_back(id);
+    materials_.push_back(material);
+
+    return id;
+}
+
+//---------------------------------------------------------
+// Desc:   add a new material into the manager, generate an ID
+// Args:   - material:   setup material
+// Ret:    id of added material
+//---------------------------------------------------------
 MaterialID MaterialMgr::AddMaterial(Material&& material)
 {
-    // add a new material into the manager, generate an ID for it and return this ID
-
     const MaterialID id = lastMaterialID_;
     ++lastMaterialID_;
 
@@ -96,6 +139,30 @@ Material& MaterialMgr::GetMaterialByID(const MaterialID id)
     return materials_[idx * exist];
 }
 
+//---------------------------------------------------------
+// Desc:   find a material by input name
+// Ret:    a ref to material
+//---------------------------------------------------------
+Material& MaterialMgr::GetMaterialByName(const char* matName)
+{
+    // check input args
+    if (!matName || matName[0] == '\0')
+    {
+        LogErr(LOG, "can't get material by name: input name is empty");
+        return materials_[INVALID_MATERIAL_ID];
+    }
+
+    // find material
+    for (Material& mat : materials_)
+    {
+        if (strcmp(mat.name, matName) == 0)
+            return mat;
+    }
+
+    // if we didn't find any material by input name
+    return materials_[INVALID_MATERIAL_ID];
+}
+
 ///////////////////////////////////////////////////////////
 
 void MaterialMgr::GetMaterialsByIDs(
@@ -121,7 +188,7 @@ void MaterialMgr::GetMaterialsByIDs(
     catch (EngineException& e)
     {
         // in any case if we have some input number of materials we fill the output arr with "invalid" materials
-        outMaterials.resize(numMaterials, Material());
+        outMaterials.resize(numMaterials, Material("invalid"));
 
         LogErr(e);
     }

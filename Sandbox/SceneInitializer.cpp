@@ -126,7 +126,7 @@ bool SceneInitializer::InitCameras(
        // EntityID matBrowserCamID = enttMgr.CreateEntity("material_browser_camera");
 
         // add transform component: positions and directions
-        const XMFLOAT3 editorCamPos = { 260, 20, 190 };
+        const XMFLOAT3 editorCamPos = { 260, 80, 190 };
         const XMFLOAT3 gameCamPos   = { 0, 0, 0 };
         const XMFLOAT3 matBrowserCamPos = { 0, 0, -2.0f };
 
@@ -596,55 +596,40 @@ void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
         // Prepare materials for the cubes
 
         // cube_0: rotated cat
-        Material catMaterial;
-        catMaterial.SetName("cat");
-        catMaterial.SetTexture(TEX_TYPE_DIFFUSE, keysToTexIDs.at("cat"));
-        const MaterialID catMatID = g_MaterialMgr.AddMaterial(std::move(catMaterial));
+        Material& catMat= g_MaterialMgr.AddMaterial("catMat");
+        catMat.SetTexture(TEX_TYPE_DIFFUSE, keysToTexIDs.at("cat"));
 
         // cube_1: firecamp animated
-        Material firecampMaterial;
-        firecampMaterial.SetName("firecamp");
-        firecampMaterial.SetTexture(TEX_TYPE_DIFFUSE, keysToTexIDs.at("fireAtlas"));
-        const MaterialID firecampMatID = g_MaterialMgr.AddMaterial(std::move(firecampMaterial));
+        Material& firecampMat = g_MaterialMgr.AddMaterial("firecamp");
+        firecampMat.SetTexture(TEX_TYPE_DIFFUSE, keysToTexIDs.at("fireAtlas"));
 
         // cube_2: wirefence with alpha clipping
-        Material wirefenceMaterial;
-        wirefenceMaterial.SetName("wirefence");
-        wirefenceMaterial.SetAlphaClip(true);
-        wirefenceMaterial.SetTexture(TEX_TYPE_DIFFUSE, keysToTexIDs.at("wireFence"));
-        const MaterialID wirefenceMatID = g_MaterialMgr.AddMaterial(std::move(wirefenceMaterial));
+        Material& wirefenceMat = g_MaterialMgr.AddMaterial("wirefence");
+        wirefenceMat.SetAlphaClip(true);
+        wirefenceMat.SetTexture(TEX_TYPE_DIFFUSE, keysToTexIDs.at("wireFence"));
 
         // cube_3: wood crate 1
-        Material woodCrate1Material;
-        woodCrate1Material.SetName("wood_crate_1");
-        woodCrate1Material.SetTexture(TEX_TYPE_DIFFUSE, keysToTexIDs.at("woodCrate01"));
-        const MaterialID woodCrate1MatID = g_MaterialMgr.AddMaterial(std::move(woodCrate1Material));
+        Material& woodCrate1Mat = g_MaterialMgr.AddMaterial("wood_crate_1");
+        woodCrate1Mat.SetTexture(TEX_TYPE_DIFFUSE, keysToTexIDs.at("woodCrate01"));
 
         // cube_4: wood crate 2
-        Material woodCrate2Material;
-        woodCrate2Material.SetName("wood_crate_2");
-        woodCrate2Material.SetTexture(TEX_TYPE_DIFFUSE, keysToTexIDs.at("woodCrate02"));
-        const MaterialID woodCrate2MatID = g_MaterialMgr.AddMaterial(std::move(woodCrate2Material));
+        Material& woodCrate2Mat = g_MaterialMgr.AddMaterial("wood_crate_2");
+        woodCrate2Mat.SetTexture(TEX_TYPE_DIFFUSE, keysToTexIDs.at("woodCrate02"));
 
-        // cube_5: box01
-        //Material box01Material;
-        //box01Material.SetName("box_01");
-        //box01Material.SetTexture(TEX_TYPE_DIFFUSE, keysToTexIDs.at("box01"));
-        //const MaterialID box01MatID = materialMgr.AddMaterial(std::move(box01Material));
-        const MaterialID box01MatID = model.meshes_.subsets_[0].materialID;
 
-        // add material component (materials are the same as the original model)
-
-        constexpr bool matIsMeshBased = true;
+        // add material component to each box
+        const MaterialID matIdDefaultBox = model.meshes_.subsets_[0].materialID;
+        constexpr bool matIsMeshBased    = true;
         constexpr bool matIsNotMeshBased = false;
-        mgr.AddMaterialComponent(enttsNameToID.at("cat"), &catMatID, numSubmeshes, matIsNotMeshBased);
-        mgr.AddMaterialComponent(enttsNameToID.at("fireflame"), &firecampMatID, numSubmeshes, matIsNotMeshBased);
-        mgr.AddMaterialComponent(enttsNameToID.at("box01"), &box01MatID, numSubmeshes, matIsMeshBased);
+
+        mgr.AddMaterialComponent(enttsNameToID.at("cat"),         &catMat.id,        numSubmeshes, matIsNotMeshBased);
+        mgr.AddMaterialComponent(enttsNameToID.at("fireflame"),   &firecampMat.id,   numSubmeshes, matIsNotMeshBased);
+        mgr.AddMaterialComponent(enttsNameToID.at("box01"),       &matIdDefaultBox, numSubmeshes, matIsMeshBased);
 
         // add material component (each material is unique)
-        mgr.AddMaterialComponent(enttsNameToID.at("wireFence"), &wirefenceMatID, numSubmeshes, matIsNotMeshBased);
-        mgr.AddMaterialComponent(enttsNameToID.at("woodCrate01"), &woodCrate1MatID, numSubmeshes, matIsNotMeshBased);
-        mgr.AddMaterialComponent(enttsNameToID.at("woodCrate02"), &woodCrate2MatID, numSubmeshes, matIsNotMeshBased);
+        mgr.AddMaterialComponent(enttsNameToID.at("wireFence"),   &wirefenceMat.id,  numSubmeshes, matIsNotMeshBased);
+        mgr.AddMaterialComponent(enttsNameToID.at("woodCrate01"), &woodCrate1Mat.id, numSubmeshes, matIsNotMeshBased);
+        mgr.AddMaterialComponent(enttsNameToID.at("woodCrate02"), &woodCrate2Mat.id, numSubmeshes, matIsNotMeshBased);
 
         // ------------------------------------------
 
@@ -1899,9 +1884,76 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
 #endif
 }
 
-///////////////////////////////////////////////////////////
+//---------------------------------------------------------
+// Desc:   create and setup a terrain (type: geomipmap)
+// Args:   - mgr:         ECS entities manager
+//         - configPath:  a path to terrain config file
+//---------------------------------------------------------
+void CreateTerrainGeomip(ECS::EntityMgr& mgr, const char* configPath)
+{
+    if (!configPath || configPath[0] == '\0')
+    {
+        LogErr(LOG, "LOL, your config path is wrong");
+        exit(0);
+    }
 
-void GenerateAssets(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
+    ModelsCreator creator;
+    const char* terrainConfigPath      = "data/terrain/terrain.cfg";
+    creator.CreateTerrain(terrainConfigPath);
+
+    Core::TerrainGeomip& terrainGeomip = g_ModelMgr.GetTerrainGeomip();
+
+    // create and setup material for terrain (geomipmap)
+    Material& mat = g_MaterialMgr.AddMaterial("terrain_mat_geomip");
+    mat.SetAmbient(0.5f, 0.5f, 0.5f, 1.0f);
+    mat.SetDiffuse(0.8f, 0.8f, 0.8f, 1.0f);
+    mat.SetTexture(TEX_TYPE_DIFFUSE,           terrainGeomip.texture_.GetID());
+    mat.SetTexture(TEX_TYPE_DIFFUSE_ROUGHNESS, terrainGeomip.detailMap_.GetID());
+    mat.SetTexture(TEX_TYPE_LIGHTMAP,          terrainGeomip.lightmap_.id);
+    //terrainMat.SetTexture(TEX_TYPE_NORMALS, terrain.normalMap_.GetID());
+
+    terrainGeomip.materialID_ = mat.id;
+
+    // create a terrain entity
+    CreateTerrain(mgr, terrainGeomip);
+}
+
+//---------------------------------------------------------
+// Desc:   create and setup a terrain (type: quadtreen)
+// Args:   - mgr:         ECS entities manager
+//         - configPath:  a path to terrain config file
+//---------------------------------------------------------
+void CreateTerrainQuadtree(ECS::EntityMgr& mgr, const char* configPath)
+{
+    if (!configPath || configPath[0] == '\0')
+    {
+        LogErr(LOG, "LOL, your config path is wrong");
+        exit(0);
+    }
+
+    ModelsCreator creator;
+    
+    creator.CreateTerrain(configPath);
+    Core::TerrainQuadtree& terrainQuadtree = g_ModelMgr.GetTerrainQuadtree();
+
+    // create and setup material for terrain (quadtree)
+    Material& mat = g_MaterialMgr.AddMaterial("terrain_mat_quadtree");
+    mat.SetAmbient(0.5f, 0.5f, 0.5f, 1.0f);
+    mat.SetDiffuse(0.8f, 0.8f, 0.8f, 1.0f);
+    mat.SetTexture(TEX_TYPE_DIFFUSE,           terrainQuadtree.texture_.GetID());
+    mat.SetTexture(TEX_TYPE_DIFFUSE_ROUGHNESS, terrainQuadtree.detailMap_.GetID());
+    mat.SetTexture(TEX_TYPE_LIGHTMAP,          terrainQuadtree.lightmap_.id);
+
+    // create a terrain entity
+    CreateTerrain(mgr, terrainQuadtree);
+}
+
+//---------------------------------------------------------
+// Desc:   generate and setup different assets/entities
+// Args:   - pDevice:  a ptr to DirectX11 device
+//         - mgr:      ECS entity manager
+//---------------------------------------------------------
+void GenerateEntities(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
 {
     ModelsCreator creator;
 
@@ -1912,57 +1964,12 @@ void GenerateAssets(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     //const ModelID skyBoxID = creator.CreateSphere(pDevice, skyDomeSphereParams);
     SkyModel& skyBox = g_ModelMgr.GetSky();
 
-#if 1
+
     // create terrain
-    //const ModelID terrainID = creator.CreateGeneratedTerrain(pDevice, 500, 500, 501, 501);
-
     const char* terrainConfigPath = "data/terrain/terrain.cfg";
-#if 0
-    const ModelID terrainID     = creator.CreateTerrain(pDevice, terrainConfigPath);
-    Core::Terrain& terrain      = g_ModelMgr.GetTerrain();
-#else
-    const ModelID terrainID             = creator.CreateTerrain(terrainConfigPath);
-    Core::TerrainGeomip& terrainGeomip   = g_ModelMgr.GetTerrainGeomip();
-    Core::TerrainQuadtree&     terrainQuadtree = g_ModelMgr.GetTerrainQuadtree();
-#endif
+    CreateTerrainGeomip(mgr, terrainConfigPath);
+    //CreateTerrainQuadtree(mgr, terrainConfigPath);
 
-    //-------------------------------------------
-
-
-    // create and setup material for terrain (geomipmap)
-    Material mat1;
-    mat1.SetAmbient(0.5f, 0.5f, 0.5f, 1.0f);
-    mat1.SetDiffuse(0.8f, 0.8f, 0.8f, 1.0f);
-    mat1.SetTexture(TEX_TYPE_DIFFUSE,           terrainGeomip.texture_.GetID());
-    mat1.SetTexture(TEX_TYPE_DIFFUSE_ROUGHNESS, terrainGeomip.detailMap_.GetID());
-    mat1.SetTexture(TEX_TYPE_LIGHTMAP,          terrainGeomip.lightmap_.id);
-    //terrainMat.SetTexture(TEX_TYPE_NORMALS, terrain.normalMap_.GetID());
-    mat1.SetName("terrain_mat_geomip");
-
-    // add a new material into material manager and set its ID to the terrain model
-    terrainGeomip.SetMaterial(g_MaterialMgr.AddMaterial(std::move(mat1)));
-
-    //-------------------------------------------
-
-
-    // create and setup material for terrain (geomipmap)
-    Material mat2;
-    mat2.SetAmbient(0.5f, 0.5f, 0.5f, 1.0f);
-    mat2.SetDiffuse(0.8f, 0.8f, 0.8f, 1.0f);
-    mat2.SetTexture(TEX_TYPE_DIFFUSE,           terrainGeomip.texture_.GetID());
-    mat2.SetTexture(TEX_TYPE_DIFFUSE_ROUGHNESS, terrainGeomip.detailMap_.GetID());
-    mat2.SetTexture(TEX_TYPE_LIGHTMAP,          terrainGeomip.lightmap_.id);
-    //terrainMat.SetTexture(TEX_TYPE_NORMALS, terrain.normalMap_.GetID());
-    mat2.SetName("terrain_mat_geomip");
-
-    // add a new material into material manager and set its ID to the terrain model
-    terrainQuadtree.SetMaterial(g_MaterialMgr.AddMaterial(std::move(mat2)));
-
-    //-------------------------------------------
-
-    CreateTerrain(mgr, terrainGeomip);
-    CreateTerrain(mgr, terrainQuadtree);
-#endif
 
     // generate some models manually
     const MeshSphereParams    boundSphereParams(1, 8, 8);
@@ -1992,12 +1999,10 @@ void GenerateAssets(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     const TexID texIdStoneDiff = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "brick01d.dds");
     const TexID texIdStoneNorm = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "brick01n.dds");
 
-    Material cylinderMat;
-    cylinderMat.SetName("brick_01");
+    Material& cylinderMat = g_MaterialMgr.AddMaterial("brick_01");
     cylinderMat.SetTexture(TEX_TYPE_DIFFUSE, texIdStoneDiff);
     cylinderMat.SetTexture(TEX_TYPE_NORMALS, texIdStoneNorm);
-    cylinderMat.ambient = { 0.4f, 0.4f, 0.4f, 1.0f };
-    g_MaterialMgr.AddMaterial(std::move(cylinderMat));
+    cylinderMat.SetAmbient(0.4f, 0.4f, 0.4f, 1.0f);
 
     // ----------------------------------------------------
 
@@ -2010,6 +2015,25 @@ void GenerateAssets(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     CreateCubes(mgr, cube);
     CreateSpheres(mgr, sphere);
     CreateCylinders(mgr, cylinder);
+}
+
+//---------------------------------------------------------
+// Desc:   manually create different materials
+//---------------------------------------------------------
+void GenerateMaterials()
+{
+    // load some textures for billboards and particles
+    const TexID texIdFlare  = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "flare.png");
+    const TexID texIdFlame0 = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "flame0.dds");
+
+    // create material for flame (fire) particles
+    Material& flameParticleMat = g_MaterialMgr.AddMaterial("flameMat");
+    flameParticleMat.SetTexture(TEX_TYPE_DIFFUSE, texIdFlame0);
+    flameParticleMat.SetAlphaClip(true);
+    flameParticleMat.SetFill(MAT_PROP_FILL_SOLID);
+    flameParticleMat.SetCull(MAT_PROP_CULL_NONE);
+    flameParticleMat.SetBlending(MAT_PROP_ALPHA_ENABLE);
+    flameParticleMat.SetDepthStencil(MAT_PROP_DEPTH_DISABLED);
 }
 
 ///////////////////////////////////////////////////////////
@@ -2108,12 +2132,11 @@ void LoadTreesBillboardsTextures()
         DXGI_FORMAT_R8G8B8A8_UNORM);
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   initialize all the entities on the scene
+//---------------------------------------------------------
 bool SceneInitializer::InitModelEntities(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
 {
-    // initialize all the models on the scene
-
     SetConsoleColor(YELLOW);
     LogMsg("\n");
     LogMsg("------------------------------------------------------------");
@@ -2127,28 +2150,27 @@ bool SceneInitializer::InitModelEntities(ID3D11Device* pDevice, ECS::EntityMgr& 
 
         // load the "no_texture" texture from the file;
         // (this texture will serve us as "invalid")
-        sprintf(g_String, "%s%s", g_RelPathTexDir, "notexture.dds");
-        const TexID noTextureID = g_TextureMgr.LoadFromFile(g_String);
+        const TexID noTexID = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "notexture.dds");
 
         // create and setup an "invalid" material
-        Material invalidMaterial;
-        invalidMaterial.SetTexture(TEX_TYPE_DIFFUSE, noTextureID);
-
-        // add "invalid" material into the material manager
-        MaterialID invalidMaterialID = g_MaterialMgr.AddMaterial(std::move(invalidMaterial));
+        Material& invalidMat = g_MaterialMgr.AddMaterial("invalid");
+        invalidMat.SetTexture(TEX_TYPE_DIFFUSE, noTexID);
 
         // create a cube which will serve for us as an invalid model
         const ModelID cubeID = creator.CreateCube(pDevice);
         BasicModel& invalidModel = g_ModelMgr.GetModelByID(cubeID);
 
         invalidModel.SetName("invalid_model");
-        invalidModel.SetMaterialForSubset(0, invalidMaterialID);
+        invalidModel.SetMaterialForSubset(0, invalidMat.id);
 
         // NOTE: the bounding line box model must be created first of all, before all the other models
         const ModelID boundingBoxID = creator.CreateBoundingLineBox(pDevice);
 
         LoadTreesBillboardsTextures();
-        GenerateAssets(pDevice, mgr);
+        GenerateEntities(pDevice, mgr);
+        GenerateMaterials();
+
+       
 
 #if 1
         if (FileSys::Exists(g_RelPathAssetsDir))
@@ -2163,68 +2185,6 @@ bool SceneInitializer::InitModelEntities(ID3D11Device* pDevice, ECS::EntityMgr& 
         ImportExternalModels(pDevice, mgr);
         ProjectSaver saver;
         saver.StoreModels(pDevice);
-#endif
-
-
-       
-        //exit(-1);
-#if 0
-
-        // paths for loading
-        const std::string powerHWTowerLoadPath = "power_line/Power_HV_Tower.de3d";
-        const std::string nanosuitLoadPath = "nanosuit/nanosuit.de3d";
-        const std::string terrainLoadPath = "terrain_generated_500_500/terrain_generated_500_500.de3d";
-        const std::string stalkerHouse1LoadPath = "stalker_house_abandoned/stalkerHouseAbandoned.de3d";
-        const std::string stalkerHouse2LoadPath = "stalker_house_small/stalkerHouseSmall.de3d";
-        const std::string treeLoadPath = "tree_conifer_macedonian_pine/tree_conifer_macedonian_pine.de3d";
-
-        // LOAD model from the internal format
-        const ModelID powerHVTowerID = creator.CreateFromDE3D(pDevice, powerHWTowerLoadPath);
-        const ModelID terrainID = modelCreator.CreateFromDE3D(pDevice, terrainLoadPath);
-
-        // paths for import
-        const std::string m3dDirPath = g_ModelsDirPath + "ModelsM3D/";
-        const std::string pathRock = m3dDirPath + "rock.m3d";
-        const std::string pathPillar1 = m3dDirPath + "pillar1.m3d";
-        const std::string pathPillar2 = m3dDirPath + "pillar2.m3d";
-        const std::string pathPillar5 = m3dDirPath + "pillar5.m3d";
-        const std::string pathPillar6 = m3dDirPath + "pillar6.m3d";
-
-        // import external models and get its ids
-        const ModelID rockID = creator.ImportFromFile(pDevice, pathRock);
-        const ModelID pillar1ID = creator.ImportFromFile(pDevice, pathPillar1);
-        const ModelID pillar2ID = creator.ImportFromFile(pDevice, pathPillar2);
-        const ModelID pillar5ID = creator.ImportFromFile(pDevice, pathPillar5);
-        const ModelID pillar6ID = creator.ImportFromFile(pDevice, pathPillar6);
-
-
-        // generated models
-        const MeshCylinderParams cylParams;
-        const ModelID planeID = creator.CreatePlane(pDevice);
-        const ModelID skullID = creator.CreateSkull(pDevice);
-        const ModelID cylinderID = creator.CreateCylinder(pDevice, cylParams);
-        const ModelID terrainID = creator.CreateGeneratedTerrain(pDevice, 500, 500, 501, 501);
-
-        // get model instances
-        BasicModel& skull = storage.GetModelByID(skullID);
-        BasicModel& cylinder = storage.GetModelByID(cylinderID);
-        BasicModel& rock = storage.GetModelByID(rockID);
-        BasicModel& pillar1 = storage.GetModelByID(pillar1ID);
-        BasicModel& pillar2 = storage.GetModelByID(pillar2ID);
-        BasicModel& pillar5 = storage.GetModelByID(pillar5ID);
-        BasicModel& pillar6 = storage.GetModelByID(pillar6ID);
-        BasicModel& terrain = storage.GetModelByID(terrainID);
-
-        // create entts
-        CreateCylinders(pDevice, mgr, cylinder);
-        CreateSkull(pDevice, mgr, skull);
-        CreateRocks(pDevice, mgr, rock);
-        CreatePillar(pDevice, mgr, pillar1);
-        CreatePillar(pDevice, mgr, pillar2);
-        CreatePillar(pDevice, mgr, pillar5);
-        CreatePillar(pDevice, mgr, pillar6);
-        CreateTerrain(pDevice, mgr, terrain);
-
 #endif
 
     }
@@ -2250,19 +2210,17 @@ bool SceneInitializer::InitModelEntities(ID3D11Device* pDevice, ECS::EntityMgr& 
     return true;
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   initialize all the light sources (entities) on the scene
+// Args:   - mgr:   ECS entities manger
+//---------------------------------------------------------
 bool SceneInitializer::InitLightSources(ECS::EntityMgr& mgr)
 {
-    // initialize all the light sources (entities) on the scene
-
     InitDirectedLightEntities(mgr);
     InitPointLightEntities(mgr);
     InitSpotLightEntities(mgr);
 
     return true;
 }
-
-
 
 } // namespace Game

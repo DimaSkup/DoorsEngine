@@ -21,6 +21,8 @@ public:
     MaterialMgr();
 
     // adders/setters
+    Material&  AddMaterial(const char* materialName);
+    MaterialID AddMaterial(const Material& material);
     MaterialID AddMaterial(Material&& material);
 
     bool SetMaterialColorData(
@@ -32,6 +34,7 @@ public:
 
     // getters
     Material&  GetMaterialByID    (const MaterialID id);
+    Material&  GetMaterialByName  (const char* name);
     void       GetMaterialsByIDs  (const MaterialID* ids, const size numMaterials, cvector<Material>& outMaterials);
     MaterialID GetMaterialIdByName(const char* name) const;
     MaterialID GetMaterialIdByIdx (const index idx) const;

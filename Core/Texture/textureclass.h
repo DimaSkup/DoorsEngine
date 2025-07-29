@@ -54,7 +54,7 @@ public:
     Texture& operator=(const Texture&) = delete;
 
     // a constructor for loading textures from the disk
-    Texture(ID3D11Device* pDevice, const char* filePath);	
+    Texture(ID3D11Device* pDevice, const char* fullFilePath, const char* name);
 
     // for multiple textures to create a Texture2DArray
     Texture(

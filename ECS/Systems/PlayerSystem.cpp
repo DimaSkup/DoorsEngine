@@ -34,7 +34,7 @@ PlayerSystem::PlayerSystem(
 //---------------------------------------------------------
 void PlayerSystem::Update(const float deltaTime)
 {
-     const uint64 states   = data_.playerStates_;
+    const uint64 states   = data_.playerStates_;
     const int speedMul    = 1 + 9 * IsFreeFlyMode();  // move faster if we are in free fly
     const float speed     = GetSpeed() * deltaTime * speedMul;
     float horizontalSpeed = 0;
@@ -84,9 +84,9 @@ void PlayerSystem::Update(const float deltaTime)
         // if we weren't in jump before
         if (!inJump)
         {
-            inJump = true;
-            h0 = GetPosition().y;
-            jumpTime = 0;
+            inJump     = true;
+            h0         = GetPosition().y;
+            jumpTime   = 0;
             distInJump = 0;
         }
     }
@@ -94,46 +94,15 @@ void PlayerSystem::Update(const float deltaTime)
     else
     {
         data_.jumpOffset = 0.0f;
-        inJump = false;
-        jumpTime = 0.0f;
-        distInJump = 0;
+        inJump           = false;
+        jumpTime         = 0.0f;
+        distInJump       = 0;
     }
 
 
     // compute jump
     if (inJump)
     {
-#if 0
-        constexpr float height = 5.0f;        // peak height
-        const float vx = GetSpeed();
-        const float xh = 5;
-
-        // derive gravity and init. velocity in terms of foot speed and lateral distance to peak of jump
-        const float th = xh / vx;
-        const float g = -2 * height / (th*th);
-        const float v0 = 2 * height / th;
-
-        // increate the time in jump
-        float t = jumpTime;
-        jumpTime += deltaTime;
-
-        distInJump = (vx * t);
-
-        // if jump cycle is over
-        if (distInJump >= 2 * vx * th)
-        {
-            // turn off the player's jump state
-            StopJump();
-            inJump = false;
-            jumpTime = 0;
-            distInJump = 0;
-        }
-        else
-        {
-            // compute current jump offset
-            data_.jumpOffset = 0.5f * g * (t * t) + v0 * t + h0;
-        }
-#else
         constexpr float height = 5.0f;        // peak height
         constexpr float th     = 0.5f;        // time to reach the peak height
         constexpr float invTH  = 1.0f / th;
@@ -169,24 +138,27 @@ void PlayerSystem::Update(const float deltaTime)
     XMFLOAT3 playerPos;
     XMStoreFloat3(&playerPos, playerPosVec);
 
+
     if (inJump)
     {
+        // prevent falling through the terrain when we jump from lower to higher part
         if (data_.minVerticalOffset >= data_.jumpOffset)
         {
             playerPos.y = data_.minVerticalOffset;
             data_.jumpOffset = data_.minVerticalOffset;
         }
-
         else
+        {
             playerPos.y = data_.jumpOffset;
+        }
     }
 
     if (!inJump && !IsFreeFlyMode())
         playerPos.y = data_.minVerticalOffset;
         
 
+    // update player's postion
     pTransformSys_->SetPosition(playerID, playerPos);
-
 
     // compute and set new position for each child
     pHierarchySys_->GetChildrenArr(playerID, s_Ids);
@@ -202,14 +174,6 @@ void PlayerSystem::Update(const float deltaTime)
     // reset all the movement states
     data_.playerStates_ &= ~(GetFlagsMove());
 }
-#endif
-
-
-
-
-
-
-
 
 //---------------------------------------------------------
 // Desc:   set a movement state for the player
@@ -290,24 +254,23 @@ bool ClampPitch(const float angle, float& pitch)
     return false;
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// limit the yaw value in range (-2PI < yaw < 2PI)
+//---------------------------------------------------------
 inline void ClampYaw(const float angle, float& yaw)
 {
-    // limit the yaw value in range (-2PI < yaw < 2PI)
     yaw += angle;
     yaw = (yaw > +DirectX::XM_2PI) ? -DirectX::XM_2PI : yaw;
     yaw = (yaw < -DirectX::XM_2PI) ? +DirectX::XM_2PI : yaw;
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:  rotate input vector using quaternion(axis, angle)
+// 
+//        NOTE!!!: input quat is supposed to be unit length
+//---------------------------------------------------------
 inline XMVECTOR RotateVecByQuat(const XMVECTOR& vec, const XMVECTOR& rotationQuat)
 {
-    // rotate input vector using quaternion(axis, angle)
-    // 
-    // NOTE!!!: input quat is supposed to be unit length
-
     // to help you to understand wtf is going on here :)
     // const XMVECTOR invQuat = XMQuaternionConjugate(rotationQuat);
     // const XMVECTOR tmpVec  = XMQuaternionMultiply(invQuat, vec);
@@ -318,12 +281,12 @@ inline XMVECTOR RotateVecByQuat(const XMVECTOR& vec, const XMVECTOR& rotationQua
     return XMQuaternionMultiply(XMQuaternionMultiply(XMQuaternionConjugate(rotationQuat), vec), rotationQuat);
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:  rotate the look vector about the view space right vector
+// Args:  - angle:   pitch angle in RADIANS
+//---------------------------------------------------------
 void PlayerSystem::Pitch(float angle)
 {
-    // rotate the look vector about the view space right vector
- 
     // if we has to clamp pitch values we just do nothing and go out
     if (ClampPitch(angle, data_.pitch))
         return;
@@ -334,16 +297,16 @@ void PlayerSystem::Pitch(float angle)
     pHierarchySys_->GetChildrenArr(playerId, s_Ids);
 
     // adjust position of each child relatively to the player
-    const XMVECTOR playerPosW = pTransformSys_->GetPositionVec(playerID_);
+    const XMVECTOR playerPosW   = pTransformSys_->GetPositionVec(playerID_);
     const XMVECTOR rotationQuat = DirectX::XMQuaternionRotationAxis(data_.rightVec, angle);
-    const XMMATRIX R = XMMatrixRotationQuaternion(rotationQuat);
+    const XMMATRIX R            = XMMatrixRotationQuaternion(rotationQuat);
 
     for (int i = 0; const EntityID childID : s_Ids)
     {
-        XMVECTOR childPosW    = pTransformSys_->GetPositionVec(childID);
-        XMVECTOR relPos       = DirectX::XMVectorSubtract(childPosW, playerPosW);
-        XMVECTOR newRelPos    = XMVector3Transform(relPos, R);
-        XMVECTOR childNewPosW = XMVectorAdd(playerPosW, newRelPos);
+        XMVECTOR childPosW      = pTransformSys_->GetPositionVec(childID);
+        XMVECTOR relPos         = childPosW - playerPosW;
+        XMVECTOR newRelPos      = XMVector3Transform(relPos, R);
+        XMVECTOR childNewPosW   = playerPosW + newRelPos;
 
         pTransformSys_->SetPositionVec(childID, childNewPosW);
 
@@ -356,35 +319,31 @@ void PlayerSystem::Pitch(float angle)
     pTransformSys_->RotateLocalSpacesByQuat(s_Ids.data(), s_Ids.size(), rotationQuat);
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:  rotate the basis vectors about the world's y-axis
+//---------------------------------------------------------
 void PlayerSystem::RotateY(float angle)
 {
-    // rotate the basis vectors about the world's y-axis
-
     ClampYaw(angle, data_.yaw);
 
     const EntityID id = playerID_;
     const XMVECTOR rotationQuat = DirectX::XMQuaternionRotationAxis({ 0,1,0 }, angle);
     data_.rightVec = RotateVecByQuat(data_.rightVec, rotationQuat);
 
-    // update look vector (direction) of the player
-    const XMVECTOR playerPosW   = pTransformSys_->GetPositionVec(id);
-
     // get arr of player's children entities
     pHierarchySys_->GetChildrenArr(id, s_Ids);
 
     // adjust position of each child relatively to the player
-    const XMMATRIX R = DirectX::XMMatrixRotationY(angle);
+    const XMVECTOR playerPosW = pTransformSys_->GetPositionVec(id);
+    const XMMATRIX R          = DirectX::XMMatrixRotationY(angle);
 
     for (int i = 0; const EntityID childID : s_Ids)
     {
-        const XMVECTOR childPosW    = pTransformSys_->GetPositionVec(childID);           // get current position of child
-        const XMVECTOR relPos       = DirectX::XMVectorSubtract(childPosW, playerPosW);  // compute child position relatively to the player
+        const XMVECTOR childPosW    = pTransformSys_->GetPositionVec(childID);  // get current position of child
+        const XMVECTOR relPos       = childPosW - playerPosW;                   // compute child position relatively to the player
 
-        //XMVECTOR newRelPos = RotateVecByQuat(relPos, rotationQuat);
-        XMVECTOR newRelPos    = XMVector3Transform(relPos, R);                     // compute new relative position of child
-        XMVECTOR childNewPosW = XMVectorAdd(playerPosW, newRelPos);                // compute new world position of child
+        const XMVECTOR newRelPos    = XMVector3Transform(relPos, R);            // compute new relative position of child
+        const XMVECTOR childNewPosW = playerPosW + newRelPos;                   // compute new world position of child
 
         pTransformSys_->SetPositionVec(childID, childNewPosW);
 
@@ -395,8 +354,6 @@ void PlayerSystem::RotateY(float angle)
     // adjust rotation of the player and its each child
     pTransformSys_->RotateLocalSpaceByQuat(id, rotationQuat);
     pTransformSys_->RotateLocalSpacesByQuat(s_Ids.data(), s_Ids.size(), rotationQuat);
-
-  
 }
 
 }; // namespace ECS

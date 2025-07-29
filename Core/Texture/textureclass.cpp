@@ -172,19 +172,26 @@ Texture::Texture()
 //---------------------------------------------------------
 // Desc:   create and initialize a texture from a file by filePath
 // Args:   - pDevice:   a ptr to DirectX11 device
-//         - filePath:  a path to texture file
+//         - filePath:  a full path to texture file
+//         - name:      a name for this texture object
 //---------------------------------------------------------
-Texture::Texture(ID3D11Device* pDevice, const char* filePath) :
-    name_(filePath)
+Texture::Texture(
+    ID3D11Device* pDevice,
+    const char* fullFilePath,
+    const char* name)
 {
     try
     {
-        LoadFromFile(pDevice, filePath);
+        CAssert::True(!StrHelper::IsEmpty(fullFilePath), "input texture path is empty");
+        CAssert::True(!StrHelper::IsEmpty(name),         "input texture name is empty");
+
+        name_ = name;
+        LoadFromFile(pDevice, fullFilePath);
     }
     catch (EngineException & e)
     {
         LogErr(e);
-        LogErr(LOG, "can't create a texture from file: %s", filePath);
+        LogErr(LOG, "can't create a texture from file: %s", fullFilePath);
     }
 }
 
