@@ -454,24 +454,20 @@ bool TransformSystem::RotateLocalSpacesByQuat(
     return true;
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// rotate entity around itself using input rotation quaternion (axis, angle):
+// 1. rotate the direction vector
+// 2. update the world matrix using quaternion
+// 3. recompute the world inverse matrix
+//---------------------------------------------------------
 bool TransformSystem::RotateLocalSpaceByQuat(const EntityID id, const XMVECTOR& quat)
 {
-    // rotate entity around itself using input rotation quaternion (axis, angle):
-    // 1. rotate the direction vector
-    // 2. update the world matrix using quaternion
-    // 3. recompute the world inverse matrix
-
-    using namespace DirectX;
-
     Transform& comp = *pTransform_;
     const index idx = comp.ids.get_idx(id);
 
     if (comp.ids[idx] != id)
     {
-        sprintf(g_String, "there is no transform data for entt by id: %ld", id);
-        LogErr(g_String);
+        LogErr(LOG, "there is no transform data for entt by id: %ld", id);
         return false;
     }
 
@@ -496,7 +492,6 @@ bool TransformSystem::RotateLocalSpaceByQuat(const EntityID id, const XMVECTOR& 
 
     return true;
 }
-
 
 // =================================================================================
 // Get/Set transformation

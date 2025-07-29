@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../Components/ParticleEmitter.h"
+#include <Types.h>
 
 namespace ECS
 {
@@ -80,7 +81,7 @@ public:
 
 private:
     cvector<Particle> particles_;
-    int maxNumParticles_ = 0;
+    int               maxNumParticles_ = 0;
 
     // gravity, air, etc.
     DirectX::XMVECTOR forces_;
@@ -89,10 +90,12 @@ private:
     DirectX::XMFLOAT3 color_ = { 0,0,0 };
 
     // base particle attributes
-    float life_     = 0;
-    float mass_     = 0;
-    float size_     = 0;
-    float friction_ = 0;
+    float             life_     = 0;
+    float             mass_     = 0;
+    float             size_     = 0;
+    float             friction_ = 0;
+
+    MaterialID        materialId_ = INVALID_MATERIAL_ID;
 };
 
 } // namespace 

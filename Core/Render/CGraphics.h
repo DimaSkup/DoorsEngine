@@ -73,12 +73,12 @@ public:
     // render related methods
 
     void ComputeFrustumCulling              (SystemState& sysState, ECS::EntityMgr* pEnttMgr);
-    void ComputeFrustumCullingOld           (SystemState& sysState, ECS::EntityMgr* pEnttMgr);
 
     void ComputeFrustumCullingOfLightSources(SystemState& sysState, ECS::EntityMgr* pEnttMgr);
     void ClearRenderingDataBeforeFrame      (ECS::EntityMgr* pEnttMgr, Render::CRender* pRender);
     void Render3D                           (ECS::EntityMgr* pEnttMgr, Render::CRender* pRender);
-    void RenderModel                        (BasicModel& model, const DirectX::XMMATRIX& world);
+
+    void BindMaterial(const Material& mat, Render::CRender* pRender);
 
     bool RenderBigMaterialIcon(
         const MaterialID matID,
@@ -183,7 +183,7 @@ public:
 
     // for furstum culling and picking
     ID3D11Device*         pDevice_ = nullptr;
-    ID3D11DeviceContext*  pDeviceContext_ = nullptr;
+    ID3D11DeviceContext*  pContext_ = nullptr;
     SystemState*          pSysState_ = nullptr;                       // we got this ptr during init
 
     cvector<DirectX::BoundingFrustum> frustums_;

@@ -9,6 +9,9 @@ namespace ECS
 // after creation of each new entity this value is increased by 1
 int EntityMgr::lastEntityID_ = 1;
 
+// static array of entities IDs for internal purposes
+cvector<EntityID> s_Ids;
+
 
 EntityMgr::EntityMgr() :
     hierarchy_{},
@@ -29,12 +32,10 @@ EntityMgr::EntityMgr() :
 {
     LogDbg(LOG, "start of entity mgr init");
 
-    constexpr int reserveMemForEnttsCount = 100;
+    constexpr int reserveMemoryForEnttsCount = 100;
 
-    
-
-    ids_.reserve(reserveMemForEnttsCount);
-    componentHashes_.reserve(reserveMemForEnttsCount);
+    ids_.reserve(reserveMemoryForEnttsCount);
+    componentHashes_.reserve(reserveMemoryForEnttsCount);
 
     // make pairs ['component_type' => 'component_name']
     componentTypeToName_ =
@@ -56,42 +57,6 @@ EntityMgr::EntityMgr() :
     ids_.push_back(INVALID_ENTITY_ID);
     componentHashes_.push_back(0);
 
-    // init and setup the particles engine and systems
-    constexpr int maxNumParticles = 10000;
-    ParticleSystem& sys1 = particleEngine_.AddNewParticleSys(maxNumParticles);
-    ParticleSystem& sys2 = particleEngine_.AddNewParticleSys(maxNumParticles);
-    ParticleSystem& sys3 = particleEngine_.AddNewParticleSys(maxNumParticles);
-
-    sys1.SetLife(1000);
-    sys1.SetEmitPos(250, 20, 215);
-    sys1.SetColor(0.1f, 1.0f, 0.25f);
-    sys1.SetSize(0.05f);
-    sys1.SetMass(1.25f);
-    sys1.SetFriction(0.01f);
-    sys1.SetExternalForces(0.0f, -0.001f, 0.0f);
-
-
-    sys2.SetLife(1000);
-    sys2.SetEmitPos(270, 20, 215);
-    sys2.SetColor(1.0f, 0.96f, 0.0f);
-    sys2.SetSize(0.05f);
-    sys2.SetMass(1.25f);
-    sys2.SetFriction(0.05f);
-    sys2.SetExternalForces(0.0f, 0.01f, 0.0f);
-
-    sys3.SetLife(1000);
-    sys3.SetEmitPos(260, 20, 220);
-    sys3.SetColor(1.0f, 0.96f, 0.0f);
-    sys3.SetSize(0.05f);
-    sys3.SetMass(0.5f);
-    sys3.SetFriction(0.01f);
-    sys3.SetExternalForces(0.0f, 0.0001f, 0.0f);
-
-    //particleEngine_.Explode(0.1f, 100);
-
-
-    //particleEngine_.Explode(0.0001f, 100);
-
     LogDbg(LOG, "entity mgr is initialized");
 }
 
@@ -102,15 +67,14 @@ EntityMgr::~EntityMgr()
     LogDbg(LOG, "ECS destroyment");
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:  join all the input ids into a single str and separate it with glue
+//---------------------------------------------------------
 std::string GetEnttsIDsAsString(
     const EntityID* ids,
     const size numEntts,
     const std::string& glue = ", ")
 {
-    // join all the input ids into a single str and separate it with glue
-
     std::stringstream ss;
 
     for (index i = 0; i < numEntts; ++i)
@@ -119,11 +83,11 @@ std::string GetEnttsIDsAsString(
     return ss.str();
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   return a string: "prefix + arr_of_ids"
+//---------------------------------------------------------
 inline std::string GetErrMsg(const std::string& prefix, const EntityID* ids, const size numEntts)
 {
-    // return a string: "prefix + arr_of_ids"
     return prefix + GetEnttsIDsAsString(ids, numEntts);
 }
 
@@ -132,16 +96,6 @@ inline std::string GetErrMsg(const std::string& prefix, const EntityID* ids, con
 inline std::string GetErrMsgNoEntt(const EntityID id)
 {
     return "there is no entity by ID: " + std::to_string(id);
-}
-
-///////////////////////////////////////////////////////////
-
-void EntityMgr::SetupLogger(FILE* pFile)
-{
-    // setup a file for writing log msgs into it;
-    // also setup a list which will be filled with log messages;
-    
-    LogDbg(LOG, "logger is setup successfully");
 }
 
 
@@ -162,33 +116,29 @@ bool EntityMgr::Deserialize(const std::string& dataFilepath)
 }
 
 
-
 // ************************************************************************************
 //                     PUBLIC CREATION/DESTROYMENT API
 // ************************************************************************************
 
-#pragma region PublicCreationDestroymentAPI
-
+//---------------------------------------------------------
+// Desc:   create a new empty entity;
+// Ret:    its ID
+//---------------------------------------------------------
 EntityID EntityMgr::CreateEntity()
 {
-    // create a new empty entity;
-    // return: its ID
-
     EntityID id = lastEntityID_++;
-
     ids_.push_back(id);
     componentHashes_.push_back(0);
 
     return id;
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   create a new entity and set a name for it
+// Ret:    id of created entity or 0 (in case if we didn't manage to create)
+//---------------------------------------------------------
 EntityID EntityMgr::CreateEntity(const char* enttName)
 {
-    // create a new entity and set a name for it
-    // return: id of created entity or 0
-
     if (!enttName || enttName[0] == '\0')
     {
         LogErr("input name for entity is empty!");
@@ -201,28 +151,31 @@ EntityID EntityMgr::CreateEntity(const char* enttName)
     return id;
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   create a batch of new empty entities, generate for each entity 
+//         unique ID and set that it hasn't any component by default;
+// Args:   - newEnttsCount:  how many entitties we want to create
+// Ret:    SORTED array of IDs of just created entities;
+//---------------------------------------------------------
 cvector<EntityID> EntityMgr::CreateEntities(const int newEnttsCount)
 {
-    // create batch of new empty entities, generate for each entity 
-    // unique ID and set that it hasn't any component by default;
-    //
-    // return: SORTED array of IDs of just created entities;
+    if (newEnttsCount <= 0)
+    {
+        LogErr(LOG, "new entitites count cannot be <= 0");
+        return cvector<EntityID>();
+    }
 
-    CAssert::True(newEnttsCount > 0, "new entitites count cannot be <= 0");
-
-    cvector<EntityID> generatedIDs(newEnttsCount, INVALID_ENTITY_ID);
+    s_Ids.resize(newEnttsCount);
 
     // "generate" consistent IDs
-    for (EntityID& id : generatedIDs)
+    for (EntityID& id : s_Ids)
         id = lastEntityID_++;
 
     // append ids and hashes of entities
-    ids_.append_vector(generatedIDs);
+    ids_.append_vector(s_Ids);
     componentHashes_.append_vector(cvector<ComponentBitfield>(newEnttsCount, 0));
 
-    return generatedIDs;
+    return s_Ids;
 }
 
 ///////////////////////////////////////////////////////////
@@ -236,8 +189,6 @@ void EntityMgr::DestroyEntities(const EntityID* ids, const size numEntts)
 }
 
 
-#pragma endregion
-
 // ************************************************************************************
 //                          PUBLIC UPDATING FUNCTIONS
 // ************************************************************************************
@@ -248,8 +199,7 @@ void EntityMgr::Update(const float totalGameTime, const float deltaTime)
     texTransformSystem_.UpdateAllTextrureAnimations(totalGameTime, deltaTime);
     lightSystem_.Update(deltaTime, totalGameTime);
 
-    cvector<EntityID> ids(16);
-
+    
     for (const Event& e : events_)
     {
         switch (e.type)
@@ -262,25 +212,11 @@ void EntityMgr::Update(const float totalGameTime, const float deltaTime)
                 XMFLOAT3 offset = { e.x-prevPos.x, e.y-prevPos.y, e.z-prevPos.z };
 
                 // make an arr of entt and its children's ids
-                hierarchySystem_.GetChildrenArr(id, ids);
-                ids.push_back(id);
+                hierarchySystem_.GetChildrenArr(id, s_Ids);
+                s_Ids.push_back(id);
 
                 // adjust position for entt and its children
-                transformSystem_.AdjustPositions(ids.data(), ids.size(), { offset.x, offset.y, offset.z });
-
-#if 0
-                EntityID playerID = playerSystem_.GetPlayerID();
-                XMFLOAT3 t = { e.x, e.y, e.z };
-                XMFLOAT3 playerOldPos = playerSystem_.GetPosition();
-
-                cvector<EntityID> ids;
-                hierarchySystem_.GetChildrenArr(playerID, ids);
-                ids.push_back(playerID);
-
-                XMFLOAT3 offset = { t.x-playerOldPos.x, t.y - playerOldPos.y, t.z - playerOldPos.z};
-
-                transformSystem_.AdjustPositions(ids.data(), ids.size(), { offset.x, offset.y, offset.z });
-#endif
+                transformSystem_.AdjustPositions(s_Ids.data(), s_Ids.size(), { offset.x, offset.y, offset.z });
                 break;
             }
             case EVENT_ROTATE:
@@ -338,11 +274,13 @@ void EntityMgr::Update(const float totalGameTime, const float deltaTime)
     playerSystem_.Update(deltaTime);
     particleEngine_.Update(deltaTime);
 
-    // we handled all the events so clear the list of event
+    // we handled all the events so clear the list of events
     events_.clear();
-
 }
 
+//---------------------------------------------------------
+// Desc:   add a new event into the events list
+//---------------------------------------------------------
 void EntityMgr::AddEvent(const Event& e)
 {
     events_.push_back(e);
@@ -353,8 +291,6 @@ void EntityMgr::AddEvent(const Event& e)
 //                              ADD COMPONENTS 
 // 
 // *********************************************************************************
-
-#pragma region AddComponentsAPI
 
 void EntityMgr::SetEnttHasComponent(
     const EntityID id,
@@ -464,25 +400,26 @@ void EntityMgr::AddTransformComponent(
     }
     catch (EngineException& e)
     {
-        sprintf(g_String, "can't add transform component to entts: %s", GetEnttsIDsAsString(ids, numEntts).c_str());
         LogErr(e);
-        LogErr(g_String);
+        LogErr(LOG, "can't add transform component to entts: %s", GetEnttsIDsAsString(ids, numEntts).c_str());
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   add the Move component to a single entity
+//---------------------------------------------------------
 void EntityMgr::AddMoveComponent(
     const EntityID& id,
     const XMFLOAT3& translation,
     const XMVECTOR& rotationQuat,
     const float uniformScaleFactor)
 {
-    // add the Move component to a single entity
     AddMoveComponent(&id, &translation, &rotationQuat, &uniformScaleFactor, 1);
 }
 
-///////////////////////////////////////////////////////////
+//---------------------------------------------------------
+// Desc:  add the Move component to all the input entities;
+//        and setup entities movement using input data arrays
 
 void EntityMgr::AddMoveComponent(
     const EntityID* ids,
@@ -491,9 +428,6 @@ void EntityMgr::AddMoveComponent(
     const float* uniformScaleFactors,
     const size numEntts)
 {
-    // add the Move component to all the input entities;
-    // and setup entities movement using input data arrays
-
     try
     {
         moveSystem_.AddRecords(ids, translations, rotationQuats, uniformScaleFactors, numEntts);
@@ -501,32 +435,31 @@ void EntityMgr::AddMoveComponent(
     }
     catch (EngineException& e)
     {
-        sprintf(g_String, "can't add move component to entts: %s", GetEnttsIDsAsString(ids, numEntts).c_str());
         LogErr(e);
-        LogErr(g_String);
+        LogErr(LOG, "can't add move component to entts: %s", GetEnttsIDsAsString(ids, numEntts).c_str());
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   add the Model component: relate a single entity ID to a single modelID
+//---------------------------------------------------------
 void EntityMgr::AddModelComponent(
     const EntityID enttID,
     const ModelID modelID)
 {
-    // add the Model component: relate a single entity ID to a single modelID
+    
     AddModelComponent(&enttID, modelID, 1);
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   add the Model component to each input entity by ID in terms of arrays;
+//         here we relate the same model to each input entt
+//---------------------------------------------------------
 void EntityMgr::AddModelComponent(
     const EntityID* enttsIDs,
     const ModelID modelID,
     const size numEntts)
 {
-    // add the Model component to each input entity by ID in terms of arrays;
-    // here we relate the same model to each input entt
-
     try
     {
         modelSystem_.AddRecords(enttsIDs, modelID, numEntts);
@@ -534,78 +467,43 @@ void EntityMgr::AddModelComponent(
     }
     catch (EngineException& e)
     {
-        sprintf(g_String, "can't add model component to entts: %s; \nmodel ID: %ud", GetEnttsIDsAsString(enttsIDs, numEntts).c_str(), modelID);
         LogErr(e);
-        LogErr(g_String);
+        LogErr(LOG, "can't add model component to entts: %s; \nmodel ID: %ud", GetEnttsIDsAsString(enttsIDs, numEntts).c_str(), modelID);
     }
 }
 
-///////////////////////////////////////////////////////////
-
-#if 0
-void EntityMgr::AddModelComponent(
-    const EntityID* enttsIDs,
-    const ModelID* modelsIDs,
-    const size numEntts)
-{
-    // add ModelComponent to each entity by its ID; 
-    // and bind to each input entity a model by respective idx (one to one)
-
-    try
-    {
-        CAssert::NotEmpty(enttsIDs.empty(), "the array of entities IDs is empty");
-        CAssert::NotEmpty(modelsIDs.empty(), "the array of models IDs is empty");
-
-        modelSystem_.AddRecords(enttsIDs, modelsIDs);
-        SetEnttsHaveComponent(enttsIDs.data(), std::ssize(enttsIDs), ModelComponent);
-    }
-    catch (EngineException& e)
-    {
-        std::string errMsg;
-        errMsg += "can't add model component to entts: ";
-        errMsg += Utils::GetEnttsIDsAsString(enttsIDs.data(), (int)enttsIDs.size());
-
-        LogErr(e);
-        LogErr(errMsg);
-    }
-}
-
-#endif
-
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   add rendering component to a single entity by ID
+//---------------------------------------------------------
 void EntityMgr::AddRenderingComponent(
     const EntityID id,
     const RenderInitParams& params)
 {
-    // add rendering component to a single entity by ID
     AddRenderingComponent(&id, 1, &params);
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   add the Rendered component to each input entity by ID
+//         and setup them with the same rendering params
+//---------------------------------------------------------
 void EntityMgr::AddRenderingComponent(
     const EntityID* ids,
     const size numEntts,
     const RenderInitParams& params)
 {
-    // add the Rendered component to each input entity by ID
-    // and setup them with the same rendering params 
-
     const cvector<RenderInitParams> paramsArr(numEntts, params);
     AddRenderingComponent(ids, numEntts, paramsArr.data());
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   add RenderComponent to each entity by its ID; 
+//         so these entities will be rendered onto the screen
+//---------------------------------------------------------
 void EntityMgr::AddRenderingComponent(
     const EntityID* ids,
     const size numEntts,
     const RenderInitParams* params)
 {
-    // add RenderComponent to each entity by its ID; 
-    // so these entities will be rendered onto the screen
-
     try
     {
         renderSystem_.AddRecords(ids, params, numEntts);
@@ -616,26 +514,23 @@ void EntityMgr::AddRenderingComponent(
     }
     catch (EngineException& e)
     {
-        sprintf(g_String, "can't add rendering component to entts: %s", GetEnttsIDsAsString(ids, numEntts).c_str());
         LogErr(e);
-        LogErr(g_String);
+        LogErr(LOG, "can't add rendering component to entts: %s", GetEnttsIDsAsString(ids, numEntts).c_str());
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:  add material component for input entity by ID;
+// Args:  - materialsIDs:          arr of material IDs (each material ID will be related to a single submesh of the entity)
+//        - numSubmeshes:          how many meshes does input entity have
+//        - areMaterialsMeshBased: defines if all the materials IDs are the same as materials IDs of the related model
+//---------------------------------------------------------
 void EntityMgr::AddMaterialComponent(
     const EntityID enttID,
     const MaterialID* materialsIDs,
     const size numSubmeshes,
     const bool areMaterialsMeshBased)             
 {
-    // add material component for input entity by ID;
-    //
-    // in: materialsIDs          -- arr of material IDs (each material ID will be related to a single submesh of the entity)
-    //     numSubmeshes          -- how many meshes does input entity have
-    //     areMaterialsMeshBased -- defines if all the materials IDs are the same as materials IDs of the related model
-
     try
     {
         sprintf(g_String, "no entity by ID: %ud", enttID);
@@ -646,36 +541,33 @@ void EntityMgr::AddMaterialComponent(
     }
     catch (EngineException& e)
     {
-        sprintf(g_String, "can't add Material component to entt (id: %ud; name: %s)", enttID, nameSystem_.GetNameById(enttID).c_str());
         LogErr(e);
-        LogErr(g_String);
+        LogErr(LOG, "can't add Material component to entt (id: %ud; name: %s)", enttID, nameSystem_.GetNameById(enttID).c_str());
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   add texture transformation to a signle entity by ID
+//---------------------------------------------------------
 void EntityMgr::AddTextureTransformComponent(
     const EntityID id,
     const TexTransformType type,
     const TexTransformInitParams& params)
 {
-    // add texture transformation to a signle entity by ID
     AddTextureTransformComponent(&id, 1, type, params);
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   set texture transformation of input type for each input entity by ID
+// Args:   - type:   what kind of texture transformation we want to apply?
+//         - params: struct of arrays of texture transformations params according to the input type
+//---------------------------------------------------------
 void EntityMgr::AddTextureTransformComponent(
     const EntityID* ids,
     const size numEntts,
     const TexTransformType type,
     const TexTransformInitParams& params)
 {
-    // set texture transformation of input type for each input entity by ID
-    //
-    // in:   type     -- what kind of texture transformation we want to apply?
-    //       params -- struct of arrays of texture transformations params according to the input type
-
     try
     {
         texTransformSystem_.AddTexTransformation(ids, numEntts, type, params);
@@ -683,20 +575,19 @@ void EntityMgr::AddTextureTransformComponent(
     }
     catch (EngineException& e)
     {
-        sprintf(g_String, "can't add texture transform component to entts: %s", GetEnttsIDsAsString(ids, numEntts).c_str());
         LogErr(e);
-        LogErr(g_String);
+        LogErr(LOG, "can't add texture transform component to entts: %s", GetEnttsIDsAsString(ids, numEntts).c_str());
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   add light component (directed light) to each input entity by ID 
+//---------------------------------------------------------
 void EntityMgr::AddLightComponent(
     const EntityID* ids,
     const size numEntts,
     DirLightsInitParams& params)
 {
-    // add light component (directed light) to each input entity by ID 
     try
     {
         lightSystem_.AddDirLights(ids, numEntts, params);
@@ -709,8 +600,9 @@ void EntityMgr::AddLightComponent(
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   add light component (point light) to each input entity by ID 
+//---------------------------------------------------------
 void EntityMgr::AddLightComponent(
     const EntityID* ids,
     const size numEntts,
@@ -728,15 +620,14 @@ void EntityMgr::AddLightComponent(
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   add light component (spotlight) to each input entity by ID 
+//---------------------------------------------------------
 void EntityMgr::AddLightComponent(
     const EntityID* ids,
     const size numEntts,
     SpotLightsInitParams& params)
 {
-    // add light component to each input entity by ID;
-    // 
     try
     {
         lightSystem_.AddSpotLights(ids, numEntts, params);
@@ -749,20 +640,21 @@ void EntityMgr::AddLightComponent(
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:  add the RenderStates component to the input entt
+//        and setup it with DEFAULT states
+//---------------------------------------------------------
 void EntityMgr::AddRenderStatesComponent(const EntityID id)
 {
-    // add the RenderStates component to the input entt and setup it with DEFAULT states
     AddRenderStatesComponent(&id, 1);
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   add the RenderStates component to the input entts and 
+//         setup each with DEFAULT states
+//---------------------------------------------------------
 void EntityMgr::AddRenderStatesComponent(const EntityID* ids, const size numEntts)
 {
-    // add the RenderStates component to the input entts and 
-    // setup each with DEFAULT states
     try
     {
         renderStatesSystem_.AddWithDefaultStates(ids, numEntts);
@@ -770,13 +662,13 @@ void EntityMgr::AddRenderStatesComponent(const EntityID* ids, const size numEntt
     }
     catch (EngineException& e)
     {
-        sprintf(g_String, "can't add render states component to entts: %s", GetEnttsIDsAsString(ids, numEntts).c_str());
         LogErr(e);
-        LogErr(g_String);
+        LogErr(LOG, "can't add render states component to entts: %s", GetEnttsIDsAsString(ids, numEntts).c_str());
     }
 }
 
-///////////////////////////////////////////////////////////
+//---------------------------------------------------------
+//---------------------------------------------------------
 
 void EntityMgr::AddBoundingComponent(
     const EntityID id,
@@ -791,14 +683,15 @@ void EntityMgr::AddBoundingComponent(
     }
     catch (EngineException& e)
     {
-        sprintf(g_String, "can't add bounding component to entts: %ud", id);
         LogErr(e);
-        LogErr(g_String);
+        LogErr(LOG, "can't add bounding component to entts: %ud", id);
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   apply the same set of AABBs to each input entity
+//         (for instance: we have 100 the same trees so each will have the same set of AABBs) 
+//---------------------------------------------------------
 void EntityMgr::AddBoundingComponent(
     const EntityID* ids,
     const size numEntts,
@@ -806,8 +699,6 @@ void EntityMgr::AddBoundingComponent(
     const BoundingType* types,          // AABB type per mesh
     const DirectX::BoundingBox* AABBs)  // AABB per mesh
 {
-    // apply the same set of AABBs to each input entity
-    // (for instance: we have 100 the same trees so each will have the same set of AABBs)
     try
     {
         boundingSystem_.Add(ids, numEntts, numSubsets, types, AABBs);
@@ -815,39 +706,16 @@ void EntityMgr::AddBoundingComponent(
     }
     catch (EngineException& e)
     {
-        sprintf(g_String, "can't add bounding component to entts: %s", GetEnttsIDsAsString(ids, numEntts).c_str());
+        LogErr(LOG, "can't add bounding component to entts: %s", GetEnttsIDsAsString(ids, numEntts).c_str());
         LogErr(e);
-        LogErr(g_String);
     }
 }
 
-///////////////////////////////////////////////////////////
-
-void EntityMgr::AddBoundingComponent(
-    const EntityID* ids,
-    const DirectX::BoundingSphere* spheres,
-    const size numEntts)
-{
-    assert(0 && "FIXME");
-    // add bounding spheres to each input entity by ID (input arrays are supposed to be equal)
-    try
-    {
-        //boundingSystem_.Add(ids, numEntts, spheres);
-        //SetEnttsHaveComponent(ids, numEntts, BoundingComponent);
-    }
-    catch (EngineException& e)
-    {
-        sprintf(g_String, "can't add bounding component to entts: %s", GetEnttsIDsAsString(ids, numEntts).c_str());
-        LogErr(e);
-        LogErr(g_String);
-    }
-}
-
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   add a camera component to the entity by input ID
+//---------------------------------------------------------
 void EntityMgr::AddCameraComponent(const EntityID id, const CameraData& data)
 {
-    // add a camera component to the entity by input ID
     try
     {
         cameraSystem_.AddRecord(id, data);
@@ -855,17 +723,16 @@ void EntityMgr::AddCameraComponent(const EntityID id, const CameraData& data)
     }
     catch (EngineException& e)
     {
-        sprintf(g_String, "can't add camera component to entts: %ud", id);
+        LogErr(LOG, "can't add camera component to entts: %ud", id);
         LogErr(e);
-        LogErr(g_String);
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   add a player component to the entity by input ID
+//---------------------------------------------------------
 void EntityMgr::AddPlayerComponent(const EntityID id)
 {
-    // add a player component to the entity by input ID
     try
     {
         playerSystem_.SetPlayer(id);
@@ -873,14 +740,10 @@ void EntityMgr::AddPlayerComponent(const EntityID id)
     }
     catch (EngineException& e)
     {
-        sprintf(g_String, "can't add a player component to entt: %ud", id);
         LogErr(e);
-        LogErr(g_String);
+        LogErr(LOG, "can't add a player component to entt: %ud", id);
     }
 }
-
-#pragma endregion
-
 
 // ************************************************************************************
 //                               PRIVATE HELPERS
@@ -892,30 +755,12 @@ ComponentBitfield EntityMgr::GetHashByComponent(const eComponentType component)
     return (bitmask |= (1 << component));
 }
 
-///////////////////////////////////////////////////////////
-
-#if 0
-ComponentHash EntityMgr::GetHashByComponents(
-    const std::vector<eComponentType>& components)
-{
-    // generate and return a hash by input components
-
-    u32 bitmask = 0;
-
-    for (const eComponentType comp : components)
-        bitmask |= (1 << comp);
-
-    return bitmask;
-}
-#endif
-
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// out:    names array of components which are added to entity by ID;
+// return: false if there is no entity by ID
+//---------------------------------------------------------
 bool EntityMgr::GetComponentNamesByEntt(const EntityID id, cvector<std::string>& names) const
 {
-    // out:    names array of components which are added to entity by ID;
-    // return: false if there is no entity by ID
-
     const index idx = ids_.get_idx(id);
     const bool exist = (ids_[idx] == id);
 
@@ -937,13 +782,12 @@ bool EntityMgr::GetComponentNamesByEntt(const EntityID id, cvector<std::string>&
     return true;
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// out:    names array of component types which are added to entity by ID;
+// return: false if there is no entity by ID
+//---------------------------------------------------------
 bool EntityMgr::GetComponentTypesByEntt(const EntityID id, cvector<uint8_t>& types) const
 {
-    // out:    names array of component types which are added to entity by ID;
-    // return: false if there is no entity by ID
-
     const index idx = ids_.get_idx(id);
     const bool exist = (ids_[idx] == id);
 

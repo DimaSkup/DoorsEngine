@@ -53,10 +53,10 @@ void GS(
 
 	float2 gTexC[4] =
 	{
-		float2(0.0f, 1.0f),
-		float2(0.0f, 0.0f),
 		float2(1.0f, 1.0f),
-		float2(1.0f, 0.0f)
+		float2(1.0f, 0.0f),
+		float2(0.0f, 1.0f),
+		float2(0.0f, 0.0f)
 	};
 
 	// compute the local coordinate system of the sprite relative to the world space
@@ -75,9 +75,6 @@ void GS(
 	// compute triangle strip vertices (quad) in world space
 	float halfWidth  = 0.5f * gin[0].sizeW.x;
 	float halfHeight = 0.5f * gin[0].sizeW.y;
-
-	//float halfWidth = 10;
-	//float halfHeight = 10;
 
 	float4 v[4];
 	v[0] = float4(gin[0].centerW + (halfWidth * right) - (halfHeight * up), 1.0f);

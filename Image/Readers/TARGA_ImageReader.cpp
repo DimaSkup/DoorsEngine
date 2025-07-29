@@ -55,23 +55,17 @@ bool TARGA_ImageReader::LoadTextureFromFile(
     D3D11_TEXTURE2D_DESC textureDesc;
     D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
 
-    ID3D11Texture2D* p2DTexture = nullptr;
+    ID3D11Texture2D*     p2DTexture     = nullptr;
     ID3D11DeviceContext* pDeviceContext = nullptr;
-
-    // holds the raw Targa data read straight in from the file
-    UCHAR* targaData = nullptr;
 
     // ----------------------------------------------------- //
 
     Image img;
     img.LoadData(filePath);
 
-    // load the targa image data into memory (into the targaDataArr array) 
-    //LoadTarga32Bit(filePath, &targaData, texWidth, texHeight);
-
-    targaData = img.GetData();
-    texWidth = img.GetWidth();
-    texHeight = img.GetHeight();
+    UCHAR* targaData = img.GetData();
+    texWidth         = img.GetWidth();
+    texHeight        = img.GetHeight();
 
     // next we need to setup our description of the DirectX texture that we will load
     // the Targa data into. We use the height and width from the Targa image data, and 
@@ -113,8 +107,6 @@ bool TARGA_ImageReader::LoadTextureFromFile(
 
     // copy the targa image data into the texture
     pDeviceContext->UpdateSubresource(p2DTexture, 0, nullptr, targaData, rowPitch, 0);
-
-    SafeDeleteArr(targaData);
 
     // setup the shader resource view description
     srvDesc.Format                      = textureDesc.Format;

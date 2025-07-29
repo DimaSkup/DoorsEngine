@@ -371,16 +371,14 @@ TexID TextureMgr::Add(const char* name, Texture&& tex)
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:  load a texture from file and create a texture resource with it
+// Args:  - dirPath:     a directory with textures relatively to the project working directory
+//        - texturePath: path to texture relatively to the dirPath
+// Ret:   an ID to the loaded texture
+//---------------------------------------------------------
 TexID TextureMgr::LoadFromFile(const char* dirPath, const char* texturePath)
 {
-    // return an ID to the texture which is loaded from the file by input path
-    //
-    // input: dirPath     -- directory relatively to the project working directory
-    //        texturePath -- path to texture relatively to the dirPath
-
-
     // check input params
     if ((dirPath == nullptr) || (dirPath[0] == '\0'))
     {
@@ -401,14 +399,21 @@ TexID TextureMgr::LoadFromFile(const char* dirPath, const char* texturePath)
     return LoadFromFile(g_String);
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:  load a texture from file and create a texture resource with it
+// Args:  - path:  full path to the texture file
+// Ret:   an ID to the loaded texture
+//---------------------------------------------------------
 TexID TextureMgr::LoadFromFile(const char* path)
 {
-    // return an ID to the texture which is loaded from the file by input path
-
     try
     {
+        if ((path == nullptr) || (path[0] == '\0'))
+        {
+            LogErr("input path to texture is empty!");
+            return INVALID_TEXTURE_ID;
+        }
+
 #if DEBUG || _DEBUG
         if (!FileSys::Exists(path))
             return INVALID_TEXTURE_ID;
@@ -423,9 +428,12 @@ TexID TextureMgr::LoadFromFile(const char* path)
         // else we create a new texture from file
         id = GenID();
 
+        char name[64]{'\0'};
+        FileSys::GetFileStem(path, name);
+
         ids_.push_back(id);
-        names_.push_back(path);
-        textures_.push_back(std::move(Texture(pDevice_, path)));
+        names_.push_back(name);
+        textures_.push_back(std::move(Texture(pDevice_, path, name)));
         shaderResourceViews_.push_back(textures_.back().GetTextureResourceView());
 
         // check if we successfully created this texture

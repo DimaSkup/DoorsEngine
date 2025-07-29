@@ -61,23 +61,20 @@ public:
     EntityMgr& operator=(const EntityMgr&) = delete;
     EntityMgr& operator=(EntityMgr&&) = delete;
 
-    void SetupLogger(FILE* pFile);
 
-    // public serialization / deserialization API
-    bool Serialize(const std::string& dataFilepath);
-    bool Deserialize(const std::string& dataFilepath);
+    bool                Serialize(const std::string& dataFilepath);
+    bool                Deserialize(const std::string& dataFilepath);
 
     // public creation/destroyment API
-    cvector<EntityID> CreateEntities(const int newEnttsCount);
-    void DestroyEntities(const EntityID* ids, const size numEntts);
+    cvector<EntityID>   CreateEntities(const int newEnttsCount);
+    void                DestroyEntities(const EntityID* ids, const size numEntts);
 
-    EntityID CreateEntity();
-    EntityID CreateEntity(const char* enttName);
+    EntityID            CreateEntity();
+    EntityID            CreateEntity(const char* enttName);
     //void DestroyEntity(const EntityName& enttName);
 
-    void Update(const float totalGameTime, const float deltaTime);
-
-    void AddEvent(const Event& e);
+    void                Update(const float totalGameTime, const float deltaTime);
+    void                AddEvent(const Event& e);
 
     // =============================================================================
     // PUBLIC METHODS: ADD COMPONENTS 
@@ -127,12 +124,6 @@ public:
         const EntityID* enttsIDs,
         const ModelID modelID,
         const size numEntts);
-
-    void AddModelComponent(
-        const EntityID* enttsIDs,
-        const ModelID* modelsIDs,
-        const size numEntts);
-
 
     // add RENDER component
     void AddRenderingComponent(const EntityID id, const RenderInitParams& params);
@@ -186,27 +177,12 @@ public:
         const BoundingType type,
         const DirectX::BoundingBox& aabb);
 
-#if 0
-    void AddBoundingComponent(
-        const EntityID id,
-        const size numSubsets,               // the number of submeshes of this entity
-        const BoundingType* types,           // AABB type per mesh
-        const DirectX::BoundingBox* AABBs);  // AABB per mesh
-#endif
-
-
     void AddBoundingComponent(
         const EntityID* ids,
         const size numEntts,
         const size numSubsets,               // the number of entt's meshes (the num of AABBs)
         const BoundingType* types,           // AABB type per mesh
         const DirectX::BoundingBox* AABBs);  // AABB per mesh
-
-    void AddBoundingComponent(
-        const EntityID* ids,
-        const DirectX::BoundingSphere* boundingSpheres,
-        const size numEntts);
-
 
     void AddCameraComponent(const EntityID id, const CameraData& data);
 
@@ -228,14 +204,14 @@ public:
 
     inline const std::map<eComponentType, std::string>& GetMapCompTypeToName() { return componentTypeToName_; }
 
-    inline const size      GetNumAllEntts() const { return ids_.size(); }
-    inline const EntityID* GetAllEnttsIDs() const { return ids_.data(); }
+    inline const size               GetNumAllEntts()            const { return ids_.size(); }
+    inline const EntityID*          GetAllEnttsIDs()            const { return ids_.data(); }
 
-    bool GetComponentNamesByEntt(const EntityID id, cvector<std::string>& names) const;
-    bool GetComponentTypesByEntt(const EntityID id, cvector<uint8_t>& types)     const;
+    bool                            GetComponentNamesByEntt(const EntityID id, cvector<std::string>& names) const;
+    bool                            GetComponentTypesByEntt(const EntityID id, cvector<uint8_t>& types)     const;
 
-    inline bool CheckEnttExist(const EntityID id)                         const { return ids_.binary_search(id); }
-    inline bool CheckEnttsExist(const EntityID* ids, const size numEntts) const { return ids_.binary_search(ids, numEntts); }
+    inline bool                     CheckEnttExist (const EntityID id)                        const { return ids_.binary_search(id); }
+    inline bool                     CheckEnttsExist(const EntityID* ids, const size numEntts) const { return ids_.binary_search(ids, numEntts); }
 
 private:
     ComponentBitfield GetHashByComponent(const eComponentType component);
@@ -284,7 +260,6 @@ public:
     cvector<ComponentBitfield> componentHashes_;
 
     std::map<eComponentType, std::string> componentTypeToName_;  
-
 
 private:
     std::deque<Event> events_;

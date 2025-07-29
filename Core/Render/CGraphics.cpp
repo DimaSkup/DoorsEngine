@@ -109,7 +109,7 @@ bool CGraphics::InitHelper(
         d3d_.SetRS({ eRenderState::CULL_BACK, eRenderState::FILL_SOLID });
 
         // after initialization of the DirectX we can use pointers to the device and device context
-        d3d_.GetDeviceAndContext(pDevice_, pDeviceContext_);
+        d3d_.GetDeviceAndContext(pDevice_, pContext_);
 
         // initializer the textures global manager (container)
         g_TextureMgr.Initialize(pDevice_);
@@ -585,7 +585,7 @@ void CGraphics::UpdateShadersDataPerFrame(
     SetupLightsForFrame(pEnttMgr, perFrameData);
 
     // update lighting data, camera pos, etc. for this frame
-    pRender->UpdatePerFrame(pDeviceContext_, perFrameData);
+    pRender->UpdatePerFrame(pContext_, perFrameData);
 }
 
 ///////////////////////////////////////////////////////////
@@ -623,6 +623,116 @@ void CGraphics::operator delete(void* ptr)
 // =================================================================================
 // Rendering methods
 // =================================================================================
+
+//---------------------------------------------------------
+// Desc:   setup rendering states according to input material
+//---------------------------------------------------------
+void CGraphics::BindMaterial(const Material& mat, Render::CRender* pRender)
+{
+    RenderStates&        renderStates = d3d_.GetRenderStates();
+    ID3D11DeviceContext* pContext     = pContext_;
+
+
+    // switch alpha clipping
+    pRender->SwitchAlphaClipping(pContext, mat.HasAlphaClip());
+
+
+    // switch fill mode if need
+    switch (mat.properties & ALL_FILL_MODES)
+    {
+        case MAT_PROP_FILL_SOLID:
+            renderStates.SetRS(pContext, FILL_SOLID);
+            break;
+
+        case MAT_PROP_FILL_WIREFRAME:
+            renderStates.SetRS(pContext, FILL_WIREFRAME);
+            break;
+    }
+
+    // switch cull mode if need
+    switch (mat.properties & ALL_CULL_MODES)
+    {
+        case MAT_PROP_CULL_BACK:
+            renderStates.SetRS(pContext, CULL_BACK);
+            break;
+
+        case MAT_PROP_CULL_FRONT:
+            renderStates.SetRS(pContext, CULL_FRONT);
+            break;
+
+        case MAT_PROP_CULL_NONE:
+            renderStates.SetRS(pContext, CULL_NONE);
+            break;
+    }
+
+    // switch blending state if necessary
+    switch (mat.properties & ALL_BLEND_STATES)
+    {
+        case MAT_PROP_NO_RENDER_TARGET_WRITES:
+            d3d_.TurnOnBlending(NO_RENDER_TARGET_WRITES);
+            break;
+
+        case MAT_PROP_ALPHA_DISABLE:
+            d3d_.TurnOnBlending(ALPHA_DISABLE);
+            break;
+
+        case MAT_PROP_ALPHA_ENABLE:
+            d3d_.TurnOnBlending(ALPHA_ENABLE);
+            break;
+
+        case MAT_PROP_ADDING:
+            d3d_.TurnOnBlending(ADDING);
+            break;
+
+        case MAT_PROP_SUBTRACTING:
+            d3d_.TurnOnBlending(SUBTRACTING);
+            break;
+
+        case MAT_PROP_MULTIPLYING:
+            d3d_.TurnOnBlending(MULTIPLYING);
+            break;
+
+        case MAT_PROP_TRANSPARENCY:
+            d3d_.TurnOnBlending(TRANSPARENCY);
+            break;
+
+        case MAT_PROP_ALPHA_TO_COVERAGE:
+            d3d_.TurnOnBlending(ALPHA_TO_COVERAGE);
+            break;
+    }
+
+    // switch depth-stencil state if need
+    switch (mat.properties & ALL_DEPTH_STENCIL_STATES)
+    {
+        case MAT_PROP_DEPTH_ENABLED:
+            renderStates.SetDSS(pContext, DEPTH_ENABLED, 0);
+            break;
+
+        case MAT_PROP_DEPTH_DISABLED:
+            renderStates.SetDSS(pContext, DEPTH_DISABLED, 0);
+            break;
+
+        case MAT_PROP_MARK_MIRROR:
+            renderStates.SetDSS(pContext, MARK_MIRROR, 0);
+            break;
+
+        case MAT_PROP_DRAW_REFLECTION:
+            renderStates.SetDSS(pContext, DRAW_REFLECTION, 0);
+            break;
+
+        case MAT_PROP_NO_DOUBLE_BLEND:
+            renderStates.SetDSS(pContext, NO_DOUBLE_BLEND, 0);
+            break;
+
+        case MAT_PROP_SKY_DOME:
+            renderStates.SetDSS(pContext, SKY_DOME, 0);
+            break;
+    }
+}
+
+//---------------------------------------------------------
+// 
+//---------------------------------------------------------
 void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
 {
     try
@@ -634,18 +744,25 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
         const int skyTexMaxNum = sky.GetMaxTexturesNum();
 
         // get shader resource views (textures) for the sky
-        ID3D11DeviceContext* pContext = pDeviceContext_;
+        ID3D11DeviceContext* pContext = pContext_;
         g_TextureMgr.GetSRVsByTexIDs(skyTexIDs, skyTexMaxNum, texturesBuf_);
         pContext->PSSetShaderResources(0U, 1U, texturesBuf_.data());
 
-
+        // reset the render states before rendering
+        pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        RenderStates& renderStates = d3d_.GetRenderStates();
+        renderStates.ResetRS(pContext);
+        renderStates.ResetBS(pContext);
+        renderStates.ResetDSS(pContext);
+    
         RenderEnttsDefault(pRender);
         RenderEnttsAlphaClipCullNone(pRender);
         RenderTerrainGeomip(pRender, pEnttMgr);
         //RenderTerrainQuadtree(pRender, pEnttMgr);
-        RenderBillboards(pRender, pEnttMgr);
         RenderSkyDome(pRender, pEnttMgr);
-        
+
+        RenderBillboards(pRender, pEnttMgr);
+      
 
 #if 0
         pDeviceContext_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
@@ -912,23 +1029,20 @@ void CGraphics::RenderEnttsDefault(Render::CRender* pRender)
     if (storage.modelInstances.empty())
         return;
 
+    
+    ID3D11DeviceContext* pContext = pContext_;
 
     // setup states before rendering
     if (pRender->shadersContainer_.debugShader_.GetDebugType() == Render::eDebugState::DBG_WIREFRAME)
     {
         RenderStates& renderStates = d3d_.GetRenderStates();
-        renderStates.SetRS(pDeviceContext_, { FILL_WIREFRAME, CULL_BACK, FRONT_CLOCKWISE });
-    }
-    else
-    {
-        d3d_.GetRenderStates().ResetRS(pDeviceContext_);
-        d3d_.GetRenderStates().ResetBS(pDeviceContext_);
+        renderStates.SetRS(pContext, { FILL_WIREFRAME, CULL_BACK, FRONT_CLOCKWISE });
     }
 
-    pRender->UpdateInstancedBuffer(pDeviceContext_, storage.modelInstBuffer);
+    pRender->UpdateInstancedBuffer(pContext, storage.modelInstBuffer);
 
     pRender->RenderInstances(
-        pDeviceContext_,
+        pContext,
         Render::ShaderTypes::LIGHT,
         storage.modelInstances.data(),
         (int)storage.modelInstances.size());
@@ -948,7 +1062,7 @@ void CGraphics::RenderEnttsAlphaClipCullNone(Render::CRender* pRender)
         return;
 
     RenderStates& renderStates = d3d_.GetRenderStates();
-    ID3D11DeviceContext* pContext = pDeviceContext_;
+    ID3D11DeviceContext* pContext = pContext_;
 
 
     // setup states before rendering
@@ -997,7 +1111,7 @@ void CGraphics::RenderEnttsBlended(Render::CRender* pRender)
     const Render::InstBuffData& instBuffer = storage.blendedModelInstBuffer;
 
     // push data into the instanced buffer
-    pRender->UpdateInstancedBuffer(pDeviceContext_, instBuffer);
+    pRender->UpdateInstancedBuffer(pContext_, instBuffer);
 
     int instanceOffset = 0;
 
@@ -1009,7 +1123,7 @@ void CGraphics::RenderEnttsBlended(Render::CRender* pRender)
         for (u32 instCount = 0; instCount < numInstancesPerBlendState[bsIdx]; ++instCount)
         {
             const Render::Instance* instance = &(storage.blendedModelInstances[instanceOffset]);
-            pRender->RenderInstances(pDeviceContext_, Render::ShaderTypes::LIGHT, instance, 1);
+            pRender->RenderInstances(pContext_, Render::ShaderTypes::LIGHT, instance, 1);
             ++instanceOffset;
         }
     }
@@ -1045,7 +1159,7 @@ void CGraphics::RenderBoundingLineBoxes(
 
 
     // render
-    ID3D11DeviceContext* pContext = pDeviceContext_;
+    ID3D11DeviceContext* pContext = pContext_;
     pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 
     pRender->UpdateInstancedBuffer(pContext, instancesBuffer);
@@ -1105,20 +1219,6 @@ void CGraphics::RenderBillboards(
     Render::CRender* pRender,
     ECS::EntityMgr* pEnttMgr)
 {
-    // render billboard of entities which are fully fogged so we see only its silhouette
-
-    //const EntityID* foggedEntts = rsDataToRender_.enttsFogged_.ids_.data();
-    //const size numFoggedEntts   = rsDataToRender_.enttsFogged_.ids_.size();
-
-    // if we don't have any billboard to render we just go out
-    //if (numFoggedEntts == 0)
-    //    return;
-
-
-
-
-    
-
     ECS::ParticleEngine& particleEngine = pEnttMgr->particleEngine_;
 
     // if we don't have any particles to render
@@ -1127,13 +1227,12 @@ void CGraphics::RenderBillboards(
 
     const cvector<ECS::ParticleRenderInstance>& particlesToRender = particleEngine.GetParticlesToRender();
 
-    d3d_.TurnOnBlending(ALPHA_TO_COVERAGE);
-    RenderStates& renderStates = d3d_.GetRenderStates();
-    renderStates.SetRS(pDeviceContext_, CULL_NONE);
-    //pRender->SwitchAlphaClipping(pDeviceContext_, true);
+    // manually bind the material for particles
+    const Material& mat = g_MaterialMgr.GetMaterialByName("flameMat");
+    BindMaterial(mat, pRender);
 
+    // prepare update particles data for rendering
     VertexBuffer<BillboardSprite>& vb = g_ModelMgr.GetBillboardsBuffer();
-
     const int numVertices = (int)particlesToRender.size();
     cvector<BillboardSprite> vertices(numVertices);
 
@@ -1146,24 +1245,22 @@ void CGraphics::RenderBillboards(
         ++i;
     }
 
+    // update the vertex buffer with updated particles data
     vb.UpdateDynamic(g_pContext, vertices.data(), numVertices);
 
-    ID3D11ShaderResourceView* texSRVs = { g_TextureMgr.GetTexPtrByName("tree_billboard")->GetTextureResourceView() };
-    const UINT vertexStride = sizeof(BillboardSprite);
+    // prepare textures resource views
+    ID3D11ShaderResourceView* texSRVs[2];
+    texSRVs[0] = g_TextureMgr.GetTexPtrByName("tree_billboard")->GetTextureResourceView();
+    texSRVs[1] = g_TextureMgr.GetTexPtrByName("flare")->GetTextureResourceView();
 
     pRender->shadersContainer_.billboardShader_.Render(
         g_pContext,
         vb.Get(),
-        &texSRVs,
-        vertexStride,
+        texSRVs,
+        sizeof(BillboardSprite),       // vertex stride
         numVertices);
 
     pSysState_->visibleVerticesCount += numVertices;
-
-    // reset rendering pipeline
-    renderStates.ResetRS(pDeviceContext_);
-    //pRender->SwitchAlphaClipping(pDeviceContext_, false);
-   
 }
 
 ///////////////////////////////////////////////////////////
@@ -1189,7 +1286,7 @@ void CGraphics::RenderSkyDome(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr
 
 
     // setup rendering pipeline before rendering of the sky dome
-    ID3D11DeviceContext* pContext = pDeviceContext_;
+    ID3D11DeviceContext* pContext = pContext_;
 
     RenderStates& renderStates = d3d_.GetRenderStates();
     renderStates.SetRS(pContext, { FILL_SOLID, CULL_NONE, FRONT_COUNTER_CLOCKWISE });
@@ -1240,41 +1337,6 @@ void CGraphics::RenderTerrainGeomip(Render::CRender* pRender, ECS::EntityMgr* pE
     g_TextureMgr.GetSRVsByTexIDs(mat.textureIDs, NUM_TEXTURE_TYPES, texturesBuf_);
     memcpy(instance.textures, texturesBuf_.begin(), NUM_TEXTURE_TYPES * sizeof(ID3D11ShaderResourceView*));
 
-#if TERRAIN_V1
-    // vertex/index buffers data
-    instance.vertexStride   = terrain.GetVertexStride();
-    instance.pVB            = terrain.GetVertexBuffer();
-    instance.pIB            = terrain.GetIndexBuffer();
-    instance.numVertices    = terrain.verticesOffset_;
-    instance.indexCount     = terrain.indicesOffset_;
-
-    // for debugging
-    //instance.wantDebug = terrain.wantDebug_;
-
-    // setup rendering pipeline before rendering of the terrain
-    RenderStates&        renderStates = d3d_.GetRenderStates();
-    ID3D11DeviceContext* pContext     = pDeviceContext_;
-
-    if (pRender->shadersContainer_.debugShader_.GetDebugType() == Render::eDebugState::DBG_WIREFRAME)
-    {
-        renderStates.SetRS(pDeviceContext_, { FILL_WIREFRAME, CULL_BACK, FRONT_CLOCKWISE });
-        renderStates.ResetBS(pContext);
-        renderStates.ResetDSS(pContext);
-    }
-    else
-    {
-        renderStates.ResetRS(pContext);
-        renderStates.ResetBS(pContext);
-        renderStates.ResetDSS(pContext);
-    }
-
-
-    pRender->shadersContainer_.terrainShader_.Render(pContext, instance);
-
-    // compute how many vertices we already rendered
-    pSysState_->visibleVerticesCount += (uint32_t)instance.numVertices;
-    //pSysState_->visibleVerticesCount += terrain.vb_.GetVertexCount();
-#else
     // vertex/index buffers data
     instance.vertexStride   = terrain.GetVertexStride();
     instance.pVB            = terrain.GetVertexBuffer();
@@ -1289,11 +1351,11 @@ void CGraphics::RenderTerrainGeomip(Render::CRender* pRender, ECS::EntityMgr* pE
 
     // setup rendering pipeline before rendering of the terrain
     RenderStates& renderStates = d3d_.GetRenderStates();
-    ID3D11DeviceContext* pContext = pDeviceContext_;
+    ID3D11DeviceContext* pContext = pContext_;
 
     if (pRender->shadersContainer_.debugShader_.GetDebugType() == Render::eDebugState::DBG_WIREFRAME)
     {
-        renderStates.SetRS(pDeviceContext_, { FILL_WIREFRAME, CULL_BACK, FRONT_CLOCKWISE });
+        renderStates.SetRS(pContext_, { FILL_WIREFRAME, CULL_BACK, FRONT_CLOCKWISE });
         renderStates.ResetBS(pContext);
         renderStates.ResetDSS(pContext);
     }
@@ -1304,11 +1366,12 @@ void CGraphics::RenderTerrainGeomip(Render::CRender* pRender, ECS::EntityMgr* pE
         renderStates.ResetDSS(pContext);
     }
 
+    // bind terrain shader
     Render::TerrainShader& shader = pRender->shadersContainer_.terrainShader_;
     shader.Prepare(pContext, instance);
 
 
-    // 
+    // render each patch (sector) of the terrain
     for (int patchZ = 0; patchZ < numPatchesPerSide; ++patchZ)
     {
         for (int patchX = 0; patchX < numPatchesPerSide; ++patchX)
@@ -1324,9 +1387,6 @@ void CGraphics::RenderTerrainGeomip(Render::CRender* pRender, ECS::EntityMgr* pE
             shader.RenderPatch(pContext, instance);      
         }
     }
-#endif
-
-
 
     //terrain.wantDebug_ = false;
 }
@@ -1377,11 +1437,11 @@ void CGraphics::RenderTerrainQuadtree(Render::CRender* pRender, ECS::EntityMgr* 
 
     // setup rendering pipeline before rendering of the terrain
     RenderStates&        renderStates = d3d_.GetRenderStates();
-    ID3D11DeviceContext* pContext     = pDeviceContext_;
+    ID3D11DeviceContext* pContext     = pContext_;
 
     if (pRender->shadersContainer_.debugShader_.GetDebugType() == Render::eDebugState::DBG_WIREFRAME)
     {
-        renderStates.SetRS(pDeviceContext_, { FILL_WIREFRAME, CULL_BACK, FRONT_CLOCKWISE });
+        renderStates.SetRS(pContext_, { FILL_WIREFRAME, CULL_BACK, FRONT_CLOCKWISE });
         renderStates.ResetBS(pContext);
         renderStates.ResetDSS(pContext);
     }

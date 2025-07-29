@@ -59,6 +59,7 @@ public:
     //
     // Setters
     //
+    void SetMaterialId(const MaterialID id);
     void SetTexture(const int idx, const TexID texID);
     void SetName(const char* name);
 
