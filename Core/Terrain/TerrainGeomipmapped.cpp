@@ -487,7 +487,7 @@ void TerrainGeomip::SetTexture(const eTexType type, const TexID texID)
     }
 
     // everything is ok so set the texture for terrain's material
-    Material& mat = g_MaterialMgr.GetMaterialByID(materialID_);
+    Material& mat = g_MaterialMgr.GetMaterialById(materialID_);
 
     // NOTE: we used slightly different approach of terrain types:
     // for instance ambient texture type can be used for detail map or something like that

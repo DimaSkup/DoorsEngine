@@ -391,18 +391,24 @@ void CreateSkyBox(ECS::EntityMgr& mgr, SkyModel& sky)
     }
 
     // load a texture for the sky
-    sprintf(g_String, "%s%s", g_RelPathTexDir, skyTexPath.c_str());
-    TexID skyMapID = g_TextureMgr.LoadFromFile(g_String);
+    TexID skyMapID = g_TextureMgr.LoadFromFile(g_RelPathTexDir, skyTexPath.c_str());
 
-    // setup sky model
-    sky.SetTexture(textureIdx, skyMapID);
+    // make and setup a material for the sky
+    Material& mat = g_MaterialMgr.AddMaterial("sky_mat");
+    mat.SetTexture(TEX_TYPE_DIFFUSE, skyMapID);
+    mat.SetCull(MAT_PROP_CULL_NONE);
+    mat.SetFrontClockwise(MAT_PROP_FRONT_COUNTER_CLOCKWISE);
+    mat.SetDepthStencil(MAT_PROP_SKY_DOME);
+
+    sky.SetMaterialId(mat.id);
+
+    // setup sky colors
     sky.SetColorCenter(colorCenter);
     sky.SetColorApex(colorApex);
 
-    // setup sky entity
-    const EntityID enttID = mgr.CreateEntity();
+    // create and setup a sky entity
+    const EntityID enttID = mgr.CreateEntity("sky");
     mgr.AddTransformComponent(enttID, { 0,990,0 });
-    mgr.AddNameComponent(enttID, "sky");
 }
 
 ///////////////////////////////////////////////////////////
@@ -2034,10 +2040,13 @@ void GenerateMaterials()
     flameParticleMat.SetCull(MAT_PROP_CULL_NONE);
     flameParticleMat.SetBlending(MAT_PROP_ALPHA_ENABLE);
     flameParticleMat.SetDepthStencil(MAT_PROP_DEPTH_DISABLED);
+
+    // create 
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// 
+//---------------------------------------------------------
 void LoadAssets(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
 {
     // load models from the internal .de3d format

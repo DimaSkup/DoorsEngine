@@ -543,7 +543,7 @@ void RenderDataPreparator::PrepareTexturesForInstance(Render::Instance& instance
     materials_.resize(numSubsets);
     
     // get materials data by materials IDs (one material per one subset)
-    g_MaterialMgr.GetMaterialsByIDs(instance.materialIDs.data(), numSubsets, materials_);
+    g_MaterialMgr.GetMaterialsByIds(instance.materialIDs.data(), numSubsets, materials_);
 
     // go through each material and store related textures IDs
     for (index i = 0, texIdx = 0; i < numSubsets; ++i)
@@ -581,7 +581,7 @@ void RenderDataPreparator::PrepareMaterialForInstance(
     outMaterials.resize(numMaterials);
 
     // get materials data by materials IDs (one material per one subset)
-    g_MaterialMgr.GetMaterialsByIDs(instance.materialIDs.data(), numSubsets, materials_);
+    g_MaterialMgr.GetMaterialsByIds(instance.materialIDs.data(), numSubsets, materials_);
 
     // go through each material and convert it into the Render::Material
     for (index i = 0; outMatIdx < numMaterials; ++outMatIdx, ++i)

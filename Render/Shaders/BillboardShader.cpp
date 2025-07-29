@@ -73,8 +73,8 @@ void BillboardShader::Render(
 
     // bind vertex/index buffer and textures 2D array as well
     pContext->IASetVertexBuffers(0, 1, &pVB, &stride, &offset);
-    pContext->PSSetShaderResources(1, 1, ppTextureArrSRV);
-    pContext->PSSetShaderResources(2, 1, ppTextureArrSRV+1);
+    //pContext->PSSetShaderResources(1, 1, ppTextureArrSRV);
+    //pContext->PSSetShaderResources(2, 1, ppTextureArrSRV+1);
 
     // draw a billboard
     pContext->Draw(numVertices, 0);

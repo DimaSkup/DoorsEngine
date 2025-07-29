@@ -33,9 +33,9 @@ public:
         const Float4& reflect);
 
     // getters
-    Material&  GetMaterialByID    (const MaterialID id);
+    Material&  GetMaterialById    (const MaterialID id);
     Material&  GetMaterialByName  (const char* name);
-    void       GetMaterialsByIDs  (const MaterialID* ids, const size numMaterials, cvector<Material>& outMaterials);
+    void       GetMaterialsByIds  (const MaterialID* ids, const size numMaterials, cvector<Material>& outMaterials);
     MaterialID GetMaterialIdByName(const char* name) const;
     MaterialID GetMaterialIdByIdx (const index idx) const;
 

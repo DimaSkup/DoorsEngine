@@ -66,13 +66,13 @@ void SkyModel::SetName(const char* newName)
 
 void SkyModel::SetMaterialId(const MaterialID id)
 {
+    if (id == INVALID_MATERIAL_ID)
+    {
+        LogErr(LOG, "input material id is invalid");
+        return;
+    }
 
-}
-
-void SkyModel::SetTexture(const int idx, const TexID texID)
-{
-	CAssert::True((idx > -1) && (idx < maxTexNum_), "wrong data to set texture");
-	texIDs_[idx] = texID;
+    materialId_ = id;
 }
 
 } // namespace Core

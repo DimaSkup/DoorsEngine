@@ -128,7 +128,7 @@ bool MaterialMgr::SetMaterialColorData(
 
 ///////////////////////////////////////////////////////////
 
-Material& MaterialMgr::GetMaterialByID(const MaterialID id)
+Material& MaterialMgr::GetMaterialById(const MaterialID id)
 {
     // check if such model exist if so we get its index,
     // or in another case we return material by idx == 0
@@ -165,7 +165,7 @@ Material& MaterialMgr::GetMaterialByName(const char* matName)
 
 ///////////////////////////////////////////////////////////
 
-void MaterialMgr::GetMaterialsByIDs(
+void MaterialMgr::GetMaterialsByIds(
     const MaterialID* ids,
     const size numMaterials,
     cvector<Material>& outMaterials)
