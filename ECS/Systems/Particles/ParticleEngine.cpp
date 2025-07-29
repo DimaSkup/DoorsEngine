@@ -103,13 +103,13 @@ void ParticleEngine::Explode(const float magnitude, int numParticles)
     particleSystems_[0].CreateParticles(initData.data(), numParticles);
 
 
-    // create particles for system 1
+    // create particles for system 1 (fire)
     const XMFLOAT3 colorSys1 = particleSystems_[1].GetColor();
 
     for (int i = 0; i < numParticles; ++i)
         initData[i].color = colorSys1;
 
-    particleSystems_[1].CreateParticles(initData.data(), numParticles);
+    particleSystems_[1].CreateParticles(initData.data(), 1);
 
 
     // generate random RGB color

@@ -61,8 +61,8 @@ FOG_ENABLED                                 false
 FOG_START                                   80.0f
 FOG_RANGE                                   200.0f
 FOG_RED                                     1.00f 
-FOG_GREEN                                   0.94f
-FOG_BLUE                                    0.85f
+FOG_GREEN                                   1.00f
+FOG_BLUE                                    1.00f
 
 USE_ALPHA_CLIP                              false
 

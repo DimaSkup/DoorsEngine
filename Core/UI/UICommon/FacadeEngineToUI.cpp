@@ -805,7 +805,7 @@ bool FacadeEngineToUI::GetMaterialIdByIdx(const index idx, MaterialID& outMatID)
 
 bool FacadeEngineToUI::GetMaterialNameById(const MaterialID id, char** outName, const int nameMaxLength) const
 {
-    const char* matName = g_MaterialMgr.GetMaterialByID(id).name;
+    const char* matName = g_MaterialMgr.GetMaterialById(id).name;
     return (bool)strncpy(*outName, matName, nameMaxLength);
 }
 
@@ -822,7 +822,7 @@ bool FacadeEngineToUI::GetNumMaterials(size& numMaterials) const
 
 bool FacadeEngineToUI::GetMaterialDataById(const MaterialID id, MaterialData& outData) const
 {
-    Core::Material& mat = g_MaterialMgr.GetMaterialByID(id);
+    Core::Material& mat = g_MaterialMgr.GetMaterialById(id);
 
     outData.id       = id;
     outData.ambient  = Vec4(&mat.ambient.x);

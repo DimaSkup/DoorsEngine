@@ -728,6 +728,14 @@ void CGraphics::BindMaterial(const Material& mat, Render::CRender* pRender)
             renderStates.SetDSS(pContext, SKY_DOME, 0);
             break;
     }
+
+    // bind textures of this material
+    ID3D11ShaderResourceView* texSRVs[2];
+    //texSRVs[0] = g_TextureMgr.GetTexPtrByName("tree_billboard")->GetTextureResourceView();
+    texSRVs[0] = g_TextureMgr.GetTexPtrByName("flare")->GetTextureResourceView();
+    texSRVs[1] = g_TextureMgr.GetTexPtrByName("flame0")->GetTextureResourceView();
+
+    pContext->PSSetShaderResources(5, 2, texSRVs);
 }
 
 //---------------------------------------------------------
@@ -737,16 +745,19 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
 {
     try
     {
+        ID3D11DeviceContext* pContext = pContext_;
+
         // prepare the sky textures: in different shaders we will sample the sky
         // texture pixels so we bind them only once at the beginning of the frame
-        const SkyModel& sky = g_ModelMgr.GetSky();
-        const TexID* skyTexIDs = sky.GetTexIDs();
-        const int skyTexMaxNum = sky.GetMaxTexturesNum();
+        const SkyModel&  sky      = g_ModelMgr.GetSky();
+        const MaterialID skyMatId = sky.GetMaterialId();
+        const Material&  skyMat   = g_MaterialMgr.GetMaterialById(skyMatId);
 
-        // get shader resource views (textures) for the sky
-        ID3D11DeviceContext* pContext = pContext_;
-        g_TextureMgr.GetSRVsByTexIDs(skyTexIDs, skyTexMaxNum, texturesBuf_);
+        // get shader resource views (textures) for the sky 
+        TexID skyTexId = skyMat.textureIDs[TEX_TYPE_DIFFUSE];
+        g_TextureMgr.GetSRVsByTexIDs(&skyTexId, 1, texturesBuf_);
         pContext->PSSetShaderResources(0U, 1U, texturesBuf_.data());
+
 
         // reset the render states before rendering
         pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -756,7 +767,7 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
         renderStates.ResetDSS(pContext);
     
         RenderEnttsDefault(pRender);
-        RenderEnttsAlphaClipCullNone(pRender);
+        //RenderEnttsAlphaClipCullNone(pRender);
         RenderTerrainGeomip(pRender, pEnttMgr);
         //RenderTerrainQuadtree(pRender, pEnttMgr);
         RenderSkyDome(pRender, pEnttMgr);
@@ -907,7 +918,7 @@ bool CGraphics::RenderBigMaterialIcon(
     materialBigIconFrameBuf_.Bind(pContext);
 
     // prepare material data and its textures
-    const Material& mat = g_MaterialMgr.GetMaterialByID(matID);
+    const Material& mat = g_MaterialMgr.GetMaterialById(matID);
 
     const Render::Material renderMat(
         DirectX::XMFLOAT4(&mat.ambient.x),
@@ -995,7 +1006,7 @@ void CGraphics::RenderMaterialsIcons(
         buf.Bind(pContext);
 
         // prepare material data and its textures
-        Material& mat = g_MaterialMgr.GetMaterialByID(matIdx);
+        Material& mat = g_MaterialMgr.GetMaterialById(matIdx);
 
         const Render::Material renderMat(
             XMFLOAT4(&mat.ambient.x),
@@ -1248,15 +1259,10 @@ void CGraphics::RenderBillboards(
     // update the vertex buffer with updated particles data
     vb.UpdateDynamic(g_pContext, vertices.data(), numVertices);
 
-    // prepare textures resource views
-    ID3D11ShaderResourceView* texSRVs[2];
-    texSRVs[0] = g_TextureMgr.GetTexPtrByName("tree_billboard")->GetTextureResourceView();
-    texSRVs[1] = g_TextureMgr.GetTexPtrByName("flare")->GetTextureResourceView();
-
     pRender->shadersContainer_.billboardShader_.Render(
         g_pContext,
         vb.Get(),
-        texSRVs,
+        nullptr,
         sizeof(BillboardSprite),       // vertex stride
         numVertices);
 
@@ -1288,11 +1294,13 @@ void CGraphics::RenderSkyDome(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr
     // setup rendering pipeline before rendering of the sky dome
     ID3D11DeviceContext* pContext = pContext_;
 
-    RenderStates& renderStates = d3d_.GetRenderStates();
-    renderStates.SetRS(pContext, { FILL_SOLID, CULL_NONE, FRONT_COUNTER_CLOCKWISE });
-    renderStates.ResetBS(pContext);
-    renderStates.SetDSS(pContext, SKY_DOME, 1);
+    // bind sky material
+    const Material& skyMat = g_MaterialMgr.GetMaterialById(sky.GetMaterialId());
+    BindMaterial(skyMat, pRender);
 
+   
+
+    //renderStates.SetDSS(pContext, SKY_DOME, 1);
 
     // compute a worldViewProj matrix for the sky instance
     const XMFLOAT3 skyOffset     = pEnttMgr->transformSystem_.GetPosition(skyEnttID);
@@ -1327,7 +1335,7 @@ void CGraphics::RenderTerrainGeomip(Render::CRender* pRender, ECS::EntityMgr* pE
     Render::TerrainInstance instance;
 
     // prepare material
-    const Material& mat = g_MaterialMgr.GetMaterialByID(terrain.materialID_);
+    const Material& mat = g_MaterialMgr.GetMaterialById(terrain.materialID_);
     memcpy(&instance.material.ambient_.x,  &mat.ambient.x,  sizeof(float) * 4);
     memcpy(&instance.material.diffuse_.x,  &mat.diffuse.x,  sizeof(float) * 4);
     memcpy(&instance.material.specular_.x, &mat.specular.x, sizeof(float) * 4);
@@ -1414,7 +1422,7 @@ void CGraphics::RenderTerrainQuadtree(Render::CRender* pRender, ECS::EntityMgr* 
     Render::TerrainInstance instance;
 
     // prepare material
-    const Material& mat = g_MaterialMgr.GetMaterialByID(terrain.GetMaterialId());
+    const Material& mat = g_MaterialMgr.GetMaterialById(terrain.GetMaterialId());
     memcpy(&instance.material.ambient_.x,  &mat.ambient.x,  sizeof(float) * 4);
     memcpy(&instance.material.diffuse_.x,  &mat.diffuse.x,  sizeof(float) * 4);
     memcpy(&instance.material.specular_.x, &mat.specular.x, sizeof(float) * 4);

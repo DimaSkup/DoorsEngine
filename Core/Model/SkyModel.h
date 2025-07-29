@@ -45,12 +45,11 @@ public:
     inline int GetNumVertices()              const { return vb_.GetVertexCount(); };
     inline int GetNumIndices()               const { return ib_.GetIndexCount(); }
     inline int GetVertexStride()             const { return vb_.GetStride(); }
-    inline int GetMaxTexturesNum()           const { return maxTexNum_; }
 
     inline ID3D11Buffer* GetVertexBuffer()   const { return vb_.Get(); }
     inline ID3D11Buffer* GetIndexBuffer()    const { return ib_.Get(); }
     inline const char* GetName()             const { return name_; }
-    inline const TexID* GetTexIDs()          const { return texIDs_; }
+    inline MaterialID GetMaterialId()        const { return materialId_; }
 
     inline const DirectX::XMFLOAT3& GetColorCenter()  const { return colorCenter_; }
     inline const DirectX::XMFLOAT3& GetColorApex()    const { return colorApex_; }
@@ -60,7 +59,6 @@ public:
     // Setters
     //
     void SetMaterialId(const MaterialID id);
-    void SetTexture(const int idx, const TexID texID);
     void SetName(const char* name);
 
     inline void SetColorCenter(const DirectX::XMFLOAT3& c) { colorCenter_ = c; }
@@ -68,10 +66,8 @@ public:
 
 
 private:
-    const int                 maxTexNum_ = 6;                // how many textures the sky can have
-
-    TexID                     texIDs_[6]{0};
-    char                      name_[32] = "sky_model";
+    MaterialID                materialId_ = INVALID_MATERIAL_ID;
+    char                      name_[16]   = "sky_model";
 
     VertexBuffer<Vertex3DPos> vb_;
     IndexBuffer<USHORT>       ib_;
