@@ -42,7 +42,7 @@ void ReadAndCreateSystem(ParticleEngine* pParticleEngine, FILE* pFile)
     DirectX::XMFLOAT3 color           = { 0,0,0 };
     DirectX::XMFLOAT3 forces          = { 0,0,0 };
     int               maxNumParticles = 0;
-    int               lifetimeMs      = 0;
+    float             lifetimeMs      = 0;
     float             particleSize    = 0;
     float             mass            = 0;
     float             friction        = 0;          // air resistance
@@ -52,7 +52,7 @@ void ReadAndCreateSystem(ParticleEngine* pParticleEngine, FILE* pFile)
     fscanf(pFile, "particle_system: %s\n",          &particleSysName);
     fscanf(pFile, "max_num_particles: %d\n",        &maxNumParticles);
     fscanf(pFile, "emitter_pos: %f, %f, %f\n",      &pos.x, &pos.y, &pos.z);
-    fscanf(pFile, "lifetime_ms: %d\n",              &lifetimeMs);
+    fscanf(pFile, "lifetime_ms: %f\n",              &lifetimeMs);
     fscanf(pFile, "color: %f, %f, %f\n",            &color.x, &color.y, &color.z);
 
     fscanf(pFile, "size: %f\n",                     &particleSize);
