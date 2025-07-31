@@ -9,6 +9,8 @@ Core/.vs/
 ImGui/x64/
 ImGui/Win32/
 ImageRender/x64
+Image/Win32/
+Image/x64
 Render/x64
 Sandbox/x64
 Shared/x64
