@@ -13,6 +13,7 @@ public:
     ~ParticleEngine();
 
     void Update(const float deltaTime);
+    bool LoadFromFile(const char* configPath);
 
     void Explode(const float magnitude, int numParticles);
     const cvector<ParticleRenderInstance>& GetParticlesToRender();

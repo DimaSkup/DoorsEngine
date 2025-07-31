@@ -766,29 +766,13 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
         renderStates.ResetBS(pContext);
         renderStates.ResetDSS(pContext);
     
-        RenderEnttsDefault(pRender);
+        //RenderEnttsDefault(pRender);
         //RenderEnttsAlphaClipCullNone(pRender);
-        RenderTerrainGeomip(pRender, pEnttMgr);
+        //RenderTerrainGeomip(pRender, pEnttMgr);
         //RenderTerrainQuadtree(pRender, pEnttMgr);
         RenderSkyDome(pRender, pEnttMgr);
 
         RenderBillboards(pRender, pEnttMgr);
-      
-
-#if 0
-        pDeviceContext_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-
-        const EntityID* visEntts = entityMgr_.renderSystem_.GetAllVisibleEntts().data();
-        const size numVisEntts = entityMgr_.renderSystem_.GetVisibleEnttsCount();
-
-        // check if we are able and need to render bounding line boxes
-        if ((numVisEntts != 0) && (aabbShowMode_ != NONE))
-            return;
-
-        RenderBoundingLineBoxes(pRender, pEnttMgr, visEntts, numVisEntts);
-        RenderBoundingLineSpheres();
-        RenderEnttsBlended();
-#endif
     }
     catch (const std::out_of_range& e)
     {
@@ -821,7 +805,8 @@ void InitMatIconFrameBuffer(
     frameBufSpec.screenNear     = nearZ;
     frameBufSpec.screenDepth    = farZ;
 
-    // TODO: if input params differ from the frame buffer's params we need to recreate the frame buffer according to new params
+    // TODO: if input params differ from the frame buffer's params we
+    // need to recreate the frame buffer according to new params
     
     buf.Initialize(pDevice, frameBufSpec);
 }
