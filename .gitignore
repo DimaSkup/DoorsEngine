@@ -12,6 +12,7 @@ ImageRender/x64
 Image/Win32/
 Image/x64
 Render/x64
+Render/Win32/
 Sandbox/x64
 Shared/x64
 Shared/Win32
