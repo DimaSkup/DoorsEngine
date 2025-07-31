@@ -2,12 +2,13 @@
 #include <DMath.h>
 #include <log.h>
 #include <MathHelper.h>
+#pragma warning (disable : 6031)
 
 using namespace DirectX;
 
+
 namespace ECS
 {
-
 
 //---------------------------------------------------------
 // Desc:   default constructor and destructor
@@ -28,6 +29,101 @@ void ParticleEngine::Update(const float deltaTime)
 {
     for (ParticleSystem& sys : particleSystems_)
         sys.Update(deltaTime);
+}
+
+//---------------------------------------------------------
+// Desc:    load data for file and create a new particle system using this data
+// Args:    - pFile:   particles config file descriptor
+//---------------------------------------------------------
+void ReadAndCreateSystem(ParticleEngine* pParticleEngine, FILE* pFile)
+{
+    char              particleSysName[32]{'\0'};
+    DirectX::XMFLOAT3 pos             = { 0,0,0 };
+    DirectX::XMFLOAT3 color           = { 0,0,0 };
+    DirectX::XMFLOAT3 forces          = { 0,0,0 };
+    int               maxNumParticles = 0;
+    int               lifetimeMs      = 0;
+    float             particleSize    = 0;
+    float             mass            = 0;
+    float             friction        = 0;          // air resistance
+    
+
+    // read in data from file
+    fscanf(pFile, "particle_system: %s\n",          &particleSysName);
+    fscanf(pFile, "max_num_particles: %d\n",        &maxNumParticles);
+    fscanf(pFile, "emitter_pos: %f, %f, %f\n",      &pos.x, &pos.y, &pos.z);
+    fscanf(pFile, "lifetime_ms: %d\n",              &lifetimeMs);
+    fscanf(pFile, "color: %f, %f, %f\n",            &color.x, &color.y, &color.z);
+
+    fscanf(pFile, "size: %f\n",                     &particleSize);
+    fscanf(pFile, "mass: %f\n",                     &mass);
+    fscanf(pFile, "friction: %f\n",                 &friction);   
+    fscanf(pFile, "external_forces: %f, %f, %f\n",  &forces.x, &forces.y, &forces.z);
+    fscanf(pFile, "\n");
+
+
+    // add and setup particle system
+    ECS::ParticleSystem& sys = pParticleEngine->AddNewParticleSys(maxNumParticles);
+    sys.SetEmitPos(pos.x, pos.y, pos.z);
+    sys.SetLife(lifetimeMs);
+    sys.SetColor(color.x, color.y, color.z);
+    sys.SetSize(particleSize);
+    sys.SetMass(mass);
+    sys.SetFriction(friction);
+    sys.SetExternalForces(forces.x, forces.y, forces.z);
+
+
+#if 0
+    SetConsoleColor(CYAN);
+
+    // print system data (debug)
+    LogMsg("system name: %s", particleSysName);
+    LogMsg("emitter pos: %f %f %f", pos.x, pos.y, pos.z);
+    LogMsg("lifetime (ms): %d", lifetimeMs);
+    LogMsg("color: %f %f %f", color.x, color.y, color.z);
+    LogMsg("size: %f", particleSize);
+    LogMsg("mass: %f", mass);
+    LogMsg("friction: %f", friction);
+    LogMsg("extern forces: %f %f %f", forces.x, forces.y, forces.z);
+
+    LogMsg("\n");
+#endif
+}
+
+//---------------------------------------------------------
+// Desc:    load particles systems data from config file
+// Args:    - configPath:  a path to the particles config file
+//                         (relatively to the working directory)
+// Ret:     true if we managed to it
+//---------------------------------------------------------
+bool ParticleEngine::LoadFromFile(const char* configPath)
+{
+    // check input args
+    if (!configPath || configPath[0] == '\0')
+    {
+        LogErr(LOG, "input path to particles config is empty");
+        return false;
+    }
+
+    // open config file
+    FILE* pFile = fopen(configPath, "r");
+    if (!pFile)
+    {
+        LogErr(LOG, "can't open particles config file: %s", configPath);
+        return false;
+    }
+
+    int  numParticleSys  = 0;
+
+    // read in configs
+    fscanf(pFile, "num_particle_systems: %d\n", &numParticleSys);
+    fscanf(pFile, "\n");
+
+    // read in a system
+    for (int i = 0; i < numParticleSys; ++i)
+        ReadAndCreateSystem(this, pFile);
+
+    return true;
 }
 
 //---------------------------------------------------------

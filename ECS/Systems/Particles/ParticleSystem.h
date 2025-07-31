@@ -59,8 +59,8 @@ public:
     {   mass_ = mass;   }
 
     // set the size of a created particle
-    inline void SetSize(const float pixelSize)
-    {   size_ = pixelSize; }
+    inline void SetSize(const float sz)
+    {   size_ = sz; }
 
     // set the color of a created particle
     inline void SetColor(const float r, const float g, const float b)

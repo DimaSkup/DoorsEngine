@@ -45,50 +45,8 @@ bool Game::Init(
     // INIT PARTICLES
     constexpr int maxNumParticles = 10000;
     ECS::ParticleEngine& particleEngine  = pEnttMgr->particleEngine_;
-    ECS::ParticleSystem& particleSys1    = particleEngine.AddNewParticleSys(maxNumParticles);
-    ECS::ParticleSystem& fireParticleSys = particleEngine.AddNewParticleSys(maxNumParticles);
-    ECS::ParticleSystem& particleSys3    = particleEngine.AddNewParticleSys(maxNumParticles);
+    particleEngine.LoadFromFile("data/particles/particles.cfg");
 
-    const int offsetOverTerrain = 5;
-
-    // setup the first particle system
-    int posX = 250;
-    int posZ = 215;
-    float posY = terrain.GetScaledHeightAtPoint(posX, posZ) + offsetOverTerrain;
-    particleSys1.SetEmitPos((float)posX, posY, (float)posZ);
-
-    particleSys1.SetLife(1000);
-    particleSys1.SetColor(0.1f, 1.0f, 0.25f);
-    particleSys1.SetSize(0.05f);
-    particleSys1.SetMass(1.25f);
-    particleSys1.SetFriction(0.01f);
-    particleSys1.SetExternalForces(0.0f, -0.001f, 0.0f);
-
-    // setup the second particle system
-    posX = 270;
-    posZ = 215;
-    posY = terrain.GetScaledHeightAtPoint(posX, posZ) + offsetOverTerrain;
-    fireParticleSys.SetEmitPos((float)posX, posY, (float)posZ);
-
-    fireParticleSys.SetLife(1000);
-    fireParticleSys.SetColor(1.0f, 1.0f, 0.0f);
-    fireParticleSys.SetSize(2.0f);
-    fireParticleSys.SetMass(0.5f);
-    fireParticleSys.SetFriction(0.05f);
-    fireParticleSys.SetExternalForces(0.0f, 0.01f, 0.0f);
-
-    // setup the second particle system
-    posX = 260;
-    posZ = 215;
-    posY = terrain.GetScaledHeightAtPoint(posX, posZ) + offsetOverTerrain;
-    particleSys3.SetEmitPos((float)posX, posY, (float)posZ);
-
-    particleSys3.SetLife(10000);
-    particleSys3.SetColor(1.0f, 0.96f, 0.0f);
-    particleSys3.SetSize(0.05f);
-    particleSys3.SetMass(1.0f);
-    particleSys3.SetFriction(0.01f);
-    particleSys3.SetExternalForces(0.0f, 0.0f, 0.0f);
 
     return true;
 }

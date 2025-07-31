@@ -24,14 +24,10 @@
 // Entity-Component-System
 #include "Entity/EntityMgr.h"
 
-//#include <map>
 #include <DirectXCollision.h>
 
 namespace Core
 {
-
-
-// --------------------------------------------------------
 
 class CGraphics
 {

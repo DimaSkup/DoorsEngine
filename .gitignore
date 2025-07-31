@@ -6,10 +6,12 @@ ECS/x64/
 Core/x64/
 Core/.vs/
 ImGui/x64/
+ImGui/Win32/
 ImageRender/x64
 Render/x64
 Sandbox/x64
 Shared/x64
+Shared/Win32
 Lib/
 packages/
 DirectXTex/.vs/
