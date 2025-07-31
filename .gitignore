@@ -3,6 +3,7 @@
 
 x64/
 ECS/x64/
+ECS/Win32/
 Core/x64/
 Core/.vs/
 ImGui/x64/

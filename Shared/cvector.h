@@ -91,7 +91,7 @@ public:
     inline void  assign(std::initializer_list<T> il) { assign(il.begin(), il.end()); };
 
     // get index(or indices) for sorted insertion / insertion
-    index get_insert_idx(const ptrdiff_t& value) const;
+    index get_insert_idx(const ptrdiff_t value) const;
     void  get_insert_idxs(const cvector<T>& values, cvector<index>& idxs) const;
     void  get_insert_idxs(const T* values, const vsize numValues, cvector<index>& idxs) const;
     void  insert_before(const vsize idx, const T& val);
@@ -473,7 +473,7 @@ inline void cvector<T>::erase(const vsize index)
 // ----------------------------------------------------
 
 template <typename T>
-index cvector<T>::get_insert_idx(const ptrdiff_t& value) const
+index cvector<T>::get_insert_idx(const ptrdiff_t value) const
 {
     // get position (index) into array for sorted INSERTION;
     // is used together with insert_before() method
