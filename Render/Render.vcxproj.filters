@@ -54,7 +54,7 @@
     <ClCompile Include="Shaders\OutlineShader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Shaders\BillboardShader.cpp">
+    <ClCompile Include="Shaders\ParticleShader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Shaders\GeometryShader.cpp">
@@ -119,7 +119,7 @@
     <ClInclude Include="Shaders\OutlineShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Shaders\BillboardShader.h">
+    <ClInclude Include="Shaders\ParticleShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Shaders\GeometryShader.h">
@@ -167,9 +167,9 @@
     <FxCompile Include="hlsl\SkyDomeVS.hlsl" />
     <FxCompile Include="hlsl\OutlineVS.hlsl" />
     <FxCompile Include="hlsl\OutlinePS.hlsl" />
-    <FxCompile Include="hlsl\billboardVS.hlsl" />
-    <FxCompile Include="hlsl\billboardPS.hlsl" />
-    <FxCompile Include="hlsl\billboardGS.hlsl" />
+    <FxCompile Include="hlsl\particleVS.hlsl" />
+    <FxCompile Include="hlsl\particlePS.hlsl" />
+    <FxCompile Include="hlsl\particleGS.hlsl" />
     <FxCompile Include="hlsl\MaterialIconVS.hlsl" />
     <FxCompile Include="hlsl\MaterialIconPS.hlsl" />
     <FxCompile Include="hlsl\TerrainPS.hlsl" />

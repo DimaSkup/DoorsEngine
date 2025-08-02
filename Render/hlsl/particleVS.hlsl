@@ -1,4 +1,12 @@
 //
+// CONST BUFFERS
+//
+cbuffer cbPosOffset : register(b4)
+{
+    float3 gPosOffset;
+};
+
+//
 // TYPEDEFS
 //
 struct VS_IN
@@ -27,7 +35,7 @@ VS_OUT VS(VS_IN vin)
 	VS_OUT vout;
 
 	// just pass data over to geometry shader
-	vout.centerW = vin.posW;
+	vout.centerW = vin.posW + gPosOffset;
     vout.translucency = vin.translucency;
     vout.color = vin.color;
 	vout.sizeW = vin.size;

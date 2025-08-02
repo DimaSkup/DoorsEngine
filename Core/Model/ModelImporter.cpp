@@ -326,7 +326,7 @@ void ModelImporter::ProcessMesh(
         LoadMaterialColorsData(pAiMat, material);
 
         // load available textures for this mesh and store IDs of these texture into the material
-        LoadMaterialTextures(pDevice, material.textureIDs, pAiMat, subset, pScene, filePath);
+        LoadMaterialTextures(pDevice, material.textureIds, pAiMat, subset, pScene, filePath);
 
         // store a material into the material manager and also store its material ID into the subset (mesh)
         strncpy(material.name, pAiMat->GetName().C_Str(), MAX_LENGTH_MATERIAL_NAME);

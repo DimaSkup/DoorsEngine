@@ -31,6 +31,9 @@ public:
     void SwitchFlashLight(ECS::EntityMgr& mgr, Render::CRender& render);
 
 private:
+    void InitParticles(ECS::EntityMgr& mgr);
+
+private:
     Core::Engine*    pEngine_    = nullptr;
     ECS::EntityMgr*  pEnttMgr_ = nullptr;
     Render::CRender* pRender_    = nullptr;

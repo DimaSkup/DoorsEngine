@@ -550,7 +550,7 @@ void RenderDataPreparator::PrepareTexturesForInstance(Render::Instance& instance
     {
         for (index j = 0; j < NUM_TEXTURE_TYPES; ++j)
         {
-            texturesIDs_[texIdx++] = materials_[i].textureIDs[j]; // TODO: memcpy
+            texturesIDs_[texIdx++] = materials_[i].textureIds[j]; // TODO: memcpy
         }
     }
 

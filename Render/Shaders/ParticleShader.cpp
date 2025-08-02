@@ -1,8 +1,8 @@
 // ====================================================================================
-// Filename: BillboardShader.cpp
+// Filename: ParticleShader.cpp
 // ====================================================================================
 #include "../Common/pch.h"
-#include "BillboardShader.h"
+#include "ParticleShader.h"
 
 #pragma warning (disable : 4996)
 
@@ -10,18 +10,21 @@
 namespace Render
 {
 
-BillboardShader::BillboardShader()
+ParticleShader::ParticleShader()
 {
     strcpy(className_, __func__);
 }
 
-BillboardShader::~BillboardShader()
+ParticleShader::~ParticleShader()
 {
 }
 
-///////////////////////////////////////////////////////////
-
-bool BillboardShader::Initialize(
+//---------------------------------------------------------
+// Desc:   initialize the particle shader: setup hlsl shaders/sampler_state
+// Args:   - vsFilePath, psFilePath, gsFilePath: paths to shaders (vertex, pixel, geometry)
+// Ret:    true if we managed to init successfully
+//---------------------------------------------------------
+bool ParticleShader::Initialize(
     ID3D11Device* pDevice,
     const char* vsFilePath,
     const char* psFilePath,
@@ -46,54 +49,66 @@ bool BillboardShader::Initialize(
 }
 
 //---------------------------------------------------------
-// Desc:   render an array of points as billboards
+// Desc:   prepare the shader for rendering (bind all necessary stuff)
 // Args:   - pContext:         DirectX11 device context
 //         - pVB:              a pointer to the vertex buffer
-//         - ppTextureArrSRV:  2d array of textures shader resources
 //         - stride:           size in bytes of a single vertex
-//         - numVertices:      how many vertices will we render as billboards
 //---------------------------------------------------------
-void BillboardShader::Render(
+void ParticleShader::Prepare(
     ID3D11DeviceContext* pContext,
     ID3D11Buffer* pVB,
-    SRV* const* ppTextureArrSRV,
-    const UINT stride,             
-    const UINT numVertices)
+    const UINT stride)
 {
     pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 
-    // bind input layout, shaders, samplers
-    pContext->IASetInputLayout(vs_.GetInputLayout());
+    // bind input layout, shaders, samplers, const buffers
     pContext->VSSetShader(vs_.GetShader(), nullptr, 0);
-    pContext->GSSetShader(gs_.GetShader(), nullptr, 0);
+    pContext->IASetInputLayout(vs_.GetInputLayout());
     pContext->PSSetShader(ps_.GetShader(), nullptr, 0);
     pContext->PSSetSamplers(0, 1, samplerState_.GetAddressOf());
+    pContext->VSSetConstantBuffers(4, 1, cbvsParticlesOffset_.GetAddressOf());
 
+    // bind vertex buffer
     UINT offset = 0;
-
-    // bind vertex/index buffer and textures 2D array as well
     pContext->IASetVertexBuffers(0, 1, &pVB, &stride, &offset);
-    //pContext->PSSetShaderResources(1, 1, ppTextureArrSRV);
-    //pContext->PSSetShaderResources(2, 1, ppTextureArrSRV+1);
+}
 
-    // draw a billboard
-    pContext->Draw(numVertices, 0);
+//---------------------------------------------------------
+// Desc:   render an array of points as billboards
+// Args:   - pContext:         DirectX11 device context
+//         - posOffset:        position offset for each particle
+//         - baseVertex:       start rendering from this vertex idx
+//         - numVertices:      how many vertices will we render as billboards
+//---------------------------------------------------------
+void ParticleShader::Render(
+    ID3D11DeviceContext* pContext,
+    const DirectX::XMFLOAT3& posOffset,
+    const UINT baseVertex,
+    const UINT numVertices)
+{
+    // bind the geometry shader
+    pContext->GSSetShader(gs_.GetShader(), nullptr, 0);
+
+    // setup the particles position offset
+    cbvsParticlesOffset_.data.posW = posOffset;
+    cbvsParticlesOffset_.ApplyChanges(pContext);
+
+    // draw particles set
+    pContext->Draw(numVertices, baseVertex);
 
     // unbind the geometry shader
     pContext->GSSetShader(nullptr, nullptr, 0);
 }
 
-///////////////////////////////////////////////////////////
-
-void BillboardShader::InitializeShaders(
+//---------------------------------------------------------
+// Desc:    initialization helper
+//---------------------------------------------------------
+void ParticleShader::InitializeShaders(
     ID3D11Device* pDevice,
     const char* vsFilePath,
     const char* psFilePath,
     const char* gsFilePath)
 {
-    // initialized the vertex shader, pixel shader, input layout, 
-    // sampler state, and different constant buffers
-
     bool result = false;
 
     const D3D11_INPUT_ELEMENT_DESC inputLayoutDesc[] =
@@ -119,6 +134,17 @@ void BillboardShader::InitializeShaders(
 
     result = samplerState_.Initialize(pDevice);
     CAssert::True(result, "can't initialize the sampler state");
+
+    HRESULT hr = cbvsParticlesOffset_.Initialize(pDevice);
+    CAssert::NotFailed(hr, "can't init a const buffer for particles offset");
+
+
+    // setup the const buffers with initial data
+    ID3D11DeviceContext* pContext = nullptr;
+    pDevice->GetImmediateContext(&pContext);
+
+    cbvsParticlesOffset_.data.posW = { 0,0,0 };
+    cbvsParticlesOffset_.ApplyChanges(pContext);
 }
 
 } // namespace Render

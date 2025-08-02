@@ -187,7 +187,7 @@ bool FacadeEngineToUI::GetAllEnttsIDs(
     int& outNumEntts) const
 {
     outPtrToEnttsIDsArr = pEntityMgr_->GetAllEnttsIDs();    // +1 because entity by [0] is the default invalid entity
-    outNumEntts         = static_cast<int>(pEntityMgr_->GetNumAllEntts() - 1);
+    outNumEntts         = static_cast<int>(pEntityMgr_->GetNumAllEntts());
     return true;
 }
 
@@ -831,7 +831,7 @@ bool FacadeEngineToUI::GetMaterialDataById(const MaterialID id, MaterialData& ou
     outData.reflect  = Vec4(&mat.reflect.x);
 
     strncpy(outData.name, mat.name, MAX_LENGTH_MATERIAL_NAME);
-    memcpy(outData.textureIDs, mat.textureIDs, sizeof(TexID) * NUM_TEXTURE_TYPES);
+    memcpy(outData.textureIDs, mat.textureIds, sizeof(TexID) * NUM_TEXTURE_TYPES);
 
     outData.properties = mat.properties;
 

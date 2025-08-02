@@ -745,6 +745,21 @@ void EntityMgr::AddPlayerComponent(const EntityID id)
     }
 }
 
+//---------------------------------------------------------
+// Desc:   add a particle emitter to the entity by input ID
+// Args:   - id:  entity identifier
+//         - sys: particle system (type of particles;
+//         for instance: fire, so there will be rendered a fire in this entity position)
+//---------------------------------------------------------
+void EntityMgr::AddParticleEmitterComponent(const EntityID id, ParticleSystem& sys)
+{
+    if (!sys.AddEmitter(id))
+    {
+        LogErr(LOG, "can't add emitter component (entt id: %d, particle_sys: %s)", id, sys.GetName());
+    }
+}
+
+
 // ************************************************************************************
 //                               PRIVATE HELPERS
 // ************************************************************************************

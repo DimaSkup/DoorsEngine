@@ -42,11 +42,9 @@ bool Game::Init(
 
     const TerrainGeomip& terrain = g_ModelMgr.GetTerrainGeomip();
 
-    // INIT PARTICLES
-    constexpr int maxNumParticles = 10000;
-    ECS::ParticleEngine& particleEngine  = pEnttMgr->particleEngine_;
-    particleEngine.LoadFromFile("data/particles/particles.cfg");
+    InitParticles(*pEnttMgr);
 
+    pRender->ShadersHotReload(pEngine->GetGraphicsClass().GetD3DClass().GetDevice());
 
     return true;
 }
@@ -57,7 +55,21 @@ bool Game::Init(
 //---------------------------------------------------------
 bool Game::Update(const float deltaTime)
 {
-    pEnttMgr_->particleEngine_.Explode(0.15f, 100);
+    cvector<ECS::ParticleSystem>& particleSystems = pEnttMgr_->particleEngine_.particleSystems_;
+
+    // generate particles for different particle systems
+#if 0
+    particleSystems[0].CreateParticles(10);
+    //particleSystems[1].CreateParticle();
+    //particleSystems[2].CreateParticles(5);
+#else
+
+    particleSystems[0].CreateParticles(deltaTime);
+    particleSystems[1].CreateParticles(deltaTime);
+    particleSystems[2].CreateParticles(deltaTime);
+
+#endif
+
 
     if (pEngine_->IsGameMode())
     {
@@ -272,6 +284,72 @@ void Game::SwitchFlashLight(ECS::EntityMgr& mgr, Render::CRender& render)
         mgr.transformSystem_.SetPosition(flashlightID, player.GetPosition());
         mgr.transformSystem_.SetDirection(flashlightID, player.GetDirVec());
     }
+}
+
+//---------------------------------------------------------
+//---------------------------------------------------------
+void Game::InitParticles(ECS::EntityMgr& enttMgr)
+{
+    // INIT PARTICLES SYSTEMS
+    ECS::ParticleEngine& particleEngine = enttMgr.particleEngine_;
+    particleEngine.LoadFromFile("data/particles/particles.cfg");
+
+
+    // TEMP: manually setup material for each particles system
+    const MaterialID matIdFlame = g_MaterialMgr.GetMaterialIdByName("flameMat");
+    const MaterialID matIdFlare = g_MaterialMgr.GetMaterialIdByName("flareMat");
+    const MaterialID matIdCat   = g_MaterialMgr.GetMaterialIdByName("catParticleMat");
+
+    ECS::ParticleSystem& particleSysSparcles   = particleEngine.GetSystemByName("sparcles");
+    ECS::ParticleSystem& particleSysFire       = particleEngine.GetSystemByName("fire");
+    ECS::ParticleSystem& particleSysMagicSpell = particleEngine.GetSystemByName("magic_spell");
+
+    particleSysSparcles.SetMaterialId(matIdFlare);
+    particleSysFire.SetMaterialId(matIdFlame);
+    particleSysMagicSpell.SetMaterialId(matIdCat);
+
+    const DirectX::XMFLOAT3 aabbCenter  = { 0,0,0 };
+    const DirectX::XMFLOAT3 aabbExtents = { 0.5f, 0.5f, 0.5f };
+    const DirectX::BoundingBox& aabb = { aabbCenter, aabbExtents };
+
+    // setup point light for flame
+    ECS::PointLightsInitParams pointLightsParams;
+    pointLightsParams.data.resize(1);
+    ECS::PointLight& initData = pointLightsParams.data[0];
+
+    initData.diffuse = { 0.8f, 0.6f, 0.05f, 1.0f };
+    initData.ambient = initData.diffuse * 0.25f;
+    initData.specular = initData.diffuse;
+    initData.att = { 0.1f, 0.1f, 0.005f };
+    initData.range = 50;
+
+    // create flame entity
+    const EntityID flame1EnttId = enttMgr.CreateEntity("flame1");
+    enttMgr.AddTransformComponent(flame1EnttId, { 257,101,235 });
+    enttMgr.AddParticleEmitterComponent(flame1EnttId, particleSysFire);
+    enttMgr.AddBoundingComponent(flame1EnttId, ECS::BoundingType::BOUND_BOX, aabb);
+    enttMgr.AddLightComponent(&flame1EnttId, 1, pointLightsParams);
+
+    // create flame entity
+    const EntityID flame2EnttId = enttMgr.CreateEntity("flame2");
+    enttMgr.AddTransformComponent(flame2EnttId, { 240,77,215 });
+    enttMgr.AddParticleEmitterComponent(flame2EnttId, particleSysFire);
+    enttMgr.AddBoundingComponent(flame2EnttId, ECS::BoundingType::BOUND_BOX, aabb);
+    enttMgr.AddLightComponent(&flame2EnttId, 1, pointLightsParams);
+
+
+    initData.diffuse  = { 0.0f, 0.8f, 0.05f, 1.0f };
+    initData.ambient  = initData.diffuse * 0.25f;
+    initData.specular = initData.diffuse;
+    initData.att      = { 0, 0.1f, 0.005f };
+    initData.range    = 50;
+
+    // create green sparcles entity
+    const EntityID sparclesEnttId = enttMgr.CreateEntity("sparcles");
+    enttMgr.AddTransformComponent(sparclesEnttId, { 250,77,215 });
+    enttMgr.AddParticleEmitterComponent(sparclesEnttId, particleSysSparcles);
+    enttMgr.AddBoundingComponent(sparclesEnttId, ECS::BoundingType::BOUND_BOX, aabb);
+    enttMgr.AddLightComponent(&sparclesEnttId, 1, pointLightsParams);
 }
 
 } // namespace

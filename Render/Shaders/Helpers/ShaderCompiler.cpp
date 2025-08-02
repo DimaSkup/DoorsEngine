@@ -5,8 +5,8 @@
 #include <log.h>
 #include <d3dx11async.h>   // is neccessary for the D3DX11CompileFromFile() function
 #include <d3dcompiler.h>   // for using shader flags
-
 #pragma warning (disable : 4996)
+
 
 namespace Render
 {
@@ -52,8 +52,7 @@ HRESULT ShaderCompiler::CompileShaderFromFile(
     // even if there are no errorMsgs, check to make sure there were no other errors
     if (FAILED(hr))
     {
-        sprintf(g_String, "can't compile a shader function (%s); from the shader file: %s", functionName, (char*)filename);
-        LogErr(g_String);
+        LogErr(LOG, "can't compile a shader function (%s); from the shader file: %s", functionName, (char*)filename);
     }
 
     return hr;

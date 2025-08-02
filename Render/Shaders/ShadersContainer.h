@@ -18,7 +18,7 @@
 #include "FontShader.h"                 // for rendering text onto the screen
 #include "SkyDomeShader.h"              // for rendering the sky
 #include "OutlineShader.h"              // for rendering an outline around model
-#include "BillboardShader.h"
+#include "ParticleShader.h"
 #include "MaterialIconShader.h"         // is used for rendering material icon (sphere + single material) which is showing in the editor's material browser
 #include "TerrainShader.h"
 
@@ -48,9 +48,9 @@ namespace Render
 		DebugShader         debugShader_;
 		SkyDomeShader       skyDomeShader_;
 		OutlineShader       outlineShader_;
-		BillboardShader     billboardShader_;
-        MaterialIconShader  materialIconShader_;
+		ParticleShader      particleShader_;
 
+        MaterialIconShader  materialIconShader_;
         TerrainShader       terrainShader_;
 	};
 }

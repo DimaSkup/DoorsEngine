@@ -46,8 +46,6 @@ public:
     CRender(const CRender& obj) = delete;
     CRender& operator=(const CRender& obj) = delete;
 
-    // setup logger file ptr if we want to write logs into the file
-    void SetupLogger(FILE* pFile);
 
     // initialize the rendering subsystem
     bool Initialize(

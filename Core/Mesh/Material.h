@@ -75,7 +75,7 @@ struct Material
     MaterialID id = INVALID_MATERIAL_ID;
     char       name[MAX_LENGTH_MATERIAL_NAME] = { "invalid" };
 
-    TexID      textureIDs[NUM_TEXTURE_TYPES]{ INVALID_TEXTURE_ID };
+    TexID      textureIds[NUM_TEXTURE_TYPES]{ INVALID_TEXTURE_ID };
     uint32     properties = 0;                                      // bitfield for materials properties
 
     //-----------------------------------------------------
@@ -113,7 +113,7 @@ struct Material
 
     //-----------------------------------------------------
 
-    inline void SetTexture(const eTexType type, const TexID id)                          { textureIDs[type] = id; }
+    inline void SetTexture(const eTexType type, const TexID id)                          { textureIds[type] = id; }
 
     inline void SetAmbient (const float r, const float g, const float b, const float a)  { ambient = Float4(r,g,b,a); }
     inline void SetDiffuse (const float r, const float g, const float b, const float a)  { diffuse = Float4(r,g,b,a); }

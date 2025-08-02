@@ -61,12 +61,12 @@ bool InitRender::InitializeShaders(
         CAssert::True(result, "can't initialize the sky dome shader");
         
 
-        // outline / billboard / material_icon
+        // outline / particle / material_icon
         result = shadersContainer.outlineShader_.Initialize(pDevice, "shaders/OutlineVS.cso", "shaders/OutlinePS.cso");
         CAssert::True(result, "can't initialize the outline shader");
 
-        result = shadersContainer.billboardShader_.Initialize(pDevice, "shaders/billboardVS.cso", "shaders/billboardPS.cso", "shaders/billboardGS.cso");
-        CAssert::True(result, "can't initialize the billboard shader");
+        result = shadersContainer.particleShader_.Initialize(pDevice, "shaders/particleVS.cso", "shaders/particlePS.cso", "shaders/particleGS.cso");
+        CAssert::True(result, "can't initialize the particle shader");
 
         result = shadersContainer.materialIconShader_.Initialize(pDevice, "shaders/MaterialIconVS.cso", "shaders/MaterialIconPS.cso");
         if (!result)

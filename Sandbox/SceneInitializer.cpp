@@ -110,6 +110,10 @@ void SceneInitializer::InitPlayer(ID3D11Device* pDevice, ECS::EntityMgr* pEnttMg
     player.SetWalkSpeed(5.0f);
     player.SetRunSpeed(20.0f);
     player.SetCurrentSpeed(5.0f);
+
+    // HACK setup
+    pEnttMgr->AddEvent(ECS::EventTranslate(playerID, 270, 90, 190));
+    player.SetFreeFlyMode(true);
 }
 
 ///////////////////////////////////////////////////////////
@@ -1503,6 +1507,9 @@ void CreateCastleTower(ECS::EntityMgr& mgr, const BasicModel& model)
 
     constexpr bool areMaterialsMeshBased = true;
     const MaterialID matID = model.meshes_.subsets_[0].materialID;
+    Material& mat = g_MaterialMgr.GetMaterialById(matID);
+    mat.SetSpecular(0.2f, 0.2f, 0.2f);
+    mat.SetSpecularPower(15.0f);
     mgr.AddMaterialComponent(enttID, &matID, numSubsets, areMaterialsMeshBased);
 
     // TEMP: fix rotation
@@ -2024,13 +2031,14 @@ void GenerateEntities(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
 }
 
 //---------------------------------------------------------
-// Desc:   manually create different materials
+// Desc:   manually create some materials
 //---------------------------------------------------------
 void GenerateMaterials()
 {
     // load some textures for billboards and particles
     const TexID texIdFlare  = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "flare.png");
     const TexID texIdFlame0 = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "flame0.dds");
+    const TexID texIdCat    = g_TextureMgr.GetTexIdByName("cat");
 
     // create material for flame (fire) particles
     Material& flameParticleMat = g_MaterialMgr.AddMaterial("flameMat");
@@ -2041,7 +2049,23 @@ void GenerateMaterials()
     flameParticleMat.SetBlending(MAT_PROP_ALPHA_ENABLE);
     flameParticleMat.SetDepthStencil(MAT_PROP_DEPTH_DISABLED);
 
-    // create 
+    // create material for flare particles
+    Material& flareParticleMat = g_MaterialMgr.AddMaterial("flareMat");
+    flareParticleMat.SetTexture(TEX_TYPE_DIFFUSE, texIdFlare);
+    flareParticleMat.SetAlphaClip(true);
+    flareParticleMat.SetFill(MAT_PROP_FILL_SOLID);
+    flareParticleMat.SetCull(MAT_PROP_CULL_NONE);
+    flareParticleMat.SetBlending(MAT_PROP_ALPHA_ENABLE);
+    flareParticleMat.SetDepthStencil(MAT_PROP_DEPTH_DISABLED);
+
+    // create material for flare particles
+    Material& catParticleMat = g_MaterialMgr.AddMaterial("catParticleMat");
+    catParticleMat.SetTexture(TEX_TYPE_DIFFUSE, texIdCat);
+    catParticleMat.SetAlphaClip(false);
+    catParticleMat.SetFill(MAT_PROP_FILL_SOLID);
+    catParticleMat.SetCull(MAT_PROP_CULL_NONE);
+    catParticleMat.SetBlending(MAT_PROP_ALPHA_ENABLE);
+    catParticleMat.SetDepthStencil(MAT_PROP_DEPTH_DISABLED);
 }
 
 //---------------------------------------------------------
