@@ -188,6 +188,9 @@ public:
 
     void AddPlayerComponent(const EntityID id);
 
+    // add ParticlesEmitter component
+    void AddParticleEmitterComponent(const EntityID id, ParticleSystem& sys);
+
 
     // =============================================================================
     // public API: QUERY

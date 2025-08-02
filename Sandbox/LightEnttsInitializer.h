@@ -37,9 +37,9 @@ void InitDirectedLightEntities(ECS::EntityMgr& mgr)
 
         // setup main directed light source
         //dirLight0.diffuse = { 0.8f, 0.8f, 0.8f, 1.0f };
-        dirLight0.ambient  = { 0.44f, 0.44f, 0.44f, 1 };
-        //dirLight0.diffuse  = { 1.0f, 0.79f, 0.33f, 1.0f };
-        dirLight0.diffuse  = { 1.0f, 1.0f, 1.0f, 1.0f };
+        dirLight0.ambient = { 0.1f, 0.1f, 0.1f, 1.0f };
+        dirLight0.diffuse  = { 0.1f, 0.1f, 0.1f, 1.0f };
+        //dirLight0.diffuse  = { 1.0f, 1.0f, 1.0f, 1.0f };
         dirLight0.specular = { 0.3f, 0.3f, 0.3f, 1.0f };
 
         // setup 2nd directed light source

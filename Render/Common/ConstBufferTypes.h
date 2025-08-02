@@ -36,8 +36,7 @@ namespace ConstBufType
         DirectX::XMMATRIX  viewProj;
     };
 
-    // TEMP: for billboard shader
-    struct cbvsPerObject
+    struct Position
     {
         DirectX::XMFLOAT3 posW;
     };

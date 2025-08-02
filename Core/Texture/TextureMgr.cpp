@@ -242,7 +242,7 @@ void TextureMgr::RecreateTextureFromRawData(
         }
 
         // get idx of this texture in the texture manager
-        const TexID id  = GetIDByName(inOutTex.GetName().c_str());
+        const TexID id  = GetTexIdByName(inOutTex.GetName().c_str());
         const index idx = ids_.get_idx(id);
 
         // init texture with raw data
@@ -312,7 +312,7 @@ TexID TextureMgr::Add(const TexName& name, Texture& tex)
         const bool isNotUniqueName = (names_.find(name) != -1);
 
         if (isNotUniqueName)
-            return GetIDByName(name);
+            return GetTexIdByName(name);
 
 
         // else we add a new texture
@@ -346,7 +346,7 @@ TexID TextureMgr::Add(const char* name, Texture&& tex)
         TexID id = INVALID_TEXTURE_ID;
 
         // if there is already a texture with such name we just return its ID
-        id = GetIDByName(name);
+        id = GetTexIdByName(name);
         if (id != 0)
             return id;
 
@@ -420,7 +420,7 @@ TexID TextureMgr::LoadFromFile(const char* path)
 #endif
 
         // if there is already such a texture we just return its ID
-        TexID id = GetIDByName(path);
+        TexID id = GetTexIdByName(path);
         if (id != 0)
             return id;
 
@@ -500,7 +500,7 @@ TexID TextureMgr::CreateWithColor(const Color& color)
     
     // generate a name for this texture
     sprintf(g_String, "color_texture_%d_%d_%d", color.GetR(), color.GetG(), color.GetB());
-    TexID id = GetIDByName(g_String);
+    TexID id = GetTexIdByName(g_String);
 
     return (id != INVALID_TEXTURE_ID) ? id : Add(g_String, Texture(pDevice_, color));
 }
@@ -549,7 +549,7 @@ Texture* TextureMgr::GetTexPtrByName(const char* name)
 // =================================================================================
 // Getters: get texture ID / textures IDs array by name/names
 // =================================================================================
-TexID TextureMgr::GetIDByName(const char* inName)
+TexID TextureMgr::GetTexIdByName(const char* inName)
 {
     // return an ID of texture object by input name;
     // if there is no such a textures we return 0;

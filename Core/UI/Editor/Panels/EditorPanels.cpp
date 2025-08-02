@@ -192,13 +192,24 @@ void EditorPanels::RenderEntitiesListWnd(Core::SystemState& sysState)
         // get an ID of each entity on the scene
         pFacadeEngineToUI_->GetAllEnttsIDs(pEnttsIDs, numEntts);
 
+
+
         cvector<std::string> enttsNames(numEntts);
 
         // ------ TODO: optimize ----------
         // 
         // get a name of each entity on the scene
         for (int i = 0; std::string& name : enttsNames)
+        {
             pFacadeEngineToUI_->GetEnttNameById(pEnttsIDs[i++], name);
+
+            //if (pEnttsIds)
+        }
+           
+
+
+        //std::string flameName;
+        //pFacadeEngineToUI_->GetEnttNameById(157, flameName);
 
         /*
         for (int i = 0; i < numEnttsTypes; ++i)

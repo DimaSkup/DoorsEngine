@@ -16,6 +16,19 @@ namespace ECS
 ParticleEngine::ParticleEngine()
 {
     LogMsg(LOG, "creation of ParticlesEngine");
+
+    // add a default particle system (will be bound to entity if we don't
+    // specify any system when add a particle emitter component to this entity)
+    ECS::ParticleSystem& sys = AddNewParticleSys();
+    sys.SetName("default");
+    sys.SetNumParticlesPerSec(10);
+    sys.SetLife(1000);
+    sys.SetColor(1, 0, 0);
+    sys.SetSize(1.0f);
+    sys.SetMass(1.0f);
+    sys.SetFriction(0.01f);
+    sys.SetExternalForces(0.0f, -0.01f, 0.0f);
+    sys.SetMaterialId(INVALID_MATERIAL_ID);
 }
 
 ParticleEngine::~ParticleEngine()
@@ -37,21 +50,21 @@ void ParticleEngine::Update(const float deltaTime)
 //---------------------------------------------------------
 void ReadAndCreateSystem(ParticleEngine* pParticleEngine, FILE* pFile)
 {
-    char              particleSysName[32]{'\0'};
-    DirectX::XMFLOAT3 pos             = { 0,0,0 };
-    DirectX::XMFLOAT3 color           = { 0,0,0 };
-    DirectX::XMFLOAT3 forces          = { 0,0,0 };
-    int               maxNumParticles = 0;
-    float             lifetimeMs      = 0;
-    float             particleSize    = 0;
-    float             mass            = 0;
-    float             friction        = 0;          // air resistance
+    char     particleSysName[32]{'\0'};
+    XMFLOAT3 pos                = { 0,0,0 };
+    XMFLOAT3 color              = { 0,0,0 };
+    XMFLOAT3 forces             = { 0,0,0 };
+    int      genParticlesPerSec = 0;
+    float    lifetimeMs         = 0;
+    float    particleSize       = 0;
+    float    mass               = 0;
+    float    friction           = 0;          // air resistance
+    int      matId              = 0;
     
 
     // read in data from file
     fscanf(pFile, "particle_system: %s\n",          &particleSysName);
-    fscanf(pFile, "max_num_particles: %d\n",        &maxNumParticles);
-    fscanf(pFile, "emitter_pos: %f, %f, %f\n",      &pos.x, &pos.y, &pos.z);
+    fscanf(pFile, "gen_particles_per_sec: %d\n",    &genParticlesPerSec);
     fscanf(pFile, "lifetime_ms: %f\n",              &lifetimeMs);
     fscanf(pFile, "color: %f, %f, %f\n",            &color.x, &color.y, &color.z);
 
@@ -59,18 +72,21 @@ void ReadAndCreateSystem(ParticleEngine* pParticleEngine, FILE* pFile)
     fscanf(pFile, "mass: %f\n",                     &mass);
     fscanf(pFile, "friction: %f\n",                 &friction);   
     fscanf(pFile, "external_forces: %f, %f, %f\n",  &forces.x, &forces.y, &forces.z);
+    fscanf(pFile, "material_id: %d",                &matId);
     fscanf(pFile, "\n");
 
 
-    // add and setup particle system
-    ECS::ParticleSystem& sys = pParticleEngine->AddNewParticleSys(maxNumParticles);
-    sys.SetEmitPos(pos.x, pos.y, pos.z);
+    // add and setup a particle system
+    ECS::ParticleSystem& sys = pParticleEngine->AddNewParticleSys();
+    sys.SetName(particleSysName);
+    sys.SetNumParticlesPerSec(genParticlesPerSec);
     sys.SetLife(lifetimeMs);
     sys.SetColor(color.x, color.y, color.z);
     sys.SetSize(particleSize);
     sys.SetMass(mass);
     sys.SetFriction(friction);
     sys.SetExternalForces(forces.x, forces.y, forces.z);
+    sys.SetMaterialId(matId);
 
 
 #if 0
@@ -78,13 +94,13 @@ void ReadAndCreateSystem(ParticleEngine* pParticleEngine, FILE* pFile)
 
     // print system data (debug)
     LogMsg("system name: %s", particleSysName);
-    LogMsg("emitter pos: %f %f %f", pos.x, pos.y, pos.z);
     LogMsg("lifetime (ms): %d", lifetimeMs);
     LogMsg("color: %f %f %f", color.x, color.y, color.z);
     LogMsg("size: %f", particleSize);
     LogMsg("mass: %f", mass);
     LogMsg("friction: %f", friction);
     LogMsg("extern forces: %f %f %f", forces.x, forces.y, forces.z);
+    LogMsg("material_id: %d", materialId)
 
     LogMsg("\n");
 #endif
@@ -145,74 +161,53 @@ bool ParticleEngine::HasParticlesToRender() const
 //---------------------------------------------------------
 int ParticleEngine::GetNumParticlesOnScreen(void) const
 {
-    return (int)particlesToRender_.size();
+    return (int)renderData_.particles.size();
 }
 
 //---------------------------------------------------------
 // Desc:   prepare data for particles rendering
 // Ret:    array of prepared data for rendering
 //---------------------------------------------------------
-const cvector<ParticleRenderInstance>& ParticleEngine::GetParticlesToRender()
+const ParticlesRenderData& ParticleEngine::GetParticlesToRender()
 {
-    particlesToRender_.resize(0);
+    renderData_.particles.resize(0);                    // clear particles from the prev frame
+    renderData_.Reserve((int)particleSystems_.size());  // reserve memory ahead
+    renderData_.Reset();
 
-    // go through each particle system and get alive particles to render them
-    for (ParticleSystem& sys : particleSystems_)
+    // go through each particle system and gather data needed for
+    // particles rendering of this particular system
+    for (int i = 0; ParticleSystem& sys : particleSystems_)
     {
-        sys.GetParticlesToRender(particlesToRender_);
+        // if we have nothing to render for this system
+        if (!sys.HasEmitters())
+            continue;
+
+        int numEmittersPerSys = 0;
+
+        // go through each emitter of this system
+        for (const ParticleEmitter& emitter : sys.GetEmitters())
+        {
+            renderData_.ids.push_back(emitter.id);
+            numEmittersPerSys++;
+        }
+
+        // set how many instances (emitters) of this system we have
+        renderData_.numEmittersPerSystem.push_back(numEmittersPerSys);
+
+        // for this system we start rendering particles from this "baseInstance" idx
+        renderData_.baseInstance.push_back((UINT)renderData_.particles.size());
+
+        // for this system we will render "numInstances" particles
+        renderData_.numInstances.push_back(sys.GetParticlesToRender(renderData_.particles));
+
+        // and use a material by this id
+        renderData_.materialIds[i] = sys.GetMaterialId();                                
+
+        // increase idx if we have any particles to render for this system
+        i += (bool)(renderData_.numInstances[i]);
     }
 
-    return particlesToRender_;
-}
-
-//---------------------------------------------------------
-// Desc:   make an explosion of particles
-// Args:   - magnitude:     power of explosion
-//         - numParticles:  number of particles involved
-//---------------------------------------------------------
-void ParticleEngine::Explode(const float magnitude, int numParticles)
-{
-    float yaw   = 0;
-    float pitch = 0;
-
-    cvector<ParticleInitData> initData(numParticles);
-
-    // prepare initial data for particles
-    for (int i = 0; i < numParticles; ++i)
-    {
-        // set the particle's angle
-        yaw   = MathHelper::RandF() * 6.28318f;                    // randF * 2pi
-        pitch = DEG_TO_RAD(MathHelper::RandF()*(rand()%360));
-
-        initData[i].vel.x = cosf(pitch) * magnitude * MathHelper::RandF();
-        initData[i].vel.y = sinf(pitch) * cosf(yaw) * magnitude * MathHelper::RandF();
-        initData[i].vel.z = sinf(pitch) * sinf(yaw) * magnitude * MathHelper::RandF();
-    }
-
-
-    // create particles for system 0
-    const XMFLOAT3 colorSys0 = particleSystems_[0].GetColor();
-
-    for (int i = 0; i < numParticles; ++i)
-        initData[i].color = colorSys0;
-
-    particleSystems_[0].CreateParticles(initData.data(), numParticles);
-
-
-    // create particles for system 1 (fire)
-    const XMFLOAT3 colorSys1 = particleSystems_[1].GetColor();
-
-    for (int i = 0; i < numParticles; ++i)
-        initData[i].color = colorSys1;
-
-    particleSystems_[1].CreateParticles(initData.data(), 1);
-
-
-    // generate random RGB color
-    for (int i = 0; i < numParticles; ++i)
-        initData[i].color = MathHelper::RandColorRGB();
-
-    particleSystems_[2].CreateParticles(initData.data(), numParticles);
+    return renderData_;
 }
 
 } // namespace 

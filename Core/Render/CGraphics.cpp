@@ -732,10 +732,9 @@ void CGraphics::BindMaterial(const Material& mat, Render::CRender* pRender)
     // bind textures of this material
     ID3D11ShaderResourceView* texSRVs[2];
     //texSRVs[0] = g_TextureMgr.GetTexPtrByName("tree_billboard")->GetTextureResourceView();
-    texSRVs[0] = g_TextureMgr.GetTexPtrByName("flare")->GetTextureResourceView();
-    texSRVs[1] = g_TextureMgr.GetTexPtrByName("flame0")->GetTextureResourceView();
+    texSRVs[0] = g_TextureMgr.GetTexPtrByID(mat.textureIds[TEX_TYPE_DIFFUSE])->GetTextureResourceView();
 
-    pContext->PSSetShaderResources(5, 2, texSRVs);
+    pContext->PSSetShaderResources(5, 1, texSRVs);
 }
 
 //---------------------------------------------------------
@@ -754,7 +753,7 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
         const Material&  skyMat   = g_MaterialMgr.GetMaterialById(skyMatId);
 
         // get shader resource views (textures) for the sky 
-        TexID skyTexId = skyMat.textureIDs[TEX_TYPE_DIFFUSE];
+        TexID skyTexId = skyMat.textureIds[TEX_TYPE_DIFFUSE];
         g_TextureMgr.GetSRVsByTexIDs(&skyTexId, 1, texturesBuf_);
         pContext->PSSetShaderResources(0U, 1U, texturesBuf_.data());
 
@@ -766,9 +765,9 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
         renderStates.ResetBS(pContext);
         renderStates.ResetDSS(pContext);
     
-        //RenderEnttsDefault(pRender);
-        //RenderEnttsAlphaClipCullNone(pRender);
-        //RenderTerrainGeomip(pRender, pEnttMgr);
+        RenderEnttsDefault(pRender);
+        RenderEnttsAlphaClipCullNone(pRender);
+        RenderTerrainGeomip(pRender, pEnttMgr);
         //RenderTerrainQuadtree(pRender, pEnttMgr);
         RenderSkyDome(pRender, pEnttMgr);
 
@@ -912,7 +911,7 @@ bool CGraphics::RenderBigMaterialIcon(
         DirectX::XMFLOAT4(&mat.reflect.x));
 
     cvector<ID3D11ShaderResourceView*> texSRVs;
-    g_TextureMgr.GetSRVsByTexIDs(mat.textureIDs, NUM_TEXTURE_TYPES, texSRVs);
+    g_TextureMgr.GetSRVsByTexIDs(mat.textureIds, NUM_TEXTURE_TYPES, texSRVs);
 
     // render material into responsible frame buffer
     matIconShader.PrepareRendering(pContext, vb, ib, vertexSize);
@@ -1000,7 +999,7 @@ void CGraphics::RenderMaterialsIcons(
             XMFLOAT4(&mat.reflect.x));
 
         cvector<ID3D11ShaderResourceView*> texSRVs;
-        g_TextureMgr.GetSRVsByTexIDs(mat.textureIDs, NUM_TEXTURE_TYPES, texSRVs);
+        g_TextureMgr.GetSRVsByTexIDs(mat.textureIds, NUM_TEXTURE_TYPES, texSRVs);
         
         matIconShader.Render(pContext, indexCount, texSRVs.data(), renderMat);
 
@@ -1221,35 +1220,49 @@ void CGraphics::RenderBillboards(
     if (!particleEngine.HasParticlesToRender())
         return;
 
-    const cvector<ECS::ParticleRenderInstance>& particlesToRender = particleEngine.GetParticlesToRender();
-
-    // manually bind the material for particles
-    const Material& mat = g_MaterialMgr.GetMaterialByName("flameMat");
-    BindMaterial(mat, pRender);
+    const ECS::ParticlesRenderData& particlesData = particleEngine.GetParticlesToRender();
 
     // prepare update particles data for rendering
     VertexBuffer<BillboardSprite>& vb = g_ModelMgr.GetBillboardsBuffer();
-    const int numVertices = (int)particlesToRender.size();
+    const int numVertices = (int)particlesData.particles.size();
     cvector<BillboardSprite> vertices(numVertices);
 
-    for (int i = 0; const ECS::ParticleRenderInstance& particle : particlesToRender)
+    for (int i = 0; const ECS::ParticleRenderInstance & particle : particlesData.particles)
     {
-        vertices[i].pos          = particle.pos;
+        vertices[i].pos = particle.pos;
         vertices[i].translucency = particle.translucency;
-        vertices[i].color        = particle.color;
-        vertices[i].size         = particle.size;
+        vertices[i].color = particle.color;
+        vertices[i].size = particle.size;
         ++i;
     }
 
     // update the vertex buffer with updated particles data
     vb.UpdateDynamic(g_pContext, vertices.data(), numVertices);
 
-    pRender->shadersContainer_.billboardShader_.Render(
-        g_pContext,
-        vb.Get(),
-        nullptr,
-        sizeof(BillboardSprite),       // vertex stride
-        numVertices);
+    Render::ParticleShader& shader = pRender->shadersContainer_.particleShader_;
+    shader.Prepare(g_pContext, vb.Get(), sizeof(BillboardSprite));
+
+    // go through data for each active particles system and render its particles
+    for (int i = 0, posIdx = 0; i < particlesData.numSystems; ++i)
+    {
+        // bind a material for particles
+        const MaterialID matId = particlesData.materialIds[i];
+        BindMaterial(g_MaterialMgr.GetMaterialById(matId), pRender);
+
+        for (int emitIdx = 0; emitIdx < particlesData.numEmittersPerSystem[i]; ++emitIdx)
+        {
+            const EntityID id                  = particlesData.ids[posIdx++];
+            const DirectX::XMFLOAT3& posOffset = pEnttMgr->transformSystem_.GetPosition(id);
+
+            // render particles subset
+            shader.Render(
+                g_pContext,
+                posOffset,
+                particlesData.baseInstance[i],
+                particlesData.numInstances[i]);
+        }
+       
+    }
 
     pSysState_->visibleVerticesCount += numVertices;
 }
@@ -1327,7 +1340,7 @@ void CGraphics::RenderTerrainGeomip(Render::CRender* pRender, ECS::EntityMgr* pE
     memcpy(&instance.material.reflect_.x,  &mat.reflect.x,  sizeof(float) * 4);
 
     // prepare textures
-    g_TextureMgr.GetSRVsByTexIDs(mat.textureIDs, NUM_TEXTURE_TYPES, texturesBuf_);
+    g_TextureMgr.GetSRVsByTexIDs(mat.textureIds, NUM_TEXTURE_TYPES, texturesBuf_);
     memcpy(instance.textures, texturesBuf_.begin(), NUM_TEXTURE_TYPES * sizeof(ID3D11ShaderResourceView*));
 
     // vertex/index buffers data
@@ -1414,7 +1427,7 @@ void CGraphics::RenderTerrainQuadtree(Render::CRender* pRender, ECS::EntityMgr* 
     memcpy(&instance.material.reflect_.x,  &mat.reflect.x,  sizeof(float) * 4);
 
     // prepare textures
-    g_TextureMgr.GetSRVsByTexIDs(mat.textureIDs, NUM_TEXTURE_TYPES, texturesBuf_);
+    g_TextureMgr.GetSRVsByTexIDs(mat.textureIds, NUM_TEXTURE_TYPES, texturesBuf_);
     memcpy(instance.textures, texturesBuf_.begin(), NUM_TEXTURE_TYPES * sizeof(ID3D11ShaderResourceView*));
 
     // prepare vertex/index buffers data
@@ -1467,19 +1480,24 @@ void CGraphics::SetupLightsForFrame(
     const ECS::TransformSystem& transformSys = pEnttMgr->transformSystem_;
 
     const ECS::DirLights&  dirLights  = lightSys.GetDirLights();
+    const ECS::PointLights& pointLights = lightSys.GetPointLights();
     const ECS::SpotLights& spotLights = lightSys.GetSpotLights();
 
     const size numDirLights   = dirLights.data.size();
+    const size numPointLights = pointLights.data.size();
     const size numSpotLights  = spotLights.data.size();
 
     const cvector<EntityID>& visPointLights = renderSys.GetVisiblePointLights();
     const size numVisPointLightSources      = visPointLights.size();
 
 
+   
+#if 0
     outData.ResizeLightData((int)numDirLights, (int)numVisPointLightSources, (int)numSpotLights);
 
     // ----------------------------------------------------
     // prepare data of point lights
+
 
     if (numVisPointLightSources > 0)
     {
@@ -1502,7 +1520,37 @@ void CGraphics::SetupLightsForFrame(
         // store positions
         for (index i = 0; i < numVisPointLightSources; ++i)
             outData.pointLights[i].position = s_LightTmpData.pointLightsPositions[i];
+
     }
+#else
+
+    outData.ResizeLightData((int)numDirLights, (int)numPointLights, (int)numSpotLights);
+
+    // ----------------------------------------------------
+    // prepare data of point lights
+
+
+    // store light properties, range, and attenuation
+    for (index i = 0; i < numPointLights; ++i)
+    {
+        outData.pointLights[i].ambient = pointLights.data[i].ambient;
+        outData.pointLights[i].diffuse = pointLights.data[i].diffuse;
+        outData.pointLights[i].specular = pointLights.data[i].specular;
+        outData.pointLights[i].att = pointLights.data[i].att;
+        outData.pointLights[i].range = pointLights.data[i].range;
+    }
+
+    // store positions
+    cvector<XMFLOAT3> pointLightsPositions;
+    pEnttMgr->transformSystem_.GetPositions(pointLights.ids.data(), numPointLights, pointLightsPositions);
+
+    for (index i = 0; i < numPointLights; ++i)
+    {
+        outData.pointLights[i].position = pointLightsPositions[i];
+    }
+
+#endif
+        
 
     // ----------------------------------------------------
     // prepare data of directed lights

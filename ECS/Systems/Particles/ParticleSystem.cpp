@@ -1,5 +1,7 @@
 #include "ParticleSystem.h"
 #include <log.h>
+#include <DMath.h>
+#include <MathHelper.h>
 
 using namespace DirectX;
 
@@ -14,97 +16,135 @@ ParticleSystem::ParticleSystem()
 }
 
 //---------------------------------------------------------
-// Desc:   initialize the particle engine
-// Args:   - numParticles:  number of particles in the system
-// Ret:    true if we successfully initialize the particle engine
+// Desc:    add a new emitter (instance of this system)
+// Args:    - id:   an identifier of the entity which owns this emitter
+// 
+// Ret:     true if everything is ok
 //---------------------------------------------------------
-ParticleSystem::ParticleSystem(const int numParticles)
+bool ParticleSystem::AddEmitter(const EntityID id)
 {
-    if (numParticles <= 0)
+    if (id == INVALID_ENTITY_ID)
     {
-        LogErr(LOG, "the number of particles cannot be <= 0");
-        return;
+        LogErr(LOG, "input entity id is invalid");
+        return false;
     }
 
-    maxNumParticles_ = numParticles;
-    particles_.reserve(numParticles);
+    // push a new emitter and set related entity ID
+    emitters_.push_back(ParticleEmitter(id));
+
+    return true;
 }
 
 //---------------------------------------------------------
-// Desc:   create a new particle
-// Args:   - velX, velY, velZ:  the new particle's velocity
+// Desc:    setup a name for this particles system
+// Args:    - name:  a new name for the system
 //---------------------------------------------------------
-void ParticleSystem::CreateParticle(const ParticleInitData& data)
+void ParticleSystem::SetName(const char* name)
 {
-    CreateParticles(&data, 1);
+    if (!name || name[0] == '\0')
+    {
+        LogErr(LOG, "input name for particles system is empty");
+        return;
+    }
+
+    size_t len = strlen(name);
+    len = (len <= 32) ? len : 32;
+
+    strncpy(sysName_, name, len);
+    sysName_[len] = '\0';
 }
 
 //---------------------------------------------------------
-// Desc:    create multiple particles at a time
-// Args:    - data: arr of containers for initialization of each particle
+// Desc:    generate data for new particles
+// Args:    - outData:       output array of particles
+//          - numParticles:  how many particles we have
 //---------------------------------------------------------
-void ParticleSystem::CreateParticles(const ParticleInitData* data, const int numData)
+void ParticleSystem::ParticlesInitDataGenerator(cvector<Particle>& outParticles)
 {
-    if (!data)
+    if (outParticles.empty())
     {
-        LogErr(LOG, "input arr of particles init data == nullptr");
+        LogErr(LOG, "input arr of particles is empty!");
         return;
     }
 
-    if (numData <= 0)
+    for (Particle& particle : outParticles)
     {
-        LogErr(LOG, "input number of data elements to init particles can't be <= 0");
-        return;
-    }
+        // set the particle's angle
+        constexpr float magnitude = 0.15f;
+        const float     yaw       = MathHelper::RandF() * 6.28318f;                    // randF * 2pi
+        const float     pitch     = DEG_TO_RAD(MathHelper::RandF() * (rand() % 360));
 
-    const int prevNumParticles = (int)particles_.size();
-    const int newNumParticles  = prevNumParticles + numData;
-
-    // check if we can add new particles
-    if (maxNumParticles_ <= newNumParticles)
-        return;
-
-    // push new particles
-    particles_.resize(newNumParticles);
-
-
-    for (int idx = prevNumParticles, i = 0; idx < newNumParticles; ++idx, ++i)
-    {
-        Particle& particle = particles_[idx];
-
-        // set the particle's lifespan
-        particle.ageMs        = life_;
 
         // set the particle's position and velocity
-        particle.pos          = pos_;
-        particle.vel          = XMLoadFloat3(&data[i].vel);
+        particle.pos = { 0,0,0 };
+        particle.vel = {
+            cosf(pitch) * magnitude * MathHelper::RandF(),             // velocity X
+            sinf(pitch) * cosf(yaw) * magnitude * MathHelper::RandF(), // velocity Y
+            sinf(pitch) * sinf(yaw) * magnitude * MathHelper::RandF()  // velocity Z
+        };
 
         //set the particle's color and transparency
-        particle.color        = data[i].color;
-        particle.translucency = 1.0f;
+        particle.color          = color_;
+        particle.translucency   = 1.0f;
+
+        // set the particle's lifespan
+        particle.ageMs          = life_;
 
         // set the particle's size, mass, and air resistance
-        particle.size         = size_;
-        particle.mass         = mass_;
-        particle.friction     = friction_;
+        particle.mass           = mass_;
+        particle.size           = size_;
+        particle.friction       = friction_;
     }
+}
+
+//---------------------------------------------------------
+// Desc:   generate amount of new particles according to genParticlesPerSec parameter
+// Args:   - dt: delta time in seconds
+//---------------------------------------------------------
+void ParticleSystem::CreateParticles(const float dt)
+{
+    time_ += dt;
+    const float createOneParticlePerSec = 1.0f / genNumParticlesPerSec_;
+
+    // if too little time spent for generation of any particles
+    if (time_ <= createOneParticlePerSec)
+        return;
+
+    // compute how many particles we have
+    const int numNewParticles  = (int)(time_ / createOneParticlePerSec);
+
+    time_ -= (numNewParticles * createOneParticlePerSec);
+
+    // generate some init params for each new particle
+    cvector<Particle> newParticles(numNewParticles);
+    ParticlesInitDataGenerator(newParticles);
+
+    // push new particles
+    particles_.append_vector(std::move(newParticles));
 }
 
 //---------------------------------------------------------
 // Desc:   update the particle system
+// Args:   - dt:  delta time in seconds
 //---------------------------------------------------------
-void ParticleSystem::Update(const float deltaTime)
+void ParticleSystem::Update(const float dt)
 {
-    const float invLife = 1.0f / life_;
+    // if we have no emitters for this system
+    if (emitters_.empty())
+        return;
 
-    // loop through all the particles
+
+    const float invLife = 1.0f / life_;
+    const float delta   = dt * 200;
+
+    // loop through all the particles and update them
     for (Particle& particle : particles_)
     {
         // age the particle
-        particle.ageMs -= deltaTime;
+        particle.ageMs -= dt;
 
 
-        // if this particle is already dead
+        // if this particle is already dead we remove it
         if (particle.ageMs <= 0.0f)
         {
             particle = particles_.back();
@@ -116,11 +156,11 @@ void ParticleSystem::Update(const float deltaTime)
         else
         {
             // update the particle's position
-            particle.pos += (particle.vel * particle.mass);
+            particle.pos += (particle.vel * particle.mass * delta);
 
             // now it's time for the external forces to take their toll
-            particle.vel *= (1 - particle.friction);
-            particle.vel += forces_;
+            particle.vel *= (1 - particle.friction * delta);
+            particle.vel += forces_ * delta;
 
             // set the particle's transparency (based on its age)
             particle.translucency = particle.ageMs * invLife;
@@ -129,10 +169,11 @@ void ParticleSystem::Update(const float deltaTime)
 }
 
 //---------------------------------------------------------
-// Desc:   push into output array data of currently alive particles to render them
+// Desc:   push into output array rendering data of currently alive particles
 // Out:    - outInstances:   array of particles rendering data
+// Ret:    the number of added particles for rendering
 //---------------------------------------------------------
-void ParticleSystem::GetParticlesToRender(cvector<ParticleRenderInstance>& outInstances)
+UINT ParticleSystem::GetParticlesToRender(cvector<ParticleRenderInstance>& outInstances)
 {
     const vsize curNumAliveParticles = particles_.size();
 
@@ -154,6 +195,8 @@ void ParticleSystem::GetParticlesToRender(cvector<ParticleRenderInstance>& outIn
 
         ++idx;
     }
+
+    return (UINT)curNumAliveParticles;
 }
 
 } // namespace

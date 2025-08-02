@@ -98,8 +98,11 @@ float4 PS(PS_INPUT pin) : SV_TARGET
    //float4 texColor = float4(1, 1, 1, 1);
 
    // sample texture
-   float4 texColor = gTextures[1].Sample(gSampleType, pin.tex);
+   float4 texColor = gTextures[0].Sample(gSampleType, pin.tex);
+
+
    float3 finalColor = texColor.xyz * pin.color;
+
 
    return float4(finalColor, pin.translucency);
 }

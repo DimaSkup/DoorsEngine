@@ -1,27 +1,33 @@
+// =================================================================================
+// Filename:   ParticleShader.h
+// Desc:       a shader class which is used for particles rendering
+//
+// Created:    ??.07.2025  by DimaSkup
+// =================================================================================
 #pragma once
 
 #include "VertexShader.h"
 #include "GeometryShader.h"
 #include "PixelShader.h"
 #include "SamplerState.h"
-//#include "../Common/ConstBufferTypes.h"
-//#include "../Common/RenderTypes.h"
+#include "ConstantBuffer.h"
+#include "../Common/ConstBufferTypes.h"
 #include <d3d11.h>
 
 namespace Render
 {
 
-class BillboardShader
+class ParticleShader
 {
     using SRV = ID3D11ShaderResourceView;
 
 public:
-    BillboardShader();
-    ~BillboardShader();
+    ParticleShader();
+    ~ParticleShader();
 
     // restrict a copying of this class instance
-    BillboardShader(const BillboardShader& obj) = delete;
-    BillboardShader& operator=(const BillboardShader& obj) = delete;
+    ParticleShader(const ParticleShader& obj) = delete;
+    ParticleShader& operator=(const ParticleShader& obj) = delete;
 
     // Public modification API
     bool Initialize(
@@ -30,11 +36,15 @@ public:
         const char* psFilePath,
         const char* gsFilePath);
 
-    void Render(
+    void Prepare(
         ID3D11DeviceContext* pContext,
         ID3D11Buffer* pVB,
-        SRV* const* ppTextureArrSRV,
-        const UINT stride,
+        const UINT stride);
+
+    void Render(
+        ID3D11DeviceContext* pContext,
+        const DirectX::XMFLOAT3& posOffset,
+        const UINT baseVertex,
         const UINT numVertices);
 
     // Public query API
@@ -53,7 +63,10 @@ private:
     PixelShader         ps_;
     SamplerState        samplerState_;
 
-    char className_[32]{"BillboardShader"};
+    ConstantBuffer<ConstBufType::Position> cbvsParticlesOffset_;
+
+
+    char className_[32]{"ParticleShader"};
 };
 
 }  // namespace Render

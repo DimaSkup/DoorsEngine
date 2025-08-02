@@ -155,7 +155,7 @@ void RenderStates::SetBS(ID3D11DeviceContext* pContext, const eRenderState state
             case NO_RENDER_TARGET_WRITES:
             {
                 //float blendFactor[4] = { 0,0,0,0 };
-                float blendFactor[4] = { 0.5f,0.5f,0.5f,0.5f };
+                float blendFactor[4] = { 0, 0, 0, 0 };
                 pContext->OMSetBlendState(pBS, blendFactor, 0xFFFFFFFF);
                 break;
             }
@@ -482,8 +482,8 @@ void RenderStates::InitAllBlendStates(ID3D11Device* pDevice)
     blendDesc.IndependentBlendEnable = false;
 
     rtbd.BlendEnable    = true;
-    rtbd.SrcBlend       = D3D11_BLEND_SRC_ALPHA;
-    rtbd.DestBlend      = D3D11_BLEND_INV_SRC_ALPHA;
+    rtbd.SrcBlend       = D3D11_BLEND_DEST_COLOR;
+    rtbd.DestBlend      = D3D11_BLEND_ZERO;
     rtbd.BlendOp        = D3D11_BLEND_OP_ADD;
     rtbd.SrcBlendAlpha  = D3D11_BLEND_ONE;
     rtbd.DestBlendAlpha = D3D11_BLEND_ZERO;

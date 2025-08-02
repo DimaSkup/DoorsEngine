@@ -77,12 +77,6 @@ bool CRender::Initialize(
         hr = cbgsPerFrame_.Initialize(pDevice);
         CAssert::NotFailed(hr, "can't initialize const buffer for GS");
 
-        //hr = cbgsPerObject_.Initialize(pDevice, pContext);
-        //CAssert::NotFailed(hr, "can't initialize const buffer for GS");
-
-        //hr = cbgsFixed_.Initialize(pDevice, pContext);
-        //CAssert::NotFailed(hr, "can't initialize const buffer for GS");
-
         // init fog params
         InitFogParams(pContext, params.fogColor, params.fogStart, params.fogRange);
 

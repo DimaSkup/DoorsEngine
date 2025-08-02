@@ -81,7 +81,7 @@ public:
     Texture* GetTexPtrByID  (const TexID id);
     Texture* GetTexPtrByName(const char* name);
 
-    TexID GetIDByName (const char* name);
+    TexID GetTexIdByName (const char* name);
     TexID GetTexIdByIdx(const index idx) const;
     //void GetIDsByNames(const char* names, const size numNames, cvector<TexID>& outIDs);
 

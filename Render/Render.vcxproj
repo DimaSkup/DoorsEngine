@@ -223,7 +223,7 @@
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
       </PrecompiledHeaderFile>
     </ClCompile>
-    <ClCompile Include="Shaders\BillboardShader.cpp" />
+    <ClCompile Include="Shaders\ParticleShader.cpp" />
     <ClCompile Include="Shaders\ColorShader.cpp" />
     <ClCompile Include="Shaders\DebugShader.cpp" />
     <ClCompile Include="Shaders\FontShader.cpp" />
@@ -259,7 +259,7 @@
     <ClInclude Include="Common\RenderTypes.h" />
     <ClInclude Include="InitRender.h" />
     <ClInclude Include="CRender.h" />
-    <ClInclude Include="Shaders\BillboardShader.h" />
+    <ClInclude Include="Shaders\ParticleShader.h" />
     <ClInclude Include="Shaders\ColorShader.h" />
     <ClInclude Include="Shaders\ConstantBuffer.h" />
     <ClInclude Include="Shaders\DebugShader.h" />
@@ -283,7 +283,7 @@
     <Text Include="hlsl\_README_ABOUT_SHADERS.txt" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="hlsl\billboardGS.hlsl">
+    <FxCompile Include="hlsl\particleGS.hlsl">
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">GS</EntryPointName>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Geometry</ShaderType>
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">GS</EntryPointName>
@@ -300,7 +300,7 @@
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)build\$(IntDir)shaders\%(Filename).cso</ObjectFileOutput>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)build\$(IntDir)shaders\%(Filename).cso</ObjectFileOutput>
     </FxCompile>
-    <FxCompile Include="hlsl\billboardPS.hlsl">
+    <FxCompile Include="hlsl\particlePS.hlsl">
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PS</EntryPointName>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PS</EntryPointName>
@@ -317,7 +317,7 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
     </FxCompile>
-    <FxCompile Include="hlsl\billboardVS.hlsl">
+    <FxCompile Include="hlsl\particleVS.hlsl">
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">VS</EntryPointName>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">VS</EntryPointName>
