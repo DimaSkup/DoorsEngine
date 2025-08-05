@@ -65,9 +65,10 @@ namespace ConstBufType
         DirLight           dirLights[3];
         PointLight         pointLights[25];
         SpotLight          spotLights[25];
-        DirectX::XMFLOAT3  cameraPos;
+        DirectX::XMFLOAT3  cameraPos          = {0,0,0};
+        float              time               = 0;         // game time
         int                currNumPointLights = 0;
-        int                currNumSpotLights = 0;
+        int                currNumSpotLights  = 0;
     };
 
     // ----------------------------------------------------

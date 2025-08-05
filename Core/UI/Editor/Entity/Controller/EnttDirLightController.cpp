@@ -12,9 +12,12 @@
 namespace UI
 {
 
+//---------------------------------------------------------
+// Desc:   initialize the directed light controller
+// Args:   - pFacade: the facade interface is used to contact with the rest of the engine
+//---------------------------------------------------------
 void EnttDirLightController::Initialize(IFacadeEngineToUI* pFacade)
 {
-    // the facade interface is used to contact with the rest of the engine
     CAssert::NotNullptr(pFacade, "ptr to the facade == nullptr");
     pFacade_ = pFacade;
 }

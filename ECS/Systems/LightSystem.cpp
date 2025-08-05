@@ -103,15 +103,17 @@ void LightSystem::AddDirLights(
         lights.data.insert_before(idxs[i], params.data[i]);
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   bind a point light source to each input entity by ID
+// Args:   - ids:       arr of entities identifiers
+//         - numEntts:  how many entities we have here
+//         - params:    SOA of initial params for each input entity
+//---------------------------------------------------------
 void LightSystem::AddPointLights(
     const EntityID* ids,
     const size numEntts,
     PointLightsInitParams& params)
 {
-    // create a new point light sources
-
     CAssert::True((ids != nullptr) && (numEntts > 0), "invalid input args");
 
     Light& comp = *pLightComponent_;
@@ -149,6 +151,29 @@ void LightSystem::AddPointLights(
 
     for (index i = 0; i < numEntts; ++i)
         lights.data.insert_before(idxs[i], params.data[i]);
+}
+
+//---------------------------------------------------------
+// Desc:   bind a point light source to a single input entity by ID
+// Args:   - id:        entity identifier
+//         - initData:  initial params for point light source
+//---------------------------------------------------------
+void LightSystem::AddPointLight(const EntityID id, const PointLight& initData)
+{
+    Light& comp = *pLightComponent_;
+    index idx = comp.ids.get_insert_idx(id);
+
+    // exec sorted insertion of a new record into each data array
+    comp.ids.insert_before(idx, id);
+    comp.types.insert_before(idx, LightType::POINT);
+    comp.isActive.insert_before(idx, true);
+
+    // add data into the point lights container
+    PointLights& lights = GetPointLights();
+
+    idx = lights.ids.get_insert_idx(id);
+    lights.ids.insert_before(idx, id);
+    lights.data.insert_before(idx, initData);
 }
 
 ///////////////////////////////////////////////////////////
@@ -356,7 +381,7 @@ void LightSystem::GetPointLightsData(
     for (int i = 0; const index idx : idxs)
         outData[i++] = lights.data[idx];
 
-    // get point light positions (are store in the Transform component)
+    // get point light positions (are stored in the Transform component)
     pTransformSys_->GetPositions(ids, numEntts, outPositions);
 }
 

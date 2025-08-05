@@ -309,6 +309,7 @@ if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mtd.dll" xcopy /Y /f "$(
     <ClCompile Include="UI\Editor\EditorPanelElement\TextureAssetsBrowser.cpp" />
     <ClCompile Include="UI\Editor\Entity\Controller\EnttDirLightController.cpp" />
     <ClCompile Include="UI\Editor\Entity\Controller\EnttEditorController.cpp" />
+    <ClCompile Include="UI\Editor\Entity\Controller\EnttParticlesController.cpp" />
     <ClCompile Include="UI\Editor\Entity\Controller\EnttTransformController.cpp" />
     <ClCompile Include="UI\Editor\Entity\Controller\EnttPointLightController.cpp" />
     <ClCompile Include="UI\Editor\Terrain\Sky\SkyController.cpp" />
@@ -430,8 +431,11 @@ if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mtd.dll" xcopy /Y /f "$(
     <ClInclude Include="UI\Editor\EditorPanelElement\TextureAssetsBrowser.h" />
     <ClInclude Include="UI\Editor\Entity\Controller\EnttDirLightController.h" />
     <ClInclude Include="UI\Editor\Entity\Controller\EnttEditorController.h" />
+    <ClInclude Include="UI\Editor\Entity\Controller\EnttParticlesController.h" />
     <ClInclude Include="UI\Editor\Entity\Controller\EnttTransformController.h" />
     <ClInclude Include="UI\Editor\Entity\Controller\EnttPointLightController.h" />
+    <ClInclude Include="UI\Editor\Entity\Model\EnttParticlesModel.h" />
+    <ClInclude Include="UI\Editor\Entity\View\EnttParticlesView.h" />
     <ClInclude Include="UI\Editor\Terrain\Sky\SkyController.h" />
     <ClInclude Include="UI\Editor\Entity\Controller\EnttSpotLightController.h" />
     <ClInclude Include="UI\Editor\Entity\Creator\EntityCreatorWnd.h" />

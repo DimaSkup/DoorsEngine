@@ -38,7 +38,6 @@
 #include "../Systems/HierarchySystem.h"
 
 // particles stuff
-#include "../Systems/Particles/ParticleEngine.h"
 #include "../Systems/Particles/ParticleSystem.h"
 
 // events (ECS)
@@ -165,6 +164,8 @@ public:
     void AddLightComponent(const EntityID* ids, const size numEntts, PointLightsInitParams& params);
     void AddLightComponent(const EntityID* ids, const size numEntts, SpotLightsInitParams& params);
 
+    // add LIGHT component for a single entity
+    void AddLightComponent(const EntityID id, const PointLight& initData);
 
     // add RENDER STATES component
     void AddRenderStatesComponent(const EntityID id);
@@ -189,7 +190,7 @@ public:
     void AddPlayerComponent(const EntityID id);
 
     // add ParticlesEmitter component
-    void AddParticleEmitterComponent(const EntityID id, ParticleSystem& sys);
+    void AddParticleEmitterComponent(const EntityID id);
 
 
     // =============================================================================
@@ -253,7 +254,7 @@ public:
     CameraSystem            cameraSystem_;
     PlayerSystem            playerSystem_;
     HierarchySystem         hierarchySystem_;
-    ParticleEngine          particleEngine_;
+    ParticleSystem          particleSystem_;
     
 
     // "ID" of an entity is just a numeral index

@@ -26,10 +26,10 @@ public:
 	void LoadSkyEnttData();
 
     // execute command and store this change into the events history
-    virtual void Execute(const ICommand* pCmd) override;
+    virtual void ExecCmd(const ICommand* pCmd) override;
 
     // undo/alt_undo an event (related to sky) from the events history
-    virtual void Undo(const ICommand* pCmd, const uint32 enttID) override;
+    virtual void UndoCmd(const ICommand* pCmd, const uint32 enttID) override;
 
 	inline const ModelSky& GetModel() const { return skyModel_; }
 

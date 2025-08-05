@@ -51,6 +51,17 @@ enum eEditorCmdType
 	CHANGE_FOG_COLOR,
 	CHANGE_FOG_START,     // distance where for starts
 	CHANGE_FOG_RANGE,     // distance after which the objects are fully fogged
+
+    // particles
+    CHANGE_PARTICLES_COLOR,
+    CHANGE_PARTICLES_EXTERNAL_FORCE,
+    CHANGE_PARTICLES_SPAWN_NUM_PER_SECOND,
+    CHANGE_PARTICLES_LIFESPAN_MS,
+    CHANGE_PARTICLES_MASS,
+    CHANGE_PARTICLES_SIZE,
+    CHANGE_PARTICLES_FRICTION,   // air resistance
+
+
 };
 
 ///////////////////////////////////////////////////////////

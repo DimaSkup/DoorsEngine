@@ -124,7 +124,7 @@ void UserInterface::UndoEditorLastEvent()
     {
         HistoryItem historyItem = g_EventsHistory.Undo();
 
-        editorPanels_.enttEditorController_.Undo(
+        editorPanels_.enttEditorController_.UndoCmd(
             &historyItem.cmd_,
             historyItem.entityID_);
     }

@@ -27,8 +27,8 @@ EntityMgr::EntityMgr() :
     boundingSystem_     { &bounding_ },
     cameraSystem_       { &camera_, &transformSystem_ },
     hierarchySystem_    { &hierarchy_, &transformSystem_ },
-    playerSystem_       { &transformSystem_, &cameraSystem_, &hierarchySystem_ }
-   
+    playerSystem_       { &transformSystem_, &cameraSystem_, &hierarchySystem_ },
+    particleSystem_     { &transformSystem_ }
 {
     LogDbg(LOG, "start of entity mgr init");
 
@@ -272,7 +272,7 @@ void EntityMgr::Update(const float totalGameTime, const float deltaTime)
 
 
     playerSystem_.Update(deltaTime);
-    particleEngine_.Update(deltaTime);
+    particleSystem_.Update(deltaTime);
 
     // we handled all the events so clear the list of events
     events_.clear();
@@ -621,6 +621,15 @@ void EntityMgr::AddLightComponent(
 }
 
 //---------------------------------------------------------
+// Desc:   add light component (point light) to a single input entity by ID
+//---------------------------------------------------------
+void EntityMgr::AddLightComponent(const EntityID id, const PointLight& initData)
+{
+    lightSystem_.AddPointLight(id, initData);
+    SetEnttHasComponent(id, LightComponent);
+}
+
+//---------------------------------------------------------
 // Desc:   add light component (spotlight) to each input entity by ID 
 //---------------------------------------------------------
 void EntityMgr::AddLightComponent(
@@ -748,15 +757,11 @@ void EntityMgr::AddPlayerComponent(const EntityID id)
 //---------------------------------------------------------
 // Desc:   add a particle emitter to the entity by input ID
 // Args:   - id:  entity identifier
-//         - sys: particle system (type of particles;
-//         for instance: fire, so there will be rendered a fire in this entity position)
 //---------------------------------------------------------
-void EntityMgr::AddParticleEmitterComponent(const EntityID id, ParticleSystem& sys)
+void EntityMgr::AddParticleEmitterComponent(const EntityID id)
 {
-    if (!sys.AddEmitter(id))
-    {
-        LogErr(LOG, "can't add emitter component (entt id: %d, particle_sys: %s)", id, sys.GetName());
-    }
+    particleSystem_.AddEmitter(id);
+    SetEnttHasComponent(id, ParticlesComponent);
 }
 
 

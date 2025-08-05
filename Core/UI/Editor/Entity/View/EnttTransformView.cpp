@@ -38,19 +38,19 @@ void EnttTransformView::Render(const EnttTransformData& data)
     if (ImGui::DragFloat3("Position", position.xyz, 0.005f, -FLT_MAX, +FLT_MAX))
     {
         CmdChangeVec3 cmd(CHANGE_ENTITY_POSITION, position);
-        pController_->Execute(&cmd);
+        pController_->ExecCmd(&cmd);
     }
 
     if (ImGui::DragFloat3("Direction", direction.xyz, 0.005f, -FLT_MAX, +FLT_MAX))
     {
         CmdChangeVec3 cmd(CHANGE_ENTITY_DIRECTION, position);
-        pController_->Execute(&cmd);
+        pController_->ExecCmd(&cmd);
     }
 
     if (ImGui::SliderFloat("Uniform scale", &uniformScale, 0.1f, 20))
     {
         CmdChangeFloat cmd(CHANGE_ENTITY_SCALE, uniformScale);
-        pController_->Execute(&cmd);
+        pController_->ExecCmd(&cmd);
     }
 }
 

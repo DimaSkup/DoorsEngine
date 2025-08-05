@@ -111,9 +111,6 @@
     <ClInclude Include="Components\ParticleEmitter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Systems\Particles\ParticleEngine.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Systems\Particles\ParticleSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -162,9 +159,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Entity\EntityMgr.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Systems\Particles\ParticleEngine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Systems\Particles\ParticleSystem.cpp">

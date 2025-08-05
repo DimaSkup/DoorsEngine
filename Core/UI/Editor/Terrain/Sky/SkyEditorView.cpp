@@ -39,17 +39,20 @@ void ViewSky::Render(const ModelSky& data)
 	// draw editor fields
 	if (ImGui::ColorEdit3("Center color", colorCenter.rgb))
 	{
-		pController_->Execute(new CmdChangeColor(CHANGE_SKY_COLOR_CENTER, colorCenter));
+        CmdChangeColor cmd(CHANGE_SKY_COLOR_CENTER, colorCenter);
+		pController_->ExecCmd(&cmd);
 	}
 
 	if (ImGui::ColorEdit3("Apex color", colorApex.rgb))
 	{
-		pController_->Execute(new CmdChangeColor(CHANGE_SKY_COLOR_APEX, colorApex));
+        CmdChangeColor cmd(CHANGE_SKY_COLOR_APEX, colorApex);
+		pController_->ExecCmd(&cmd);
 	}
 
 	if (ImGui::DragFloat3("Sky offset", offset.xyz))
 	{
-		pController_->Execute(new CmdChangeVec3(CHANGE_SKY_OFFSET, offset));
+        CmdChangeVec3 cmd(CHANGE_SKY_OFFSET, offset);
+		pController_->ExecCmd(&cmd);
 	}
 }
 

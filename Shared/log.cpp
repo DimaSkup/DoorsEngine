@@ -42,6 +42,11 @@ void SetConsoleColor(const char* keyColor)
 void AddMsgIntoLogStorage(const char* msg, const eLogType type)
 {
     int& numLogs    = s_LogStorage.numLogs;
+
+    // if we exceeded the limit of the log storage
+    if (numLogs == LOG_STORAGE_SIZE)
+        return;
+
     LogMessage& log = s_LogStorage.logs[numLogs];
     char** buf      = &log.msg;                          // get a buffer to the text of this log
     log.type        = type;                                // store the type of this log
@@ -168,6 +173,13 @@ void CloseLogger()
 
     fprintf(s_pLogFile, "\n--------------------------------\n");
     fprintf(s_pLogFile, "%s| this is the end, my only friend, the end\n", buffer);
+
+    // release the memory from logs in the log storage
+    for (int i = 0; i < s_LogStorage.numLogs; ++i)
+    {
+        delete[] s_LogStorage.logs[i].msg;
+        s_LogStorage.logs[i].msg = nullptr;
+    }
 
     fclose(s_pLogFile);
 }

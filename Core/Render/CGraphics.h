@@ -139,7 +139,10 @@ private:
 
     void RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender);
   
-    void UpdateShadersDataPerFrame(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender);
+    void UpdateShadersDataPerFrame(
+        ECS::EntityMgr* pEnttMgr,
+        Render::CRender* pRender,
+        const float totalGameTime);
 
     // ------------------------------------------
     // rendering data prepararion stage API

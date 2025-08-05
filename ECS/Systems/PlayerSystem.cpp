@@ -103,8 +103,8 @@ void PlayerSystem::Update(const float deltaTime)
     // compute jump
     if (inJump)
     {
-        constexpr float height = 5.0f;        // peak height
-        constexpr float th     = 0.5f;        // time to reach the peak height
+        constexpr float height = 3.0f;        // peak height
+        constexpr float th     = 0.3f;        // time to reach the peak height
         constexpr float invTH  = 1.0f / th;
 
         // derive gravity and init. velocity in terms of peak height and duration to peak

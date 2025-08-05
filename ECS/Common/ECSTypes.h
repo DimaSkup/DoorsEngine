@@ -37,6 +37,7 @@ enum eComponentType
     BoundingComponent,             // for using AABB, OBB, bounding spheres
 
     PlayerComponent,               // to hold First-Person-Shooter (FPS) player's data
+    ParticlesComponent,
 
     // NOT IMPLEMENTED YET
     AIComponent,

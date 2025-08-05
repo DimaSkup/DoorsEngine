@@ -158,8 +158,7 @@ void Engine::Update()
 
     // get the time which passed since the previous frame
     deltaTime_ = timer_.GetDeltaTime();
-    constexpr float maxDeltaTime = (1000.0f / 60.0f);
-    deltaTime_ = (deltaTime_ > maxDeltaTime) ? maxDeltaTime : deltaTime_;
+
 
     systemState_.deltaTime = deltaTime_;
     systemState_.frameTime = deltaTime_ * 1000.0f;

@@ -64,7 +64,7 @@ void TerrainShader::Render(
 
     // set the sampler state and textures
     pContext->PSSetSamplers(1U, 1U, samplerState_.GetAddressOf());
-    pContext->PSSetShaderResources(1U, NUM_TEXTURE_TYPES, instance.textures);
+    pContext->PSSetShaderResources(10U, NUM_TEXTURE_TYPES, instance.textures);
 
     // bind vb/ib
     const UINT stride = instance.vertexStride;
@@ -98,7 +98,7 @@ void TerrainShader::Prepare(
 
     // set the sampler state and textures
     pContext->PSSetSamplers(1U, 1U, samplerState_.GetAddressOf());
-    pContext->PSSetShaderResources(1U, NUM_TEXTURE_TYPES, instance.textures);
+    pContext->PSSetShaderResources(10U, NUM_TEXTURE_TYPES, instance.textures);
 
     // bind vb/ib
     const UINT stride = instance.vertexStride;

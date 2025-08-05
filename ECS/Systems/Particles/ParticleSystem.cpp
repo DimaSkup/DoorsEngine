@@ -9,57 +9,44 @@ namespace ECS
 {
 
 //---------------------------------------------------------
-// Desc:   default constructor
+// Desc:    constructor
 //---------------------------------------------------------
-ParticleSystem::ParticleSystem()
+ParticleSystem::ParticleSystem(TransformSystem* pTransformSys)
+    : pTransformSys_(pTransformSys)
 {
+    if (!pTransformSys_)
+    {
+        LogErr(LOG, "input ptr to transform system == nullptr");
+    }
 }
 
 //---------------------------------------------------------
 // Desc:    add a new emitter (instance of this system)
 // Args:    - id:   an identifier of the entity which owns this emitter
 // 
-// Ret:     true if everything is ok
+// Ret:     a ref to the added emitter
 //---------------------------------------------------------
-bool ParticleSystem::AddEmitter(const EntityID id)
+ParticleEmitter& ParticleSystem::AddEmitter(const EntityID id)
 {
     if (id == INVALID_ENTITY_ID)
     {
         LogErr(LOG, "input entity id is invalid");
-        return false;
     }
 
     // push a new emitter and set related entity ID
     emitters_.push_back(ParticleEmitter(id));
 
-    return true;
-}
-
-//---------------------------------------------------------
-// Desc:    setup a name for this particles system
-// Args:    - name:  a new name for the system
-//---------------------------------------------------------
-void ParticleSystem::SetName(const char* name)
-{
-    if (!name || name[0] == '\0')
-    {
-        LogErr(LOG, "input name for particles system is empty");
-        return;
-    }
-
-    size_t len = strlen(name);
-    len = (len <= 32) ? len : 32;
-
-    strncpy(sysName_, name, len);
-    sysName_[len] = '\0';
+    return emitters_.back();
 }
 
 //---------------------------------------------------------
 // Desc:    generate data for new particles
-// Args:    - outData:       output array of particles
-//          - numParticles:  how many particles we have
+// Args:    - emitter:   get from here inital params for particles
+//          - outData:   output array of particles
 //---------------------------------------------------------
-void ParticleSystem::ParticlesInitDataGenerator(cvector<Particle>& outParticles)
+void ParticleSystem::ParticlesInitDataGenerator(
+    const ParticleEmitter& emitter,
+    cvector<Particle>& outParticles)
 {
     if (outParticles.empty())
     {
@@ -83,49 +70,62 @@ void ParticleSystem::ParticlesInitDataGenerator(cvector<Particle>& outParticles)
             sinf(pitch) * sinf(yaw) * magnitude * MathHelper::RandF()  // velocity Z
         };
 
+        particle.pos          = emitter.position;
+
         //set the particle's color and transparency
-        particle.color          = color_;
-        particle.translucency   = 1.0f;
+        particle.color        = emitter.color;
+        particle.translucency = 1.0f;
 
         // set the particle's lifespan
-        particle.ageMs          = life_;
+        particle.ageMs        = emitter.life;
 
         // set the particle's size, mass, and air resistance
-        particle.mass           = mass_;
-        particle.size           = size_;
-        particle.friction       = friction_;
+        particle.mass         = emitter.mass;
+        particle.size         = emitter.size;
+        particle.friction     = emitter.friction;
     }
 }
 
 //---------------------------------------------------------
-// Desc:   generate amount of new particles according to genParticlesPerSec parameter
-// Args:   - dt: delta time in seconds
+// Desc:   generate particles for each active emitter
+// Args:   - dt: delta time
 //---------------------------------------------------------
 void ParticleSystem::CreateParticles(const float dt)
 {
-    time_ += dt;
-    const float createOneParticlePerSec = 1.0f / genNumParticlesPerSec_;
+    // maybe TEMP: update emitting position of each emitter
+    for (ParticleEmitter& emitter : emitters_)
+    {
+        emitter.position = pTransformSys_->GetPositionVec(emitter.id);
+    }
 
-    // if too little time spent for generation of any particles
-    if (time_ <= createOneParticlePerSec)
-        return;
 
-    // compute how many particles we have
-    const int numNewParticles  = (int)(time_ / createOneParticlePerSec);
+    for (ParticleEmitter& emitter : emitters_)
+    {
+     
+        emitter.time += dt;
+        const float createOneParticleEachSec = 1.0f / emitter.genNumParticlesPerSec;
 
-    time_ -= (numNewParticles * createOneParticlePerSec);
+        // if too little time spent for generation of any particles
+        if (emitter.time <= createOneParticleEachSec)
+            return;
 
-    // generate some init params for each new particle
-    cvector<Particle> newParticles(numNewParticles);
-    ParticlesInitDataGenerator(newParticles);
+        // compute how many particles we have
+        const int numNewParticles = (int)(emitter.time / createOneParticleEachSec);
 
-    // push new particles
-    particles_.append_vector(std::move(newParticles));
+        emitter.time -= (numNewParticles * createOneParticleEachSec);
+
+        // generate some init params for each new particle
+        cvector<Particle> newParticles(numNewParticles);
+        ParticlesInitDataGenerator(emitter, newParticles);
+
+        // push new particles
+        emitter.particles.append_vector(std::move(newParticles));
+    }
 }
 
 //---------------------------------------------------------
-// Desc:   update the particle system
-// Args:   - dt:  delta time in seconds
+// Desc:   update each particle emitter
+// Args:   - dt:  delta time
 //---------------------------------------------------------
 void ParticleSystem::Update(const float dt)
 {
@@ -134,36 +134,41 @@ void ParticleSystem::Update(const float dt)
         return;
 
 
-    const float invLife = 1.0f / life_;
-    const float delta   = dt * 200;
+    const float delta = dt * 200;
 
-    // loop through all the particles and update them
-    for (Particle& particle : particles_)
+
+    for (ParticleEmitter& emitter : emitters_)
     {
-        // age the particle
-        particle.ageMs -= dt;
+        const float invLife = 1.0f / emitter.life;
 
-
-        // if this particle is already dead we remove it
-        if (particle.ageMs <= 0.0f)
+        // loop through all the particles and update them
+        for (Particle& particle : emitter.particles)
         {
-            particle = particles_.back();
-            particles_.pop_back();
-            continue;
-        }
+            // age the particle
+            particle.ageMs -= dt;
 
-        // our particle is still alive so update its params
-        else
-        {
-            // update the particle's position
-            particle.pos += (particle.vel * particle.mass * delta);
 
-            // now it's time for the external forces to take their toll
-            particle.vel *= (1 - particle.friction * delta);
-            particle.vel += forces_ * delta;
+            // if this particle is already dead we remove it
+            if (particle.ageMs <= 0.0f)
+            {
+                particle = emitter.particles.back();
+                emitter.particles.pop_back();
+                continue;
+            }
 
-            // set the particle's transparency (based on its age)
-            particle.translucency = particle.ageMs * invLife;
+            // our particle is still alive so update its params
+            else
+            {
+                // update the particle's position
+                particle.pos += (particle.vel * particle.mass * delta);
+
+                // now it's time for the external forces to take their toll
+                particle.vel *= (1 - particle.friction * delta);
+                particle.vel += emitter.forces * delta;
+
+                // set the particle's transparency (based on its age)
+                particle.translucency = particle.ageMs * invLife;
+            }
         }
     }
 }
@@ -173,30 +178,131 @@ void ParticleSystem::Update(const float dt)
 // Out:    - outInstances:   array of particles rendering data
 // Ret:    the number of added particles for rendering
 //---------------------------------------------------------
-UINT ParticleSystem::GetParticlesToRender(cvector<ParticleRenderInstance>& outInstances)
+ParticlesRenderData& ParticleSystem::GetParticlesToRender()
 {
-    const vsize curNumAliveParticles = particles_.size();
+    renderData_.particles.resize(0);                    // clear particles from the prev frame
+    renderData_.Reset();
 
-    // prepare enough memory
-    const vsize prevNumInstances = outInstances.size();
-    outInstances.resize(prevNumInstances + curNumAliveParticles);
 
-    index idx = prevNumInstances;
-
-    // store data of each alive particle
-    for (int i = 0; i < curNumAliveParticles; ++i)
+    // go through each active particle emitter and gather alive particles
+    for (ParticleEmitter& emitter : emitters_)
     {
-        // copy position
-        DirectX::XMStoreFloat3(&outInstances[idx].pos, particles_[i].pos);
+        if (!emitter.isEmitting)
+            continue;
 
-        outInstances[idx].translucency = particles_[i].translucency;
-        outInstances[idx].color = particles_[i].color;
-        outInstances[idx].size  = { particles_[i].size, particles_[i].size };
 
-        ++idx;
+        const vsize prevNumInstances = renderData_.particles.size();
+        const vsize numParticlesInEmitter = emitter.particles.size();
+        index idx = prevNumInstances;
+
+        // for this emitter we start rendering particles from this "baseInstance" idx
+        renderData_.baseInstance.push_back((UINT)renderData_.particles.size());
+
+        // for this emitter we will render "numInstances" particles
+        renderData_.numInstances.push_back((UINT)numParticlesInEmitter);
+
+        // and use a material by this id
+        renderData_.materialIds.push_back(emitter.materialId);
+
+        // prepare enough memory
+        renderData_.particles.resize(prevNumInstances + numParticlesInEmitter);
+
+        // store data of each alive particle
+        for (const Particle& particle : emitter.particles)
+        {
+            // copy position
+            DirectX::XMStoreFloat3(&renderData_.particles[idx].pos, particle.pos);
+
+            renderData_.particles[idx].translucency = particle.translucency;
+            renderData_.particles[idx].color        = particle.color;
+            renderData_.particles[idx].size         = { particle.size, particle.size };
+
+            ++idx;
+        }
     }
 
-    return (UINT)curNumAliveParticles;
+    return renderData_;
+}
+
+//---------------------------------------------------------
+// Desc:    load data for file and create a new particle emitters using this data
+// Args:    - pFile:   particles config file descriptor
+//---------------------------------------------------------
+void ReadAndCreateEmitter(ParticleSystem* pSys, FILE* pFile)
+{
+    XMFLOAT3 pos                = { 0,0,0 };
+    XMFLOAT3 color              = { 0,0,0 };
+    XMFLOAT3 forces             = { 0,0,0 };
+    EntityID entityId           = INVALID_ENTITY_ID;
+    int      genParticlesPerSec = 0;
+    float    lifetimeMs         = 0;
+    float    particleSize       = 0;
+    float    mass               = 0;
+    float    friction           = 0;          // air resistance
+    int      matId              = 0;
+    
+
+    // read in data from file
+    fscanf(pFile, "entity_id: %d",                  &entityId);
+    fscanf(pFile, "gen_particles_per_sec: %d\n",    &genParticlesPerSec);
+    fscanf(pFile, "lifetime_ms: %f\n",              &lifetimeMs);
+    fscanf(pFile, "color: %f, %f, %f\n",            &color.x, &color.y, &color.z);
+
+    fscanf(pFile, "size: %f\n",                     &particleSize);
+    fscanf(pFile, "mass: %f\n",                     &mass);
+    fscanf(pFile, "friction: %f\n",                 &friction);   
+    fscanf(pFile, "external_forces: %f, %f, %f\n",  &forces.x, &forces.y, &forces.z);
+    fscanf(pFile, "material_id: %d",                &matId);
+    fscanf(pFile, "\n");
+
+
+    // add and setup a particle system
+    ParticleEmitter& emitter = pSys->AddEmitter(entityId);
+
+    emitter.genNumParticlesPerSec = genParticlesPerSec;
+    emitter.life        = lifetimeMs / 1000;
+    emitter.color       = XMFLOAT3{ color.x, color.y, color.z };
+    emitter.size        = particleSize;
+    emitter.mass        = mass;
+    emitter.friction    = friction;
+    emitter.forces      = XMVECTOR{ forces.x, forces.y, forces.z };
+    emitter.materialId  = matId;
+}
+
+//---------------------------------------------------------
+// Desc:    load particles emitters data from config file
+// Args:    - configPath:  a path to the particles config file
+//                         (relatively to the working directory)
+// Ret:     true if we managed to it
+//---------------------------------------------------------
+bool ParticleSystem::LoadFromFile(const char* configPath)
+{
+    // check input args
+    if (!configPath || configPath[0] == '\0')
+    {
+        LogErr(LOG, "input path to particles config is empty");
+        return false;
+    }
+
+    // open config file
+    FILE* pFile = fopen(configPath, "r");
+    if (!pFile)
+    {
+        LogErr(LOG, "can't open particles config file: %s", configPath);
+        return false;
+    }
+
+    int  numParticleSys  = 0;
+
+    // read in configs
+    fscanf(pFile, "num_particle_systems: %d\n", &numParticleSys);
+    fscanf(pFile, "\n");
+
+    // read in a system
+    for (int i = 0; i < numParticleSys; ++i)
+        ReadAndCreateEmitter(this, pFile);
+
+    return true;
 }
 
 } // namespace

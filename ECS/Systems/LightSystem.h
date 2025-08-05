@@ -29,7 +29,9 @@ public:
     void AddDirLights  (const EntityID* ids, const size numEntts, DirLightsInitParams& params);
     void AddPointLights(const EntityID* ids, const size numEntts, PointLightsInitParams& params);
     void AddSpotLights (const EntityID* ids, const size numEntts, SpotLightsInitParams& params);
-        
+
+    void AddPointLight(const EntityID id, const PointLight& initData);
+
     //
     // Public update API
     //

@@ -11,8 +11,6 @@
 #include <EngineException.h>
 #include <FileSystemPaths.h>
 
-#include "SceneInitializer.h"
-
 // UI
 #include "../UI/UICommon/IFacadeEngineToUI.h"
 #include "../UI/UserInterface.h"
@@ -55,10 +53,10 @@ private:
     UI::IFacadeEngineToUI* pFacadeEngineToUI_ = nullptr;  // a facade interface which are used by UI to contact with some engine's parts
 
     HWND                   mainHWND_;
-    Core::EngineConfigs    settings_;
+    Core::EngineConfigs    engineConfigs_;
     EventHandler           eventHandler_;
     Core::WindowContainer  wndContainer_;
-    bool                   startInGameMode_ = false;
+    //bool                   startInGameMode_ = false;
 };
 
 } // namespace Game

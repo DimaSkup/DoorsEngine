@@ -1,7 +1,8 @@
 // =================================================================================
 // Filename:      EnttDirLightController.h
-// Description:   editor controller for execution/undoing of commands 
-//                related to the directed light entities
+// Description:   editor controller (a part of MVC pattern)
+//                for execution/undoing of commands 
+//                related to the directed light of entities
 // 
 // Created:       15.03.25  by DimaSkup
 // =================================================================================
@@ -9,8 +10,7 @@
 
 #include <UICommon/ICommand.h>
 #include <UICommon/IFacadeEngineToUI.h>
-
-#include "../Model/EnttLightData.h"
+#include "../Model/EnttLightData.h"        // mvc model
 
 
 namespace UI
@@ -36,10 +36,7 @@ private:
 
 private:
     EnttDirLightData   dirLightModel_;
-    IFacadeEngineToUI* pFacade_ = nullptr;    // facade interface btw GUI and the engine
+    IFacadeEngineToUI* pFacade_ = nullptr;    // a facade interface btw GUI and the engine
 };
 
-
-
-
-} // namespace UI
+} // namespace

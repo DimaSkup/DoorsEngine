@@ -44,6 +44,8 @@ enum eEnttComponentType : uint8_t
     RenderStatesComponent,         // for using different render states: blending, alpha clipping, fill mode, cull mode, etc.
     BoundingComponent,             // for using AABB, OBB, bounding spheres
 
+    PlayerComponent,               // to hold First-Person-Shooter (FPS) player's data
+    ParticlesComponent,
 
     // NOT IMPLEMENTED YET
     AIComponent,
@@ -56,6 +58,8 @@ enum eEnttComponentType : uint8_t
     VelocityComponent,
     GroundedComponent,
     CollisionComponent,
+
+    
 
     NUM_COMPONENTS
 };
@@ -295,6 +299,18 @@ public:
         const int iconWidth,
         const int iconHeight,
         const float yAxisRotation) { return false; }
+
+
+    // =============================================================================
+    // setup particles binded to entity by ID (note: actually we setup a particles system at all, not particular particles of particular entity)
+    // =============================================================================
+    virtual bool SetParticlesColor            (const EntityID id, const ColorRGB& c)         { return false; }
+    virtual bool SetParticlesExternForce      (const EntityID id, const Vec3& force)         { return false; }
+    virtual bool SetParticlesSpawnNumPerSecond(const EntityID id, const int num)             { return false; }
+    virtual bool SetParticlesLifespanMs       (const EntityID id, const int milliseconds)    { return false; }
+    virtual bool SetParticlesMass             (const EntityID id, const float mass)          { return false; }
+    virtual bool SetParticlesSize             (const EntityID id, const float size)          { return false; }
+    virtual bool SetParticlesFriction         (const EntityID id, const float airResistance) { return false; }
 
 private:
     inline float     GetInvalidFloat() const { return NAN; }

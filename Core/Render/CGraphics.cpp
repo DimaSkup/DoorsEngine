@@ -288,7 +288,7 @@ void CGraphics::UpdateHelper(
     ComputeFrustumCullingOfLightSources(sysState, pEnttMgr);
 
     // Update shaders common data for this frame
-    UpdateShadersDataPerFrame(pEnttMgr, pRender);
+    UpdateShadersDataPerFrame(pEnttMgr, pRender, totalGameTime);
 
     // prepare all the visible entities data for rendering
     const cvector<EntityID>& visibleEntts = pEnttMgr->renderSystem_.GetAllVisibleEntts();
@@ -572,20 +572,23 @@ void CGraphics::ComputeFrustumCullingOfLightSources(
 
 void CGraphics::UpdateShadersDataPerFrame(
     ECS::EntityMgr* pEnttMgr,
-    Render::CRender* pRender)
+    Render::CRender* pRender,
+    const float totalGameTime)
 {
     // Update shaders common data for this frame: 
     // viewProj matrix, camera position, light sources data, etc.
 
-    Render::PerFrameData& perFrameData = pRender->perFrameData_;
+    Render::PerFrameData& data = pRender->perFrameData_;
 
-    perFrameData.viewProj = DirectX::XMMatrixTranspose(viewProj_);
-    perFrameData.cameraPos = pEnttMgr->transformSystem_.GetPosition(currCameraID_);
+    data.viewProj = DirectX::XMMatrixTranspose(viewProj_);
+    data.cameraPos = pEnttMgr->transformSystem_.GetPosition(currCameraID_);
+    data.totalGameTime = totalGameTime / 100;
 
-    SetupLightsForFrame(pEnttMgr, perFrameData);
+
+    SetupLightsForFrame(pEnttMgr, data);
 
     // update lighting data, camera pos, etc. for this frame
-    pRender->UpdatePerFrame(pContext_, perFrameData);
+    pRender->UpdatePerFrame(pContext_, data);
 }
 
 ///////////////////////////////////////////////////////////
@@ -757,6 +760,11 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
         g_TextureMgr.GetSRVsByTexIDs(&skyTexId, 1, texturesBuf_);
         pContext->PSSetShaderResources(0U, 1U, texturesBuf_.data());
 
+        // bind a perlin noise texture for "fog movement"
+        Texture* pTexPerlinNoise = g_TextureMgr.GetTexPtrByName("perlin_noise");
+        ID3D11ShaderResourceView* pPerlinNoiseSRV = pTexPerlinNoise->GetTextureResourceView();
+        pContext->PSSetShaderResources(1U, 1U, &pPerlinNoiseSRV);
+
 
         // reset the render states before rendering
         pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -768,9 +776,7 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
         RenderEnttsDefault(pRender);
         RenderEnttsAlphaClipCullNone(pRender);
         RenderTerrainGeomip(pRender, pEnttMgr);
-        //RenderTerrainQuadtree(pRender, pEnttMgr);
         RenderSkyDome(pRender, pEnttMgr);
-
         RenderBillboards(pRender, pEnttMgr);
     }
     catch (const std::out_of_range& e)
@@ -1214,27 +1220,28 @@ void CGraphics::RenderBillboards(
     Render::CRender* pRender,
     ECS::EntityMgr* pEnttMgr)
 {
-    ECS::ParticleEngine& particleEngine = pEnttMgr->particleEngine_;
+    ECS::ParticleSystem& particleSys = pEnttMgr->particleSystem_;
+    const ECS::ParticlesRenderData& particlesData = particleSys.GetParticlesToRender();
 
-    // if we don't have any particles to render
-    if (!particleEngine.HasParticlesToRender())
-        return;
-
-    const ECS::ParticlesRenderData& particlesData = particleEngine.GetParticlesToRender();
-
-    // prepare update particles data for rendering
+    // prepare updated particles data for rendering
     VertexBuffer<BillboardSprite>& vb = g_ModelMgr.GetBillboardsBuffer();
-    const int numVertices = (int)particlesData.particles.size();
+    const int numVertices             = (int)particlesData.particles.size();
     cvector<BillboardSprite> vertices(numVertices);
 
+#if 0
     for (int i = 0; const ECS::ParticleRenderInstance & particle : particlesData.particles)
     {
-        vertices[i].pos = particle.pos;
+        vertices[i].pos          = particle.pos;
         vertices[i].translucency = particle.translucency;
-        vertices[i].color = particle.color;
-        vertices[i].size = particle.size;
+        vertices[i].color        = particle.color;
+        vertices[i].size         = particle.size;
         ++i;
     }
+#else
+
+    memcpy(vertices.data(), particlesData.particles.data(), sizeof(ECS::ParticleRenderInstance) * numVertices);
+
+#endif
 
     // update the vertex buffer with updated particles data
     vb.UpdateDynamic(g_pContext, vertices.data(), numVertices);
@@ -1242,26 +1249,20 @@ void CGraphics::RenderBillboards(
     Render::ParticleShader& shader = pRender->shadersContainer_.particleShader_;
     shader.Prepare(g_pContext, vb.Get(), sizeof(BillboardSprite));
 
-    // go through data for each active particles system and render its particles
-    for (int i = 0, posIdx = 0; i < particlesData.numSystems; ++i)
+    // go through emitters and render its particles
+    const vsize numEmitters = particlesData.materialIds.size();
+
+    for (int i = 0; i < (int)numEmitters; ++i)
     {
         // bind a material for particles
         const MaterialID matId = particlesData.materialIds[i];
         BindMaterial(g_MaterialMgr.GetMaterialById(matId), pRender);
 
-        for (int emitIdx = 0; emitIdx < particlesData.numEmittersPerSystem[i]; ++emitIdx)
-        {
-            const EntityID id                  = particlesData.ids[posIdx++];
-            const DirectX::XMFLOAT3& posOffset = pEnttMgr->transformSystem_.GetPosition(id);
-
-            // render particles subset
-            shader.Render(
-                g_pContext,
-                posOffset,
-                particlesData.baseInstance[i],
-                particlesData.numInstances[i]);
-        }
-       
+        // render particles subset
+        shader.Render(
+            g_pContext,
+            particlesData.baseInstance[i],
+            particlesData.numInstances[i]);
     }
 
     pSysState_->visibleVerticesCount += numVertices;

@@ -20,18 +20,15 @@ cbuffer cbPerFrame : register(b0)
 // ==========================
 struct GS_IN
 {
-	float3 centerW  : POSITION;       // billboard center pos in a world space
-    float   translucency : TRANSLUCENCY;
-    float3 color    : COLOR;
-	float2 sizeW    : SIZE;           // width and height of the billboard
+	float4x4 material    : MATERIAL;
+	float3   centerW     : POSITION;       // billboard center pos in a world space
+	float2   sizeW       : SIZE;           // width and height of the billboard
 };
 
 struct GS_OUT
 {
 	float4 posH    : SV_POSITION;
 	float3 posW    : POSITION;
-    float   translucency : TRANSLUCENCY;
-    float3 color   : COLOR;
 	float3 normalW : NORMAL;
 	float2 tex     : TEXCOORD;
 	uint   primID  : SV_PrimitiveID;
@@ -53,10 +50,10 @@ void GS(
 
 	float2 gTexC[4] =
 	{
-		float2(1.0f, 1.0f),
-		float2(1.0f, 0.0f),
 		float2(0.0f, 1.0f),
-		float2(0.0f, 0.0f)
+		float2(0.0f, 0.0f),
+		float2(1.0f, 1.0f),
+		float2(1.0f, 0.0f)
 	};
 
 	// compute the local coordinate system of the sprite relative to the world space
@@ -76,24 +73,25 @@ void GS(
 	float halfWidth  = 0.5f * gin[0].sizeW.x;
 	float halfHeight = 0.5f * gin[0].sizeW.y;
 
+	//float halfWidth = 10;
+	//float halfHeight = 10;
+
 	float4 v[4];
-	v[0] = float4(gin[0].centerW + (halfWidth * right) - (halfHeight * up), 1.0f);
-	v[1] = float4(gin[0].centerW + (halfWidth * right) + (halfHeight * up), 1.0f);
-	v[2] = float4(gin[0].centerW - (halfWidth * right) - (halfHeight * up), 1.0f);
-	v[3] = float4(gin[0].centerW - (halfWidth * right) + (halfHeight * up), 1.0f);
+	v[0] = float4(gin[0].centerW + halfWidth * right - halfHeight * up, 1.0f);
+	v[1] = float4(gin[0].centerW + halfWidth * right + halfHeight * up, 1.0f);
+	v[2] = float4(gin[0].centerW - halfWidth * right - halfHeight * up, 1.0f);
+	v[3] = float4(gin[0].centerW - halfWidth * right + halfHeight * up, 1.0f);
 
 	// transform quad vertices to world space and output them as a triangle strip
 	GS_OUT gout;
 	[unroll]
 	for (int i = 0; i < 4; ++i)
 	{
-		gout.posH    = mul(v[i], gViewProj);
-		gout.posW    = v[i].xyz;
-        gout.translucency = gin[0].translucency;
-        gout.color   = gin[0].color;
+		gout.posH = mul(v[i], gViewProj);
+		gout.posW = v[i].xyz;
 		gout.normalW = look;
-		gout.tex     = gTexC[i];
-		gout.primID  = primID;
+		gout.tex = gTexC[i];
+		gout.primID = primID;
 		triStream.Append(gout);
 	}
 }

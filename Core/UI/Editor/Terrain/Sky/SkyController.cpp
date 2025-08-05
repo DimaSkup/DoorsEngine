@@ -67,9 +67,9 @@ void SkyController::Draw()
 
 //---------------------------------------------------------
 // Desc:   execute a command and store this change into the events history
-// Args:   - pCmd:      a ptr to the commands interface (command pattern)
+// Args:   - pCmd:  a ptr to the commands interface (command pattern)
 //---------------------------------------------------------
-void SkyController::Execute(const ICommand* pCmd)
+void SkyController::ExecCmd(const ICommand* pCmd)
 {
     // execute the sky changes according to the command type
     switch (pCmd->type_)
@@ -121,7 +121,7 @@ void SkyController::Execute(const ICommand* pCmd)
 // Args:   - pCmd:      a ptr to the commands interface (command pattern)
 //         - entityID:  an ID of the sky entity
 //---------------------------------------------------------
-void SkyController::Undo(const ICommand* pCmd, const uint32 entityID)
+void SkyController::UndoCmd(const ICommand* pCmd, const uint32 entityID)
 {
 
 }
