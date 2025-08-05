@@ -66,7 +66,6 @@ void ParticleShader::Prepare(
     pContext->IASetInputLayout(vs_.GetInputLayout());
     pContext->PSSetShader(ps_.GetShader(), nullptr, 0);
     pContext->PSSetSamplers(0, 1, samplerState_.GetAddressOf());
-    pContext->VSSetConstantBuffers(4, 1, cbvsParticlesOffset_.GetAddressOf());
 
     // bind vertex buffer
     UINT offset = 0;
@@ -76,22 +75,16 @@ void ParticleShader::Prepare(
 //---------------------------------------------------------
 // Desc:   render an array of points as billboards
 // Args:   - pContext:         DirectX11 device context
-//         - posOffset:        position offset for each particle
 //         - baseVertex:       start rendering from this vertex idx
 //         - numVertices:      how many vertices will we render as billboards
 //---------------------------------------------------------
 void ParticleShader::Render(
     ID3D11DeviceContext* pContext,
-    const DirectX::XMFLOAT3& posOffset,
     const UINT baseVertex,
     const UINT numVertices)
 {
     // bind the geometry shader
     pContext->GSSetShader(gs_.GetShader(), nullptr, 0);
-
-    // setup the particles position offset
-    cbvsParticlesOffset_.data.posW = posOffset;
-    cbvsParticlesOffset_.ApplyChanges(pContext);
 
     // draw particles set
     pContext->Draw(numVertices, baseVertex);
@@ -134,17 +127,6 @@ void ParticleShader::InitializeShaders(
 
     result = samplerState_.Initialize(pDevice);
     CAssert::True(result, "can't initialize the sampler state");
-
-    HRESULT hr = cbvsParticlesOffset_.Initialize(pDevice);
-    CAssert::NotFailed(hr, "can't init a const buffer for particles offset");
-
-
-    // setup the const buffers with initial data
-    ID3D11DeviceContext* pContext = nullptr;
-    pDevice->GetImmediateContext(&pContext);
-
-    cbvsParticlesOffset_.data.posW = { 0,0,0 };
-    cbvsParticlesOffset_.ApplyChanges(pContext);
 }
 
 } // namespace Render

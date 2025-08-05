@@ -6,6 +6,7 @@ WINDOW_HEIGHT                 900
 FULL_SCREEN                   false
 VSYNC_ENABLED                 false
 ENABLE_4X_MSAA                true
+START_IN_GAME_MODE            false
 
 PLAYER_WALK_SPEED             10.0f
 PLAYER_RUN_SPEED              20.0f

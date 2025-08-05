@@ -306,6 +306,9 @@
     <ClCompile Include="Terrain\TerrainLodMgr.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="UI\Editor\Entity\Controller\EnttParticlesController.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Input\Mouse.h">
@@ -699,6 +702,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Terrain\TerrainLodMgr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Editor\Entity\View\EnttParticlesView.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Editor\Entity\Model\EnttParticlesModel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Editor\Entity\Controller\EnttParticlesController.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

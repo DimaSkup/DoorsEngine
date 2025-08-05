@@ -939,4 +939,50 @@ bool FacadeEngineToUI::RenderMaterialBigIconByID(
 }
 
 
+// =============================================================================
+// setup particles binded to entity by ID (note: actually we setup a particles system at all, not particular particles of particular entity)
+// =============================================================================
+bool FacadeEngineToUI::SetParticlesColor(const EntityID id, const ColorRGB& color)
+{
+    pEntityMgr_->particleSystem_.SetColor(id, color.r, color.g, color.b);
+    return true;
+}
+
+bool FacadeEngineToUI::SetParticlesExternForce(const EntityID id, const Vec3& force)
+{
+    pEntityMgr_->particleSystem_.SetExternForces(id, force.x, force.y, force.z);
+    return true;
+}
+
+bool FacadeEngineToUI::SetParticlesSpawnNumPerSecond(const EntityID id, const int num)
+{
+    pEntityMgr_->particleSystem_.SetNumParticlesPerSec(id, num);
+    return true;
+}
+
+bool FacadeEngineToUI::SetParticlesLifespanMs(const EntityID id, const int milliseconds)
+{
+    pEntityMgr_->particleSystem_.SetLife(id, (float)milliseconds);
+    return true;
+}
+
+bool FacadeEngineToUI::SetParticlesMass(const EntityID id, const float mass)
+{
+    pEntityMgr_->particleSystem_.SetMass(id, mass);
+    return true;
+}
+
+bool FacadeEngineToUI::SetParticlesSize(const EntityID id, const float size)
+{
+    pEntityMgr_->particleSystem_.SetSize(id, size);
+    return true;
+}
+
+bool FacadeEngineToUI::SetParticlesFriction(const EntityID id, const float airResistance)
+{
+    pEntityMgr_->particleSystem_.SetFriction(id, airResistance);
+    return true;
+}
+
+
 } // namespace Core

@@ -41,34 +41,12 @@ struct ParticleRenderInstance
 
 struct ParticlesRenderData
 {
-    void Reserve(int numSystemsToRender)
-    {
-        if ((numSystems == numSystemsToRender) || (numSystemsToRender < 0))
-            return;
-
-        numSystems = numSystemsToRender;
-
-        numEmittersPerSystem.reserve(numSystemsToRender);
-        ids.reserve(numSystemsToRender);
-        materialIds.reserve(numSystemsToRender);
-        baseInstance.reserve(numSystemsToRender);
-        numInstances.reserve(numSystemsToRender);
-    }
-
     void Reset()
     {
-        numEmittersPerSystem.resize(0);
-        ids.resize(0);
         materialIds.resize(0);
         baseInstance.resize(0);
         numInstances.resize(0);
     }
-
-    int numSystems = 0;
-
-    // emitters data
-    cvector<int>                    numEmittersPerSystem;
-    cvector<EntityID>               ids;
 
     // particles data
     cvector<ParticleRenderInstance> particles;      // bunch of the all particles to render (from different systems)
@@ -84,8 +62,23 @@ struct ParticleEmitter
     ParticleEmitter() {}
     ParticleEmitter(EntityID enttId) : id(enttId) {}
 
-    EntityID          id         = INVALID_ENTITY_ID;
-    bool              isEmitting = true;
+    EntityID          id         = INVALID_ENTITY_ID;       // identifier of entity to which this emitter is bound
+    MaterialID        materialId = INVALID_MATERIAL_ID;
+
+    cvector<Particle> particles;                            // alive particles
+
+    DirectX::XMVECTOR position   = { 0,0,0 };
+    DirectX::XMVECTOR forces     = { 0,0,0 };               // gravity, air, etc.
+    DirectX::XMFLOAT3 color      = { 1,0,0 };
+
+    float             life       = 1000;                    // lifespan of particle
+    float             friction   = 0.1f;                    // air resistance
+    float             mass       = 1.0f;
+    float             size       = 0.1f;
+    float             time       = 0.0f;                    // need for particles generation (to be independent from fps)
+  
+    int               genNumParticlesPerSec = 0;            // number of particles generated per 1 second
+    bool              isEmitting            = true;
 };
 
 } // namespace

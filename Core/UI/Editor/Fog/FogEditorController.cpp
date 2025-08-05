@@ -30,7 +30,7 @@ void FogEditorController::Initialize(IFacadeEngineToUI* pFacade)
 
 ///////////////////////////////////////////////////////////
 
-void FogEditorController::Execute(const ICommand* pCmd)
+void FogEditorController::ExecCmd(const ICommand* pCmd)
 {
     if (!pCmd)
     {
@@ -103,9 +103,9 @@ void FogEditorController::Execute(const ICommand* pCmd)
 
 ///////////////////////////////////////////////////////////
 
-void FogEditorController::Undo(const ICommand* pCommand, const uint32_t entityID)
+void FogEditorController::UndoCmd(const ICommand* pCmd, const EntityID id)
 {
-    assert(0 && "TODO: implement it!");
+    assert(0 && "TODO: implement it dickhead!");
 }
 
 } // namespace UI

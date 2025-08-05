@@ -5,24 +5,23 @@
 // GLOBALS
 //
 TextureCube  gCubeMap       : register(t0);
-Texture2D    gTextures[22]  : register(t1);
+Texture2D    gPerlinNoise   : register(t1);
+Texture2D    gTextures[22]  : register(t10);
 
 SamplerState gSampleSky     : register(s0);
 SamplerState gSampleType    : register(s1);
 
-
-
 //
 // CONSTANT BUFFERS
 //
-
 cbuffer cbPerFrame    : register(b0)
 {
     // light sources data
     DirectionalLight  gDirLights[3];
     PointLight        gPointLights[25];
     SpotLight         gSpotLights[25];
-    float3            gEyePosW;                // eye position in world space  
+    float3            gEyePosW;                // eye position in world space
+    float             gTime;
     int               gCurrNumPointLights;
     int               gCurrNumSpotLights;
 };
@@ -73,7 +72,7 @@ struct PS_OUT
 
 
 //
-// PIXEL SHADER
+// PIXEL SHADER (data)
 //
 float4 PS(PS_IN pin) : SV_Target
 {
@@ -91,8 +90,9 @@ float4 PS(PS_IN pin) : SV_Target
     // HACK to get proper sky pixel
     float3 vec = -toEyeW;
     vec.y -= 990;
-    //float3 vec = float3(1, 1, 1);
 
+    float2 noiseTexCoords = float2(pin.tex.x + gTime, pin.tex.y + gTime);
+    float4 perlinNoiseColor = gPerlinNoise.Sample(gSampleType, noiseTexCoords);
     float4 skyTexColor = gCubeMap.Sample(gSampleType, vec);
 
     // return blended fixed fog color with the sky color at this pixel
@@ -108,18 +108,15 @@ float4 PS(PS_IN pin) : SV_Target
     // how many times we scale the detail map
     const float detalizationLvl = 128;
 
-    float4 textureColor = gTextures[1].Sample(gSampleType, pin.tex);
-    float4 lightMapColor = gTextures[10].Sample(gSampleType, pin.tex);
+    float4 textureColor   = gTextures[1].Sample(gSampleType, pin.tex);
     float4 detailMapColor = gTextures[16].Sample(gSampleType, pin.tex * detalizationLvl);
 
-    // posW.y / 255 * 10: height based lighting
-    //float brightness = pin.posW.y * 0.039215f;
+    // lightmap
+    //float4 lightMapColor = gTextures[10].Sample(gSampleType, pin.tex);
+    //float4 lightIntensity = lightMapColor * (gDirLights[0].diffuse + gDirLights[0].ambient);
 
-    //float  brightness = 2.0f;
-
-    float4 lightIntensity = lightMapColor * (gDirLights[0].diffuse + gDirLights[0].ambient);
-
-    float4 texColor = textureColor * detailMapColor * lightIntensity;
+    float  brightness = 2.0f;
+    float4 texColor = textureColor * detailMapColor * brightness;
 
 
     // --------------------  NORMAL MAP   --------------------
@@ -132,7 +129,6 @@ float4 PS(PS_IN pin) : SV_Target
     // compute the bumped normal in the world space
     //float3 bumpedNormalW = NormalSampleToWorldSpace(normalMap, normalW, pin.tangentW);
 
-    //return float4(normalW, 1.0f);
 
     // --------------------  LIGHTING  --------------------
 
@@ -142,11 +138,89 @@ float4 PS(PS_IN pin) : SV_Target
     mat.specular = gSpecular;
     mat.reflect = gReflect;
 
+    // start with a sum of zero
+    float4 ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
+    float4 diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);
+    float4 spec    = float4(0.0f, 0.0f, 0.0f, 0.0f);
 
-    float4 finalAmbient = gDirLights[0].ambient * mat.ambient;
-    float4 finalDiffuse = gDirLights[0].diffuse * mat.diffuse;
+    // sum the light contribution from each light source (ambient, diffuse, specular)
+    float4 A, D, S;
 
-    float4 finalColor = texColor * (finalAmbient + finalDiffuse);
+    // sum the light contribution from each directional light source
+    for (int i = 0; i < gNumOfDirLights; ++i)
+    {
+        ComputeDirectionalLight(
+            mat,
+            gDirLights[i],
+            normalW,
+            toEyeW,
+            0.0f,             // specular map value
+            A, D, S);
+
+        ambient += A;
+        diffuse += D;
+        spec += S;
+    }
+
+
+    // sum the light contribution from each point light source
+    for (i = 0; i < gCurrNumPointLights; ++i)
+    {
+        ComputePointLight(
+            mat,
+            gPointLights[i],
+            pin.posW,
+            normalW,
+            toEyeW,
+            0.0f,           // specular map value
+            A, D, S);
+
+        ambient += A;
+        diffuse += D;
+        spec += S;
+    }
+
+
+    // compute light from the flashlight
+    if (gTurnOnFlashLight)
+    {
+        ComputeSpotLight(
+            mat,
+            gSpotLights[0],
+            pin.posW,
+            normalW, 
+            toEyeW,
+            0.0f,         // specular map value
+            A, D, S);
+
+        ambient += A;
+        diffuse += D;
+        spec += S;
+    }
+
+    // sum the light contribution from each spot light source
+    for (i = 1; i < gCurrNumSpotLights; ++i)
+    {
+        ComputeSpotLight(
+            mat,
+            gSpotLights[i],
+            pin.posW,
+            normalW, 
+            toEyeW,
+            0.0f,         // specular map value
+            A, D, S);
+
+        ambient += A;
+        diffuse += D;
+        spec += S;
+    }
+
+    // modulate with late add
+    float4 finalColor = texColor *(ambient + diffuse) + spec;
+    
+    // common to take alpha from diffuse material and texture
+    //litColor.a = ((Material)pin.material).diffuse.a * textureColor.a;
+
 
     // ---------------------  FOG  ----------------------
 
@@ -155,7 +229,8 @@ float4 PS(PS_IN pin) : SV_Target
         // blend sky texture pixel with fixed fog color
         float4 fogColor = skyTexColor * float4(gFixedFogColor, 1.0f);
 
-        float fogLerp = saturate((distToEye - gFogStart) / gFogRange);
+        // compute linear interpolation of the fog and add perlin noise to achieve "moving fog"
+        float fogLerp = saturate((distToEye - gFogStart) / gFogRange + (perlinNoiseColor.x/1.5f));
 
         // blend using lerp the fog color and the final color
         finalColor = lerp(finalColor, fogColor, fogLerp);
@@ -163,110 +238,4 @@ float4 PS(PS_IN pin) : SV_Target
 
     return finalColor;
 
-
-
-    /*
-        // start with a sum of zero
-        float4 ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
-        float4 diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);
-        float4 spec = float4(0.0f, 0.0f, 0.0f, 0.0f);
-
-        // sum the light contribution from each light source (ambient, diffuse, specular)
-        float4 A, D, S;
-
-        // sum the light contribution from each directional light source
-        for (int i = 0; i < gNumOfDirLights; ++i)
-        {
-            ComputeDirectionalLight(
-                mat,
-                gDirLights[i],
-                normalW,
-                toEyeW,
-                0.0f,             // specular map value
-                A, D, S);
-
-            ambient += A;
-            diffuse += D;
-            spec += S;
-        }
-
-
-        // sum the light contribution from each point light source
-        for (i = 0; i < gCurrNumPointLights; ++i)
-        {
-            ComputePointLight(
-                mat,
-                gPointLights[i],
-                pin.posW,
-                normalW,
-                toEyeW,
-                0.0f,           // specular map value
-                A, D, S);
-
-            ambient += A;
-            diffuse += D;
-            spec += S;
-        }
-
-
-        // compute light from the flashlight
-        if (gTurnOnFlashLight)
-        {
-            ComputeSpotLight(
-                mat,
-                gSpotLights[0],
-                pin.posW,
-                normalW, //bumpedNormalW, // pin.normalW,
-                toEyeW,
-                0.0f,      // specular map value
-                A, D, S);
-
-            ambient += A;
-            diffuse += D;
-            spec += S;
-        }
-
-
-        // sum the light contribution from each spot light source
-        for (i = 1; i < gCurrNumSpotLights; ++i)
-        {
-            ComputeSpotLight(
-                mat,
-                gSpotLights[i],
-                pin.posW,
-                normalW, //bumpedNormalW, // pin.normalW,
-                toEyeW,
-                0.0f,   // specular map value
-                A, D, S);
-
-            ambient += A;
-            diffuse += D;
-            spec += S;
-        }
-
-
-        // modulate with late add
-        float4 finalColor = texColor;// *(ambient + diffuse) + spec;
-
-        // common to take alpha from diffuse material and texture
-        //litColor.a = ((Material)pin.material).diffuse.a * textureColor.a;
-
-        // render depth value as color
-        //return float4(pin.posH.z, pin.posH.z, pin.posH.z, 1.0f);
-
-        // ---------------------  FOG  ----------------------
-
-        if (gFogEnabled)
-        {
-            // blend sky texture pixel with fixed fog color
-            float4 fogColor = skyTexColor * float4(gFixedFogColor, 1.0f);
-
-            float fogLerp = saturate((distToEye - gFogStart) / gFogRange);
-
-            // blend using lerp the fog color and the final color
-            finalColor = lerp(finalColor, fogColor, fogLerp);
-        }
-
-        return finalColor;
-    */
 }

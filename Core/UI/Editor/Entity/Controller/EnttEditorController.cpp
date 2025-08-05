@@ -19,6 +19,7 @@ namespace UI
 EnttEditorController::EnttEditorController(StatesGUI* pStatesGUI) :
     viewEnttTransform_(this),
     viewEnttLight_(this),
+    viewEnttParticles_(this),
     pStatesGUI_(pStatesGUI)
 {
     CAssert::NotNullptr(pStatesGUI, "input ptr to the GUI states container == nullptr");
@@ -39,6 +40,7 @@ void EnttEditorController::Initialize(IFacadeEngineToUI* pFacade)
     dirLightController_.Initialize(pFacade);
     pointLightController_.Initialize(pFacade);
     spotLightController_.Initialize(pFacade);
+    particlesController_.Initialize(pFacade);
 }
 
 ///////////////////////////////////////////////////////////
@@ -216,6 +218,13 @@ void EnttEditorController::Render()
             {
                 break;
             }
+            case ParticlesComponent:
+            {
+                if (ImGui::CollapsingHeader("Particle Emitter", ImGuiTreeNodeFlags_SpanFullWidth))
+                    viewEnttParticles_.Render(particlesController_.GetModel());
+
+                break;
+            }
             case LightComponent:
             {
                 // according to the light type which is added to entity we render responsible view (set of editor fields)
@@ -252,11 +261,14 @@ void EnttEditorController::Render()
 // =================================================================================
 // For manipulation with gizmos
 // =================================================================================
+
+//---------------------------------------------------------
+// Desc:   when we used a gizmo to modify a world of the selected entity
+//         we call this method to actual update of the world properties
+// Args:   - world:  new world matrix for the currently selected entity
+//---------------------------------------------------------
 void EnttEditorController::UpdateSelectedEnttWorld(const DirectX::XMMATRIX& world)
 {
-    // when we used a gizmo to modify a world of the selected entity
-    // we call this method to actual update of the world properties
-
     int transformType = pStatesGUI_->gizmoOperation;
     DirectX::XMVECTOR scale, rotQuat, translation;
     XMMatrixDecompose(&scale, &rotQuat, &translation, world);
@@ -267,20 +279,20 @@ void EnttEditorController::UpdateSelectedEnttWorld(const DirectX::XMMATRIX& worl
         case ImGuizmo::OPERATION::TRANSLATE:
         {
             CmdChangeVec3 cmd(CHANGE_ENTITY_POSITION, translation);
-            Execute(&cmd);
+            ExecCmd(&cmd);
             break;
         }
         case ImGuizmo::OPERATION::ROTATE:
         {
             CmdChangeVec4 cmd(CHANGE_ENTITY_DIRECTION, Vec4(rotQuat));
-            Execute(&cmd);
+            ExecCmd(&cmd);
             break;
         }
         case ImGuizmo::OPERATION::SCALE:
         {
             const float uniformScale = DirectX::XMVectorGetX(scale);
             CmdChangeFloat cmd(CHANGE_ENTITY_SCALE, uniformScale);
-            Execute(&cmd);
+            ExecCmd(&cmd);
             break;
         }
         default:
@@ -296,9 +308,10 @@ void EnttEditorController::UpdateSelectedEnttWorld(const DirectX::XMMATRIX& worl
 // private API: commands executors
 // =================================================================================
 
-void EnttEditorController::Execute(const ICommand* pCmd)
+// execute a command according to its type for the currently selected entity
+
+void EnttEditorController::ExecCmd(const ICommand* pCmd)
 {
-    // execute a command according to its type for the currently selected entity
 
     if ((pCmd == nullptr) || (pFacade_ == nullptr) || (!selectedEnttData_.IsSelectedAnyEntt()))
     {
@@ -307,7 +320,7 @@ void EnttEditorController::Execute(const ICommand* pCmd)
         return;
     }
 
-    const EntityID enttID = selectedEnttData_.id;
+    const EntityID enttId = selectedEnttData_.id;
 
     switch (pCmd->type_)
     {
@@ -315,21 +328,14 @@ void EnttEditorController::Execute(const ICommand* pCmd)
         case CHANGE_ENTITY_DIRECTION:
         case CHANGE_ENTITY_SCALE:
         {
-#if 0
-            const std::string enttIdStr = std::to_string(enttID);
-            std::string enttName;
-            pFacade_->GetEnttNameByID(enttID, enttName);
-            Core::LogDbg("TRANSFORM ENTITY: (id: " + enttIdStr + ", name: " + enttName + ")");
-#endif
-
-            transformController_.ExecuteCommand(pCmd, enttID);
+            transformController_.ExecuteCommand(pCmd, enttId);
             break;
         }
         case CHANGE_DIR_LIGHT_AMBIENT:
         case CHANGE_DIR_LIGHT_DIFFUSE:
         case CHANGE_DIR_LIGHT_SPECULAR:
         {
-            dirLightController_.ExecuteCommand(pCmd, enttID);
+            dirLightController_.ExecuteCommand(pCmd, enttId);
             break;
         }
         case CHANGE_POINT_LIGHT_AMBIENT:
@@ -338,7 +344,7 @@ void EnttEditorController::Execute(const ICommand* pCmd)
         case CHANGE_POINT_LIGHT_RANGE:
         case CHANGE_POINT_LIGHT_ATTENUATION:
         {
-            pointLightController_.ExecuteCommand(pCmd, enttID);
+            pointLightController_.ExecuteCommand(pCmd, enttId);
             break;
         }
         case CHANGE_SPOT_LIGHT_AMBIENT:
@@ -348,7 +354,18 @@ void EnttEditorController::Execute(const ICommand* pCmd)
         case CHANGE_SPOT_LIGHT_ATTENUATION:
         case CHANGE_SPOT_LIGHT_SPOT_EXPONENT:   // light intensity fallof (for control the spotlight cone)
         {
-            spotLightController_.ExecuteCommand(pCmd, enttID);
+            spotLightController_.ExecuteCommand(pCmd, enttId);
+            break;
+        }
+        case CHANGE_PARTICLES_COLOR:
+        case CHANGE_PARTICLES_EXTERNAL_FORCE:
+        case CHANGE_PARTICLES_SPAWN_NUM_PER_SECOND:
+        case CHANGE_PARTICLES_LIFESPAN_MS:
+        case CHANGE_PARTICLES_MASS:
+        case CHANGE_PARTICLES_SIZE:
+        case CHANGE_PARTICLES_FRICTION:   // air resistance
+        {
+            particlesController_.ExecCmd(pCmd, enttId);
             break;
         }
         default:
@@ -362,14 +379,13 @@ void EnttEditorController::Execute(const ICommand* pCmd)
 
 ///////////////////////////////////////////////////////////
 
-void EnttEditorController::Undo(const ICommand* pCmd, const EntityID enttID)
+void EnttEditorController::UndoCmd(const ICommand* pCmd, const EntityID enttID)
 {
     // undo/alt_undo an event from the events history for entity by ID
 
     if ((pCmd == nullptr) || (pFacade_ == nullptr) || (enttID == 0))
     {
-        sprintf(g_String, "can't undo a command of type: %d (for entity by ID: %ld)", pCmd->type_, enttID);
-        LogErr(g_String);
+        LogErr(LOG, "can't undo a command of type: %d (for entity by ID: %ld)", pCmd->type_, enttID);
         return;
     }
 

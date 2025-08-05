@@ -233,6 +233,18 @@ public:
         const int iconHeight,
         const float yAxisRotation) override;
 
+    // =============================================================================
+    // setup particles binded to entity by ID (note: actually we setup a particles system at all, not particular particles of particular entity)
+    // =============================================================================
+    virtual bool SetParticlesColor            (const EntityID id, const ColorRGB& c)         override;
+    virtual bool SetParticlesExternForce      (const EntityID id, const Vec3& force)         override;
+    virtual bool SetParticlesSpawnNumPerSecond(const EntityID id, const int num)             override;
+    virtual bool SetParticlesLifespanMs       (const EntityID id, const int milliseconds)    override;
+    virtual bool SetParticlesMass             (const EntityID id, const float mass)          override;
+    virtual bool SetParticlesSize             (const EntityID id, const float size)          override;
+    virtual bool SetParticlesFriction         (const EntityID id, const float airResistance) override;
+
+
 };
 
 } // namespace UI

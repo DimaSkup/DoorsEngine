@@ -18,7 +18,7 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="SceneInitializer.cpp">
+    <ClCompile Include="GameInitializer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="pch.cpp">
@@ -35,7 +35,7 @@
     <ClInclude Include="Application.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="SceneInitializer.h">
+    <ClInclude Include="GameInitializer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Common\ConsoleColorMacro.h">

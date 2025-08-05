@@ -10,9 +10,8 @@
 #include "GeometryShader.h"
 #include "PixelShader.h"
 #include "SamplerState.h"
-#include "ConstantBuffer.h"
-#include "../Common/ConstBufferTypes.h"
 #include <d3d11.h>
+
 
 namespace Render
 {
@@ -43,7 +42,6 @@ public:
 
     void Render(
         ID3D11DeviceContext* pContext,
-        const DirectX::XMFLOAT3& posOffset,
         const UINT baseVertex,
         const UINT numVertices);
 
@@ -62,9 +60,6 @@ private:
     GeometryShader      gs_;
     PixelShader         ps_;
     SamplerState        samplerState_;
-
-    ConstantBuffer<ConstBufType::Position> cbvsParticlesOffset_;
-
 
     char className_[32]{"ParticleShader"};
 };

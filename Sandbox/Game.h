@@ -4,6 +4,7 @@
 #include <CRender.h>
 #include <Input/inputcodes.h>
 #include <Engine/Engine.h>
+#include <Engine/EngineConfigs.h>
 
 
 namespace Game
@@ -18,7 +19,8 @@ public:
     bool Init(
         Core::Engine* pEngine,
         ECS::EntityMgr* pEntityMgr,
-        Render::CRender* pRender);
+        Render::CRender* pRender,
+        const Core::EngineConfigs& settings);
 
     bool Update(const float deltaTime);
 

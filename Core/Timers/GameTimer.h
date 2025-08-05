@@ -18,7 +18,11 @@ public:
 
     // get time in seconds
     float        GetGameTime()  const;   
-    inline float GetDeltaTime() const { return (float)deltaTime_; }
+    inline float GetDeltaTime() const
+    {
+        constexpr float maxDeltaTime = (1.0f / 60.0f);
+        return (deltaTime_ > maxDeltaTime) ? maxDeltaTime : (float)deltaTime_;
+    }
 
     void Reset();  // is called before message loop
     void Start();  // is called when unpaused

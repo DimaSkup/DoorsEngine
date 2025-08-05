@@ -8,7 +8,7 @@
 
 #pragma warning (disable : 4996)
 #define LOG_BUF_SIZE 512
-
+#define LOG_STORAGE_SIZE 1024
 
 // is necessary to differ logs when we print it in the editor's GUI
 enum eLogType
@@ -28,7 +28,7 @@ struct LogMessage
 // here we store log messages (preferably we may use it in the UI log printing)
 struct LogStorage
 {
-    LogMessage logs[2048];
+    LogMessage logs[LOG_STORAGE_SIZE];
     int        numLogs = 0;   // actual number of log messages
 };
 

@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "SceneInitializer.h"
+#include "GameInitializer.h"
 #include "LightEnttsInitializer.h"
 #include "SetupModels.h"
 #include "../Core/Engine/EngineConfigs.h"
@@ -15,45 +15,103 @@ using XMMATRIX = DirectX::XMMATRIX;
 namespace Game
 {
 
-bool SceneInitializer::Initialize(
-    ID3D11Device* pDevice,
-    ECS::EntityMgr& enttMgr,
-    const CameraInitParams& editorCamParams,
-    const CameraInitParams& gameCamParams)
+
+//---------------------------------------------------------
+// Desc:   manually create and setup some particles on the scene
+//---------------------------------------------------------
+void GameInitializer::InitParticles(ECS::EntityMgr& enttMgr)
 {
-    LogMsg("scene initialization (start)");
+    // INIT PARTICLES SYSTEMS
+    ECS::ParticleSystem& particleSys = enttMgr.particleSystem_;
+    //particleSys.LoadFromFile("data/particles/particles.cfg");
 
-    bool result = false;
 
-    // create and init scene elements
-    if (!InitModelEntities(pDevice, enttMgr))
-    {
-        LogErr("can't initialize models");
-    }
+    // TEMP: manually setup material for each particles system
+    const MaterialID matIdFlame = g_MaterialMgr.GetMaterialIdByName("flameMat");
+    const MaterialID matIdFlare = g_MaterialMgr.GetMaterialIdByName("flareMat");
+    const MaterialID matIdCat   = g_MaterialMgr.GetMaterialIdByName("catParticleMat");
 
-    // init all the light source on the scene
-    if (!InitLightSources(enttMgr))
-    {
-        LogErr("can't initialize light sources");
-    }
+    //-----------------------------------------------------
 
-    // init all the cameras
-    if (!InitCameras(enttMgr, editorCamParams, gameCamParams))
-    {
-        LogErr("can't initialize cameras");
-    }
+    const DirectX::XMFLOAT3 aabbCenter  = { 0,0,0 };
+    const DirectX::XMFLOAT3 aabbExtents = { 0.5f, 0.5f, 0.5f };
+    const DirectX::BoundingBox& aabb    = { aabbCenter, aabbExtents };
 
-    // create and setup a player entity
-    InitPlayer(pDevice, &enttMgr);
 
-    LogMsg("is initialized");
+    // setup point lights for sparcles
+    ECS::PointLight flamePointL;
+    flamePointL.diffuse     = { 0.8f, 0.6f, 0.05f, 1.0f };
+    flamePointL.ambient     = flamePointL.diffuse * 0.25f;
+    flamePointL.specular    = flamePointL.diffuse;
+    flamePointL.att         = { 0.1f, 0.1f, 0.005f };
+    flamePointL.range       = 50;
 
-    return true;
+    ECS::PointLight sparclesPointL;
+    sparclesPointL.diffuse  = { 0.0f, 0.8f, 0.05f, 1.0f };
+    sparclesPointL.ambient  = sparclesPointL.diffuse * 0.25f;
+    sparclesPointL.specular = sparclesPointL.diffuse;
+    sparclesPointL.att      = { 0, 0.1f, 0.005f };
+    sparclesPointL.range    = 50;
+
+
+    // create flame entity
+    const EntityID flame1EnttId = enttMgr.CreateEntity("flame1");
+    enttMgr.AddTransformComponent(flame1EnttId, { 257,101,235 });
+    enttMgr.AddParticleEmitterComponent(flame1EnttId);
+    enttMgr.AddBoundingComponent(flame1EnttId, ECS::BoundingType::BOUND_BOX, aabb);
+    enttMgr.AddLightComponent(flame1EnttId, flamePointL);
+
+    ECS::ParticleEmitter& emitterFlame1 = particleSys.GetEmitterByEnttId(flame1EnttId);
+    emitterFlame1.genNumParticlesPerSec = 200;
+    emitterFlame1.materialId = matIdFlame;
+    emitterFlame1.life       = 1;
+    emitterFlame1.color      = { 0.1f, 0.1f, 0.1f };
+    emitterFlame1.size       = 2.0f;
+    emitterFlame1.mass       = 0.5f;
+    emitterFlame1.friction   = 0.05f;
+    emitterFlame1.forces     = { 0.0f, 0.003f, 0.0f };
+
+
+    // create flame entity
+    const EntityID flame2EnttId = enttMgr.CreateEntity("flame2");
+    enttMgr.AddTransformComponent(flame2EnttId, { 240,77,215 });
+    enttMgr.AddParticleEmitterComponent(flame2EnttId);
+    enttMgr.AddBoundingComponent(flame2EnttId, ECS::BoundingType::BOUND_BOX, aabb);
+    enttMgr.AddLightComponent(flame2EnttId, flamePointL);
+
+    ECS::ParticleEmitter& emitterFlame2 = particleSys.GetEmitterByEnttId(flame2EnttId);
+    emitterFlame2.genNumParticlesPerSec = 200;
+    emitterFlame2.materialId = matIdFlame;
+    emitterFlame2.life       = 1;
+    emitterFlame2.color      = { 0.1f, 0.1f, 0.1f };
+    emitterFlame2.size       = 2.0f;
+    emitterFlame2.mass       = 0.5f;
+    emitterFlame2.friction   = 0.05f;
+    emitterFlame2.forces     = { 0.0f, 0.003f, 0.0f };
+
+
+    // create green sparcles entity
+    const EntityID sparclesEnttId = enttMgr.CreateEntity("sparcles");
+    enttMgr.AddTransformComponent(sparclesEnttId, { 250,77,215 });
+    enttMgr.AddParticleEmitterComponent(sparclesEnttId);
+    enttMgr.AddBoundingComponent(sparclesEnttId, ECS::BoundingType::BOUND_BOX, aabb);
+    enttMgr.AddLightComponent(sparclesEnttId, sparclesPointL);
+
+    ECS::ParticleEmitter& emitterSparcle = particleSys.GetEmitterByEnttId(sparclesEnttId);
+    emitterSparcle.genNumParticlesPerSec = 3000;
+    emitterSparcle.materialId   = matIdFlare;
+    emitterSparcle.life         = 1;
+    emitterSparcle.color        = { 0.1f, 1.0f, 0.25f };
+    emitterSparcle.size         = 0.2f;
+    emitterSparcle.mass         = 1.24f;
+    emitterSparcle.friction     = 0.01f;
+    emitterSparcle.forces       = { 0.0f, -0.001f, 0.0f };
 }
 
-///////////////////////////////////////////////////////////
-
-void SceneInitializer::InitPlayer(ID3D11Device* pDevice, ECS::EntityMgr* pEnttMgr)
+//---------------------------------------------------------
+// Desc:   init all the stuff related to the player
+//---------------------------------------------------------
+void GameInitializer::InitPlayer(ID3D11Device* pDevice, ECS::EntityMgr* pEnttMgr)
 {
     // create and setup the player's entity
 
@@ -100,7 +158,6 @@ void SceneInitializer::InitPlayer(ID3D11Device* pDevice, ECS::EntityMgr* pEnttMg
     hierarchySys.AddChild(playerID, gameCameraID);
     hierarchySys.AddChild(playerID, flashlightID);
 
-
     // ------------------------------------------
 
     pEnttMgr->AddPlayerComponent(playerID);
@@ -118,69 +175,66 @@ void SceneInitializer::InitPlayer(ID3D11Device* pDevice, ECS::EntityMgr* pEnttMg
 
 ///////////////////////////////////////////////////////////
 
-bool SceneInitializer::InitCameras(
-    ECS::EntityMgr& enttMgr,
-    const CameraInitParams& editorCamParams,
-    const CameraInitParams& gameCamParams)
+bool GameInitializer::InitCamera(
+    ECS::EntityMgr& mgr,
+    const char* cameraName,
+    CameraInitParams& initParams)
 {
-    try
+    // check input args
+    if (!cameraName || cameraName[0] == '\0')
     {
-        EntityID editorCamID = enttMgr.CreateEntity("editor_camera");
-        EntityID gameCamID   = enttMgr.CreateEntity("game_camera");
-       // EntityID matBrowserCamID = enttMgr.CreateEntity("material_browser_camera");
-
-        // add transform component: positions and directions
-        const XMFLOAT3 editorCamPos = { 260, 80, 190 };
-        const XMFLOAT3 gameCamPos   = { 0, 0, 0 };
-        const XMFLOAT3 matBrowserCamPos = { 0, 0, -2.0f };
-
-        enttMgr.AddTransformComponent(editorCamID, editorCamPos, { 0,0,1,0 });
-        enttMgr.AddTransformComponent(gameCamID, gameCamPos, { 0,0,1,0 });
-
-        // add camera component
-        ECS::CameraData editorCamData;
-        editorCamData.fovY        = editorCamParams.fovInRad;
-        editorCamData.aspectRatio = editorCamParams.aspectRatio;
-        editorCamData.nearZ       = editorCamParams.nearZ;
-        editorCamData.farZ        = editorCamParams.farZ;
-
-        ECS::CameraData gameCamData;
-        gameCamData.fovY          = gameCamParams.fovInRad;
-        gameCamData.aspectRatio   = gameCamParams.aspectRatio;
-        gameCamData.nearZ         = gameCamParams.nearZ;
-        gameCamData.farZ          = gameCamParams.farZ;
-
-        enttMgr.AddCameraComponent(editorCamID, editorCamData);
-        enttMgr.AddCameraComponent(gameCamID, gameCamData);
-
-        // initialize view/projection matrices of the editor/game camera
-        ECS::CameraSystem& camSys = enttMgr.cameraSystem_;
-
-        // TODO: move initial UpdateView and SetBaseViewMatrix into the CameraSystem::AddRecord()
-        const DirectX::XMMATRIX& editorCamView = camSys.UpdateView(editorCamID);
-        camSys.SetBaseViewMatrix(editorCamID, editorCamView);
-        camSys.SetupOrthographicMatrix(
-            editorCamID,
-            editorCamParams.wndWidth,
-            editorCamParams.wndHeight,
-            editorCamParams.nearZ,
-            editorCamParams.farZ);
-
-        const DirectX::XMMATRIX& gameCamView = camSys.UpdateView(gameCamID);
-        camSys.SetBaseViewMatrix(gameCamID, gameCamView);
-        camSys.SetupOrthographicMatrix(
-            gameCamID,
-            gameCamParams.wndWidth,
-            gameCamParams.wndHeight,
-            gameCamParams.nearZ,
-            gameCamParams.farZ);
-    }
-    catch (EngineException & e)
-    {
-        LogErr(e, true);
-        LogErr("can't initialize the cameras entities");
+        LogErr(LOG, "input name for a camera is empty");
         return false;
     }
+
+    if ((initParams.wndWidth <= 0) || (initParams.wndHeight <= 0))
+    {
+        LogErr(LOG, "input dimensions is wrong (width or height <= 0) for camera: %s", cameraName);
+        return false;
+    }
+
+    if (initParams.nearZ <= 0.001f)
+    {
+        LogErr(LOG, "nearZ value is wrong for camera: %s", cameraName);
+        return false;
+    }
+
+    if (initParams.fovInRad <= 0.001f)
+    {
+        LogErr(LOG, "input field of view is wrong for camera: %s", cameraName);
+        return false;
+    }
+
+    //-------------------------------------------
+
+    // setup params for components
+    const float aspectRatio = initParams.wndWidth / initParams.wndHeight;
+    const XMFLOAT3 camPos   = { initParams.posX, initParams.posY, initParams.posZ };
+
+    ECS::CameraData camData;
+    camData.fovY            = initParams.fovInRad;
+    camData.aspectRatio     = aspectRatio;
+    camData.nearZ           = initParams.nearZ;
+    camData.farZ            = initParams.farZ;
+
+
+    // create an entity and add components
+    const EntityID camId = mgr.CreateEntity(cameraName);
+    mgr.AddTransformComponent(camId, camPos, { 0,0,1,0 });
+    mgr.AddCameraComponent(camId, camData);
+
+    // initialize view/projection matrices of the editor/game camera
+    // 
+    // TODO?: move initial UpdateView and SetBaseViewMatrix into the CameraSystem::AddRecord()
+    const DirectX::XMMATRIX& editorCamView = mgr.cameraSystem_.UpdateView(camId);
+
+    mgr.cameraSystem_.SetBaseViewMatrix(camId, editorCamView);
+    mgr.cameraSystem_.SetupOrthographicMatrix(
+        camId,
+        initParams.wndWidth,
+        initParams.wndHeight,
+        initParams.nearZ,
+        initParams.farZ);
 
     return true;
 }
@@ -190,74 +244,6 @@ bool SceneInitializer::InitCameras(
 inline float GetHeightOfGeneratedTerrainAtPoint(const float x, const float z)
 {
     return 0.1f * (z * sinf(0.1f * x) + x * cosf(0.1f * z));
-}
-
-///////////////////////////////////////////////////////////
-
-void CreateLightPoles(ECS::EntityMgr& mgr, const BasicModel& lightPole)
-{
-    LogDbg(LOG, "create light poles entities");
-
-    constexpr size numEntts = 10;
-
-    const cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
-
-    XMFLOAT3    positions[numEntts];
-    XMVECTOR    dirQuats[numEntts];
-    float       uniformScales[numEntts];
-    std::string names[numEntts];
-
-    // setup positions: 2 rows of lightPoles
-    for (index i = 0, z = 0; i < numEntts; z += 30, i += 2)
-    {
-        const float x = 11;
-        const float y1 = GetHeightOfGeneratedTerrainAtPoint(-x, (float)z);
-        const float y2 = GetHeightOfGeneratedTerrainAtPoint(+x, (float)z);
-        positions[i + 0] = { -x, y1, (float)z };
-        positions[i + 1] = { +x, y2, (float)z };
-    }
-
-    constexpr float pidiv2 = DirectX::XM_PIDIV2;
-
-    // setup directions:
-    for (index i = 0; i < numEntts; i += 2)
-    {
-        dirQuats[i + 0] = DirectX::XMQuaternionRotationRollPitchYaw(0, +pidiv2, 0);
-        dirQuats[i + 1] = DirectX::XMQuaternionRotationRollPitchYaw(0, -pidiv2, 0);
-    }
-
-    // setup scales
-    for (index i = 0; i < numEntts; ++i)
-        uniformScales[i] = 1.0f;
-
-    // generate names
-    for (index i = 0; i < numEntts; ++i)
-        names[i] += "lightPole_" + std::to_string(enttsIDs[i]);
-
-    // ----------------------------------------------------
-
-    const EntityID* ids = enttsIDs.data();
-
-    mgr.AddTransformComponent(ids, numEntts, positions, dirQuats, uniformScales);
-    mgr.AddNameComponent(ids, names, numEntts);
-    mgr.AddModelComponent(ids, lightPole.GetID(), numEntts);
-
-    ECS::RenderInitParams renderParams;
-    renderParams.shaderType = ECS::LIGHT_SHADER;
-    renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-
-    mgr.AddRenderingComponent(ids, numEntts, renderParams);
-
-    const size numSubsets = 2;                       // number of submeshes
-    const ECS::BoundingType boundTypes[1] = { ECS::BoundingType::BOUND_BOX };
-
-    // add bounding component to each entity
-    mgr.AddBoundingComponent(
-        ids,
-        numEntts,
-        numSubsets,
-        boundTypes,
-        lightPole.GetSubsetsAABB());      // AABB data (center, extents)
 }
 
 ///////////////////////////////////////////////////////////
@@ -1988,7 +1974,7 @@ void GenerateEntities(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     const MeshSphereParams    boundSphereParams(1, 8, 8);
     const MeshGeosphereParams boundGeoSphereParams(1, 1);
     const MeshSphereParams    sphereParams(0.5f, 20, 20);
-    const MeshCylinderParams  cylParams(1, 1, 5, 15, 1);
+    const MeshCylinderParams  cylParams(1, 0.8f, 5, 15, 1);
 
     const ModelID cubeID        = creator.CreateCube(pDevice);
     const ModelID boundSphereID = creator.CreateGeoSphere(pDevice, boundGeoSphereParams);
@@ -2035,10 +2021,11 @@ void GenerateEntities(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
 //---------------------------------------------------------
 void GenerateMaterials()
 {
-    // load some textures for billboards and particles
-    const TexID texIdFlare  = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "flare.png");
-    const TexID texIdFlame0 = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "flame0.dds");
-    const TexID texIdCat    = g_TextureMgr.GetTexIdByName("cat");
+    // load some textures
+    const TexID texIdPerlinNoise = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "perlin_noise.png");
+    const TexID texIdFlare       = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "flare.png");
+    const TexID texIdFlame0      = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "flame0.dds");
+    const TexID texIdCat         = g_TextureMgr.GetTexIdByName("cat");
 
     // create material for flame (fire) particles
     Material& flameParticleMat = g_MaterialMgr.AddMaterial("flameMat");
@@ -2168,7 +2155,7 @@ void LoadTreesBillboardsTextures()
 //---------------------------------------------------------
 // Desc:   initialize all the entities on the scene
 //---------------------------------------------------------
-bool SceneInitializer::InitModelEntities(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
+bool GameInitializer::InitModelEntities(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
 {
     SetConsoleColor(YELLOW);
     LogMsg("\n");
@@ -2247,7 +2234,7 @@ bool SceneInitializer::InitModelEntities(ID3D11Device* pDevice, ECS::EntityMgr& 
 // Desc:   initialize all the light sources (entities) on the scene
 // Args:   - mgr:   ECS entities manger
 //---------------------------------------------------------
-bool SceneInitializer::InitLightSources(ECS::EntityMgr& mgr)
+bool GameInitializer::InitLightSources(ECS::EntityMgr& mgr)
 {
     InitDirectedLightEntities(mgr);
     InitPointLightEntities(mgr);

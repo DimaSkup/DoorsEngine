@@ -177,6 +177,8 @@ void CRender::UpdatePerFrame(
         cbpsPerFrame_.data.cameraPos = data.cameraPos;
         cbgsPerFrame_.data.cameraPosW = data.cameraPos;
 
+        cbpsPerFrame_.data.time = data.totalGameTime;
+
         // update light sources data
         UpdateLights(
             data.dirLights,

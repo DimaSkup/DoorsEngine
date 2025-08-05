@@ -4,6 +4,7 @@
 //==================================================================================
 #include "pch.h"
 #include "Game.h"
+#include "GameInitializer.h"
 #include <Engine/Engine.h>
 #include <Model/ModelMgr.h>
 
@@ -18,7 +19,8 @@ namespace Game
 bool Game::Init(
     Core::Engine* pEngine,
     ECS::EntityMgr* pEnttMgr,
-    Render::CRender* pRender)
+    Render::CRender* pRender,
+    const EngineConfigs& configs)
 {
     if (!pEngine)
     {
@@ -36,45 +38,106 @@ bool Game::Init(
         exit(0);
     }
 
-    pEngine_ = pEngine;
+    pEngine_  = pEngine;
     pEnttMgr_ = pEnttMgr;
-    pRender_ = pRender;
+    pRender_  = pRender;
 
-    const TerrainGeomip& terrain = g_ModelMgr.GetTerrainGeomip();
+  
+    LogMsg("scene initialization (start)");
 
-    InitParticles(*pEnttMgr);
+    GameInitializer gameInit;
+    bool result = false;
 
+    Core::CGraphics& graphics = pEngine->GetGraphicsClass();
+    const Core::D3DClass& d3d = graphics.GetD3DClass();
+    const SIZE windowedSize   = d3d.GetWindowedWndSize();
+    const SIZE fullscreenSize = d3d.GetFullscreenWndSize();
+    ID3D11Device* pDevice     = d3d.GetDevice();
+    //const TerrainGeomip& terrain = g_ModelMgr.GetTerrainGeomip();
+
+
+    // create and init scene elements
+    if (!gameInit.InitModelEntities(pDevice, *pEnttMgr))
+    {
+        LogErr("can't initialize models");
+    }
+
+    // init all the light source on the scene
+    if (!gameInit.InitLightSources(*pEnttMgr))
+    {
+        LogErr("can't initialize light sources");
+    }
+
+    //-----------------------------------------------------
+
+    // init all the cameras
+    const float nearZ       = configs.GetFloat("NEAR_Z");
+    const float farZ        = configs.GetFloat("FAR_Z");
+    const float fovInRad    = configs.GetFloat("FOV_IN_RAD");         // field of view in radians
+
+    CameraInitParams editorCamParams;
+    editorCamParams.wndWidth    = (float)windowedSize.cx;
+    editorCamParams.wndHeight   = (float)windowedSize.cy;
+    editorCamParams.nearZ       = nearZ;
+    editorCamParams.farZ        = farZ;
+    editorCamParams.fovInRad    = fovInRad;
+    editorCamParams.posX        = 260.0f;
+    editorCamParams.posY        = 90.0f;
+    editorCamParams.posZ        = 170.0f;
+
+    CameraInitParams gameCamParams;
+    gameCamParams.wndWidth      = (float)fullscreenSize.cx;
+    gameCamParams.wndHeight     = (float)fullscreenSize.cy;
+    gameCamParams.nearZ         = nearZ;
+    gameCamParams.farZ          = farZ;
+    gameCamParams.fovInRad      = fovInRad;
+
+    if (!gameInit.InitCamera(*pEnttMgr, "editor_camera", editorCamParams))
+    {
+        LogErr(LOG, "can't init an editor camera");
+    }
+
+    if (!gameInit.InitCamera(*pEnttMgr, "game_camera", gameCamParams))
+    {
+        LogErr(LOG, "can't init a game camera");
+    }
+   
+    // set the current camera
+    const bool startInGameMode       = configs.GetBool("START_IN_GAME_MODE");
+    const std::string cameraEnttName = (startInGameMode) ? "game_camera" : "editor_camera";
+    const EntityID    cameraID       = pEnttMgr->nameSystem_.GetIdByName(cameraEnttName);
+    graphics.SetCurrentCamera(cameraID);
+
+    //-----------------------------------------------------
+
+    // create and setup a player entity
+    gameInit.InitPlayer(pDevice, pEnttMgr);
+
+    // add some entities with particle emitters
+    gameInit.InitParticles(*pEnttMgr);
+
+    // HACK
     pRender->ShadersHotReload(pEngine->GetGraphicsClass().GetD3DClass().GetDevice());
 
+
+    LogMsg(LOG, "is initialized");
     return true;
 }
 
 //---------------------------------------------------------
 // Desc:    update the game
-// Args:    - deltaTime:   the time passed since the previous frame
+// Args:    - dt:   the time passed since the previous frame
 //---------------------------------------------------------
-bool Game::Update(const float deltaTime)
+bool Game::Update(const float dt)
 {
-    cvector<ECS::ParticleSystem>& particleSystems = pEnttMgr_->particleEngine_.particleSystems_;
+    // generate particles
+    pEnttMgr_->particleSystem_.CreateParticles(dt);
 
-    // generate particles for different particle systems
-#if 0
-    particleSystems[0].CreateParticles(10);
-    //particleSystems[1].CreateParticle();
-    //particleSystems[2].CreateParticles(5);
-#else
-
-    particleSystems[0].CreateParticles(deltaTime);
-    particleSystems[1].CreateParticles(deltaTime);
-    particleSystems[2].CreateParticles(deltaTime);
-
-#endif
-
-
+    // handle events
     if (pEngine_->IsGameMode())
     {
         HandleGameEventKeyboard();
-        HandleGameEventMouse(deltaTime);
+        HandleGameEventMouse(dt);
     }
 
     return true;
@@ -284,72 +347,6 @@ void Game::SwitchFlashLight(ECS::EntityMgr& mgr, Render::CRender& render)
         mgr.transformSystem_.SetPosition(flashlightID, player.GetPosition());
         mgr.transformSystem_.SetDirection(flashlightID, player.GetDirVec());
     }
-}
-
-//---------------------------------------------------------
-//---------------------------------------------------------
-void Game::InitParticles(ECS::EntityMgr& enttMgr)
-{
-    // INIT PARTICLES SYSTEMS
-    ECS::ParticleEngine& particleEngine = enttMgr.particleEngine_;
-    particleEngine.LoadFromFile("data/particles/particles.cfg");
-
-
-    // TEMP: manually setup material for each particles system
-    const MaterialID matIdFlame = g_MaterialMgr.GetMaterialIdByName("flameMat");
-    const MaterialID matIdFlare = g_MaterialMgr.GetMaterialIdByName("flareMat");
-    const MaterialID matIdCat   = g_MaterialMgr.GetMaterialIdByName("catParticleMat");
-
-    ECS::ParticleSystem& particleSysSparcles   = particleEngine.GetSystemByName("sparcles");
-    ECS::ParticleSystem& particleSysFire       = particleEngine.GetSystemByName("fire");
-    ECS::ParticleSystem& particleSysMagicSpell = particleEngine.GetSystemByName("magic_spell");
-
-    particleSysSparcles.SetMaterialId(matIdFlare);
-    particleSysFire.SetMaterialId(matIdFlame);
-    particleSysMagicSpell.SetMaterialId(matIdCat);
-
-    const DirectX::XMFLOAT3 aabbCenter  = { 0,0,0 };
-    const DirectX::XMFLOAT3 aabbExtents = { 0.5f, 0.5f, 0.5f };
-    const DirectX::BoundingBox& aabb = { aabbCenter, aabbExtents };
-
-    // setup point light for flame
-    ECS::PointLightsInitParams pointLightsParams;
-    pointLightsParams.data.resize(1);
-    ECS::PointLight& initData = pointLightsParams.data[0];
-
-    initData.diffuse = { 0.8f, 0.6f, 0.05f, 1.0f };
-    initData.ambient = initData.diffuse * 0.25f;
-    initData.specular = initData.diffuse;
-    initData.att = { 0.1f, 0.1f, 0.005f };
-    initData.range = 50;
-
-    // create flame entity
-    const EntityID flame1EnttId = enttMgr.CreateEntity("flame1");
-    enttMgr.AddTransformComponent(flame1EnttId, { 257,101,235 });
-    enttMgr.AddParticleEmitterComponent(flame1EnttId, particleSysFire);
-    enttMgr.AddBoundingComponent(flame1EnttId, ECS::BoundingType::BOUND_BOX, aabb);
-    enttMgr.AddLightComponent(&flame1EnttId, 1, pointLightsParams);
-
-    // create flame entity
-    const EntityID flame2EnttId = enttMgr.CreateEntity("flame2");
-    enttMgr.AddTransformComponent(flame2EnttId, { 240,77,215 });
-    enttMgr.AddParticleEmitterComponent(flame2EnttId, particleSysFire);
-    enttMgr.AddBoundingComponent(flame2EnttId, ECS::BoundingType::BOUND_BOX, aabb);
-    enttMgr.AddLightComponent(&flame2EnttId, 1, pointLightsParams);
-
-
-    initData.diffuse  = { 0.0f, 0.8f, 0.05f, 1.0f };
-    initData.ambient  = initData.diffuse * 0.25f;
-    initData.specular = initData.diffuse;
-    initData.att      = { 0, 0.1f, 0.005f };
-    initData.range    = 50;
-
-    // create green sparcles entity
-    const EntityID sparclesEnttId = enttMgr.CreateEntity("sparcles");
-    enttMgr.AddTransformComponent(sparclesEnttId, { 250,77,215 });
-    enttMgr.AddParticleEmitterComponent(sparclesEnttId, particleSysSparcles);
-    enttMgr.AddBoundingComponent(sparclesEnttId, ECS::BoundingType::BOUND_BOX, aabb);
-    enttMgr.AddLightComponent(&sparclesEnttId, 1, pointLightsParams);
 }
 
 } // namespace

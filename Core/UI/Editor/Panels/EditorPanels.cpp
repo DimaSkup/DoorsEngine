@@ -202,23 +202,8 @@ void EditorPanels::RenderEntitiesListWnd(Core::SystemState& sysState)
         for (int i = 0; std::string& name : enttsNames)
         {
             pFacadeEngineToUI_->GetEnttNameById(pEnttsIDs[i++], name);
-
-            //if (pEnttsIds)
         }
-           
 
-
-        //std::string flameName;
-        //pFacadeEngineToUI_->GetEnttNameById(157, flameName);
-
-        /*
-        for (int i = 0; i < numEnttsTypes; ++i)
-        {
-
-        }
-        if (isOpen = ImGui::CollapsingHeader("Spotlight Properties", ImGuiTreeNodeFlags_SpanFullWidth))
-            viewLight_.Render(spotLightController_.GetModel());
-            */
 
         const EntityID currSelectedEnttID = enttEditorController_.GetSelectedEnttID();
 

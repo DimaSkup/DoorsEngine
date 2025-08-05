@@ -40,15 +40,12 @@ void App::Initialize()
     InitWindow();
     InitEngine();
 
-
-
     Core::CGraphics&     graphics = engine_.GetGraphicsClass();
     Core::D3DClass&      d3d      = graphics.GetD3DClass();
     ID3D11Device*        pDevice  = d3d.GetDevice();
     ID3D11DeviceContext* pContext = d3d.GetDeviceContext();
 
-    InitScene       (pDevice, settings_);
-    InitRenderModule(pDevice, settings_, &render_);
+    InitRenderModule(pDevice, engineConfigs_, &render_);
 
     // create a facade btw the UI and the engine parts
     pFacadeEngineToUI_ = new UI::FacadeEngineToUI(
@@ -57,13 +54,13 @@ void App::Initialize()
         &entityMgr_,
         &graphics);
 
+    // after all init all the game related stuff
+    game_.Init(&engine_, &entityMgr_, &render_, engineConfigs_);
+
     // initialize the main UserInterface class
     InitGUI(pDevice, d3d.GetWindowWidth(), d3d.GetWindowHeight());
 
-    // after all init all the game related stuff
-    game_.Init(&engine_, &entityMgr_, &render_);
-
-
+ 
     auto initEndTime = std::chrono::steady_clock::now();
     std::chrono::duration<float, std::milli> initDuration = initEndTime - initStartTime;
 
@@ -86,11 +83,11 @@ void App::Initialize()
 bool App::InitWindow()
 {
      // get main params for the window initialization
-    const bool isFullScreen     = settings_.GetBool("FULL_SCREEN");
-    const std::string wndTitle  = settings_.GetString("WINDOW_TITLE");
+    const bool isFullScreen     = engineConfigs_.GetBool("FULL_SCREEN");
+    const std::string wndTitle  = engineConfigs_.GetString("WINDOW_TITLE");
     const std::string wndClass  = "MyWindowClass";
-    const int wndWidth          = settings_.GetInt("WINDOW_WIDTH");
-    const int wndHeight         = settings_.GetInt("WINDOW_HEIGHT");
+    const int wndWidth          = engineConfigs_.GetInt("WINDOW_WIDTH");
+    const int wndHeight         = engineConfigs_.GetInt("WINDOW_HEIGHT");
 
     // init the main window
     bool result = wndContainer_.renderWindow_.Initialize(
@@ -112,13 +109,13 @@ bool App::InitWindow()
 
 bool App::InitEngine()
 {
-    const std::string wndTitle = settings_.GetString("WINDOW_TITLE");
+    const std::string wndTitle = engineConfigs_.GetString("WINDOW_TITLE");
 
     // init the engine
     bool result = engine_.Initialize(
         hInstance_,
         mainHWND_,
-        settings_,
+        engineConfigs_,
         wndTitle,
         &entityMgr_,
         &userInterface_,
@@ -132,58 +129,6 @@ bool App::InitEngine()
 
 ///////////////////////////////////////////////////////////
 
-bool App::InitScene(ID3D11Device* pDevice, const EngineConfigs& settings)
-{
-    const Core::D3DClass& d3d = engine_.GetGraphicsClass().GetD3DClass();
-    const SIZE windowedSize   = d3d.GetWindowedWndSize();
-    const SIZE fullscreenSize = d3d.GetFullscreenWndSize();
-
-    CameraInitParams editorCamParams;
-    editorCamParams.nearZ       = settings_.GetFloat("NEAR_Z");
-    editorCamParams.farZ        = settings_.GetFloat("FAR_Z");
-    editorCamParams.fovInRad    = settings_.GetFloat("FOV_IN_RAD");         // field of view in radians
-
-    editorCamParams.wndWidth    = (float)windowedSize.cx;
-    editorCamParams.wndHeight   = (float)windowedSize.cy;
-    editorCamParams.aspectRatio = editorCamParams.wndWidth / editorCamParams.wndHeight;
-
-    CameraInitParams gameCamParams = editorCamParams;
-    gameCamParams.wndWidth      = (float)fullscreenSize.cx;
-    gameCamParams.wndHeight     = (float)fullscreenSize.cy;
-    gameCamParams.aspectRatio   = editorCamParams.wndWidth / editorCamParams.wndHeight;
-
-
-    SceneInitializer sceneInitializer;
-
-    bool result = sceneInitializer.Initialize(
-        pDevice,
-        entityMgr_,
-        editorCamParams,
-        gameCamParams);
-    if (!result)
-    {
-        LogErr("can't initialize the scene's some stuff");
-    }
-
-
-    const std::string cameraEnttName = (startInGameMode_) ? "game_camera" : "editor_camera";
-    const EntityID    cameraID = entityMgr_.nameSystem_.GetIdByName(cameraEnttName);
-    Core::CGraphics&  graphics = engine_.GetGraphicsClass();
-
-    // setup the current camera
-    const EntityID editorCamID = entityMgr_.nameSystem_.GetIdByName("editor_camera");
-    graphics.SetCurrentCamera(editorCamID);
-
-    // setup distance after which the objects are fully fogged
-    //const float fogStart = settings.GetFloat("FOG_START");
-    //const float fogRange = settings.GetFloat("FOG_RANGE");
-    //const float fullFogDistance = fogStart + fogRange;
-
-    return true;
-}
-
-///////////////////////////////////////////////////////////
-
 bool App::InitRenderModule(
     ID3D11Device* pDevice,
     const EngineConfigs& settings,
@@ -192,7 +137,8 @@ bool App::InitRenderModule(
     // setup render initial params
 
     // prepare WVO (world * base_view * ortho) matrix for 2D rendering
-    const std::string cameraEnttName  = (startInGameMode_) ? "game_camera" : "editor_camera";
+    const bool startInGameMode        = engineConfigs_.GetBool("START_IN_GAME_MODE");
+    const std::string cameraEnttName  = (startInGameMode) ? "game_camera" : "editor_camera";
     const EntityID cameraID           = entityMgr_.nameSystem_.GetIdByName(cameraEnttName);
  
     const DirectX::XMMATRIX& baseView = entityMgr_.cameraSystem_.GetBaseView(cameraID);
@@ -256,11 +202,11 @@ bool App::InitGUI(
     {
         std::string fontDataFullFilePath;
         fontDataFullFilePath += g_RelPathUIDataDir;
-        fontDataFullFilePath += settings_.GetString("FONT_DATA_FILE_PATH");
+        fontDataFullFilePath += engineConfigs_.GetString("FONT_DATA_FILE_PATH");
 
         std::string fontTexFullFilePath;
         fontTexFullFilePath += g_RelPathUIDataDir;
-        fontTexFullFilePath += settings_.GetString("FONT_TEXTURE_FILE_PATH");
+        fontTexFullFilePath += engineConfigs_.GetString("FONT_TEXTURE_FILE_PATH");
 
         char videoCardName[128]{ '\0' };
         int videoCardMemory = 0;

@@ -1,7 +1,9 @@
 #pragma once
 
+#include "../../Systems/TransformSystem.h"
 #include "../../Components/ParticleEmitter.h"
 #include <Types.h>
+#include <log.h>
 
 namespace ECS
 {
@@ -9,127 +11,143 @@ namespace ECS
 class ParticleSystem
 {
 public:
-    ParticleSystem();
+    ParticleSystem(TransformSystem* pTransformSys);
     ~ParticleSystem() {}
 
     //-----------------------------------------------------
 
-    ParticleSystem(ParticleSystem&& rhs) noexcept
-        :
-        emitters_        (std::move(rhs.emitters_)),
-        forces_          (rhs.forces_),
-        color_           (rhs.color_),
-        life_            (rhs.life_),
-        mass_            (rhs.mass_),
-        size_            (rhs.size_),
-        friction_        (rhs.friction_)
-    {
-    }
+    ParticleEmitter& AddEmitter     (const EntityID id);
+    void             Update         (const float deltaTime);
+    void             CreateParticles(const float deltaTime);
+    bool             LoadFromFile   (const char* configPath);
 
-    ParticleSystem& operator=(ParticleSystem&& rhs) noexcept
-    {
-        if (this != &rhs)
-        {
-            std::construct_at(this, std::move(rhs));
-        }
+    ParticlesRenderData& GetParticlesToRender();
 
-        return *this;
-    }
-
-    //-----------------------------------------------------
-
-    bool AddEmitter     (const EntityID id);
-    void Update         (const float deltaTime);
-    void CreateParticles(const float deltaTime);
-
-    //-----------------------------------------------------
+    inline cvector<ParticleEmitter>& GetEmitters() { return emitters_; }
 
     
-    UINT GetParticlesToRender(cvector<ParticleRenderInstance>& outInstances);
-
-    inline const cvector<ParticleEmitter>& GetEmitters()   const { return emitters_; }
-    inline const char*                     GetName()       const { return sysName_;}
-    inline DirectX::XMFLOAT3               GetColor()      const { return color_; }
-    inline MaterialID                      GetMaterialId() const { return materialId_; }
-
     //-----------------------------------------------------
-
-    // set name for this particle system
-    void SetName(const char* name);
-
-    // setup how many particles will be generated each second
-    inline void SetNumParticlesPerSec(const int numParticles)
+    // find a particle emitter which is bound to entity by ID
+    //-----------------------------------------------------
+    inline ParticleEmitter& GetEmitterByEnttId(const EntityID id)
     {
-        if (numParticles > 0)
-            genNumParticlesPerSec_ = numParticles;
+        for (ParticleEmitter& emitter : emitters_)
+        {
+            if (emitter.id == id)
+                return emitter;
+        }
+
+        LogErr(LOG, "can't find a particles emitter by entity ID: %d", id);
+        return emitters_[0];
     }
 
-    // setup material for this particles system
-    inline void SetMaterialId(const MaterialID matId)
-    {   materialId_ = matId;    }
+    //-----------------------------------------------------
+    // setup how many particles will be generated each second
+    //-----------------------------------------------------
+    inline void SetNumParticlesPerSec(const EntityID id, const int numParticles)
+    {
+        if (numParticles <= 0)
+            return;
 
-    // set the lifespan (in milliseconds !!!) of a created particle
-    inline void SetLife(const float lifeMs)
-    {   life_ = lifeMs/1000;   }
+        ParticleEmitter& emitter = GetEmitterByEnttId(id);
+        emitter.genNumParticlesPerSec = numParticles;
+    }
 
+    //-----------------------------------------------------
+    // setup material for particle emitter which is bound to entity by ID
+    //-----------------------------------------------------
+    inline void SetMaterialId(const EntityID id, const MaterialID matId)
+    {
+        ParticleEmitter& emitter = GetEmitterByEnttId(id);
+        emitter.materialId = matId;
+    }
+
+    //-----------------------------------------------------
+    // set the lifespan of emitter's particles
+    //-----------------------------------------------------
+    inline void SetLife(const EntityID id, const float lifeMs)
+    {
+        if (lifeMs < 1.0f)
+            return;
+
+        ParticleEmitter& emitter = GetEmitterByEnttId(id);
+        emitter.life = lifeMs/1000;
+    }
+
+    //-----------------------------------------------------
     // set the mass of a created particle
-    inline void SetMass(const float mass)
-    {   mass_ = mass;   }
+    //-----------------------------------------------------
+    inline void SetMass(const EntityID id, const float mass)
+    {
+        if (mass < 0)
+            return;
 
+        ParticleEmitter& emitter = GetEmitterByEnttId(id);
+        emitter.mass = mass;
+    }
+
+    //-----------------------------------------------------
     // set the size of a created particle
-    inline void SetSize(const float sz)
-    {   size_ = sz; }
+    //-----------------------------------------------------
+    inline void SetSize(const EntityID id, const float sz)
+    {
+        if (sz <= 0.001f)
+            return;
 
+        ParticleEmitter& emitter = GetEmitterByEnttId(id);
+        emitter.size = sz;
+    }
+
+    //-----------------------------------------------------
     // set the color of a created particle
-    inline void SetColor(const float r, const float g, const float b)
-    {   color_ = DirectX::XMFLOAT3(r,g,b);   }
+    //-----------------------------------------------------
+    inline void SetColor(const EntityID id, const float r, const float g, const float b)
+    {
+        ParticleEmitter& emitter = GetEmitterByEnttId(id);
+        emitter.color = DirectX::XMFLOAT3{ r,g,b };
+    }
 
+    //-----------------------------------------------------
     // set the friction (air resistance) of a created particle
-    inline void SetFriction(const float friction)
-    {   friction_ = friction;   }
+    //-----------------------------------------------------
+    inline void SetFriction(const EntityID id, const float friction)
+    {
+        if (friction <= 0)
+            return;
 
+        ParticleEmitter& emitter = GetEmitterByEnttId(id);
+        emitter.friction = friction;
+    }
+
+    //-----------------------------------------------------
     // set the external forces acting agains a particle (gravity, air, etc.)
-    inline void SetExternalForces(const float x, const float y, const float z)
-    {   forces_ = DirectX::XMVECTOR{x,y,z};  }
+    //-----------------------------------------------------
+    inline void SetExternForces(const EntityID id, const float x, const float y, const float z)
+    {
+        ParticleEmitter& emitter = GetEmitterByEnttId(id);
+        emitter.forces = DirectX::XMVECTOR{ x,y,z };
+    }
 
-    // check if we have any alive particles for rendering
-    inline bool HasParticlesToRender() const
-    {   return particles_.size() > 0;   }
-
-    // check if we have any instances of this system
+    //-----------------------------------------------------
+    // check if we have any particle emitters
+    //-----------------------------------------------------
     inline bool HasEmitters() const
     {   return emitters_.size() > 0; }
 
-private:
-    void ParticlesInitDataGenerator(cvector<Particle>& outParticles);
 
 private:
+    void ParticlesInitDataGenerator(
+        const ParticleEmitter& emitter,
+        cvector<Particle>& outParticles);
+
+private:
+    TransformSystem* pTransformSys_ = nullptr;
+
     // each system can have multiple emitters
     // (for instance: fire system can have multiple flames at different positions)
     cvector<ParticleEmitter> emitters_;
 
-    // actual particles (the same for each emitter)
-    cvector<Particle> particles_;
-
-    // number of particles generated per 1 second
-    int               genNumParticlesPerSec_ = 0;
-
-    // gravity, air, etc.
-    DirectX::XMVECTOR forces_;
-
-    DirectX::XMFLOAT3 color_       = { 0,0,0 };
-
-    float             life_        = 0;
-    float             mass_        = 0;
-    float             size_        = 0;
-    float             friction_    = 0;
-
-    MaterialID        materialId_  = INVALID_MATERIAL_ID;
-
-    // need for particles generation (to be independent from fps)
-    float             time_        = 0;
-
-    char              sysName_[32] = { "particle_system_name" };
+    ParticlesRenderData      renderData_;
 };
 
 } // namespace 

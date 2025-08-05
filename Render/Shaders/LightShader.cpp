@@ -80,7 +80,7 @@ void LightShader::Render(
         {
             // update textures for the current subset
             pContext->PSSetShaderResources(
-                1U,
+                10U,
                 NUM_TEXTURE_TYPES,
                 texSRVs + (subsetIdx * NUM_TEXTURE_TYPES));  // texture_buffer_begin + offset
 
