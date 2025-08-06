@@ -21,29 +21,27 @@ void EnttSpotLightController::Initialize(IFacadeEngineToUI* pFacade)
     pFacade_ = pFacade;
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   load params of spot light which is bound to entt by ID
+//---------------------------------------------------------
 void EnttSpotLightController::LoadEnttData(const EntityID id)
 {
-    EnttSpotLightData& model = spotLightModel_;  // MVC model
-
     if (pFacade_ == nullptr)
     {
-        LogErr("ptr to facade interface == nullptr");
+        LogErr(LOG, "ptr to facade interface == nullptr (you have to init it first!)");
         return;
     }
 
     if (!pFacade_->GetEnttSpotLightData(
         id,
-        model.ambient,
-        model.diffuse,
-        model.specular,
-        model.attenuation,
-        model.range,
-        model.spotExp))
+        spotLightModel_.ambient,
+        spotLightModel_.diffuse,
+        spotLightModel_.specular,
+        spotLightModel_.attenuation,
+        spotLightModel_.range,
+        spotLightModel_.spotExp))
     {
-        sprintf(g_String, "can't load spotlight data of the entity by ID: %ld", id);
-        LogErr(g_String);
+        LogErr(LOG, "can't load spotlight data of the entity by ID: %ld", id);
     }
 }
 

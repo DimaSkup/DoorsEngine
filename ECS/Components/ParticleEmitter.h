@@ -77,8 +77,8 @@ struct ParticleEmitter
     float             size       = 0.1f;
     float             time       = 0.0f;                    // need for particles generation (to be independent from fps)
   
-    int               genNumParticlesPerSec = 0;            // number of particles generated per 1 second
-    bool              isEmitting            = true;
+    int               spawnRate  = 0;                       // number of particles generated per 1 second
+    bool              isEmitting = true;
 };
 
 } // namespace

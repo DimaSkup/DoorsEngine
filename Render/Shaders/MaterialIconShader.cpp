@@ -169,7 +169,7 @@ void MaterialIconShader::InitializeHelper(
 
     // initialize: VS, PS, texture sampler
     bool result = false;
-    result = vs_.Initialize(pDevice, vsFilePath, inputLayout.desc, inputLayout.numElem);
+    result = vs_.Initialize(pDevice, vsFilePath, inputLayout.desc, inputLayout.numElems);
     CAssert::True(result, "can't initialize the vertex shader");
 
     result = ps_.Initialize(pDevice, psFilePath);
@@ -211,7 +211,7 @@ void MaterialIconShader::ShaderHotReload(
         vsFilePath,
         "VS", "vs_5_0",
         inputLayout.desc,
-        inputLayout.numElem);
+        inputLayout.numElems);
     CAssert::True(result, "can't hot reload the vertex shader");
 
     result = ps_.CompileShaderFromFile(pDevice, psFilePath, "PS", "ps_5_0");

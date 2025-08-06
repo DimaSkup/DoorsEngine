@@ -1,18 +1,18 @@
 #include "LightHelper.hlsli"
 
 
-//
+// ==========================
 // GLOBALS
-//
+// ==========================
 TextureCube  gCubeMap       : register(t0);
 Texture2D    gPerlinNoise   : register(t1);
 Texture2D    gTextures[22]  : register(t10);
 SamplerState gSampleType   : register(s0);
 
 
-//
+// ==========================
 // CONSTANT BUFFERS
-//
+// ==========================
 cbuffer cbPerFrame    : register(b0)
 {
     // light sources data
@@ -83,14 +83,16 @@ float4 PS(PS_IN pin) : SV_Target
     float3 vec = -toEyeW;
     vec.y -= 990;
 	
-
+    // blend sky pixel color with fixed fog color
     float4 skyTexColor = gCubeMap.Sample(gSampleType, vec);
+    float4 fogColor    = skyTexColor * float4(gFixedFogColor, 1.0f);
+
 
     // return blended fixed fog color with the sky color at this pixel
     // if the pixel is fully fogged
     if (gFogEnabled && distToEye > (gFogStart + gFogRange))
     {
-        return skyTexColor * float4(gFixedFogColor, 1.0f);
+        return fogColor;
     }
 
     float4 textureColor = gTextures[1].Sample(gSampleType, pin.tex);
@@ -203,9 +205,6 @@ float4 PS(PS_IN pin) : SV_Target
 
     if (gFogEnabled)
     {
-        // blend sky pixel color with fixed fog color
-        float4 fogColor = gCubeMap.Sample(gSampleType, vec) * float4(gFixedFogColor, 1.0f);
-
         float fogLerp = saturate((distToEye - gFogStart) / gFogRange);
 
         // blend the fog color and the lit color

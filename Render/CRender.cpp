@@ -143,6 +143,7 @@ bool CRender::ShadersHotReload(ID3D11Device* pDevice)
     try
     {
         shadersContainer_.lightShader_.ShaderHotReload       (pDevice, "shaders/hlsl/LightVS.hlsl",        "shaders/hlsl/LightPS.hlsl");
+        shadersContainer_.particleShader_.ShaderHotReload    (pDevice, "shaders/hlsl/particleVS.hlsl",     "shaders/hlsl/particleGS.hlsl",     "shaders/hlsl/particlePS.hlsl");
         shadersContainer_.materialIconShader_.ShaderHotReload(pDevice, "shaders/hlsl/MaterialIconVS.hlsl", "shaders/hlsl/MaterialIconPS.hlsl");
         shadersContainer_.terrainShader_.ShaderHotReload     (pDevice, "shaders/hlsl/TerrainVS.hlsl",      "shaders/hlsl/TerrainPS.hlsl");
         LogDbg(LOG, "shaders are hot reloaded");

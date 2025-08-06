@@ -46,7 +46,7 @@ struct InputLayoutLight
         {"MATERIAL", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
     };
 
-    const UINT numElem = sizeof(desc) / sizeof(D3D11_INPUT_ELEMENT_DESC);
+    const UINT numElems = sizeof(desc) / sizeof(D3D11_INPUT_ELEMENT_DESC);
 };
 
 
@@ -83,8 +83,23 @@ struct InputLayoutMaterialIcon
         {"TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
     };
 
-    const UINT numElem = sizeof(desc) / sizeof(D3D11_INPUT_ELEMENT_DESC);
+    // number of layout elems
+    const UINT numElems = sizeof(desc) / sizeof(D3D11_INPUT_ELEMENT_DESC);
+};
 
+struct InputLayoutParticleShader
+{
+    const D3D11_INPUT_ELEMENT_DESC desc[4] =
+    {
+        // per vertex data
+        {"POSITION",      0, DXGI_FORMAT_R32G32B32_FLOAT, 0,                            0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"TRANSLUCENCY",  0, DXGI_FORMAT_R32_FLOAT,       0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"COLOR",         0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"SIZE",          0, DXGI_FORMAT_R32G32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+    };
+
+    // number of layout elems
+    const UINT numElems = sizeof(desc) / sizeof(D3D11_INPUT_ELEMENT_DESC);
 };
 
 } // namespace Render

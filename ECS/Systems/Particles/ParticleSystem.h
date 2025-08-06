@@ -44,13 +44,13 @@ public:
     //-----------------------------------------------------
     // setup how many particles will be generated each second
     //-----------------------------------------------------
-    inline void SetNumParticlesPerSec(const EntityID id, const int numParticles)
+    inline void SetSpawnRate(const EntityID id, const int numParticles)
     {
         if (numParticles <= 0)
             return;
 
         ParticleEmitter& emitter = GetEmitterByEnttId(id);
-        emitter.genNumParticlesPerSec = numParticles;
+        emitter.spawnRate = numParticles;
     }
 
     //-----------------------------------------------------

@@ -1,12 +1,9 @@
 // =================================================================================
 // Filename:     LightShader.cpp
-// Description:  this class is needed for rendering 3D models, 
-//               its texture, simple PARRALEL light on it using HLSL shaders.
 // Created:      09.04.23
 // =================================================================================
 #include "../Common/pch.h"
 #include "LightShader.h"
-
 
 
 namespace Render
@@ -21,8 +18,9 @@ LightShader::~LightShader()
 {
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:    load CSO / compile HLSL shaders and init the shader class object
+//---------------------------------------------------------
 bool LightShader::Initialize(
     ID3D11Device* pDevice,
     const char* vsFilePath,
@@ -98,22 +96,19 @@ void LightShader::Render(
     }
 }
 
-
-// =================================================================================
-//                              private methods                                       
-// =================================================================================
+//---------------------------------------------------------
+// Desc:   helps to initialize the HLSL shaders, layout, sampler state
+//---------------------------------------------------------
 void LightShader::InitializeShaders(
     ID3D11Device* pDevice,
     const char* vsFilePath,
     const char* psFilePath)
 {
-    // helps to initialize the HLSL shaders, layout, sampler state
-
     const InputLayoutLight inputLayout;
 
     // initialize: VS, PS, sampler state
     bool result = false;
-    result = vs_.Initialize(pDevice, vsFilePath, inputLayout.desc, inputLayout.numElem);
+    result = vs_.Initialize(pDevice, vsFilePath, inputLayout.desc, inputLayout.numElems);
     CAssert::True(result, "can't initialize the vertex shader");
 
     result = ps_.Initialize(pDevice, psFilePath);
@@ -123,15 +118,14 @@ void LightShader::InitializeShaders(
     CAssert::True(result, "can't initialize the sampler state");
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   recompile hlsl shaders from file and reinit shader class object
+//---------------------------------------------------------
 void LightShader::ShaderHotReload(
     ID3D11Device* pDevice,
     const char* vsFilePath,
     const char* psFilePath)
 {
-    // recompile hlsl shaders from file and reinit shader class object
-
     bool result = false;
     const InputLayoutLight inputLayout;
 
@@ -140,11 +134,20 @@ void LightShader::ShaderHotReload(
         vsFilePath,
         "VS", "vs_5_0",
         inputLayout.desc,
-        inputLayout.numElem);
-    CAssert::True(result, "can't hot reload the vertex shader");
+        inputLayout.numElems);
+    if (!result)
+    {
+        LogErr(LOG, "can't hot reload the vertex shader");
+        return;
+    }
 
     result = ps_.CompileShaderFromFile(pDevice, psFilePath, "PS", "ps_5_0");
-    CAssert::True(result, "can't hot reload the vertex shader");
+    if (!result)
+    {
+        LogErr(LOG, "can't hot reload the vertex shader");
+        return;
+    }
+
 }
 
 } // namespace Render

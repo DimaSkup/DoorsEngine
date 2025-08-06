@@ -24,7 +24,7 @@ class FacadeEngineToUI : public IFacadeEngineToUI
 private:
     ID3D11DeviceContext* pContext_      = nullptr;
     Render::CRender*     pRender_       = nullptr;
-    ECS::EntityMgr*      pEntityMgr_    = nullptr;
+    ECS::EntityMgr*      pEnttMgr_    = nullptr;
     Core::CGraphics*     pGraphics_ = nullptr;
 
 public:
@@ -236,15 +236,23 @@ public:
     // =============================================================================
     // setup particles binded to entity by ID (note: actually we setup a particles system at all, not particular particles of particular entity)
     // =============================================================================
-    virtual bool SetParticlesColor            (const EntityID id, const ColorRGB& c)         override;
-    virtual bool SetParticlesExternForce      (const EntityID id, const Vec3& force)         override;
-    virtual bool SetParticlesSpawnNumPerSecond(const EntityID id, const int num)             override;
-    virtual bool SetParticlesLifespanMs       (const EntityID id, const int milliseconds)    override;
-    virtual bool SetParticlesMass             (const EntityID id, const float mass)          override;
-    virtual bool SetParticlesSize             (const EntityID id, const float size)          override;
-    virtual bool SetParticlesFriction         (const EntityID id, const float airResistance) override;
+    virtual bool SetParticlesColor      (const EntityID id, const ColorRGB& c)         override;
+    virtual bool SetParticlesExternForce(const EntityID id, const Vec3& force)         override;
+    virtual bool SetParticlesSpawnRate  (const EntityID id, const int num)             override;
+    virtual bool SetParticlesLifespanMs (const EntityID id, const int milliseconds)    override;
+    virtual bool SetParticlesMass       (const EntityID id, const float mass)          override;
+    virtual bool SetParticlesSize       (const EntityID id, const float size)          override;
+    virtual bool SetParticlesFriction   (const EntityID id, const float airResistance) override;
 
-
+    virtual bool GetEnttParticleEmitterData(
+        const EntityID id,
+        ColorRGB& color,
+        Vec3& externForce,
+        int& spawnRate,
+        int& lifespanMs,
+        float& mass,
+        float& size,
+        float& friction) override;
 };
 
 } // namespace UI

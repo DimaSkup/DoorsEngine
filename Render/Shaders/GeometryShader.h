@@ -18,6 +18,13 @@ public:
     ~GeometryShader();
 
     bool Initialize(ID3D11Device* pDevice, const char* shaderPath);
+
+    // hot reload
+    bool CompileShaderFromFile(
+        ID3D11Device* pDevice,
+        const char* shaderPath,
+        const char* funcName,
+        const char* shaderProfile);
     
     void Shutdown();
 
@@ -26,8 +33,6 @@ public:
 
 private:
     ID3D11GeometryShader* pShader_ = nullptr;
-    uint8*                pShaderBuffer_ = nullptr;
-    
 };
 
 };  // namespace Render
