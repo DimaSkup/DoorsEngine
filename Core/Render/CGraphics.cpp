@@ -580,10 +580,9 @@ void CGraphics::UpdateShadersDataPerFrame(
 
     Render::PerFrameData& data = pRender->perFrameData_;
 
-    data.viewProj = DirectX::XMMatrixTranspose(viewProj_);
-    data.cameraPos = pEnttMgr->transformSystem_.GetPosition(currCameraID_);
-    data.totalGameTime = totalGameTime / 100;
-
+    data.viewProj      = DirectX::XMMatrixTranspose(viewProj_);
+    data.cameraPos     = pEnttMgr->transformSystem_.GetPosition(currCameraID_);
+    data.totalGameTime = totalGameTime * 0.01f;
 
     SetupLightsForFrame(pEnttMgr, data);
 
@@ -601,25 +600,6 @@ void CGraphics::ClearRenderingDataBeforeFrame(
 
     pRender->dataStorage_.Clear();
     rsDataToRender_.Clear();
-}
-
-///////////////////////////////////////////////////////////
-
-// memory allocation and releasing
-void* CGraphics::operator new(size_t i)
-{
-    if (void* ptr = _aligned_malloc(i, 16))
-        return ptr;
-
-    LogErr("can't allocate memory for this object");
-    throw std::bad_alloc{};
-}
-
-///////////////////////////////////////////////////////////
-
-void CGraphics::operator delete(void* ptr)
-{
-    _aligned_free(ptr);
 }
 
 
@@ -737,7 +717,7 @@ void CGraphics::BindMaterial(const Material& mat, Render::CRender* pRender)
     //texSRVs[0] = g_TextureMgr.GetTexPtrByName("tree_billboard")->GetTextureResourceView();
     texSRVs[0] = g_TextureMgr.GetTexPtrByID(mat.textureIds[TEX_TYPE_DIFFUSE])->GetTextureResourceView();
 
-    pContext->PSSetShaderResources(5, 1, texSRVs);
+    pContext->PSSetShaderResources(10, 1, texSRVs);
 }
 
 //---------------------------------------------------------
@@ -777,7 +757,9 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
         RenderEnttsAlphaClipCullNone(pRender);
         RenderTerrainGeomip(pRender, pEnttMgr);
         RenderSkyDome(pRender, pEnttMgr);
+
         RenderBillboards(pRender, pEnttMgr);
+        
     }
     catch (const std::out_of_range& e)
     {

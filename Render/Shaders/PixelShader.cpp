@@ -18,6 +18,7 @@ PixelShader::PixelShader()
 
 PixelShader::~PixelShader()
 {
+    Shutdown();
 }
 
 ///////////////////////////////////////////////////////////
@@ -39,8 +40,7 @@ bool PixelShader::Initialize(ID3D11Device* pDevice, const char* shaderPath)
     if (!len)
     {
         SafeDeleteArr(buffer);
-        sprintf(g_String, "Failed to load .CSO-file of pixel shader: %s", shaderPath);
-        LogErr(g_String);
+        LogErr(LOG, "Failed to load .CSO-file of pixel shader: %s", shaderPath);
         return false;
     }
 
@@ -48,8 +48,7 @@ bool PixelShader::Initialize(ID3D11Device* pDevice, const char* shaderPath)
     if (FAILED(hr))
     {
         SafeDeleteArr(buffer);
-        sprintf(g_String, "Failed to create a pixel shader obj: %s", shaderPath);
-        LogErr(g_String);
+        LogErr(LOG, "Failed to create a pixel shader obj: %s", shaderPath);
         Shutdown();
         return false;
     }
@@ -90,8 +89,7 @@ bool PixelShader::CompileShaderFromFile(
     if (FAILED(hr))
     {
         SafeRelease(&pShaderBuffer);
-        sprintf(g_String, "can't compile a pixel shader from file: %s", shaderPath);
-        LogErr(g_String);
+        LogErr(LOG, "can't compile a pixel shader from file: %s", shaderPath);
         return false;
     }
 
@@ -103,8 +101,7 @@ bool PixelShader::CompileShaderFromFile(
         &pShader);
     if (FAILED(hr))
     {
-        sprintf(g_String, "Failed to create a pixel shader obj: %s", shaderPath);
-        LogErr(g_String);
+        LogErr(LOG, "Failed to create a pixel shader obj: %s", shaderPath);
         Shutdown();
         return false;
     }
@@ -120,11 +117,11 @@ bool PixelShader::CompileShaderFromFile(
     return true;
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   Shutting down of the pixel shader class object
+//---------------------------------------------------------
 void PixelShader::Shutdown()
 {
-    LogDbg(LOG, "shutdown");
     SafeRelease(&pShader_);
 }
 

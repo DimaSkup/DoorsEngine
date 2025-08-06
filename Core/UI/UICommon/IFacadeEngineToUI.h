@@ -304,13 +304,23 @@ public:
     // =============================================================================
     // setup particles binded to entity by ID (note: actually we setup a particles system at all, not particular particles of particular entity)
     // =============================================================================
-    virtual bool SetParticlesColor            (const EntityID id, const ColorRGB& c)         { return false; }
-    virtual bool SetParticlesExternForce      (const EntityID id, const Vec3& force)         { return false; }
-    virtual bool SetParticlesSpawnNumPerSecond(const EntityID id, const int num)             { return false; }
-    virtual bool SetParticlesLifespanMs       (const EntityID id, const int milliseconds)    { return false; }
-    virtual bool SetParticlesMass             (const EntityID id, const float mass)          { return false; }
-    virtual bool SetParticlesSize             (const EntityID id, const float size)          { return false; }
-    virtual bool SetParticlesFriction         (const EntityID id, const float airResistance) { return false; }
+    virtual bool SetParticlesColor      (const EntityID id, const ColorRGB& c)         { return false; }
+    virtual bool SetParticlesExternForce(const EntityID id, const Vec3& force)         { return false; }
+    virtual bool SetParticlesSpawnRate  (const EntityID id, const int num)             { return false; }
+    virtual bool SetParticlesLifespanMs (const EntityID id, const int milliseconds)    { return false; }
+    virtual bool SetParticlesMass       (const EntityID id, const float mass)          { return false; }
+    virtual bool SetParticlesSize       (const EntityID id, const float size)          { return false; }
+    virtual bool SetParticlesFriction   (const EntityID id, const float airResistance) { return false; }
+
+    virtual bool GetEnttParticleEmitterData(
+        const EntityID id,
+        ColorRGB& color,
+        Vec3& externForce,
+        int& spawnRate,
+        int& lifespanMs,
+        float& mass,
+        float& size,
+        float& friction) { return false; }
 
 private:
     inline float     GetInvalidFloat() const { return NAN; }

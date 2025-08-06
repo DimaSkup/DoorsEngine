@@ -4,8 +4,9 @@
 // =================================================================================
 #include "../Common/pch.h"
 #include "GeometryShader.h"
-#include "Helpers/CSOLoader.h"
 
+#include "Helpers/CSOLoader.h"
+#include "Helpers/ShaderCompiler.h"
 
 namespace Render
 {
@@ -15,68 +16,109 @@ GeometryShader::~GeometryShader()
     Shutdown();
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   load a compiled shader object (CSO) from a file by shaderPath;
+//         and create a geometry shader object
+// Args:   - shaderPath:   a path to CSO file relatively to the working directory
+//---------------------------------------------------------
 bool GeometryShader::Initialize(ID3D11Device* pDevice, const char* shaderPath)
 {
-    // THIS FUNC compiles/load an HLSL/CSO shader by shaderPath;
-    // compiles this shader into buffer, and then creates a geometry shader object
-
-    if ((shaderPath == nullptr) || (shaderPath[0] == '\0'))
+    if (StrHelper::IsEmpty(shaderPath))
     {
         LogErr("input path to geometry shader file is empty!");
         return false;
     }
 
-#if 0
-    // compile a vertex shader into the buffer
-    hr = ShaderClass::CompileShaderFromFile(
-        shaderPath.c_str(),
-        funcName.c_str(),
-        "vs_5_0",
-        &pShaderBuffer_,
-        errorMgr);
-    Assert::NotFailed(hr, errorMgr);
-#endif
+    uint8_t* buf = nullptr;
 
-
-    // load in shader bytecode
-    const size_t len = LoadCSO(shaderPath, pShaderBuffer_);
+    // load shader bytecode into the buffer
+    const size_t len = LoadCSO(shaderPath, buf);
     if (!len)
     {
-        sprintf(g_String, "Failed to load .CSO-file of geometry shader: %s", shaderPath);
-        LogErr(g_String);
+        LogErr(LOG, "Failed to load .CSO-file of geometry shader: %s", shaderPath);
         Shutdown();
         return false;
     }
 
-    // --------------------------------------------
-
-    const HRESULT hr = pDevice->CreateGeometryShader(
-        pShaderBuffer_,                 //pShaderBuffer_->GetBufferPointer(),
-        len,                            //pShaderBuffer_->GetBufferSize(),
-        nullptr,
-        &pShader_);
-
+    const HRESULT hr = pDevice->CreateGeometryShader(buf, len, nullptr, &pShader_);
     if (FAILED(hr))
     {
-        sprintf(g_String, "Failed to create a geometry shader obj: %s", shaderPath);
-        LogErr(g_String);
+        LogErr(LOG, "Failed to create a geometry shader obj: %s", shaderPath);
         Shutdown();
         return false;
     }
+
+    // Release the temp CSO buffer since it is no longer needed.
+    SafeDeleteArr(buf);
 
     return true;
 }
 
-///////////////////////////////////////////////////////////
+//---------------------------------------------------------
+// Desc:   is used for hot reload:
+//         compile an HLSL shader by shaderPath and reinit shader object
+// Args:   - shaderPath:     a path to HLSL shader relatively to the working directory
+//         - funcName:       what function from the shader we want to compile
+//         - shaderProfile:  what HLSL shader profile we want to use
+//---------------------------------------------------------
+bool GeometryShader::CompileShaderFromFile(
+    ID3D11Device* pDevice,
+    const char* shaderPath,
+    const char* funcName,
+    const char* shaderProfile)
+{
+    if (StrHelper::IsEmpty(shaderPath) || StrHelper::IsEmpty(funcName) || StrHelper::IsEmpty(shaderProfile))
+    {
+        LogErr("input arguments are invalid: some path is empty");
+        return false;
+    }
 
+    ID3D10Blob*           pShaderBuffer = nullptr;
+    ID3D11GeometryShader* pShader = nullptr;
+    HRESULT               hr = S_OK;
+
+    // compile a shader and load bytecode into the buffer
+    hr = ShaderCompiler::CompileShaderFromFile(
+        shaderPath,
+        funcName,
+        shaderProfile,
+        &pShaderBuffer);
+    if (FAILED(hr))
+    {
+        SafeRelease(&pShaderBuffer);
+        LogErr(LOG, "can't compile a geometry shader from file: %s", shaderPath);
+        return false;
+    }
+
+    hr = pDevice->CreateGeometryShader(
+        pShaderBuffer->GetBufferPointer(),
+        pShaderBuffer->GetBufferSize(),
+        nullptr,
+        &pShader);
+    if (FAILED(hr))
+    {
+        LogErr(LOG, "Failed to create a geometry shader obj: %s", shaderPath);
+        SafeRelease(&pShaderBuffer);
+        Shutdown();
+        return false;
+    }
+
+    // Release the geometry shader buffer since it is no longer needed.
+    SafeRelease(&pShaderBuffer);
+
+    // release previous shader's data if we have any
+    Shutdown();
+
+    pShader_ = pShader;
+
+    return true;
+}
+
+//---------------------------------------------------------
+// Desc:  Shutting down of the class object, releasing of the memory, etc.
+//---------------------------------------------------------
 void GeometryShader::Shutdown()
 {
-    // Shutting down of the class object, releasing of the memory, etc.
-
-    LogDbg(LOG, "Shutdown");
-    SafeDeleteArr(pShaderBuffer_);
     SafeRelease(&pShader_);
 }
 

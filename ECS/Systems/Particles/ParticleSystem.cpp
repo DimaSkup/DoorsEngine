@@ -103,7 +103,7 @@ void ParticleSystem::CreateParticles(const float dt)
     {
      
         emitter.time += dt;
-        const float createOneParticleEachSec = 1.0f / emitter.genNumParticlesPerSec;
+        const float createOneParticleEachSec = 1.0f / emitter.spawnRate;
 
         // if too little time spent for generation of any particles
         if (emitter.time <= createOneParticleEachSec)
@@ -259,14 +259,14 @@ void ReadAndCreateEmitter(ParticleSystem* pSys, FILE* pFile)
     // add and setup a particle system
     ParticleEmitter& emitter = pSys->AddEmitter(entityId);
 
-    emitter.genNumParticlesPerSec = genParticlesPerSec;
-    emitter.life        = lifetimeMs / 1000;
-    emitter.color       = XMFLOAT3{ color.x, color.y, color.z };
-    emitter.size        = particleSize;
-    emitter.mass        = mass;
-    emitter.friction    = friction;
-    emitter.forces      = XMVECTOR{ forces.x, forces.y, forces.z };
-    emitter.materialId  = matId;
+    emitter.spawnRate  = genParticlesPerSec;
+    emitter.life       = lifetimeMs / 1000;
+    emitter.color      = XMFLOAT3{ color.x, color.y, color.z };
+    emitter.size       = particleSize;
+    emitter.mass       = mass;
+    emitter.friction   = friction;
+    emitter.forces     = XMVECTOR{ forces.x, forces.y, forces.z };
+    emitter.materialId = matId;
 }
 
 //---------------------------------------------------------

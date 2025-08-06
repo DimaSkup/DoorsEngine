@@ -35,6 +35,12 @@ public:
         const char* psFilePath,
         const char* gsFilePath);
 
+    void ShaderHotReload(
+        ID3D11Device* pDevice,
+        const char* vsFilePath,
+        const char* gsFilePath,
+        const char* psFilePath);
+
     void Prepare(
         ID3D11DeviceContext* pContext,
         ID3D11Buffer* pVB,

@@ -23,7 +23,7 @@ public:
         const D3D11_INPUT_ELEMENT_DESC* layoutDesc,
         const UINT layoutElemNum);
 
-    // is using for hot reload
+    // hot reload
     bool CompileShaderFromFile(
         ID3D11Device* pDevice,
         const char* shaderPath,

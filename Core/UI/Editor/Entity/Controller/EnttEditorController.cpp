@@ -106,6 +106,11 @@ void EnttEditorController::SetSelectedEntt(const EntityID enttID)
                 {
                     break;
                 }
+                case ParticlesComponent:
+                {
+                    particlesController_.LoadEnttData(enttID);
+                    break;
+                }
                 case LightComponent:
                 {
                     int lightType;

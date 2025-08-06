@@ -117,7 +117,7 @@ bool Game::Init(
     gameInit.InitParticles(*pEnttMgr);
 
     // HACK
-    pRender->ShadersHotReload(pEngine->GetGraphicsClass().GetD3DClass().GetDevice());
+    //pRender->ShadersHotReload(pEngine->GetGraphicsClass().GetD3DClass().GetDevice());
 
 
     LogMsg(LOG, "is initialized");

@@ -62,7 +62,7 @@ void GameInitializer::InitParticles(ECS::EntityMgr& enttMgr)
     enttMgr.AddLightComponent(flame1EnttId, flamePointL);
 
     ECS::ParticleEmitter& emitterFlame1 = particleSys.GetEmitterByEnttId(flame1EnttId);
-    emitterFlame1.genNumParticlesPerSec = 200;
+    emitterFlame1.spawnRate  = 200;
     emitterFlame1.materialId = matIdFlame;
     emitterFlame1.life       = 1;
     emitterFlame1.color      = { 0.1f, 0.1f, 0.1f };
@@ -80,10 +80,10 @@ void GameInitializer::InitParticles(ECS::EntityMgr& enttMgr)
     enttMgr.AddLightComponent(flame2EnttId, flamePointL);
 
     ECS::ParticleEmitter& emitterFlame2 = particleSys.GetEmitterByEnttId(flame2EnttId);
-    emitterFlame2.genNumParticlesPerSec = 200;
+    emitterFlame2.spawnRate  = 50;
     emitterFlame2.materialId = matIdFlame;
     emitterFlame2.life       = 1;
-    emitterFlame2.color      = { 0.1f, 0.1f, 0.1f };
+    emitterFlame2.color      = { 1, 1, 1 };
     emitterFlame2.size       = 2.0f;
     emitterFlame2.mass       = 0.5f;
     emitterFlame2.friction   = 0.05f;
@@ -98,7 +98,7 @@ void GameInitializer::InitParticles(ECS::EntityMgr& enttMgr)
     enttMgr.AddLightComponent(sparclesEnttId, sparclesPointL);
 
     ECS::ParticleEmitter& emitterSparcle = particleSys.GetEmitterByEnttId(sparclesEnttId);
-    emitterSparcle.genNumParticlesPerSec = 3000;
+    emitterSparcle.spawnRate    = 3000;
     emitterSparcle.materialId   = matIdFlare;
     emitterSparcle.life         = 1;
     emitterSparcle.color        = { 0.1f, 1.0f, 0.25f };
