@@ -11,31 +11,31 @@ using namespace Core;
 namespace Game
 {
 
+//---------------------------------------------------------
+// Desc:   manually setup of tree spruce model
+//---------------------------------------------------------
 void SetupTreeSpruce(BasicModel& tree)
 {
-    // manually setup of tree spruce model
-
-    // prepare path to textures directory
-    char pathToTreeModelDir[64]{ '\0' };
-    sprintf(pathToTreeModelDir, "%s%s", g_RelPathExtModelsDir, "trees/tree_spruce/");
-
     // load in textures
-    const TexID normalMapID = g_TextureMgr.LoadFromFile(pathToTreeModelDir, "tree_spruce_diffuse_NRM.dds");
+    const TexID normalMapID = g_TextureMgr.LoadFromFile(
+        g_RelPathExtModelsDir,
+        "trees/tree_spruce/tree_spruce_diffuse_NRM.dds");
 
     // setup the material for a single subset of the tree
     const MaterialID matID = tree.meshes_.subsets_[0].materialID;
-    Material& mat          = g_MaterialMgr.GetMaterialById(matID);
+    Material& mat          = g_MaterialMgr.GetMatById(matID);
 
     mat.SetName("tree_spruce_mat");
     mat.SetTexture(TEX_TYPE_NORMALS, normalMapID);
     mat.SetDiffuse(1, 1, 1, 1);
+    mat.SetReflection(0, 0, 0, 0);
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   manually setup of tree pine model
+//---------------------------------------------------------
 void SetupTree(BasicModel& tree)
 {
-    // manually setup of tree pine model
 
     // prepare path to textures directory
     char pathToTreeModelDir[64]{'\0'};
@@ -94,88 +94,49 @@ void SetupTree(BasicModel& tree)
     tree.meshes_.SetMaterialForSubset(2, branchMatID);
 }
 
-///////////////////////////////////////////////////////////
-
-void SetupPowerLine(BasicModel& powerLine)
-{
-    // manually setup of power line model
-
-    // prepare path to textures directory
-    char texDirPath[64]{'\0'};
-    sprintf(texDirPath, "%s%s", g_RelPathExtModelsDir, "power_line/");
-
-    // load textures from files
-    const TexID texDiffID = g_TextureMgr.LoadFromFile(texDirPath, "bigpoleiron_co.png");
-    const TexID texNormID = g_TextureMgr.LoadFromFile(texDirPath, "bigpoleiron_nohq.png");
-
-    // setup and create a material
-    Material mat;
-    mat.SetName("power_line");
-    mat.SetTexture(TEX_TYPE_DIFFUSE, texDiffID);
-    mat.SetTexture(TEX_TYPE_NORMALS, texNormID);
-    mat.ambient  = { 0.4f, 0.4f, 0.4f, 1.0f };
-    mat.specular = { 0.3f, 0.3f, 0.3f, 1.0f };
-
-    const MaterialID powerLineMatID = g_MaterialMgr.AddMaterial(std::move(mat));
-    powerLine.SetMaterialForSubset(0, powerLineMatID);
-}
-
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   manually setup a building model
+//---------------------------------------------------------
 void SetupBuilding9(BasicModel& building)
 {
-    // manually setup building model
-
     // load textures
     const TexID texIdHousePart = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "building9/house_part.png");
     const TexID texIdArka      = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "building9/arka.png");
     const TexID texIdBalcony   = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "building9/balcony.png");
     const TexID texIdr5        = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "building9/r5.png");
 
-    // setup materials
-    Material housePartMat;
-    housePartMat.SetName("house_part");
+    // create and setup materials
+    Material housePartMat = g_MaterialMgr.AddMaterial("house_part");
     housePartMat.SetTexture(TEX_TYPE_DIFFUSE, texIdHousePart);
 
-    Material arkaMat;
-    arkaMat.SetName("house_arka");
+    Material arkaMat = g_MaterialMgr.AddMaterial("house_arka");
     arkaMat.SetTexture(TEX_TYPE_DIFFUSE, texIdArka);
 
-    Material balconyMat;
-    balconyMat.SetName("house_balcony");
+    Material balconyMat = g_MaterialMgr.AddMaterial("house_balcony");
     balconyMat.SetTexture(TEX_TYPE_DIFFUSE, texIdBalcony);
 
-    Material r5Mat;
-    r5Mat.SetName("house_r5");
+    Material r5Mat = g_MaterialMgr.AddMaterial("house_r5");
     r5Mat.SetTexture(TEX_TYPE_DIFFUSE, texIdr5);
    
-
-    // store materials into the manager
-    const MaterialID housePartMatID = g_MaterialMgr.AddMaterial(std::move(housePartMat));
-    const MaterialID arkaMatID      = g_MaterialMgr.AddMaterial(std::move(arkaMat));
-    const MaterialID balconyMatID   = g_MaterialMgr.AddMaterial(std::move(balconyMat));
-    const MaterialID r5MatID        = g_MaterialMgr.AddMaterial(std::move(r5Mat));
-    
     // setup model with materials
-    building.meshes_.SetMaterialForSubset(0, housePartMatID);
-    building.meshes_.SetMaterialForSubset(1, arkaMatID);
-    building.meshes_.SetMaterialForSubset(2, balconyMatID);
-    building.meshes_.SetMaterialForSubset(3, r5MatID);
+    building.meshes_.SetMaterialForSubset(0, housePartMat.id);
+    building.meshes_.SetMaterialForSubset(1, arkaMat.id);
+    building.meshes_.SetMaterialForSubset(2, balconyMat.id);
+    building.meshes_.SetMaterialForSubset(3, r5Mat.id);
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   setup some params of the stalker_freedom model
+//---------------------------------------------------------
 void SetupStalkerFreedom(BasicModel& stalkerFreedom)
 {
-    // setup some params of the stalker_freedom model
-
     const TexID texIdBodyNorm = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "stalker_freedom_1/texture/act_stalker_freedom_1_NRM.dds");
     const TexID texIdHeadNorm = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "stalker_freedom_1/texture/act_stalker_head_mask_NRM.dds");
     
     MeshGeometry::Subset* subsets = stalkerFreedom.meshes_.subsets_;
 
     // get a material by ID from the manager and setup it
-    Material& mat0 = g_MaterialMgr.GetMaterialById(subsets[0].materialID);
+    Material& mat0 = g_MaterialMgr.GetMatById(subsets[0].materialID);
 
     mat0.SetTexture(eTexType::TEX_TYPE_NORMALS, texIdHeadNorm);
     mat0.ambient = { 0.3f, 0.3f, 0.3f, 1.0f };
@@ -183,7 +144,7 @@ void SetupStalkerFreedom(BasicModel& stalkerFreedom)
     mat0.specular = { 0,0,0,1 };
 
 
-    Material& mat1 = g_MaterialMgr.GetMaterialById(subsets[1].materialID);
+    Material& mat1 = g_MaterialMgr.GetMatById(subsets[1].materialID);
 
     mat1.SetTexture(eTexType::TEX_TYPE_NORMALS, texIdBodyNorm);
     mat1.ambient = { 0.3f, 0.3f, 0.3f, 1.0f };
@@ -191,11 +152,11 @@ void SetupStalkerFreedom(BasicModel& stalkerFreedom)
     mat1.specular = { 0,0,0,1 };
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   manually setup a model of ak-47
+//---------------------------------------------------------
 void SetupAk47(BasicModel& ak47)
 {
-    // setup some params of the ak-47 model
     ak47.SetName("ak_47");
 
     MeshGeometry::Subset* subsets = ak47.meshes_.subsets_;
@@ -203,7 +164,7 @@ void SetupAk47(BasicModel& ak47)
     for (int i = 0; i < ak47.numSubsets_; ++i)
     {
         // get a material by ID from the manager and setup it
-        Material& mat = g_MaterialMgr.GetMaterialById(subsets[i].materialID);
+        Material& mat = g_MaterialMgr.GetMatById(subsets[i].materialID);
 
         mat.ambient  = { 0.3f, 0.3f, 0.3f, 1.0f };
         mat.diffuse  = { 0.8f, 0.8f, 0.8f, 1.0f };
@@ -211,14 +172,14 @@ void SetupAk47(BasicModel& ak47)
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   manually setup a model of ak-74
+//---------------------------------------------------------
 void SetupAk74(BasicModel& ak74)
 {
-    // manually setup a model of ak-74
 
     const MaterialID matID = ak74.meshes_.subsets_[0].materialID;
-    Material& mat          = g_MaterialMgr.GetMaterialById(matID);
+    Material& mat          = g_MaterialMgr.GetMatById(matID);
 
     const TexID texDiff = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "ak_74u/texture/wpn_aksu.png");
     const TexID texNorm = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "ak_74u/texture/wpn_aksu_NRM.dds");
@@ -230,17 +191,16 @@ void SetupAk74(BasicModel& ak74)
     mat.specular = { 0.1f, 0.1f, 0.1f, 32.0f };
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   manually setup a traktor model
+//---------------------------------------------------------
 void SetupTraktor(BasicModel& traktor)
 {
-    // manually setup a traktor model
-
     const int numSubsets = (int)traktor.meshes_.numSubsets_;
     for (int i = 0; i < numSubsets; ++i)
     {
         const MaterialID matID = traktor.meshes_.subsets_[i].materialID;
-        Material& mat = g_MaterialMgr.GetMaterialById(matID);
+        Material& mat = g_MaterialMgr.GetMatById(matID);
 
         mat.ambient = { 0.5f, 0.5f, 0.5f, 1.0f };
         mat.specular = { 0.0f, 0.0f, 0.0f, 32.0f };
@@ -258,7 +218,7 @@ void SetupStalkerSmallHouse(BasicModel& house)
     for (int i = 0; i < house.numSubsets_; ++i)
     {
         // get a material by ID from the manager and setup it
-        Material& mat = g_MaterialMgr.GetMaterialById(subsets[i].materialID);
+        Material& mat = g_MaterialMgr.GetMatById(subsets[i].materialID);
 
         mat.ambient  = { 0.3f, 0.3f, 0.3f, 1.0f };
         mat.diffuse  = { 0.8f, 0.8f, 0.8f, 1.0f };
@@ -304,11 +264,10 @@ void SetupStalkerAbandonedHouse(BasicModel& house)
     const TexID texGroundRough    = g_TextureMgr.LoadFromFile(dirPath, "textures/Ground_Roughness.jpg");
 
 
-
     // setup materials of model's meshes
     MeshGeometry::Subset* subsets = house.meshes_.subsets_;
 
-    Material& concreteMat = g_MaterialMgr.GetMaterialById(subsets[0].materialID);
+    Material& concreteMat = g_MaterialMgr.GetMatById(subsets[0].materialID);
     concreteMat.SetName("abandoned_house_concrete");
     concreteMat.SetTexture(TEX_TYPE_DIFFUSE, texConcreteDiff);
     concreteMat.SetTexture(TEX_TYPE_NORMALS, texConcreteNorm);
@@ -316,7 +275,7 @@ void SetupStalkerAbandonedHouse(BasicModel& house)
     concreteMat.SetAmbient(0.2f, 0.2f, 0.2f, 1.0f);
     concreteMat.SetDiffuse(0.8f, 0.8f, 0.8f, 1.0f);
 
-    Material& brickMat = g_MaterialMgr.GetMaterialById(subsets[1].materialID);
+    Material& brickMat = g_MaterialMgr.GetMatById(subsets[1].materialID);
     brickMat.SetName("abandoned_house_brick");
     brickMat.SetTexture(TEX_TYPE_DIFFUSE, texBrickDiff);
     brickMat.SetTexture(TEX_TYPE_NORMALS, texBrickNorm);
@@ -324,7 +283,7 @@ void SetupStalkerAbandonedHouse(BasicModel& house)
     concreteMat.SetAmbient(0.2f, 0.2f, 0.2f, 1.0f);
     concreteMat.SetDiffuse(0.8f, 0.8f, 0.8f, 1.0f);
 
-    Material& roofMat = g_MaterialMgr.GetMaterialById(subsets[2].materialID);
+    Material& roofMat = g_MaterialMgr.GetMatById(subsets[2].materialID);
     roofMat.SetName("abandoned_house_roof");
     roofMat.SetTexture(TEX_TYPE_DIFFUSE, texRoofDiff);
     roofMat.SetTexture(TEX_TYPE_NORMALS, texRoofNorm);
@@ -332,7 +291,7 @@ void SetupStalkerAbandonedHouse(BasicModel& house)
     concreteMat.SetAmbient(0.2f, 0.2f, 0.2f, 1.0f);
     concreteMat.SetDiffuse(0.8f, 0.8f, 0.8f, 1.0f);
 
-    Material& metalMat = g_MaterialMgr.GetMaterialById(subsets[3].materialID);
+    Material& metalMat = g_MaterialMgr.GetMatById(subsets[3].materialID);
     metalMat.SetName("abandoned_house_metal");
     metalMat.SetTexture(TEX_TYPE_DIFFUSE, texMetalDiff);
     metalMat.SetTexture(TEX_TYPE_NORMALS, texMetalNorm);
@@ -340,7 +299,7 @@ void SetupStalkerAbandonedHouse(BasicModel& house)
     concreteMat.SetAmbient(0.2f, 0.2f, 0.2f, 1.0f);
     concreteMat.SetDiffuse(0.8f, 0.8f, 0.8f, 1.0f);
 
-    Material& groundMat = g_MaterialMgr.GetMaterialById(subsets[4].materialID);
+    Material& groundMat = g_MaterialMgr.GetMatById(subsets[4].materialID);
     groundMat.SetName("abandoned_house_ground");
     groundMat.SetTexture(TEX_TYPE_DIFFUSE, texGroundDiff);
     groundMat.SetTexture(TEX_TYPE_NORMALS, texGroundNorm);
@@ -348,7 +307,7 @@ void SetupStalkerAbandonedHouse(BasicModel& house)
     concreteMat.SetAmbient(0.2f, 0.2f, 0.2f, 1.0f);
     concreteMat.SetDiffuse(0.8f, 0.8f, 0.8f, 1.0f);
 
-    Material& doorMat = g_MaterialMgr.GetMaterialById(subsets[5].materialID);
+    Material& doorMat = g_MaterialMgr.GetMatById(subsets[5].materialID);
     doorMat.SetName("abandoned_house_door");
     doorMat.SetTexture(TEX_TYPE_DIFFUSE, texDoorDiff);
     doorMat.SetTexture(TEX_TYPE_NORMALS, texDoorNorm);
@@ -356,73 +315,13 @@ void SetupStalkerAbandonedHouse(BasicModel& house)
     concreteMat.SetAmbient(0.2f, 0.2f, 0.2f, 1.0f);
     concreteMat.SetDiffuse(0.8f, 0.8f, 0.8f, 1.0f);
 
-    Material& windowMat = g_MaterialMgr.GetMaterialById(subsets[6].materialID);
+    Material& windowMat = g_MaterialMgr.GetMatById(subsets[6].materialID);
     windowMat.SetName("abandoned_house_window");
     windowMat.SetTexture(TEX_TYPE_DIFFUSE, texWindowDiff);
     windowMat.SetTexture(TEX_TYPE_NORMALS, texWindowNorm);
     windowMat.SetTexture(TEX_TYPE_DIFFUSE_ROUGHNESS, texWindowRough);
     concreteMat.SetAmbient(0.2f, 0.2f, 0.2f, 1.0f);
     concreteMat.SetDiffuse(0.8f, 0.8f, 0.8f, 1.0f);
-
-#if 0
-    // add materials into the material manager
-    const MaterialID concreteMatID = g_MaterialMgr.AddMaterial(std::move(concreteMat));
-    const MaterialID brickMatID    = g_MaterialMgr.AddMaterial(std::move(brickMat));
-    const MaterialID roofMatID     = g_MaterialMgr.AddMaterial(std::move(roofMat));
-    const MaterialID metalMatID    = g_MaterialMgr.AddMaterial(std::move(metalMat));
-    const MaterialID groundMatID   = g_MaterialMgr.AddMaterial(std::move(groundMat));
-    const MaterialID doorMatID     = g_MaterialMgr.AddMaterial(std::move(doorMat));
-    const MaterialID windowMatID   = g_MaterialMgr.AddMaterial(std::move(windowMat));
-
-
-    // setup materials for the model
-    house.SetMaterialForSubset(0, concreteMatID);
-    house.SetMaterialForSubset(1, brickMatID);
-    house.SetMaterialForSubset(2, roofMatID);
-    house.SetMaterialForSubset(3, metalMatID);
-    house.SetMaterialForSubset(4, groundMatID);
-    house.SetMaterialForSubset(5, doorMatID);
-    house.SetMaterialForSubset(6, windowMatID);
-    house.SetMaterialForSubset(7, metalMatID);   // yes, the same material as for 3rd subset
-#endif
-}
-
-///////////////////////////////////////////////////////////
-
-void SetupCube(BasicModel& cube)
-{
-    // manually setup the cube model
-
-    const TexID texIdDiff = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "box01d.dds");
-    const TexID texIdNorm = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "box01n.dds");
-
-    // create and setup a material and add it into the material manager
-    Material mat;
-    mat.SetName("cube_box01");
-    mat.SetTexture(TEX_TYPE_DIFFUSE, texIdDiff);
-    mat.SetTexture(TEX_TYPE_NORMALS, texIdNorm);
-    const MaterialID matID = g_MaterialMgr.AddMaterial(std::move(mat));
-
-    // cube has only one subset (mesh) by ID == 0
-    cube.SetMaterialForSubset(0, matID);
-}
-
-///////////////////////////////////////////////////////////
-
-void SetupSphere(BasicModel& sphere)
-{
-    // manually setup the sphere model
-
-    const TexID texID = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "gigachad.dds");
-
-    // setup material and add it into the material manager
-    Material mat;
-    mat.SetName("gigachad");
-    mat.SetTexture(TEX_TYPE_DIFFUSE, texID);
-    const MaterialID matID = g_MaterialMgr.AddMaterial(std::move(mat));
-
-    // setup material for a single mesh of the sphere model
-    sphere.SetMaterialForSubset(0, matID);
 }
 
 } // namespace Game

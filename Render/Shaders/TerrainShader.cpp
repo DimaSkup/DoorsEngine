@@ -62,8 +62,7 @@ void TerrainShader::Render(
     pContext->IASetInputLayout(vs_.GetInputLayout());
     pContext->PSSetShader(ps_.GetShader(), nullptr, 0U);
 
-    // set the sampler state and textures
-    pContext->PSSetSamplers(1U, 1U, samplerState_.GetAddressOf());
+    // set textures
     pContext->PSSetShaderResources(10U, NUM_TEXTURE_TYPES, instance.textures);
 
     // bind vb/ib
@@ -96,8 +95,7 @@ void TerrainShader::Prepare(
     pContext->IASetInputLayout(vs_.GetInputLayout());
     pContext->PSSetShader(ps_.GetShader(), nullptr, 0U);
 
-    // set the sampler state and textures
-    pContext->PSSetSamplers(1U, 1U, samplerState_.GetAddressOf());
+    // set textures
     pContext->PSSetShaderResources(10U, NUM_TEXTURE_TYPES, instance.textures);
 
     // bind vb/ib
@@ -142,8 +140,7 @@ void TerrainShader::RenderVertices(
     pContext->IASetInputLayout(vs_.GetInputLayout());
     pContext->PSSetShader(ps_.GetShader(), nullptr, 0U);
 
-    // set the sampler state and textures
-    pContext->PSSetSamplers(1U, 1U, samplerState_.GetAddressOf());
+    // set textures
     pContext->PSSetShaderResources(1U, NUM_TEXTURE_TYPES, instance.textures);
 
     // bind vertex buffer
@@ -213,9 +210,6 @@ void TerrainShader::InitializeShaders(
 
     result = ps_.Initialize(pDevice, psFilename);
     CAssert::True(result, "can't initialize the pixel shader");
-
-    result = samplerState_.Initialize(pDevice);
-    CAssert::True(result, "can't initialize the sampler state");
 
     // cbps - const buffer for pixel shader
     hr = cbpsMaterialData_.Initialize(pDevice);

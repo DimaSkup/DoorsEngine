@@ -65,7 +65,6 @@ void ParticleShader::Prepare(
     pContext->VSSetShader(vs_.GetShader(), nullptr, 0);
     pContext->IASetInputLayout(vs_.GetInputLayout());
     pContext->PSSetShader(ps_.GetShader(), nullptr, 0);
-    pContext->PSSetSamplers(0, 1, samplerState_.GetAddressOf());
 
     // bind vertex buffer
     UINT offset = 0;
@@ -114,9 +113,6 @@ void ParticleShader::InitializeShaders(
 
     result = ps_.Initialize(pDevice, psFilePath);
     CAssert::True(result, "can't initialize the pixel shader");
-
-    result = samplerState_.Initialize(pDevice);
-    CAssert::True(result, "can't initialize the sampler state");
 }
 
 //---------------------------------------------------------

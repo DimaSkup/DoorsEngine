@@ -16,7 +16,6 @@
 #include "../Components/Material.h"   
 #include "../Components/TextureTransform.h"
 #include "../Components/Light.h"
-#include "../Components/RenderStates.h"
 #include "../Components/Bounding.h"
 #include "../Components/Camera.h"
 #include "../Components/Player.h"
@@ -31,7 +30,6 @@
 #include "../Systems/MaterialSystem.h"
 #include "../Systems/TextureTransformSystem.h"
 #include "../Systems/LightSystem.h"
-#include "../Systems/RenderStatesSystem.h"
 #include "../Systems/BoundingSystem.h"
 #include "../Systems/CameraSystem.h"
 #include "../Systems/PlayerSystem.h"
@@ -125,20 +123,15 @@ public:
         const size numEntts);
 
     // add RENDER component
-    void AddRenderingComponent(const EntityID id, const RenderInitParams& params);
-
-    void AddRenderingComponent(
-        const EntityID* ids,
-        const size numEntts,
-        const RenderInitParams& params);
-
-    void AddRenderingComponent(
-        const EntityID* ids,
-        const size numEntts,
-        const RenderInitParams* params);
-
+    void AddRenderingComponent(const EntityID id);
+    void AddRenderingComponent(const EntityID* ids, const size numEntts);
   
     // add MATERIAL component
+    void AddMaterialComponent(
+        const EntityID enttId,
+        const MaterialID matId,
+        const bool isMaterialMeshBased);
+
     void AddMaterialComponent(
         const EntityID enttID,
         const MaterialID* materialsIDs,
@@ -166,11 +159,6 @@ public:
 
     // add LIGHT component for a single entity
     void AddLightComponent(const EntityID id, const PointLight& initData);
-
-    // add RENDER STATES component
-    void AddRenderStatesComponent(const EntityID id);
-    void AddRenderStatesComponent(const EntityID* ids, const size numEntts);
-
 
     // add BOUNDING component
     void AddBoundingComponent(               // takes only one entt with only one subset (mesh)
@@ -249,7 +237,6 @@ public:
     RenderSystem            renderSystem_;
     MaterialSystem          materialSystem_;
     TextureTransformSystem  texTransformSystem_;
-    RenderStatesSystem      renderStatesSystem_;
     BoundingSystem          boundingSystem_;
     CameraSystem            cameraSystem_;
     PlayerSystem            playerSystem_;
@@ -279,7 +266,6 @@ private:
     Name             names_;
     TextureTransform texTransform_;
     Light            light_;
-    RenderStates     renderStates_;
     Bounding         bounding_;
     Camera           camera_;
     Hierarchy        hierarchy_;

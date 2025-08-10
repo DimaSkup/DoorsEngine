@@ -258,9 +258,6 @@
     <ClCompile Include="UI\Editor\Terrain\Sky\SkyController.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UI\Editor\Terrain\Sky\SkyEditorView.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Model\ModelStorageSerializer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

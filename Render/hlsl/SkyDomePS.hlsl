@@ -8,8 +8,9 @@
 // GLOBALS
 //
 // nonnumeric values cannot be added to a cbuffer
-TextureCube  gCubeMap     : register(t0);
-SamplerState gSampleType  : register(s0);
+TextureCube  gCubeMap       : register(t0);
+SamplerState gBasicSampler  : register(s0);
+SamplerState gSkySampler    : register(s1);
 
 
 //
@@ -32,7 +33,6 @@ struct PS_INPUT
 {
 	float4 posH   : SV_POSITION;    // homogeneous position
 	float3 posL   : POSITION;       // position of the vertex in local space
-	//float2 tex    : TEXCOORD;
 };
 
 
@@ -48,11 +48,12 @@ float4 PS(PS_INPUT pin) : SV_TARGET
 	// NOTE: since radius of the sky dome sphere radius can be thousands 
 	// we must "normalize" through multiplication by (1 / radius)
 	// to compute the proper interpolation btw apex and center color;
-	height = clamp(height *= 0.002f, 0.0f, 1.0f);
+	height = clamp(height, 0.0f, 3.0f);
 
 	// determine the gradient colour by interpolating between the apex and center 
 	// based on the height of the pixel in the sky dome
 	float3 color = lerp(gColorCenter, gColorApex, height);
+
 
 	// determine the position on the sky dome where this pixel is located
 	// and mix it with the gradient color
@@ -62,5 +63,6 @@ float4 PS(PS_INPUT pin) : SV_TARGET
 
     //return float4(color, 1.0f) * gCubeMap.Sample(gSampleType, pin.posL);
 
-    return gCubeMap.Sample(gSampleType, pin.posL);
+    float4 texColor = gCubeMap.Sample(gSkySampler, pin.posL);
+    return texColor * float4(color, 1.0f);
 };

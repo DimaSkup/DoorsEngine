@@ -59,7 +59,11 @@ public:
 			"only spot lighting",       // for instance: flashlight
 			"only diffuse map",
 			"only normal map",
-            "wireframe"
+            "wireframe",
+            "material ambient",
+            "material diffuse",
+            "material specular",
+            "material reflection",
 		};
 
         static int debugOption = 0;

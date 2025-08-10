@@ -164,11 +164,7 @@ bool FacadeEngineToUI::AddModelComponent(const EntityID enttID, const uint32_t m
 
 bool FacadeEngineToUI::AddRenderedComponent(const EntityID enttID)
 {
-    ECS::RenderInitParams renderParams;
-    renderParams.shaderType = ECS::LIGHT_SHADER;
-    renderParams.topologyType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-
-    pEnttMgr_->AddRenderingComponent(enttID, renderParams);
+    pEnttMgr_->AddRenderingComponent(enttID);
     return true;
 }
 
@@ -797,7 +793,7 @@ bool FacadeEngineToUI::GetTextureIdByIdx(const index idx, TexID& outTextureID) c
 
 bool FacadeEngineToUI::GetMaterialIdByIdx(const index idx, MaterialID& outMatID) const
 {
-    outMatID = g_MaterialMgr.GetMaterialIdByIdx(idx);
+    outMatID = g_MaterialMgr.GetMatIdByIdx(idx);
     return true;
 }
 
@@ -805,7 +801,7 @@ bool FacadeEngineToUI::GetMaterialIdByIdx(const index idx, MaterialID& outMatID)
 
 bool FacadeEngineToUI::GetMaterialNameById(const MaterialID id, char** outName, const int nameMaxLength) const
 {
-    const char* matName = g_MaterialMgr.GetMaterialById(id).name;
+    const char* matName = g_MaterialMgr.GetMatById(id).name;
     return (bool)strncpy(*outName, matName, nameMaxLength);
 }
 
@@ -822,7 +818,7 @@ bool FacadeEngineToUI::GetNumMaterials(size& numMaterials) const
 
 bool FacadeEngineToUI::GetMaterialDataById(const MaterialID id, MaterialData& outData) const
 {
-    Core::Material& mat = g_MaterialMgr.GetMaterialById(id);
+    Core::Material& mat = g_MaterialMgr.GetMatById(id);
 
     outData.id       = id;
     outData.ambient  = Vec4(&mat.ambient.x);
@@ -845,7 +841,7 @@ bool FacadeEngineToUI::SetMaterialColorData(
     const Vec4& spec,          // specular = vec3(specular_color) + float(specular_power)
     const Vec4& refl)          // reflect
 {
-    return g_MaterialMgr.SetMaterialColorData(
+    return g_MaterialMgr.SetMatColorData(
         id,
         Float4(amb.x, amb.y, amb.z, amb.w),
         Float4(diff.x, diff.y, diff.z, diff.w),
@@ -1002,7 +998,7 @@ bool FacadeEngineToUI::GetEnttParticleEmitterData(
     color       = emitter.color;
     externForce = emitter.forces;
     spawnRate   = emitter.spawnRate;
-    lifespanMs  = emitter.life * 1000;
+    lifespanMs  = (int)(emitter.life * 1000.0f);
     mass        = emitter.mass;
     size        = emitter.size;
     friction    = emitter.friction;

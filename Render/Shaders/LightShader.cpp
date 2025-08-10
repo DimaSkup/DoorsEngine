@@ -3,6 +3,7 @@
 // Created:      09.04.23
 // =================================================================================
 #include "../Common/pch.h"
+#include "../Common/InputLayouts.h"
 #include "LightShader.h"
 
 
@@ -26,18 +27,27 @@ bool LightShader::Initialize(
     const char* vsFilePath,
     const char* psFilePath)
 {
-    try
+    bool result = false;
+    const InputLayoutLight inputLayout;
+
+    // init vertex shader
+    result = vs_.Initialize(pDevice, vsFilePath, inputLayout.desc, inputLayout.numElems);
+    if (!result)
     {
-        InitializeShaders(pDevice, vsFilePath, psFilePath);
-        LogDbg(LOG, "is initialized");
-        return true;
-    }
-    catch (EngineException& e)
-    {
-        LogErr(e, true);
-        LogErr(LOG, "can't initialize the light shader class");
+        LogErr(LOG, "can't initialize the vertex shader");
         return false;
     }
+
+    // init pixel shader
+    result = ps_.Initialize(pDevice, psFilePath);
+    if (!result)
+    {
+        LogErr(LOG, "can't initialize the pixel shader");
+        return false;
+    }
+
+    LogDbg(LOG, "is initialized");
+    return true;
 }
 
 ///////////////////////////////////////////////////////////
@@ -53,8 +63,6 @@ void LightShader::Render(
     pContext->IASetInputLayout(vs_.GetInputLayout());
     pContext->VSSetShader(vs_.GetShader(), nullptr, 0);
     pContext->PSSetShader(ps_.GetShader(), nullptr, 0);
-    pContext->PSSetSamplers(0, 1, samplerState_.GetAddressOf());
-
 
     // go through each instance and render it
     for (int i = 0, startInstanceLocation = 0; i < numUniqueGeometry; ++i)
@@ -94,28 +102,6 @@ void LightShader::Render(
 
         startInstanceLocation += numSubsets * instance.numInstances;
     }
-}
-
-//---------------------------------------------------------
-// Desc:   helps to initialize the HLSL shaders, layout, sampler state
-//---------------------------------------------------------
-void LightShader::InitializeShaders(
-    ID3D11Device* pDevice,
-    const char* vsFilePath,
-    const char* psFilePath)
-{
-    const InputLayoutLight inputLayout;
-
-    // initialize: VS, PS, sampler state
-    bool result = false;
-    result = vs_.Initialize(pDevice, vsFilePath, inputLayout.desc, inputLayout.numElems);
-    CAssert::True(result, "can't initialize the vertex shader");
-
-    result = ps_.Initialize(pDevice, psFilePath);
-    CAssert::True(result, "can't initialize the pixel shader");
-
-    result = samplerState_.Initialize(pDevice);
-    CAssert::True(result, "can't initialize the sampler state");
 }
 
 //---------------------------------------------------------

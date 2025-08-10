@@ -52,6 +52,14 @@ Material& MaterialMgr::AddMaterial(const char* matName)
         return materials_[INVALID_MATERIAL_ID];
     }
 
+    // check if input name is unique
+    if (GetMatIdByName(matName) != INVALID_MATERIAL_ID)
+    {
+        LogErr(LOG, "can't add a new empty material: input name must be unique: %s", matName);
+        return materials_[INVALID_MATERIAL_ID];
+    }
+
+
     // generate id
     const MaterialID id = lastMaterialID_;
     ++lastMaterialID_;
@@ -66,17 +74,28 @@ Material& MaterialMgr::AddMaterial(const char* matName)
 }
 
 //---------------------------------------------------------
-// Desc:   add a new material into the manager, generate an ID
-// Args:   - material:   setup material
+// Desc:   add a new material into the manager
+// Args:   - material:   material identifier
 // Ret:    id of added material
 //---------------------------------------------------------
 MaterialID MaterialMgr::AddMaterial(const Material& material)
 {
+    // check if input material has unique name
+    if (GetMatIdByName(material.name) != INVALID_MATERIAL_ID)
+    {
+        LogErr(LOG, "can't add a new empty material: input name must be unique: %s", material.name);
+        return INVALID_MATERIAL_ID;
+    }
+
+    // generate id
     const MaterialID id = lastMaterialID_;
     ++lastMaterialID_;
 
     ids_.push_back(id);
     materials_.push_back(material);
+
+    Material& mat = materials_.back();
+    mat.id = id;
 
     return id;
 }
@@ -94,56 +113,53 @@ MaterialID MaterialMgr::AddMaterial(Material&& material)
     ids_.push_back(id);
     materials_.push_back(std::move(material));
 
+    Material& mat = materials_.back();
+    mat.id = id;
+
     return id;
 }
 
-///////////////////////////////////////////////////////////
-
-bool MaterialMgr::SetMaterialColorData(
+//---------------------------------------------------------
+// Desc:   setup color properties for material by ID
+//---------------------------------------------------------
+bool MaterialMgr::SetMatColorData(
     const MaterialID id,
     const Float4& ambient,
     const Float4& diffuse,
     const Float4& specular,
     const Float4& reflect)
 {
-    // setup color properties of the material by ID
+    Material& mat = GetMatById(id);
 
-    const index idx = ids_.get_idx(id);
-    const bool exist = (ids_[idx] == id);   // check if we got a valid index
-
-    if (!exist)
-    {
-        LogErr(LOG, "there is no material by ID: %ld", id);
+    if (mat.id == INVALID_MATERIAL_ID)
         return false;
-    }
 
-    Material& mat = materials_[idx];
-    mat.ambient   = ambient;
-    mat.diffuse   = diffuse;
-    mat.specular  = specular;
-    mat.reflect   = reflect;
+    mat.ambient  = ambient;
+    mat.diffuse  = diffuse;
+    mat.specular = specular;
+    mat.reflect  = reflect;
 
     return true;
 }
 
-///////////////////////////////////////////////////////////
-
-Material& MaterialMgr::GetMaterialById(const MaterialID id)
+//---------------------------------------------------------
+// Desc:   get a material by input id
+// Ret:    a ref to material
+//---------------------------------------------------------
+Material& MaterialMgr::GetMatById(const MaterialID id)
 {
-    // check if such model exist if so we get its index,
-    // or in another case we return material by idx == 0
-
     const index idx = ids_.get_idx(id);
-    const bool exist = (ids_[idx] == id);   // check if we got a valid index
 
-    return materials_[idx * exist];
+    // if such material exist we return it by idx or
+    // return an invalid material by idx == 0
+    return materials_[idx * (ids_[idx] == id)];
 }
 
 //---------------------------------------------------------
 // Desc:   find a material by input name
 // Ret:    a ref to material
 //---------------------------------------------------------
-Material& MaterialMgr::GetMaterialByName(const char* matName)
+Material& MaterialMgr::GetMatByName(const char* matName)
 {
     // check input args
     if (!matName || matName[0] == '\0')
@@ -152,7 +168,7 @@ Material& MaterialMgr::GetMaterialByName(const char* matName)
         return materials_[INVALID_MATERIAL_ID];
     }
 
-    // find material
+    // find material by name
     for (Material& mat : materials_)
     {
         if (strcmp(mat.name, matName) == 0)
@@ -163,50 +179,59 @@ Material& MaterialMgr::GetMaterialByName(const char* matName)
     return materials_[INVALID_MATERIAL_ID];
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   get an array of material by input identifiers
+// Args:   - ids:      arr of identifiers
+//         - numMats:  how many materials we want to get
+//         - outMats:  output array of materials
+//---------------------------------------------------------
 void MaterialMgr::GetMaterialsByIds(
     const MaterialID* ids,
-    const size numMaterials,
-    cvector<Material>& outMaterials)
+    const size numMats,
+    cvector<Material>& outMats)
 {
-    try
+    // check input args
+    if (numMats <= 0)
     {
-        CAssert::True(ids != nullptr,   "can't get materials: input ptr to materials IDs arr == nullptr");
-        CAssert::True(numMaterials > 0, "can't get materials: input number of materials must be > 0");
-
-        // get idxs to materials data by its ids
-        ids_.get_idxs(ids, numMaterials, idxs_);
-
-        // get materials by idxs
-        outMaterials.resize(numMaterials);
-
-        for (index i = 0; i < numMaterials; ++i)
-            outMaterials[i] = materials_[idxs_[i]];
-
+        LogErr(LOG, "can't get materials: input number of materials must be > 0");
+        return;
     }
-    catch (EngineException& e)
+
+    if (!ids)
     {
-        // in any case if we have some input number of materials we fill the output arr with "invalid" materials
-        outMaterials.resize(numMaterials, Material("invalid"));
+        LogErr(LOG, "can't get materials: input ptr to materials IDs arr == nullptr");
 
-        LogErr(e);
+        // since we have some input number of materials
+        // we just return arr of "invalid" materials
+        outMats.resize(numMats, Material());
+        return;
     }
+
+
+    // get idxs to materials data by its ids
+    ids_.get_idxs(ids, numMats, idxs_);
+
+    // get materials by idxs
+    outMats.resize(numMats);
+
+    for (index i = 0; i < numMats; ++i)
+        outMats[i] = materials_[idxs_[i]];
 }
 
-///////////////////////////////////////////////////////////
-
-MaterialID MaterialMgr::GetMaterialIdByName(const char* name) const
+//---------------------------------------------------------
+// Desc:   find a material identifier by input name
+// Ret:    a material ID or 0 if there is no such material
+//---------------------------------------------------------
+MaterialID MaterialMgr::GetMatIdByName(const char* name) const
 {
     // TODO: optimize me, shithead!
-
     if (!name || name[0] == '\0')
     {
         LogErr("input name is empty");
         return INVALID_MATERIAL_ID;
     }
 
-    for (int i = 0; const Material & mat : materials_)
+    for (int i = 0; const Material& mat : materials_)
     {
         if (strcmp(mat.name, name) == 0)
             return ids_[i];
@@ -218,11 +243,12 @@ MaterialID MaterialMgr::GetMaterialIdByName(const char* name) const
     return INVALID_MATERIAL_ID;
 }
 
-///////////////////////////////////////////////////////////
-
-MaterialID MaterialMgr::GetMaterialIdByIdx(const index idx) const
+//---------------------------------------------------------
+// Desc:   find a material identifier by input index
+// Ret:    a material identifier (is 0 if input idx is invalid)
+//---------------------------------------------------------
+MaterialID MaterialMgr::GetMatIdByIdx(const index idx) const
 {
-    // if we have valid idx we return an ID by it or return ID by idx 0 (INVALID_MATERIAL_ID == 0)
     const bool isValid = ((idx > 0) && (idx < ids_.size()));
     return ids_[idx * isValid];
 }

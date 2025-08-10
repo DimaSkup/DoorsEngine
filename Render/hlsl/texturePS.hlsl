@@ -5,7 +5,8 @@
 // GLOBALS
 //////////////////////////////////
 Texture2D    gTextures[128] : register(t0);
-SamplerState gSampleType   : register(s0);
+SamplerState gBasicSampler  : register(s0);
+SamplerState gSkySampler    : register(s1);
 
 
 //////////////////////////////////
@@ -59,8 +60,7 @@ float4 PS(PS_INPUT pin) : SV_TARGET
 
 	// Sample the pixel color from the texture using the sampler
 	// at this texture coordinate location
-	float4 finalColor = gTextures[1].Sample(gSampleType, pin.tex);
-	float4 lightMapColor = gTextures[10].Sample(gSampleType, pin.tex);
+	float4 finalColor = gTextures[1].Sample(gBasicSampler, pin.tex);
 
 	// the pixels with black (or lower that 0.1f) alpha values will be refected by
 	// the clip function and not draw (this is used for rendering wires/fence/etc.);
@@ -80,8 +80,6 @@ float4 PS(PS_INPUT pin) : SV_TARGET
 		float3 toEye = gEyePosW - pin.posW.xyz;
 		float distToEye = length(toEye);
 		float fogLerp = saturate((distToEye - gFogStart) / gFogRange);
-
-		finalColor *= lightMapColor;
 
 		// blend the fog color and the lit color
 		finalColor = lerp(finalColor, float4(gFogColor, 1.0f), fogLerp);

@@ -13,6 +13,7 @@
 #include "../Render/Color.h"
 
 #include <Types.h>
+#include <cvector.h>
 #include <assimp/material.h>
 #include <d3d11.h>
 
@@ -31,8 +32,27 @@ enum class TexStoreType
     Disk
 };
 
-///////////////////////////////////////////////////////////
+//---------------------------------------------------------
+// params needed for cubemap texture initialization
+//---------------------------------------------------------
+struct CubeMapInitParams
+{
+    // path to directory with textures for cubemap
+    char directory[64]{'\0'};
 
+    // 6 textures, max 32 chars for each name:
+    //    0 - positive X
+    //    1 - negative X
+    //    2 - positive Y
+    //    3 - negative Y
+    //    4 - positive Z
+    //    5 - negative Z
+    char texNames[6][32]{'\0'};
+};
+
+//---------------------------------------------------------
+// Texture class
+//---------------------------------------------------------
 class Texture
 {
 public:
@@ -101,6 +121,7 @@ public:
     void Copy(Texture& src);
     void Copy(ID3D11Resource* const pSrcTexResource);
 
+    bool CreateCubeMap(const char* name, const CubeMapInitParams& params);
 
     inline ID3D11Resource*           GetResource()                                { return pTexture_; }
     inline ID3D11ShaderResourceView* GetTextureResourceView()               const { return pTextureView_; }

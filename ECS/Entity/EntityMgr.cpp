@@ -23,7 +23,7 @@ EntityMgr::EntityMgr() :
     materialSystem_     { &materialComponent_, &nameSystem_ },
     texTransformSystem_ { &texTransform_ },
     lightSystem_        { &light_, &transformSystem_ },
-    renderStatesSystem_ { &renderStates_ },
+    //renderStatesSystem_ { &renderStates_ },
     boundingSystem_     { &bounding_ },
     cameraSystem_       { &camera_, &transformSystem_ },
     hierarchySystem_    { &hierarchy_, &transformSystem_ },
@@ -475,39 +475,21 @@ void EntityMgr::AddModelComponent(
 //---------------------------------------------------------
 // Desc:   add rendering component to a single entity by ID
 //---------------------------------------------------------
-void EntityMgr::AddRenderingComponent(
-    const EntityID id,
-    const RenderInitParams& params)
+void EntityMgr::AddRenderingComponent(const EntityID id)
 {
-    AddRenderingComponent(&id, 1, &params);
-}
-
-//---------------------------------------------------------
-// Desc:   add the Rendered component to each input entity by ID
-//         and setup them with the same rendering params
-//---------------------------------------------------------
-void EntityMgr::AddRenderingComponent(
-    const EntityID* ids,
-    const size numEntts,
-    const RenderInitParams& params)
-{
-    const cvector<RenderInitParams> paramsArr(numEntts, params);
-    AddRenderingComponent(ids, numEntts, paramsArr.data());
+    AddRenderingComponent(&id, 1);
 }
 
 //---------------------------------------------------------
 // Desc:   add RenderComponent to each entity by its ID; 
 //         so these entities will be rendered onto the screen
 //---------------------------------------------------------
-void EntityMgr::AddRenderingComponent(
-    const EntityID* ids,
-    const size numEntts,
-    const RenderInitParams* params)
+void EntityMgr::AddRenderingComponent(const EntityID* ids, const size numEntts)
 {
     try
     {
-        renderSystem_.AddRecords(ids, params, numEntts);
-        renderStatesSystem_.AddWithDefaultStates(ids, numEntts);
+        renderSystem_.AddRecords(ids, numEntts);
+        //renderStatesSystem_.AddWithDefaultStates(ids, numEntts);
 
         using enum eComponentType;
         SetEnttsHaveComponents(ids, { RenderedComponent, RenderStatesComponent }, numEntts);
@@ -520,29 +502,48 @@ void EntityMgr::AddRenderingComponent(
 }
 
 //---------------------------------------------------------
+// Desc:   add material component to entity which has a single mesh
+// Args:   - enttId:                entity identifier
+//         - matId:                 material identifier
+//         - isMaterialMeshBased:   is material the same as a model (geometry) bounded to entity
+//---------------------------------------------------------
+void EntityMgr::AddMaterialComponent(
+    const EntityID enttId,
+    const MaterialID matId,
+    const bool isMaterialMeshBased)
+{
+    AddMaterialComponent(enttId, &matId, 1, isMaterialMeshBased);
+}
+
+//---------------------------------------------------------
 // Desc:  add material component for input entity by ID;
 // Args:  - materialsIDs:          arr of material IDs (each material ID will be related to a single submesh of the entity)
 //        - numSubmeshes:          how many meshes does input entity have
 //        - areMaterialsMeshBased: defines if all the materials IDs are the same as materials IDs of the related model
 //---------------------------------------------------------
 void EntityMgr::AddMaterialComponent(
-    const EntityID enttID,
-    const MaterialID* materialsIDs,
+    const EntityID enttId,
+    const MaterialID* materialsIds,
     const size numSubmeshes,
     const bool areMaterialsMeshBased)             
 {
     try
     {
-        sprintf(g_String, "no entity by ID: %ud", enttID);
-        CAssert::True(CheckEnttExist(enttID), g_String);
-
-        materialSystem_.AddRecord(enttID, materialsIDs, numSubmeshes, areMaterialsMeshBased);
-        SetEnttHasComponent(enttID, MaterialComponent);
+        if (!CheckEnttExist(enttId))
+        {
+            LogErr(LOG, "there is no entity by ID: %ld", enttId);
+            return;
+        }
+        
+        materialSystem_.AddRecord(enttId, materialsIds, numSubmeshes, areMaterialsMeshBased);
+        SetEnttHasComponent(enttId, MaterialComponent);
     }
     catch (EngineException& e)
     {
+        const char* name = nameSystem_.GetNameById(enttId);
+
         LogErr(e);
-        LogErr(LOG, "can't add Material component to entt (id: %ud; name: %s)", enttID, nameSystem_.GetNameById(enttID).c_str());
+        LogErr(LOG, "can't add Material component to entt (id: %ld; name: %s)", enttId, name);
     }
 }
 
@@ -650,41 +651,14 @@ void EntityMgr::AddLightComponent(
 }
 
 //---------------------------------------------------------
-// Desc:  add the RenderStates component to the input entt
-//        and setup it with DEFAULT states
+// Desc:   add bounding component to a single entity
+//         so it will have some bounding shape
 //---------------------------------------------------------
-void EntityMgr::AddRenderStatesComponent(const EntityID id)
-{
-    AddRenderStatesComponent(&id, 1);
-}
-
-//---------------------------------------------------------
-// Desc:   add the RenderStates component to the input entts and 
-//         setup each with DEFAULT states
-//---------------------------------------------------------
-void EntityMgr::AddRenderStatesComponent(const EntityID* ids, const size numEntts)
-{
-    try
-    {
-        renderStatesSystem_.AddWithDefaultStates(ids, numEntts);
-        SetEnttsHaveComponent(ids, numEntts, RenderStatesComponent);
-    }
-    catch (EngineException& e)
-    {
-        LogErr(e);
-        LogErr(LOG, "can't add render states component to entts: %s", GetEnttsIDsAsString(ids, numEntts).c_str());
-    }
-}
-
-//---------------------------------------------------------
-//---------------------------------------------------------
-
 void EntityMgr::AddBoundingComponent(
     const EntityID id,
     const BoundingType type,
     const DirectX::BoundingBox& aabb)
 {
-    // add bounding component to a single entity
     try
     {
         boundingSystem_.Add(id, type, aabb);

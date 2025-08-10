@@ -7,7 +7,8 @@
 TextureCube  gCubeMap       : register(t0);
 Texture2D    gPerlinNoise   : register(t1);
 Texture2D    gTexture       : register(t10);
-SamplerState gSampleType    : register(s0);
+SamplerState gBasicSampler  : register(s0);
+SamplerState gSkySampler    : register(s1);
 
 
 // ==========================
@@ -89,7 +90,7 @@ float4 PS(PS_INPUT pin) : SV_TARGET
 	
 	
 
-    float4 texColor = gTexture.Sample(gSampleType, pin.tex);
+    float4 texColor = gTexture.Sample(gBasicSampler, pin.tex);
     texColor *= float4(pin.color, 1.0f);
 	texColor *= pin.translucency;
 	//texColor.a = pin.translucency;
@@ -104,7 +105,7 @@ float4 PS(PS_INPUT pin) : SV_TARGET
         	// TEMP: hacky fix for the vector to sample the proper pixel of sky
         float3 vec = -toEyeW;
         vec.y -= 990;
-		float4 skyTexColor = gCubeMap.Sample(gSampleType, vec);
+		float4 skyTexColor = gCubeMap.Sample(gSkySampler, vec);
 		
 
         // blend sky pixel color with fixed fog color

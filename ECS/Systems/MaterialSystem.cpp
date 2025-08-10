@@ -71,9 +71,7 @@ void MaterialSystem::AddRecord(
     // if there is already a record with such entt ID
     if (comp.enttsIDs.binary_search(enttID))
     {
-        char buf[64];
-        sprintf(buf, "can't add record: there is already an entity by ID: %ud", enttID);
-        LogErr(buf);
+        LogErr(LOG, "can't add record: there is already an entity by ID: %ld", enttID);
         return;
     }
 

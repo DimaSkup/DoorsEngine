@@ -33,7 +33,6 @@
     <ClInclude Include="Components\ParticleEmitter.h" />
     <ClInclude Include="Components\Player.h" />
     <ClInclude Include="Components\Rendered.h" />
-    <ClInclude Include="Components\RenderStates.h" />
     <ClInclude Include="Components\TextureTransform.h" />
     <ClInclude Include="Components\Transform.h" />
     <ClInclude Include="Entity\EntityMgr.h" />
@@ -48,7 +47,6 @@
     <ClInclude Include="Systems\NameSystem.h" />
     <ClInclude Include="Systems\Particles\ParticleSystem.h" />
     <ClInclude Include="Systems\PlayerSystem.h" />
-    <ClInclude Include="Systems\RenderStatesSystem.h" />
     <ClInclude Include="Systems\RenderSystem.h" />
     <ClInclude Include="Systems\TextureTransformSystem.h" />
     <ClInclude Include="Systems\TransformSystem.h" />
@@ -76,7 +74,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Systems\PlayerSystem.cpp" />
-    <ClCompile Include="Systems\RenderStatesSystem.cpp" />
     <ClCompile Include="Systems\RenderSystem.cpp" />
     <ClCompile Include="Systems\TextureTransformSystem.cpp" />
     <ClCompile Include="Systems\TransformSystem.cpp" />

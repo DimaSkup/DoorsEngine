@@ -3,6 +3,7 @@
 // Descption:    a wrapper class for manual exceptions of the DoorsEngine core
 ///////////////////////////////////////////////////////////////////////////////////////////
 #include "EngineException.h"
+#include "FileSystem.h"
 #include <time.h>
 #pragma warning (disable : 4996)
 
@@ -36,7 +37,10 @@ EngineException::EngineException(
         "FILE:  %s\n"
         "FUNC:  %s()\n"
         "LINE:  %d\n"
-        "MSG:   %s\n";
+        "MSG:   %s\n\n";
+
+    char path[256]{'\0'};
+    FileSys::GetPathFromProjRoot(location.file_name(), path);
 
     // string
     snprintf(
@@ -44,7 +48,7 @@ EngineException::EngineException(
         512,                        // buffer size limit
         fmt,
         time,
-        location.file_name(),
+        path,
         location.function_name(),
         location.line(),
         msg);

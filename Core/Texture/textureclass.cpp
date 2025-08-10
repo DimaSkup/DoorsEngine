@@ -5,6 +5,7 @@
 #include "textureclass.h"
 #include "ImageReader.h"
 #include "ImgConverter.h"
+#include "../Render/d3dclass.h"
 #include <D3DX11tex.h>
 
 #pragma warning (disable : 4996)
@@ -184,9 +185,9 @@ Texture::Texture(
     {
         CAssert::True(!StrHelper::IsEmpty(fullFilePath), "input texture path is empty");
         CAssert::True(!StrHelper::IsEmpty(name),         "input texture name is empty");
-
-        name_ = name;
+  
         LoadFromFile(pDevice, fullFilePath);
+        name_ = name;
     }
     catch (EngineException & e)
     {
@@ -355,13 +356,6 @@ Texture::~Texture()
     Release();
 }
 
-
-
-
-// =================================================================================
-// Public API
-// =================================================================================
-
 //---------------------------------------------------------
 // Desc:   initialize the texture with input raw data
 // Args:   - pDevice:   a ptr to DirectX11 device
@@ -491,13 +485,12 @@ void Texture::Copy(Texture& src)
     height_ = src.height_;
 }
 
-///////////////////////////////////////////////////////////
-
+//----------------------------------------------------------------------------------
+// Desc:   deep copy: execute copying of the src texture into the current one;
+//         note:      we discard all the previous data of the current texture;
+//----------------------------------------------------------------------------------
 void Texture::Copy(ID3D11Resource* const pSrcTexResource)
 {
-    // deep copy: execute copying of the src texture into the current;
-    // note:      we discard all the previous data of the current texture;
-
     // guard self assignment
     if (this->pTexture_ == pSrcTexResource)
         return;
@@ -505,13 +498,12 @@ void Texture::Copy(ID3D11Resource* const pSrcTexResource)
     // clear the previous data
     Release();
 
-    ID3D11Device* pDevice = nullptr;
+    ID3D11Device*        pDevice  = nullptr;
     ID3D11DeviceContext* pContext = nullptr;
 
     // get ptrs to the device and device context
     pSrcTexResource->GetDevice(&pDevice);
     pDevice->GetImmediateContext(&pContext);
-
 
     // ------------------------------------------
     
@@ -581,7 +573,6 @@ void Texture::Copy(ID3D11Resource* const pSrcTexResource)
     hr = pDevice->CreateShaderResourceView(pTexture_, &srvDesc, &pTextureView_);
     CAssert::NotFailed(hr, "Failed to create shader resource view (SRV)");
 
-
     // ----------------------------------------------------
 
     // copy common data of the src texture
@@ -593,6 +584,191 @@ void Texture::Copy(ID3D11Resource* const pSrcTexResource)
     SafeDeleteArr(pixelsData);
     SafeRelease(&pTextureBuf);
 }
+
+//---------------------------------------------------------
+// Desc:   load 6 textures from directory by directoryPath
+//         and create a single cube map texture from them
+// Args:   - name:   just a name for this texture (can be used when search for this texture)
+//         - params: initial parameters for cubemap
+// Ret:    identifier of created texture or 0 if we failed
+//---------------------------------------------------------
+bool Texture::CreateCubeMap(const char* name, const CubeMapInitParams& params)
+{
+    // check input params
+    if (!params.directory || params.directory[0] == '\0')
+    {
+        LogErr(LOG, "input path to directory with textures for a cubemap IS EMPTY");
+        return false;
+    }
+
+    if (!name || name[0] == '\0')
+    {
+        LogErr(LOG, "input name for a cube map is empty (from dir: %s)", params.directory);
+        return false;
+    }
+
+
+    LogDbg(LOG, "load 6 textures for cubemap from directory: %s", params.directory);
+
+
+    HRESULT                         hr = S_OK;
+    ID3D11Texture2D*                pTexture     = nullptr;
+    ID3D11ShaderResourceView*       pTextureView = nullptr;
+    Texture                         textures[6];
+    D3D11_SUBRESOURCE_DATA          data[6];
+    D3D11_TEXTURE2D_DESC            texDesc = {};
+    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+    DirectX::ScratchImage           images[6];
+    Img::ImgConverter               converter;
+
+    // load 6 textures for a cubemap
+    for (int i = 0; i < 6; ++i)
+    {
+        // generate full path
+        char path[128]{'\0'};
+        strcat(path, params.directory);
+        strcat(path, params.texNames[i]);
+
+        // try to load
+        if (!converter.LoadFromFile(path, images[i]))
+        {
+            LogErr(LOG, "can't load an image from file: %s", path);
+            return false;
+        }
+    }
+
+    // nullptr check
+    const DirectX::Image* pImgRawData = images[0].GetImages();
+    if (pImgRawData == nullptr)
+    {
+        LogErr(LOG, "image raw data == nullptr (so we can't get pixels/width/height)");
+        return false;
+    }
+
+    // all 6 sky textures will have the same width and height
+    const UINT width  = (UINT)pImgRawData->width;
+    const UINT height = (UINT)pImgRawData->height;
+
+
+    // texture description
+    texDesc.Width              = width;
+    texDesc.Height             = height;
+    texDesc.MipLevels          = 1;
+    texDesc.ArraySize          = 6;
+    texDesc.Format = pImgRawData->format;
+    //texDesc.Format             = DXGI_FORMAT_B8G8R8A8_UNORM; // DXGI_FORMAT_R8G8B8A8_UNORM
+    texDesc.SampleDesc.Count   = 1;
+    texDesc.SampleDesc.Quality = 0;
+    texDesc.Usage              = D3D11_USAGE_DEFAULT;
+    texDesc.BindFlags          = D3D11_BIND_SHADER_RESOURCE;
+    texDesc.CPUAccessFlags     = 0;
+    texDesc.MiscFlags          = D3D11_RESOURCE_MISC_TEXTURECUBE;
+
+
+    // setup initial data for the cubemap
+    for (int i = 0; i < 6; ++i)
+    {
+        // get pixels of image and check if it is valid
+        const uint8* pixels = images[i].GetPixels();
+        if (!pixels)
+        {
+            LogErr(LOG, "can't get pixels of image: %s%s", params.directory, params.texNames[i]);
+            return false;
+        }
+
+        data[i].pSysMem          = pixels;
+        data[i].SysMemPitch      = width * sizeof(uint32);
+        data[i].SysMemSlicePitch = 0;
+    }
+
+    // create a texture resource
+    hr = g_pDevice->CreateTexture2D(&texDesc, data, &pTexture);
+    if (FAILED(hr))
+    {
+        LogErr(LOG, "can't create a cubemap texture from directory: %s", params.directory);
+        return false;
+    }
+
+    // create a resource view on the texture
+    srvDesc.Format                      = texDesc.Format;
+    srvDesc.ViewDimension               = D3D11_SRV_DIMENSION_TEXTURECUBE;
+    srvDesc.Texture2D.MostDetailedMip   = 0;
+    srvDesc.Texture2D.MipLevels         = 1;
+
+    hr = g_pDevice->CreateShaderResourceView(pTexture, &srvDesc, &pTextureView);
+    if (FAILED(hr))
+    {
+        SafeRelease(&pTexture);
+        LogErr(LOG, "can't create a shader resource view for a cubemap (directory: %s)", params.directory);
+        return false;
+    }
+
+    // if we got here then we created cubemap successfully so release the prev data and assign new
+    Release();
+
+    pTexture_     = pTexture;
+    pTextureView_ = pTextureView;
+    name_         = name;
+    width_        = width;
+    height_       = height;
+
+    return true;
+}
+
+#if 0
+//---------------------------------------------------------
+// Desc:   get pixels raw data of the current texture and put it into the output array
+//---------------------------------------------------------
+void Texture::GetRawPixels(cvector<uint8>& outData) const
+{
+    HRESULT              hr       = S_OK;
+    ID3D11Device*        pDevice  = nullptr;
+    ID3D11DeviceContext* pContext = nullptr;
+
+    // get ptrs to the device and device context
+    g_pDevice->GetImmediateContext(&pContext);
+
+    // ------------------------------------------
+
+    // create a staging texture for resource copying
+    ID3D11Texture2D*         pSrcTexture = static_cast<ID3D11Texture2D*>(pTexture_);
+    ID3D11Texture2D*         pTextureBuf = nullptr;
+    D3D11_TEXTURE2D_DESC     textureBufDesc;
+    D3D11_MAPPED_SUBRESOURCE mappedSubresource;
+
+    pSrcTexture->GetDesc(&textureBufDesc);
+    textureBufDesc.BindFlags      = 0;
+    textureBufDesc.Usage          = D3D11_USAGE_STAGING;
+    textureBufDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+
+    hr = g_pDevice->CreateTexture2D(&textureBufDesc, nullptr, &pTextureBuf);
+    if (FAILED(hr))
+    {
+        LogErr(LOG, "Failed to create a staging texture");
+        return;
+    } 
+
+    // copy the data from the source texture
+    pContext->CopyResource(pTextureBuf, pSrcTexture);
+
+    // map the staging buffer
+    hr = pContext->Map(pTextureBuf, 0, D3D11_MAP_READ, 0, &mappedSubresource);
+    if (FAILED(hr))
+    {
+        LogErr(LOG, "can't map the staging buffer");
+    }
+
+    // copy src texture data into the output buffer
+    const UINT dataSize = width_ * height_ * sizeof(uint32);
+    outData.resize(dataSize);
+    memcpy(outData.data(), mappedSubresource.pData, dataSize);
+
+    // unmap temp buffer and release it
+    pContext->Unmap(pTextureBuf, 0);
+    SafeRelease(&pTextureBuf);
+}
+
+#endif
 
 ///////////////////////////////////////////////////////////
 

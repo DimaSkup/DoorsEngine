@@ -52,7 +52,7 @@ bool CRender::Initialize(
 
         // setup buffer's description
         vbd.Usage               = D3D11_USAGE_DYNAMIC;
-        vbd.ByteWidth           = static_cast<UINT>(sizeof(ConstBufType::InstancedData) * maxInstancesNum);
+        vbd.ByteWidth           = (UINT)(sizeof(ConstBufType::InstancedData) * maxInstancesNum);
         vbd.BindFlags           = D3D11_BIND_VERTEX_BUFFER;
         vbd.CPUAccessFlags      = D3D11_CPU_ACCESS_WRITE;
         vbd.MiscFlags           = 0;
@@ -125,6 +125,36 @@ bool CRender::Initialize(
         pContext->VSSetConstantBuffers(0, numBuffersVS, vsCBs);
         pContext->GSSetConstantBuffers(0, numBuffersGS, gsCBs);
         pContext->PSSetConstantBuffers(0, numBuffersPS, psCBs);
+
+
+
+        // samplers ----------------------------
+
+        // setup description for a sampler state
+        D3D11_SAMPLER_DESC skySamplerDesc{};
+        skySamplerDesc.Filter = D3D11_FILTER_ANISOTROPIC;
+        skySamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+        skySamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+        skySamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+        skySamplerDesc.BorderColor[0] = 1.0f;
+        skySamplerDesc.BorderColor[1] = 0.0f;
+        skySamplerDesc.BorderColor[2] = 0.0f;
+        skySamplerDesc.BorderColor[3] = 1.0f;
+        skySamplerDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;// D3D11_COMPARISON_FUNC::D3D11_COMPARISON_NEVER;
+        skySamplerDesc.MinLOD = 0.0f;
+        skySamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+        skySamplerDesc.MaxAnisotropy = D3D11_REQ_MAXANISOTROPY;
+        skySamplerDesc.MipLODBias = 0.0f;
+
+
+        result = basicSampler_.Initialize(pDevice);
+        CAssert::True(result, "can't initialize the basic sampler state");
+
+        result = skySampler_.Initialize(pDevice, &skySamplerDesc);
+        CAssert::True(result, "can't initialize the sky sampler state");
+
+        pContext->PSSetSamplers(0, 1, basicSampler_.GetAddressOf());
+        pContext->PSSetSamplers(1, 1, skySampler_.GetAddressOf());
     }
     catch (EngineException& e)
     {
@@ -146,6 +176,7 @@ bool CRender::ShadersHotReload(ID3D11Device* pDevice)
         shadersContainer_.particleShader_.ShaderHotReload    (pDevice, "shaders/hlsl/particleVS.hlsl",     "shaders/hlsl/particleGS.hlsl",     "shaders/hlsl/particlePS.hlsl");
         shadersContainer_.materialIconShader_.ShaderHotReload(pDevice, "shaders/hlsl/MaterialIconVS.hlsl", "shaders/hlsl/MaterialIconPS.hlsl");
         shadersContainer_.terrainShader_.ShaderHotReload     (pDevice, "shaders/hlsl/TerrainVS.hlsl",      "shaders/hlsl/TerrainPS.hlsl");
+        shadersContainer_.debugShader_.ShaderHotReload       (pDevice, "shaders/hlsl/DebugVS.hlsl",        "shaders/hlsl/DebugPS.hlsl");
         LogDbg(LOG, "shaders are hot reloaded");
 
         return true;
@@ -214,7 +245,6 @@ void CRender::UpdateInstancedBuffer(
     UpdateInstancedBuffer(
         pContext,
         data.worlds_,
-        data.texTransforms_,
         data.materials_,
         data.GetSize());     // get the number of elements to render
 }
@@ -224,7 +254,6 @@ void CRender::UpdateInstancedBuffer(
 void CRender::UpdateInstancedBuffer(
     ID3D11DeviceContext* pContext,
     const DirectX::XMMATRIX* worlds,
-    const DirectX::XMMATRIX* texTransforms,
     const Material* materials,
     const int count)
 {
@@ -232,7 +261,6 @@ void CRender::UpdateInstancedBuffer(
     try
     {
         CAssert::True(worlds != nullptr,        "input arr of world matrices == nullptr");
-        CAssert::True(texTransforms != nullptr, "input arr of texture transformations == nullptr");
         CAssert::True(materials != nullptr,     "input arr of materials == nullptr");
         CAssert::True(count > 0,                "input number of elements must be > 0");
 
@@ -249,9 +277,6 @@ void CRender::UpdateInstancedBuffer(
             dataView[i].world = worlds[i];
             dataView[i].worldInvTranspose = MathHelper::InverseTranspose(worlds[i]);
         }
-
-        for (int i = 0; i < count; ++i)
-            dataView[i].texTransform = texTransforms[i];
 
         for (int i = 0; i < count; ++i)
             dataView[i].material = materials[i];
@@ -539,6 +564,10 @@ void CRender::SwitchDebugState(ID3D11DeviceContext* pContext, const eDebugState 
         case DBG_SHOW_ONLY_DIFFUSE_MAP:
         case DBG_SHOW_ONLY_NORMAL_MAP:
         case DBG_WIREFRAME:
+        case DBG_SHOW_MATERIAL_AMBIENT:
+        case DBG_SHOW_MATERIAL_DIFFUSE:
+        case DBG_SHOW_MATERIAL_SPECULAR:
+        case DBG_SHOW_MATERIAL_REFLECTION:
         {
             isDebugMode_ = true;
             shadersContainer_.debugShader_.SetDebugType(pContext, state);

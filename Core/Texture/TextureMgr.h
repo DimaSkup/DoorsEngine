@@ -61,6 +61,8 @@ public:
 
     TexID LoadFromFile(const char* dirPath, const char* texturePath);
     TexID LoadFromFile(const char* path);
+
+    TexID CreateCubeMap(const char* name, const CubeMapInitParams& params);
         
     TexID LoadTextureArray(
         const char* textureObjName,

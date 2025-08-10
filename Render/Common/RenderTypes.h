@@ -48,6 +48,10 @@ enum eDebugState
     DBG_SHOW_ONLY_DIFFUSE_MAP,
     DBG_SHOW_ONLY_NORMAL_MAP,
     DBG_WIREFRAME,
+    DBG_SHOW_MATERIAL_AMBIENT,
+    DBG_SHOW_MATERIAL_DIFFUSE,
+    DBG_SHOW_MATERIAL_SPECULAR,
+    DBG_SHOW_MATERIAL_REFLECTION,
 };
 
 enum EnttsSetType
@@ -117,14 +121,11 @@ struct PerFrameData
     }
 };
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   a transient data container for the instances buffer
+//---------------------------------------------------------
 class InstBuffData
 {
-    //
-    // constains transient data for the instance buffer
-    //
-
 public:
 
     InstBuffData() {}
@@ -134,18 +135,17 @@ public:
         Shutdown();
     }
 
-    /// ---------------------------------------------------
+    // ---------------------------------------------------
 
     void Shutdown()
     {
         SafeDeleteArr(worlds_);
-        SafeDeleteArr(texTransforms_);
         SafeDeleteArr(materials_);
         capacity_ = 0;
         size_ = 0;
     }
 
-    /// ---------------------------------------------------
+    // ---------------------------------------------------
 
     void Resize(const int newSize)
     {
@@ -164,7 +164,6 @@ public:
                 Shutdown();
 
                 worlds_             = new DirectX::XMMATRIX[newSize];
-                texTransforms_      = new DirectX::XMMATRIX[newSize];
                 materials_          = new Material[newSize];
                 capacity_           = newSize;	
             }
@@ -192,35 +191,29 @@ public:
 
 public:
     DirectX::XMMATRIX* worlds_ = nullptr;
-    DirectX::XMMATRIX* texTransforms_ = nullptr;
     Material*          materials_ = nullptr;
 
 private:
     int                capacity_ = 0;   // how many elements we can put into this buffer
     int                size_ = 0;       // the current number of data elements
 };
-
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   a container for subset (mesh) data of the model
+//---------------------------------------------------------
 struct Subset
 {
-    // subset (mesh) data of the model
-    Subset() {}
-
-    char     name[SUBSET_NAME_LENGTH_LIMIT] {'\0'};  // for debugging
-    uint32_t vertexStart = 0;                        // start pos of vertex in the common buffer
-    uint32_t vertexCount = 0;                        // how many vertices this subset has
-    uint32_t indexStart = 0;                         // start pos of index in the common buffer
-    uint32_t indexCount = 0;                         // how many indices this subset has
+    char    name[SUBSET_NAME_LENGTH_LIMIT] {'\0'};  // for debugging
+    uint32  vertexStart = 0;                        // start pos of vertex in the common buffer
+    uint32  vertexCount = 0;                        // how many vertices this subset has
+    uint32  indexStart = 0;                         // start pos of index in the common buffer
+    uint32  indexCount = 0;                         // how many indices this subset has
 };
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   a data container of a single rendering instance
+//---------------------------------------------------------
 struct Instance
 {
-    // data of a single model instance
-    Instance() {}
-
     char                name[32]{ '\0' };
     int                 numInstances = 0;  // how many instances will be rendered
     UINT                vertexStride = 0;  // size in bytes of a single vertex
@@ -231,7 +224,6 @@ struct Instance
     cvector<Subset>     subsets;           // subInstance (mesh) data
     cvector<uint32_t>   materialIDs;
     
-
     // --------------------------------
 
     inline int GetNumVertices() const
@@ -251,12 +243,11 @@ struct Instance
     }
 };
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   a data container of a sky model instance
+//---------------------------------------------------------
 struct SkyInstance
 {
-    // data of a sky model instance
-
     UINT              indexCount = 0;
     UINT              vertexStride = 0;             // size in bytes of a single vertex
     ID3D11Buffer*     pVB = nullptr;                // vertex buffer
@@ -266,11 +257,11 @@ struct SkyInstance
     DirectX::XMFLOAT3 colorApex;                    // top sky color (for gradient)
 };
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   a data container for the terrain model
+//---------------------------------------------------------
 struct TerrainInstance
 {
-    // data of the terrain model
     UINT          numVertices   = 0;
     UINT          indexCount    = 0;
     UINT          baseIndex     = 0;
@@ -284,32 +275,19 @@ struct TerrainInstance
     bool          wantDebug = false;
 };
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   stores render data of bunches of instances with different render states
+//---------------------------------------------------------
 struct RenderDataStorage
 {
-    // stores render data of bunches of instances with different render states
-
     void Clear()
     {
         modelInstances.clear();
-        alphaClippedModelInstances.clear();
-        blendedModelInstances.clear();
-        boundingLineBoxInstances.clear();
     }
 
     InstBuffData          modelInstBuffer;
-    InstBuffData          alphaClippedModelInstBuffer;
-    InstBuffData          blendedModelInstBuffer;
-    InstBuffData          boundingLineBoxBuffer;
 
     cvector<Instance> modelInstances;              // models with default render states
-    cvector<Instance> alphaClippedModelInstances;
-    cvector<Instance> blendedModelInstances;
-    cvector<Instance> boundingLineBoxInstances;
 };
-
-///////////////////////////////////////////////////////////
-
 
 }  // namespace

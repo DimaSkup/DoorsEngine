@@ -51,9 +51,6 @@
     <ClInclude Include="Components\Rendered.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Components\RenderStates.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Components\TextureTransform.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -88,9 +85,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Systems\PlayerSystem.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Systems\RenderStatesSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Systems\RenderSystem.h">
@@ -144,9 +138,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Systems\PlayerSystem.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Systems\RenderStatesSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Systems\RenderSystem.cpp">

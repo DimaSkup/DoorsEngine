@@ -3,6 +3,8 @@
 #include <CAssert.h>
 #include <log.h>
 #include <EngineException.h>
+#include <FileSystem.h>
+#include <StrHelper.h>
 
 #pragma warning (disable : 4996)
 using namespace DirectX;
@@ -15,24 +17,44 @@ namespace Img
 //                            PUBLIC METHODS
 // *********************************************************************************
 
-bool ImgConverter::LoadFromFile(const fs::path& filepath, ScratchImage& outImage)
+bool ImgConverter::LoadFromFile(const char* filepath, ScratchImage& outImage)
 {
     // load image data from file into the input ScratchImage
 
-    if (!fs::exists(filepath))
+    if (StrHelper::IsEmpty(filepath))
     {
-        sprintf(g_String, "there is no image/texture file: %s", filepath.string().c_str());
-        LogErr(g_String);
+        LogErr(LOG, "there is no image/texture file: %s", filepath);
         return false;
     }
 
-    const wchar_t* path = filepath.wstring().c_str();
-    HRESULT hr = LoadFromWICFile(path, WIC_FLAGS_NONE, nullptr, outImage);
+    if (strlen(filepath) > 128)
+    {
+        LogErr(LOG, "wstring buffer overflow");
+        return false;
+    }
 
+    HRESULT hr = S_OK;
+    wchar_t wPath[128]{L'\0'};
+    char    ext[8]{'\0'};           // extension
+
+    StrHelper::StrToWide(filepath, wPath);
+    FileSys::GetFileExt(filepath, ext);
+
+    // try to load a dds texture
+    if (strcmp(ext, ".dds") == 0)
+    {
+        hr = LoadFromDDSFile(wPath, DDS_FLAGS_NONE, nullptr, outImage);
+    }
+
+    // try to load a png/jpg/jpeg texture
+    else if ((strcmp(ext, ".png") == 0) || (strcmp(ext, ".jpg") == 0) || (strcmp(ext, ".jpeg") == 0))
+    {
+        hr = LoadFromWICFile(wPath, WIC_FLAGS_NONE, nullptr, outImage);
+    }
+    
     if (FAILED(hr))
     {
-        sprintf(g_String, "can't load image/texture from file: %s", filepath.string().c_str());
-        LogErr(g_String);
+        LogErr(LOG, "can't load image/texture from file: %s", filepath);
         return false;
     }
 
@@ -425,8 +447,7 @@ bool ImgConverter::SaveToFile(
 
     if (FAILED(hr))
     {
-        sprintf(g_String, "can't save image into dds file: %s", dstPath.string().c_str());
-        LogErr(g_String);
+        LogErr(LOG, "can't save image into dds file: %s", dstPath.string().c_str());
         return false;
     }
 

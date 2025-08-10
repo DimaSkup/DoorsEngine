@@ -25,7 +25,7 @@ namespace Img
 class ImgConverter
 {
 public:
-    bool LoadFromFile(const fs::path& filepath, DirectX::ScratchImage& outImage);
+    bool LoadFromFile(const char* filepath, DirectX::ScratchImage& outImage);
 
     void LoadFromMemory(
         ID3D11Device* pDevice,

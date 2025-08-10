@@ -8,7 +8,6 @@
 
 #include "VertexShader.h"
 #include "PixelShader.h"
-#include "SamplerState.h"        // for using the ID3D11SamplerState 
 #include "ConstantBuffer.h"
 
 #include "../Common/ConstBufferTypes.h"
@@ -80,7 +79,6 @@ private:
 public:
 	VertexShader vs_;
 	PixelShader  ps_;
-	SamplerState samplerState_;                                          // a sampler for texturing
 
 	ConstantBuffer<ConstBufType::cbvsPerFrame_SkyDome>    cbvsPerFrame_;    // cbvs: const buffer for vertex shader
 	ConstantBuffer<ConstBufType::cbpsRareChanged_SkyDome> cbpsRareChanged_; // cbps: const buffer for pixel shader

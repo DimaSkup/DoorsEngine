@@ -7,7 +7,9 @@
 TextureCube  gCubeMap       : register(t0);
 Texture2D    gPerlinNoise   : register(t1);
 Texture2D    gTextures[22]  : register(t10);
-SamplerState gSampleType   : register(s0);
+
+SamplerState gBasicSampler  : register(s0);
+SamplerState gSkySampler    : register(s1);
 
 
 // ==========================
@@ -82,10 +84,12 @@ float4 PS(PS_IN pin) : SV_Target
     // TEMP: hacky fix for the vector to sample the proper pixel of sky
     float3 vec = -toEyeW;
     vec.y -= 990;
-	
+
+    
+
     // blend sky pixel color with fixed fog color
-    float4 skyTexColor = gCubeMap.Sample(gSampleType, vec);
-    float4 fogColor    = skyTexColor * float4(gFixedFogColor, 1.0f);
+    float4 skyBottomColor = gCubeMap.Sample(gSkySampler, vec);
+    float4 fogColor    = skyBottomColor * float4(gFixedFogColor, 1.0f);
 
 
     // return blended fixed fog color with the sky color at this pixel
@@ -95,7 +99,9 @@ float4 PS(PS_IN pin) : SV_Target
         return fogColor;
     }
 
-    float4 textureColor = gTextures[1].Sample(gSampleType, pin.tex);
+    float4 textureColor = gTextures[1].Sample(gBasicSampler, pin.tex);
+    float4 specularColor = gTextures[2].Sample(gBasicSampler, pin.tex);
+
 
     // execute alpha clipping
     if (gAlphaClipping)
@@ -104,7 +110,7 @@ float4 PS(PS_IN pin) : SV_Target
 
     // --------------------  NORMAL MAP   --------------------
 
-    float3 normalMap = gTextures[6].Sample(gSampleType, pin.tex).rgb;
+    float3 normalMap = gTextures[6].Sample(gBasicSampler, pin.tex).rgb;
 
     // normalize the normal vector after interpolation
     float3 normalW = normalize(pin.normalW);
@@ -112,7 +118,6 @@ float4 PS(PS_IN pin) : SV_Target
     // compute the bumped normal in the world space
     float3 bumpedNormalW = NormalSampleToWorldSpace(normalMap, normalW, pin.tangentW);
 
-  
     // --------------------  LIGHT   --------------------
 
     // start with a sum of zero
@@ -122,12 +127,14 @@ float4 PS(PS_IN pin) : SV_Target
 
     // sum the light contribution from each light source (ambient, diffuse, specular)
     float4 A, D, S;
+
+    Material material = (Material)pin.material;
     
     // sum the light contribution from each directional light source
     for (int i = 0; i < gNumOfDirLights; ++i)
     {
         ComputeDirectionalLight(
-            (Material)pin.material,
+            material,
             gDirLights[i],
             bumpedNormalW,
             toEyeW,
@@ -144,7 +151,7 @@ float4 PS(PS_IN pin) : SV_Target
     for (i = 0; i < gCurrNumPointLights; ++i)
     {
         ComputePointLight(
-            (Material)pin.material,
+            material,
             gPointLights[i],
             pin.posW,
             bumpedNormalW,
@@ -162,7 +169,7 @@ float4 PS(PS_IN pin) : SV_Target
     if (gTurnOnFlashLight)
     {
         ComputeSpotLight(
-            (Material)pin.material,
+            material,
             gSpotLights[0],
             pin.posW,
             bumpedNormalW, 
@@ -180,7 +187,7 @@ float4 PS(PS_IN pin) : SV_Target
     for (i = 1; i < gCurrNumSpotLights; ++i)
     {
         ComputeSpotLight(
-            (Material)pin.material, 
+            material,
             gSpotLights[i],
             pin.posW,
             bumpedNormalW, //bumpedNormalW, // pin.normalW,
@@ -195,7 +202,15 @@ float4 PS(PS_IN pin) : SV_Target
     
     
     // modulate with late add
-    float4 litColor = textureColor * (ambient + diffuse) + spec;
+    float4 finalSpecular = spec;
+    float4 litColor = textureColor * (ambient + diffuse) + finalSpecular;
+
+    // reflection
+    float3 incident = -toEyeW;
+    float3 reflectionVec = reflect(incident, normalW);
+    float4 reflectionColor = gCubeMap.Sample(gSkySampler, reflectionVec);
+
+    litColor += material.reflect * reflectionColor;
 
     // common to take alpha from diffuse material and texture
     //litColor.a = ((Material)pin.material).diffuse.a * textureColor.a;

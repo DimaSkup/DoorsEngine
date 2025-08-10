@@ -627,12 +627,38 @@ void RenderStates::InitAllDepthStencilStates(ID3D11Device* pDevice)
     //
     // for the SKY DOME rendering
     //
-    CD3D11_DEPTH_STENCIL_DESC desc(D3D11_DEFAULT);
-    desc.DepthFunc      = D3D11_COMPARISON_LESS_EQUAL;
-    desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+#if 1
+    CD3D11_DEPTH_STENCIL_DESC skyDesc(D3D11_DEFAULT);
+    skyDesc.DepthFunc      = D3D11_COMPARISON_LESS_EQUAL;
+    skyDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
 
-    hr = pDevice->CreateDepthStencilState(&depthStencilDesc, &depthStencilStates_[SKY_DOME]);
+    hr = pDevice->CreateDepthStencilState(&skyDesc, &depthStencilStates_[SKY_DOME]);
     CAssert::NotFailed(hr, "can't create a depth stencil state");
+
+#else
+    D3D11_DEPTH_STENCIL_DESC skyDesc;
+    
+    skyDesc.DepthEnable                   = true;
+    skyDesc.DepthWriteMask                = D3D11_DEPTH_WRITE_MASK_ZERO;
+    skyDesc.DepthFunc                     = D3D11_COMPARISON_LESS_EQUAL;
+    skyDesc.StencilEnable                 = true;
+    skyDesc.StencilReadMask               = 0xff;
+    skyDesc.StencilWriteMask              = 0xff;
+
+    skyDesc.FrontFace.StencilFailOp       = D3D11_STENCIL_OP_KEEP;
+    skyDesc.FrontFace.StencilDepthFailOp  = D3D11_STENCIL_OP_KEEP;
+    skyDesc.FrontFace.StencilPassOp       = D3D11_STENCIL_OP_INCR;
+    skyDesc.FrontFace.StencilFunc         = D3D11_COMPARISON_EQUAL;
+
+    skyDesc.BackFace.StencilFailOp        = D3D11_STENCIL_OP_KEEP;
+    skyDesc.BackFace.StencilDepthFailOp   = D3D11_STENCIL_OP_KEEP;
+    skyDesc.BackFace.StencilPassOp        = D3D11_STENCIL_OP_INCR;
+    skyDesc.BackFace.StencilFunc          = D3D11_COMPARISON_EQUAL;
+
+    hr = pDevice->CreateDepthStencilState(&skyDesc, &depthStencilStates_[SKY_DOME]);
+    CAssert::NotFailed(hr, "can't create a depth stencil state");
+
+#endif
 }
 
 ///////////////////////////////////////////////////////////
@@ -701,13 +727,12 @@ void RenderStates::UpdateRSHash(const std::set<eRenderState>& rsParams)
     }	
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   if we got somewhere some wrong hash we call this method to 
+//         print an error message about it
+//---------------------------------------------------------
 void RenderStates::PrintErrAboutRSHash(const uint8_t bitfield)
 {
-    // if we got somewhere some wrong hash we call this method to 
-    // print an error message about it
-
     char bitfieldChars[8]{ '\0' };
     char rasterStatesNamesBuf[256] {'\0'};
 

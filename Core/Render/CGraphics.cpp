@@ -153,7 +153,12 @@ void CGraphics::UpdateHelper(
     ECS::EntityMgr* pEnttMgr,
     Render::CRender* pRender)
 {
+#define UPDATE_TERRAIN false
+
+#if UPDATE_TERRAIN
     TerrainGeomip& terrain = g_ModelMgr.GetTerrainGeomip();
+#endif
+
     const EntityID currCamID = currCameraID_;
 
     // ---------------------------------------------
@@ -164,6 +169,7 @@ void CGraphics::UpdateHelper(
         ECS::PlayerSystem& player = pEnttMgr->playerSystem_;
         XMFLOAT3 playerPos = player.GetPosition();
 
+#if UPDATE_TERRAIN
         const float terrainSize = (float)terrain.heightMap_.GetWidth();
 
         // clamp the camera position to be only on the terrain
@@ -197,7 +203,7 @@ void CGraphics::UpdateHelper(
 
             player.SetMinVerticalOffset(terrainHeight + offsetOverTerrain);
         }
-
+#endif
 
         sysState.cameraPos = { playerPos.x, playerPos.y, playerPos.z };
     }
@@ -255,9 +261,10 @@ void CGraphics::UpdateHelper(
         camParams.planes[i][2] = -planes[i].m128_f32[2];
         camParams.planes[i][3] = -planes[i].m128_f32[3];
     }
-
+#if UPDATE_TERRAIN
     // recompute terrain patches and load them into GPU
     terrain.Update(camParams);
+#endif
 
 #if TERRAIN_V1
     terrain.vb_.UpdateDynamic(pDeviceContext_, terrain.vertices_, terrain.verticesOffset_);
@@ -282,7 +289,6 @@ void CGraphics::UpdateHelper(
 
 
 
-    // ------------------------------------------
     // perform frustum culling on all of our currently loaded entities
     ComputeFrustumCulling(sysState, pEnttMgr);
     ComputeFrustumCullingOfLightSources(sysState, pEnttMgr);
@@ -293,26 +299,23 @@ void CGraphics::UpdateHelper(
     // prepare all the visible entities data for rendering
     const cvector<EntityID>& visibleEntts = pEnttMgr->renderSystem_.GetAllVisibleEntts();
 
-    // separate entts into opaque, entts with alpha clipping, blended, etc.
-    pEnttMgr->renderStatesSystem_.SeparateEnttsByRenderStates(visibleEntts, rsDataToRender_);
-
+    // reset the visible vertices counter for this frame
     pSysState_->visibleVerticesCount = 0;
 
-    // ----------------------------------------------------
-    // prepare data for each entts set
-   
-    PrepBasicInstancesForRender(pEnttMgr, pRender);
-    PrepAlphaClippedInstancesForRender(pEnttMgr, pRender);
+    // prepare data for each entity
+    PrepInstancesForRender(pEnttMgr, pRender);
 }
 
-///////////////////////////////////////////////////////////
-
-void CGraphics::PrepBasicInstancesForRender(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
+// --------------------------------------------------------
+// Desc:   prepare rendering data of entts which have default render states
+// --------------------------------------------------------
+void CGraphics::PrepInstancesForRender(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
 {
-    // prepare rendering data of entts which have default render states
+   
+    const cvector<EntityID>& visibleEntts = pEnttMgr->renderSystem_.GetAllVisibleEntts();
 
-    const EntityID* ids = rsDataToRender_.enttsDefault_.ids_.data();
-    const size numEntts = rsDataToRender_.enttsDefault_.ids_.size();
+    const EntityID* ids = visibleEntts.data();
+    const size numEntts = visibleEntts.size();
 
     if (numEntts == 0)
         return;
@@ -331,62 +334,9 @@ void CGraphics::PrepBasicInstancesForRender(ECS::EntityMgr* pEnttMgr, Render::CR
         pSysState_->visibleVerticesCount += inst.numInstances * inst.GetNumVertices();
 }
 
-///////////////////////////////////////////////////////////
-
-void CGraphics::PrepAlphaClippedInstancesForRender(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
-{
-    // prepare rendering data of entts which have alpha clip + cull none
-
-    const EntityID* ids = rsDataToRender_.enttsAlphaClipping_.ids_.data();
-    const size numEntts = rsDataToRender_.enttsAlphaClipping_.ids_.size();
-
-    if (numEntts == 0)
-        return;
-
-    Render::RenderDataStorage& storage = pRender->dataStorage_;
-
-    prep_.PrepareEnttsDataForRendering(
-        ids,
-        numEntts,
-        pEnttMgr,
-        storage.alphaClippedModelInstBuffer,
-        storage.alphaClippedModelInstances);
-
-    // compute how many vertices will we render
-    for (const Render::Instance& inst : storage.alphaClippedModelInstances)
-        pSysState_->visibleVerticesCount += inst.numInstances * inst.GetNumVertices();
-}
-
-///////////////////////////////////////////////////////////
-
-void CGraphics::PrepBlendedInstancesForRender(
-    ECS::EntityMgr* pEnttMgr,
-    Render::CRender* pRender)
-{
-    // prepare rendering data of entts which have alpha clip + cull none
-
-    const EntityID* ids = rsDataToRender_.enttsBlended_.ids_.data();
-    const size numEntts = rsDataToRender_.enttsBlended_.ids_.size();
-
-    if (numEntts == 0)
-        return;
-
-    Render::RenderDataStorage& storage = pRender->dataStorage_;
-
-    prep_.PrepareEnttsDataForRendering(
-        ids,
-        numEntts,
-        pEnttMgr,
-        storage.blendedModelInstBuffer,
-        storage.blendedModelInstances);
-
-    // compute how many vertices will we render
-    for (const Render::Instance& inst : storage.alphaClippedModelInstances)
-        pSysState_->visibleVerticesCount += inst.numInstances * inst.GetNumVertices();
-}
-
-///////////////////////////////////////////////////////////
-
+// --------------------------------------------------------
+// Desc:   compute fructum culling for each entity which has Rendering component
+// --------------------------------------------------------
 void CGraphics::ComputeFrustumCulling(
     SystemState& sysState,
     ECS::EntityMgr* pEnttMgr)
@@ -411,7 +361,6 @@ void CGraphics::ComputeFrustumCulling(
         numRenderableEntts,
         boundSpheres);
 
-#if 1
     // inverse world matrix of each renderable entt
     static cvector<XMMATRIX> invWorlds;  
 
@@ -438,72 +387,6 @@ void CGraphics::ComputeFrustumCulling(
         numVisEntts += LSpaceFrustum.Intersects(boundSpheres[idx]);
     }
 
-#else
-    static ECS::cvector<XMMATRIX> worlds;
-
-    mgr.transformSystem_.GetWorlds(
-        enttsRenderable.data(),
-        numRenderableEntts,
-        worlds);
-
-    // offset of entity in local space relatively to the Origin
-    for (index i = 0; i < numRenderableEntts; ++i)
-    {
-        // change radius
-        boundSpheres[i].Radius *= worlds[i].r[0].m128_f32[0];
-
-        // change position
-        float* pos = worlds[i].r[3].m128_f32;
-        boundSpheres[i].Center.x += pos[0];
-        boundSpheres[i].Center.y += pos[1];
-        boundSpheres[i].Center.z += pos[2];
-    }
-
-    // transform camera's frustum to world space
-    DirectX::BoundingFrustum WSpaceFrustum;
-    frustums_[0].Transform(WSpaceFrustum, mgr.cameraSystem_.GetInverseView(currCameraID_));
-
-    // Load origin and orientation of the frustum.
-    XMVECTOR vOrigin = XMLoadFloat3(&WSpaceFrustum.Origin);
-    XMVECTOR vOrientation = XMLoadFloat4(&WSpaceFrustum.Orientation);
-
-    // Create 6 planes (do it inline to encourage use of registers)
-    XMVECTOR NearPlane = XMVectorSet(0.0f, 0.0f, -1.0f, WSpaceFrustum.Near);
-    NearPlane = DirectX::Internal::XMPlaneTransform(NearPlane, vOrientation, vOrigin);
-    NearPlane = XMPlaneNormalize(NearPlane);
-
-    XMVECTOR FarPlane = XMVectorSet(0.0f, 0.0f, 1.0f, -WSpaceFrustum.Far);
-    FarPlane = DirectX::Internal::XMPlaneTransform(FarPlane, vOrientation, vOrigin);
-    FarPlane = XMPlaneNormalize(FarPlane);
-
-    XMVECTOR RightPlane = XMVectorSet(1.0f, 0.0f, -WSpaceFrustum.RightSlope, 0.0f);
-    RightPlane = DirectX::Internal::XMPlaneTransform(RightPlane, vOrientation, vOrigin);
-    RightPlane = XMPlaneNormalize(RightPlane);
-
-    XMVECTOR LeftPlane = XMVectorSet(-1.0f, 0.0f, WSpaceFrustum.LeftSlope, 0.0f);
-    LeftPlane = DirectX::Internal::XMPlaneTransform(LeftPlane, vOrientation, vOrigin);
-    LeftPlane = XMPlaneNormalize(LeftPlane);
-
-    XMVECTOR TopPlane = XMVectorSet(0.0f, 1.0f, -WSpaceFrustum.TopSlope, 0.0f);
-    TopPlane = DirectX::Internal::XMPlaneTransform(TopPlane, vOrientation, vOrigin);
-    TopPlane = XMPlaneNormalize(TopPlane);
-
-    XMVECTOR BottomPlane = XMVectorSet(0.0f, -1.0f, WSpaceFrustum.BottomSlope, 0.0f);
-    BottomPlane = DirectX::Internal::XMPlaneTransform(BottomPlane, vOrientation, vOrigin);
-    BottomPlane = XMPlaneNormalize(BottomPlane);
-
-
-    // go through each entity and define if it is visible
-    for (index idx = 0; idx < numRenderableEntts; ++idx)
-    {
-        const DirectX::ContainmentType type = boundSpheres[idx].ContainedBy(NearPlane, FarPlane, RightPlane, LeftPlane, TopPlane, BottomPlane);
-        idxsToVisEntts[numVisEntts] = idx;
-        numVisEntts += ((type == INTERSECTS) | (type == CONTAINS));
-    }
-#endif
-
-    // ------------------------------------------
-
     // store ids of visible entts
     cvector<EntityID>& visibleEntts = renderSys.GetAllVisibleEntts();
     visibleEntts.resize(numVisEntts);
@@ -514,15 +397,14 @@ void CGraphics::ComputeFrustumCulling(
     sysState.visibleObjectsCount = (u32)numVisEntts;
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   store IDs of light sources which are currently visible by camera frustum
+//         (by visibility means the WHOLE area which is lit by this light source)
+//---------------------------------------------------------
 void CGraphics::ComputeFrustumCullingOfLightSources(
     SystemState& sysState,
     ECS::EntityMgr* pEnttMgr)
 {
-    // store IDs of light sources which are currently visible by camera frustum
-    // (by visibility means the WHOLE area which is lit by this light source)
-
     using namespace DirectX;
     ECS::EntityMgr& mgr = *pEnttMgr;
 
@@ -532,7 +414,6 @@ void CGraphics::ComputeFrustumCullingOfLightSources(
     // get all the point light sources which are in the visibility range
     const size numPointLights      = mgr.lightSystem_.GetNumPointLights();
     const EntityID* pointLightsIDs = mgr.lightSystem_.GetPointLights().ids.data();
-
 
     static cvector<XMMATRIX> invWorlds(numPointLights);
     static cvector<XMMATRIX> localSpaces(numPointLights);
@@ -590,22 +471,15 @@ void CGraphics::UpdateShadersDataPerFrame(
     pRender->UpdatePerFrame(pContext_, data);
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   clear rendering data from the previous frame / instances set
+//---------------------------------------------------------
 void CGraphics::ClearRenderingDataBeforeFrame(
     ECS::EntityMgr* pEnttMgr,
     Render::CRender* pRender)
 {
-    // clear rendering data from the previous frame / instances set
-
     pRender->dataStorage_.Clear();
-    rsDataToRender_.Clear();
 }
-
-
-// =================================================================================
-// Rendering methods
-// =================================================================================
 
 //---------------------------------------------------------
 // Desc:   setup rendering states according to input material
@@ -733,12 +607,12 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
         // texture pixels so we bind them only once at the beginning of the frame
         const SkyModel&  sky      = g_ModelMgr.GetSky();
         const MaterialID skyMatId = sky.GetMaterialId();
-        const Material&  skyMat   = g_MaterialMgr.GetMaterialById(skyMatId);
+        const Material&  skyMat   = g_MaterialMgr.GetMatById(skyMatId);
 
         // get shader resource views (textures) for the sky 
         TexID skyTexId = skyMat.textureIds[TEX_TYPE_DIFFUSE];
-        g_TextureMgr.GetSRVsByTexIDs(&skyTexId, 1, texturesBuf_);
-        pContext->PSSetShaderResources(0U, 1U, texturesBuf_.data());
+        ID3D11ShaderResourceView* skySRV = g_TextureMgr.GetSRVByTexID(skyTexId);
+        pContext->PSSetShaderResources(0U, 1U, &skySRV);
 
         // bind a perlin noise texture for "fog movement"
         Texture* pTexPerlinNoise = g_TextureMgr.GetTexPtrByName("perlin_noise");
@@ -753,13 +627,22 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
         renderStates.ResetBS(pContext);
         renderStates.ResetDSS(pContext);
     
-        RenderEnttsDefault(pRender);
-        RenderEnttsAlphaClipCullNone(pRender);
-        RenderTerrainGeomip(pRender, pEnttMgr);
+        RenderEntts(pRender);
+        //RenderTerrainGeomip(pRender, pEnttMgr);
+
+        // render sky
+        pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         RenderSkyDome(pRender, pEnttMgr);
 
-        RenderBillboards(pRender, pEnttMgr);
-        
+        // render billboards and particles
+        //RenderParticles(pRender, pEnttMgr);
+
+        // reset render states before rendering of 2D/UI elements
+        pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        pRender->SwitchAlphaClipping(pContext, false);
+        renderStates.ResetRS(pContext);
+        renderStates.ResetBS(pContext);
+        renderStates.ResetDSS(pContext);
     }
     catch (const std::out_of_range& e)
     {
@@ -890,7 +773,7 @@ bool CGraphics::RenderBigMaterialIcon(
     materialBigIconFrameBuf_.Bind(pContext);
 
     // prepare material data and its textures
-    const Material& mat = g_MaterialMgr.GetMaterialById(matID);
+    const Material& mat = g_MaterialMgr.GetMatById(matID);
 
     const Render::Material renderMat(
         DirectX::XMFLOAT4(&mat.ambient.x),
@@ -978,7 +861,7 @@ void CGraphics::RenderMaterialsIcons(
         buf.Bind(pContext);
 
         // prepare material data and its textures
-        Material& mat = g_MaterialMgr.GetMaterialById(matIdx);
+        Material& mat = g_MaterialMgr.GetMatById(matIdx);
 
         const Render::Material renderMat(
             XMFLOAT4(&mat.ambient.x),
@@ -1004,7 +887,7 @@ void CGraphics::RenderMaterialsIcons(
 
 ///////////////////////////////////////////////////////////
 
-void CGraphics::RenderEnttsDefault(Render::CRender* pRender)
+void CGraphics::RenderEntts(Render::CRender* pRender)
 {
     const Render::RenderDataStorage& storage = pRender->dataStorage_;
 
@@ -1031,174 +914,10 @@ void CGraphics::RenderEnttsDefault(Render::CRender* pRender)
         (int)storage.modelInstances.size());
 }
 
-///////////////////////////////////////////////////////////
-
-void CGraphics::RenderEnttsAlphaClipCullNone(Render::CRender* pRender)
-{
-    // render all the visible entts with cull_none and alpha clipping;
-    // (entts for instance: wire fence, bushes, leaves, etc.)
-
-    const Render::RenderDataStorage& storage = pRender->dataStorage_;
-
-    // check if we have any instances to render
-    if (storage.alphaClippedModelInstances.empty())
-        return;
-
-    RenderStates& renderStates = d3d_.GetRenderStates();
-    ID3D11DeviceContext* pContext = pContext_;
-
-
-    // setup states before rendering
-    if (pRender->shadersContainer_.debugShader_.GetDebugType() == Render::eDebugState::DBG_WIREFRAME)
-    {
-        renderStates.SetRS(pContext, { FILL_WIREFRAME, CULL_BACK, FRONT_CLOCKWISE });
-    }
-    else
-    {
-        renderStates.SetRS(pContext, { FILL_SOLID, CULL_NONE, FRONT_CLOCKWISE });
-        renderStates.ResetBS(pContext);
-        renderStates.ResetDSS(pContext);
-        pRender->SwitchAlphaClipping(pContext, true);
-    }
-
-    // load instances data and render them
-    pRender->UpdateInstancedBuffer(pContext, storage.alphaClippedModelInstBuffer);
-
-    pRender->RenderInstances(
-        pContext,
-        Render::ShaderTypes::LIGHT,
-        storage.alphaClippedModelInstances.data(),
-        (int)storage.alphaClippedModelInstances.size());
-
-    // reset rendering pipeline
-    renderStates.ResetRS(pContext);
-    pRender->SwitchAlphaClipping(pContext, false);
-}
-
-///////////////////////////////////////////////////////////
-
-void CGraphics::RenderEnttsBlended(Render::CRender* pRender)
-{
-    // render all the visible blended entts
-
-    const Render::RenderDataStorage& storage = pRender->dataStorage_;
-
-    // check if we have any instances to render
-    if (storage.blendedModelInstances.empty())
-        return;
-
-    const ECS::EnttsBlended& blendData = rsDataToRender_.enttsBlended_;
-    const ECS::eRenderState* blendStates = blendData.states_.data();
-    const size numBlendStates = blendData.states_.size();
-    const size* numInstancesPerBlendState = blendData.instanceCountPerBS_.data();
-    const Render::InstBuffData& instBuffer = storage.blendedModelInstBuffer;
-
-    // push data into the instanced buffer
-    pRender->UpdateInstancedBuffer(pContext_, instBuffer);
-
-    int instanceOffset = 0;
-
-    // go through each blending state, turn it on and render blended entts with this state
-    for (index bsIdx = 0; bsIdx < numBlendStates; ++bsIdx)
-    {
-        d3d_.TurnOnBlending(eRenderState(blendStates[bsIdx]));
-
-        for (u32 instCount = 0; instCount < numInstancesPerBlendState[bsIdx]; ++instCount)
-        {
-            const Render::Instance* instance = &(storage.blendedModelInstances[instanceOffset]);
-            pRender->RenderInstances(pContext_, Render::ShaderTypes::LIGHT, instance, 1);
-            ++instanceOffset;
-        }
-    }
-}
-
-///////////////////////////////////////////////////////////
-
-void CGraphics::RenderBoundingLineBoxes(
-    Render::CRender* pRender,
-    ECS::EntityMgr* pEnttMgr)
-{
-    Render::RenderDataStorage& storage           = pRender->dataStorage_;
-    Render::InstBuffData& instancesBuffer        = storage.boundingLineBoxBuffer;
-    cvector<Render::Instance>& instances = storage.boundingLineBoxInstances;
-
-    // prepare the line box instance
-    const int numInstances = 1;                // how many different line box models we have
-    const ModelID lineBoxId = 1;
-    BasicModel& lineBox = g_ModelMgr.GetModelByID(lineBoxId);
-    
-    // we will use only one type of model -- line box
-    instances.resize(1);                         
-    Render::Instance& instance = instances[0];
-    prep_.PrepareInstanceData(lineBox, instance);
-
-
-    // choose the bounding box show mode
-    // (1: box around the while model, 2: box around each model's mesh)
-    if (aabbShowMode_ == MODEL)
-        prep_.PrepareEnttsBoundingLineBox(pEnttMgr, instance, instancesBuffer);
-    else if (aabbShowMode_ == MESH)
-        prep_.PrepareEnttsMeshesBoundingLineBox(pEnttMgr, instance, instancesBuffer);
-
-
-    // render
-    ID3D11DeviceContext* pContext = pContext_;
-    pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-
-    pRender->UpdateInstancedBuffer(pContext, instancesBuffer);
-    pRender->RenderBoundingLineBoxes(pContext, &instance, numInstances);
-}
-
-///////////////////////////////////////////////////////////
-
-void CGraphics::RenderBoundingLineSpheres()
-{
-    // render line bound sphere around each visible point light source
-
-#if 0
-    const std::vector<EntityID>& visPointLights = entityMgr_.renderSystem_.GetArrVisibleLightSources();
-    const size numVisLightSources = std::ssize(visPointLights);
-
-    if (numVisLightSources > 0)
-    {
-        Render::RenderDataStorage& storage = render_.dataStorage_;
-        Render::InstBuffData& instancesBuffer = storage.boundingLineBoxBuffer_;
-        std::vector<Render::Instance>& instances = storage.boundingLineBoxInstances_;
-
-        // prepare instance data
-        const int numInstances = 1;
-        BasicModel& boundSphere = modelStorage_.GetModelByName("bound_sphere");
-
-        instances.resize(1);
-        Render::Instance& instance = instances[0];
-        prep_.PrepareInstanceData(boundSphere, instance);
-
-
-        // prepare instances buffer data
-        instance.numInstances = numVisLightSources;
-        instancesBuffer.Resize(instance.numInstances);
-
-        // generate world matrix for each instance of bounding sphere 
-        for (int i = 0; i < (int)numVisLightSources; ++i)
-        {
-            const int pointLightIdx = idxsToVisLightSources[i];
-            const float scale = posAndRange[pointLightIdx].range;
-            const XMFLOAT3& pos = posAndRange[pointLightIdx].position;
-            instancesBuffer.worlds_[i] = DirectX::XMMatrixScaling(scale, scale, scale) * DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
-        }
-
-        pDeviceContext_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP);
-
-        // render
-        render_.UpdateInstancedBuffer(pDeviceContext_, instancesBuffer);
-        render_.RenderBoundingLineBoxes(pDeviceContext_, &instance, numInstances);
-    }
-#endif
-}
-
-///////////////////////////////////////////////////////////
-
-void CGraphics::RenderBillboards(
+//---------------------------------------------------------
+// Desc:   render particles onto the screen
+//---------------------------------------------------------
+void CGraphics::RenderParticles(
     Render::CRender* pRender,
     ECS::EntityMgr* pEnttMgr)
 {
@@ -1211,6 +930,7 @@ void CGraphics::RenderBillboards(
     cvector<BillboardSprite> vertices(numVertices);
 
 #if 0
+    // convert particle data into vertices data for rendering
     for (int i = 0; const ECS::ParticleRenderInstance & particle : particlesData.particles)
     {
         vertices[i].pos          = particle.pos;
@@ -1220,9 +940,7 @@ void CGraphics::RenderBillboards(
         ++i;
     }
 #else
-
     memcpy(vertices.data(), particlesData.particles.data(), sizeof(ECS::ParticleRenderInstance) * numVertices);
-
 #endif
 
     // update the vertex buffer with updated particles data
@@ -1238,7 +956,7 @@ void CGraphics::RenderBillboards(
     {
         // bind a material for particles
         const MaterialID matId = particlesData.materialIds[i];
-        BindMaterial(g_MaterialMgr.GetMaterialById(matId), pRender);
+        BindMaterial(g_MaterialMgr.GetMatById(matId), pRender);
 
         // render particles subset
         shader.Render(
@@ -1276,12 +994,8 @@ void CGraphics::RenderSkyDome(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr
     ID3D11DeviceContext* pContext = pContext_;
 
     // bind sky material
-    const Material& skyMat = g_MaterialMgr.GetMaterialById(sky.GetMaterialId());
+    const Material& skyMat = g_MaterialMgr.GetMatById(sky.GetMaterialId());
     BindMaterial(skyMat, pRender);
-
-   
-
-    //renderStates.SetDSS(pContext, SKY_DOME, 1);
 
     // compute a worldViewProj matrix for the sky instance
     const XMFLOAT3 skyOffset     = pEnttMgr->transformSystem_.GetPosition(skyEnttID);
@@ -1316,7 +1030,7 @@ void CGraphics::RenderTerrainGeomip(Render::CRender* pRender, ECS::EntityMgr* pE
     Render::TerrainInstance instance;
 
     // prepare material
-    const Material& mat = g_MaterialMgr.GetMaterialById(terrain.materialID_);
+    const Material& mat = g_MaterialMgr.GetMatById(terrain.materialID_);
     memcpy(&instance.material.ambient_.x,  &mat.ambient.x,  sizeof(float) * 4);
     memcpy(&instance.material.diffuse_.x,  &mat.diffuse.x,  sizeof(float) * 4);
     memcpy(&instance.material.specular_.x, &mat.specular.x, sizeof(float) * 4);
@@ -1403,7 +1117,7 @@ void CGraphics::RenderTerrainQuadtree(Render::CRender* pRender, ECS::EntityMgr* 
     Render::TerrainInstance instance;
 
     // prepare material
-    const Material& mat = g_MaterialMgr.GetMaterialById(terrain.GetMaterialId());
+    const Material& mat = g_MaterialMgr.GetMatById(terrain.GetMaterialId());
     memcpy(&instance.material.ambient_.x,  &mat.ambient.x,  sizeof(float) * 4);
     memcpy(&instance.material.diffuse_.x,  &mat.diffuse.x,  sizeof(float) * 4);
     memcpy(&instance.material.specular_.x, &mat.specular.x, sizeof(float) * 4);
@@ -1445,8 +1159,6 @@ void CGraphics::RenderTerrainQuadtree(Render::CRender* pRender, ECS::EntityMgr* 
 
     // compute how many vertices we already rendered
     pSysState_->visibleVerticesCount += (uint32_t)instance.numVertices;
-
-    //terrain.wantDebug_ = false;
 }
 
 ///////////////////////////////////////////////////////////
@@ -1474,44 +1186,11 @@ void CGraphics::SetupLightsForFrame(
     const size numVisPointLightSources      = visPointLights.size();
 
 
-   
-#if 0
-    outData.ResizeLightData((int)numDirLights, (int)numVisPointLightSources, (int)numSpotLights);
-
-    // ----------------------------------------------------
-    // prepare data of point lights
-
-
-    if (numVisPointLightSources > 0)
-    {
-        lightSys.GetPointLightsData(
-            visPointLights.data(),
-            numVisPointLightSources,
-            s_LightTmpData.pointLightsData,
-            s_LightTmpData.pointLightsPositions);
-
-        // store light properties, range, and attenuation
-        for (index i = 0; i < numVisPointLightSources; ++i)
-        {
-            outData.pointLights[i].ambient  = s_LightTmpData.pointLightsData[i].ambient;
-            outData.pointLights[i].diffuse  = s_LightTmpData.pointLightsData[i].diffuse;
-            outData.pointLights[i].specular = s_LightTmpData.pointLightsData[i].specular;
-            outData.pointLights[i].att      = s_LightTmpData.pointLightsData[i].att;
-            outData.pointLights[i].range    = s_LightTmpData.pointLightsData[i].range;
-        }
-
-        // store positions
-        for (index i = 0; i < numVisPointLightSources; ++i)
-            outData.pointLights[i].position = s_LightTmpData.pointLightsPositions[i];
-
-    }
-#else
-
+    // prepare enough memory for lights buffer
     outData.ResizeLightData((int)numDirLights, (int)numPointLights, (int)numSpotLights);
 
     // ----------------------------------------------------
-    // prepare data of point lights
-
+    // prepare point lights data 
 
     // store light properties, range, and attenuation
     for (index i = 0; i < numPointLights; ++i)
@@ -1532,8 +1211,6 @@ void CGraphics::SetupLightsForFrame(
         outData.pointLights[i].position = pointLightsPositions[i];
     }
 
-#endif
-        
 
     // ----------------------------------------------------
     // prepare data of directed lights

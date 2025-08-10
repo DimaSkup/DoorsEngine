@@ -46,18 +46,18 @@ bool ImageReader::LoadTextureFromFile(
 
         // load in a texture according to its type
         if (strcmp(ext, ".dds") == 0)
-            LoadDDSTexture(pDevice, inOutTexData);
+            return LoadDDSTexture(pDevice, inOutTexData);
 
-        else if ((strcmp(ext, ".png")  == 0) ||
+        else if ((strcmp(ext, ".png")== 0) ||
                  (strcmp(ext, ".jpg")  == 0) ||
                  (strcmp(ext, ".jpeg") == 0))
-            LoadPNGTexture(pDevice, inOutTexData);
+            return LoadPNGTexture(pDevice, inOutTexData);
 
         else if (strcmp(ext, ".tga") == 0)
-            LoadTGATexture(pDevice, inOutTexData);
+            return LoadTGATexture(pDevice, inOutTexData);
 
         else if (strcmp(ext, ".bmp") == 0)
-            LoadBMPTexture(pDevice, inOutTexData);
+            return LoadBMPTexture(pDevice, inOutTexData);
 
         else
         {
@@ -76,7 +76,7 @@ bool ImageReader::LoadTextureFromFile(
 }
 
 //---------------------------------------------------------
-// 
+// Desc:   
 //---------------------------------------------------------
 bool ImageReader::LoadTextureFromMemory(
     ID3D11Device* pDevice,
@@ -133,9 +133,11 @@ void ImageReader::CheckInputParams(const DXTextureData& data)
         data.ppTextureView, "some of input params are invalid");
 }
 
-///////////////////////////////////////////////////////////
-
-void ImageReader::LoadPNGTexture(ID3D11Device* pDevice, DXTextureData& data)
+//---------------------------------------------------------
+// Desc:   load png/jpg/jpeg texture from file,
+//         create DX11 texture resource and shader resource view
+//---------------------------------------------------------
+bool ImageReader::LoadPNGTexture(ID3D11Device* pDevice, DXTextureData& data)
 {
     wchar_t wFilePath[256]{ L'\0' };
     StrHelper::StrToWide(data.filePath, wFilePath);
@@ -158,9 +160,8 @@ void ImageReader::LoadPNGTexture(ID3D11Device* pDevice, DXTextureData& data)
 
     if (FAILED(hr))
     {
-        sprintf(g_String, "can't create a PNG texture from file: %s", data.filePath);
-        LogErr(g_String);
-        return;
+        LogErr(LOG, "can't load a PNG/JPG/JPEG texture from file: %s", data.filePath);
+        return false;
     }
 
     // initialize the texture width and height values
@@ -168,47 +169,64 @@ void ImageReader::LoadPNGTexture(ID3D11Device* pDevice, DXTextureData& data)
     ID3D11Texture2D* pTex = (ID3D11Texture2D*)(*data.ppTexture);
     pTex->GetDesc(&desc);
 
-    data.textureWidth = desc.Width;
+    data.textureWidth  = desc.Width;
     data.textureHeight = desc.Height;
+
+    return true;
 }
 
-///////////////////////////////////////////////////////////
-
-void ImageReader::LoadDDSTexture(ID3D11Device* pDevice, DXTextureData& data)
+//---------------------------------------------------------
+// Desc:   load dds texture from file,
+//         create DX11 texture resource and shader resource view
+//---------------------------------------------------------
+bool ImageReader::LoadDDSTexture(ID3D11Device* pDevice, DXTextureData& data)
 {
     DDS_ImageReader reader;
 
-    reader.LoadTextureFromFile(
+    const bool result = reader.LoadTextureFromFile(
         data.filePath,
         pDevice,
         data.ppTexture,
         data.ppTextureView,
         data.textureWidth,
         data.textureHeight);
+
+    if (!result)
+        LogErr(LOG, "can't load a DDS texture from the file: %s", data.filePath);
+
+    return result;
 }
 
-///////////////////////////////////////////////////////////
-
-void ImageReader::LoadTGATexture(ID3D11Device* pDevice, DXTextureData& data)
+//---------------------------------------------------------
+// Desc:   load tga texture from file,
+//         create DX11 texture resource and shader resource view
+//---------------------------------------------------------
+bool ImageReader::LoadTGATexture(ID3D11Device* pDevice, DXTextureData& data)
 {
     TARGA_ImageReader reader;
 
-    reader.LoadTextureFromFile(
+    const bool result = reader.LoadTextureFromFile(
         data.filePath,
         pDevice,
         data.ppTexture,
         data.ppTextureView,
         data.textureWidth,
         data.textureHeight);
+
+    if (!result)
+        LogErr(LOG, "can't load a TGA texture from the file: %s", data.filePath);
+
+    return result;
 }
 
-///////////////////////////////////////////////////////////
-
-void ImageReader::LoadBMPTexture(ID3D11Device* pDevice, DXTextureData& data)
+//---------------------------------------------------------
+// Desc:   load bmp texture from file,
+//         create DX11 texture resource and shader resource view
+//---------------------------------------------------------
+bool ImageReader::LoadBMPTexture(ID3D11Device* pDevice, DXTextureData& data)
 {
     // because we can use the same loading both for dds and bmp files
-    // we just use the DDS_ImageReader for processing the input file by bmpFilePath
-
+    // we just use the DDS_ImageReader for processing the image
     DDS_ImageReader ddsImage;
 
     const bool result = ddsImage.LoadTextureFromFile(
@@ -220,9 +238,9 @@ void ImageReader::LoadBMPTexture(ID3D11Device* pDevice, DXTextureData& data)
         data.textureHeight);
 
     if (!result)
-    {
         LogErr(LOG, "can't load a BMP texture from the file: %s", data.filePath);
-    }
+
+    return result;
 }
 
 

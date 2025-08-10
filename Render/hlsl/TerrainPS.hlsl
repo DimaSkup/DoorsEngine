@@ -8,8 +8,8 @@ TextureCube  gCubeMap       : register(t0);
 Texture2D    gPerlinNoise   : register(t1);
 Texture2D    gTextures[22]  : register(t10);
 
-SamplerState gSampleSky     : register(s0);
-SamplerState gSampleType    : register(s1);
+SamplerState gBasicSampler  : register(s0);
+SamplerState gSkySampler    : register(s1);
 
 //
 // CONSTANT BUFFERS
@@ -92,8 +92,8 @@ float4 PS(PS_IN pin) : SV_Target
     vec.y -= 990;
 
     float2 noiseTexCoords = float2(pin.tex.x + gTime, pin.tex.y + gTime);
-    float4 perlinNoiseColor = gPerlinNoise.Sample(gSampleType, noiseTexCoords);
-    float4 skyTexColor = gCubeMap.Sample(gSampleType, vec);
+    float4 perlinNoiseColor = gPerlinNoise.Sample(gBasicSampler, noiseTexCoords);
+    float4 skyTexColor = gCubeMap.Sample(gSkySampler, vec);
 
     // return blended fixed fog color with the sky color at this pixel
     // if the pixel is fully fogged
@@ -108,8 +108,8 @@ float4 PS(PS_IN pin) : SV_Target
     // how many times we scale the detail map
     const float detalizationLvl = 128;
 
-    float4 textureColor   = gTextures[1].Sample(gSampleType, pin.tex);
-    float4 detailMapColor = gTextures[16].Sample(gSampleType, pin.tex * detalizationLvl);
+    float4 textureColor   = gTextures[1].Sample(gBasicSampler, pin.tex);
+    float4 detailMapColor = gTextures[16].Sample(gBasicSampler, pin.tex * detalizationLvl);
 
     // lightmap
     //float4 lightMapColor = gTextures[10].Sample(gSampleType, pin.tex);
@@ -121,7 +121,7 @@ float4 PS(PS_IN pin) : SV_Target
 
     // --------------------  NORMAL MAP   --------------------
 
-    float3 normalMap = gTextures[6].Sample(gSampleType, pin.tex).rgb;
+    float3 normalMap = gTextures[6].Sample(gBasicSampler, pin.tex).rgb;
 
     // normalize the normal vector after interpolation
     float3 normalW = normalize(pin.normalW);
