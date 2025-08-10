@@ -85,9 +85,6 @@ void MaterialIconShader::PrepareRendering(
         pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         pContext->IASetInputLayout(vs_.GetInputLayout());
 
-        // set the sampler state and textures
-        pContext->PSSetSamplers(0, 1, samplerState_.GetAddressOf());
-
         const UINT stride = vertexSize;
         const UINT offset = 0;
 
@@ -174,9 +171,6 @@ void MaterialIconShader::InitializeHelper(
 
     result = ps_.Initialize(pDevice, psFilePath);
     CAssert::True(result, "can't initialize the pixel shader");
-
-    result = samplerState_.Initialize(pDevice);
-    CAssert::True(result, "can't initialize the sampler state");
 
     // initialize: constant buffers
     HRESULT hr = cbvsWorldViewProj_.Initialize(pDevice);

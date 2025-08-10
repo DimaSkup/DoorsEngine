@@ -95,9 +95,8 @@ void FontShader::Render(
         pContext->PSSetShader(ps_.GetShader(), nullptr, 0U);
         pContext->IASetInputLayout(vs_.GetInputLayout());
 
-        // set the sampler state and textures
-        pContext->PSSetSamplers(0, 1, samplerState_.GetAddressOf());
-        pContext->PSSetShaderResources(0, 1, ppFontTexSRV);
+        // set textures
+        pContext->PSSetShaderResources(2, 1, ppFontTexSRV);
 
         const UINT stride = fontVertexSize;
         const UINT offset = 0;
@@ -156,10 +155,6 @@ void FontShader::InitializeShaders(
     // initialize the pixel shader
     result = ps_.Initialize(pDevice, psFilePath);
     CAssert::True(result, "can't initialize the pixel shader");
-
-    // initialize the sampler state
-    result = samplerState_.Initialize(pDevice);
-    CAssert::True(result, "can't initialize the sampler state");
 
 
     // ---------------------------  CONSTANT BUFFERS  ---------------------------------

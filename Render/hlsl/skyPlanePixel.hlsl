@@ -12,7 +12,8 @@
 //////////////////////////////////
 Texture2D cloudTexture1 : register(t0);
 Texture2D cloudTexture2 : register(t1);
-SamplerState sampleType;
+SamplerState gBasicSampler  : register(s0);
+SamplerState gSkySampler    : register(s1);
 
 cbuffer SkyBuffer
 {
@@ -50,7 +51,7 @@ float4 PS(PS_INPUT input): SV_TARGET
 
 	// sample the pixel color from the first cloud texture using the sampler at this 
 	// texture coordinate location
-	textureColor1 = cloudTexture1.Sample(sampleType, sampleLocation);
+	textureColor1 = cloudTexture1.Sample(gBasicSampler, sampleLocation);
 
 	// translation the position where we sample the pixel from using 
 	// the second texture translation values
@@ -59,7 +60,7 @@ float4 PS(PS_INPUT input): SV_TARGET
 
 	// sample the pixel color from the first cloud texture using the sampler at this 
 	// texture coordinate location
-	textureColor2 = cloudTexture2.Sample(sampleType, sampleLocation);
+	textureColor2 = cloudTexture2.Sample(gBasicSampler, sampleLocation);
 
 	// combine the two cloud textures evenly
 	finalColor = lerp(textureColor1, textureColor2, 0.5f);

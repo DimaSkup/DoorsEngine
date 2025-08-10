@@ -16,7 +16,7 @@ struct Material
 	DirectX::XMFLOAT4 ambient_  = { 1,1,1,1 };
 	DirectX::XMFLOAT4 diffuse_  = { 1,1,1,1 };
 	DirectX::XMFLOAT4 specular_ = { 0,0,0,1 };             // w = specPower (specular power)
-	DirectX::XMFLOAT4 reflect_  = { 0.5f, 0.5f, 0.5f, 1 };
+	DirectX::XMFLOAT4 reflect_  = { 0,0,0,0 };
 
 	Material() {}
 
@@ -80,34 +80,6 @@ struct PointLight
 struct SpotLight
 {
 	SpotLight() {}
-
-#if 0
-	SpotLight(
-		const DirectX::XMFLOAT4& ambient,
-		const DirectX::XMFLOAT4& diffuse,
-		const DirectX::XMFLOAT4& specular,
-		const DirectX::XMFLOAT3& position,
-		const float range,
-		const DirectX::XMFLOAT3& direction,
-		const float spot,
-		const DirectX::XMFLOAT3& attenuation)
-		:
-		ambient(ambient),
-		diffuse(diffuse),
-		specular(specular),
-		position(position),
-		range(range),
-		direction(direction),
-		spot(spot)
-	{
-		// invert attenuation params so we can multiply by these values 
-		// in the HLSL shader instead of dividing by them
-		att_.x = (attenuation.x) ? (1.0f / attenuation.x) : 0.0f;
-		att_.y = (attenuation.y) ? (1.0f / attenuation.y) : 0.0f;
-		att_.z = (attenuation.z) ? (1.0f / attenuation.z) : 0.0f;
-	}
-#endif
-
 
 	DirectX::XMFLOAT4 ambient   = { 0,0,0,1 };
 	DirectX::XMFLOAT4 diffuse   = { 0,0,0,1 };

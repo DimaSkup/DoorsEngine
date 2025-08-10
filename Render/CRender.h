@@ -10,6 +10,8 @@
 #include "Common/ConstBufferTypes.h"
 #include "Shaders/ShadersContainer.h"
 #include "Common/RenderTypes.h"
+#include "Shaders/SamplerState.h"        // for using the ID3D11SamplerState 
+
 
 #include <d3d11.h>
 #include <DirectXMath.h>
@@ -68,7 +70,6 @@ public:
     void UpdateInstancedBuffer(
         ID3D11DeviceContext* pContext,
         const DirectX::XMMATRIX* worlds,
-        const DirectX::XMMATRIX* texTransforms,
         const Material* materials,
         const int count);
 
@@ -183,6 +184,11 @@ public:
     RenderDataStorage dataStorage_;
     PerFrameData      perFrameData_;                              // we need to keep this data because we use it multiple times during the frame
     ShadersContainer  shadersContainer_;                          // a struct with shader classes objects
+
+    // samplers for texturing
+    SamplerState basicSampler_;          
+    SamplerState skySampler_;          
+
 
     bool              isDebugMode_ = false;                       // do we use the debug shader?
 };

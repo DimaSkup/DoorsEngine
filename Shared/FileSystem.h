@@ -30,8 +30,7 @@ public:
         // check if such file exists
         if ((pFile = fopen(filePath, "r+")) == nullptr)
         {
-            sprintf(g_String, "there is no file by path: %s", filePath);
-            LogErr(g_String);
+            LogErr(LOG, "there is no file by path: %s", filePath);
             return false;
         }
 

@@ -25,7 +25,7 @@ public:
     MaterialID AddMaterial(const Material& material);
     MaterialID AddMaterial(Material&& material);
 
-    bool SetMaterialColorData(
+    bool SetMatColorData(
         const MaterialID id,
         const Float4& ambient,
         const Float4& diffuse,
@@ -33,11 +33,12 @@ public:
         const Float4& reflect);
 
     // getters
-    Material&  GetMaterialById    (const MaterialID id);
-    Material&  GetMaterialByName  (const char* name);
+    Material&  GetMatById    (const MaterialID id);
+    Material&  GetMatByName  (const char* name);
     void       GetMaterialsByIds  (const MaterialID* ids, const size numMaterials, cvector<Material>& outMaterials);
-    MaterialID GetMaterialIdByName(const char* name) const;
-    MaterialID GetMaterialIdByIdx (const index idx) const;
+
+    MaterialID GetMatIdByName(const char* name) const;
+    MaterialID GetMatIdByIdx (const index idx) const;
 
     inline size GetNumAllMaterials() const { return materials_.size(); }
 

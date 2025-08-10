@@ -414,11 +414,6 @@ TexID TextureMgr::LoadFromFile(const char* path)
             return INVALID_TEXTURE_ID;
         }
 
-#if DEBUG || _DEBUG
-        if (!FileSys::Exists(path))
-            return INVALID_TEXTURE_ID;
-#endif
-
         // if there is already such a texture we just return its ID
         TexID id = GetTexIdByName(path);
         if (id != 0)
@@ -426,20 +421,18 @@ TexID TextureMgr::LoadFromFile(const char* path)
 
 
         // else we create a new texture from file
-        id = GenID();
-
-        char name[64]{'\0'};
+        char name[64]{ '\0' };
         FileSys::GetFileStem(path, name);
 
+        Texture tex(pDevice_, path, name);
+
+        id = GenID();
         ids_.push_back(id);
         names_.push_back(name);
-        textures_.push_back(std::move(Texture(pDevice_, path, name)));
+        textures_.push_back(std::move(tex));
         shaderResourceViews_.push_back(textures_.back().GetTextureResourceView());
-
-        // check if we successfully created this texture
-        bool isSuccess = (textures_.back().GetTextureResourceView() != nullptr);
         
-        return (isSuccess) ? id : INVALID_TEXTURE_ID;	
+        return id;	
     }
     catch (EngineException& e)
     {
@@ -447,6 +440,40 @@ TexID TextureMgr::LoadFromFile(const char* path)
         LogErr(LOG, "can't load a texture from file: %s", path);
         return INVALID_TEXTURE_ID;
     }
+}
+
+//---------------------------------------------------------
+// Desc:   load 6 textures from directory by directoryPath
+//         and create a single cube map texture from them
+// Args:   - name:   just a name for this texture (can be used when search for this texture)
+//         - params: initial parameters for cubemap
+// Ret:    identifier of created texture or 0 if we failed
+//---------------------------------------------------------
+TexID TextureMgr::CreateCubeMap(const char* name, const CubeMapInitParams& params)
+{
+    // if there is already such a texture we just return its ID
+    TexID id = GetTexIdByName(name);
+
+    if (id != INVALID_TEXTURE_ID)
+        return id;
+
+    // create a cubemap texture
+    Texture cubeMap;
+    if (!cubeMap.CreateCubeMap(name, params))
+    {
+        cubeMap.Release();
+        return INVALID_TEXTURE_ID;
+    }
+
+    id = GenID();
+
+    // store cubemap into the manager
+    ids_.push_back(id);
+    names_.push_back(name);
+    textures_.push_back(std::move(cubeMap));
+    shaderResourceViews_.push_back(textures_.back().GetTextureResourceView());
+
+    return id;
 }
 
 ///////////////////////////////////////////////////////////

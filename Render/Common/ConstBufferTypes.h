@@ -17,7 +17,6 @@ namespace ConstBufType
     {
         DirectX::XMMATRIX  world;
         DirectX::XMMATRIX  worldInvTranspose;
-        DirectX::XMMATRIX  texTransform;
         Material           material;
     };
 

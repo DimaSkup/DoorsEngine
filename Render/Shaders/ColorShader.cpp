@@ -3,6 +3,7 @@
 // Revising: 06.04.22
 /////////////////////////////////////////////////////////////////////
 #include "../Common/pch.h"
+#include "../Common/InputLayouts.h"
 #include "ColorShader.h"
 
 
@@ -18,10 +19,10 @@ ColorShader::~ColorShader()
 {
 }
 
-
-// ------------------------------------------------------------------------------
-//                         PUBLIC FUNCTIONS
-// ------------------------------------------------------------------------------
+//---------------------------------------------------------
+// Desc:   load hlsl shaders, create DX shader objects,
+//         and init this shader class instance
+//---------------------------------------------------------
 bool ColorShader::Initialize(
     ID3D11Device* pDevice,
     const char* vsFilePath,
@@ -52,6 +53,7 @@ void ColorShader::Render(
 {
     int startInstanceLocation = 0;
 
+    // bind shaders, input layout
     pContext->IASetInputLayout(vs_.GetInputLayout());
     pContext->VSSetShader(vs_.GetShader(), nullptr, 0);
     pContext->PSSetShader(ps_.GetShader(), nullptr, 0);
@@ -90,63 +92,19 @@ void ColorShader::Render(
     }
 }
 
-
 // ------------------------------------------------------------------------------
-//                         PRIVATE FUNCTIONS
+// Desc:   a private helper for initialization
 // ------------------------------------------------------------------------------
 void ColorShader::InitializeShaders( 
     ID3D11Device* pDevice,
     const char* vsFilePath,
     const char* psFilePath)
 {
-    // Initializes the shaders, input vertex layout and constant matrix buffer.
-    // This function is called from the Initialize() function
-
-    HRESULT hr = S_OK;
     bool result = false;
-
-    // sum of the structures sizes of:
-    // position (float3) + 
-    // texture (float2) + 
-    // normal (float3) +
-    // tangent (float3) + 
-    // binormal (float3);
-    // (look at the the VERTEX structure)
+    InputLayoutColor inputLayout;
     
-    const UINT colorOffset = (4 * sizeof(DirectX::XMFLOAT3)) + sizeof(DirectX::XMFLOAT2);
-
-    const D3D11_INPUT_ELEMENT_DESC inputLayoutDesc[] =
-    {
-        // per vertex data
-        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, colorOffset, D3D11_INPUT_PER_VERTEX_DATA, 0},
-
-        // per instance data
-        {"WORLD", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        {"WORLD", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 16, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        {"WORLD", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 32, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        {"WORLD", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 48, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-
-        {"WORLD_INV_TRANSPOSE", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 64, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        {"WORLD_INV_TRANSPOSE", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 80, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        {"WORLD_INV_TRANSPOSE", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 96, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        {"WORLD_INV_TRANSPOSE", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 112, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-
-        {"TEX_TRANSFORM", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 128, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        {"TEX_TRANSFORM", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 144, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        {"TEX_TRANSFORM", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 160, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        {"TEX_TRANSFORM", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 176, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-
-        {"MATERIAL", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        {"MATERIAL", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        {"MATERIAL", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        {"MATERIAL", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-    };
-    
-    const UINT layoutElemNum = sizeof(inputLayoutDesc) / sizeof(D3D11_INPUT_ELEMENT_DESC);
-
-    // initialize: VS, PS, sampler state
-    result = vs_.Initialize(pDevice, vsFilePath, inputLayoutDesc, layoutElemNum);
+    // initialize: VS, PS
+    result = vs_.Initialize(pDevice, vsFilePath, inputLayout.desc, inputLayout.numElems);
     CAssert::True(result, "can't initialize the vertex shader");
 
     result = ps_.Initialize(pDevice, psFilePath);

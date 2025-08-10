@@ -22,7 +22,6 @@ struct VS_IN
 	// data per instance
 	row_major matrix   world             : WORLD;
 	row_major matrix   worldInvTranspose : WORLD_INV_TRANSPOSE;
-	row_major matrix   texTransform      : TEX_TRANSFORM;
 	row_major float4x4 material          : MATERIAL;
 	uint               instanceID        : SV_InstanceID;
 
@@ -41,6 +40,7 @@ struct VS_OUT
 	float3   normalW   : NORMAL;       // normal in world
 	float3   tangentW  : TANGENT;      // tangent in world
 	float2   tex       : TEXCOORD;
+    uint     instanceID : SV_InstanceID;
 };
 
 
@@ -62,11 +62,11 @@ VS_OUT VS(VS_IN vin)
 	// interpolating of normal can unnormalize it, so normalize it back
 	vout.normalW = normalize(mul(vin.normalL, (float3x3)vin.worldInvTranspose));
 
-	// calculate the tangent and normalize it
+	// calculate the tangent
 	vout.tangentW = normalize(mul(vin.tangentL, (float3x3)vin.worldInvTranspose));
 
-	// output vertex texture attributes for interpolation across triangle
-	vout.tex = mul(float4(vin.tex, 0.0f, 1.0f), vin.texTransform).xy;
+    vout.tex        = vin.tex;
+    vout.instanceID = vin.instanceID;
 
 	return vout;
 }

@@ -26,19 +26,8 @@ public:
         const std::string* names,
         const size numEntts);
 
-	//
-	// getters
-	//
 	EntityID GetIdByName(const std::string& name);
-	const std::string& GetNameById(const EntityID& id) const;
-
-	
-private:
-	void CheckInputData(
-		const cvector<EntityID>& ids,
-		const cvector<std::string>& names);
-
-	index GetIdxByID(const EntityID id) const;
+	const char* GetNameById(const EntityID& id) const;
 
 private:
 	Name* pNameComponent_ = nullptr;

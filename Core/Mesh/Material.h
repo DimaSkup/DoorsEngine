@@ -70,7 +70,7 @@ struct Material
     Float4     ambient  = { 1,1,1,1 };
     Float4     diffuse  = { 1,1,1,1 };
     Float4     specular = { 0,0,0,1 };                              // w-component is a specPower (specular power)
-    Float4     reflect  = { .5f, .5f, .5f, 1 };
+    Float4     reflect  = { 0,0,0,0 };
 
     MaterialID id = INVALID_MATERIAL_ID;
     char       name[MAX_LENGTH_MATERIAL_NAME] = { "invalid" };
@@ -102,13 +102,13 @@ struct Material
 
         size_t length = strlen(inName);
 
-        CAssert::True(inName != nullptr, "input ptr to name string == nullptr");
-        CAssert::True(length > 0,        "length of input name string must be > 0");
+        CAssert::True(length > 0, "length of input name string must be > 0");
 
-        if (length > MAX_LENGTH_MATERIAL_NAME)
-            length = MAX_LENGTH_MATERIAL_NAME;
+        if (length > MAX_LENGTH_MATERIAL_NAME-1)
+            length = MAX_LENGTH_MATERIAL_NAME-1;
 
         strncpy(name, inName, length);
+        name[length] = '\0';
     }
 
     //-----------------------------------------------------
@@ -119,6 +119,7 @@ struct Material
     inline void SetDiffuse (const float r, const float g, const float b, const float a)  { diffuse = Float4(r,g,b,a); }
     inline void SetSpecular(const float r, const float g, const float b)                 { specular = Float4(r,g,b,specular.w); }   // specular power remains the same
     inline void SetSpecularPower(const float power)                                      { specular.w = power; }
+    inline void SetReflection(const float r, const float g, const float b, const float a) { reflect = Float4(r,g,b,a); }
 
     inline void SetAlphaClip(const bool state)
     {

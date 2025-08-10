@@ -7,7 +7,6 @@
 
 #include "VertexShader.h"
 #include "PixelShader.h"
-#include "SamplerState.h"         // for using textures sampler
 #include "ConstantBuffer.h"
 #include "../Common/RenderTypes.h"
 
@@ -48,6 +47,11 @@ public:
         const char* vsFilePath,
         const char* psFilePath);
 
+    void ShaderHotReload(
+        ID3D11Device* pDevice,
+        const char* vsFilename,
+        const char* psFilename);
+
 	void Render(
 		ID3D11DeviceContext* pContext,
 		ID3D11Buffer* pInstancedBuffer,
@@ -71,7 +75,6 @@ private:
 private:
 	VertexShader vs_;
 	PixelShader  ps_;                       
-	SamplerState samplerState_;                                            // a sampler for texturing
 	ConstantBuffer<BuffTypesDebug::cbpsRareChanged> cbpsRareChangedDebug_; // cbps - const buffer pixel shader for rare changed stuff
 
 	char className_[32]{"DebugShader"};

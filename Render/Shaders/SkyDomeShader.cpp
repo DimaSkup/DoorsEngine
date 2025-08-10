@@ -1,6 +1,7 @@
 // =================================================================================
 // Filename:     SkyDomeShader.cpp
-// Description:  this shader is used to render sky dome model (sky)
+// Description:  this shader is used to render sky model
+//               (sky box / sky sphere / etc.)
 // 
 // Created:      21.12.24
 // =================================================================================
@@ -61,15 +62,10 @@ void SkyDomeShader::Render(
     pContext->IASetVertexBuffers(0, 1, &sky.pVB, &sky.vertexStride, &offset);
     pContext->IASetIndexBuffer(sky.pIB, DXGI_FORMAT_R16_UINT, 0);
     pContext->IASetInputLayout(vs_.GetInputLayout());
-    pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    // bind shaders/samplers
+    // bind shaders
     pContext->VSSetShader(vs_.GetShader(), nullptr, 0);
     pContext->PSSetShader(ps_.GetShader(), nullptr, 0);
-    pContext->PSSetSamplers(0, 1, samplerState_.GetAddressOf());
-
-    // update textures for the current subset
-    //pContext->PSSetShaderResources(0U, 1U, sky.texSRVs);
 
     // render the sky
     pContext->DrawIndexed(sky.indexCount, 0, 0);
@@ -120,21 +116,6 @@ void SkyDomeShader::InitializeShaders(
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
     };
 
-    // setup description for a sampler state
-    D3D11_SAMPLER_DESC samplerDesc{};
-    samplerDesc.Filter         = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-    samplerDesc.AddressU       = D3D11_TEXTURE_ADDRESS_CLAMP;
-    samplerDesc.AddressV       = D3D11_TEXTURE_ADDRESS_CLAMP;
-    samplerDesc.AddressW       = D3D11_TEXTURE_ADDRESS_CLAMP;
-    samplerDesc.BorderColor[0] = 0.0f;
-    samplerDesc.BorderColor[1] = 0.0f;
-    samplerDesc.BorderColor[2] = 0.0f;
-    samplerDesc.BorderColor[3] = 0.0f;
-    samplerDesc.ComparisonFunc = D3D11_COMPARISON_FUNC::D3D11_COMPARISON_NEVER; 
-    samplerDesc.MinLOD         = 0.0f;
-    samplerDesc.MaxLOD         = D3D11_FLOAT32_MAX;
-    samplerDesc.MaxAnisotropy  = D3D11_REQ_MAXANISOTROPY;
-    samplerDesc.MipLODBias     = 0.0f;
 
     
     // initialize: VS, PS, sampler state
@@ -142,10 +123,7 @@ void SkyDomeShader::InitializeShaders(
     CAssert::True(result, "can't initialize the vertex shader");
 
     result = ps_.Initialize(pDevice, psFilePath);
-    CAssert::True(result, "can't initialize the pixel shader");
-
-    result = samplerState_.Initialize(pDevice, &samplerDesc);
-    CAssert::True(result, "can't initialize the sampler state");
+    CAssert::True(result, "can't initialize the pixel shader");;
 
     hr = cbvsPerFrame_.Initialize(pDevice);
     CAssert::NotFailed(hr, "can't init a const buffer (VS)");

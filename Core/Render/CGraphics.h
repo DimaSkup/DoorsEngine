@@ -147,23 +147,13 @@ private:
     // ------------------------------------------
     // rendering data prepararion stage API
 
-    void PrepBasicInstancesForRender        (ECS::EntityMgr* pEnttMgr, Render::CRender* pRender);
-    void PrepAlphaClippedInstancesForRender (ECS::EntityMgr* pEnttMgr, Render::CRender* pRender);
-    void PrepBlendedInstancesForRender      (ECS::EntityMgr* pEnttMgr, Render::CRender* pRender);
+    void PrepInstancesForRender(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender);
 
     // ------------------------------------------
 
-    void RenderEnttsDefault          (Render::CRender* pRender);
-    void RenderEnttsAlphaClipCullNone(Render::CRender* pRender);
-    void RenderEnttsBlended          (Render::CRender* pRender);
-    void RenderBillboards            (Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);
-    void RenderMaterialSphere        (const int matIdx, Render::CRender* pRender);
+    void RenderEntts    (Render::CRender* pRender);
+    void RenderParticles(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);
 
-    // ------------------------------------------
-
-    // render bounding boxes of models/meshes/light_sources/etc.
-    void RenderBoundingLineBoxes  (Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);
-    void RenderBoundingLineSpheres();
     void RenderSkyDome            (Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);
     void RenderTerrainGeomip      (Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);
     void RenderTerrainQuadtree    (Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);
@@ -192,9 +182,6 @@ public:
     FrameBuffer           frameBuffer_;                           // for rendering to some texture
     EntityID              currCameraID_ = 0;
     
-    // for rendering
-    ECS::RenderStatesSystem::EnttsRenderStatesData rsDataToRender_;
-
     FrameBuffer                         materialBigIconFrameBuf_;
     cvector<FrameBuffer>                materialsFrameBuffers_;   // frame buffers which are used to render materials icons (for editor's material browser)
     cvector<ID3D11ShaderResourceView*>  texturesBuf_;             // to avoid reallocation each time we use this shared buffer

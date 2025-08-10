@@ -9,7 +9,6 @@
 #include "VertexShader.h"
 #include "GeometryShader.h"
 #include "PixelShader.h"
-#include "SamplerState.h"
 #include <d3d11.h>
 
 
@@ -65,7 +64,6 @@ private:
     VertexShader        vs_;
     GeometryShader      gs_;
     PixelShader         ps_;
-    SamplerState        samplerState_;
 
     char className_[32]{"ParticleShader"};
 };

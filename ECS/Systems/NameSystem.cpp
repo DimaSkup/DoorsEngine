@@ -65,17 +65,16 @@ EntityID NameSystem::GetIdByName(const std::string& name)
     return (idx != -1) ? comp.ids_[idx] : INVALID_ENTITY_ID;
 }
 
-///////////////////////////////////////////////////////////
-
-const std::string& NameSystem::GetNameById(const EntityID& id) const
+//---------------------------------------------------------
+// Desc:   get a name of entity by input identifier
+//---------------------------------------------------------
+const char* NameSystem::GetNameById(const EntityID& id) const
 {
-    // if there is such an ID in the arr we return a responsible entity name;
     const Name& comp = *pNameComponent_;
-
     const index idx  = comp.ids_.get_idx(id);
     const bool exist = (comp.ids_[idx] == id);
 
-    return comp.names_[idx * exist];
+    return comp.names_[idx * exist].c_str();
 }
 
 

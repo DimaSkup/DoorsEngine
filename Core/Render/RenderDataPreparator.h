@@ -45,18 +45,7 @@ public:
         cvector<Render::Material>& outMaterialsSortedByInstances);
 
     void PrepareInstanceData(const BasicModel& model, Render::Instance& instance);
-      
-    // ----------------------------------------------------
 
-    void PrepareEnttsBoundingLineBox(
-        ECS::EntityMgr* pEnttMgr,
-        Render::Instance& instance,
-        Render::InstBuffData& instanceBuffer);
-
-    void PrepareEnttsMeshesBoundingLineBox(
-        ECS::EntityMgr* pEnttMgr,
-        Render::Instance& instance,
-        Render::InstBuffData& instanceBuffer);
 
 private:
     void SeparateEnttsByMaterialGroups(
@@ -86,8 +75,11 @@ private:
 private:
     //constexpr int     numElems = 1028;
     TexID             texturesIDs_[1028]{ INVALID_TEXTURE_ID };
-    cvector<SRV*>     textureSRVs_;
+   // cvector<SRV*>     textureSRVs_;
     cvector<Material> materials_;
+
+    cvector<EntityID>         enttsSortedByInstances_;
+    cvector<Render::Material> materialsSortedByInstances_;
 };
 
 } // namespace Core

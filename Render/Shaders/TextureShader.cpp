@@ -60,7 +60,6 @@ void TextureShader::Render(
     pContext->IASetInputLayout(vs_.GetInputLayout());
     pContext->VSSetShader(vs_.GetShader(), nullptr, 0);
     pContext->PSSetShader(ps_.GetShader(), nullptr, 0);
-    pContext->PSSetSamplers(0, 1, samplerState_.GetAddressOf());
         
 
     // go through each instance and render it
@@ -154,9 +153,6 @@ void TextureShader::InitializeShaders(
 
     result = ps_.Initialize(pDevice, psFilePath);
     CAssert::True(result, "can't initialize the pixel shader");
-
-    result = samplerState_.Initialize(pDevice);
-    CAssert::True(result, "can't initialize the sampler state");
 }
 
 } // namespace Render

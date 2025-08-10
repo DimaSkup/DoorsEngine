@@ -9,7 +9,6 @@
 
 #include "VertexShader.h"
 #include "PixelShader.h"
-#include "SamplerState.h"
 #include "ConstantBuffer.h"
 
 #include "../Common/ConstBufferTypes.h"
@@ -72,7 +71,6 @@ private:
 private:
     VertexShader   vs_;
     PixelShader    ps_;
-    SamplerState   samplerState_;
 
     ConstantBuffer<ConstBufType::ConstantMatrixBuffer_FontVS> matrixBuffer_;
     ConstantBuffer<ConstBufType::ConstantPixelBuffer_FontPS>  pixelBuffer_;   // text colour for the pixel shader

@@ -4,7 +4,8 @@
 // GLOBALS
 //
 Texture2D    gTextures[128] : register(t0);
-SamplerState gSampleType    : register(s0);
+SamplerState gBasicSampler  : register(s0);
+SamplerState gSkySampler    : register(s1);
 
 
 //
@@ -38,7 +39,7 @@ float4 PS(PS_IN pin) : SV_Target
 {
     //return float4(pin.normalW, 1.0f);
 
-    float4 textureColor = gTextures[1].Sample(gSampleType, pin.tex);
+    float4 textureColor = gTextures[1].Sample(gBasicSampler, pin.tex);
 
 
     // execute alpha clipping
@@ -47,7 +48,7 @@ float4 PS(PS_IN pin) : SV_Target
 
     // --------------------  NORMAL MAP   --------------------
 
-    float3 normalMap = gTextures[6].Sample(gSampleType, pin.tex).rgb;
+    float3 normalMap = gTextures[6].Sample(gBasicSampler, pin.tex).rgb;
 
     // normalize the normal vector after interpolation
     float3 normalW = normalize(pin.normalW);

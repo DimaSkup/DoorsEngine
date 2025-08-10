@@ -8,7 +8,6 @@
 
 #include "VertexShader.h"
 #include "PixelShader.h"
-#include "SamplerState.h"
 #include "ConstantBuffer.h"
 
 #include "../Common/ConstBufferTypes.h"
@@ -58,7 +57,6 @@ private:
 private:
     VertexShader                               vs_;
     PixelShader                                ps_;
-    SamplerState                               samplerState_;       // for texturing
     ConstantBuffer<ConstBufType::MaterialData> cbpsMaterialData_;   // cbps -- const buffer for pixel shader
 
     char className_[16] = "TerrainShader";

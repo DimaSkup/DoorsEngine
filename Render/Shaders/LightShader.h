@@ -8,7 +8,6 @@
 
 #include "VertexShader.h"
 #include "PixelShader.h"
-#include "SamplerState.h"        // for using the ID3D11SamplerState 
 
 #include "../Common/RenderTypes.h"
 #include <d3d11.h>
@@ -48,16 +47,10 @@ public:
 
 	inline const char* GetShaderName() const { return className_; }
 
-private:
-	void InitializeShaders(
-		ID3D11Device* pDevice,
-		const char* vsFilePath,
-		const char* psFilePath);
 
 private:
 	VertexShader vs_;
 	PixelShader  ps_;
-	SamplerState samplerState_;          // a sampler for texturing
 
 	char className_[32]{"LightShader"};
 };

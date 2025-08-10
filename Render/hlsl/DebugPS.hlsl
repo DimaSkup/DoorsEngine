@@ -11,7 +11,8 @@
 // GLOBALS
 //
 Texture2D    gTextures[128] : register(t0);
-SamplerState gSampleType   : register(s0);
+SamplerState gBasicSampler  : register(s0);
+SamplerState gSkySampler    : register(s1);
 
 // debug states/flags
 static const int SHOW_NORMALS = 1;
@@ -66,12 +67,13 @@ cbuffer cbRareChangedDebug : register(b4)
 //
 struct PS_IN
 {
-	float4x4 material  : MATERIAL;
-	float4   posH      : SV_POSITION;  // homogeneous position
-	float3   posW      : POSITION;     // position in world
-	float3   normalW   : NORMAL;       // normal in world
-	float3   tangentW  : TANGENT;      // tangent in world
-	float2   tex       : TEXCOORD;
+	float4x4 material   : MATERIAL;
+	float4   posH       : SV_POSITION;  // homogeneous position
+	float3   posW       : POSITION;     // position in world
+	float3   normalW    : NORMAL;       // normal in world
+	float3   tangentW   : TANGENT;      // tangent in world
+	float2   tex        : TEXCOORD;
+    uint     instanceID : SV_InstanceID;
 };
 
 struct PS_OUT
@@ -107,7 +109,7 @@ float4 PS_DebugVectors(PS_IN pin, int debugType) : SV_Target
 		}
 		case SHOW_BUMPED_NORMALS:
 		{
-			float3 normalMap = gTextures[6].Sample(gSampleType, pin.tex).rgb;
+			float3 normalMap = gTextures[6].Sample(gBasicSampler, pin.tex).rgb;
 
             // compute the bumped normal in the world space
             float3 bumpedNormalW = NormalSampleToWorldSpace(normalMap, normalW, pin.tangentW);
@@ -131,7 +133,7 @@ float4 PS_DebugTextures(PS_IN pin, int debugType) : SV_Target
 	{
 		case SHOW_ONLY_DIFFUSE_MAP:   // diffuse map color
 		{
-			color = gTextures[1].Sample(gSampleType, pin.tex);
+			color = gTextures[1].Sample(gBasicSampler, pin.tex);
 
             // execute alpha clipping
             if (gAlphaClipping)
@@ -141,7 +143,7 @@ float4 PS_DebugTextures(PS_IN pin, int debugType) : SV_Target
 		} 
 		case SHOW_ONLY_NORMAL_MAP:    // normal map color
 		{
-			color = gTextures[6].Sample(gSampleType, pin.tex);
+			color = gTextures[6].Sample(gBasicSampler, pin.tex);
 			break;
 		}
 		default:
@@ -273,14 +275,14 @@ float4 PS_DebugLight(PS_IN pin, int debugType) : SV_Target
 {
 	// lit geometry only with light sources of chosen type
 
-	float4 textureColor = gTextures[1].Sample(gSampleType, pin.tex);
+	float4 textureColor = gTextures[1].Sample(gBasicSampler, pin.tex);
     
 	// execute alpha clipping
 	if (gAlphaClipping)
 		clip(textureColor.a - 0.1f);
 
 	//float4 specColor = gTextures[2].Sample(gSampleType, pin.tex); // specular map
-	float3 normalMap = gTextures[6].Sample(gSampleType, pin.tex).rgb;
+	float3 normalMap = gTextures[6].Sample(gBasicSampler, pin.tex).rgb;
 	//float4 roughnessMap = gTextures[16].Sample(gSampleType, pin.tex);
 
     float specFactor = 0.0f; // specColor.x;
@@ -308,8 +310,8 @@ float4 PS_DebugLight(PS_IN pin, int debugType) : SV_Target
 		case SHOW_ONLY_LIGHTING:   // all: directed + point + spot
 		{
 			ComputeSumDirectionalLights(mat,           bumpedNormalW, toEyeW, specFactor, ambient, diffuse, spec);
-			ComputeSumPointLights      (mat, pin.posW, bumpedNormalW, toEyeW, specFactor, ambient, diffuse, spec);
-            ComputeSumSpotLights       (mat, pin.posW, bumpedNormalW, toEyeW, specFactor, ambient, diffuse, spec);
+			//ComputeSumPointLights      (mat, pin.posW, bumpedNormalW, toEyeW, specFactor, ambient, diffuse, spec);
+            //ComputeSumSpotLights       (mat, pin.posW, bumpedNormalW, toEyeW, specFactor, ambient, diffuse, spec);
 			break;
 		}
 		case SHOW_ONLY_DIRECTED_LIGHTING:

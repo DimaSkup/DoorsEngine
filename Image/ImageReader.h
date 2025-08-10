@@ -55,10 +55,10 @@ public:
 
 private:
     void CheckInputParams(const DXTextureData& data);
-    void LoadPNGTexture(ID3D11Device* pDevice, DXTextureData& data);
-    void LoadDDSTexture(ID3D11Device* pDevice, DXTextureData& data);
-    void LoadTGATexture(ID3D11Device* pDevice, DXTextureData& data);
-    void LoadBMPTexture(ID3D11Device* pDevice, DXTextureData& data);
+    bool LoadPNGTexture(ID3D11Device* pDevice, DXTextureData& data);
+    bool LoadDDSTexture(ID3D11Device* pDevice, DXTextureData& data);
+    bool LoadTGATexture(ID3D11Device* pDevice, DXTextureData& data);
+    bool LoadBMPTexture(ID3D11Device* pDevice, DXTextureData& data);
 };
 
 } // namespace ImgReader

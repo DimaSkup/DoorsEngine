@@ -10,7 +10,6 @@
 
 #include "VertexShader.h"
 #include "PixelShader.h"
-#include "SamplerState.h"
 #include "ConstantBuffer.h"
 #include "../Common/RenderTypes.h"
 
@@ -53,7 +52,6 @@ private:
 private:
 	VertexShader vs_;
 	PixelShader  ps_;
-	SamplerState samplerState_;
 
 	char className_[32]{"TextureShader"};
 };
