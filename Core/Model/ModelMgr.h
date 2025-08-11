@@ -30,7 +30,7 @@ public:
     BasicModel& AddEmptyModel();
 
     void        GetModelsByIDs  (const ModelID* ids, const size numModels, cvector<const BasicModel*>& outModels);
-    BasicModel& GetModelByID    (const ModelID id);
+    BasicModel& GetModelById    (const ModelID id);
     BasicModel& GetModelByName  (const char* name);
     ModelID     GetModelIdByName(const char* name);
 

@@ -314,24 +314,15 @@ void CGraphics::PrepInstancesForRender(ECS::EntityMgr* pEnttMgr, Render::CRender
    
     const cvector<EntityID>& visibleEntts = pEnttMgr->renderSystem_.GetAllVisibleEntts();
 
-    const EntityID* ids = visibleEntts.data();
-    const size numEntts = visibleEntts.size();
+    const EntityID* enttsIds = visibleEntts.data();
+    const size      numEntts = visibleEntts.size();
 
     if (numEntts == 0)
         return;
 
     Render::RenderDataStorage& storage = pRender->dataStorage_;
 
-    prep_.PrepareEnttsDataForRendering(
-        ids,
-        numEntts,
-        pEnttMgr,
-        storage.modelInstBuffer,
-        storage.modelInstances);
-
-    // compute how many vertices will we render
-    for (const Render::Instance& inst : storage.modelInstances)
-        pSysState_->visibleVerticesCount += inst.numInstances * inst.GetNumVertices();
+    prep_.PrepareEnttsDataForRendering(enttsIds, numEntts, pEnttMgr, storage);
 }
 
 // --------------------------------------------------------
@@ -489,13 +480,11 @@ void CGraphics::BindMaterial(const Material& mat, Render::CRender* pRender)
     RenderStates&        renderStates = d3d_.GetRenderStates();
     ID3D11DeviceContext* pContext     = pContext_;
 
-
     // switch alpha clipping
     pRender->SwitchAlphaClipping(pContext, mat.HasAlphaClip());
 
-
     // switch fill mode if need
-    switch (mat.properties & ALL_FILL_MODES)
+    switch (mat.renderStates & ALL_FILL_MODES)
     {
         case MAT_PROP_FILL_SOLID:
             renderStates.SetRS(pContext, FILL_SOLID);
@@ -507,7 +496,7 @@ void CGraphics::BindMaterial(const Material& mat, Render::CRender* pRender)
     }
 
     // switch cull mode if need
-    switch (mat.properties & ALL_CULL_MODES)
+    switch (mat.renderStates & ALL_CULL_MODES)
     {
         case MAT_PROP_CULL_BACK:
             renderStates.SetRS(pContext, CULL_BACK);
@@ -523,7 +512,7 @@ void CGraphics::BindMaterial(const Material& mat, Render::CRender* pRender)
     }
 
     // switch blending state if necessary
-    switch (mat.properties & ALL_BLEND_STATES)
+    switch (mat.renderStates & ALL_BLEND_STATES)
     {
         case MAT_PROP_NO_RENDER_TARGET_WRITES:
             d3d_.TurnOnBlending(NO_RENDER_TARGET_WRITES);
@@ -559,7 +548,7 @@ void CGraphics::BindMaterial(const Material& mat, Render::CRender* pRender)
     }
 
     // switch depth-stencil state if need
-    switch (mat.properties & ALL_DEPTH_STENCIL_STATES)
+    switch (mat.renderStates & ALL_DEPTH_STENCIL_STATES)
     {
         case MAT_PROP_DEPTH_ENABLED:
             renderStates.SetDSS(pContext, DEPTH_ENABLED, 0);
@@ -589,7 +578,7 @@ void CGraphics::BindMaterial(const Material& mat, Render::CRender* pRender)
     // bind textures of this material
     ID3D11ShaderResourceView* texSRVs[2];
     //texSRVs[0] = g_TextureMgr.GetTexPtrByName("tree_billboard")->GetTextureResourceView();
-    texSRVs[0] = g_TextureMgr.GetTexPtrByID(mat.textureIds[TEX_TYPE_DIFFUSE])->GetTextureResourceView();
+    texSRVs[0] = g_TextureMgr.GetTexPtrByID(mat.texIds[TEX_TYPE_DIFFUSE])->GetTextureResourceView();
 
     pContext->PSSetShaderResources(10, 1, texSRVs);
 }
@@ -610,8 +599,8 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
         const Material&  skyMat   = g_MaterialMgr.GetMatById(skyMatId);
 
         // get shader resource views (textures) for the sky 
-        TexID skyTexId = skyMat.textureIds[TEX_TYPE_DIFFUSE];
-        ID3D11ShaderResourceView* skySRV = g_TextureMgr.GetSRVByTexID(skyTexId);
+        TexID skyTexId = skyMat.texIds[TEX_TYPE_DIFFUSE];
+        ID3D11ShaderResourceView* skySRV = g_TextureMgr.GetTexViewsById(skyTexId);
         pContext->PSSetShaderResources(0U, 1U, &skySRV);
 
         // bind a perlin noise texture for "fog movement"
@@ -627,7 +616,7 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
         renderStates.ResetBS(pContext);
         renderStates.ResetDSS(pContext);
     
-        RenderEntts(pRender);
+        //RenderEntts(pRender);
         //RenderTerrainGeomip(pRender, pEnttMgr);
 
         // render sky
@@ -751,7 +740,7 @@ bool CGraphics::RenderBigMaterialIcon(
 
     // get a sphere model
     const ModelID basicSphereID    = g_ModelMgr.GetModelIdByName("basic_sphere");
-    BasicModel& sphere             = g_ModelMgr.GetModelByID(basicSphereID);
+    BasicModel& sphere             = g_ModelMgr.GetModelById(basicSphereID);
     const MeshGeometry& sphereMesh = sphere.meshes_;
 
     ID3D11Buffer* vb     = sphereMesh.vb_.Get();
@@ -781,12 +770,12 @@ bool CGraphics::RenderBigMaterialIcon(
         DirectX::XMFLOAT4(&mat.specular.x),
         DirectX::XMFLOAT4(&mat.reflect.x));
 
-    cvector<ID3D11ShaderResourceView*> texSRVs;
-    g_TextureMgr.GetSRVsByTexIDs(mat.textureIds, NUM_TEXTURE_TYPES, texSRVs);
+    ID3D11ShaderResourceView* texSRVs[22] {nullptr};
+    g_TextureMgr.GetTexViewsByIds(mat.texIds, NUM_TEXTURE_TYPES, texSRVs);
 
     // render material into responsible frame buffer
     matIconShader.PrepareRendering(pContext, vb, ib, vertexSize);
-    matIconShader.Render(pContext, indexCount, texSRVs.data(), renderMat);
+    matIconShader.Render(pContext, indexCount, texSRVs, renderMat);
 
     // reset camera's viewProj to the previous one (it can be game or editor camera)
     pRender->SetViewProj(pContext, DirectX::XMMatrixTranspose(viewProj_));
@@ -836,7 +825,7 @@ void CGraphics::RenderMaterialsIcons(
 
     // get a sphere model
     const ModelID basicSphereID    = g_ModelMgr.GetModelIdByName("basic_sphere");
-    BasicModel& sphere             = g_ModelMgr.GetModelByID(basicSphereID);
+    BasicModel& sphere             = g_ModelMgr.GetModelById(basicSphereID);
     const MeshGeometry& sphereMesh = sphere.meshes_;
 
     ID3D11Buffer* vb     = sphereMesh.vb_.Get();
@@ -869,10 +858,10 @@ void CGraphics::RenderMaterialsIcons(
             XMFLOAT4(&mat.specular.x),
             XMFLOAT4(&mat.reflect.x));
 
-        cvector<ID3D11ShaderResourceView*> texSRVs;
-        g_TextureMgr.GetSRVsByTexIDs(mat.textureIds, NUM_TEXTURE_TYPES, texSRVs);
+        ID3D11ShaderResourceView* texSRVs[NUM_TEXTURE_TYPES] {nullptr};
+        g_TextureMgr.GetTexViewsByIds(mat.texIds, NUM_TEXTURE_TYPES, texSRVs);
         
-        matIconShader.Render(pContext, indexCount, texSRVs.data(), renderMat);
+        matIconShader.Render(pContext, indexCount, texSRVs, renderMat);
 
         ++matIdx;
     }
@@ -892,7 +881,7 @@ void CGraphics::RenderEntts(Render::CRender* pRender)
     const Render::RenderDataStorage& storage = pRender->dataStorage_;
 
     // check if we have any instances to render
-    if (storage.modelInstances.empty())
+    if (storage.instancesBuf.GetSize() > 0)
         return;
 
     
@@ -905,13 +894,20 @@ void CGraphics::RenderEntts(Render::CRender* pRender)
         renderStates.SetRS(pContext, { FILL_WIREFRAME, CULL_BACK, FRONT_CLOCKWISE });
     }
 
-    pRender->UpdateInstancedBuffer(pContext, storage.modelInstBuffer);
+    pRender->UpdateInstancedBuffer(pContext, storage.instancesBuf);
+
+
+
+    UINT startInstanceLocation = 0;
 
     pRender->RenderInstances(
         pContext,
         Render::ShaderTypes::LIGHT,
-        storage.modelInstances.data(),
-        (int)storage.modelInstances.size());
+        storage.opaque.data(),
+        (int)storage.opaque.size(),
+        startInstanceLocation);
+
+    //startInstanceLocation += storage.opaque.numInstances;
 }
 
 //---------------------------------------------------------
@@ -1037,7 +1033,8 @@ void CGraphics::RenderTerrainGeomip(Render::CRender* pRender, ECS::EntityMgr* pE
     memcpy(&instance.material.reflect_.x,  &mat.reflect.x,  sizeof(float) * 4);
 
     // prepare textures
-    g_TextureMgr.GetSRVsByTexIDs(mat.textureIds, NUM_TEXTURE_TYPES, texturesBuf_);
+    texturesBuf_.resize(NUM_TEXTURE_TYPES);
+    g_TextureMgr.GetTexViewsByIds(mat.texIds, NUM_TEXTURE_TYPES, texturesBuf_.data());
     memcpy(instance.textures, texturesBuf_.begin(), NUM_TEXTURE_TYPES * sizeof(ID3D11ShaderResourceView*));
 
     // vertex/index buffers data
@@ -1101,64 +1098,6 @@ void CGraphics::RenderTerrainGeomip(Render::CRender* pRender, ECS::EntityMgr* pE
 //---------------------------------------------------------
 void CGraphics::RenderTerrainQuadtree(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr)
 {
-    const char* terrainName = "terrain_quadtree";
-    const EntityID terrainID = pEnttMgr->nameSystem_.GetIdByName(terrainName);
-
-    // if we haven't any terrain entity
-    if (terrainID == INVALID_ENTITY_ID)
-    {
-        LogErr(LOG, "can't find terrain by name: %s", terrainName);
-        return;
-    }
-
-
-    // prepare the terrain instance
-    TerrainQuadtree& terrain = g_ModelMgr.GetTerrainQuadtree();
-    Render::TerrainInstance instance;
-
-    // prepare material
-    const Material& mat = g_MaterialMgr.GetMatById(terrain.GetMaterialId());
-    memcpy(&instance.material.ambient_.x,  &mat.ambient.x,  sizeof(float) * 4);
-    memcpy(&instance.material.diffuse_.x,  &mat.diffuse.x,  sizeof(float) * 4);
-    memcpy(&instance.material.specular_.x, &mat.specular.x, sizeof(float) * 4);
-    memcpy(&instance.material.reflect_.x,  &mat.reflect.x,  sizeof(float) * 4);
-
-    // prepare textures
-    g_TextureMgr.GetSRVsByTexIDs(mat.textureIds, NUM_TEXTURE_TYPES, texturesBuf_);
-    memcpy(instance.textures, texturesBuf_.begin(), NUM_TEXTURE_TYPES * sizeof(ID3D11ShaderResourceView*));
-
-    // prepare vertex/index buffers data
-   
-    instance.pVB          = terrain.GetVertexBuffer();
-    instance.vertexStride = terrain.GetVertexStride();
-    instance.pIB          = terrain.GetIndexBuffer();
-    instance.numVertices  = terrain.GetQuadtreeNumVertices();
-    instance.indexCount   = terrain.GetNumIndices();
-
-    // for debugging
-    //instance.wantDebug = terrain.wantDebug_;
-
-    // setup rendering pipeline before rendering of the terrain
-    RenderStates&        renderStates = d3d_.GetRenderStates();
-    ID3D11DeviceContext* pContext     = pContext_;
-
-    if (pRender->shadersContainer_.debugShader_.GetDebugType() == Render::eDebugState::DBG_WIREFRAME)
-    {
-        renderStates.SetRS(pContext_, { FILL_WIREFRAME, CULL_BACK, FRONT_CLOCKWISE });
-        renderStates.ResetBS(pContext);
-        renderStates.ResetDSS(pContext);
-    }
-    else
-    {
-        renderStates.ResetRS(pContext);
-        renderStates.ResetBS(pContext);
-        renderStates.ResetDSS(pContext);
-    }
-
-    pRender->shadersContainer_.terrainShader_.Render(pContext, instance);
-
-    // compute how many vertices we already rendered
-    pSysState_->visibleVerticesCount += (uint32_t)instance.numVertices;
 }
 
 ///////////////////////////////////////////////////////////
@@ -1300,7 +1239,7 @@ int CGraphics::TestEnttSelection(const int sx, const int sy, ECS::EntityMgr* pEn
     {
         //const EntityID enttID = visEntts[i];
         const ModelID modelID = pEnttMgr->modelSystem_.GetModelIdRelatedToEntt(enttID);
-        const BasicModel& model = g_ModelMgr.GetModelByID(modelID);
+        const BasicModel& model = g_ModelMgr.GetModelById(modelID);
 
         if (model.type_ == eModelType::Terrain)
         {

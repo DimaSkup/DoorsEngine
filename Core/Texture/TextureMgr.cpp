@@ -266,13 +266,15 @@ void TextureMgr::RecreateTextureFromRawData(
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:  set a name of the texture by id
+// Args:  - id:      texture identifier
+//        - inName:  new name for the texture
+//---------------------------------------------------------
 void TextureMgr::SetTexName(const TexID id, const char* inName)
 {
-    // update a name of the texture by id
 
-    if (IsNameEmpty(inName))
+    if (StrHelper::IsEmpty(inName))
     {
         LogErr("input name is empty");
         return;
@@ -282,7 +284,7 @@ void TextureMgr::SetTexName(const TexID id, const char* inName)
 
     if (ids_[idx] != id)
     {
-        LogErr(LOG, "there is no texture by ID: %ud", id);
+        LogErr(LOG, "there is no texture by ID: %ld", id);
         return;
     }
 
@@ -292,56 +294,24 @@ void TextureMgr::SetTexName(const TexID id, const char* inName)
 
     // update name
     names_[idx] = inName;
-    //strncpy(names_[idx].name, inName, sz);
-
     textures_[idx].SetName(inName);
 }
 
-
-///////////////////////////////////////////////////////////
-
-#if 0
-TexID TextureMgr::Add(const TexName& name, Texture& tex)
-{
-    // add a new texture by name and return its generated ID
-    try
-    {
-        CAssert::NotEmpty(name.empty(), "a texture name (path) cannot be empty");
-
-        // if there is already a texture by such name we just return its ID
-        const bool isNotUniqueName = (names_.find(name) != -1);
-
-        if (isNotUniqueName)
-            return GetTexIdByName(name);
-
-
-        // else we add a new texture
-        const TexID id = GenID();
-
-        ids_.push_back(id);
-        names_.push_back(name);
-        textures_.push_back(std::move(tex));
-        shaderResourceViews_.push_back(textures_.back().GetTextureResourceView());
-
-        // return an id of the added texture
-        return id;
-    }
-    catch (EngineException& e)
-    {
-        LogErr(e);
-        throw EngineException("can't add a texture by name: " + name);
-    }
-}
-#endif
-
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   add a new texture and return its generated ID
+// Args:   - name:  a name for the new texture
+//         - tex:   a texture obj which will be moved into the manager
+// Ret:    identifier of added texture
+//---------------------------------------------------------
 TexID TextureMgr::Add(const char* name, Texture&& tex)
 {
-    // add a new texture by name and return its generated ID
     try
     {
-        CAssert::True(!IsNameEmpty(name), "a texture name cannot be empty");
+        if (StrHelper::IsEmpty(name))
+        {
+            LogErr(LOG, "input texture name is empty");
+            return INVALID_TEXTURE_ID;
+        }
 
         TexID id = INVALID_TEXTURE_ID;
 
@@ -479,16 +449,16 @@ TexID TextureMgr::CreateCubeMap(const char* name, const CubeMapInitParams& param
 ///////////////////////////////////////////////////////////
 
 TexID TextureMgr::LoadTextureArray(
-    const char* textureObjName,
+    const char* name,
     const std::string* texturePaths,
     const size numTextures,
     const DXGI_FORMAT format)
 {
     try
     {
-        CAssert::True(!IsNameEmpty(textureObjName), "input name for the texture object is empty");
-        CAssert::True(texturePaths,                 "input ptr to arr of filenames == nullptr");
-        CAssert::True(numTextures > 0,              "input number of texture must be > 0");
+        CAssert::True(!StrHelper::IsEmpty(name), "input name for the texture object is empty");
+        CAssert::True(texturePaths,              "input ptr to arr of filenames == nullptr");
+        CAssert::True(numTextures > 0,           "input number of texture must be > 0");
 
         // check if files exist
         for (index i = 0; i < numTextures; ++i)
@@ -498,7 +468,7 @@ TexID TextureMgr::LoadTextureArray(
         }
 
         // create a texture array object
-        Texture texArr(pDevice_, textureObjName, texturePaths, (int)numTextures, format);
+        Texture texArr(pDevice_, name, texturePaths, (int)numTextures, format);
 
         const TexID id = GenID();
 
@@ -518,13 +488,12 @@ TexID TextureMgr::LoadTextureArray(
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   create a texture filled with input color
+// Args:   - color:  a color which will be used to fill in the whole texture
+//---------------------------------------------------------
 TexID TextureMgr::CreateWithColor(const Color& color)
 {
-    // if there is already a color texture by such ID we just return an ID to it;
-    // or in another case we create this texture and return an ID to this new texture;
-    
     // generate a name for this texture
     sprintf(g_String, "color_texture_%d_%d_%d", color.GetR(), color.GetG(), color.GetB());
     TexID id = GetTexIdByName(g_String);
@@ -532,37 +501,34 @@ TexID TextureMgr::CreateWithColor(const Color& color)
     return (id != INVALID_TEXTURE_ID) ? id : Add(g_String, Texture(pDevice_, color));
 }
 
-
-// =================================================================================
-// Getters: get texture reference or texture pointer by ID/name
-// =================================================================================
+//---------------------------------------------------------
+// return a texture by input id or return an unloaded texture (id: 0) if there is no texture by such ID
+//---------------------------------------------------------
 Texture& TextureMgr::GetTexByID(const TexID id)
 {
-    // return a texture by input id or return an unloaded texture (id: 0) if there is no texture by such ID
     const index idx = ids_.get_idx(id);
     const bool exist = (ids_[idx] == id);
 
     return textures_[idx * exist];
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   return a ptr to the texture by ID or nullptr if there is no such a texture
+//---------------------------------------------------------
 Texture* TextureMgr::GetTexPtrByID(const TexID id)
 {
-    // return a ptr to the texture by ID or nullptr if there is no such a texture
     const index idx = ids_.get_idx(id);
     const bool exist = (ids_[idx] == id);
 
     return &textures_[idx * exist];
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   return a ptr to the texture by name or nullptr if there is no such a texture
+//---------------------------------------------------------
 Texture* TextureMgr::GetTexPtrByName(const char* name)
 {
-    // return a ptr to the texture by name or nullptr if there is no such a texture
-
-    if (IsNameEmpty(name))
+    if (StrHelper::IsEmpty(name))
     {
         LogErr("input name of texture is empty!");
         return nullptr;
@@ -572,83 +538,54 @@ Texture* TextureMgr::GetTexPtrByName(const char* name)
     return (idx != -1) ? &textures_[idx] : &textures_[0];
 }
 
-
-// =================================================================================
-// Getters: get texture ID / textures IDs array by name/names
-// =================================================================================
+//---------------------------------------------------------
+// Desc:    return a texture ID of texture object by input name;
+//         if there is no such a textures we return 0;
+//---------------------------------------------------------
 TexID TextureMgr::GetTexIdByName(const char* inName)
 {
-    // return an ID of texture object by input name;
-    // if there is no such a textures we return 0;
-
     for (index i = 0; i < names_.size(); ++i)
     {
         if (strcmp(names_[i].c_str(), inName) == 0)
             return ids_[i];
     }
 
-    // if we didn't find any ID by name we return 0
     return INVALID_TEXTURE_ID;
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   return a texture ID by input idx; if idx is invalid we return 0
+//---------------------------------------------------------
 TexID TextureMgr::GetTexIdByIdx(const index idx) const
 {
-    // return ID by input idx; if idx is invalid we return 0
-
     const bool isValidIdx = (idx >= 0 && idx < ids_.size());
     return (isValidIdx) ? ids_[idx] : INVALID_TEXTURE_ID;
 }
 
-///////////////////////////////////////////////////////////
-#if 0
-void TextureMgr::GetIDsByNames(
-    const TexName* inNames,
-    const size numNames,
-    cvector<TexID>& outIDs)
-{
-    // get textures IDs by its names
-
-    CAssert::True(inNames != nullptr, "input ptr to names arr == nullptr");
-    CAssert::True(numNames > 0,       "input number of names must be > 0");
-
-    // get idxs by names
-    cvector<index> idxs(numNames);
-
-    for (index i = 0; i < numNames; ++i)
-        idxs[i] = names_.find(inNames[i]);
-
-    // get IDs by idxs
-    outIDs.resize(numNames);
-
-    for (int i = 0; const index idx : idxs)
-    {
-        const bool exist = (idx != -1);
-        outIDs[i++] = ids_[idx * (size)exist];
-    }
-}
-#endif
-
-///////////////////////////////////////////////////////////
-
-ID3D11ShaderResourceView* TextureMgr::GetSRVByTexID(const TexID texID)
+//---------------------------------------------------------
+// Desc:   get shader resource view of texture by input ID
+//---------------------------------------------------------
+ID3D11ShaderResourceView* TextureMgr::GetTexViewsById(const TexID texID)
 {
     const index idx  = ids_.get_idx(texID);
-    const bool exist = (ids_[idx] == texID);  // check if we found the proper idx
 
-    return shaderResourceViews_[idx * exist];
+    // if there is no texture by ID we return shader resource view by idx == 0
+    return shaderResourceViews_[idx * (ids_[idx] == texID)];
 }
 
-///////////////////////////////////////////////////////////
-
-void TextureMgr::GetSRVsByTexIDs(
+//---------------------------------------------------------
+// Desc:    get SRV (shader resource view) of each input texture by its ID
+// Args:    - texIds:  textures identifiers
+//          - numTex:  how many textures we want to get
+//          - outSRVs: output arr of shader resource views
+//
+// NOTE:    size of outSRVs arr MUST be equal to numTex
+//---------------------------------------------------------
+void TextureMgr::GetTexViewsByIds(
     const TexID* texIDs,
     const size numTex,
-    cvector<ID3D11ShaderResourceView*>& outSRVs)
+    ID3D11ShaderResourceView** outSRVs)
 {
-    // here get SRV (shader resource view) of each input texture by its ID
-
     CAssert::True(texIDs != nullptr, "input ptr to textures IDs arr == nullptr");
     CAssert::True(numTex > 0, "input number of textures must be > 0");
 
@@ -666,11 +603,8 @@ void TextureMgr::GetSRVsByTexIDs(
 
     // ---------------------------------------------
 
-    // get SRVs
-    ID3D11ShaderResourceView* unloadedTexSRV = shaderResourceViews_[0];
-    outSRVs.resize(numTex, unloadedTexSRV);
-
-    const size numPreparedTextures = std::ssize(idxsToNotZero_);
+    // get shader resource views
+    const vsize numPreparedTextures = idxsToNotZero_.size();
     texIds_.resize(numPreparedTextures);
     tempIdxs_.resize(numPreparedTextures);
     preparedSRVs_.resize(numPreparedTextures);
@@ -687,44 +621,6 @@ void TextureMgr::GetSRVsByTexIDs(
     for (index i = 0; const index idx : idxsToNotZero_)
         outSRVs[idx] = preparedSRVs_[i++];
 }
-
-///////////////////////////////////////////////////////////
-
-#if 0
-void TextureMgr::GetAllTexturesPathsWithinDirectory(
-    const std::string& pathToDir,
-    std::vector<TexPath>& outPaths)
-{
-    // get an array of paths to textures in the directory by pathToDir
-
-    const std::string extentions[4]{".dds", ".tga", ".png", ".bmp"};
-
-    // go through each file in the directory
-    for (int i = 0; const fs::directory_entry& entry : fs::directory_iterator(pathToDir))
-    {
-        const char* ext = entry.path().extension().string().c_str();
-
-        // check if we have a valid extention
-        bool isValidExt = false;
-        isValidExt |= strcmp(ext, extentions[0].c_str());
-        isValidExt |= strcmp(ext, extentions[1].c_str());
-        isValidExt |= strcmp(ext, extentions[2].c_str());
-        isValidExt |= strcmp(ext, extentions[3].c_str());
-
-        
-        if (isValidExt)
-        {
-            const std::string& path = pathToDir[i];
-            std::replace(path.begin(), path.end(), '\\', '/');  // in the pass change from '\\' into '/' symbol
-
-            outPaths.emplace_back(path);
-        }
-
-        ++i;
-    }
-}
-#endif
-
 
 // =================================================================================
 //                              PRIVATE HELPERS

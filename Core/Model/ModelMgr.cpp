@@ -122,17 +122,6 @@ void ModelMgr::Serialize(ID3D11Device* pDevice)
     // export assets from memory into the internal .de3d format
     ModelExporter exporter;
 
-#if 0
-    for (index i = 2; i < numModels; ++i)
-    {
-        // if there is no such model in internal format we store it as asset
-        if (!fs::exists(g_RelPathAssetsDir + relativePathsToAssets[i]))
-        {
-            exporter.ExportIntoDE3D(pDevice, models_[i], relativePathsToAssets[i]);
-        }
-    }
-#endif
-
     size numModelsToExport = (numModels - 2);
     const index firstHalfRangeStart = 2;
     const index firstHalfRangeEnd = numModels / 2;
@@ -214,8 +203,11 @@ void ModelMgr::Deserialize(ID3D11Device* pDevice)
     LogDbg(LOG, "deserialization: finished");
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:  push an input model into the storage
+// Args:  - model:   a model which will be moved into the manager
+// Ret:   identifier of added model
+//---------------------------------------------------------
 ModelID ModelMgr::AddModel(BasicModel&& model)
 {
     // check if there is no such model id yet
@@ -234,13 +226,12 @@ ModelID ModelMgr::AddModel(BasicModel&& model)
     return id;
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   push a new empty model into the storage
+// Ret:    a ref to this new model
+//---------------------------------------------------------
 BasicModel& ModelMgr::AddEmptyModel()
 {
-    // push new empty model into the storage;
-    // return: a ref to this new model
-
     const ModelID id = lastModelID_;
     ++lastModelID_;
 
@@ -253,15 +244,14 @@ BasicModel& ModelMgr::AddEmptyModel()
     return model;
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Out:   array of pointers to models by input Ids
+//---------------------------------------------------------
 void ModelMgr::GetModelsByIDs(
     const ModelID* ids,
     const size numModels,
     cvector<const BasicModel*>& outModels)
 {
-    // out: array of pointers to models by input IDs
-
     CAssert::True(ids != nullptr, "input ptr to models IDs arr == nullptr");
     CAssert::True(numModels > 0,  "input number of models must be > 0");
 
@@ -276,23 +266,20 @@ void ModelMgr::GetModelsByIDs(
         outModels[i++] = &models_[idx];
 }
 
-///////////////////////////////////////////////////////////
-
-BasicModel& ModelMgr::GetModelByID(const ModelID id)
+//---------------------------------------------------------
+// return a model by ID, or invalid model (by idx == 0) if there is no such ID
+//---------------------------------------------------------
+BasicModel& ModelMgr::GetModelById(const ModelID id)
 {
-    // return a model by ID, or invalid model (by idx == 0) if there is no such ID
     const index idx = ids_.get_idx(id);
-    const bool exist = (ids_[idx] == id);
-
-    return models_[idx * exist];
+    return models_[idx * (ids_[idx] == id)];
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   get a model by input name
+//---------------------------------------------------------
 BasicModel& ModelMgr::GetModelByName(const char* name)
 {
-    // get a model by its input name
-
     if ((name == nullptr) || (name[0] == '\0'))
     {
         LogErr("input name is empty");
@@ -309,20 +296,18 @@ BasicModel& ModelMgr::GetModelByName(const char* name)
     LogErr(LOG, "there is no model by name: %s", name);
     return models_[0];                  
 }
-
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   get a model ID by input name
+//---------------------------------------------------------
 ModelID ModelMgr::GetModelIdByName(const char* name)
 {
-    // get a model ID by its input name
-
     if ((name == nullptr) || (name[0] == '\0'))
     {
         LogErr("input name is empty");
-        return ids_[0];                  // return empty model (actually cube)
+        return ids_[0];                     // return empty model (actually cube)
     }
 
-    for (index i = 0; i < std::ssize(models_); ++i)
+    for (vsize i = 0; i < models_.size(); ++i)
     {
         if (strcmp(models_[i].name_, name) == 0)
             return ids_[i];
@@ -333,12 +318,11 @@ ModelID ModelMgr::GetModelIdByName(const char* name)
     return ids_[0];
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   fill in the input array with names of the assets from the storage
+//---------------------------------------------------------
 void ModelMgr::GetModelsNamesList(cvector<ModelName>& names)
 {
-    // fill in the input array with names of the assets from the storage
-
     const int numNames = GetNumAssets();
     names.resize(numNames);
 

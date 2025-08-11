@@ -212,7 +212,6 @@ public:
         const Vec4& reflect) override;
 
     // get SRV (shader resource view)
-    virtual bool GetSRVByTexID      (const TexID textureID, SRV*& pSRV)                             const override;  // get SRV of a single texture by its ID
     virtual bool GetArrTexturesSRVs (SRV**& outArrShaderResourceViews, size& outNumViews)           const override;  // get array of all the textures SRVs
     virtual bool GetArrMaterialsSRVs(SRV**& outArrShaderResourceViews, size& outNumViews)           const override;  // get array of SRVs which contains visualization of materials (sphere + material)
 

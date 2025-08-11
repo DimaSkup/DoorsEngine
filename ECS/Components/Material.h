@@ -15,30 +15,32 @@
 namespace ECS
 {
 
+//---------------------------------------------------------
+// Desc:   set of materials per entity
+//         (where each subset/mesh of the model has its own material)
+//---------------------------------------------------------
 struct MaterialData
 {
     MaterialData() {}
 
     MaterialData(const MaterialID* ids, const size numMaterials)
     {
-        materialsIDs.resize(numMaterials);
-        std::copy(ids, ids + numMaterials, materialsIDs.begin());
+        assert((ids != nullptr) && (numMaterials > 0) && "invalid input data");
+
+        materialsIds.resize(numMaterials);
+        std::copy(ids, ids + numMaterials, materialsIds.begin());
     }
 
-    cvector<MaterialID> materialsIDs;
+    cvector<MaterialID> materialsIds;
 };
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
 // ECS component
+//---------------------------------------------------------
 struct Material
 {
     cvector<EntityID>     enttsIDs;
     cvector<MaterialData> data;
-
-    // a flag to define if all the materials (MaterialData) which are related to entity
-    // are based on related model (means related to entity)
-    cvector<bool>         flagsMeshBasedMaterials;  
 };
 
 }

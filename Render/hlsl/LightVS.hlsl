@@ -19,10 +19,10 @@ struct VS_IN
     uint               instanceID        : SV_InstanceID;
 
     // data per vertex
-    float3   posL       : POSITION;       // vertex position in local space
-    float2   tex        : TEXCOORD;
-    float3   normalL    : NORMAL;         // vertex normal in local space
-    float3   tangentL   : TANGENT;        // tangent in local space
+    float3   posL                        : POSITION;       // vertex position in local space
+    float2   tex                         : TEXCOORD;
+    float3   normalL                     : NORMAL;         // vertex normal in local space
+    float3   tangentL                    : TANGENT;        // tangent in local space
 };
 
 struct VS_OUT

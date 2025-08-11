@@ -509,10 +509,9 @@ void EntityMgr::AddRenderingComponent(const EntityID* ids, const size numEntts)
 //---------------------------------------------------------
 void EntityMgr::AddMaterialComponent(
     const EntityID enttId,
-    const MaterialID matId,
-    const bool isMaterialMeshBased)
+    const MaterialID matId)
 {
-    AddMaterialComponent(enttId, &matId, 1, isMaterialMeshBased);
+    AddMaterialComponent(enttId, &matId, 1);
 }
 
 //---------------------------------------------------------
@@ -524,8 +523,7 @@ void EntityMgr::AddMaterialComponent(
 void EntityMgr::AddMaterialComponent(
     const EntityID enttId,
     const MaterialID* materialsIds,
-    const size numSubmeshes,
-    const bool areMaterialsMeshBased)             
+    const size numSubmeshes)             
 {
     try
     {
@@ -535,7 +533,7 @@ void EntityMgr::AddMaterialComponent(
             return;
         }
         
-        materialSystem_.AddRecord(enttId, materialsIds, numSubmeshes, areMaterialsMeshBased);
+        materialSystem_.AddRecord(enttId, materialsIds, numSubmeshes);
         SetEnttHasComponent(enttId, MaterialComponent);
     }
     catch (EngineException& e)

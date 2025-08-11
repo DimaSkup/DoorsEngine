@@ -23,54 +23,25 @@ private:
 public:
     RenderDataPreparator();
 
-    void PrepareInstanceFromModel(
-        BasicModel& model,
-        Render::Instance& instance);
-
     void PrepareEnttsDataForRendering(
         const EntityID* enttsIds,
         const size numEntts,
         ECS::EntityMgr* pEnttMgr,
-        Render::InstBuffData& instanceBuffData,      // data for the instance buffer
-        cvector<Render::Instance>& instances);   // instances (models subsets) data for rendering
-
-    // ----------------------------------------------------
-
-    void PrepareInstancesData(
-        const EntityID* ids,
-        const size numEntts,
-        ECS::EntityMgr* pEnttMgr,
-        cvector<Render::Instance>& instances,
-        cvector<EntityID>&        outEnttsSortedByModels,
-        cvector<Render::Material>& outMaterialsSortedByInstances);
-
-    void PrepareInstanceData(const BasicModel& model, Render::Instance& instance);
+        Render::RenderDataStorage& storage);
 
 
 private:
-    void SeparateEnttsByMaterialGroups(
-        const ECS::EntityMgr& mgr,
-        const EntityID* ids,
-        const size numEntts,
-        cvector<EntityID>& outEnttsWithOrigMat,
-        cvector<EntityID>& outEnttsWithUniqueMat);
 
-    void PrepareInstancesForEntts(
-        ECS::EntityMgr& mgr,
-        const EntityID* ids,
+    void PrepareInstancesWorldMatrices(
+        const EntityID* enttsIds,
         const size numEntts,
-        cvector<Render::Instance>& instances,
-        cvector<EntityID>& outEnttsSortedByInstances);
+        Render::InstBuffData& instanceBuffData,         
+        const cvector<Render::InstanceBatch>& instances);
 
-    void PrepareInstancesForEnttsWithUniqueMaterials(
-        ECS::EntityMgr& mgr,
-        const EntityID* ids,
-        const size numEntts,
-        cvector<Render::Instance>& instances,
-        cvector<EntityID>& outEnttsSortedByInstances);
-
-    void PrepareTexturesForInstance(Render::Instance& instance);
-    void PrepareMaterialForInstance(const Render::Instance& instance, cvector<Render::Material>& outMat);
+    void PrepareInstancesMaterials(
+        Render::InstBuffData& instanceBuffData,
+        const cvector<EntityModelMesh>& instances,
+        const cvector<Render::Material>& materialsSortedByInstances);
 
 private:
     //constexpr int     numElems = 1028;

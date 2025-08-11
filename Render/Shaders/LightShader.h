@@ -33,12 +33,12 @@ public:
         const char* vsFilePath,
         const char* psFilePath);
 
-	void Render(
-		ID3D11DeviceContext* pContext,
-		ID3D11Buffer* pInstancedBuffer,
-		const Instance* instances,
-		const int numUniqueGeometry,
-		const UINT instancesBuffElemSize);
+    void Render(
+        ID3D11DeviceContext* pContext,
+        ID3D11Buffer* pInstancedBuffer,
+        const InstanceBatch& instances,
+        const UINT instancesBuffElemSize,
+        const UINT startInstanceLocation);
 
     void ShaderHotReload(
         ID3D11Device* pDevice,

@@ -21,14 +21,10 @@ public:
     MaterialSystem(Material* pMaterialComponent, NameSystem* pNameSys);
     ~MaterialSystem() {};
 
-    void Serialize(std::ofstream& fout, u32& offset);
-    void Deserialize(std::ifstream& fin, const u32 offset);
-
     void AddRecord(
         const EntityID enttID,
         const MaterialID* materialsIDs,
-        const size numSubmeshes,
-        const bool areMaterialsMeshBased);
+        const size numSubmeshes);
 
     void SetMaterial(
         const EntityID enttID,
@@ -36,25 +32,18 @@ public:
         const MaterialID matID);
 
 
-    const MaterialData& GetDataByEnttID(const EntityID enttID) const;
+    const MaterialData& GetDataByEnttId(const EntityID enttID) const;
 
-    void GetDataByEnttsIDs(
+    void GetDataByEnttsIds(
         const EntityID* ids,
         const size numEntts,
         cvector<MaterialData>& outMaterialsDataPerEntt);
-
-    void GetMaterialsFlagsByEntts(
-        const EntityID* ids,
-        const size numEntts,
-        cvector<bool>& outFlags) const;
 
 private:
     void CheckEnttsHaveMaterialComponent(
         const EntityID* ids,
         const index* idxs,
         const size numEntts) const;
-
-    const char* GenerateErrMsgNotHaveComponent(const EntityID id) const;
 
 private:
     Material*   pMaterialComponent_ = nullptr;

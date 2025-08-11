@@ -17,19 +17,17 @@
 #include <d3d11.h>
 #include <DirectXMath.h>
 
-
 #pragma warning (disable : 4996)
+
 
 namespace Render
 {
 
-constexpr int SUBSET_NAME_LENGTH_LIMIT = 32;
-
-
 // =================================================================================
-// TYPEDEFS
+// DEFINES / TYPEDEFS / CONSTANTS
 // =================================================================================
 using SRV = ID3D11ShaderResourceView;
+constexpr int SUBSET_NAME_LENGTH_LIMIT = 32;
 
 
 // =================================================================================
@@ -54,22 +52,25 @@ enum eDebugState
     DBG_SHOW_MATERIAL_REFLECTION,
 };
 
-enum EnttsSetType
-{
-    DEFAULT,                // fill solid, cull back, no blending, no alpha clipping
-    ALPHA_CLIP_CULL_NONE,
-    BLENDED,
-    ANOTHER
-};
-
 
 // =================================================================================
 // STRUCTURES
 // =================================================================================
+
+//---------------------------------------------------------
+// Desc:   a container for entities materials (its part: textures + render states)
+//---------------------------------------------------------
+struct MaterialDataForBinding
+{
+    uint32 properties;                        // bitfild about render states
+    SRV*   texturesSRVs[NUM_TEXTURE_TYPES];   // textures of this material
+};
+
+//---------------------------------------------------------
+// Desc:   a container for data which is updated each frame
+//---------------------------------------------------------
 struct PerFrameData
 {
-    // constains data which is updated each frame
-
     // common data
     DirectX::XMMATRIX WVO;                       // is used for 2D rendering (world * basic_view * ortho)
     DirectX::XMMATRIX proj;
@@ -88,6 +89,7 @@ struct PerFrameData
     float             deltaTime      = 0;        // time passed since the previous frame
     float             totalGameTime  = 0;        // time passed since the start of the application
 
+    //-------------------------------------------
 
     void ResizeLightData(
         const int nDirLights,                    // number of dir lights
@@ -98,7 +100,12 @@ struct PerFrameData
         if (nDirLights > numDirLights)
         {
             SafeDeleteArr(dirLights);
-            dirLights = new DirLight[nDirLights];
+
+            dirLights = NEW DirLight[nDirLights];
+            if (!dirLights)
+            {
+                LogErr(LOG, "can't allocate memory for directed lights data buffer");
+            }
         }
         numDirLights = nDirLights;
 
@@ -107,7 +114,12 @@ struct PerFrameData
         if (nPointLights > numPointLights)
         {
             SafeDeleteArr(pointLights);
-            pointLights = new PointLight[nPointLights];
+
+            pointLights = NEW PointLight[nPointLights];
+            if (!pointLights)
+            {
+                LogErr(LOG, "can't allocate memory for point lights data buffer");
+            }
         }
         numPointLights = nPointLights;
 
@@ -115,7 +127,12 @@ struct PerFrameData
         if (nSpotLights > numSpotLights)
         {
             SafeDeleteArr(spotLights);
-            spotLights = new SpotLight[nSpotLights];
+
+            spotLights = NEW SpotLight[nSpotLights];
+            if (!spotLights)
+            {
+                LogErr(LOG, "can't allocate memory for spotlights data buffer");
+            }
         }
         numSpotLights = nSpotLights;
     }
@@ -127,13 +144,16 @@ struct PerFrameData
 class InstBuffData
 {
 public:
+    DirectX::XMMATRIX* worlds_    = nullptr;  
+    Material*          materials_ = nullptr;  // material color data
 
-    InstBuffData() {}
+private:
+    int                capacity_ = 0;         // how many elements we can put into this buffer
+    int                size_ = 0;             // the current number of data elements
 
-    ~InstBuffData()
-    {
-        Shutdown();
-    }
+public:
+    InstBuffData()  {}
+    ~InstBuffData() { Shutdown(); }
 
     // ---------------------------------------------------
 
@@ -188,58 +208,43 @@ public:
     // ---------------------------------------------------
 
     inline const int GetSize() const { return size_; }
-
-public:
-    DirectX::XMMATRIX* worlds_ = nullptr;
-    Material*          materials_ = nullptr;
-
-private:
-    int                capacity_ = 0;   // how many elements we can put into this buffer
-    int                size_ = 0;       // the current number of data elements
 };
 //---------------------------------------------------------
 // Desc:   a container for subset (mesh) data of the model
 //---------------------------------------------------------
 struct Subset
 {
-    char    name[SUBSET_NAME_LENGTH_LIMIT] {'\0'};  // for debugging
-    uint32  vertexStart = 0;                        // start pos of vertex in the common buffer
-    uint32  vertexCount = 0;                        // how many vertices this subset has
-    uint32  indexStart = 0;                         // start pos of index in the common buffer
-    uint32  indexCount = 0;                         // how many indices this subset has
+    char    name[SUBSET_NAME_LENGTH_LIMIT] {'\0'};       // for debugging
+    uint32  vertexStart = 0;                             // start pos of vertex in the common buffer
+    uint32  vertexCount = 0;                             // how many vertices this subset has
+    uint32  indexStart = 0;                              // start pos of index in the common buffer
+    uint32  indexCount = 0;                              // how many indices this subset has
 };
 
 //---------------------------------------------------------
-// Desc:   a data container of a single rendering instance
+// Desc:   a data container for rendering instances
+//         (instance is a set of geometry with some rendering states:
+//          it can be a simple box with a single subset/mesh and single material)
 //---------------------------------------------------------
-struct Instance
+struct InstanceBatch
 {
-    char                name[32]{ '\0' };
-    int                 numInstances = 0;  // how many instances will be rendered
-    UINT                vertexStride = 0;  // size in bytes of a single vertex
+    int                    numInstances = 0;             // how many times this instance will be rendered (at different positions)
+    UINT                   vertexStride = 0;             // size in bytes of a single vertex
 
-    ID3D11Buffer*       pVB = nullptr;     // vertex buffer
-    ID3D11Buffer*       pIB = nullptr;     // index buffer
-    cvector<SRV*>       texSRVs;           // textures arr for each mesh
-    cvector<Subset>     subsets;           // subInstance (mesh) data
-    cvector<uint32_t>   materialIDs;
-    
-    // --------------------------------
+    ID3D11Buffer*          pVB = nullptr;                // vertex buffer
+    ID3D11Buffer*          pIB = nullptr;                // index buffer
+    Subset                 subset;                       // mesh metadata
+    uint32                 renderStates;                 // a bitfield about render states of the current material
+    SRV*                   textures[NUM_TEXTURE_TYPES];  // textures of this material
+
+    // debug data
+    char                   name[32]{ '\0' };
+    SubsetID               subsetId = 1000;
+
 
     inline int GetNumVertices() const
     {
-        return subsets.back().vertexStart + subsets.back().vertexCount;
-    }
-
-    // --------------------------------
-    
-    inline void Clear()
-    {
-        pVB = nullptr;
-        pIB = nullptr;
-        texSRVs.clear();
-        subsets.clear();
-        materialIDs.clear();
+        return subset.vertexCount;
     }
 };
 
@@ -252,6 +257,7 @@ struct SkyInstance
     UINT              vertexStride = 0;             // size in bytes of a single vertex
     ID3D11Buffer*     pVB = nullptr;                // vertex buffer
     ID3D11Buffer*     pIB = nullptr;                // index buffer
+    uint32            renderStates;                 // a bitfield about render states of the current material
     SRV*              texSRVs[NUM_TEXTURE_TYPES];   // textures arr
     DirectX::XMFLOAT3 colorCenter;                  // horizon sky color (for gradient)
     DirectX::XMFLOAT3 colorApex;                    // top sky color (for gradient)
@@ -282,12 +288,18 @@ struct RenderDataStorage
 {
     void Clear()
     {
-        modelInstances.clear();
+        masked.clear();
+        opaque.clear();
+        blended.clear();
+        blendedTransparent.clear();
     }
 
-    InstBuffData          modelInstBuffer;
+    InstBuffData                instancesBuf;
 
-    cvector<Instance> modelInstances;              // models with default render states
+    cvector<InstanceBatch>      masked;                // grass, foliage, wireframe, etc.
+    cvector<InstanceBatch>      opaque;                // fully opaque geometry
+    cvector<InstanceBatch>      blended;               // blended geometry (add/sub/mul)
+    cvector<InstanceBatch>      blendedTransparent;    // blended geometry with transparency
 };
 
 }  // namespace

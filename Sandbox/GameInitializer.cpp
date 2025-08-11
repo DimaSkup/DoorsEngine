@@ -217,13 +217,13 @@ void GameInitializer::InitPlayer(ID3D11Device* pDevice, ECS::EntityMgr* pEnttMgr
     const MeshSphereParams sphereParams(1, 20, 20);
     ModelsCreator creator;
     const ModelID sphereID = creator.CreateSphere(pDevice, sphereParams);
-    BasicModel& sphere     = g_ModelMgr.GetModelByID(sphereID);
+    BasicModel& sphere     = g_ModelMgr.GetModelById(sphereID);
 
     pEnttMgr->AddModelComponent(playerID, sphere.GetID());
 
     // setup material (light properties + textures) for the player entity
     MaterialID catMatID = g_MaterialMgr.GetMatIdByName("cat");
-    pEnttMgr->AddMaterialComponent(playerID, catMatID, false);
+    pEnttMgr->AddMaterialComponent(playerID, catMatID);
 
     // ------------------------------------------
 
@@ -398,17 +398,17 @@ void CreateSpheres(ECS::EntityMgr& mgr, const BasicModel& model)
 
 
     // add material for each sphere entity
-    const MaterialID matID      = model.meshes_.subsets_[0].materialID;
+    const MaterialID matID      = model.meshes_.subsets_[0].materialId;
     const MaterialID catMatID   = g_MaterialMgr.GetMatIdByName("cat");
     const MaterialID brickMatId = g_MaterialMgr.GetMatIdByName("brick_01");
     constexpr bool areMaterialsMeshBased = true;
 
     // specify material for some entities
-    mgr.AddMaterialComponent(enttsIDs[0], catMatID, false);
-    mgr.AddMaterialComponent(enttsIDs[1], brickMatId, false);
+    mgr.AddMaterialComponent(enttsIDs[0], catMatID);
+    mgr.AddMaterialComponent(enttsIDs[1], brickMatId);
 
     for (index i = 2; i < numEntts; ++i)
-        mgr.AddMaterialComponent(enttsIDs[i], matID, areMaterialsMeshBased);
+        mgr.AddMaterialComponent(enttsIDs[i], matID);
 
     // setup a texture transformation for the sphere
     ECS::StaticTexTransInitParams sphereTexTransform;
@@ -577,13 +577,10 @@ void CreateCylinders(ECS::EntityMgr& mgr, const BasicModel& model)
     mgr.AddTransformComponent(ids, numEntts, positions, dirQuats, uniformScales);
 
     // each cylinder has only one mesh
-    constexpr int  numSubmeshes = 1;
-    constexpr bool areMaterialsMeshBased = false;
-
     const MaterialID brickMatID = g_MaterialMgr.GetMatIdByName("brick_01");
 
     for (const EntityID id : enttsIDs)
-        mgr.AddMaterialComponent(id, &brickMatID, numSubmeshes, areMaterialsMeshBased);
+        mgr.AddMaterialComponent(id, brickMatID);
 
     mgr.AddNameComponent(ids, names, numEntts);
     mgr.AddRenderingComponent(ids, numEntts);
@@ -665,22 +662,14 @@ void CreateCubes(ECS::EntityMgr& mgr, const BasicModel& model)
         mgr.AddTransformComponent(ids, numEntts, positions, dirQuats, uniformScales);
         mgr.AddModelComponent(ids, model.GetID(), numEntts);
 
-        // the cube has only one submesh
-        constexpr int numSubmeshes = 1;
+        // add a material component to each box
+        mgr.AddMaterialComponent(enttIdCat,         g_MaterialMgr.GetMatIdByName("cat"));
+        mgr.AddMaterialComponent(enttIdFireflame,   g_MaterialMgr.GetMatIdByName("firecamp"));
+        mgr.AddMaterialComponent(enttIdBox01,       g_MaterialMgr.GetMatIdByName("box01"));
 
-        // add material component to each box
-        constexpr bool matIsMeshBased    = true;
-        constexpr bool matIsNotMeshBased = false;
-
-
-        mgr.AddMaterialComponent(enttIdCat,         g_MaterialMgr.GetMatIdByName("cat"), matIsNotMeshBased);
-        mgr.AddMaterialComponent(enttIdFireflame,   g_MaterialMgr.GetMatIdByName("firecamp"),   matIsNotMeshBased);
-        mgr.AddMaterialComponent(enttIdBox01,       g_MaterialMgr.GetMatIdByName("box01"), matIsMeshBased);
-
-        // add material component (each material is unique)
-        mgr.AddMaterialComponent(enttIdWireFence,   g_MaterialMgr.GetMatIdByName("wirefence"),  matIsNotMeshBased);
-        mgr.AddMaterialComponent(enttIdWoodCrate01, g_MaterialMgr.GetMatIdByName("wood_crate_1"), matIsNotMeshBased);
-        mgr.AddMaterialComponent(enttIdWoodCrate02, g_MaterialMgr.GetMatIdByName("wood_crate_2"), matIsNotMeshBased);
+        mgr.AddMaterialComponent(enttIdWireFence,   g_MaterialMgr.GetMatIdByName("wirefence"));
+        mgr.AddMaterialComponent(enttIdWoodCrate01, g_MaterialMgr.GetMatIdByName("wood_crate_1"));
+        mgr.AddMaterialComponent(enttIdWoodCrate02, g_MaterialMgr.GetMatIdByName("wood_crate_2"));
 
         // ------------------------------------------
 
@@ -730,19 +719,16 @@ void CreateTerrain(ECS::EntityMgr& mgr, const Core::TerrainGeomip& terrain)
 
     // setup bounding params
     constexpr size             numEntts = 1;
-    constexpr size             numSubsets = 1;
     const ECS::BoundingType    boundType = ECS::BoundingType::BOUND_BOX;
     const DirectX::BoundingBox aabb = { terrain.center_, terrain.extents_ };
 
     // setup material params
-    constexpr bool areMaterialsMeshBased = true;
     const MaterialID terrainMatID = terrain.materialID_;
-
 
     mgr.AddTransformComponent(enttID);
     mgr.AddNameComponent(enttID, "terrain_geomipmap");
     mgr.AddBoundingComponent(enttID, boundType, aabb);
-    mgr.AddMaterialComponent(enttID, &terrainMatID, numSubsets, areMaterialsMeshBased);
+    mgr.AddMaterialComponent(enttID, terrain.materialID_);
 
     LogDbg(LOG, "Terrain (geomipmap) is created");
 }
@@ -907,13 +893,13 @@ void CreateTreesPine(ECS::EntityMgr& mgr, const BasicModel& model)
     const MeshGeometry::Subset* subsets        = model.meshes_.subsets_;
     const MaterialID materialIDs[numSubsets] =
     {
-        subsets[0].materialID,
-        subsets[1].materialID,
-        subsets[2].materialID
+        subsets[0].materialId,
+        subsets[1].materialId,
+        subsets[2].materialId
     };
 
     for (index i = 0; i < numEntts; ++i)
-        mgr.AddMaterialComponent(ids[i], materialIDs, numSubsets, matIsMeshBased);
+        mgr.AddMaterialComponent(ids[i], materialIDs, numSubsets);
 }
 
 ///////////////////////////////////////////////////////////
@@ -926,7 +912,7 @@ void CreateTreesSpruce(ECS::EntityMgr& mgr)
     ModelsCreator creator;
     const char* pathTreeSpruce = "data/models/ext/trees/tree_spruce/tree_spruce.obj";
     const ModelID treeSpruceID = creator.ImportFromFile(g_pDevice, pathTreeSpruce);
-    BasicModel& model          = g_ModelMgr.GetModelByID(treeSpruceID);
+    BasicModel& model          = g_ModelMgr.GetModelById(treeSpruceID);
     SetupTreeSpruce(model);
 
     constexpr int numEntts = 50;
@@ -1060,12 +1046,10 @@ void CreatePowerLine(ECS::EntityMgr& mgr, BasicModel& model)
 
     // ----------------------------------------------------
 
-    const MaterialID matID = model.meshes_.subsets_[0].materialID;
-    constexpr size numSubmeshes = 1;
-    constexpr bool isMatMeshBased = true;
+    const MaterialID matID = model.meshes_.subsets_[0].materialId;
 
     for (const EntityID enttID : enttsIDs)
-        mgr.AddMaterialComponent(enttID, &matID, numSubmeshes, isMatMeshBased);
+        mgr.AddMaterialComponent(enttID, matID);
 }
 
 ///////////////////////////////////////////////////////////
@@ -1087,11 +1071,10 @@ void CreateRadar(ECS::EntityMgr& mgr, const BasicModel& model)
     const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
 
     // setup materials params
-    constexpr bool areMaterialsMeshBased = true;
     cvector<MaterialID> materialIDs(numSubsets);
 
     for (index i = 0; i < numSubsets; ++i)
-        materialIDs[i] = model.meshes_.subsets_[i].materialID;
+        materialIDs[i] = model.meshes_.subsets_[i].materialId;
 
 
     // add components
@@ -1106,7 +1089,7 @@ void CreateRadar(ECS::EntityMgr& mgr, const BasicModel& model)
         boundTypes.data(),
         model.GetSubsetsAABB());             // AABB data (center, extents)
 
-    mgr.AddMaterialComponent(enttID, materialIDs.data(), numSubsets, areMaterialsMeshBased);
+    mgr.AddMaterialComponent(enttID, materialIDs.data(), numSubsets);
 
     // rotate the stalker entity
     const XMVECTOR rotQuat = DirectX::XMQuaternionRotationAxis({ 1,0,0 }, DirectX::XM_PIDIV2);
@@ -1132,11 +1115,10 @@ void CreateStalkerFreedom(ECS::EntityMgr& mgr, const BasicModel& model)
     const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
 
     // setup materials params
-    constexpr bool areMaterialsMeshBased = true;
     cvector<MaterialID> materialIDs(numSubsets);
 
     for (index i = 0; i < numSubsets; ++i)
-        materialIDs[i] = model.meshes_.subsets_[i].materialID;
+        materialIDs[i] = model.meshes_.subsets_[i].materialId;
 
 
     // add components
@@ -1151,7 +1133,7 @@ void CreateStalkerFreedom(ECS::EntityMgr& mgr, const BasicModel& model)
         boundTypes.data(),
         model.GetSubsetsAABB());             // AABB data (center, extents)
 
-    mgr.AddMaterialComponent(enttID, materialIDs.data(), numSubsets, areMaterialsMeshBased);
+    mgr.AddMaterialComponent(enttID, materialIDs.data(), numSubsets);
 
     // rotate the stalker entity
     const XMVECTOR rotQuat = DirectX::XMQuaternionRotationAxis({ 1,0,0 }, DirectX::XM_PIDIV2);
@@ -1177,11 +1159,10 @@ void CreateTraktor13(ECS::EntityMgr& mgr, const BasicModel& model)
     const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
 
     // setup materials params
-    constexpr bool areMaterialsMeshBased = true;
     cvector<MaterialID> materialIDs(numSubsets);
 
     for (index i = 0; i < numSubsets; ++i)
-        materialIDs[i] = model.meshes_.subsets_[i].materialID;
+        materialIDs[i] = model.meshes_.subsets_[i].materialId;
 
 
     // add components
@@ -1196,7 +1177,7 @@ void CreateTraktor13(ECS::EntityMgr& mgr, const BasicModel& model)
         boundTypes.data(),
         model.GetSubsetsAABB());             // AABB data (center, extents)
 
-    mgr.AddMaterialComponent(enttID, materialIDs.data(), numSubsets, areMaterialsMeshBased);
+    mgr.AddMaterialComponent(enttID, materialIDs.data(), numSubsets);
 
     // rotate the stalker entity
     const XMVECTOR rotQuat = DirectX::XMQuaternionRotationAxis({ 1,0,0 }, DirectX::XM_PIDIV2);
@@ -1355,7 +1336,7 @@ void CreateAk47(ECS::EntityMgr& mgr, const BasicModel& model)
     MaterialID materialsIDs[numSubsets]{ 0 };
 
     for (index i = 0; i < numSubsets; ++i)
-        materialsIDs[i] = model.meshes_.subsets_[i].materialID;
+        materialsIDs[i] = model.meshes_.subsets_[i].materialId;
 
     // ----------------------------------------------------
 
@@ -1371,8 +1352,7 @@ void CreateAk47(ECS::EntityMgr& mgr, const BasicModel& model)
         boundTypes,
         model.GetSubsetsAABB());      // AABB data (center, extents)
 
-    constexpr bool areMaterialsMeshBased = true;
-    mgr.AddMaterialComponent(enttID, materialsIDs, numSubsets, areMaterialsMeshBased);
+    mgr.AddMaterialComponent(enttID, materialsIDs, numSubsets);
 }
 
 ///////////////////////////////////////////////////////////
@@ -1410,13 +1390,13 @@ void CreateSword(ECS::EntityMgr& mgr, const BasicModel& model)
         boundTypes.data(),
         model.GetSubsetsAABB());      // AABB data (center, extents)
 
-    constexpr bool areMaterialsMeshBased = true;
-    const MaterialID matId = model.meshes_.subsets_[0].materialID;
-    Material& mat = g_MaterialMgr.GetMatById(matId);
+    // setup a sword material and add a material component to entity
+    const MaterialID matId = model.meshes_.subsets_[0].materialId;
+    Material& mat          = g_MaterialMgr.GetMatById(matId);
     mat.SetName("sword_mat");
     mat.SetSpecular(0.5f, 0.5f, 0.5f);
     mat.SetReflection(0, 0, 0, 0);
-    mgr.AddMaterialComponent(enttID, &matId, numSubsets, areMaterialsMeshBased);
+    mgr.AddMaterialComponent(enttID, &matId, numSubsets);
 }
 
 
@@ -1428,10 +1408,10 @@ void CreateCastleTower(ECS::EntityMgr& mgr)
     ModelsCreator creator;
     const char* pathCastleTower = "data/models/ext/castle-tower/fougeres gate.obj";
     const ModelID castleTowerID = creator.ImportFromFile(g_pDevice, pathCastleTower);
-    BasicModel& model           = g_ModelMgr.GetModelByID(castleTowerID);
+    BasicModel& model           = g_ModelMgr.GetModelById(castleTowerID);
 
     // setup a material of the castle tower
-    const MaterialID matId = model.meshes_.subsets_[0].materialID;
+    const MaterialID matId = model.meshes_.subsets_[0].materialId;
     Material& mat = g_MaterialMgr.GetMatById(matId);
     mat.SetSpecular(0.2f, 0.2f, 0.2f);
     mat.SetSpecularPower(15.0f);
@@ -1474,8 +1454,7 @@ void CreateCastleTower(ECS::EntityMgr& mgr)
         boundTypes.data(),
         model.GetSubsetsAABB());      // AABB data (center, extents)
 
-    constexpr bool areMaterialsMeshBased = true;
-    mgr.AddMaterialComponent(enttID, &matId, numSubsets, areMaterialsMeshBased);
+    mgr.AddMaterialComponent(enttID, &matId, numSubsets);
 
     // TEMP: fix rotation
     const DirectX::XMVECTOR rotQuat = DirectX::XMQuaternionRotationAxis({ 1,0,0 }, -DirectX::XM_PIDIV2+0.1f);
@@ -1517,9 +1496,8 @@ void CreateAk74(ECS::EntityMgr& mgr, const BasicModel& model)
         boundTypes.data(),
         model.GetSubsetsAABB());      // AABB data (center, extents)
 
-    constexpr bool areMaterialsMeshBased = true;
-    const MaterialID matID = model.meshes_.subsets_[0].materialID;
-    mgr.AddMaterialComponent(enttID, &matID, numSubsets, areMaterialsMeshBased);
+    const MaterialID matID = model.meshes_.subsets_[0].materialId;
+    mgr.AddMaterialComponent(enttID, &matID, numSubsets);
 }
 
 ///////////////////////////////////////////////////////////
@@ -1586,104 +1564,13 @@ void CreateHouse2(ECS::EntityMgr& mgr, const BasicModel& model)
         model.GetSubsetsAABB());             // AABB data (center, extents)
 }
 
-///////////////////////////////////////////////////////////
-
-void CreateRocks(ECS::EntityMgr& mgr, const BasicModel& model)
-{
-    LogDbg(LOG, "create rock entities");
-
-    constexpr int numEntts = 20;
-    const cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
-    const EntityID* ids = enttsIDs.data();
-
-    XMFLOAT3    positions[numEntts];
-    XMVECTOR    quats[numEntts];
-    float       uniformScales[numEntts];
-    std::string names[numEntts];
-
-
-    // setup transformation params
-    for (XMFLOAT3& pos : positions)
-    {
-        pos.x = MathHelper::RandF(-250.0f, 250.0f);
-        pos.z = MathHelper::RandF(-250.0f, 250.0f);
-        pos.y = GetHeightOfGeneratedTerrainAtPoint(pos.x, pos.z);
-    }
-
-    // apply the same rotation to each entt
-    for (XMVECTOR& quat : quats)
-        quat = { 0,0,0,1 };
-
-    // apply the same scale to each entt
-    for (float& scale : uniformScales)
-        scale = 1.0f;
-
-    // generate names for entts
-    for (int i = 0; std::string & name : names)
-        name = "rock_" + std::to_string(enttsIDs[i++]);
-
-    // setup bounding params
-    const size numSubsets = model.GetNumSubsets();
-    const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
-
-
-    mgr.AddTransformComponent(ids, numEntts, positions, quats, uniformScales);
-    mgr.AddNameComponent(ids, names, numEntts);
-    mgr.AddModelComponent(ids, model.GetID(), numEntts);
-    mgr.AddRenderingComponent(ids, numEntts);
-
-    mgr.AddBoundingComponent(
-        ids,
-        numEntts,
-        numSubsets,
-        boundTypes.data(),
-        model.GetSubsetsAABB());             // AABB data (center, extents)
-}
-
-///////////////////////////////////////////////////////////
-
-void CreatePillar(ECS::EntityMgr& mgr, const BasicModel& model)
-{
-    LogDbg(LOG, "Create pillar entities");
-
-    const EntityID enttID = mgr.CreateEntity();
-
-    // setup transformation params
-    const XMVECTOR quat = { 0,0,0,1 };
-    const float uniformScale = 1.0f;
-    XMFLOAT3 pos;
-    pos.x = MathHelper::RandF(-250, 250);
-    pos.z = MathHelper::RandF(-250, 250);
-    pos.y = GetHeightOfGeneratedTerrainAtPoint(pos.x, pos.z);
-
-    // setup bounding params
-    const size numEntts = 1;
-    const size numSubsets = model.GetNumSubsets();
-    const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
-
-
-    mgr.AddTransformComponent(enttID, pos, { 0,0,0,1 }, 1.0f);
-    mgr.AddNameComponent(enttID, "pillar_" + std::to_string(enttID));
-    mgr.AddModelComponent(enttID, model.GetID());
-    mgr.AddRenderingComponent(enttID);
-
-    mgr.AddBoundingComponent(
-        &enttID,
-        numEntts,
-        numSubsets,
-        boundTypes.data(),
-        model.GetSubsetsAABB());             // AABB data (center, extents)
-}
-
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// print into the console information about the duration of the whole
+// process of importing models from the external formats
+//---------------------------------------------------------
 void PrintImportTimingInfo()
 {
-    // print into the console information about the duration of the whole
-    // process of importing models from the external formats
-
     const double factor = (1.0 / ModelImporter::s_ImportDuration_) * 100.0;
-
 
     SetConsoleColor(GREEN);
 
@@ -1776,7 +1663,7 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
 #if CREATE_TREES
 
     
-    BasicModel& treePine        = g_ModelMgr.GetModelByID(treePineID);
+    BasicModel& treePine        = g_ModelMgr.GetModelById(treePineID);
 #endif
     //BasicModel& powerHVTower    = g_ModelMgr.GetModelByID(powerHVTowerID);
     //BasicModel& stalkerFreedom  = g_ModelMgr.GetModelByID(stalkerFreedomID);
@@ -1785,7 +1672,7 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     //BasicModel& stalkerHouse2   = g_ModelMgr.GetModelByID(stalkerHouse2ID);
     //BasicModel& ak47            = g_ModelMgr.GetModelByID(ak47ID);
 #if CREATE_SWORD
-    BasicModel& sword           = g_ModelMgr.GetModelByID(swordID);
+    BasicModel& sword           = g_ModelMgr.GetModelById(swordID);
 #endif
     //BasicModel& ak74            = g_ModelMgr.GetModelByID(ak74ID);
 #if CREATE_CASTLE
@@ -1929,10 +1816,10 @@ void GenerateEntities(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     const ModelID cylinderID    = creator.CreateCylinder(pDevice, cylParams);
 
     // get actual model by its ID
-    BasicModel& cube        = g_ModelMgr.GetModelByID(cubeID);
-    BasicModel& sphere      = g_ModelMgr.GetModelByID(sphereID);
-    BasicModel& boundSphere = g_ModelMgr.GetModelByID(boundSphereID);
-    BasicModel& cylinder    = g_ModelMgr.GetModelByID(cylinderID);
+    BasicModel& cube        = g_ModelMgr.GetModelById(cubeID);
+    BasicModel& sphere      = g_ModelMgr.GetModelById(sphereID);
+    BasicModel& boundSphere = g_ModelMgr.GetModelById(boundSphereID);
+    BasicModel& cylinder    = g_ModelMgr.GetModelById(cylinderID);
 
     // set names for some models
     cube.SetName("basic_cube");
@@ -1999,7 +1886,7 @@ bool GameInitializer::InitModelEntities(ID3D11Device* pDevice, ECS::EntityMgr& m
 
         // create a cube which will serve for us as an invalid model
         const ModelID cubeID = creator.CreateCube(pDevice);
-        BasicModel& invalidModel = g_ModelMgr.GetModelByID(cubeID);
+        BasicModel& invalidModel = g_ModelMgr.GetModelById(cubeID);
 
         invalidModel.SetName("invalid_model");
         invalidModel.SetMaterialForSubset(0, invalidMat.id);

@@ -25,431 +25,149 @@ cvector<const BasicModel*>          s_Models;
 cvector<ECS::MaterialData>          s_MaterialsDataPerEntt;
 cvector<ID3D11ShaderResourceView*>  textureSRVs_(1024, nullptr);
 
+// static pointer to ECS entity manager (for internal purposes)
+ECS::EntityMgr* s_pEnttMgr = nullptr;
+
 
 RenderDataPreparator::RenderDataPreparator()
 {}
 
-///////////////////////////////////////////////////////////
-
-void PrepareInstancesWorldMatrices(
-    ECS::EntityMgr* pEnttMgr,
-    const EntityID* enttsSortedByModels,
-    const size numEntts,
-    Render::InstBuffData& instanceBuffData,                 // data for the instances buffer
-    const cvector<Render::Instance>& instances)     // instances (models) data for rendering
-{
-    // prepare world matrix for each subset (mesh) of each entity
-    s_Worlds.clear();
-
-    pEnttMgr->transformSystem_.GetWorlds(enttsSortedByModels, numEntts, s_Worlds);
-
-    for (int worldIdx = 0, i = 0; const Render::Instance & instance : instances)
-    {
-        // currently: set the same world matrix for each subset (mesh) of the entity
-        for (int subsetIdx = 0; subsetIdx < instance.subsets.size(); ++subsetIdx)
-        {
-            memcpy(&(instanceBuffData.worlds_[i]), &(s_Worlds[worldIdx]), sizeof(DirectX::XMMATRIX) * instance.numInstances);
-            i += instance.numInstances;
-        }
-        worldIdx += instance.numInstances;
-    }
-}
-
-///////////////////////////////////////////////////////////
-
-void PrepareInstancesMaterials(
-    Render::InstBuffData& instanceBuffData,
-    const cvector<Render::Instance>& instances,
-    const cvector<Render::Material>& materialsSortedByInstances)
-{
-    int materialIdx = 0;
-
-    // for each instance
-    for (int i = 0; const Render::Instance& instance : instances)
-    {
-        // for each subset
-        for (index subsetIdx = 0; subsetIdx < instance.subsets.size(); ++subsetIdx)
-        {
-            // set the same material numInstances times (arr of the same geometry and material)
-            for (int j = 0; j < instance.numInstances; ++j)
-            {
-                instanceBuffData.materials_[i++] = materialsSortedByInstances[materialIdx];
-            }
-            materialIdx++;
-        }
-    }
-}
-
-///////////////////////////////////////////////////////////
-
+//----------------------------------------------------------------------------------
+// Desc:   prepare instances data and instances buffer for rendering
+//         entities by input IDs
+//
+// Args:   - enttsIds:         entities by these ids will be rendered onto the screen
+//         - numEntts:         how many entts we want to render
+//         - pEnttMgr:         a ptr to ECS entity manager
+//         - instanceBufData:  data for the instances buffer
+//         - instances:        models data for rendering
+//----------------------------------------------------------------------------------
 void RenderDataPreparator::PrepareEnttsDataForRendering(
     const EntityID* enttsIds,
     const size numEntts,
     ECS::EntityMgr* pEnttMgr,
-    Render::InstBuffData& instanceBuffData,         // data for the instances buffer
-    cvector<Render::Instance>& instances)       // instances (models) data for rendering
+    Render::RenderDataStorage& storage)
 {
-    // prepare instances data and instances buffer for rendering entities by input IDs;
-
     CAssert::True(enttsIds != nullptr, "input ptr to entities IDs arr == nullptr");
     CAssert::True(numEntts > 0,        "input number of entities must be > 0");
 
-    // get data of models which are related to the input entts
-    enttsSortedByInstances_.resize(0);
-    materialsSortedByInstances_.resize(0);
+    s_pEnttMgr = pEnttMgr;
 
-    PrepareInstancesData(
-        enttsIds,
-        numEntts,
-        pEnttMgr,
-        instances,
-        enttsSortedByInstances_,
-        materialsSortedByInstances_);
 
-    // compute num of instances for the instanced buffer
-    int numElems = 0;
+    //--------------------------------------------------------------------
 
-    for (const Render::Instance& instance : instances)
-        numElems += (instance.numInstances * (int)std::ssize(instance.subsets));
+    vsize numEntities = 2;
+    vsize numInstances = 0;
 
-    // prepare memory for instances transient data buffer
-    instanceBuffData.Resize(numElems);
+    // get materials ids for each subset of each input entity
+    pEnttMgr->materialSystem_.GetDataByEnttsIds(enttsIds, numEntities, s_MaterialsDataPerEntt);
 
-    // prepare world matrix for each mesh of each instance
+
+    // compute the number of instances
+    for (const ECS::MaterialData& matData : s_MaterialsDataPerEntt)
+    {
+        numInstances += matData.materialsIds.size();
+    }
+
+    cvector<EntityModelMesh> data(numInstances);
+
+    for (int i = 0; i < numEntities; ++i)
+    {
+        data[i].enttId   = enttsIds[i];
+        data[i].matId    = s_MaterialsDataPerEntt[i].materialsIds[0];        // get material for subset 0
+        data[i].subsetId = 0;
+        data[i].modelId  = pEnttMgr->modelSystem_.GetModelIdRelatedToEntt(data[i].enttId);
+    }
+
+
+    //--------------------------------------------------------------------
+
+    // prepare instance batch
+
+    cvector<Render::InstanceBatch>& instancesBatch = storage.opaque;
+    instancesBatch.reserve(128);
+
+    // prepare geometry data for each instance batch
+    for (int i = 0; i < numEntities; ++i)
+    {
+        const BasicModel&           model  = g_ModelMgr.GetModelById(data[i].modelId);
+        const MeshGeometry&         meshes = model.meshes_;
+        const MeshGeometry::Subset& subset = meshes.subsets_[0];
+
+
+        instancesBatch.push_back(Render::InstanceBatch());
+
+        Render::InstanceBatch& instances = instancesBatch.back();
+
+        strcpy(instances.name, model.name_);
+        instances.vertexStride = meshes.vb_.GetStride();
+        instances.pVB = meshes.vb_.Get();
+        instances.pIB = meshes.ib_.Get();
+
+        instances.subset.vertexStart = subset.vertexStart;
+        instances.subset.vertexCount = subset.vertexCount;
+        instances.subset.indexStart = subset.indexStart;
+        instances.subset.indexCount = subset.indexCount;
+    }
+
+    //--------------------------------------------------------------------
+
+
+    // prepare material for instance batch
+    for (vsize i = 0; i < numEntities; ++i)
+    {
+        Material& mat = g_MaterialMgr.GetMatById(data[i].matId);
+        instancesBatch[i].renderStates = mat.renderStates;
+
+        g_TextureMgr.GetTexViewsByIds(mat.texIds, NUM_TEXTURE_TYPES, instancesBatch[i].textures);
+
+    }
+
+  
+    // prepare world matrix for each instance
     PrepareInstancesWorldMatrices(
-        pEnttMgr,
-        enttsSortedByInstances_.data(),
-        numEntts,
-        instanceBuffData,
-        instances);
+        &data[0].enttId,
+        1,
+        storage.instancesBuf,
+        storage.opaque);
 
-#if 1
-    PrepareInstancesMaterials(
-        //pEnttMgr,
-        //enttsSortedByInstances.data(),
-        //numEntts,
-        instanceBuffData,
-        instances,
-        materialsSortedByInstances_);
-#endif
+    // prepare material for each instance
 }
 
-
-
-// =================================================================================
-// GROUP ENTITIES; PREPARE INSTANCES
-// =================================================================================
-void RenderDataPreparator::PrepareInstancesData(
-    const EntityID* ids,
+//---------------------------------------------------------
+// Desc:   prepare world matrix for each subset (mesh) of each entity
+//---------------------------------------------------------
+void RenderDataPreparator::PrepareInstancesWorldMatrices(
+    const EntityID* enttsIds,
     const size numEntts,
-    ECS::EntityMgr* pEnttMgr,
-    cvector<Render::Instance>& instances,
-    cvector<EntityID>& outEnttsSortedByInstances,
-    cvector<Render::Material>& outMaterials)      // one material per mesh of each instance
+    Render::InstBuffData& instancesBuf,
+    const cvector<Render::InstanceBatch>& instances)
 {
-    CAssert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
-    CAssert::True(numEntts > 0,   "input number of entities must be > 0");
 
-    // separate entities into 2 groups: entts with mesh based materials / with its unique materials
-    s_EnttsWithOrigMat.clear();
-    s_EnttsWithUniqueMat.clear();
+    s_Worlds.clear();
 
-    SeparateEnttsByMaterialGroups(
-        *pEnttMgr,
-        ids,
-        numEntts,
-        s_EnttsWithOrigMat,
-        s_EnttsWithUniqueMat);
+    s_pEnttMgr->transformSystem_.GetWorlds(enttsIds, numEntts, s_Worlds);
 
-    // prepare instances for entts which materials are based on model
-    PrepareInstancesForEntts(
-        *pEnttMgr,
-        s_EnttsWithOrigMat.data(),
-        s_EnttsWithOrigMat.size(),
-        instances,
-        outEnttsSortedByInstances);
-
-    // prepare instances for entts which materials are unique per each entt
-    PrepareInstancesForEnttsWithUniqueMaterials(
-        *pEnttMgr,
-        s_EnttsWithUniqueMat.data(),
-        s_EnttsWithUniqueMat.size(),
-        instances,
-        outEnttsSortedByInstances);
-
-    // prepare textures shader resource view (SRV) for each instance
-    for (Render::Instance& instance : instances)
-        PrepareTexturesForInstance(instance);
-
-    // prepare materials data for each instance
-    for (int i = 0; Render::Instance& instance : instances)
-        PrepareMaterialForInstance(instance, outMaterials);
-}
-
-///////////////////////////////////////////////////////////
-
-void RenderDataPreparator::SeparateEnttsByMaterialGroups(
-    const ECS::EntityMgr& mgr,
-    const EntityID* ids,
-    const size numEntts,
-    cvector<EntityID>& outEnttsWithOrigMat,
-    cvector<EntityID>& outEnttsWithUniqueMat)
-{
-    // separate entities by entts with mesh based materials and unique materials
-
-
-    mgr.materialSystem_.GetMaterialsFlagsByEntts(ids, numEntts, s_MaterialsFlags);
-
-    // we expect that maybe all the entts has materials which are the same as its model and just a bit of entitites may have unique materials
-    outEnttsWithOrigMat.reserve(numEntts);
-    outEnttsWithUniqueMat.reserve(8);
-
-    // extract entts with materials based on model
-    for (index i = 0; i < numEntts; ++i)
+    for (int idx1 = 0, idx2 = 0; const Render::InstanceBatch& instances : instances)
     {
+        memcpy(
+            &(instancesBuf.worlds_[idx1]),
+            &(s_Worlds[idx2]),
+            sizeof(DirectX::XMMATRIX) * instances.numInstances);
 
-        if (s_MaterialsFlags[i])
-            outEnttsWithOrigMat.push_back(ids[i]);
-    }
-
-    // extract entts with unique materials
-    for (index i = 0; i < numEntts; ++i)
-    {
-        if (!s_MaterialsFlags[i])
-            outEnttsWithUniqueMat.push_back(ids[i]);
+        idx1 += instances.numInstances;
+        idx2 += instances.numInstances;
     }
 }
 
 ///////////////////////////////////////////////////////////
 
-void RenderDataPreparator::PrepareInstancesForEntts(
-    ECS::EntityMgr& mgr,
-    const EntityID* ids,
-    const size numEntts,
-    cvector<Render::Instance>& instances,
-    cvector<EntityID>& outEnttsSortedByInstances)
+void RenderDataPreparator::PrepareInstancesMaterials(
+    Render::InstBuffData& instanceBuffData,
+    const cvector<EntityModelMesh>& instances,
+    const cvector<Render::Material>& materialsSortedByInstances)
 {
-    // prepare instances data for input entities by IDs
-    // NOTE: each input instance has materials which are the same as its model's materials
-
-    CAssert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
-
-    // maybe we have no entities to render -- it's OK, just go out
-    if (numEntts == 0)
-        return;
-
-    mgr.modelSystem_.GetModelsIdsRelatedToEntts(
-        ids,
-        numEntts,
-        s_ModelsIDs,
-        s_EnttsSortedByModels,
-        s_NumEnttsPerModel);
-
-    const index startInstanceIdx = instances.size();
-    const size  numInstances = s_ModelsIDs.size();
-
-    // store entities IDs which are sorted by models (by instances)
-    outEnttsSortedByInstances.append_vector(std::move(s_EnttsSortedByModels));
-
-    // update how many instances will we have at all
-    instances.resize(instances.size() + numInstances);
-
-    // get pointers to models by its IDs
-    g_ModelMgr.GetModelsByIDs(s_ModelsIDs.data(), s_ModelsIDs.size(), s_Models);
-
-    // fill in particular instance with data of model
-    for (index i = startInstanceIdx, j = 0; j < numInstances; ++i, ++j)
-        PrepareInstanceData(*s_Models[j], instances[i]);
-
-    // how many instances of this model will be rendered
-    for (index i = startInstanceIdx, j = 0; j < numInstances; ++i, ++j)
-        instances[i].numInstances = (int)s_NumEnttsPerModel[j];
 }
 
-///////////////////////////////////////////////////////////
-
-void RenderDataPreparator::PrepareInstancesForEnttsWithUniqueMaterials(
-    ECS::EntityMgr& mgr,
-    const EntityID* ids,
-    const size numEntts,
-    cvector<Render::Instance>& instances,
-    cvector<EntityID>& outEnttsSortedByInstances)
-{
-    // prepare instances data for input entities by IDs;
-    // NOTE: each input entity has its own set of materials
-    //       so here we create unique instance per each entity
-
-    CAssert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
-
-    // maybe we have no entities to render -- it's OK, just go out
-    if (numEntts == 0)
-        return;
-
-    // clear arrays first of all
-    s_ModelsIDs.clear();
-    s_EnttsSortedByModels.clear();
-    s_NumEnttsPerModel.clear();
-    s_Models.clear();
-
-
-    mgr.modelSystem_.GetModelsIdsRelatedToEntts(
-        ids,
-        numEntts,
-        s_ModelsIDs,
-        s_EnttsSortedByModels,
-        s_NumEnttsPerModel);
-
-    const index startInstanceIdx = instances.size();
-    const size  numNewInstances = s_EnttsSortedByModels.size();  // one instance per entity
-
-    mgr.materialSystem_.GetDataByEnttsIDs(
-        s_EnttsSortedByModels.data(),
-        s_EnttsSortedByModels.size(),
-        s_MaterialsDataPerEntt);
-
-    // store entities IDs which are sorted by models (by instances)
-    outEnttsSortedByInstances.append_vector(std::move(s_EnttsSortedByModels));
-
-    // update how many instances will we have at all
-    instances.resize(instances.size() + numNewInstances);
-
-    // get pointers to models by its IDs
-    //cvector<const BasicModel*> models;
-    g_ModelMgr.GetModelsByIDs(s_ModelsIDs.data(), s_ModelsIDs.size(), s_Models);
-
-    // fill in particular instance with data of model
-    for (index i = startInstanceIdx, modelIdx = 0; const size num : s_NumEnttsPerModel)
-    {
-        for (index j = 0; j < num; ++j, ++i)
-        {
-            const BasicModel* pModel = s_Models[modelIdx];
-            PrepareInstanceData(*pModel, instances[i]);
-        }
-        ++modelIdx;
-    }
-
-    // each instance will be rendered only once (since one instance per entity)
-    for (index i = startInstanceIdx, j = 0; j < numNewInstances; ++i, ++j)
-        instances[i].numInstances = 1;
-
-    // fill instances with material IDs of related entity (so later we will load textures using these IDs)
-    for (index i = startInstanceIdx; ECS::MaterialData& data : s_MaterialsDataPerEntt)
-    {
-        const MaterialID* matsIDs = data.materialsIDs.data();
-        const size        numIDs  = data.materialsIDs.size();
-
-        std::move(matsIDs, matsIDs + numIDs, instances[i++].materialIDs.data());
-    }
-}
-
-///////////////////////////////////////////////////////////
-
-void RenderDataPreparator::PrepareInstanceData(
-    const BasicModel& model,
-    Render::Instance& instance)
-{
-    // fill in the rendering instance with input model data;
-    // 
-    // NOTE: we don't write textures shader resource view (!!!) into the instance
-    //       we do it in the PrepareTexturesForInstance() method;
-
-    strcpy(instance.name, model.name_);
-
-    // copy buffers data
-    const MeshGeometry& meshes = model.meshes_;
-    instance.vertexStride = meshes.vb_.GetStride();
-    instance.pVB          = meshes.vb_.Get();
-    instance.pIB          = meshes.ib_.Get();
-
-    // prepare data of each subset (mesh)
-    const size numSubsets = model.GetNumSubsets();
-    instance.subsets.resize(numSubsets);
-    
-    for (index i = 0; i < numSubsets; ++i)
-    {
-        const MeshGeometry::Subset& srcSubset = meshes.subsets_[i];
-        Render::Subset& dstSubset = instance.subsets[i];
-
-        // copy 4 ints: vertex start/count, index start/count
-        //memcpy(&subset.vertexStart, &subsetData.vertexStart_, sizeof(int) * 4);
-
-        // copy name of the subset
-        strcpy(dstSubset.name, srcSubset.name);
-
-        // copy subset's vertex/index info
-        dstSubset.vertexStart = srcSubset.vertexStart;
-        dstSubset.vertexCount = srcSubset.vertexCount;
-        dstSubset.indexStart  = srcSubset.indexStart;
-        dstSubset.indexCount  = srcSubset.indexCount;
-    }
-
-    // prepare material IDs
-    instance.materialIDs.resize(numSubsets);
-
-    for (index i = 0; i < numSubsets; ++i)
-        instance.materialIDs[i] = meshes.subsets_[i].materialID;
-}
-
-///////////////////////////////////////////////////////////
-
-void RenderDataPreparator::PrepareTexturesForInstance(Render::Instance& instance)
-{
-    // prepare textures for the instance which are based on original related model
-
-    const size numSubsets = (int)instance.subsets.size();
-
-    // prepare valid textures (SRVs) for this instance
-    materials_.resize(numSubsets);
-    
-    // get materials data by materials IDs (one material per one subset)
-    g_MaterialMgr.GetMaterialsByIds(instance.materialIDs.data(), numSubsets, materials_);
-
-    // go through each material and store related textures IDs
-    for (index i = 0, texIdx = 0; i < numSubsets; ++i)
-    {
-        for (index j = 0; j < NUM_TEXTURE_TYPES; ++j)
-        {
-            texturesIDs_[texIdx++] = materials_[i].textureIds[j]; // TODO: memcpy
-        }
-    }
-
-    g_TextureMgr.GetSRVsByTexIDs(texturesIDs_, NUM_TEXTURE_TYPES * numSubsets, textureSRVs_);
-
-    // store texture SRVs into the instance
-    instance.texSRVs.resize(numSubsets * NUM_TEXTURE_TYPES);
-
-    for (index i = 0; i < NUM_TEXTURE_TYPES * numSubsets; ++i)
-        instance.texSRVs[i] = textureSRVs_[i];
-}
-
-///////////////////////////////////////////////////////////
-
-void RenderDataPreparator::PrepareMaterialForInstance(
-    const Render::Instance& instance,
-    cvector<Render::Material>& outMaterials)
-{
-    // prepare one material data per each mesh of the input instance and
-    // push them back into the outMaterials array
-
-    const size numSubsets = (int)instance.subsets.size();
-    materials_.resize(numSubsets);
-
-    // prepare more memory for the materials
-    index outMatIdx = outMaterials.size();
-    const size numMaterials = outMatIdx + numSubsets;
-    outMaterials.resize(numMaterials);
-
-    // get materials data by materials IDs (one material per one subset)
-    g_MaterialMgr.GetMaterialsByIds(instance.materialIDs.data(), numSubsets, materials_);
-
-    // go through each material and convert it into the Render::Material
-    for (index i = 0; outMatIdx < numMaterials; ++outMatIdx, ++i)
-    {
-        outMaterials[outMatIdx].ambient_  = DirectX::XMFLOAT4(&materials_[i].ambient.x);
-        outMaterials[outMatIdx].diffuse_  = DirectX::XMFLOAT4(&materials_[i].diffuse.x);
-        outMaterials[outMatIdx].specular_ = DirectX::XMFLOAT4(&materials_[i].specular.x);
-        outMaterials[outMatIdx].reflect_  = DirectX::XMFLOAT4(&materials_[i].reflect.x);
-    }
-}
 
 } // namespace Core

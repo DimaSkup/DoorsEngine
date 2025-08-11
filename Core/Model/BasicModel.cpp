@@ -319,7 +319,7 @@ void BasicModel::SetMaterialsForSubsets(
         const SubsetID subsetID     = subsetsIDs[i];
         const MaterialID materialID = materialsIDs[i];
 
-        meshes_.subsets_[subsetID].materialID = materialID;
+        meshes_.subsets_[subsetID].materialId = materialID;
     }
 }
 

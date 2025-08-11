@@ -75,16 +75,16 @@ struct Material
     MaterialID id = INVALID_MATERIAL_ID;
     char       name[MAX_LENGTH_MATERIAL_NAME] = { "invalid" };
 
-    TexID      textureIds[NUM_TEXTURE_TYPES]{ INVALID_TEXTURE_ID };
-    uint32     properties = 0;                                      // bitfield for materials properties
+    TexID      texIds[NUM_TEXTURE_TYPES]{ INVALID_TEXTURE_ID };
+    uint32     renderStates = 0;                                      // bitfield for materials properties
 
     //-----------------------------------------------------
 
-    Material() : properties(MAT_PROP_DEFAULT)
+    Material() : renderStates(MAT_PROP_DEFAULT)
     {
     }
 
-    Material(const char* name) : properties(MAT_PROP_DEFAULT)
+    Material(const char* name) : renderStates(MAT_PROP_DEFAULT)
     {
         SetName(name);
     }
@@ -113,28 +113,28 @@ struct Material
 
     //-----------------------------------------------------
 
-    inline void SetTexture(const eTexType type, const TexID id)                          { textureIds[type] = id; }
+    inline void SetTexture(const eTexType type, const TexID id)                           { texIds[type] = id; }
 
-    inline void SetAmbient (const float r, const float g, const float b, const float a)  { ambient = Float4(r,g,b,a); }
-    inline void SetDiffuse (const float r, const float g, const float b, const float a)  { diffuse = Float4(r,g,b,a); }
-    inline void SetSpecular(const float r, const float g, const float b)                 { specular = Float4(r,g,b,specular.w); }   // specular power remains the same
-    inline void SetSpecularPower(const float power)                                      { specular.w = power; }
+    inline void SetAmbient (const float r, const float g, const float b, const float a)   { ambient = Float4(r,g,b,a); }
+    inline void SetDiffuse (const float r, const float g, const float b, const float a)   { diffuse = Float4(r,g,b,a); }
+    inline void SetSpecular(const float r, const float g, const float b)                  { specular = Float4(r,g,b,specular.w); }   // specular power remains the same
+    inline void SetSpecularPower(const float power)                                       { specular.w = power; }
     inline void SetReflection(const float r, const float g, const float b, const float a) { reflect = Float4(r,g,b,a); }
 
     inline void SetAlphaClip(const bool state)
     {
-        properties &= ~(MAT_PROP_ALPHA_CLIPPING);            // reset to 0
+        renderStates &= ~(MAT_PROP_ALPHA_CLIPPING);            // reset to 0
 
         if (state)
-            properties |= MAT_PROP_ALPHA_CLIPPING;           // set alpha clipping
+            renderStates |= MAT_PROP_ALPHA_CLIPPING;           // set alpha clipping
     }
 
     inline void SetFill(eMaterialProp prop)
     {
         if (prop & ALL_FILL_MODES)
         {
-            properties &= ~(ALL_FILL_MODES);       // reset all fill modes
-            properties |= prop;                    // set fill mode
+            renderStates &= ~(ALL_FILL_MODES);       // reset all fill modes
+            renderStates |= prop;                    // set fill mode
         }
     }
 
@@ -142,8 +142,8 @@ struct Material
     {
         if (prop & ALL_CULL_MODES)
         {
-            properties &= ~(ALL_CULL_MODES);      // reset all cull modes
-            properties |= prop;                   // set cull mode
+            renderStates &= ~(ALL_CULL_MODES);      // reset all cull modes
+            renderStates |= prop;                   // set cull mode
         }
     }
 
@@ -151,8 +151,8 @@ struct Material
     {
         if (prop & ALL_FRONT_CLOCKWISE_MODES)
         {
-            properties &= ~(ALL_FRONT_CLOCKWISE_MODES);
-            properties |= prop;
+            renderStates &= ~(ALL_FRONT_CLOCKWISE_MODES);
+            renderStates |= prop;
         }
     }
 
@@ -160,8 +160,8 @@ struct Material
     {
         if (prop & ALL_BLEND_STATES)
         {
-            properties &= ~(ALL_BLEND_STATES);    // reset all blend states
-            properties |= prop;                   // set blend state
+            renderStates &= ~(ALL_BLEND_STATES);    // reset all blend states
+            renderStates |= prop;                   // set blend state
         }
     }
 
@@ -169,14 +169,17 @@ struct Material
     {
         if (prop & ALL_DEPTH_STENCIL_STATES)
         {
-            properties &= ~(ALL_DEPTH_STENCIL_STATES);
-            properties |= prop;
+            renderStates &= ~(ALL_DEPTH_STENCIL_STATES);
+            renderStates |= prop;
         }
     }
 
     //-----------------------------------------------------
 
-    inline bool HasAlphaClip() const { return (bool)(properties & MAT_PROP_ALPHA_CLIPPING); }
+    inline bool HasAlphaClip() const
+    {
+        return (bool)(renderStates & MAT_PROP_ALPHA_CLIPPING);
+    }
 
 };
 

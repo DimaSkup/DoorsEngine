@@ -12,27 +12,15 @@ ModelSystem::ModelSystem(Model* pModelComponent) : pModelComponent_(pModelCompon
     CAssert::NotNullptr(pModelComponent, "ptr to the Model component == nullptr");
 }
 
-///////////////////////////////////////////////////////////
-
-void ModelSystem::Serialize(std::ofstream& fout, u32& offset)
-{
-}
-
-///////////////////////////////////////////////////////////
-
-void ModelSystem::Deserialize(std::ifstream& fin, const u32 offset)
-{
-}
-
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   make relations one to one: 'entity_id' => 'model_id'
+//         NOTE: enttsIDs are supposed to be SORTED!
+//---------------------------------------------------------
 void ModelSystem::AddRecords(
     const EntityID* enttsIDs,
     const ModelID modelID,
     const size numEntts)
 {
-    // make relations one to one: 'entity_id' => 'model_id'
-    // NOTE: enttsIDs are supposed to be SORTED!
 
     CAssert::True((enttsIDs != nullptr) && (numEntts > 0), "invalid input args");
 
@@ -59,11 +47,11 @@ void ModelSystem::RemoveRecords(const EntityID* ids, const size numEntts)
     CAssert::True(false, "TODO: IMPLEMENT IT!");
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// return a model ID by related input entt ID
+//---------------------------------------------------------
 ModelID ModelSystem::GetModelIdRelatedToEntt(const EntityID enttID)
 {
-    // return a model ID by related input entt ID
 
     Model& comp = *pModelComponent_;
 
@@ -75,20 +63,20 @@ ModelID ModelSystem::GetModelIdRelatedToEntt(const EntityID enttID)
     return comp.modelIDs_[idx];
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// in: array of entts IDs
+// 
+// out: 1) arr of models which are related to the input entities
+//      2) arr of entts sorted by its models
+//      3) arr of entts number per model
+//---------------------------------------------------------
 void ModelSystem::GetModelsIdsRelatedToEntts(
-    const EntityID* enttsIDs,                        // by these entts we will get models
-    const size numEntts,                             // models by these IDs will be rendered for this frame
+    const EntityID* enttsIDs,                       
+    const size numEntts,                            
     cvector<ModelID>& outModelsIDs,
     cvector<EntityID>& outEnttsSortByModels,
     cvector<size>& outNumInstancesPerModel)
 {
-    // in: array of entts IDs
-    // 
-    // out: 1) arr of models which are related to the input entities
-    //      2) arr of entts sorted by its models
-    //      3) arr of entts number per model
 
     CAssert::True(enttsIDs != nullptr, "input ptr to entities IDs arr == nullptr");
     CAssert::True(numEntts > 0,        "input number of entities must be > 0");

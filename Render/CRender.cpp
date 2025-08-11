@@ -358,50 +358,20 @@ void CRender::UpdateInstancedBufferMaterials(
 }
 
 
-
-
 // =================================================================================
 //                               rendering methods
 // =================================================================================
 
-void CRender::RenderBoundingLineBoxes(
-    ID3D11DeviceContext* pContext,
-    const Instance* instances,
-    const int numModels)
-{
-    try
-    {
-        const UINT instancedBuffElemSize = static_cast<UINT>(sizeof(ConstBufType::InstancedData));
-
-        shadersContainer_.colorShader_.Render(
-            pContext,
-            pInstancedBuffer_,
-            instances,
-            numModels,
-            instancedBuffElemSize);
-    }
-    catch (EngineException& e)
-    {
-        LogErr(e);
-        LogErr("can't render the bounding line boxes onto the screen");
-    }
-    catch (...)
-    {
-        LogErr("can't render the bounding line boxes for some unknown reason :(");
-    }
-}
-
-///////////////////////////////////////////////////////////
-
 void CRender::RenderInstances(
     ID3D11DeviceContext* pContext,
     const ShaderTypes type,
-    const Instance* instances,
-    const int numInstances)
+    const InstanceBatch* instances,
+    const int numInstances,
+    const UINT startInstanceLocation)
 {
     try
     {
-        const UINT instancedBuffElemSize = static_cast<UINT>(sizeof(ConstBufType::InstancedData));
+        const UINT instancedBuffElemSize = (UINT)(sizeof(ConstBufType::InstancedData));
 
         if (isDebugMode_)
         {
@@ -417,8 +387,6 @@ void CRender::RenderInstances(
 
         switch (type)
         {
-            pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
             case COLOR:
             {
                 shadersContainer_.colorShader_.Render(
@@ -440,26 +408,14 @@ void CRender::RenderInstances(
                     instancedBuffElemSize);
                 break;
             }
-#if 0
-            case BILLBOARD:
-            {
-                shadersContainer_.billboardShader_.CRender(
-                    pContext,
-                    pInstancedBuffer_,
-                    instances,
-                    numInstances,
-                    instancedBuffElemSize);
-                break;
-            }
-#endif
             case LIGHT:
             {
                 shadersContainer_.lightShader_.Render(
                     pContext,
                     pInstancedBuffer_,
-                    instances,
-                    numInstances,
-                    instancedBuffElemSize);
+                    *instances,
+                    instancedBuffElemSize,
+                    startInstanceLocation);
 
                 break;
             }

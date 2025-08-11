@@ -86,23 +86,17 @@ public:
     //                                  Rendering
     // ================================================================================
 
-    void RenderBoundingLineBoxes(
-        ID3D11DeviceContext* pContext,
-        const Instance* instances,
-        const int numModels);
-
     void RenderInstances(
         ID3D11DeviceContext* pContext,
         const ShaderTypes type,
-        const Instance* instances,
-        const int numModels);
+        const InstanceBatch* instances,
+        const int numInstances,
+        const UINT startInstanceLocation);
 
     void RenderSkyDome(
         ID3D11DeviceContext* pContext,
         const SkyInstance& sky,
         const DirectX::XMMATRIX& worldViewProj);
-
-
 
 
     // ================================================================================
