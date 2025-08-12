@@ -6,13 +6,13 @@
 // *********************************************************************************
 #pragma once
 
-#include "Shaders/ShadersContainer.h"
+#include "../Shaders/ShadersContainer.h"
 
 
 namespace Render
 {
 
-class InitRender final
+class InitRender
 {
 public:
 	InitRender() {};

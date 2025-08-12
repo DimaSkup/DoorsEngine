@@ -7,11 +7,11 @@
 // =================================================================================
 #pragma once
 
-#include "Common/ConstBufferTypes.h"
-#include "Shaders/ShadersContainer.h"
-#include "Common/RenderTypes.h"
-#include "Shaders/SamplerState.h"        // for using the ID3D11SamplerState 
+#include "../Common/ConstBufferTypes.h"
+#include "../Common/RenderTypes.h"
 
+#include "../Shaders/ShadersContainer.h"
+#include "../Shaders/SamplerState.h"        // for using the ID3D11SamplerState 
 
 #include <d3d11.h>
 #include <DirectXMath.h>
@@ -61,16 +61,13 @@ public:
     // ================================================================================
     //                                   Updating 
     // ================================================================================
-    void UpdatePerFrame(ID3D11DeviceContext* pContext, const PerFrameData& data);
-
-    void UpdateInstancedBuffer(
-        ID3D11DeviceContext* pContext,
-        const InstBuffData& data);
+    void UpdatePerFrame       (ID3D11DeviceContext* pContext, const PerFrameData& data);
+    void UpdateInstancedBuffer(ID3D11DeviceContext* pContext, const InstancesBuf& buf);
 
     void UpdateInstancedBuffer(
         ID3D11DeviceContext* pContext,
         const DirectX::XMMATRIX* worlds,
-        const Material* materials,
+        const MaterialColors* matColors,
         const int count);
 
     void UpdateInstancedBufferWorlds(
@@ -79,7 +76,7 @@ public:
 
     void UpdateInstancedBufferMaterials(
         ID3D11DeviceContext* pContext,
-        cvector<Material>& materials);
+        cvector<MaterialColors>& matColors);
 
 
     // ================================================================================
@@ -90,8 +87,7 @@ public:
         ID3D11DeviceContext* pContext,
         const ShaderTypes type,
         const InstanceBatch* instances,
-        const int numInstances,
-        const UINT startInstanceLocation);
+        const int numInstances);
 
     void RenderSkyDome(
         ID3D11DeviceContext* pContext,

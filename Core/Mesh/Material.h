@@ -173,14 +173,6 @@ struct Material
             renderStates |= prop;
         }
     }
-
-    //-----------------------------------------------------
-
-    inline bool HasAlphaClip() const
-    {
-        return (bool)(renderStates & MAT_PROP_ALPHA_CLIPPING);
-    }
-
 };
 
 } // namespace Core

@@ -10,7 +10,7 @@
 #include <Common/ECSTypes.h>
 #include <Types.h>  
 #include "Entity/EntityMgr.h"
-#include "CRender.h"
+#include "Render/CRender.h"
 
 namespace Core
 {
@@ -35,13 +35,13 @@ private:
     void PrepareInstancesWorldMatrices(
         const EntityID* enttsIds,
         const size numEntts,
-        Render::InstBuffData& instanceBuffData,         
+        Render::InstancesBuf& instanceBuffData,
         const cvector<Render::InstanceBatch>& instances);
 
     void PrepareInstancesMaterials(
-        Render::InstBuffData& instanceBuffData,
+        Render::InstancesBuf& instanceBuffData,
         const cvector<EntityModelMesh>& instances,
-        const cvector<Render::Material>& materialsSortedByInstances);
+        const cvector<Render::MaterialColors>& matColors);
 
 private:
     //constexpr int     numElems = 1028;
@@ -50,7 +50,7 @@ private:
     cvector<Material> materials_;
 
     cvector<EntityID>         enttsSortedByInstances_;
-    cvector<Render::Material> materialsSortedByInstances_;
+    cvector<Render::MaterialColors> matColors_;
 };
 
 } // namespace Core

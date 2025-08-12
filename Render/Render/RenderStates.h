@@ -1,6 +1,5 @@
 // *********************************************************************************
 // Filename:     RenderStates.h
-// Description:  defines render state objects
 // 
 // Created:      09.09.24
 // *********************************************************************************
@@ -11,40 +10,40 @@
 #include <set>
 
 
-namespace Core
+namespace Render
 {
 
 enum eRenderState // : byte
 {
     // rasterizer params
-    FILL_SOLID,
-    FILL_WIREFRAME,
-    CULL_BACK,
-    CULL_FRONT,
-    CULL_NONE,
-    FRONT_COUNTER_CLOCKWISE,  // CCW
-    FRONT_CLOCKWISE,
+    R_FILL_SOLID,
+    R_FILL_WIREFRAME,
+    R_CULL_BACK,
+    R_CULL_FRONT,
+    R_CULL_NONE,
+    R_FRONT_COUNTER_CLOCKWISE,  // CCW
+    R_FRONT_CLOCKWISE,
 
 
     // blending states
-    NO_RENDER_TARGET_WRITES,
-    ALPHA_DISABLE,
-    ALPHA_ENABLE,
-    ADDING,
-    SUBTRACTING,
-    MULTIPLYING,
-    TRANSPARENCY,
-    ALPHA_TO_COVERAGE,
+    R_NO_RENDER_TARGET_WRITES,
+    R_ALPHA_DISABLE,
+    R_ALPHA_ENABLE,
+    R_ADDING,
+    R_SUBTRACTING,
+    R_MULTIPLYING,
+    R_TRANSPARENCY,
+    R_ALPHA_TO_COVERAGE,
 
     // depth stencil states
-    DEPTH_ENABLED,
-    DEPTH_DISABLED,
-    MARK_MIRROR,                  // for rendering mirror reflections
-    DRAW_REFLECTION,
-    NO_DOUBLE_BLEND,
-    SKY_DOME,
+    R_DEPTH_ENABLED,
+    R_DEPTH_DISABLED,
+    R_MARK_MIRROR,                  // for rendering mirror reflections
+    R_DRAW_REFLECTION,
+    R_NO_DOUBLE_BLEND,
+    R_SKY_DOME,
 
-    NUM_RENDER_STATES,            // to make possible iteration over the enum
+    R_NUM_RENDER_STATES,            // to make possible iteration over the enum
 
     eRenderState_forcedword = UINT(-1)
 };
@@ -60,8 +59,8 @@ public:
     void InitAll(ID3D11Device* pDevice, const bool multisampleEnable);
     void DestroyAll();
 
-    inline void ResetRS (ID3D11DeviceContext* pDeviceContext) { SetRS(pDeviceContext, { FILL_SOLID, CULL_BACK, FRONT_CLOCKWISE }); }
-    inline void ResetBS (ID3D11DeviceContext* pDeviceContext) { SetBS(pDeviceContext, ALPHA_DISABLE); }
+    inline void ResetRS (ID3D11DeviceContext* pDeviceContext) { SetRS(pDeviceContext, { R_FILL_SOLID, R_CULL_BACK, R_FRONT_CLOCKWISE }); }
+    inline void ResetBS (ID3D11DeviceContext* pDeviceContext) { SetBS(pDeviceContext, R_ALPHA_DISABLE); }
     inline void ResetDSS(ID3D11DeviceContext* pDeviceContext) { pDeviceContext->OMSetDepthStencilState(0, 0); }
 
     // get blend state / raster state / depth stencil state

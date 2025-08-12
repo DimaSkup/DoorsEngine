@@ -5,6 +5,7 @@
 #include "../Core/Engine/EngineConfigs.h"
 
 using namespace Core;
+using namespace Render;
 
 using XMFLOAT3 = DirectX::XMFLOAT3;
 using XMFLOAT4 = DirectX::XMFLOAT4;
@@ -494,8 +495,10 @@ void CreateSkyBox(ECS::EntityMgr& mgr)
     skyModel.SetColorApex(colorApex);
 
     // create and setup a sky entity
-    const EntityID enttID = mgr.CreateEntity("sky");
-    mgr.AddTransformComponent(enttID, { 0,(float)skyBoxSize/2.0f - 0.1f,0 });
+    const EntityID enttId = mgr.CreateEntity("sky");
+    mgr.AddTransformComponent(enttId, { 0,(float)skyBoxSize/2.0f - 0.1f,0 });
+    mgr.AddMaterialComponent(enttId, mat.id);
+    //mgr.AddTransformComponent(enttID, { 0,0,0 });
 }
 
 ///////////////////////////////////////////////////////////
@@ -1799,8 +1802,8 @@ void GenerateEntities(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     ModelsCreator creator;
 
     // create terrain
-    //const char* terrainConfigPath = "data/terrain/terrain.cfg";
-    //CreateTerrainGeomip(mgr, terrainConfigPath);
+    const char* terrainConfigPath = "data/terrain/terrain.cfg";
+    CreateTerrainGeomip(mgr, terrainConfigPath);
     //CreateTerrainQuadtree(mgr, terrainConfigPath);
 
 

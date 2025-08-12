@@ -9,7 +9,7 @@
 #include <CoreCommon/Frustum.h>
 #include "TerrainGeomipmapped.h"
 #include "../Mesh/MaterialMgr.h"
-#include "../Render/d3dclass.h"
+#include <Render/d3dclass.h>      // for using global pointers to DX11 device and context
 
 #include <DirectXMath.h>
 #include <DirectXCollision.h>
@@ -113,7 +113,7 @@ bool TerrainGeomip::InitBuffers(
     constexpr bool isDynamic = false;
 
     // initialize the vertex buffer
-    if (!vb_.Initialize(g_pDevice, vertices, numVertices, isDynamic))
+    if (!vb_.Initialize(Render::g_pDevice, vertices, numVertices, isDynamic))
     {
         LogErr(LOG, "can't initialize a vertex buffer for terrain");
         Shutdown();
@@ -121,7 +121,7 @@ bool TerrainGeomip::InitBuffers(
     }
 
     // initialize the index buffer
-    if (!ib_.Initialize(g_pDevice, indices, numIndices, isDynamic))
+    if (!ib_.Initialize(Render::g_pDevice, indices, numIndices, isDynamic))
     {
         LogErr(LOG, "can't initialize an index buffer for terrain");
         Shutdown();

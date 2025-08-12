@@ -141,19 +141,19 @@ struct PerFrameData
 //---------------------------------------------------------
 // Desc:   a transient data container for the instances buffer
 //---------------------------------------------------------
-class InstBuffData
+class InstancesBuf
 {
 public:
     DirectX::XMMATRIX* worlds_    = nullptr;  
-    Material*          materials_ = nullptr;  // material color data
+    MaterialColors*    materials_ = nullptr;  // material color data (ambient/diffuse/specular/reflection/etc.)
 
 private:
-    int                capacity_ = 0;         // how many elements we can put into this buffer
-    int                size_ = 0;             // the current number of data elements
+    int                capacity_ = 0;               // how many elements we can put into this buffer
+    int                size_ = 0;                   // the current number of data elements
 
 public:
-    InstBuffData()  {}
-    ~InstBuffData() { Shutdown(); }
+    InstancesBuf()  {}
+    ~InstancesBuf() { Shutdown(); }
 
     // ---------------------------------------------------
 
@@ -183,9 +183,9 @@ public:
                 // release old memory before allocation of new memory
                 Shutdown();
 
-                worlds_             = new DirectX::XMMATRIX[newSize];
-                materials_          = new Material[newSize];
-                capacity_           = newSize;	
+                worlds_    = new DirectX::XMMATRIX[newSize];
+                materials_ = new MaterialColors[newSize];
+                capacity_  = newSize;	
             }
 
             // update the number of elements for this frame
@@ -209,6 +209,7 @@ public:
 
     inline const int GetSize() const { return size_; }
 };
+
 //---------------------------------------------------------
 // Desc:   a container for subset (mesh) data of the model
 //---------------------------------------------------------
@@ -268,17 +269,17 @@ struct SkyInstance
 //---------------------------------------------------------
 struct TerrainInstance
 {
-    UINT          numVertices   = 0;
-    UINT          indexCount    = 0;
-    UINT          baseIndex     = 0;
-    UINT          baseVertex    = 0;
-    UINT          vertexStride  = 0;
-    ID3D11Buffer* pVB           = nullptr;
-    ID3D11Buffer* pIB           = nullptr;
-    SRV*          skyBoxTexture = nullptr;
-    SRV*          textures[NUM_TEXTURE_TYPES]{nullptr};
-    Material      material;
-    bool          wantDebug = false;
+    UINT           numVertices   = 0;
+    UINT           indexCount    = 0;
+    UINT           baseIndex     = 0;
+    UINT           baseVertex    = 0;
+    UINT           vertexStride  = 0;
+    ID3D11Buffer*  pVB           = nullptr;
+    ID3D11Buffer*  pIB           = nullptr;
+    //SRV*           skyBoxTexture = nullptr;
+    //SRV*           textures[NUM_TEXTURE_TYPES]{nullptr};
+    MaterialColors matColors;
+    bool           wantDebug = false;
 };
 
 //---------------------------------------------------------
@@ -294,7 +295,7 @@ struct RenderDataStorage
         blendedTransparent.clear();
     }
 
-    InstBuffData                instancesBuf;
+    InstancesBuf                instancesBuf;
 
     cvector<InstanceBatch>      masked;                // grass, foliage, wireframe, etc.
     cvector<InstanceBatch>      opaque;                // fully opaque geometry

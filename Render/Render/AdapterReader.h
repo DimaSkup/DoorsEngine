@@ -22,7 +22,7 @@
 #include <dxgi.h>	// a DirectX graphic interface header
 
 
-namespace Core
+namespace Render
 {
 
 class AdapterData
@@ -51,7 +51,6 @@ public:
 
 private:
     void Shutdown();
-    void InitOutputsPerAdapter();
 
 private:
 

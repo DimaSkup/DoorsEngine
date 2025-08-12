@@ -42,14 +42,14 @@ public:
     inline TerrainQuadtree& GetTerrainQuadtree() { return terrainQuadtree_; }
     inline SkyModel&        GetSky()             { return sky_; }
 
-    inline VertexBuffer<BillboardSprite>& GetBillboardsBuffer() { return billboards_; }
+    inline VertexBuffer<BillboardSprite>& GetBillboardsBuffer() { return billboardsVB_; }
 
     inline int                  GetNumAssets() const { return (int)std::ssize(ids_); }
 
 
     
 private:
-    VertexBuffer<BillboardSprite> billboards_;
+    VertexBuffer<BillboardSprite> billboardsVB_;
 
     cvector<ModelID>    ids_;
     cvector<BasicModel> models_;

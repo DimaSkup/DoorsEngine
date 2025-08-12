@@ -1,7 +1,7 @@
 #pragma once
 #include <Entity/EntityMgr.h>
 #include <UI/UserInterface.h>
-#include <CRender.h>
+#include <Render/CRender.h>
 #include <Input/inputcodes.h>
 #include <Engine/Engine.h>
 #include <Engine/EngineConfigs.h>

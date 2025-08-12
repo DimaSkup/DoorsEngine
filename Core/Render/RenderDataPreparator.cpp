@@ -43,18 +43,21 @@ RenderDataPreparator::RenderDataPreparator()
 //         - instances:        models data for rendering
 //----------------------------------------------------------------------------------
 void RenderDataPreparator::PrepareEnttsDataForRendering(
-    const EntityID* enttsIds,
+    const EntityID* enttsIDs,
     const size numEntts,
     ECS::EntityMgr* pEnttMgr,
     Render::RenderDataStorage& storage)
 {
-    CAssert::True(enttsIds != nullptr, "input ptr to entities IDs arr == nullptr");
+    CAssert::True(enttsIDs != nullptr, "input ptr to entities IDs arr == nullptr");
     CAssert::True(numEntts > 0,        "input number of entities must be > 0");
 
     s_pEnttMgr = pEnttMgr;
 
 
-    //--------------------------------------------------------------------
+    //------------------------------------------------
+
+    const EntityID enttsIds[2] = { 3, 5 };
+
 
     vsize numEntities = 2;
     vsize numInstances = 0;
@@ -71,7 +74,7 @@ void RenderDataPreparator::PrepareEnttsDataForRendering(
 
     cvector<EntityModelMesh> data(numInstances);
 
-    for (int i = 0; i < numEntities; ++i)
+    for (int i = 0; i < numInstances; ++i)
     {
         data[i].enttId   = enttsIds[i];
         data[i].matId    = s_MaterialsDataPerEntt[i].materialsIds[0];        // get material for subset 0
@@ -80,15 +83,18 @@ void RenderDataPreparator::PrepareEnttsDataForRendering(
     }
 
 
-    //--------------------------------------------------------------------
+    //------------------------------------------------
 
     // prepare instance batch
 
+    Render::InstancesBuf& instancesBuf = storage.instancesBuf;
     cvector<Render::InstanceBatch>& instancesBatch = storage.opaque;
+
+    instancesBuf.Resize((int)numInstances);
     instancesBatch.reserve(128);
 
     // prepare geometry data for each instance batch
-    for (int i = 0; i < numEntities; ++i)
+    for (int i = 0; i < numInstances; ++i)
     {
         const BasicModel&           model  = g_ModelMgr.GetModelById(data[i].modelId);
         const MeshGeometry&         meshes = model.meshes_;
@@ -98,6 +104,8 @@ void RenderDataPreparator::PrepareEnttsDataForRendering(
         instancesBatch.push_back(Render::InstanceBatch());
 
         Render::InstanceBatch& instances = instancesBatch.back();
+
+        instances.numInstances = 1;
 
         strcpy(instances.name, model.name_);
         instances.vertexStride = meshes.vb_.GetStride();
@@ -110,24 +118,29 @@ void RenderDataPreparator::PrepareEnttsDataForRendering(
         instances.subset.indexCount = subset.indexCount;
     }
 
-    //--------------------------------------------------------------------
+    //------------------------------------------------
 
 
     // prepare material for instance batch
-    for (vsize i = 0; i < numEntities; ++i)
+    for (vsize i = 0; i < numInstances; ++i)
     {
         Material& mat = g_MaterialMgr.GetMatById(data[i].matId);
         instancesBatch[i].renderStates = mat.renderStates;
 
         g_TextureMgr.GetTexViewsByIds(mat.texIds, NUM_TEXTURE_TYPES, instancesBatch[i].textures);
 
+        instancesBuf.materials_[i].ambient  = DirectX::XMFLOAT4(&mat.ambient.x);
+        instancesBuf.materials_[i].diffuse  = DirectX::XMFLOAT4(&mat.diffuse.x);
+        instancesBuf.materials_[i].specular = DirectX::XMFLOAT4(&mat.specular.x);
+        instancesBuf.materials_[i].reflect  = DirectX::XMFLOAT4(&mat.reflect.x);
     }
 
+    //------------------------------------------------
   
     // prepare world matrix for each instance
     PrepareInstancesWorldMatrices(
-        &data[0].enttId,
-        1,
+        enttsIds,
+        numInstances,
         storage.instancesBuf,
         storage.opaque);
 
@@ -140,10 +153,9 @@ void RenderDataPreparator::PrepareEnttsDataForRendering(
 void RenderDataPreparator::PrepareInstancesWorldMatrices(
     const EntityID* enttsIds,
     const size numEntts,
-    Render::InstBuffData& instancesBuf,
+    Render::InstancesBuf& instancesBuf,
     const cvector<Render::InstanceBatch>& instances)
 {
-
     s_Worlds.clear();
 
     s_pEnttMgr->transformSystem_.GetWorlds(enttsIds, numEntts, s_Worlds);
@@ -163,10 +175,11 @@ void RenderDataPreparator::PrepareInstancesWorldMatrices(
 ///////////////////////////////////////////////////////////
 
 void RenderDataPreparator::PrepareInstancesMaterials(
-    Render::InstBuffData& instanceBuffData,
+    Render::InstancesBuf& instanceBuffData,
     const cvector<EntityModelMesh>& instances,
-    const cvector<Render::Material>& materialsSortedByInstances)
+    const cvector<Render::MaterialColors>& materialsSortedByInstances)
 {
+
 }
 
 

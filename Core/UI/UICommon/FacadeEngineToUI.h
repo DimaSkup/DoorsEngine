@@ -10,8 +10,7 @@
 
 #include "../../Render/CGraphics.h"
 #include "Entity/EntityMgr.h"            // from the ECS module
-#include "CRender.h"                     // from the Render module
-
+#include <Render/CRender.h>              // from the Render module
 #include <d3d11.h>
 
 
@@ -24,8 +23,8 @@ class FacadeEngineToUI : public IFacadeEngineToUI
 private:
     ID3D11DeviceContext* pContext_      = nullptr;
     Render::CRender*     pRender_       = nullptr;
-    ECS::EntityMgr*      pEnttMgr_    = nullptr;
-    Core::CGraphics*     pGraphics_ = nullptr;
+    ECS::EntityMgr*      pEnttMgr_      = nullptr;
+    Core::CGraphics*     pGraphics_     = nullptr;
 
 public:
     FacadeEngineToUI(

@@ -5,7 +5,7 @@
 // Created:       06.06.23
 // =================================================================================
 #include <CoreCommon/pch.h>
-#include "../Render/d3dclass.h"
+#include <Render/d3dclass.h>    // for using global pointers to DX11 device and context
 #include "TextureMgr.h"
 #include "ImageReader.h"
 
@@ -179,7 +179,7 @@ TexID TextureMgr::CreateTextureFromRawData(
         }
 
         // create a DirectX texture
-        Texture texture(g_pDevice, name, initData, width, height, mipMapped);
+        Texture texture(Render::g_pDevice, name, initData, width, height, mipMapped);
 
         // move texture into the textures manager and return an ID of the texture
         return Add(name, std::move(texture));
@@ -246,7 +246,7 @@ void TextureMgr::RecreateTextureFromRawData(
         const index idx = ids_.get_idx(id);
 
         // init texture with raw data
-        if (!inOutTex.Initialize(g_pDevice, name, initData, width, height, mipMapped))
+        if (!inOutTex.Initialize(Render::g_pDevice, name, initData, width, height, mipMapped))
         {
             sprintf(g_String, "can't initialize texture: %s", name);
             throw EngineException(g_String);

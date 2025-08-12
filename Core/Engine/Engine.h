@@ -34,7 +34,7 @@
 #include "../Render/CGraphics.h"
 
 // from the Render module
-#include "CRender.h"
+#include "Render/CRender.h"
 
 // from the ECS module: Entity-Component-System
 #include "Entity/EntityMgr.h"
@@ -72,24 +72,26 @@ public:
     void        RenderFrame();                    // do all the rendering onto the screen
     void        RenderUI(UI::UserInterface* pUI, Render::CRender* pRender);
 
-    // switch game/editor mode
-    inline void SwitchEngineMode()                  { switchEngineMode_ = true; }
 
-    inline bool IsGameMode()                  const { return systemState_.isGameMode; }
-    inline bool IsPaused()                    const { return isPaused_; }
-    inline bool IsExit()                      const { return isExit_; }
-    inline void DoExit()                            { isExit_ = true; }
+    // switch game/editor mode (we will use this flag to define if we need to switch)
+    inline void                 SwitchEngineMode()       { switchEngineMode_ = true; }
+
+    inline bool                 IsGameMode()       const { return systemState_.isGameMode; }
+    inline bool                 IsPaused()         const { return isPaused_; }
+    inline bool                 IsExit()           const { return isExit_; }
+    inline void                 DoExit()                 { isExit_ = true; }
 
     // inline getters
-    inline HWND            GetHWND()          const { return hwnd_; }
-    inline HINSTANCE       GetInstance()      const { return hInstance_; }
-    inline CGraphics&      GetGraphicsClass()       { return graphics_; }
-    inline D3DClass&       GetD3DClass()            { return graphics_.GetD3DClass(); }
-    inline GameTimer&      GetTimer()               { return timer_; }
-    inline SystemState&    GetSystemState()         { return systemState_; }
+    inline HWND                 GetHWND()          const { return hwnd_; }
+    inline HINSTANCE            GetInstance()      const { return hInstance_; }
+    inline CGraphics&           GetGraphicsClass()       { return graphics_; }
+    inline Render::D3DClass&    GetD3DClass()            { return graphics_.GetD3DClass(); }
 
-    inline Keyboard&       GetKeyboard()            { return keyboard_; }
-    inline Mouse&          GetMouse()               { return mouse_; }
+    inline GameTimer&           GetTimer()               { return timer_; }
+    inline SystemState&         GetSystemState()         { return systemState_; }
+    inline Keyboard&            GetKeyboard()            { return keyboard_; }
+    inline Mouse&               GetMouse()               { return mouse_; }
+
 
     // event listener methods implementation
     virtual void EventActivate    (const APP_STATE state) override;
