@@ -10,8 +10,7 @@
 
 #include "../../Render/CGraphics.h"
 #include "Entity/EntityMgr.h"            // from the ECS module
-#include "CRender.h"                     // from the Render module
-
+#include <Render/CRender.h>              // from the Render module
 #include <d3d11.h>
 
 
@@ -24,8 +23,8 @@ class FacadeEngineToUI : public IFacadeEngineToUI
 private:
     ID3D11DeviceContext* pContext_      = nullptr;
     Render::CRender*     pRender_       = nullptr;
-    ECS::EntityMgr*      pEnttMgr_    = nullptr;
-    Core::CGraphics*     pGraphics_ = nullptr;
+    ECS::EntityMgr*      pEnttMgr_      = nullptr;
+    Core::CGraphics*     pGraphics_     = nullptr;
 
 public:
     FacadeEngineToUI(
@@ -212,7 +211,6 @@ public:
         const Vec4& reflect) override;
 
     // get SRV (shader resource view)
-    virtual bool GetSRVByTexID      (const TexID textureID, SRV*& pSRV)                             const override;  // get SRV of a single texture by its ID
     virtual bool GetArrTexturesSRVs (SRV**& outArrShaderResourceViews, size& outNumViews)           const override;  // get array of all the textures SRVs
     virtual bool GetArrMaterialsSRVs(SRV**& outArrShaderResourceViews, size& outNumViews)           const override;  // get array of SRVs which contains visualization of materials (sphere + material)
 

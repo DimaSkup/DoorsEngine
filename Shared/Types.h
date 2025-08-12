@@ -71,4 +71,12 @@ struct TexName
     char name[MAX_LENGTH_TEXTURE_NAME]{ '\0' };
 };
 
+struct EntityModelMesh
+{
+    EntityID   enttId;
+    MaterialID matId;
+    ModelID    modelId;
+    SubmeshID  subsetId;
+};
+
 

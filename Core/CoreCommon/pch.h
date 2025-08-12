@@ -27,8 +27,4 @@
 #include "FileSystemPaths.h"
 #include "DMath.h"
 
-
-// yes, I did it
-#define NEW new(std::nothrow)
-
 #pragma warning (disable : 4996)

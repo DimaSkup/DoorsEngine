@@ -6,6 +6,8 @@
 // *********************************************************************************
 #pragma once
 
+// yes, I did it
+#define NEW new(std::nothrow)
 
 
 template<typename T>

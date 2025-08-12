@@ -36,7 +36,7 @@ public:
 	void Render(
 		ID3D11DeviceContext* pContext,
 		ID3D11Buffer* pInstancedBuffer,
-		const Instance* instances,
+		const InstanceBatch* instances,
 		const int numModels,
 		const UINT instancedBuffElemSize);
 

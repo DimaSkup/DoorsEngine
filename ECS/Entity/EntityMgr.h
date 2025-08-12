@@ -129,14 +129,12 @@ public:
     // add MATERIAL component
     void AddMaterialComponent(
         const EntityID enttId,
-        const MaterialID matId,
-        const bool isMaterialMeshBased);
+        const MaterialID matId);
 
     void AddMaterialComponent(
         const EntityID enttID,
         const MaterialID* materialsIDs,
-        const size numSubmeshes,
-        const bool areMaterialsMeshBased);
+        const size numSubmeshes);
 
 
     // add TEXTURE TRANSFORM component

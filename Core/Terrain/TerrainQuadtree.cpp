@@ -182,7 +182,7 @@ bool TerrainQuadtree::InitBuffers(
     constexpr bool isDynamic = true;
 
     // initialize the vertex buffer
-    if (!vb_.Initialize(g_pDevice, vertices, numVertices, isDynamic))
+    if (!vb_.Initialize(Render::g_pDevice, vertices, numVertices, isDynamic))
     {
         LogErr(LOG, "can't initialize a vertex buffer for terrain");
         Release();
@@ -190,7 +190,7 @@ bool TerrainQuadtree::InitBuffers(
     }
 
     // initialize the index buffer
-    if (!ib_.Initialize(g_pDevice, indices, numIndices, isDynamic))
+    if (!ib_.Initialize(Render::g_pDevice, indices, numIndices, isDynamic))
     {
         LogErr(LOG, "can't initialize the index buffer for terrain");
         Release();
@@ -221,7 +221,7 @@ void TerrainQuadtree::Update(const CameraParams& params)
 
     GenerateNode(center, center, size);
 
-    vb_.UpdateDynamic(g_pContext, vertices_, verticesOffset_);
+    vb_.UpdateDynamic(Render::g_pContext, vertices_, verticesOffset_);
 }
 
 //---------------------------------------------------------

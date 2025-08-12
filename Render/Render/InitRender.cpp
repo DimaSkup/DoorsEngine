@@ -5,9 +5,9 @@
 // 
 // Created:       30.08.24
 // *********************************************************************************
+#include "../Common/pch.h"
 #include "InitRender.h"
-#include <log.h>
-#include <CAssert.h>
+
 
 #pragma warning (disable : 4996)
 

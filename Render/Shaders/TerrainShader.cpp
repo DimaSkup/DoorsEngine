@@ -46,46 +46,9 @@ bool TerrainShader::Initialize(
         return false;
     }
 }
-
-// --------------------------------------------------------
-// Desc:   terrain rendering method
-// Args:   - pContext: DirectX device context
-//         - instance: a container which holds all the necessary
-//                     data for terrain rendering
-// --------------------------------------------------------
-void TerrainShader::Render(
-    ID3D11DeviceContext* pContext,
-    const TerrainInstance& instance)
-{
-    // bind vertex and pixel shaders
-    pContext->VSSetShader(vs_.GetShader(), nullptr, 0U);
-    pContext->IASetInputLayout(vs_.GetInputLayout());
-    pContext->PSSetShader(ps_.GetShader(), nullptr, 0U);
-
-    // set textures
-    pContext->PSSetShaderResources(10U, NUM_TEXTURE_TYPES, instance.textures);
-
-    // bind vb/ib
-    const UINT stride = instance.vertexStride;
-    const UINT offset = 0;
-
-    pContext->IASetVertexBuffers(0, 1, &instance.pVB, &stride, &offset);
-    pContext->IASetIndexBuffer(instance.pIB, DXGI_FORMAT_R32_UINT, 0U);
-
-    // setup the material
-    cbpsMaterialData_.data.ambient  = instance.material.ambient_;
-    cbpsMaterialData_.data.diffuse  = instance.material.diffuse_;
-    cbpsMaterialData_.data.specular = instance.material.specular_;
-    cbpsMaterialData_.data.reflect  = instance.material.reflect_;
-    cbpsMaterialData_.ApplyChanges(pContext);
-
-    pContext->PSSetConstantBuffers(5, 1, cbpsMaterialData_.GetAddressOf());
-
-    // render geometry
-    pContext->DrawIndexed(instance.indexCount, 0U, 0U);
-    //pContext->Draw(instance.numVertices, 0);
-}
-
+//---------------------------------------------------------
+// Desc:   execute some preparation before terrain's patches rendering
+//---------------------------------------------------------
 void TerrainShader::Prepare(
     ID3D11DeviceContext* pContext,
     const TerrainInstance& instance)
@@ -95,9 +58,6 @@ void TerrainShader::Prepare(
     pContext->IASetInputLayout(vs_.GetInputLayout());
     pContext->PSSetShader(ps_.GetShader(), nullptr, 0U);
 
-    // set textures
-    pContext->PSSetShaderResources(10U, NUM_TEXTURE_TYPES, instance.textures);
-
     // bind vb/ib
     const UINT stride = instance.vertexStride;
     const UINT offset = 0;
@@ -106,59 +66,23 @@ void TerrainShader::Prepare(
     pContext->IASetIndexBuffer(instance.pIB, DXGI_FORMAT_R32_UINT, 0U);
 
     // setup the material
-    cbpsMaterialData_.data.ambient = instance.material.ambient_;
-    cbpsMaterialData_.data.diffuse = instance.material.diffuse_;
-    cbpsMaterialData_.data.specular = instance.material.specular_;
-    cbpsMaterialData_.data.reflect = instance.material.reflect_;
+    cbpsMaterialData_.data.ambient  = instance.matColors.ambient;
+    cbpsMaterialData_.data.diffuse  = instance.matColors.diffuse;
+    cbpsMaterialData_.data.specular = instance.matColors.specular;
+    cbpsMaterialData_.data.reflect  = instance.matColors.reflect;
     cbpsMaterialData_.ApplyChanges(pContext);
 
     pContext->PSSetConstantBuffers(5, 1, cbpsMaterialData_.GetAddressOf());
 }
 
+// --------------------------------------------------------
+// render geometry of a single terrain patch
+// --------------------------------------------------------
 void TerrainShader::RenderPatch(
     ID3D11DeviceContext* pContext,
     const TerrainInstance& instance)
 {
-    // render geometry
     pContext->DrawIndexed(instance.indexCount, instance.baseIndex, instance.baseVertex);
-    //pContext->Draw(instance.numVertices, 0);
-}
-
-
-// --------------------------------------------------------
-// Desc:   render terrain's vertices onto the screen
-//         (NOTE: we don't use any indices here)
-// Args:   - pContext: a ptr to DirectX11 device context
-//         - instance: container of necessary data for rendering
-// --------------------------------------------------------
-void TerrainShader::RenderVertices(
-    ID3D11DeviceContext* pContext,
-    const TerrainInstance& instance)
-{
-    // bind vertex and pixel shaders
-    pContext->VSSetShader(vs_.GetShader(), nullptr, 0U);
-    pContext->IASetInputLayout(vs_.GetInputLayout());
-    pContext->PSSetShader(ps_.GetShader(), nullptr, 0U);
-
-    // set textures
-    pContext->PSSetShaderResources(1U, NUM_TEXTURE_TYPES, instance.textures);
-
-    // bind vertex buffer
-    constexpr UINT offset = 0;
-
-    pContext->IASetVertexBuffers(0, 1, &instance.pVB, &instance.vertexStride, &offset);
-
-    // setup the material
-    cbpsMaterialData_.data.ambient  = instance.material.ambient_;
-    cbpsMaterialData_.data.diffuse  = instance.material.diffuse_;
-    cbpsMaterialData_.data.specular = instance.material.specular_;
-    cbpsMaterialData_.data.reflect  = instance.material.reflect_;
-    cbpsMaterialData_.ApplyChanges(pContext);
-
-    pContext->PSSetConstantBuffers(5, 1, cbpsMaterialData_.GetAddressOf());
-
-    // render geometry
-    pContext->Draw(instance.numVertices, 0);
 }
 
 // --------------------------------------------------------

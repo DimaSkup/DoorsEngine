@@ -109,7 +109,7 @@ void MaterialIconShader::Render(
     ID3D11DeviceContext* pContext,
     const int indexCount,
     ID3D11ShaderResourceView* const* ppTextures,
-    const Render::Material& mat)
+    const Render::MaterialColors& mat)
 {
     // render a model (preferably sphere) with a single material
     try
@@ -121,10 +121,10 @@ void MaterialIconShader::Render(
         pContext->PSSetShaderResources(0, NUM_TEXTURE_TYPES, ppTextures);
 
         // setup the material
-        cbpsMaterialData_.data.ambient  = mat.ambient_;
-        cbpsMaterialData_.data.diffuse  = mat.diffuse_;
-        cbpsMaterialData_.data.specular = mat.specular_;
-        cbpsMaterialData_.data.reflect  = mat.reflect_;
+        cbpsMaterialData_.data.ambient  = mat.ambient;
+        cbpsMaterialData_.data.diffuse  = mat.diffuse;
+        cbpsMaterialData_.data.specular = mat.specular;
+        cbpsMaterialData_.data.reflect  = mat.reflect;
         cbpsMaterialData_.ApplyChanges(pContext);
         pContext->PSSetConstantBuffers(5, 1, cbpsMaterialData_.GetAddressOf());
 

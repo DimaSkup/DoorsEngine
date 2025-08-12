@@ -50,57 +50,11 @@ bool TextureShader::Initialize(
 void TextureShader::Render(
     ID3D11DeviceContext* pContext,
     ID3D11Buffer* pInstancedBuffer,
-    const Instance* instances,
+    const InstanceBatch* instances,
     const int numModels,
     const UINT instancedBuffElemSize)
 {
-    using SRV = ID3D11ShaderResourceView;
-
-    // bind input layout, shaders, samplers
-    pContext->IASetInputLayout(vs_.GetInputLayout());
-    pContext->VSSetShader(vs_.GetShader(), nullptr, 0);
-    pContext->PSSetShader(ps_.GetShader(), nullptr, 0);
-        
-
-    // go through each instance and render it
-    for (int i = 0, startInstanceLocation = 0; i < numModels; ++i)
-    {
-        const Instance& instance = instances[i];
-
-        // bind vertex/index buffers
-        ID3D11Buffer* const vbs[2] = { instance.pVB, pInstancedBuffer };
-        const UINT stride[2] = { instance.vertexStride, instancedBuffElemSize };
-        const UINT offset[2] = { 0,0 };
-
-        pContext->IASetVertexBuffers(0, 2, vbs, stride, offset);
-        pContext->IASetIndexBuffer(instance.pIB, DXGI_FORMAT_R32_UINT, 0);
-
-        // textures arr
-        SRV* const* texSRVs = instance.texSRVs.data();
-        const int numSubsets = (int)instance.subsets.size();
-
-        // go through each subset (mesh) of this model and render it
-        for (int subsetIdx = 0; subsetIdx < numSubsets; ++subsetIdx)
-        {
-            // update textures for the current subset
-            pContext->PSSetShaderResources(
-                0U,
-                NUM_TEXTURE_TYPES,
-                texSRVs + (subsetIdx * NUM_TEXTURE_TYPES));
-
-            const Subset& subset = instance.subsets[subsetIdx];
-
-            pContext->DrawIndexedInstanced(
-                subset.indexCount,
-                instance.numInstances,
-                subset.indexStart,
-                subset.vertexStart,
-                startInstanceLocation + subsetIdx);
-        }
-
-        // offset to the next block of instances to render
-        startInstanceLocation += numSubsets * instance.numInstances;
-    }
+    assert(0 && "FIXME");
 }
 
 

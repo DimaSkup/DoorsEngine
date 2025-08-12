@@ -87,18 +87,14 @@ public:
     TexID GetTexIdByIdx(const index idx) const;
     //void GetIDsByNames(const char* names, const size numNames, cvector<TexID>& outIDs);
 
-    ID3D11ShaderResourceView* GetSRVByTexID  (const TexID texID);
-    void GetSRVsByTexIDs(const TexID* texIDs, const size numTex, cvector<ID3D11ShaderResourceView*>& outSRVs);
+    SRV* GetTexViewsById(const TexID texID);
+    void GetTexViewsByIds(
+        const TexID* texIDs,
+        const size numTex,
+        ID3D11ShaderResourceView** outSRVs);
 
     inline const ID3D11ShaderResourceView** GetAllShaderResourceViews()         { return (const ID3D11ShaderResourceView**)shaderResourceViews_.data(); }
     inline size                             GetNumShaderResourceViews()   const { return shaderResourceViews_.size(); }
-
-    inline bool                             IsNameEmpty(const char* name) const { return ((name == nullptr) || (name[0] == '\0')); }
-#if 0
-    void GetAllTexturesPathsWithinDirectory(
-        const std::string& pathToDir,
-        cvector<TexPath>& outPathsToTextures);
-#endif
 
 private:
     void AddDefaultTex(const char* name, Texture&& tex);

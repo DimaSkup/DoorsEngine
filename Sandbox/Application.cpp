@@ -41,7 +41,7 @@ void App::Initialize()
     InitEngine();
 
     Core::CGraphics&     graphics = engine_.GetGraphicsClass();
-    Core::D3DClass&      d3d      = graphics.GetD3DClass();
+    Render::D3DClass&    d3d      = graphics.GetD3DClass();
     ID3D11Device*        pDevice  = d3d.GetDevice();
     ID3D11DeviceContext* pContext = d3d.GetDeviceContext();
 
@@ -211,7 +211,7 @@ bool App::InitGUI(
         char videoCardName[128]{ '\0' };
         int videoCardMemory = 0;
 
-        D3DClass& d3d = engine_.GetGraphicsClass().GetD3DClass();
+        Render::D3DClass& d3d = engine_.GetGraphicsClass().GetD3DClass();
         d3d.GetVideoCardInfo(videoCardName, 128, videoCardMemory);
 
         // initialize the user interface

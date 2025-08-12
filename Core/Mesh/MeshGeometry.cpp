@@ -188,7 +188,7 @@ void MeshGeometry::SetMaterialForSubset(const SubsetID subsetID, const MaterialI
         CAssert::True((subsetID >= 0) && (subsetID < numSubsets_), "input ID to subset is invalid");
         CAssert::True(matID > 0,                                   "input ID to material is invalid");
 
-        subsets_[subsetID].materialID = matID;
+        subsets_[subsetID].materialId = matID;
     }
     catch (EngineException& e)
     {
@@ -214,7 +214,7 @@ void MeshGeometry::SetMaterialsForSubsets(
     }
 
     for (index i = 0; i < count; ++i)
-        subsets_[subsetsIDs[i]].materialID = materialsIDs[i];
+        subsets_[subsetsIDs[i]].materialId = materialsIDs[i];
 }
 
 // =================================================================================

@@ -3,10 +3,8 @@
 // Description:  there are functions for rendering graphics;
 // Created:      01.01.23
 // =================================================================================
+#include "../Common/pch.h"
 #include "CRender.h"
-#include <MathHelper.h>
-#include <log.h>
-#include <CAssert.h>
 #include "InitRender.h"
 
 using XMFLOAT3 = DirectX::XMFLOAT3;
@@ -240,13 +238,13 @@ void CRender::UpdatePerFrame(
 
 void CRender::UpdateInstancedBuffer(
     ID3D11DeviceContext* pContext,
-    const InstBuffData& data)
+    const InstancesBuf& buf)
 {
     UpdateInstancedBuffer(
         pContext,
-        data.worlds_,
-        data.materials_,
-        data.GetSize());     // get the number of elements to render
+        buf.worlds_,
+        buf.materials_,
+        buf.GetSize());     // get the number of elements to render
 }
 
 ///////////////////////////////////////////////////////////
@@ -254,14 +252,14 @@ void CRender::UpdateInstancedBuffer(
 void CRender::UpdateInstancedBuffer(
     ID3D11DeviceContext* pContext,
     const DirectX::XMMATRIX* worlds,
-    const Material* materials,
+    const MaterialColors* matColors,
     const int count)
 {
     // fill in the instanced buffer with data
     try
     {
         CAssert::True(worlds != nullptr,        "input arr of world matrices == nullptr");
-        CAssert::True(materials != nullptr,     "input arr of materials == nullptr");
+        CAssert::True(matColors != nullptr,     "input arr of materials == nullptr");
         CAssert::True(count > 0,                "input number of elements must be > 0");
 
         // map the instanced buffer to write into it
@@ -279,7 +277,7 @@ void CRender::UpdateInstancedBuffer(
         }
 
         for (int i = 0; i < count; ++i)
-            dataView[i].material = materials[i];
+            dataView[i].matColors = matColors[i];
 
         pContext->Unmap(pInstancedBuffer_, 0);
     }
@@ -329,7 +327,7 @@ void CRender::UpdateInstancedBufferWorlds(
 
 void CRender::UpdateInstancedBufferMaterials(
     ID3D11DeviceContext* pContext,
-    cvector<Material>& materials)
+    cvector<MaterialColors>& matColors)
 {
     try
     {
@@ -341,8 +339,8 @@ void CRender::UpdateInstancedBufferMaterials(
         ConstBufType::InstancedData* dataView = (ConstBufType::InstancedData*)mappedData.pData;
 
         // write data into the subresource
-        for (index i = 0; i < std::ssize(materials); ++i)
-            dataView[i].material = materials[i];
+        for (index i = 0; i < std::ssize(matColors); ++i)
+            dataView[i].matColors = matColors[i];
 
         pContext->Unmap(pInstancedBuffer_, 0);
     }
@@ -357,51 +355,21 @@ void CRender::UpdateInstancedBufferMaterials(
     }
 }
 
-
-
-
 // =================================================================================
 //                               rendering methods
 // =================================================================================
 
-void CRender::RenderBoundingLineBoxes(
-    ID3D11DeviceContext* pContext,
-    const Instance* instances,
-    const int numModels)
-{
-    try
-    {
-        const UINT instancedBuffElemSize = static_cast<UINT>(sizeof(ConstBufType::InstancedData));
-
-        shadersContainer_.colorShader_.Render(
-            pContext,
-            pInstancedBuffer_,
-            instances,
-            numModels,
-            instancedBuffElemSize);
-    }
-    catch (EngineException& e)
-    {
-        LogErr(e);
-        LogErr("can't render the bounding line boxes onto the screen");
-    }
-    catch (...)
-    {
-        LogErr("can't render the bounding line boxes for some unknown reason :(");
-    }
-}
-
-///////////////////////////////////////////////////////////
-
 void CRender::RenderInstances(
     ID3D11DeviceContext* pContext,
     const ShaderTypes type,
-    const Instance* instances,
-    const int numInstances)
+    const InstanceBatch* instances,
+    const int numAllInstances)
 {
+    UINT startInstanceLocation = 0;
+
     try
     {
-        const UINT instancedBuffElemSize = static_cast<UINT>(sizeof(ConstBufType::InstancedData));
+        const UINT instancedBuffElemSize = (UINT)(sizeof(ConstBufType::InstancedData));
 
         if (isDebugMode_)
         {
@@ -409,7 +377,7 @@ void CRender::RenderInstances(
                 pContext,
                 pInstancedBuffer_,
                 instances,
-                numInstances,
+                numAllInstances,
                 instancedBuffElemSize);
 
             return;
@@ -417,15 +385,13 @@ void CRender::RenderInstances(
 
         switch (type)
         {
-            pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
             case COLOR:
             {
                 shadersContainer_.colorShader_.Render(
                     pContext,
                     pInstancedBuffer_,
                     instances,
-                    numInstances,
+                    numAllInstances,
                     instancedBuffElemSize);
 
                 break;
@@ -436,30 +402,31 @@ void CRender::RenderInstances(
                     pContext,
                     pInstancedBuffer_,
                     instances,
-                    numInstances,
+                    numAllInstances,
                     instancedBuffElemSize);
                 break;
             }
-#if 0
-            case BILLBOARD:
-            {
-                shadersContainer_.billboardShader_.CRender(
-                    pContext,
-                    pInstancedBuffer_,
-                    instances,
-                    numInstances,
-                    instancedBuffElemSize);
-                break;
-            }
-#endif
             case LIGHT:
             {
-                shadersContainer_.lightShader_.Render(
-                    pContext,
-                    pInstancedBuffer_,
-                    instances,
-                    numInstances,
-                    instancedBuffElemSize);
+                int instanceBatchIdx = 0;
+
+                for (int i = 0; i < numAllInstances; ++i)
+                {
+                    const InstanceBatch& instanceBatch = instances[instanceBatchIdx];
+
+                    pContext->PSSetShaderResources(10U, NUM_TEXTURE_TYPES, instanceBatch.textures);
+
+                    shadersContainer_.lightShader_.Render(
+                        pContext,
+                        pInstancedBuffer_,
+                        instanceBatch,
+                        instancedBuffElemSize,
+                        startInstanceLocation);
+
+                    startInstanceLocation += instanceBatch.numInstances;
+                    instanceBatchIdx++;
+                }
+
 
                 break;
             }
@@ -469,7 +436,7 @@ void CRender::RenderInstances(
                     pContext,
                     pInstancedBuffer_,
                     instances,
-                    numInstances,
+                    numAllInstances,
                     instancedBuffElemSize);
 
                 break;
@@ -769,4 +736,5 @@ void CRender::SetViewProj(ID3D11DeviceContext* pContext, const DirectX::XMMATRIX
 
 
 
-}; // namespace CRender
+
+}; // namespace

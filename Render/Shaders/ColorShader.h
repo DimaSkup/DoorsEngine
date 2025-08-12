@@ -42,7 +42,6 @@ public:
     ColorShader(const ColorShader& obj) = delete;
     ColorShader& operator=(const ColorShader& obj) = delete;
 
-
     bool Initialize(
         ID3D11Device* pDevice,
         const char* vsFilePath,
@@ -51,18 +50,11 @@ public:
     void Render(
         ID3D11DeviceContext* pContext,
         ID3D11Buffer* pInstancedBuffer,
-        const Instance* instances,
+        const InstanceBatch* instances,
         const int numModels,
         const UINT instancesBuffElemSize);
 
     inline const char* GetShaderName() const { return className_; }
-
-
-private:
-    void InitializeShaders(
-        ID3D11Device* pDevice,
-        const char* vsFilePath,
-        const char* psFilePath);
 
 private:
     VertexShader   vs_;

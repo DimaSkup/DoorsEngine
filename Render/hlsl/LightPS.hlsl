@@ -102,7 +102,6 @@ float4 PS(PS_IN pin) : SV_Target
     float4 textureColor = gTextures[1].Sample(gBasicSampler, pin.tex);
     float4 specularColor = gTextures[2].Sample(gBasicSampler, pin.tex);
 
-
     // execute alpha clipping
     if (gAlphaClipping)
         clip(textureColor.a - 0.1f);

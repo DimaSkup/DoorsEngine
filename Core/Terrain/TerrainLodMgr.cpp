@@ -4,7 +4,7 @@
 // =================================================================================
 #include <CoreCommon/pch.h>
 #include "TerrainLodMgr.h"
-#include "../Render/d3dclass.h"
+#include <Render/d3dclass.h>
 
 namespace Core
 {
@@ -33,7 +33,7 @@ int TerrainLodMgr::Init(const int patchSize, const int numPatchesPerSide)
         exit(0);
     }
 
-    CalcLodRegions(D3DClass::Get()->GetFarZ());
+    CalcLodRegions(Render::D3DClass::Get()->GetFarZ());
 
     return maxLOD_;
 }

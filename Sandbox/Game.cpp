@@ -48,11 +48,11 @@ bool Game::Init(
     GameInitializer gameInit;
     bool result = false;
 
-    Core::CGraphics& graphics = pEngine->GetGraphicsClass();
-    const Core::D3DClass& d3d = graphics.GetD3DClass();
-    const SIZE windowedSize   = d3d.GetWindowedWndSize();
-    const SIZE fullscreenSize = d3d.GetFullscreenWndSize();
-    ID3D11Device* pDevice     = d3d.GetDevice();
+    Core::CGraphics& graphics   = pEngine->GetGraphicsClass();
+    const Render::D3DClass& d3d = graphics.GetD3DClass();
+    const SIZE windowedSize     = d3d.GetWindowedWndSize();
+    const SIZE fullscreenSize   = d3d.GetFullscreenWndSize();
+    ID3D11Device* pDevice       = d3d.GetDevice();
     //const TerrainGeomip& terrain = g_ModelMgr.GetTerrainGeomip();
 
 

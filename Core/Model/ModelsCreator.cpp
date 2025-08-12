@@ -8,8 +8,7 @@
 
 // common stuff
 #include "ModelMath.h"
-//#include "../Engine/EngineConfigs.h"
-#include "../Render/d3dclass.h"
+#include <Render/d3dclass.h>           // for using global pointers to DX11 device and context
 
 // models stuff
 #include "ModelsCreator.h"
@@ -75,20 +74,21 @@ ModelID ModelsCreator::CreateFromDE3D(ID3D11Device* pDevice, const char* modelPa
     }
 }
 
-///////////////////////////////////////////////////////////
-
-ModelID ModelsCreator::ImportFromFile(
-    ID3D11Device* pDevice,
-    const char* modelPath)
+//---------------------------------------------------------
+// Desc:    create a model by loading its
+//          vertices/indices/texture data/etc. from a file
+// Args:    - pDevice:  a ptr to DX11 device
+//          - path:     a path to file with model
+//---------------------------------------------------------
+ModelID ModelsCreator::ImportFromFile(ID3D11Device* pDevice, const char* path)
 {
-    // create a model by loading its vertices/indices/texture data/etc. from a file
     try
     {
         ModelImporter importer;
         BasicModel& model = g_ModelMgr.AddEmptyModel();
 
         // import model from a file by path
-        importer.LoadFromFile(pDevice, model, modelPath);
+        importer.LoadFromFile(pDevice, model, path);
 
         // initialize vb/ib
         model.InitializeBuffers(pDevice);
@@ -97,7 +97,7 @@ ModelID ModelsCreator::ImportFromFile(
         model.ComputeModelAABB();
 
         // set a name and type for the model
-        FileSys::GetFileStem(modelPath, g_String);
+        FileSys::GetFileStem(path, g_String);
 
         model.SetName(g_String);
         model.type_ = eModelType::Imported;
@@ -108,7 +108,7 @@ ModelID ModelsCreator::ImportFromFile(
     catch (EngineException& e)
     {
         LogErr(e);
-        LogErr(LOG, "can't import a model from file: %s", modelPath);
+        LogErr(LOG, "can't import a model from file: %s", path);
         return INVALID_MODEL_ID;
     }
 }
@@ -482,7 +482,7 @@ ModelID ModelsCreator::CreateCylinder(
 //---------------------------------------------------------
 bool ModelsCreator::CreateTerrain(const char* configFilename)
 {
-    return TerrainCreator::CreateTerrain(g_pDevice, configFilename);
+    return TerrainCreator::CreateTerrain(Render::g_pDevice, configFilename);
 }
 
 

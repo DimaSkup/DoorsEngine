@@ -13,7 +13,8 @@
 #include <d3dcommon.h>
 #include <DirectXMath.h>
 
-namespace Core
+
+namespace Render
 {
 
 class D3DClass
@@ -82,11 +83,11 @@ public:
     inline void SetRS(const std::set<eRenderState>& states)      { renderStates_.SetRS(pContext_, states); }
 
     // turning the Z buffer on and off when rendering 2D images
-    inline void TurnZBufferOn()                                  { pContext_->OMSetDepthStencilState(renderStates_.GetDSS(eRenderState::DEPTH_ENABLED), 1); }
-    inline void TurnZBufferOff()                                 { pContext_->OMSetDepthStencilState(renderStates_.GetDSS(eRenderState::DEPTH_DISABLED), 1); }
+    inline void TurnZBufferOn()                                  { pContext_->OMSetDepthStencilState(renderStates_.GetDSS(R_DEPTH_ENABLED), 1); }
+    inline void TurnZBufferOff()                                 { pContext_->OMSetDepthStencilState(renderStates_.GetDSS(R_DEPTH_DISABLED), 1); }
 
     inline void TurnOnBlending(const eRenderState state)         { renderStates_.SetBS(pContext_, state); }
-    inline void TurnOffBlending()                                { renderStates_.SetBS(pContext_, eRenderState::ALPHA_DISABLE); }
+    inline void TurnOffBlending()                                { renderStates_.SetBS(pContext_, R_ALPHA_DISABLE); }
 
     // set default render target/viewport
     inline void ResetBackBufferRenderTarget()                    { pContext_->OMSetRenderTargets(1, &pRenderTargetView_, pDepthStencilView_); }

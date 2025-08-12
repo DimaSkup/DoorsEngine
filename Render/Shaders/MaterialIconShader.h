@@ -52,7 +52,7 @@ public:
         ID3D11DeviceContext* pContext,
         const int indexCount,
         ID3D11ShaderResourceView* const* ppTextures,
-        const Render::Material& mat);
+        const Render::MaterialColors& matColors);
 
     void SetMatrix(
         ID3D11DeviceContext* pContext,
