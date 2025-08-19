@@ -29,13 +29,20 @@ EngineException::EngineException(
         errMsg_ += StringHelper::ToString(error.ErrorMessage());
     }
 #endif
+    const time_t time        = clock();
+    const char*  funcName    = location.function_name();
+    size_t       funcNameLen = strlen(funcName);
 
-    const time_t time = clock();
+    // trying to get len of string that contains only func name without args
+    const char* openBracketSymbolPtr = strchr(funcName, '(');
+    if (openBracketSymbolPtr != NULL) {
+        funcNameLen = (size_t)(openBracketSymbolPtr - funcName);
+    }
 
     const char* fmt =
         "[%05ld] ERROR:\n"
         "FILE:  %s\n"
-        "FUNC:  %s()\n"
+        "FUNC:  %.*s()\n"
         "LINE:  %d\n"
         "MSG:   %s\n\n";
 
@@ -49,7 +56,8 @@ EngineException::EngineException(
         fmt,
         time,
         path,
-        location.function_name(),
+        funcNameLen,
+        funcName,
         location.line(),
         msg);
 }
