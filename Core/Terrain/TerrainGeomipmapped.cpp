@@ -69,11 +69,11 @@ bool TerrainGeomip::InitGeomipmapping(const int patchSize)
     {
         int patchSz = patchSize - 1;
         int recommendedTerrainSize = ((terrainLen -1 + patchSz) / (patchSz)) * (patchSz) + 1;
-		
+        
         LogErr(LOG, "terrain length minus 1 (%d) must be divisible by patch size minus 1 (%d)", terrainLen, patchSize);
         SetConsoleColor(YELLOW);
         LogMsg("Try using terrain size = %d", recommendedTerrainSize);
-		
+        
         return false;
     }
 
@@ -400,12 +400,126 @@ void TerrainGeomip::CalcNormals(
 }
 
 //---------------------------------------------------------
-// Desc:   update the geomipmapping system
-// Args:   - cameraPos: camera position in the world
+// Desc:   test if patch by (x,z) is in the view frustum
 //---------------------------------------------------------
-void TerrainGeomip::Update(const CameraParams& camParams)
+bool TerrainGeomip::IsPatchInsideViewFrustum(
+    const int x0,
+    const int z0,
+    const DirectX::BoundingFrustum& frustum)
 {
-    lodMgr_.Update(camParams.posX, camParams.posY, camParams.posZ);
+    // generate bounding box and sphere for terrain's patch by (x0,y0)
+    const int size = lodMgr_.patchSize_ - 1;
+    const int x1   = x0 + size;
+    const int z1   = z0 + size;
+
+    const float h00 = GetScaledHeightAtPoint(x0, z0);
+    const float h10 = GetScaledHeightAtPoint(x1, z0);
+    const float h01 = GetScaledHeightAtPoint(x0, z1);
+    const float h11 = GetScaledHeightAtPoint(x1, z1);
+
+    const float minHeight = min(h00, min(h01, min(h10, h11)));
+    const float maxHeight = max(h00, max(h01, max(h10, h11)));
+
+    DirectX::BoundingBox    aabb;
+    DirectX::BoundingSphere sphere;
+    DirectX::XMVECTOR       minPoint = { (float)x0, minHeight, (float)z0 };
+    DirectX::XMVECTOR       maxPoint = { (float)x1, maxHeight, (float)z1 };
+
+    // test bounding shapes against the frustum
+    DirectX::BoundingBox::CreateFromPoints(aabb, minPoint, maxPoint);
+    DirectX::BoundingSphere::CreateFromBoundingBox(sphere, aabb);
+
+    return frustum.Intersects(sphere);
+
+#if 0
+
+    return fc.Intersects(aabb);
+
+    return frustum.SphereTest(cx, cy, cz, radius);
+
+    return
+        frustum.PointTest(fX0, minHeight, fZ0) ||
+        frustum.PointTest(fX0, minHeight, fZ1) ||
+        frustum.PointTest(fX1, minHeight, fZ0) ||
+        frustum.PointTest(fX1, minHeight, fZ1) ||
+
+        frustum.PointTest(fX0, maxHeight, fZ0) ||
+        frustum.PointTest(fX0, maxHeight, fZ1) ||
+        frustum.PointTest(fX1, maxHeight, fZ0) ||
+        frustum.PointTest(fX1, maxHeight, fZ1);
+#endif
+}
+
+//---------------------------------------------------------
+// Desc:   update the geomipmapping system
+// Args:   - camParams: camera params for LODs computation and frustum culling
+//---------------------------------------------------------
+void TerrainGeomip::Update(const CameraParams& cam)
+{
+    lodMgr_.Update(cam.posX, cam.posY, cam.posZ);
+
+    // create a view frustum planes
+    //const Frustum frustum(cam.fov, cam.aspectRatio, cam.nearZ, cam.farZ);
+
+    DirectX::BoundingFrustum frustum;
+
+    //const XMMATRIX view    = XMMATRIX(cam.view);
+    const XMMATRIX invView = XMMatrixInverse(nullptr, XMMATRIX(cam.view));
+    DirectX::BoundingFrustum::CreateFromMatrix(frustum, XMMATRIX(cam.proj));
+
+    // transform each frustum plane into world space
+
+    const int patchSize         = lodMgr_.patchSize_;
+    const int numPatchesPerSide = lodMgr_.numPatchesPerSide_;
+    int       numVisPatches     = 0;
+
+    visiblePatches_.resize(SQR(numPatchesPerSide));
+
+#if 1
+    // go through each patch
+    for (int pz = 0; pz < numPatchesPerSide; ++pz)
+    {
+        for (int px = 0; px < numPatchesPerSide; ++px)
+        {
+            const int x = px * patchSize;
+            const int z = pz * patchSize;
+
+            DirectX::BoundingFrustum localSpaceFrustum;
+            frustum.Transform(localSpaceFrustum, invView);
+
+            // check if we see this patch
+            if (!IsPatchInsideViewFrustum(x, z, localSpaceFrustum))
+            {
+                continue;
+            }
+
+            // store number of this patch so we will render it
+            const int patchNum = (pz * numPatchesPerSide) + px;
+            visiblePatches_[numVisPatches++] = patchNum;
+        }
+    }
+#else
+
+    const int px = 0;
+    const int pz = 0;
+    const int x = px * patchSize;
+    const int z = pz * patchSize;
+
+    DirectX::BoundingFrustum localSpaceFrustum;
+    frustum.Transform(localSpaceFrustum, invView);
+
+    // check if we see this patch
+    if (IsPatchInsideViewFrustum(x, z, localSpaceFrustum))
+    {
+        // store number of this patch so we will render it
+        const int patchNum = (pz * numPatchesPerSide) + px;
+        visiblePatches_[numVisPatches++] = patchNum;
+    }
+
+   
+#endif
+
+    visiblePatches_.resize(numVisPatches);
 }
 
 //---------------------------------------------------------

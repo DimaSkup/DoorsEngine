@@ -174,7 +174,7 @@ bool CRender::ShadersHotReload(ID3D11Device* pDevice)
         shadersContainer_.particleShader_.ShaderHotReload    (pDevice, "shaders/hlsl/particleVS.hlsl",     "shaders/hlsl/particleGS.hlsl",     "shaders/hlsl/particlePS.hlsl");
         shadersContainer_.materialIconShader_.ShaderHotReload(pDevice, "shaders/hlsl/MaterialIconVS.hlsl", "shaders/hlsl/MaterialIconPS.hlsl");
         shadersContainer_.terrainShader_.ShaderHotReload     (pDevice, "shaders/hlsl/TerrainVS.hlsl",      "shaders/hlsl/TerrainPS.hlsl");
-        shadersContainer_.debugShader_.ShaderHotReload       (pDevice, "shaders/hlsl/DebugVS.hlsl",        "shaders/hlsl/DebugPS.hlsl");
+        //shadersContainer_.debugShader_.ShaderHotReload       (pDevice, "shaders/hlsl/DebugVS.hlsl",        "shaders/hlsl/DebugPS.hlsl");
         LogDbg(LOG, "shaders are hot reloaded");
 
         return true;
@@ -359,91 +359,58 @@ void CRender::UpdateInstancedBufferMaterials(
 //                               rendering methods
 // =================================================================================
 
+//---------------------------------------------------------
+// Desc:    render input instances batch onto the screen
+// Args:    - shaderType:            what shader to use
+//          - instances:             batch of instances to render
+//          - startInstanceLocation: from where we get instances data
+//                                   (world matrices, materials) in the instances buf
+//---------------------------------------------------------
 void CRender::RenderInstances(
     ID3D11DeviceContext* pContext,
-    const ShaderTypes type,
-    const InstanceBatch* instances,
-    const int numAllInstances)
+    const ShaderTypes shaderType,
+    const InstanceBatch& instances,
+    const UINT startInstanceLocation)
 {
-    UINT startInstanceLocation = 0;
-
     try
     {
         const UINT instancedBuffElemSize = (UINT)(sizeof(ConstBufType::InstancedData));
 
         if (isDebugMode_)
         {
-            shadersContainer_.debugShader_.Render(
-                pContext,
-                pInstancedBuffer_,
-                instances,
-                numAllInstances,
-                instancedBuffElemSize);
-
             return;
         }
 
-        switch (type)
+        switch (shaderType)
         {
             case COLOR:
             {
-                shadersContainer_.colorShader_.Render(
-                    pContext,
-                    pInstancedBuffer_,
-                    instances,
-                    numAllInstances,
-                    instancedBuffElemSize);
-
+               
                 break;
             }
             case TEXTURE:
             {
-                shadersContainer_.textureShader_.Render(
-                    pContext,
-                    pInstancedBuffer_,
-                    instances,
-                    numAllInstances,
-                    instancedBuffElemSize);
+              
                 break;
             }
             case LIGHT:
             {
-                int instanceBatchIdx = 0;
-
-                for (int i = 0; i < numAllInstances; ++i)
-                {
-                    const InstanceBatch& instanceBatch = instances[instanceBatchIdx];
-
-                    pContext->PSSetShaderResources(10U, NUM_TEXTURE_TYPES, instanceBatch.textures);
-
-                    shadersContainer_.lightShader_.Render(
-                        pContext,
-                        pInstancedBuffer_,
-                        instanceBatch,
-                        instancedBuffElemSize,
-                        startInstanceLocation);
-
-                    startInstanceLocation += instanceBatch.numInstances;
-                    instanceBatchIdx++;
-                }
-
+                shadersContainer_.lightShader_.Render(
+                    pContext,
+                    pInstancedBuffer_,
+                    instances,
+                    instancedBuffElemSize,
+                    startInstanceLocation);
 
                 break;
             }
             case OUTLINE:
             {
-                shadersContainer_.outlineShader_.Render(
-                    pContext,
-                    pInstancedBuffer_,
-                    instances,
-                    numAllInstances,
-                    instancedBuffElemSize);
-
                 break;
             }
             default:
             {
-                sprintf(g_String, "unknown shader type: %d", type);
+                sprintf(g_String, "unknown shader type: %d", shaderType);
                 LogErr(g_String);
             }
         }

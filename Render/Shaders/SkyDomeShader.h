@@ -70,12 +70,6 @@ public:
 		return cbpsRareChanged_.data.colorApex_;
 	}
 
-private:
-	void InitializeShaders(
-		ID3D11Device* pDevice,
-        const char* vsFilePath,
-        const char* psFilePath);
-
 public:
 	VertexShader vs_;
 	PixelShader  ps_;

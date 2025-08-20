@@ -21,25 +21,30 @@ DebugShader::~DebugShader()
 }
 
 //---------------------------------------------------------
-// Decs:  Load CSO / compile HLSL shaders and init this shader class instance
+// Decs:   Load CSO / compile HLSL shaders and init this shader class instance
+// Args:   - vsPath:  a path to compiled (.cso) vertex shader file
+//         - psPath:  a path to compiled (.cso) pixel shader file
 //---------------------------------------------------------
 bool DebugShader::Initialize(
     ID3D11Device* pDevice,
-    const char* vsFilePath,
-    const char* psFilePath)
+    const char* vsPath,
+    const char* psPath)
 {
     try
     {
+        CAssert::True(!StrHelper::IsEmpty(vsPath), "path to vertex shader is empty");
+        CAssert::True(!StrHelper::IsEmpty(psPath), "path to pixel shader is empty");
+
         HRESULT hr = S_OK;
         bool result = false;
-        InputLayoutDebugShader inputLayout;
+        const InputLayoutDebugShader layout;
 
         // init vertex shader
-        result = vs_.Initialize(pDevice, vsFilePath, inputLayout.desc, inputLayout.numElems);
+        result = vs_.LoadPrecompiled(pDevice, vsPath, layout.desc, layout.numElems);
         CAssert::True(result, "can't initialize the vertex shader");
 
         // init pixel shader
-        result = ps_.Initialize(pDevice, psFilePath);
+        result = ps_.LoadPrecompiled(pDevice, psPath);
         CAssert::True(result, "can't initialize the pixel shader");
 
         // rare changed const buffer (for debug)
@@ -49,9 +54,9 @@ bool DebugShader::Initialize(
         // setup const buffers with initial params
         ID3D11DeviceContext* pContext = nullptr;
         pDevice->GetImmediateContext(&pContext);
-
-        // load rare changed data into GPU
         cbpsRareChangedDebug_.ApplyChanges(pContext);
+
+
         LogDbg(LOG, "is initialized");
         return true;
     }
@@ -77,7 +82,7 @@ void DebugShader::ShaderHotReload(
     bool result = false;
     const InputLayoutDebugShader layout;
 
-    result = vs_.CompileShaderFromFile(
+    result = vs_.CompileFromFile(
         pDevice,
         vsFilename,
         "VS", "vs_5_0",
@@ -85,7 +90,7 @@ void DebugShader::ShaderHotReload(
         layout.numElems);
     CAssert::True(result, "can't hot reload the vertex shader");
 
-    result = ps_.CompileShaderFromFile(pDevice, psFilename, "PS", "ps_5_0");
+    result = ps_.CompileFromFile(pDevice, psFilename, "PS", "ps_5_0");
     CAssert::True(result, "can't hot reload the vertex shader");
 }
 
@@ -99,6 +104,27 @@ void DebugShader::Render(
     const UINT instancedBuffElemSize)
 {
     assert(0 && "FIXME");
+}
+
+//---------------------------------------------------------
+//---------------------------------------------------------
+void DebugShader::RenderDebugLines(
+    ID3D11DeviceContext* pContext,
+    ID3D11Buffer* pVB,
+    const UINT stride,
+    const UINT numVertices)
+{
+    pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+
+    // bind input layout, shaders, const buffers
+    pContext->VSSetShader(vsLines_.GetShader(), nullptr, 0);
+    pContext->IASetInputLayout(vsLines_.GetInputLayout());
+    pContext->GSSetShader(gsLines_.GetShader(), nullptr, 0);
+    pContext->PSSetShader(psLines_.GetShader(), nullptr, 0);
+
+    // bind vertex buffer
+    UINT offset = 0;
+    pContext->IASetVertexBuffers(0, 1, &pVB, &stride, &offset);
 }
 
 //---------------------------------------------------------

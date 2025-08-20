@@ -18,24 +18,38 @@ TerrainShader::~TerrainShader()
 {
 }
 
-// --------------------------------------------------------
-// Desc:   Initialize the shader class, load HLSL shaders
-//         from files, create shader objects, etc.
-// Args:   - pDevice: pointer to the DirectX device
-//         - vsFilename: path to the vertex shader hlsl-file
-//         - psFilename: path to the pixel shader hlsl-file
-// --------------------------------------------------------
+//---------------------------------------------------------
+// Decs:   Load CSO / compile HLSL shaders and init this shader class instance
+// Args:   - vsPath:  a path to compiled (.cso) vertex shader file
+//         - psPath:  a path to compiled (.cso) pixel shader file
+//---------------------------------------------------------
 bool TerrainShader::Initialize(
     ID3D11Device* pDevice,
-    const char* vsFilename,
-    const char* psFilename)
+    const char* vsPath,
+    const char* psPath)
 {
     try
     {
-        CAssert::True(!StrHelper::IsEmpty(vsFilename), "input vertex shader filename is empty");
-        CAssert::True(!StrHelper::IsEmpty(psFilename), "input pixel shader filename is empty");
+        CAssert::True(!StrHelper::IsEmpty(vsPath), "input path to vertex shader is empty");
+        CAssert::True(!StrHelper::IsEmpty(psPath), "input path to pixel shader is empty");
 
-        InitializeShaders(pDevice, vsFilename, psFilename);
+        HRESULT hr = S_OK;
+        bool result = false;
+
+        // initialize: VS, PS, sampler state, constant buffers
+        const InputLayoutTerrain layout;
+
+        result = vs_.LoadPrecompiled(pDevice, vsPath, layout.desc, layout.numElems);
+        CAssert::True(result, "can't initialize the vertex shader");
+
+        result = ps_.LoadPrecompiled(pDevice, psPath);
+        CAssert::True(result, "can't initialize the pixel shader");
+
+        // cbps - const buffer for pixel shader
+        hr = cbpsMaterialData_.Initialize(pDevice);
+        CAssert::NotFailed(hr, "can't initialize a constant buffer of materials");
+
+
         LogDbg(LOG, "is initialized");
         return true;
     }
@@ -99,7 +113,7 @@ void TerrainShader::ShaderHotReload(
     bool result = false;
     const InputLayoutTerrain layout;
 
-    result = vs_.CompileShaderFromFile(
+    result = vs_.CompileFromFile(
         pDevice,
         vsFilename,
         "VS", "vs_5_0",
@@ -107,37 +121,8 @@ void TerrainShader::ShaderHotReload(
         layout.numElems);
     CAssert::True(result, "can't hot reload the vertex shader");
 
-    result = ps_.CompileShaderFromFile(pDevice, psFilename, "PS", "ps_5_0");
+    result = ps_.CompileFromFile(pDevice, psFilename, "PS", "ps_5_0");
     CAssert::True(result, "can't hot reload the vertex shader");
-}
-
-
-// --------------------------------------------------------
-// Desc:   a helper for initialization process
-// Args:   - pDevice: pointer to the DirectX device
-//         - vsFilename: path to the vertex shader hlsl-file
-//         - psFilename: path to the pixel shader hlsl-file
-// --------------------------------------------------------
-void TerrainShader::InitializeShaders(
-    ID3D11Device* pDevice,
-    const char* vsFilename,
-    const char* psFilename)
-{
-    HRESULT hr = S_OK;
-    bool result = false;
-
-    // initialize: VS, PS, sampler state, constant buffers
-    const InputLayoutTerrain layout;
-
-    result = vs_.Initialize(pDevice, vsFilename, layout.desc, layout.numElems);
-    CAssert::True(result, "can't initialize the vertex shader");
-
-    result = ps_.Initialize(pDevice, psFilename);
-    CAssert::True(result, "can't initialize the pixel shader");
-
-    // cbps - const buffer for pixel shader
-    hr = cbpsMaterialData_.Initialize(pDevice);
-    CAssert::NotFailed(hr, "can't initialize a constant buffer of materials");
 }
 
 } // namespace

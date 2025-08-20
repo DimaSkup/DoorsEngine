@@ -20,21 +20,55 @@ FontShader::~FontShader()
 {
 }
 
-// =================================================================================
-//                             PUBLIC MODIFICATION API
-// =================================================================================
-
+//---------------------------------------------------------
+// Decs:   Load CSO / compile HLSL shaders and init this shader class instance
+// Args:   - WVO:     world * base_view * ortho  matrix
+//         - vsPath:  a path to compiled (.cso) vertex shader file
+//         - psPath:  a path to compiled (.cso) pixel shader file
+//---------------------------------------------------------
 bool FontShader::Initialize(
     ID3D11Device* pDevice, 
-    const DirectX::XMMATRIX& WVO,            // world * base_view * ortho
-    const char* vsFilePath,
-    const char* psFilePath)
+    const DirectX::XMMATRIX& WVO,            
+    const char* vsPath,
+    const char* psPath)
 {
-    // Initialize() initializes the vertex and pixel shaders, input layout,
-    // sampler state, matrix and pixel buffers
     try
     {
-        InitializeShaders(pDevice, WVO, vsFilePath, psFilePath);
+        CAssert::True(!StrHelper::IsEmpty(vsPath), "path to vertex shader is empty");
+        CAssert::True(!StrHelper::IsEmpty(psPath), "path to pixel shader is empty");
+
+        const InputLayoutFontShader layout;
+        bool result = false;
+        HRESULT hr = S_OK;
+
+        // init the vertex shader
+        result = vs_.LoadPrecompiled(pDevice, vsPath, layout.desc, layout.numElems);
+        CAssert::True(result, "can't initialize the vertex shader");
+
+        // init the pixel shader
+        result = ps_.LoadPrecompiled(pDevice, psPath);
+        CAssert::True(result, "can't initialize the pixel shader");
+
+
+        // ---------------------------  CONSTANT BUFFERS  ---------------------------------
+
+        // initialize the matrix buffer
+        hr = matrixBuffer_.Initialize(pDevice);
+        CAssert::NotFailed(hr, "can't initialize the matrix buffer");
+
+        // initialize the pixel buffer
+        hr = pixelBuffer_.Initialize(pDevice);
+        CAssert::NotFailed(hr, "can't initialize the pixel buffer");
+
+
+        // ---------------- SET DEFAULT PARAMS FOR CONST BUFFERS --------------------------
+
+        ID3D11DeviceContext* pContext = nullptr;
+        pDevice->GetImmediateContext(&pContext);
+        SetFontColor(pContext, { 1, 1, 1 });  // set white colour by default
+        SetWorldViewOrtho(pContext, WVO);
+
+
         LogDbg(LOG, "is initialized");
         return true;
     }
@@ -117,63 +151,6 @@ void FontShader::Render(
         LogErr("can't render using the shader");
         return;
     }
-}
-
-
-// =================================================================================
-//                              PRIVATE METHODS
-// =================================================================================
-void FontShader::InitializeShaders(
-    ID3D11Device* pDevice,
-    const DirectX::XMMATRIX& WVO,        // world * base_view * ortho
-    const char* vsFilePath,
-    const char* psFilePath)
-{
-    // InitializeShaders() helps to initialize the vertex and pixel shaders,
-    // input layout, sampler state, matrix and pixel buffers
-
-    bool result = false;
-    HRESULT hr = S_OK;
-
-    // --------------------------  INPUT LAYOUT DESC  ---------------------------------
-
-    const D3D11_INPUT_ELEMENT_DESC layoutDesc[] =
-    {
-        { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
-    };
-
-    const UINT layoutElemNum = sizeof(layoutDesc) / sizeof(D3D11_INPUT_ELEMENT_DESC);
-
-
-    // -----------------------  SHADERS / SAMPLER STATE  ------------------------------
-
-    // initialize the vertex shader
-    result = vs_.Initialize(pDevice, vsFilePath, layoutDesc, layoutElemNum);
-    CAssert::True(result, "can't initialize the vertex shader");
-
-    // initialize the pixel shader
-    result = ps_.Initialize(pDevice, psFilePath);
-    CAssert::True(result, "can't initialize the pixel shader");
-
-
-    // ---------------------------  CONSTANT BUFFERS  ---------------------------------
-
-    // initialize the matrix buffer
-    hr = matrixBuffer_.Initialize(pDevice);
-    CAssert::NotFailed(hr, "can't initialize the matrix buffer");
-    
-    // initialize the pixel buffer
-    hr = pixelBuffer_.Initialize(pDevice);
-    CAssert::NotFailed(hr, "can't initialize the pixel buffer");
-    
-
-    // ---------------- SET DEFAULT PARAMS FOR CONST BUFFERS --------------------------
-
-    ID3D11DeviceContext* pContext = nullptr;
-    pDevice->GetImmediateContext(&pContext);
-    SetFontColor(pContext, { 1, 1, 1 });  // set white colour by default
-    SetWorldViewOrtho(pContext, WVO);
 }
 
 }

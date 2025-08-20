@@ -84,6 +84,11 @@ public:
         const uint32 renderStatesBitfields,
         const TexID* texIds);
 
+    void BindMaterial(
+        Render::CRender* pRender,
+        const uint32 renderStatesBitfields,
+        ID3D11ShaderResourceView* const* texViews);
+
     bool RenderBigMaterialIcon(
         const MaterialID matID,
         const int iconWidth,
@@ -143,6 +148,15 @@ private:
     // ------------------------------------------
 
     void RenderEntts    (Render::CRender* pRender);
+
+    void RenderInstanceGroups(
+        ID3D11DeviceContext* pContext,
+        Render::CRender* pRender,
+        const cvector<Render::InstanceBatch>& instanceBatches,
+        UINT& startInstanceLocation,
+        int& numRenderedInstances,
+        int& drawCalls);
+
     void RenderParticles(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);
 
     void RenderSkyDome            (Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);

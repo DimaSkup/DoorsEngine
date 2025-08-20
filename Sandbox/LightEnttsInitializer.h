@@ -38,7 +38,7 @@ void InitDirectedLightEntities(ECS::EntityMgr& mgr)
         // setup main directed light source
         //dirLight0.diffuse = { 0.8f, 0.8f, 0.8f, 1.0f };
         dirLight0.ambient = { 0.5f, 0.5f, 0.5f, 1.0f };
-        dirLight0.diffuse  = { 0.3f, 0.3f, 0.3f, 1.0f };
+        dirLight0.diffuse  = { 0.9f, 0.9f, 0.9f, 1.0f };
         //dirLight0.diffuse  = { 1.0f, 1.0f, 1.0f, 1.0f };
         dirLight0.specular = { 0.3f, 0.3f, 0.3f, 1.0f };
 
@@ -138,6 +138,10 @@ void InitPointLightEntities(ECS::EntityMgr& mgr)
             GenerateLightColors(light.ambient, light.diffuse, light.specular, 0.3f, 0.7f, 0.8f);
         }
 
+        pointLightsParams.data[1].ambient  = { 0.3f, 0.3f, 0.3f, 1.0f };
+        pointLightsParams.data[1].diffuse  = { 0.8f, 0.8f, 0.8f, 1.0f };
+        pointLightsParams.data[1].specular = { 0.8f, 0.8f, 0.8f, 1.0f };
+
         // setup attenuation params
         for (index i = 0; i < numPointLights; ++i)
             pointLightsParams.data[i].att = { 0, 0.1f, 0.005f };
@@ -161,7 +165,7 @@ void InitPointLightEntities(ECS::EntityMgr& mgr)
             positions[i].y = 4.0f;
             positions[i].z = MathHelper::RandF(-100, 100);
         }
-        positions[1] = { -5, 5, 0 };
+        positions[1] = { 263, 80, 205 };
 
         for (index i = 0; i < numPointLights; ++i)
             dirQuats[i] = { 0,0,0,1 };

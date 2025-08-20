@@ -617,7 +617,7 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
             }
             case KEY_R:
             {
-                if (!keyboard_.WasPressedBefore(KEY_CONTROL))
+                if (keyboard_.IsPressed(KEY_CONTROL))
                     pUI->SetGizmoOperation(ImGuizmo::OPERATION::ROTATE);
                 break;
             }

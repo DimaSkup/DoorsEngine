@@ -108,12 +108,12 @@ void TerrainLodMgr::UpdateLodMapPass1(const float cx, const float cy, const floa
         for (int lodMapX = 0; lodMapX < numPatchesPerSide; ++lodMapX)
         {
             // calc the patch number and squared distance from camera to the patch center
-            const int patchCenterX          = (lodMapX * numQuadsInPatch) + centerStep;
+            const int patchCenterX       = (lodMapX * numQuadsInPatch) + centerStep;
             const float distanceToCamera = sqrtf(SQR(patchCenterX-cx) + SQR(patchCenterZ-cz));
-            const int patchNum              = (lodMapZ * numPatchesPerSide) + lodMapX;
+            const int patchNum           = (lodMapZ * numPatchesPerSide) + lodMapX;
 
             // calc the LOD for center of the current patch
-            map_[patchNum].core             = GetLodByDistance(distanceToCamera);
+            map_[patchNum].core          = GetLodByDistance(distanceToCamera);
         }
     }
 }

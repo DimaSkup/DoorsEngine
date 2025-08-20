@@ -63,12 +63,6 @@ public:
     inline const char* GetShaderName() const { return className_; }
 
 private:
-    void InitializeHelper(
-        ID3D11Device* pDevice,
-        const char* vsFilePath,
-        const char* psFilePath);
-
-private:
     VertexShader                                vs_;
     PixelShader                                 ps_;
 

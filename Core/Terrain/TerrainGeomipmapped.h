@@ -50,7 +50,11 @@
 #include "TerrainBase.h"
 #include "TerrainLodMgr.h"
 #include "../Texture/TextureTypes.h"
+#include <CoreCommon/Frustum.h>
 #include <cstring>
+#include <DirectXCollision.h>
+
+
 namespace Core
 {
 
@@ -90,23 +94,29 @@ public:
     bool InitGeomipmapping(const int patchSize);
 
     void Update(const CameraParams& camParams);
- 
 
+    bool IsPatchInsideViewFrustum(
+        const int x,
+        const int z,
+        const DirectX::BoundingFrustum& frustum);
 
     // ------------------------------------------
     // getters
     // ------------------------------------------
-    inline int  GetNumVertices()              const { return numVertices_; }
-    inline int  GetNumIndices()               const { return numIndices_; }
-    inline uint GetVertexStride()             const { return vb_.GetStride(); }
+    inline const cvector<int>&    GetVisiblePatches()    const { return visiblePatches_; }
 
-    inline const Vertex3dTerrain* GetVertices() const { return vertices_; }
+    inline int                    GetNumVertices()       const { return numVertices_; }
+    inline int                    GetNumIndices()        const { return numIndices_; }
+    inline uint                   GetVertexStride()      const { return vb_.GetStride(); }
 
-    inline ID3D11Buffer* GetVertexBuffer()    const { return vb_.Get(); }
-    inline ID3D11Buffer* GetIndexBuffer()     const { return ib_.Get(); }
+    inline const Vertex3dTerrain* GetVertices()          const { return vertices_; }
 
-    inline const TerrainLodMgr& GetLodMgr()   const { return lodMgr_; }
-    inline int GetNumPatchesPerSide(void)     const { return lodMgr_.numPatchesPerSide_; }
+    inline ID3D11Buffer*          GetVertexBuffer()      const { return vb_.Get(); }
+    inline ID3D11Buffer*          GetIndexBuffer()       const { return ib_.Get(); }
+
+    inline const TerrainLodMgr&   GetLodMgr()            const { return lodMgr_; }
+    inline int                    GetNumPatchesPerSide() const { return lodMgr_.numPatchesPerSide_; }
+
 
     // get the number of patches being rendered per frame
     //inline int GetNumPatchesPerFrame(void)    const { return patchesPerFrame_;   }
@@ -238,6 +248,8 @@ private:
 
     cvector<LodInfo> lodInfo_;
     TerrainLodMgr    lodMgr_;
+
+    cvector<int>     visiblePatches_;
 };
 
 } // namespaceû

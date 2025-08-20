@@ -89,7 +89,7 @@ float4 PS(PS_IN pin) : SV_Target
 
     // HACK to get proper sky pixel
     float3 vec = -toEyeW;
-    vec.y -= 990;
+    vec.y -= 490;
 
     float2 noiseTexCoords = float2(pin.tex.x + gTime, pin.tex.y + gTime);
     float4 perlinNoiseColor = gPerlinNoise.Sample(gBasicSampler, noiseTexCoords);
@@ -121,13 +121,13 @@ float4 PS(PS_IN pin) : SV_Target
 
     // --------------------  NORMAL MAP   --------------------
 
-    float3 normalMap = gTextures[6].Sample(gBasicSampler, pin.tex).rgb;
+    float3 normalMap = gTextures[6].Sample(gBasicSampler, pin.tex*100).rgb;
 
     // normalize the normal vector after interpolation
     float3 normalW = normalize(pin.normalW);
 
     // compute the bumped normal in the world space
-    //float3 bumpedNormalW = NormalSampleToWorldSpace(normalMap, normalW, pin.tangentW);
+    float3 bumpedNormalW = NormalSampleToWorldSpace(normalMap, normalW, float3(1,0,0));
 
 
     // --------------------  LIGHTING  --------------------
@@ -152,7 +152,7 @@ float4 PS(PS_IN pin) : SV_Target
         ComputeDirectionalLight(
             mat,
             gDirLights[i],
-            normalW,
+            bumpedNormalW,
             toEyeW,
             0.0f,             // specular map value
             A, D, S);
@@ -170,7 +170,7 @@ float4 PS(PS_IN pin) : SV_Target
             mat,
             gPointLights[i],
             pin.posW,
-            normalW,
+            bumpedNormalW,
             toEyeW,
             0.0f,           // specular map value
             A, D, S);
@@ -188,7 +188,7 @@ float4 PS(PS_IN pin) : SV_Target
             mat,
             gSpotLights[0],
             pin.posW,
-            normalW, 
+            bumpedNormalW,
             toEyeW,
             0.0f,         // specular map value
             A, D, S);
@@ -205,7 +205,7 @@ float4 PS(PS_IN pin) : SV_Target
             mat,
             gSpotLights[i],
             pin.posW,
-            normalW, 
+            bumpedNormalW,
             toEyeW,
             0.0f,         // specular map value
             A, D, S);

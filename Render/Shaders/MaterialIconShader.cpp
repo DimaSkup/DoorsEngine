@@ -18,63 +18,72 @@ MaterialIconShader::~MaterialIconShader()
 {
 }
 
-///////////////////////////////////////////////////////////
-
-bool CheckShadersPaths(const char* vsFilePath, const char* psFilePath)
-{
-    if (!FileSys::Exists(vsFilePath))
-    {
-        sprintf(g_String, "there is no vertex shader file: %s", vsFilePath);
-        LogErr(g_String);
-        return false;
-    }
-    if (!FileSys::Exists(psFilePath))
-    {
-        sprintf(g_String, "there is no pixel shader file: %s", psFilePath);
-        LogErr(g_String);
-        return false;
-    }
-    return true;
-}
-
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Decs:   Load CSO / compile HLSL shaders and init this shader class instance
+// Args:   - vsPath:  a path to compiled (.cso) vertex shader file
+//         - psPath:  a path to compiled (.cso) pixel shader file
+//---------------------------------------------------------
 bool MaterialIconShader::Initialize(
     ID3D11Device* pDevice,
-    const char* vsFilePath,
-    const char* psFilePath)
+    const char* vsPath,
+    const char* psPath)
 {
     try
     {
-        if (!CheckShadersPaths(vsFilePath, psFilePath))
-            return false;
+        CAssert::True(!StrHelper::IsEmpty(vsPath), "input path to vertex shader is empty");
+        CAssert::True(!StrHelper::IsEmpty(psPath), "input path to pixel shader is empty");
 
-        InitializeHelper(pDevice, vsFilePath, psFilePath);
+        bool result = false;
+        const InputLayoutMaterialIcon layout;
+
+        // initialize: vertex/pixel shader, and const buffers
+        result = vs_.LoadPrecompiled(pDevice, vsPath, layout.desc, layout.numElems);
+        CAssert::True(result, "can't initialize the vertex shader");
+
+        result = ps_.LoadPrecompiled(pDevice, psPath);
+        CAssert::True(result, "can't initialize the pixel shader");
+
+        // initialize: constant buffers
+        HRESULT hr = cbvsWorldViewProj_.Initialize(pDevice);
+        CAssert::NotFailed(hr, "can't initialize the const buffer (for world/view/proj in VS)");
+
+        hr = cbpsMaterialData_.Initialize(pDevice);
+        CAssert::NotFailed(hr, "can't initialize the const buffer (for material in PS)");
+
+
+        // apply the default params for the constant buffers
+        ID3D11DeviceContext* pContext = nullptr;
+        pDevice->GetImmediateContext(&pContext);
+
+        cbvsWorldViewProj_.ApplyChanges(pContext);
+        cbpsMaterialData_.ApplyChanges(pContext);
 
         return true;
     }
     catch (EngineException& e)
     {
         LogErr(e, true);
-        sprintf(g_String, "can't initialize the %s", className_);
-        LogErr(g_String);
+        LogErr(LOG, "can't initialize the %s", className_);
         return false;
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:    bind buffers/shaders/input layout before rendering
+// Args:    - pVB:         a ptr to vertex buffer
+//          - pIB:         a ptr to index buffer
+//          - vertexSize:  stride for a single vertex
+//---------------------------------------------------------
 void MaterialIconShader::PrepareRendering(
     ID3D11DeviceContext* pContext,
-    ID3D11Buffer* vertexBuffer,
-    ID3D11Buffer* indexBuffer,
+    ID3D11Buffer* pVB,
+    ID3D11Buffer* pIB,
     const int vertexSize)
 {
-    // bind buffers/shaders/input layout
     try
     {
-        CAssert::True(vertexBuffer,   "input ptr to vertex buffer == nullptr");
-        CAssert::True(indexBuffer,    "input ptr to index buffer == nullptr");
+        CAssert::True(pVB,            "input ptr to vertex buffer == nullptr");
+        CAssert::True(pIB,            "input ptr to index buffer == nullptr");
         CAssert::True(vertexSize > 0, "input size of vertex must be > 0");
 
         // bind vertex and pixel shaders
@@ -89,8 +98,8 @@ void MaterialIconShader::PrepareRendering(
         const UINT offset = 0;
 
         // bind vb/ib
-        pContext->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
-        pContext->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0U);
+        pContext->IASetVertexBuffers(0, 1, &pVB, &stride, &offset);
+        pContext->IASetIndexBuffer(pIB, DXGI_FORMAT_R32_UINT, 0U);
 
         // bind the constant buffer for vertex shader
         pContext->VSSetConstantBuffers(10, 1, cbvsWorldViewProj_.GetAddressOf());
@@ -103,15 +112,17 @@ void MaterialIconShader::PrepareRendering(
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   render a model (preferably sphere) with a single material to visualize it
+// Args:   - indexCount:  how many indices we have for the current model
+//         - mat:         color properties of the material (ambient, diffuse, etc.)
+//---------------------------------------------------------
 void MaterialIconShader::Render(
     ID3D11DeviceContext* pContext,
     const int indexCount,
     ID3D11ShaderResourceView* const* ppTextures,
     const Render::MaterialColors& mat)
 {
-    // render a model (preferably sphere) with a single material
     try
     {
         CAssert::True(indexCount > 0, "input number of indices must be > 0");
@@ -139,8 +150,8 @@ void MaterialIconShader::Render(
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//-----------------------------------------------
+//-----------------------------------------------
 void MaterialIconShader::SetMatrix(
     ID3D11DeviceContext* pContext,
     const DirectX::XMMATRIX& world,
@@ -152,63 +163,27 @@ void MaterialIconShader::SetMatrix(
     cbvsWorldViewProj_.ApplyChanges(pContext);
 }
 
-// =================================================================================
-//                              private methods                                       
-// =================================================================================
-void MaterialIconShader::InitializeHelper(
-    ID3D11Device* pDevice,
-    const char* vsFilePath,
-    const char* psFilePath)
-{
-    // helps to init the HLSL shaders, input layout, texture sampler
-
-    const InputLayoutMaterialIcon inputLayout;
-
-    // initialize: VS, PS, texture sampler
-    bool result = false;
-    result = vs_.Initialize(pDevice, vsFilePath, inputLayout.desc, inputLayout.numElems);
-    CAssert::True(result, "can't initialize the vertex shader");
-
-    result = ps_.Initialize(pDevice, psFilePath);
-    CAssert::True(result, "can't initialize the pixel shader");
-
-    // initialize: constant buffers
-    HRESULT hr = cbvsWorldViewProj_.Initialize(pDevice);
-    CAssert::NotFailed(hr, "can't initialize the const buffer (for world/view/proj in VS)");
-
-    hr = cbpsMaterialData_.Initialize(pDevice);
-    CAssert::NotFailed(hr, "can't initialize the const buffer (for material in PS)");
-
-
-    // apply the default params for the constant buffers
-    ID3D11DeviceContext* pContext = nullptr;
-    pDevice->GetImmediateContext(&pContext);
-
-    cbvsWorldViewProj_.ApplyChanges(pContext);
-    cbpsMaterialData_.ApplyChanges(pContext);
-}
-
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   recompile hlsl shaders from file and reinit shader class object
+// Args:   - pDevice:  a ptr to the DirectX11 device
+//         - vsPath:   a path to the vertex shader
+//         - gsPath:   a path to the geometry shader
+//         - psPath:   a path to the pixel shader
+//---------------------------------------------------------
 void MaterialIconShader::ShaderHotReload(
     ID3D11Device* pDevice,
-    const char* vsFilePath,
-    const char* psFilePath)
+    const char* vsPath,
+    const char* psPath)
 {
     // recompile hlsl shaders from file and reinit shader class object
 
     bool result = false;
-    const InputLayoutMaterialIcon inputLayout;
+    const InputLayoutMaterialIcon layout;
 
-    result = vs_.CompileShaderFromFile(
-        pDevice,
-        vsFilePath,
-        "VS", "vs_5_0",
-        inputLayout.desc,
-        inputLayout.numElems);
+    result = vs_.CompileFromFile(pDevice, vsPath, "VS", "vs_5_0", layout.desc, layout.numElems);
     CAssert::True(result, "can't hot reload the vertex shader");
 
-    result = ps_.CompileShaderFromFile(pDevice, psFilePath, "PS", "ps_5_0");
+    result = ps_.CompileFromFile(pDevice, psPath, "PS", "ps_5_0");
     CAssert::True(result, "can't hot reload the vertex shader");
 }
 

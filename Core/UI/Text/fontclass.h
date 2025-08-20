@@ -45,13 +45,11 @@ public:
         const size numVertices,
         const char* sentence,
         const float drawAtX,
-        const float drawAtY);
+        const float drawAtY) const;
 
     // builds an indices array according to the vertices array
     // from the BuildVertexArray func;
-    void BuildIndexArray(
-        UINT* indices,
-        const size indicesCount);
+    void BuildIndexArray(UINT* indices, const size indicesCount) const;
 
 
     //

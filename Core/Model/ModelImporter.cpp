@@ -386,6 +386,9 @@ void ModelImporter::LoadMaterialTextures(
     // load all the available textures for this mesh by its material data
     //
 
+    char modelExt[8]{ '\0' };
+    FileSys::GetFileExt(filePath, modelExt);
+
     std::vector<aiTextureType> texTypesToLoad;
     std::vector<UINT> texCounts;
 
@@ -436,13 +439,29 @@ void ModelImporter::LoadMaterialTextures(
             case TexStoreType::Disk:
             {
                 // get a path to the texture file
-                char texturePath[256]{ '\0' };
+                char texPath[256]{ '\0' };
+                
+               
                 FileSys::GetParentPath(filePath, g_String);
-                strcat(texturePath, g_String);
-                strcat(texturePath, path.C_Str());
+               
+
+                if (strcmp(modelExt, ".fbx") == 0)
+                {
+                    char filename[256]{'\0'};
+                    FileSys::GetFileName(path.C_Str(), filename);
+
+                    strcat(texPath, g_String);
+                    strcat(texPath, "texture/");
+                    strcat(texPath, filename);
+                }
+                else
+                {
+                    strcat(texPath, g_String);
+                    strcat(texPath, path.C_Str());
+                }
 
                 // store pair: [texture_type => texture_path]
-                texTypeToPath.insert_or_assign(type, texturePath);
+                texTypeToPath.insert_or_assign(type, texPath);
 
                 break;
             }

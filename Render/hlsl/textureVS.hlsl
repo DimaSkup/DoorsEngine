@@ -19,7 +19,6 @@ struct VS_INPUT
 	// data per instance
 	row_major matrix   world             : WORLD;
 	row_major matrix   worldInvTranspose : WORLD_INV_TRANSPOSE;
-	row_major matrix   texTransform      : TEX_TRANSFORM;
 	row_major float4x4 material          : MATERIAL;
 	uint               instanceID        : SV_InstanceID;
 
@@ -50,10 +49,7 @@ VS_OUTPUT VS(VS_INPUT vin)
 	vout.posH = mul(float4(vout.posW, 1.0f), gViewProj);
 	
 	// output vertex attributes for interpolation across triangle
-	vout.tex = mul(float4(vin.tex, 0.0f, 1.0f), vin.texTransform).xy;
-	//vout.tex = vin.tex;
-
-
+	vout.tex = vin.tex;
 
 	return vout;
 }

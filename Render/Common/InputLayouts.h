@@ -12,7 +12,7 @@ namespace Render
 {
 
 // --------------------------------------------------------
-// vertex input layout for the color shader
+// vertex input layout description for the color shader
 // --------------------------------------------------------
 struct InputLayoutColor
 {
@@ -36,8 +36,67 @@ struct InputLayoutColor
 
     const UINT numElems = sizeof(desc) / sizeof(D3D11_INPUT_ELEMENT_DESC);
 };
+
 // --------------------------------------------------------
-// vertex input layout for the light shader
+// vertex input layout description for the texture shader
+// --------------------------------------------------------
+struct InputLayoutFontShader
+{
+    const D3D11_INPUT_ELEMENT_DESC desc[2] =
+    {
+        { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+    };
+
+    const UINT numElems = sizeof(desc) / sizeof(D3D11_INPUT_ELEMENT_DESC);
+};
+
+// --------------------------------------------------------
+// vertex input layout description for the sky dome shader
+// --------------------------------------------------------
+struct InputLayoutSkyDomeShader
+{
+    const D3D11_INPUT_ELEMENT_DESC desc[1] =
+    {
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+    };
+
+    const UINT numElems = sizeof(desc) / sizeof(D3D11_INPUT_ELEMENT_DESC);
+};
+
+// --------------------------------------------------------
+// vertex input layout description for the texture shader
+// --------------------------------------------------------
+struct InputLayoutTextureShader
+{
+    const D3D11_INPUT_ELEMENT_DESC desc[14] =
+    {
+        // per vertex data
+        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+
+        // per instance data
+        {"WORLD", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0,  D3D11_INPUT_PER_INSTANCE_DATA, 1},
+        {"WORLD", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 16, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+        {"WORLD", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 32, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+        {"WORLD", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 48, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+
+        {"WORLD_INV_TRANSPOSE", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 64, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+        {"WORLD_INV_TRANSPOSE", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 80, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+        {"WORLD_INV_TRANSPOSE", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 96, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+        {"WORLD_INV_TRANSPOSE", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 112, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+
+        {"MATERIAL", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+        {"MATERIAL", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+        {"MATERIAL", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+        {"MATERIAL", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
+    };
+
+    const UINT numElems = sizeof(desc) / sizeof(D3D11_INPUT_ELEMENT_DESC);
+};
+
+// --------------------------------------------------------
+// vertex input layout description for the light shader
 // --------------------------------------------------------
 struct InputLayoutLight
 {
@@ -70,7 +129,7 @@ struct InputLayoutLight
 };
 
 // --------------------------------------------------------
-// vertex input layout for the terrain shader
+// vertex input layout description for the terrain shader
 // --------------------------------------------------------
 struct InputLayoutTerrain
 {
@@ -88,7 +147,7 @@ struct InputLayoutTerrain
 };
 
 // --------------------------------------------------------
-// vertex input layout for the material icon shader
+// vertex input layout description for the material icon shader
 // --------------------------------------------------------
 struct InputLayoutMaterialIcon
 {
@@ -106,7 +165,7 @@ struct InputLayoutMaterialIcon
 };
 
 // --------------------------------------------------------
-// vertex input layout for the particles shader
+// vertex input layout description for the particles shader
 // --------------------------------------------------------
 struct InputLayoutParticleShader
 {
@@ -124,7 +183,7 @@ struct InputLayoutParticleShader
 };
 
 // --------------------------------------------------------
-// vertex input layout for the debug shader
+// vertex input layout description for the debug shader
 // --------------------------------------------------------
 struct InputLayoutDebugShader
 {
@@ -157,7 +216,7 @@ struct InputLayoutDebugShader
 };
 
 // --------------------------------------------------------
-// vertex input layout for the outline shader
+// vertex input layout description for the outline shader
 // --------------------------------------------------------
 struct InputLayoutOutlineShader
 {

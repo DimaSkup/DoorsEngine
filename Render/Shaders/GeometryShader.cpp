@@ -21,7 +21,7 @@ GeometryShader::~GeometryShader()
 //         and create a geometry shader object
 // Args:   - shaderPath:   a path to CSO file relatively to the working directory
 //---------------------------------------------------------
-bool GeometryShader::Initialize(ID3D11Device* pDevice, const char* shaderPath)
+bool GeometryShader::LoadPrecompiled(ID3D11Device* pDevice, const char* shaderPath)
 {
     if (StrHelper::IsEmpty(shaderPath))
     {
@@ -57,17 +57,17 @@ bool GeometryShader::Initialize(ID3D11Device* pDevice, const char* shaderPath)
 //---------------------------------------------------------
 // Desc:   is used for hot reload:
 //         compile an HLSL shader by shaderPath and reinit shader object
-// Args:   - shaderPath:     a path to HLSL shader relatively to the working directory
+// Args:   - path:           a path to HLSL shader file relatively to the working directory
 //         - funcName:       what function from the shader we want to compile
 //         - shaderProfile:  what HLSL shader profile we want to use
 //---------------------------------------------------------
-bool GeometryShader::CompileShaderFromFile(
+bool GeometryShader::CompileFromFile(
     ID3D11Device* pDevice,
-    const char* shaderPath,
+    const char* path,
     const char* funcName,
     const char* shaderProfile)
 {
-    if (StrHelper::IsEmpty(shaderPath) || StrHelper::IsEmpty(funcName) || StrHelper::IsEmpty(shaderProfile))
+    if (StrHelper::IsEmpty(path) || StrHelper::IsEmpty(funcName) || StrHelper::IsEmpty(shaderProfile))
     {
         LogErr("input arguments are invalid: some path is empty");
         return false;
@@ -79,14 +79,14 @@ bool GeometryShader::CompileShaderFromFile(
 
     // compile a shader and load bytecode into the buffer
     hr = ShaderCompiler::CompileShaderFromFile(
-        shaderPath,
+        path,
         funcName,
         shaderProfile,
         &pShaderBuffer);
     if (FAILED(hr))
     {
         SafeRelease(&pShaderBuffer);
-        LogErr(LOG, "can't compile a geometry shader from file: %s", shaderPath);
+        LogErr(LOG, "can't compile a geometry shader from file: %s", path);
         return false;
     }
 
@@ -97,7 +97,7 @@ bool GeometryShader::CompileShaderFromFile(
         &pShader);
     if (FAILED(hr))
     {
-        LogErr(LOG, "Failed to create a geometry shader obj: %s", shaderPath);
+        LogErr(LOG, "Failed to create a geometry shader obj: %s", path);
         SafeRelease(&pShaderBuffer);
         Shutdown();
         return false;

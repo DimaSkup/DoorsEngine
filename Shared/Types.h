@@ -73,10 +73,24 @@ struct TexName
 
 struct EntityModelMesh
 {
-    EntityID   enttId;
-    MaterialID matId;
-    ModelID    modelId;
-    SubmeshID  subsetId;
+    EntityModelMesh() {}
+
+    EntityModelMesh(
+        const EntityID inEnttId,
+        const MaterialID inMatId,
+        const ModelID inModelId,
+        const SubmeshID inMeshId)
+        :
+        enttId(inEnttId),
+        matId(inMatId),
+        modelId(inModelId),
+        subsetId(inMeshId) {}
+
+
+    EntityID   enttId   = INVALID_ENTITY_ID;
+    MaterialID matId    = INVALID_MATERIAL_ID;
+    ModelID    modelId  = INVALID_MODEL_ID;
+    SubmeshID  subsetId = 0;
 };
 
 

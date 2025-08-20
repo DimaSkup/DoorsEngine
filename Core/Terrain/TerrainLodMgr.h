@@ -47,7 +47,13 @@ public:
     void PrintMap() const;
 
     //-----------------------------------------------------
-    // Desc:   get patch's LOD metadata by its idx by X and Z-axis
+    // Desc:   get patch's LOD metadata by its idx
+    //-----------------------------------------------------
+    const PatchLod& GetPatchLodInfo(const int idx) const
+    {   return map_[idx];   }
+
+    //-----------------------------------------------------
+    // Desc:   get patch's LOD metadata by its idx along X and Z-axis
     // Args:   - patchX:  index by X-axis (not position)
     //         - patchZ:  index by Z-axis (not position)
     //-----------------------------------------------------

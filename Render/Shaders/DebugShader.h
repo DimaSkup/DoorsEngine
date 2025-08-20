@@ -6,6 +6,7 @@
 #pragma once
 
 #include "VertexShader.h"
+#include "GeometryShader.h"
 #include "PixelShader.h"
 #include "ConstantBuffer.h"
 #include "../Common/RenderTypes.h"
@@ -59,6 +60,13 @@ public:
 		const int numModels,
 		const UINT instancedBuffElemSize);
 
+    void RenderDebugLines(
+        ID3D11DeviceContext* pContext,
+        ID3D11Buffer* pVB,
+        const UINT stride,
+        const UINT numVertices);
+
+
 	// change debug type (show normals, tangents, only diffuse map, etc.)
 	void SetDebugType(ID3D11DeviceContext* pContext, const eDebugState state);
 
@@ -73,8 +81,11 @@ private:
         const char* psFilePath);
 
 private:
-	VertexShader vs_;
-	PixelShader  ps_;                       
+	VertexShader   vs_;
+    VertexShader   vsLines_;
+    GeometryShader gsLines_;
+	PixelShader    ps_;
+    PixelShader    psLines_;
 	ConstantBuffer<BuffTypesDebug::cbpsRareChanged> cbpsRareChangedDebug_; // cbps - const buffer pixel shader for rare changed stuff
 
 	char className_[32]{"DebugShader"};

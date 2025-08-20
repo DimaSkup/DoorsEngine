@@ -35,8 +35,7 @@ void CameraSystem::AddRecord(const EntityID id, const CameraData& data)
 
     if (comp.data.contains(id))
     {
-        sprintf(g_String, "can't add a new record; there is already such by ID: %ud", id);
-        LogErr(g_String);
+        LogErr(LOG, "can't add a new record; there is already such by ID: %ud", id);
         return;
     }
 
@@ -51,8 +50,7 @@ void CameraSystem::RemoveRecord(const EntityID id)
 {
     if (pCameraComponent_->data.erase(id) == 0)
     {
-        sprintf(g_String, "can't remove (there is no camera by ID: %ld)", id);
-        LogErr(g_String);
+        LogErr(LOG, "can't remove (there is no camera by ID: %ld)", id);
     }
 }
 
@@ -67,8 +65,7 @@ inline bool CameraSystem::HasEntity(const EntityID id) const
     }
     else
     {
-        sprintf(g_String, "there is no camera with ID: %ld", id);
-        LogErr(g_String);
+        LogErr(LOG, "there is no camera with ID: %ld", id);
         return false;
     }
 }
@@ -155,7 +152,7 @@ void CameraSystem::GetAllCamerasIds(cvector<EntityID>& outIds) const
 
 void CameraSystem::SetAspectRatio(const EntityID id, const float aspect)
 {
-    // update aspect ration and perspective projection of camera by ID
+    // update aspect ratio and perspective projection of camera by ID
     if (HasEntity(id))
     {
         CameraData& data = pCameraComponent_->data.at(id);
@@ -188,10 +185,10 @@ void CameraSystem::SetupProjection(
     {
         CameraData& data = pCameraComponent_->data.at(id);
 
-        data.nearZ = nearZ;
-        data.farZ = farZ;
+        data.nearZ       = nearZ;
+        data.farZ        = farZ;
         data.aspectRatio = aspectRatio;
-        data.fovY = fovY;
+        data.fovY        = fovY;
 
         data.nearWndHeight = 2.0f * nearZ * tanf(0.5f * fovY);
         data.farWndHeight  = 2.0f * farZ  * tanf(0.5f * fovY);
@@ -280,8 +277,10 @@ void CameraSystem::Update()
 }
 #endif
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   recompute view matrix based on camera position, direction, up vector
+// Args:   - id:  camera's view matrix of this entity will be updated
+//---------------------------------------------------------
 const XMMATRIX& CameraSystem::UpdateView(const EntityID id)
 {
     if (!HasEntity(id))
@@ -296,12 +295,30 @@ const XMMATRIX& CameraSystem::UpdateView(const EntityID id)
     // make look vector unit length
     L = XMVector3Normalize(L);
 
+    //const XMVECTOR lookAt = P + L;
+
     // camera's up vector: by default 
     XMVECTOR U = { 0,1,0,0 };
 
     // compute camera's right vector (cross: look X world_up)
     XMVECTOR R = XMVector3Normalize(XMVector3Cross(U, L));
 
+    CameraData& camData = pCameraComponent_->data[id];
+    camData.right = R;
+
+    // camera's up vector: L, R already ortho-normal, so no need to normalize cross product
+    U = XMVector3Cross(L, R);
+
+    camData.view = XMMatrixLookToLH(P, L, U);
+
+    // compute inverse view matrix
+    camData.invView = XMMatrixInverse(nullptr, camData.view);
+
+    return camData.view;
+
+    //------------------------------------
+
+#if 0
     // camera's up vector: L, R already ortho-normal, so no need to normalize cross product
     U = XMVector3Cross(L, R);
 
@@ -334,6 +351,7 @@ const XMMATRIX& CameraSystem::UpdateView(const EntityID id)
     camData.invView = XMMatrixInverse(nullptr, camData.view);
 
     return camData.view;
+#endif
 }
 
 

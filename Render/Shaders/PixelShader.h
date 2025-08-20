@@ -18,15 +18,13 @@ public:
     PixelShader();
     ~PixelShader();
 
-    bool Initialize(
-        ID3D11Device* pDevice,
-        const char* shaderPath);
+    bool LoadPrecompiled(ID3D11Device* pDevice, const char* path);
 
-    bool CompileShaderFromFile(
+    bool CompileFromFile(
         ID3D11Device* pDevice,
-        const char* shaderPath,
+        const char* path,
         const char* funcName,
-        const char* shaderProfile);
+        const char* shaderModel);
 
     void Shutdown();
 

@@ -17,10 +17,10 @@ class GeometryShader
 public:
     ~GeometryShader();
 
-    bool Initialize(ID3D11Device* pDevice, const char* shaderPath);
+    bool LoadPrecompiled(ID3D11Device* pDevice, const char* shaderPath);
 
     // hot reload
-    bool CompileShaderFromFile(
+    bool CompileFromFile(
         ID3D11Device* pDevice,
         const char* shaderPath,
         const char* funcName,

@@ -21,25 +21,31 @@ OutlineShader::~OutlineShader()
 {
 }
 
-// =================================================================================
-//                             public methods                                       
-// =================================================================================
+//---------------------------------------------------------
+// Decs:   Load CSO / compile HLSL shaders and init this shader class instance
+// Args:   - vsPath:  a path to compiled (.cso) vertex shader file
+//         - psPath:  a path to compiled (.cso) pixel shader file
+//---------------------------------------------------------
 bool OutlineShader::Initialize(
     ID3D11Device* pDevice,
-    const char* vsFilePath,
-    const char* psFilePath)
+    const char* vsPath,
+    const char* psPath)
 {
     try
     {
-        bool result = false;
-        InputLayoutOutlineShader inputLayout;
+        CAssert::True(!StrHelper::IsEmpty(vsPath), "input path to vertex shader is empty");
+        CAssert::True(!StrHelper::IsEmpty(psPath), "input path to pixel shader is empty");
 
-        // initialize: VS, PS
-        result = vs_.Initialize(pDevice, vsFilePath, inputLayout.desc, inputLayout.numElems);
+        bool result = false;
+        const InputLayoutOutlineShader layout;
+
+        // initialize vertex, pixel shaders
+        result = vs_.LoadPrecompiled(pDevice, vsPath, layout.desc, layout.numElems);
         CAssert::True(result, "can't initialize the vertex shader");
 
-        result = ps_.Initialize(pDevice, psFilePath);
+        result = ps_.LoadPrecompiled(pDevice, psPath);
         CAssert::True(result, "can't initialize the pixel shader");
+
 
         LogDbg(LOG, "is initialized");
         return true;
@@ -52,8 +58,8 @@ bool OutlineShader::Initialize(
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+//---------------------------------------------------------
 void OutlineShader::Render(
     ID3D11DeviceContext* pContext,
     ID3D11Buffer* pInstancedBuffer,
@@ -61,6 +67,7 @@ void OutlineShader::Render(
     const int numInstances,
     const UINT instancesBuffElemSize)
 {
+    assert(0 && "FIXME");
 }
 
 } // namespace Render

@@ -33,10 +33,8 @@ public:
 private:
 
     void PrepareInstancesWorldMatrices(
-        const EntityID* enttsIds,
-        const size numEntts,
-        Render::InstancesBuf& instanceBuffData,
-        const cvector<Render::InstanceBatch>& instances);
+        const cvector<EntityID>& enttIdPerInstance,
+        Render::RenderDataStorage& storage);
 
     void PrepareInstancesMaterials(
         Render::InstancesBuf& instanceBuffData,

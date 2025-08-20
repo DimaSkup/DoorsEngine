@@ -85,9 +85,9 @@ public:
 
     void RenderInstances(
         ID3D11DeviceContext* pContext,
-        const ShaderTypes type,
-        const InstanceBatch* instances,
-        const int numInstances);
+        const ShaderTypes shaderType,
+        const InstanceBatch& instances,
+        const UINT startInstanceLocation);
 
     void RenderSkyDome(
         ID3D11DeviceContext* pContext,

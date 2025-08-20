@@ -142,26 +142,26 @@ struct TerrainTextureTiles
 struct CameraParams
 {
     // 6 frustum planes (4 value per normalized plane: normal_vec(float3) + d(float))
-    float planes[6][4];
+    float nearPlane[4];
+    float farPlane[4];
+    float rightPlane[4];
+    float leftPlane[4];
+    float topPlane[4];
+    float bottomPlane[4];
 
     // position in world
     float posX;
     float posY;
     float posZ;
 
-    // view matrix for UVN camera model
-    float viewMatrix[16]{ 0 };
-    float projMatrix[16]{ 0 };
+    float fov         = 0.0f;
+    float aspectRatio = 0.0f;
+    float nearZ       = 0.0f;
+    float farZ        = 0.0f;
 
-    // frustum params in camera (view) space
-    float rightSlope  = 0;          // positive X
-    float leftSlope   = 0;          // negative X
-    float topSlope    = 0;          // positive Y
-    float bottomSlope = 0;          // negative Y
-    float fovX        = 0;
-    float fovY        = 0;
-    float nearZ       = 0;
-    float farZ        = 0;
+    // view and projection matrix
+    float view[16]{ 0 };
+    float proj[16]{ 0 };
 };
 
 

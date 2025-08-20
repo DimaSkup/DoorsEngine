@@ -20,24 +20,27 @@ ColorShader::~ColorShader()
 }
 
 //---------------------------------------------------------
-// Desc:   load hlsl shaders, create DX shader objects,
-//         and init this shader class instance
+// Decs:   Load CSO / compile HLSL shaders and init this shader class instance
+// Args:   - vsPath:  a path to compiled (.cso) vertex shader file
+//         - psPath:  a path to compiled (.cso) pixel shader file
 //---------------------------------------------------------
 bool ColorShader::Initialize(
     ID3D11Device* pDevice,
-    const char* vsFilePath,
-    const char* psFilePath)
+    const char* vsPath,
+    const char* psPath)
 {
     try
     {
-        bool result = false;
-        InputLayoutColor inputLayout;
+        CAssert::True(!StrHelper::IsEmpty(vsPath), "path to vertex shader is empty");
+        CAssert::True(!StrHelper::IsEmpty(psPath), "path to pixel shader is empty");
 
-        // initialize: VS, PS
-        result = vs_.Initialize(pDevice, vsFilePath, inputLayout.desc, inputLayout.numElems);
+        bool result = false;
+        const InputLayoutColor layout;
+
+        result = vs_.LoadPrecompiled(pDevice, vsPath, layout.desc, layout.numElems);
         CAssert::True(result, "can't initialize the vertex shader");
 
-        result = ps_.Initialize(pDevice, psFilePath);
+        result = ps_.LoadPrecompiled(pDevice, psPath);
         CAssert::True(result, "can't initialize the pixel shader");
 
         LogDbg(LOG, "is initialized");

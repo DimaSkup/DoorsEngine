@@ -215,7 +215,9 @@ public:
 //---------------------------------------------------------
 struct Subset
 {
-    char    name[SUBSET_NAME_LENGTH_LIMIT] {'\0'};       // for debugging
+    // for debugging
+    char    name[SUBSET_NAME_LENGTH_LIMIT] {'\0'};
+
     uint32  vertexStart = 0;                             // start pos of vertex in the common buffer
     uint32  vertexCount = 0;                             // how many vertices this subset has
     uint32  indexStart = 0;                              // start pos of index in the common buffer
@@ -229,7 +231,9 @@ struct Subset
 //---------------------------------------------------------
 struct InstanceBatch
 {
-    int                    numInstances = 0;             // how many times this instance will be rendered (at different positions)
+    ModelID                modelId      = INVALID_MODEL_ID;
+    SubmeshID              subsetId     = UINT16_MAX;
+    int                    numInstances = 1;             // how many times this instance will be rendered (at different positions)
     UINT                   vertexStride = 0;             // size in bytes of a single vertex
 
     ID3D11Buffer*          pVB = nullptr;                // vertex buffer
@@ -240,7 +244,6 @@ struct InstanceBatch
 
     // debug data
     char                   name[32]{ '\0' };
-    SubsetID               subsetId = 1000;
 
 
     inline int GetNumVertices() const

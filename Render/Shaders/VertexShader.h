@@ -17,14 +17,14 @@ class VertexShader
 public:
     ~VertexShader();
 
-    bool Initialize(
+    bool LoadPrecompiled(
         ID3D11Device* pDevice,
         const char* shaderPath,
         const D3D11_INPUT_ELEMENT_DESC* layoutDesc,
         const UINT layoutElemNum);
 
     // hot reload
-    bool CompileShaderFromFile(
+    bool CompileFromFile(
         ID3D11Device* pDevice,
         const char* shaderPath,
         const char* funcName,

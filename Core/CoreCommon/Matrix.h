@@ -1,7 +1,9 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 
-#include <cassert.h>
+#include <assert.h>
+#include <DMath.h>
+#include <memory.h>
 
 
 __declspec(align(16)) struct Matrix
@@ -16,7 +18,7 @@ public:
     Matrix(const float* arr)
     {
         assert(arr != nullptr);
-        memcpy((void*)arr, (void*)mat, sizeof(float) * 16);
+        memcpy((void*)mat, (void*)arr, sizeof(float) * 16);
     }
 
 
@@ -37,6 +39,10 @@ public:
         return *this;
     }
 
+    inline const Vec4& operator[](const int row) const { return r[row]; }
+
+    inline Vec4& operator[](const int row) { return r[row]; }
+
 public:
     union
     {
@@ -49,6 +55,11 @@ public:
             float m10, m11, m12, m13;
             float m20, m21, m22, m23;
             float m30, m31, m32, m33;
+        };
+
+        struct
+        {
+            Vec4 r[4];
         };
     };
 };
