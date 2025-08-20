@@ -302,12 +302,12 @@ void TextStore::UpdateDebugText(
     sprintf(dbgDynamicSentences_[i++].text, "%.2f", sysState.cameraDir.z);
 
     // render info
-    sprintf(dbgDynamicSentences_[i++].text, "%d", sysState.visibleObjectsCount);
-    sprintf(dbgDynamicSentences_[i++].text, "%d", sysState.visibleVerticesCount);
-    sprintf(dbgDynamicSentences_[i++].text, "%d", sysState.visibleVerticesCount / 3);
-    sprintf(dbgDynamicSentences_[i++].text, "%d", sysState.cellsDrawn);
-    sprintf(dbgDynamicSentences_[i++].text, "%d", sysState.cellsCulled);
-    sprintf(dbgDynamicSentences_[i++].text, "%d", sysState.drawnTerrainPatches);
+    sprintf(dbgDynamicSentences_[i++].text, "%d", sysState.numDrawnTerrainPatches);
+    sprintf(dbgDynamicSentences_[i++].text, "%d", sysState.numCulledTerrainPatches);
+    sprintf(dbgDynamicSentences_[i++].text, "%d", sysState.numDrawnVertices);
+    sprintf(dbgDynamicSentences_[i++].text, "%d", sysState.numDrawnVertices / 3);     // num drawn triangles
+    sprintf(dbgDynamicSentences_[i++].text, "%d", sysState.numDrawnInstances);
+    sprintf(dbgDynamicSentences_[i++].text, "%d", sysState.numDrawCallsForInstances);
 
     UpdateDebugSentences(pContext, font);
 }

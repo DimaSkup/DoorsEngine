@@ -4,18 +4,18 @@ const_str: Fps 10 50
 const_str: Frame_time 10 70
 const_str: Update 10 90
 const_str: Render 10 110
-const_str: X: 10 130
-const_str: Y: 10 150
-const_str: Z: 10 170
-const_str: rX_(pitch): 10 190
-const_str: rY_(yaw): 10 210
-const_str: rZ_(roll): 10 230
-const_str: Models_drawn: 10 270
-const_str: Vertices_drawn: 10 290
-const_str: Faces_drawn: 10 310
-const_str: Cells_drawn: 10 330
-const_str: Cells_culled: 10 350
-const_str: Trn_patches_drawn: 10 370
+const_str: X: 10 140
+const_str: Y: 10 160
+const_str: Z: 10 180
+const_str: rX_(pitch): 10 200
+const_str: rY_(yaw): 10 220
+const_str: rZ_(roll): 10 240
+const_str: Drawn_trn_patches: 10 270
+const_str: Culled_trn_patches: 10 290
+const_str: Drawn_vertices: 10 310
+const_str: Drawn_faces: 10 330
+const_str: Drawn_instances: 10 350
+const_str: Num_inst_draw_calls: 10 370
 
 dynamic_str: fps 50 50 16
 dynamic_str: frame_time 120 70 16
@@ -27,9 +27,9 @@ dynamic_str: posZ 120 180 16
 dynamic_str: rotX 120 200 16
 dynamic_str: rotY 120 220 16
 dynamic_str: rotZ 120 240 16
-dynamic_str: models_drawn 200 270 16
-dynamic_str: vertices_drawn 200 290 16
-dynamic_str: faces_drawn 200 310 16
-dynamic_str: cells_drawn 200 330 16
-dynamic_str: cells_culled 200 350 16
-dynamic_str: trn_patches_drawn 200 370 16
+dynamic_str: drawn_terrain_patches 210 270 16
+dynamic_str: culled_terrain_patches 210 290 16
+dynamic_str: drawn_vertices 210 310 16
+dynamic_str: drawn_triangles 210 330 16
+dynamic_str: drawn_instances 210 350 16
+dynamic_str: num_instances_draw_calls 210 370 16

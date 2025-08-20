@@ -261,8 +261,12 @@ void CGraphics::UpdateHelper(
     // prepare all the visible entities data for rendering
     const cvector<EntityID>& visibleEntts = pEnttMgr->renderSystem_.GetAllVisibleEntts();
 
-    // reset the visible vertices counter for this frame
-    pSysState_->visibleVerticesCount = 0;
+    // reset some counters
+    pSysState_->numDrawnTerrainPatches = 0;
+    pSysState_->numCulledTerrainPatches = 0;
+    pSysState_->numDrawnVertices = 0;
+    pSysState_->numDrawnInstances = 0;
+    pSysState_->numDrawCallsForInstances = 0;
 
     // prepare data for each entity
     PrepInstancesForRender(pEnttMgr, pRender);
@@ -350,7 +354,8 @@ void CGraphics::ComputeFrustumCulling(
     for (index i = 0; i < numVisEntts; ++i)
         visibleEntts[i] = enttsRenderable[idxsToVisEntts[i]];
 
-    sysState.visibleObjectsCount = (u32)numVisEntts;
+    // this number of entities (instances) will be rendered onto the screen
+    sysState.numDrawnInstances = (u32)numVisEntts;
 }
 
 //---------------------------------------------------------
@@ -809,30 +814,37 @@ void CGraphics::RenderMaterialsIcons(
         outArrShaderResourceViews[i++] = buf.GetSRV();
 }
 
+//---------------------------------------------------------
+// Desc:   render all the instances from the input array
+// Args:   - pRender:               a ptr to CRender class from the Render module
+//         - instanceBatches:       array of instance batches
+//                                  (one batch can represent many instances)
+//         - startInstanceLocation: where start to get data in instances buffer
+//                                  for currently rendered instances
+//         - stat:                  a container for rendering statistic
+//---------------------------------------------------------
 void CGraphics::RenderInstanceGroups(
     ID3D11DeviceContext* pContext,
     Render::CRender* pRender,
     const cvector<Render::InstanceBatch>& instanceBatches,
     UINT& startInstanceLocation,
-    int& numRenderedInstances,
-    int& drawCalls)
+    RenderStat& stat)
 {
     for (const Render::InstanceBatch& batch : instanceBatches)
     {
-        // bind material for this instance batch
         BindMaterial(pRender, batch.renderStates, batch.textures);
 
-        // render instances
         pRender->RenderInstances(
             pContext,
             Render::ShaderTypes::LIGHT,
             batch,
             startInstanceLocation);
 
-
-        startInstanceLocation += (UINT)batch.numInstances;
-        numRenderedInstances += batch.numInstances;
-        drawCalls++;
+        // stride idx in the instances buffer and accumulate render statistic
+        startInstanceLocation  += (UINT)batch.numInstances;
+        stat.numDrawnVertices  += batch.GetNumVertices();
+        stat.numDrawnInstances += batch.numInstances;
+        stat.numDrawCallsForInstances++;
     }
 }
 
@@ -849,22 +861,17 @@ void CGraphics::RenderEntts(Render::CRender* pRender)
 
     
     ID3D11DeviceContext* pContext = pContext_;
-
     UINT startInstanceLocation = 0;
-    int numRenderedInstances = 0;
-    int drawCalls = 0;
+    RenderStat stat;
 
-    RenderInstanceGroups(pContext, pRender, storage.masked, startInstanceLocation, numRenderedInstances, drawCalls);
-    RenderInstanceGroups(pContext, pRender, storage.opaque, startInstanceLocation, numRenderedInstances, drawCalls);
-    RenderInstanceGroups(pContext, pRender, storage.blended, startInstanceLocation, numRenderedInstances, drawCalls);
-    RenderInstanceGroups(pContext, pRender, storage.blendedTransparent, startInstanceLocation, numRenderedInstances, drawCalls);
+    RenderInstanceGroups(pContext, pRender, storage.masked, startInstanceLocation, stat);
+    RenderInstanceGroups(pContext, pRender, storage.opaque, startInstanceLocation, stat);
+    RenderInstanceGroups(pContext, pRender, storage.blended, startInstanceLocation, stat);
+    RenderInstanceGroups(pContext, pRender, storage.blendedTransparent, startInstanceLocation, stat);
 
-#if 0
-    printf("\n\n");
-    printf("num all instances: %d\n", numRenderedInstances);
-    printf("draw calls num:    %d\n", drawCalls);
-   // exit(0);
-#endif
+    pSysState_->numDrawnVertices += stat.numDrawnVertices;
+    pSysState_->numDrawnInstances += stat.numDrawnInstances;
+    pSysState_->numDrawCallsForInstances += stat.numDrawCallsForInstances;
 }
 
 //---------------------------------------------------------
@@ -919,7 +926,7 @@ void CGraphics::RenderParticles(
             particlesData.numInstances[i]);
     }
 
-    pSysState_->visibleVerticesCount += numVertices;
+    pSysState_->numDrawnVertices += numVertices;
 }
 
 ///////////////////////////////////////////////////////////
@@ -968,19 +975,6 @@ void CGraphics::RenderSkyDome(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr
 //---------------------------------------------------------
 void CGraphics::RenderTerrainGeomip(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr)
 {
-#if 0
-    const char* terrainName = "terrain_geomipmap";
-    const EntityID terrainID = pEnttMgr->nameSystem_.GetIdByName(terrainName);
-
-    // if we haven't any terrain entity
-    if (terrainID == INVALID_ENTITY_ID)
-    {
-        LogErr(LOG, "can't find terrain by name: %s", terrainName);
-        return;
-    }
-#endif
-
-
     // prepare the terrain instance
     TerrainGeomip& terrain = g_ModelMgr.GetTerrainGeomip();
     Render::TerrainInstance instance;
@@ -1017,33 +1011,11 @@ void CGraphics::RenderTerrainGeomip(Render::CRender* pRender, ECS::EntityMgr* pE
     Render::TerrainShader& shader = pRender->shadersContainer_.terrainShader_;
     shader.Prepare(pContext, instance);
 
-    int drawnTerrainPatches = 0;
+    int numDrawnTerrainPatches = 0;
+    int numDrawnTerrainVertices = 0;
 
-    const cvector<int>& visiblePatchesIdxs = terrain.GetVisiblePatches();
-
-#if 0
-    // render each patch (sector) of the terrain
-    for (int patchZ = 0; patchZ < numPatchesPerSide; ++patchZ)
-    {
-        for (int patchX = 0; patchX < numPatchesPerSide; ++patchX)
-        {
-            const TerrainLodMgr::PatchLod& plod = lodMgr.GetPatchLodInfo(patchX, patchZ);
-
-            terrain.GetLodInfoByPatch(plod, instance.baseIndex, instance.indexCount);
-
-            const int z = patchZ * (patchSize - 1);
-            const int x = patchX * (patchSize - 1);
-            instance.baseVertex = (UINT)(z*terrainLen + x);
-
-            shader.RenderPatch(pContext, instance);
-            drawnTerrainPatches++;
-        }
-    }
-#else
-
-    //(patchZ * numPatchesPerSide_) + patchX]
-
-    for (const int idx : visiblePatchesIdxs)
+    // render each visible patch (sector) of the terrain
+    for (const int idx : terrain.GetVisiblePatches())
     {
         const TerrainLodMgr::PatchLod& plod = lodMgr.GetPatchLodInfo(idx);
 
@@ -1056,13 +1028,14 @@ void CGraphics::RenderTerrainGeomip(Render::CRender* pRender, ECS::EntityMgr* pE
         instance.baseVertex = (UINT)(z*terrainLen + x);
 
         shader.RenderPatch(pContext, instance);
-        drawnTerrainPatches++;
+        numDrawnTerrainPatches++;
+        numDrawnTerrainVertices += (instance.indexCount / 3);
     }
 
-#endif
-
-    // write how many paches has been drawn so later we will render this value onto the screen
-    pSysState_->drawnTerrainPatches = drawnTerrainPatches;
+    // gather some rendering statistic
+    pSysState_->numDrawnTerrainPatches = numDrawnTerrainPatches;
+    pSysState_->numCulledTerrainPatches = terrain.GetNumAllPatches() - numDrawnTerrainPatches;
+    pSysState_->numDrawnVertices += numDrawnTerrainVertices;
 }
 
 //---------------------------------------------------------

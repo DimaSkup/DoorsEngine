@@ -28,13 +28,13 @@ public:
 	int wndWidth_  = 800;                    // current width of the main window 
 	int wndHeight_ = 600;                    // current height of the main window
 				
-	uint32 visibleVerticesCount = 0;            // the number of rendered vertices for this frame
-	uint32 visibleObjectsCount = 0;             // the number of rendered models for this frame
-	uint32 numVisiblePointLights = 0;
-	uint32 cellsDrawn = 0;                      // the number of rendered terrain cells
-	uint32 cellsCulled = 0;                     // the number of culled terrain cells
-	uint32 pickedEnttID_ = 0;                   // currently chosen entity (its ID)
-    uint32 drawnTerrainPatches = 0;
+	uint32 pickedEnttID_            = 0;     // currently chosen entity (its ID)
+    uint32 numDrawnTerrainPatches   = 0;     // how many terrain's patched did we render for this frame?
+    uint32 numCulledTerrainPatches  = 0;     // how many patches was culled during frustum test
+
+    uint32 numDrawnVertices         = 0;     // the number of rendered vertices for this frame
+    uint32 numDrawnInstances        = 0;     // rendered entities instances
+    uint32 numDrawCallsForInstances = 0;
 
     float deltaTime = 0.0f;                  // seconds per last frame
 	float frameTime = 0.0f;                  // ms per last frame

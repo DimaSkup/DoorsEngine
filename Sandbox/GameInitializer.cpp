@@ -1216,14 +1216,25 @@ void CreateStalkerFreedom(ECS::EntityMgr& mgr)
 
 ///////////////////////////////////////////////////////////
 
-void CreateTraktor13(ECS::EntityMgr& mgr, const BasicModel& model)
+void CreateTraktor13(ECS::EntityMgr& mgr)
 {
     LogDbg(LOG, "create a traktor (tr-13) entity");
+
+    // import stalker model from file
+    ModelsCreator creator;
+    const char* pathTraktor = "data/models/ext/tr13/tr13.fbx";
+    const ModelID traktorId = creator.ImportFromFile(g_pDevice, pathTraktor);
+    BasicModel& model       = g_ModelMgr.GetModelById(traktorId);
+    SetupTraktor(model);
     
     const EntityID enttID = mgr.CreateEntity("traktor_13");
 
     // setup transformation params
-    XMFLOAT3 position        = { 40, GetHeightOfGeneratedTerrainAtPoint(40, 3), 3};
+    const TerrainGeomip& terrain = g_ModelMgr.GetTerrainGeomip();
+    const float posX         = 261;
+    const float posZ         = 249;
+    const float posY         = terrain.GetScaledHeightAtPoint((int)posX, (int)posZ);
+    XMFLOAT3 position        = { posX, posY, posZ };
     XMVECTOR direction       = { 0, 1, 0, 0 };
     const float uniformScale = 5.0f;
 
@@ -1254,8 +1265,10 @@ void CreateTraktor13(ECS::EntityMgr& mgr, const BasicModel& model)
     mgr.AddMaterialComponent(enttID, materialIDs.data(), numSubsets);
 
     // rotate the stalker entity
-    const XMVECTOR rotQuat = DirectX::XMQuaternionRotationAxis({ 1,0,0 }, DirectX::XM_PIDIV2);
-    mgr.transformSystem_.RotateLocalSpaceByQuat(enttID, rotQuat);
+    const XMVECTOR rotQuat1 = DirectX::XMQuaternionRotationAxis({ 1,0,0 }, DirectX::XM_PIDIV2);
+    const XMVECTOR rotQuat2 = DirectX::XMQuaternionRotationAxis({ 0,1,0 }, DirectX::XM_PI + DirectX::XM_PIDIV4);
+    const XMVECTOR q = DirectX::XMQuaternionMultiply(rotQuat1, rotQuat2);
+    mgr.transformSystem_.RotateLocalSpaceByQuat(enttID, q);
 }
 
 ///////////////////////////////////////////////////////////
@@ -1737,7 +1750,7 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     CreateAk74(mgr, ak74, { 260, 82, 205 });
 
     CreateStalkerFreedom(mgr);
-
+    CreateTraktor13(mgr);
     CreateCubes(mgr, cube);
     CreateTreesSpruce(mgr);
 }

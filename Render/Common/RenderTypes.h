@@ -233,7 +233,7 @@ struct InstanceBatch
 {
     ModelID                modelId      = INVALID_MODEL_ID;
     SubmeshID              subsetId     = UINT16_MAX;
-    int                    numInstances = 1;             // how many times this instance will be rendered (at different positions)
+    uint32                 numInstances = 1;             // how many times this instance will be rendered (at different positions)
     UINT                   vertexStride = 0;             // size in bytes of a single vertex
 
     ID3D11Buffer*          pVB = nullptr;                // vertex buffer
@@ -246,9 +246,9 @@ struct InstanceBatch
     char                   name[32]{ '\0' };
 
 
-    inline int GetNumVertices() const
+    inline uint32 GetNumVertices() const
     {
-        return subset.vertexCount;
+        return numInstances * subset.vertexCount;
     }
 };
 
