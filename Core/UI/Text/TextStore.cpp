@@ -28,8 +28,8 @@ TextStore::~TextStore()
 // =================================================================================
 void TextStore::InitDebugText(ID3D11Device* pDevice, FontClass& font)
 {
-    constexpr size      vbSize = maxNumVerticesInDbgText;
-    constexpr size      ibSize = maxNumCharsInDbgText * 6;  // 6 indices per symbol
+    constexpr size      vbSize = MAX_NUM_VERTICES_IN_DBG_TEXT;
+    constexpr size      ibSize = MAX_NUM_CHARS_IN_DBG_TEXT * 6;  // 6 indices per symbol
     const cvector<UINT> indices(ibSize, 0);
     const bool          isDynamic = true;
 
@@ -39,7 +39,7 @@ void TextStore::InitDebugText(ID3D11Device* pDevice, FontClass& font)
     index vOffset = 0;  
 
     // build vertices for the whole debug const text
-    Core::VertexFont rawVertices[maxNumVerticesInDbgText];
+    Core::VertexFont rawVertices[MAX_NUM_VERTICES_IN_DBG_TEXT];
 
     for (index idx = 0; idx < numDbgConstSentences_; ++idx)
     {
@@ -56,9 +56,9 @@ void TextStore::InitDebugText(ID3D11Device* pDevice, FontClass& font)
 
         vOffset += numVertices;
 
-        if (vOffset >= maxNumVerticesInDbgText)
+        if (vOffset >= MAX_NUM_VERTICES_IN_DBG_TEXT)
         {
-            LogErr("too much vertices for the vertex buffer of debug const sentences");
+            LogErr(LOG, "too much vertices for the vertex buffer of debug const sentences");
             idx = numDbgConstSentences_;   // go out from the for-loop
         }
     }
@@ -70,12 +70,12 @@ void TextStore::InitDebugText(ID3D11Device* pDevice, FontClass& font)
     // init vertex buffer for debug const and dynamic sentences
     if (!vbDbgConstText_.Initialize(pDevice, rawVertices, (int)vOffset, !isDynamic))
     {
-        LogErr("can't create a const vertex buffer for debug text");
+        LogErr(LOG, "can't create a const vertex buffer for debug text");
         return;
     }
     if (!vbDbgDynamicText_.Initialize(pDevice, dbgTextRawVertices_, vbSize, isDynamic))
     {
-        LogErr("can't create a dynamic vertex buffer for debug text");
+        LogErr(LOG, "can't create a dynamic vertex buffer for debug text");
         return;
     }
 
@@ -86,26 +86,33 @@ void TextStore::InitDebugText(ID3D11Device* pDevice, FontClass& font)
 
     if (!ibDbgText_.Initialize(pDevice, indices.data(), ibSize, isDynamicBuf))
     {
-        LogErr("can't create an index buffer for debug (dynamic) text");
+        LogErr(LOG, "can't create an index buffer for debug (dynamic) text");
         return;
     }
 }
-
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   create a new constant string to render it onto the screen;
+//         the content of this string can't be changed;
+//         you can only change its position on the screen;
+// Args:   - font:    which kind of font to use
+//         - text:    content of the string
+//         - drawAt:  upper left corner of sentence (x and y position on the screen)
+// Ret:    identifier of created string
+//---------------------------------------------------------
 SentenceID TextStore::CreateConstSentence(
     ID3D11Device* pDevice,
-    FontClass& font,                     // font for the text
-    const std::string& textContent,      // the content of the text
+    const FontClass& font,                    
+    const char* text,
     const DirectX::XMFLOAT2& drawAt)
 {
-    // the content of this string won't be changed;
-    // you can only change its position on the screen;
+    if (!text || text[0] == '\0')
+    {
+        LogErr(LOG, "input str is empty");
+        return 0;
+    }
 
     try
     {
-        CAssert::True(!textContent.empty(), "the input string is empty");
-
         // add ID for this new sentence
         SentenceID id = staticID_++;
         ids_.push_back(id);
@@ -113,8 +120,8 @@ SentenceID TextStore::CreateConstSentence(
         // upper left rendering pos
         drawAt_.push_back(drawAt);
 
-        maxStrSize_.push_back(std::ssize(textContent));
-        textContent_.push_back(textContent);
+        maxStrSize_.push_back(strlen(text));
+        textContent_.push_back(text);
 
         cvector<Core::VertexFont> vertices;
         cvector<UINT>             indices;
@@ -122,7 +129,7 @@ SentenceID TextStore::CreateConstSentence(
         BuildTextVerticesIndices(
             pDevice,
             maxStrSize_.back(),
-            textContent,
+            text,
             drawAt,
             font,
             vertices,
@@ -142,29 +149,40 @@ SentenceID TextStore::CreateConstSentence(
     catch (EngineException& e)
     {
         LogErr(e, false);
-        sprintf(g_String, "can't create a sentence with the text: %s", textContent.c_str());
-        LogErr(g_String);
+        LogErr(LOG, "can't create a sentence with the text: %s", text);
         return 0;
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   create a new constant string to render it onto the screen;
+//         the content of this string can't be changed;
+//         you can only change its position on the screen;
+// Args:   - font:       which kind of font to use
+//         - text:       content of the string
+//         - maxStrLen:  maximal length for this string
+//         - drawAt:     upper left corner of sentence (x and y position on the screen)
+//         - isDynamic:  will this sentence be changed from frame to frame?
+// Ret:    identifier of created string
+//---------------------------------------------------------
 SentenceID TextStore::CreateSentence(
     ID3D11Device* pDevice,
-    FontClass& font,                     // font for the text
-    const std::string& textContent,      // the content of the text
-    const size maxStrSize,               // maximal length for this string
-    const DirectX::XMFLOAT2& drawAt,     // upper left position of the text in the window
-    const bool isDynamic)                // will this sentence be changed from frame to frame?
+    const FontClass& font,       
+    const char* text,      
+    const size maxStrLen,               
+    const DirectX::XMFLOAT2& drawAt,     
+    const bool isDynamic)                
 {
-    // the content of this string is supposed to be changed from frame to frame;
-    // you can also change its position on the screen;
+    if (!text || text[0] == '\0')
+    {
+        LogErr(LOG, "the input str is empty");
+        return 0;
+    }
+
     try
     {
         // check input params
-        CAssert::True(!textContent.empty(), "the input string is empty");
-        CAssert::True(maxStrSize >= std::ssize(textContent), "max string size must be >= input text string");
+        CAssert::True(maxStrLen >= (size)strlen(text), "max string size must be >= input text string");
 
         // add ID for this new sentence
         SentenceID id = staticID_++;
@@ -173,16 +191,16 @@ SentenceID TextStore::CreateSentence(
         // upper left rendering pos
         drawAt_.push_back(drawAt);
            
-        maxStrSize_.push_back(maxStrSize);       
-        textContent_.push_back(textContent);
+        maxStrSize_.push_back(maxStrLen);       
+        textContent_.push_back(text);
 
         cvector<Core::VertexFont> vertices;
         cvector<UINT> indices;
         
         BuildTextVerticesIndices(
             pDevice,
-            maxStrSize,
-            textContent,
+            maxStrLen,
+            text,
             drawAt,
             font, 
             vertices,
@@ -200,8 +218,7 @@ SentenceID TextStore::CreateSentence(
     catch (EngineException & e)
     {
         LogErr(e, false);
-        sprintf(g_String, "can't create a sentence with the text: %s", textContent.c_str());
-        LogErr(g_String);
+        LogErr(LOG, "can't create a sentence with the text: %s", text);
         return 0;
     }
 }
@@ -258,7 +275,6 @@ void TextStore::GetRenderingData(
     outDynamicIndexCount = indexCountDbgDynamicText_;
 }
 
-
 // ====================================================================================
 //                               PUBLIC UPDATE API
 // ====================================================================================
@@ -291,80 +307,89 @@ void TextStore::UpdateDebugText(
     sprintf(dbgDynamicSentences_[i++].text, "%d", sysState.visibleVerticesCount / 3);
     sprintf(dbgDynamicSentences_[i++].text, "%d", sysState.cellsDrawn);
     sprintf(dbgDynamicSentences_[i++].text, "%d", sysState.cellsCulled);
+    sprintf(dbgDynamicSentences_[i++].text, "%d", sysState.drawnTerrainPatches);
 
     UpdateDebugSentences(pContext, font);
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   update the content of the dynamic text
+//---------------------------------------------------------
 void TextStore::Update(
     ID3D11DeviceContext* pContext,
     FontClass& font,
     const Core::SystemState& sysState)
-
 {
-    // update the content of the dynamic text and dynamic vertex buffers
     UpdateDebugText(pContext, font, sysState);
 }
 
-
-// ====================================================================================
-//                            PRIVATE MODICATION API 
-// ====================================================================================
+//---------------------------------------------------------
+// Desc:  build a vertex and index buffer for the input string by its 
+//        textContent and places its vertices at the drawAt position;
+// Args:  - maxStrLen:   maximum length for this string (the vertices limit is based on this value)
+//        - text:        text content of string
+//        - drawAt:      x and y position for drawing onto the screen
+//        - font:        what kind of font to use
+//        - vertices:    output array of vertices
+//        - indices:     output array of indices
+//---------------------------------------------------------
 void TextStore::BuildTextVerticesIndices(
     ID3D11Device* pDevice,
-    const size maxStrSize,
-    const std::string& textContent,
+    const size maxStrLen,
+    const char* text,
     const DirectX::XMFLOAT2& drawAt,
-    FontClass& font,                      // font for the text
+    const FontClass& font,
     cvector<Core::VertexFont>& vertices,
     cvector<UINT>& indices)
 { 
-    // build a vertex and index buffer for the input string by its 
-    // textContent and places its vertices at the drawAt position;
+    if (!text || text[0] == '\0')
+    {
+        LogErr(LOG, "input str is empty");
+        return;
+    }
+
     try
     {
-        CAssert::True(!textContent.empty(), "the input str is empty");
-        CAssert::True(maxStrSize >= std::ssize(textContent), "maxStrSize must be >= sentence size");
+        CAssert::True(maxStrLen >= (size)strlen(text), "maxStrSize must be >= sentence size");
 
         constexpr size numVerticesPerChar = 4;
         constexpr size numIndicesPerChar  = 6;
-        const     size numVertices        = maxStrSize * numVerticesPerChar;
-        const     size numIndices         = maxStrSize * numIndicesPerChar;
+        const     size numVertices        = maxStrLen * numVerticesPerChar;
+        const     size numIndices         = maxStrLen * numIndicesPerChar;
 
         vertices.resize(numVertices);
         indices.resize(numIndices, 0);
         
         // fill in vertex and index arrays with initial data
-        font.BuildVertexArray(vertices.data(), numVertices, textContent.c_str(), drawAt.x, drawAt.y);
+        font.BuildVertexArray(vertices.data(), numVertices, text, drawAt.x, drawAt.y);
         font.BuildIndexArray(indices.data(), numIndices);
     }
     catch (EngineException & e)
     {
         LogErr(e);
-        sprintf(g_String, "can't build buffers for the sentence: %s", textContent.c_str());
-        LogErr(g_String);
+        LogErr(LOG, "can't build buffers for the sentence: %s", text);
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:  update the sentence by idx with new content;
+//        also we rebuild its vertices according to this new content
+//        and update its VB
+//---------------------------------------------------------
 void TextStore::UpdateSentenceByIdx(
     ID3D11DeviceContext* pContext,
     FontClass& font,
     const index idx,
     const char* newStr)
 {
-    // update the sentence by idx with new content;
-    // also we rebuild its vertices according to this new content
-    // and update its VB
+    assert(newStr && newStr[0] != '\0');
 
     textContent_[idx] = newStr;
 
-    constexpr size numMaxVertices = 256;             // suppose max 64 symbols * 4 vertex per each symbol
+    constexpr size   verticesPerChar = 4;
+    constexpr size   numMaxVertices = 256;             // suppose max 64 symbols * 4 vertex per each symbol
     Core::VertexFont vertices[numMaxVertices];
-    constexpr size verticesPerChar = 4;
-    const size maxNumVerticesInSentence = maxStrSize_[idx] * verticesPerChar;
+    const size       maxNumVerticesInSentence = maxStrSize_[idx] * verticesPerChar;
 
     // rebuild vertices for this sentence
     font.BuildVertexArray(
@@ -378,13 +403,12 @@ void TextStore::UpdateSentenceByIdx(
     vertexBuffers_[idx].UpdateDynamic(pContext, vertices, maxNumVerticesInSentence);
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:  update text content of the debug dynamic strings, rebuild vertices,
+//        and also update the vertex buffer with these new vertices
+//---------------------------------------------------------
 void TextStore::UpdateDebugSentences(ID3D11DeviceContext* pContext, FontClass& font)
 {
-    // update text content of the debug dynamic strings, rebuild vertices,
-    // and also update the vertex buffer with these new vertices
-
     constexpr size verticesPerChar = 4;
     index vOffset = 0;                    // offset in the buf of raw vertices
 

@@ -118,16 +118,16 @@ void GeometryGenerator::GenerateCube(BasicModel& model)
 
     // define positions:
     // - right side
-    constexpr XMFLOAT3 pos0 = { 1,  1, -1 };  // near top
-    constexpr XMFLOAT3 pos1 = { 1, -1, -1 };  // near bottom
-    constexpr XMFLOAT3 pos2 = { 1,  1,  1 };  // far top
-    constexpr XMFLOAT3 pos3 = { 1, -1,  1 };  // far bottom
+    constexpr XMFLOAT3 pos0 = { 0.5f,  0.5f, -0.5f };  // near top
+    constexpr XMFLOAT3 pos1 = { 0.5f, -0.5f, -0.5f };  // near bottom
+    constexpr XMFLOAT3 pos2 = { 0.5f,  0.5f,  0.5f };  // far top
+    constexpr XMFLOAT3 pos3 = { 0.5f, -0.5f,  0.5f };  // far bottom
 
     // - left side
-    constexpr XMFLOAT3 pos4 = { -1,  1, -1 }; // near top
-    constexpr XMFLOAT3 pos5 = { -1, -1, -1 }; // near bottom
-    constexpr XMFLOAT3 pos6 = { -1,  1,  1 }; // far top 
-    constexpr XMFLOAT3 pos7 = { -1, -1,  1 }; // far bottom
+    constexpr XMFLOAT3 pos4 = { -0.5f,  0.5f, -0.5f }; // near top
+    constexpr XMFLOAT3 pos5 = { -0.5f, -0.5f, -0.5f }; // near bottom
+    constexpr XMFLOAT3 pos6 = { -0.5f,  0.5f,  0.5f }; // far top 
+    constexpr XMFLOAT3 pos7 = { -0.5f, -0.5f,  0.5f }; // far bottom
 
     // define texture coords
     constexpr XMFLOAT2 tex[4] = { {0, 1}, {0, 0}, {1, 0}, {1, 1} };

@@ -131,10 +131,7 @@ public:
     inline UINT                      GetWidth()                             const { return width_; }
     inline UINT                      GetHeight()                            const { return height_; }
 
-    POINT GetTextureSize();
-
-    inline void SetName(const std::string& newPath) { name_ = newPath; } 
-
+    void SetName(const char* name);
 
 private:
   

@@ -215,8 +215,14 @@ if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mtd.dll" xcopy /Y /f "$(
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="CoreCommon\Frustum.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <ClCompile Include="CoreCommon\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -276,12 +282,10 @@ if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mtd.dll" xcopy /Y /f "$(
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Texture\TextureMgr.cpp" />
-    <ClCompile Include="Render\AdapterReader.cpp" />
     <ClCompile Include="Render\Color.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Render\d3dclass.cpp" />
     <ClCompile Include="Input\Keyboard.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
@@ -295,7 +299,6 @@ if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mtd.dll" xcopy /Y /f "$(
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Render\RenderStates.cpp" />
     <ClCompile Include="Render\FrameBuffer.cpp" />
     <ClCompile Include="Sound\SoundClass.cpp" />
     <ClCompile Include="Timers\cpuclass.cpp">
@@ -467,14 +470,11 @@ if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mtd.dll" xcopy /Y /f "$(
     <ClInclude Include="Model\ModelMath.h" />
     <ClInclude Include="Model\ModelMgr.h" />
     <ClInclude Include="Texture\TextureMgr.h" />
-    <ClInclude Include="Render\AdapterReader.h" />
     <ClInclude Include="Render\Color.h" />
-    <ClInclude Include="Render\d3dclass.h" />
     <ClInclude Include="Render\InitGraphicsHelperDataTypes.h" />
     <ClInclude Include="Input\Keyboard.h" />
     <ClInclude Include="Texture\textureclass.h" />
     <ClInclude Include="Render\RenderDataPreparator.h" />
-    <ClInclude Include="Render\RenderStates.h" />
     <ClInclude Include="Render\FrameBuffer.h" />
     <ClInclude Include="CoreCommon\SystemState.h" />
     <ClInclude Include="Sound\SoundClass.h" />

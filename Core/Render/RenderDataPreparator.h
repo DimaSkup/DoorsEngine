@@ -10,7 +10,7 @@
 #include <Common/ECSTypes.h>
 #include <Types.h>  
 #include "Entity/EntityMgr.h"
-#include "CRender.h"
+#include "Render/CRender.h"
 
 namespace Core
 {
@@ -23,54 +23,23 @@ private:
 public:
     RenderDataPreparator();
 
-    void PrepareInstanceFromModel(
-        BasicModel& model,
-        Render::Instance& instance);
-
     void PrepareEnttsDataForRendering(
         const EntityID* enttsIds,
         const size numEntts,
         ECS::EntityMgr* pEnttMgr,
-        Render::InstBuffData& instanceBuffData,      // data for the instance buffer
-        cvector<Render::Instance>& instances);   // instances (models subsets) data for rendering
-
-    // ----------------------------------------------------
-
-    void PrepareInstancesData(
-        const EntityID* ids,
-        const size numEntts,
-        ECS::EntityMgr* pEnttMgr,
-        cvector<Render::Instance>& instances,
-        cvector<EntityID>&        outEnttsSortedByModels,
-        cvector<Render::Material>& outMaterialsSortedByInstances);
-
-    void PrepareInstanceData(const BasicModel& model, Render::Instance& instance);
+        Render::RenderDataStorage& storage);
 
 
 private:
-    void SeparateEnttsByMaterialGroups(
-        const ECS::EntityMgr& mgr,
-        const EntityID* ids,
-        const size numEntts,
-        cvector<EntityID>& outEnttsWithOrigMat,
-        cvector<EntityID>& outEnttsWithUniqueMat);
 
-    void PrepareInstancesForEntts(
-        ECS::EntityMgr& mgr,
-        const EntityID* ids,
-        const size numEntts,
-        cvector<Render::Instance>& instances,
-        cvector<EntityID>& outEnttsSortedByInstances);
+    void PrepareInstancesWorldMatrices(
+        const cvector<EntityID>& enttIdPerInstance,
+        Render::RenderDataStorage& storage);
 
-    void PrepareInstancesForEnttsWithUniqueMaterials(
-        ECS::EntityMgr& mgr,
-        const EntityID* ids,
-        const size numEntts,
-        cvector<Render::Instance>& instances,
-        cvector<EntityID>& outEnttsSortedByInstances);
-
-    void PrepareTexturesForInstance(Render::Instance& instance);
-    void PrepareMaterialForInstance(const Render::Instance& instance, cvector<Render::Material>& outMat);
+    void PrepareInstancesMaterials(
+        Render::InstancesBuf& instanceBuffData,
+        const cvector<EntityModelMesh>& instances,
+        const cvector<Render::MaterialColors>& matColors);
 
 private:
     //constexpr int     numElems = 1028;
@@ -79,7 +48,7 @@ private:
     cvector<Material> materials_;
 
     cvector<EntityID>         enttsSortedByInstances_;
-    cvector<Render::Material> materialsSortedByInstances_;
+    cvector<Render::MaterialColors> matColors_;
 };
 
 } // namespace Core

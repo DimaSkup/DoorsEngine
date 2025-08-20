@@ -278,19 +278,23 @@ void BasicModel::CopyIndices(const UINT* indices, const int numIndices)
 //                           PUBLIC UPDATING API
 // =================================================================================
 
-void BasicModel::SetName(const char* newName)
+void BasicModel::SetName(const char* name)
 {
     // set new name if it is valid or don't change in another case
-    if ((newName == nullptr) || (newName[0] == '\0'))
+    if ((name == nullptr) || (name[0] == '\0'))
     {
         LogErr("can't set a new name for the sky model: input name is empty");
         return;
     }
 
-    const size_t sz = strlen(newName);
-    const size_t size = (sz > 32) ? 32 : sz;    // trim length if necessary to 32
+    size_t len = strlen(name);
 
-    strncpy(name_, newName, size);
+    // if input name is too long we limit its length
+    if (len > MAX_LENGTH_MODEL_NAME - 1)
+        len = MAX_LENGTH_MODEL_NAME - 1;
+
+    strncpy(name_, name, len);
+    name_[len] = '\0';
 }
 
 ///////////////////////////////////////////////////////////
@@ -319,7 +323,7 @@ void BasicModel::SetMaterialsForSubsets(
         const SubsetID subsetID     = subsetsIDs[i];
         const MaterialID materialID = materialsIDs[i];
 
-        meshes_.subsets_[subsetID].materialID = materialID;
+        meshes_.subsets_[subsetID].materialId = materialID;
     }
 }
 

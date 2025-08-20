@@ -105,7 +105,7 @@ bool Engine::Initialize(
             pRender);
         CAssert::True(result, "can't initialize the graphics system");
 
-        D3DClass& d3d                 = graphics_.GetD3DClass();
+        Render::D3DClass& d3d         = graphics_.GetD3DClass();
         ID3D11Device* pDevice         = d3d.GetDevice();
         ID3D11DeviceContext* pContext = d3d.GetDeviceContext();
 
@@ -254,7 +254,7 @@ void Engine::RenderFrame()
         using namespace DirectX;
 
         auto renderStartTime = std::chrono::steady_clock::now();
-        D3DClass& d3d = graphics_.GetD3DClass();
+        Render::D3DClass& d3d = graphics_.GetD3DClass();
         ID3D11DeviceContext* pContext = d3d.GetDeviceContext();
 
        
@@ -309,11 +309,11 @@ void Engine::RenderFrame()
 
 void Engine::RenderUI(UI::UserInterface* pUI, Render::CRender* pRender)
 {
-    D3DClass& d3d = graphics_.GetD3DClass();
+    Render::D3DClass& d3d = graphics_.GetD3DClass();
 
     // preparation before 2D rendering
     d3d.TurnZBufferOff();
-    d3d.TurnOnBlending(ALPHA_ENABLE);
+    d3d.TurnOnBlending(Render::R_ALPHA_ENABLE);
     d3d.TurnOnRSfor2Drendering();
 
     if (systemState_.isEditorMode)
@@ -440,10 +440,9 @@ void Engine::EventWindowSizing(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
     }
 }
 
-
-// =================================================================================
-// Keyboard events handlers
-// =================================================================================
+//---------------------------------------------------------
+// Desc:   handle camera movement when we're in the editor mode
+//---------------------------------------------------------
 void HandleEditorCameraMovement(
     const eKeyCodes code,
     const float deltaTime,
@@ -525,8 +524,9 @@ void HandleEditorCameraMovement(
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   a handler for keyboard events when we're in the editor mode
+//---------------------------------------------------------
 void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr)
 {
     // go through each currently pressed key and handle related events
@@ -617,7 +617,7 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
             }
             case KEY_R:
             {
-                if (!keyboard_.WasPressedBefore(KEY_CONTROL))
+                if (keyboard_.IsPressed(KEY_CONTROL))
                     pUI->SetGizmoOperation(ImGuizmo::OPERATION::ROTATE);
                 break;
             }
@@ -723,19 +723,17 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   a handler for all the keyboard events
+//---------------------------------------------------------
 void Engine::EventKeyboard(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    // a handler for all the keyboard events
     inputMgr_.HandleKeyboardMessage(keyboard_, uMsg, wParam, lParam);
 }
 
-
-// =================================================================================
-// Mouse events handlers
-// =================================================================================
-
+//---------------------------------------------------------
+// Desc:   handle mouse events when we're in the editor mode
+//---------------------------------------------------------
 void Engine::HandleEditorEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr)
 {
     using enum MouseEvent::EventType;
@@ -844,8 +842,9 @@ void Engine::HandleEditorEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnt
     } // while
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   handle mouse events when we're in the game mode
+//---------------------------------------------------------
 void Engine::HandleGameEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr)
 {
     mouseEvent_ = mouse_.ReadEvent();
@@ -890,31 +889,18 @@ void Engine::EventMouse(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         HandleEditorEventMouse(pUserInterface_, pEnttMgr_);
 }
 
-
-// =================================================================================
-// Private helpers
-// =================================================================================
+//---------------------------------------------------------
+// Desc:   switch from the game to the editor mode
+//---------------------------------------------------------
 void Engine::TurnOnEditorMode()
 {
-    // switch from the game to the editor mode
-
-    D3DClass&      d3d         = graphics_.GetD3DClass();
-    const EntityID editorCamID = pEnttMgr_->nameSystem_.GetIdByName("editor_camera");
+    Render::D3DClass& d3d         = graphics_.GetD3DClass();
+    const EntityID    editorCamID = pEnttMgr_->nameSystem_.GetIdByName("editor_camera");
 
     d3d.ToggleFullscreen(hwnd_, false);
     graphics_.SetCurrentCamera(editorCamID);
     systemState_.isGameMode = false;
     systemState_.isEditorMode = true;
-
-#if 0
-    // update the camera proj matrix according to new window size
-    pEnttMgr_->cameraSystem_.SetupProjection(
-        editorCamID,
-        cam.GetFovY(),
-        d3d.GetAspectRatio(),
-        d3d.GetScreenNear(),
-        d3d.GetScreenDepth());
-#endif
 
     // escape from the "clip cursor" mode so that users can choose to interact
     // with other windows if desired; Note: During the game we may also use such call
@@ -932,12 +918,12 @@ void Engine::TurnOnEditorMode()
     pRender_->SetWorldViewOrtho(pContext, WVO);
 }
 
-///////////////////////////////////////////////////////////
-
-void TurnOnMouseLookBehavior(HWND hwnd)
+//---------------------------------------------------------
+// Desc:   limit the cursor to the be always in the window rectangle
+//         (when we're in the game mode)
+//---------------------------------------------------------
+void TurnOnClipCursorMode(HWND hwnd)
 {
-    // limit the cursor to the be always in the window rectangle
-
     RECT rect;
     GetClientRect(hwnd, &rect);
 
@@ -953,12 +939,11 @@ void TurnOnMouseLookBehavior(HWND hwnd)
     ClipCursor(&rect);
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   switch from the editor to the game mode
+//---------------------------------------------------------
 void Engine::TurnOnGameMode()
 {
-    // switch from the editor to the game mode
-
     const EntityID gameCamID = pEnttMgr_->nameSystem_.GetIdByName("game_camera");
 
     graphics_.GetD3DClass().ToggleFullscreen(hwnd_, false);
@@ -967,11 +952,11 @@ void Engine::TurnOnGameMode()
     systemState_.isEditorMode = false;
 
     ShowCursor(FALSE);
-    TurnOnMouseLookBehavior(hwnd_);
+    TurnOnClipCursorMode(hwnd_);
 
     //const DirectX::XMMATRIX  world      = DirectX::XMMatrixIdentity();
-    const DirectX::XMMATRIX& baseView   = pEnttMgr_->cameraSystem_.GetBaseView(gameCamID);
-    const DirectX::XMMATRIX& ortho      = pEnttMgr_->cameraSystem_.GetOrtho(gameCamID);
+    const DirectX::XMMATRIX& baseView = pEnttMgr_->cameraSystem_.GetBaseView(gameCamID);
+    const DirectX::XMMATRIX& ortho    = pEnttMgr_->cameraSystem_.GetOrtho(gameCamID);
 
     ID3D11DeviceContext* pContext = GetGraphicsClass().GetD3DClass().GetDeviceContext();
     pRender_->SetWorldViewOrtho(pContext, baseView * ortho);

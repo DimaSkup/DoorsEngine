@@ -10,7 +10,7 @@
 #include "../Mesh/Vertex3dTerrain.h"
 #include "../Mesh/VertexBuffer.h"
 #include "../Mesh/IndexBuffer.h"
-#include "../Render/d3dclass.h"
+#include "Render/d3dclass.h"
 
 
 namespace Core

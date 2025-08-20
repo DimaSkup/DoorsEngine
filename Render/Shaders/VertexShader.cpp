@@ -35,17 +35,17 @@ inline void BuffersSafeRelease(
 //         compiles this shader into buffer, and then creates
 //         a vertex shader object and an input layout using this buffer;
 // 
-// Args:   - shaderPath:     a path to CSO file relatively to the working directory
+// Args:   - path:           a path to CSO file relatively to the working directory
 //         - layoutDesc:     description for the vertex input layout
 //         - layoutElemNum:  how many elems we have in the input layout
 //---------------------------------------------------------
-bool VertexShader::Initialize(
+bool VertexShader::LoadPrecompiled(
     ID3D11Device* pDevice,
-    const char* shaderPath,
+    const char* path,
     const D3D11_INPUT_ELEMENT_DESC* layoutDesc,
     const UINT layoutElemNum)
 {
-    if (StrHelper::IsEmpty(shaderPath))
+    if (StrHelper::IsEmpty(path))
     {
         LogErr("input path to vertex shader file is empty!");
         return false;
@@ -55,10 +55,10 @@ bool VertexShader::Initialize(
     uint8_t* buf = nullptr;
 
     // load in shader bytecode from the .cso file
-    const size_t len = LoadCSO(shaderPath, buf);
+    const size_t len = LoadCSO(path, buf);
     if (!len)
     {
-        LogErr(LOG, "Failed to load .CSO-file of vertex shader: %s", shaderPath);
+        LogErr(LOG, "Failed to load .CSO-file of vertex shader: %s", path);
         Shutdown();
         return false;
     }
@@ -67,7 +67,7 @@ bool VertexShader::Initialize(
     if (FAILED(hr))
     {
         SafeDeleteArr(buf);
-        LogErr(LOG, "Failed to create a vertex shader obj: %s", shaderPath);
+        LogErr(LOG, "Failed to create a vertex shader obj: %s", path);
         return false;
     }
 
@@ -76,7 +76,7 @@ bool VertexShader::Initialize(
     {
         SafeDeleteArr(buf);
         SafeRelease(&pShader_);
-        LogErr(LOG, "Failed to create the input layout for vertex shader: %s", shaderPath);
+        LogErr(LOG, "Failed to create the input layout for vertex shader: %s", path);
         return false;
     }
 
@@ -95,7 +95,7 @@ bool VertexShader::Initialize(
 //         - layoutDesc:     description for the vertex input layout
 //         - layoutElemNum:  how many elems we have in the input layout
 //---------------------------------------------------------
-bool VertexShader::CompileShaderFromFile(
+bool VertexShader::CompileFromFile(
     ID3D11Device* pDevice,
     const char* shaderPath,
     const char* funcName,

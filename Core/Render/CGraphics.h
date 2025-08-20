@@ -16,15 +16,16 @@
 #include "../Input/MouseEvent.h"
 
 // render stuff
-#include "d3dclass.h"
+#include "Render/d3dclass.h"
+#include "Render/CRender.h"
 #include "RenderDataPreparator.h"
-#include "CRender.h"
-#include "FrameBuffer.h"      // for rendering to some particular texture
+#include "FrameBuffer.h"                // for rendering to some particular texture
 
 // Entity-Component-System
 #include "Entity/EntityMgr.h"
 
 #include <DirectXCollision.h>
+
 
 namespace Core
 {
@@ -65,6 +66,10 @@ public:
         ECS::EntityMgr* pEnttMgr,
         Render::CRender* pRender);
 
+    // check if we have any entity by these coords of the screen
+    int TestEnttSelection(const int sx, const int sy, ECS::EntityMgr* pEnttMgr);
+
+
     // ------------------------------------
     // render related methods
 
@@ -74,7 +79,15 @@ public:
     void ClearRenderingDataBeforeFrame      (ECS::EntityMgr* pEnttMgr, Render::CRender* pRender);
     void Render3D                           (ECS::EntityMgr* pEnttMgr, Render::CRender* pRender);
 
-    void BindMaterial(const Material& mat, Render::CRender* pRender);
+    void BindMaterial(
+        Render::CRender* pRender,
+        const uint32 renderStatesBitfields,
+        const TexID* texIds);
+
+    void BindMaterial(
+        Render::CRender* pRender,
+        const uint32 renderStatesBitfields,
+        ID3D11ShaderResourceView* const* texViews);
 
     bool RenderBigMaterialIcon(
         const MaterialID matID,
@@ -93,30 +106,17 @@ public:
         const int iconHeight);
 
 
-    // ----------------------------------
-
+    // ---------------------------------------
+    // INLINE GETTERS/SETTERS
     
     inline void SetAABBShowMode(const AABBShowMode mode)            { aabbShowMode_ = mode; }
 
     inline void     SetCurrentCamera(const EntityID cameraID)       { currCameraID_ = cameraID; }
     inline EntityID GetCurrentCamera()                        const { return currCameraID_; }
 
-    // ---------------------------------------
-    // INLINE GETTERS/SETTERS
+    inline Render::D3DClass& GetD3DClass()                          { return d3d_; }
 
-    inline D3DClass& GetD3DClass() { return d3d_; }
-
-    // ---------------------------------------
-
-    // memory allocation (because we have some XM-data structures)
-    void* operator new(std::size_t count);                              // a replaceable allocation function
-    void* operator new(std::size_t count, const std::nothrow_t & tag);  // a replaceable non-throwing allocation function
-    void* operator new(std::size_t count, void* ptr);                   // a non-allocating placement allocation function
-    void operator delete(void* ptr);
-
-    // check if we have any entity by these coords of the screen
-    int TestEnttSelection(const int sx, const int sy, ECS::EntityMgr* pEnttMgr);
-
+ 
 private:
 
     bool InitHelper(
@@ -124,10 +124,6 @@ private:
         SystemState& systemState,
         const EngineConfigs& settings,
         ECS::EntityMgr* pEnttMgr,
-        Render::CRender* pRender);
-
-    void InitRenderModule(
-        const EngineConfigs& settings,
         Render::CRender* pRender);
 
     void UpdateHelper(
@@ -152,6 +148,15 @@ private:
     // ------------------------------------------
 
     void RenderEntts    (Render::CRender* pRender);
+
+    void RenderInstanceGroups(
+        ID3D11DeviceContext* pContext,
+        Render::CRender* pRender,
+        const cvector<Render::InstanceBatch>& instanceBatches,
+        UINT& startInstanceLocation,
+        int& numRenderedInstances,
+        int& drawCalls);
+
     void RenderParticles(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);
 
     void RenderSkyDome            (Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);
@@ -177,7 +182,7 @@ public:
 
     cvector<DirectX::BoundingFrustum> frustums_;
 
-    D3DClass              d3d_;
+    Render::D3DClass      d3d_;
     RenderDataPreparator  prep_;
     FrameBuffer           frameBuffer_;                           // for rendering to some texture
     EntityID              currCameraID_ = 0;

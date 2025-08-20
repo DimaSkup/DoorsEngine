@@ -6,6 +6,7 @@
 //==================================================================================
 #pragma once
 #include <DMath.h>
+#include <CoreCommon/Matrix.h>
 
 
 // =================================================================================
@@ -42,6 +43,9 @@ struct FrustumPlane
     FrustumPlane(const float nx, const float ny, const float nz, const float inD) :
         n{ nx, ny, nz }, d(inD) {}
 
+    FrustumPlane(const Vec4& v) :
+        n{v.x, v.y, v.z}, d(v.w) {}
+
     Vec3  n;     // normalized normal vector
     float d;     // d = -dot(n*p0)
 };
@@ -51,19 +55,15 @@ struct FrustumPlane
 class Frustum
 {
 public:
-    Frustum() {}
-
-    void Initialize(
-        const float fovX,
-        const float fovY,
+    Frustum(
+        const float fov,
+        const float aspectRatio,
         const float nearZ,
         const float farZ);
 
-    void Initialize(
-        const float* viewMatrix,
-        const float* projMatrix);
+    Frustum(const Matrix& viewProj);
 
-    void Initialize(
+    Frustum(
         const float* nearPlane,
         const float* farPlane,
         const float* rightPlane,
@@ -71,16 +71,20 @@ public:
         const float* topPlane,
         const float* bottomPlane);
 
-    bool VertexTest(const float x, const float y, const float z);
-    bool SphereTest(const float x, const float y, const float z, const float radius);
-    bool CubeTest  (const float x, const float y, const float z, const float size);
 
+    bool PointTest (const float x, const float y, const float z) const;
+    bool SphereTest(const float x, const float y, const float z, const float radius) const;
+    bool CubeTest  (const float x, const float y, const float z, const float size) const;
+
+private:
+    bool TestFrustum();
 
 public:
-    FrustumPlane planes_[6];
+    FrustumPlane nearClipPlane_;
+    FrustumPlane farClipPlane_;
+    FrustumPlane rightClipPlane_;
 
-    float fovX_  = 0;
-    float fovY_  = 0;
-    float nearZ_ = 0;
-    float farZ_  = 0;
+    FrustumPlane leftClipPlane_;
+    FrustumPlane topClipPlane_;
+    FrustumPlane bottomClipPlane_;
 };

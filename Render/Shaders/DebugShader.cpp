@@ -20,26 +20,31 @@ DebugShader::~DebugShader()
 {
 }
 
-// *********************************************************************************
-//                             PUBLIC METHODS                                       
-// *********************************************************************************
+//---------------------------------------------------------
+// Decs:   Load CSO / compile HLSL shaders and init this shader class instance
+// Args:   - vsPath:  a path to compiled (.cso) vertex shader file
+//         - psPath:  a path to compiled (.cso) pixel shader file
+//---------------------------------------------------------
 bool DebugShader::Initialize(
     ID3D11Device* pDevice,
-    const char* vsFilePath,
-    const char* psFilePath)
+    const char* vsPath,
+    const char* psPath)
 {
     try
     {
+        CAssert::True(!StrHelper::IsEmpty(vsPath), "path to vertex shader is empty");
+        CAssert::True(!StrHelper::IsEmpty(psPath), "path to pixel shader is empty");
+
         HRESULT hr = S_OK;
         bool result = false;
-        InputLayoutDebugShader inputLayout;
+        const InputLayoutDebugShader layout;
 
         // init vertex shader
-        result = vs_.Initialize(pDevice, vsFilePath, inputLayout.desc, inputLayout.numElems);
+        result = vs_.LoadPrecompiled(pDevice, vsPath, layout.desc, layout.numElems);
         CAssert::True(result, "can't initialize the vertex shader");
 
         // init pixel shader
-        result = ps_.Initialize(pDevice, psFilePath);
+        result = ps_.LoadPrecompiled(pDevice, psPath);
         CAssert::True(result, "can't initialize the pixel shader");
 
         // rare changed const buffer (for debug)
@@ -49,9 +54,9 @@ bool DebugShader::Initialize(
         // setup const buffers with initial params
         ID3D11DeviceContext* pContext = nullptr;
         pDevice->GetImmediateContext(&pContext);
-
-        // load rare changed data into GPU
         cbpsRareChangedDebug_.ApplyChanges(pContext);
+
+
         LogDbg(LOG, "is initialized");
         return true;
     }
@@ -77,7 +82,7 @@ void DebugShader::ShaderHotReload(
     bool result = false;
     const InputLayoutDebugShader layout;
 
-    result = vs_.CompileShaderFromFile(
+    result = vs_.CompileFromFile(
         pDevice,
         vsFilename,
         "VS", "vs_5_0",
@@ -85,73 +90,52 @@ void DebugShader::ShaderHotReload(
         layout.numElems);
     CAssert::True(result, "can't hot reload the vertex shader");
 
-    result = ps_.CompileShaderFromFile(pDevice, psFilename, "PS", "ps_5_0");
+    result = ps_.CompileFromFile(pDevice, psFilename, "PS", "ps_5_0");
     CAssert::True(result, "can't hot reload the vertex shader");
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+//---------------------------------------------------------
 void DebugShader::Render(
     ID3D11DeviceContext* pContext,
     ID3D11Buffer* pInstancedBuffer,
-    const Instance* instances,
+    const InstanceBatch* instances,
     const int numModels,
     const UINT instancedBuffElemSize)
 {
-    // bind input layout, shaders
-    pContext->IASetInputLayout(vs_.GetInputLayout());
-    pContext->VSSetShader(vs_.GetShader(), nullptr, 0);
-    pContext->PSSetShader(ps_.GetShader(), nullptr, 0);
-
-    // ---------------------------------------------
-    
-    // go through each instance and render it
-    for (int i = 0, startInstanceLocation = 0; i < numModels; ++i)
-    {
-        const Instance& instance = instances[i];
-
-        // prepare input assembler (IA) stage before the rendering process
-        ID3D11Buffer* const vbs[2] = { instance.pVB, pInstancedBuffer };
-        const UINT stride[2] = { instance.vertexStride, instancedBuffElemSize };
-        const UINT offset[2] = { 0,0 };
-
-        pContext->IASetVertexBuffers(0, 2, vbs, stride, offset);
-        pContext->IASetIndexBuffer(instance.pIB, DXGI_FORMAT_R32_UINT, 0);
-
-        // textures arr
-        SRV* const* texIDs = instance.texSRVs.data();
-
-        // go through each subset (mesh) of this model and render it
-        for (int subsetIdx = 0; subsetIdx < (int)std::ssize(instance.subsets); ++subsetIdx)
-        {
-            // update textures for the current subset
-            pContext->PSSetShaderResources(
-                0U,
-                NUM_TEXTURE_TYPES,
-                texIDs + (subsetIdx * NUM_TEXTURE_TYPES));
-
-            const Subset& subset = instance.subsets[subsetIdx];
-
-            pContext->DrawIndexedInstanced(
-                subset.indexCount,
-                instance.numInstances,
-                subset.indexStart,
-                subset.vertexStart,
-                startInstanceLocation + subsetIdx);
-        }
-
-        startInstanceLocation += (int)std::ssize(instance.subsets) * instance.numInstances;
-    }
+    assert(0 && "FIXME");
 }
 
-///////////////////////////////////////////////////////////
+//---------------------------------------------------------
+//---------------------------------------------------------
+void DebugShader::RenderDebugLines(
+    ID3D11DeviceContext* pContext,
+    ID3D11Buffer* pVB,
+    const UINT stride,
+    const UINT numVertices)
+{
+    pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 
+    // bind input layout, shaders, const buffers
+    pContext->VSSetShader(vsLines_.GetShader(), nullptr, 0);
+    pContext->IASetInputLayout(vsLines_.GetInputLayout());
+    pContext->GSSetShader(gsLines_.GetShader(), nullptr, 0);
+    pContext->PSSetShader(psLines_.GetShader(), nullptr, 0);
+
+    // bind vertex buffer
+    UINT offset = 0;
+    pContext->IASetVertexBuffers(0, 1, &pVB, &stride, &offset);
+}
+
+//---------------------------------------------------------
+// Desc:  setup the debug state 
+//        (for example: render normals as color, or show only diffuse map)
+//---------------------------------------------------------
 void DebugShader::SetDebugType(ID3D11DeviceContext* pContext, const eDebugState state)
 {
-    // setup the debug state 
-    // (for instance: render normals as color, or show only diffuse map)
+ 
     cbpsRareChangedDebug_.data.debugType = state;
     cbpsRareChangedDebug_.ApplyChanges(pContext);
 }
 
-}  // namespace Render
+} // namespace

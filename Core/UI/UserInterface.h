@@ -64,14 +64,14 @@ public:
 	inline bool IsSceneWndHovered()       const { return isSceneWndHovered_; }
 
 	// Public modification API
-	SentenceID CreateConstStr(
-		ID3D11Device* pDevice,
-		const std::string& str,             // content
-		const POINT& drawAt);               // upper left position of the text in the window
+    SentenceID CreateConstStr(
+        ID3D11Device* pDevice,
+        const char* text,
+        const POINT& drawAt);
 
 	SentenceID CreateDynamicStr(
 		ID3D11Device* pDevice,
-		const std::string& str,
+        const char* text,
 		const POINT& drawAt,
 		const int maxStrSize);              // max possible length for this string
 

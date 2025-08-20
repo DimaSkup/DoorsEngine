@@ -20,23 +20,36 @@ ParticleShader::~ParticleShader()
 }
 
 //---------------------------------------------------------
-// Desc:   initialize the particle shader: setup hlsl shaders/sampler_state
-// Args:   - vsFilePath, psFilePath, gsFilePath: paths to shaders (vertex, pixel, geometry)
-// Ret:    true if we managed to init successfully
+// Decs:   Load CSO / compile HLSL shaders and init this shader class instance
+// Args:   - vsPath:  a path to compiled (.cso) vertex shader file
+//         - gsPath:  a path to compiled (.cso) geometry shader file
+//         - psPath:  a path to compiled (.cso) pixel shader file
 //---------------------------------------------------------
 bool ParticleShader::Initialize(
     ID3D11Device* pDevice,
-    const char* vsFilePath,
-    const char* psFilePath,
-    const char* gsFilePath)
+    const char* vsPath,
+    const char* psPath,
+    const char* gsPath)
 {
     try
     {
-        CAssert::True(!StrHelper::IsEmpty(vsFilePath), "input vertex shader filepath is empty");
-        CAssert::True(!StrHelper::IsEmpty(psFilePath), "input pixel shader filepath is empty");
-        CAssert::True(!StrHelper::IsEmpty(gsFilePath), "input geometry shader filepath is empty");
+        CAssert::True(!StrHelper::IsEmpty(vsPath), "path to vertex shader is empty");
+        CAssert::True(!StrHelper::IsEmpty(gsPath), "path to geometry shader is empty");
+        CAssert::True(!StrHelper::IsEmpty(psPath), "path to pixel shader is empty");
 
-        InitializeShaders(pDevice, vsFilePath, psFilePath, gsFilePath);
+        bool result = false;
+        const InputLayoutParticleShader layout;
+
+        // init vertex, geometry, pixel shaders
+        result = vs_.LoadPrecompiled(pDevice, vsPath, layout.desc, layout.numElems);
+        CAssert::True(result, "can't initialize the vertex shader");
+
+        result = gs_.LoadPrecompiled(pDevice, gsPath);
+        CAssert::True(result, "can't initialize the geometry shader");
+
+        result = ps_.LoadPrecompiled(pDevice, psPath);
+        CAssert::True(result, "can't initialize the pixel shader");
+
         LogDbg(LOG, "is initialized");
         return true;
     }
@@ -93,57 +106,29 @@ void ParticleShader::Render(
 }
 
 //---------------------------------------------------------
-// Desc:    initialization helper
-//---------------------------------------------------------
-void ParticleShader::InitializeShaders(
-    ID3D11Device* pDevice,
-    const char* vsFilePath,
-    const char* psFilePath,
-    const char* gsFilePath)
-{
-    bool result = false;
-    const InputLayoutParticleShader inputLayout;
-
-    // initialize: VS, PS, sampler state
-    result = vs_.Initialize(pDevice, vsFilePath, inputLayout.desc, inputLayout.numElems);
-    CAssert::True(result, "can't initialize the vertex shader");
-
-    result = gs_.Initialize(pDevice, gsFilePath);
-    CAssert::True(result, "can't initialize the geometry shader");
-
-    result = ps_.Initialize(pDevice, psFilePath);
-    CAssert::True(result, "can't initialize the pixel shader");
-}
-
-//---------------------------------------------------------
 // Desc:   recompile hlsl shaders from file and reinit shader class object
 // Args:   - pDevice:      a ptr to the DirectX11 device
-//         - vsFilePath:   a path to the vertex shader
-//         - gsFilePath:   a path to the geometry shader
-//         - psFilePath:   a path to the pixel shader
+//         - vsPath:   a path to the vertex shader
+//         - gsPath:   a path to the geometry shader
+//         - psPath:   a path to the pixel shader
 //---------------------------------------------------------
 void ParticleShader::ShaderHotReload(
     ID3D11Device* pDevice,
-    const char* vsFilePath,
-    const char* gsFilePath,
-    const char* psFilePath)
+    const char* vsPath,
+    const char* gsPath,
+    const char* psPath)
 {
     bool result = false;
-    const InputLayoutParticleShader inputLayout;
+    const InputLayoutParticleShader layout;
 
-    result = vs_.CompileShaderFromFile(
-        pDevice,
-        vsFilePath,
-        "VS", "vs_5_0",
-        inputLayout.desc,
-        inputLayout.numElems);
+    result = vs_.CompileFromFile(pDevice, vsPath, "VS", "vs_5_0", layout.desc, layout.numElems);
     CAssert::True(result, "can't hot reload the vertex shader");
 
-    result = gs_.CompileShaderFromFile(pDevice, gsFilePath, "GS", "gs_5_0");
+    result = gs_.CompileFromFile(pDevice, gsPath, "GS", "gs_5_0");
     CAssert::True(result, "can't hot reload the geometry shader");
 
-    result = ps_.CompileShaderFromFile(pDevice, psFilePath, "PS", "ps_5_0");
-    CAssert::True(result, "can't hot reload the vertex shader");
+    result = ps_.CompileFromFile(pDevice, psPath, "PS", "ps_5_0");
+    CAssert::True(result, "can't hot reload the pixel shader");
 }
 
 } // namespace Render

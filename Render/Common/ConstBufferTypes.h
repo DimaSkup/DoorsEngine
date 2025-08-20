@@ -17,12 +17,12 @@ namespace ConstBufType
     {
         DirectX::XMMATRIX  world;
         DirectX::XMMATRIX  worldInvTranspose;
-        Material           material;
+        MaterialColors     matColors;
     };
 
     __declspec(align(16)) struct InstancedDataBillboards
     {
-        Material material;
+        MaterialColors    matColors;
         DirectX::XMFLOAT3 posW;        // billboard position in world
         DirectX::XMFLOAT2 size;        // billboard size
     };
@@ -135,7 +135,7 @@ namespace ConstBufType
 
     struct GeomertyShaderConstBuf_PerObject
     {
-        Material          material;
+        MaterialColors    matColors;
     };
 
     struct GeometryShaderConstBuf_Fixed

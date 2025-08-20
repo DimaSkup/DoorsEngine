@@ -30,7 +30,7 @@ public:
     BasicModel& AddEmptyModel();
 
     void        GetModelsByIDs  (const ModelID* ids, const size numModels, cvector<const BasicModel*>& outModels);
-    BasicModel& GetModelByID    (const ModelID id);
+    BasicModel& GetModelById    (const ModelID id);
     BasicModel& GetModelByName  (const char* name);
     ModelID     GetModelIdByName(const char* name);
 
@@ -42,14 +42,14 @@ public:
     inline TerrainQuadtree& GetTerrainQuadtree() { return terrainQuadtree_; }
     inline SkyModel&        GetSky()             { return sky_; }
 
-    inline VertexBuffer<BillboardSprite>& GetBillboardsBuffer() { return billboards_; }
+    inline VertexBuffer<BillboardSprite>& GetBillboardsBuffer() { return billboardsVB_; }
 
     inline int                  GetNumAssets() const { return (int)std::ssize(ids_); }
 
 
     
 private:
-    VertexBuffer<BillboardSprite> billboards_;
+    VertexBuffer<BillboardSprite> billboardsVB_;
 
     cvector<ModelID>    ids_;
     cvector<BasicModel> models_;

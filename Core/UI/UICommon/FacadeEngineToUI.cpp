@@ -827,9 +827,9 @@ bool FacadeEngineToUI::GetMaterialDataById(const MaterialID id, MaterialData& ou
     outData.reflect  = Vec4(&mat.reflect.x);
 
     strncpy(outData.name, mat.name, MAX_LENGTH_MATERIAL_NAME);
-    memcpy(outData.textureIDs, mat.textureIds, sizeof(TexID) * NUM_TEXTURE_TYPES);
+    memcpy(outData.textureIDs, mat.texIds, sizeof(TexID) * NUM_TEXTURE_TYPES);
 
-    outData.properties = mat.properties;
+    outData.properties = mat.renderStates;
 
     return true;
 }
@@ -849,13 +849,6 @@ bool FacadeEngineToUI::SetMaterialColorData(
         Float4(refl.x, refl.y, refl.z, refl.w));
 }
 
-///////////////////////////////////////////////////////////
-
-bool FacadeEngineToUI::GetSRVByTexID(const TexID textureID, SRV*& pSRV) const 
-{
-    pSRV = g_TextureMgr.GetSRVByTexID(textureID);
-    return true;
-}
 
 ///////////////////////////////////////////////////////////
 

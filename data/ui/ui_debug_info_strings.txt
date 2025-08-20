@@ -10,24 +10,26 @@ const_str: Z: 10 170
 const_str: rX_(pitch): 10 190
 const_str: rY_(yaw): 10 210
 const_str: rZ_(roll): 10 230
-const_str: Models_drawn: 10 250
-const_str: Vertices_drawn: 10 270
-const_str: Faces_drawn: 10 290
-const_str: Cells_drawn: 10 310
-const_str: Cells_culled: 10 330
+const_str: Models_drawn: 10 270
+const_str: Vertices_drawn: 10 290
+const_str: Faces_drawn: 10 310
+const_str: Cells_drawn: 10 330
+const_str: Cells_culled: 10 350
+const_str: Trn_patches_drawn: 10 370
 
 dynamic_str: fps 50 50 16
 dynamic_str: frame_time 120 70 16
 dynamic_str: update_time 120 90 16
 dynamic_str: render_time 120 110 16
-dynamic_str: posX 35 130 16
-dynamic_str: posY 35 150 16
-dynamic_str: posZ 35 170 16
-dynamic_str: rotX 105 190 16
-dynamic_str: rotY 105 210 16
-dynamic_str: rotZ 105 230 16
-dynamic_str: models_drawn 165 250 16
-dynamic_str: vertices_drawn 165 270 16
-dynamic_str: faces_drawn 165 290 16
-dynamic_str: cells_drawn 165 310 16
-dynamic_str: cells_culled 165 330 16
+dynamic_str: posX 120 140 16
+dynamic_str: posY 120 160 16
+dynamic_str: posZ 120 180 16
+dynamic_str: rotX 120 200 16
+dynamic_str: rotY 120 220 16
+dynamic_str: rotZ 120 240 16
+dynamic_str: models_drawn 200 270 16
+dynamic_str: vertices_drawn 200 290 16
+dynamic_str: faces_drawn 200 310 16
+dynamic_str: cells_drawn 200 330 16
+dynamic_str: cells_culled 200 350 16
+dynamic_str: trn_patches_drawn 200 370 16

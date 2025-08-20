@@ -16,15 +16,24 @@ class StrHelper
 {
   
 public:
+    //-----------------------------------------------------
+    // Return true if input string is empty
+    //-----------------------------------------------------
     inline static bool IsEmpty(const char* str)     { return ((str == nullptr) || (str[0] == '\0')); }
+
+    //-----------------------------------------------------
+    // Return true if input string is empty
+    //-----------------------------------------------------
     inline static bool IsEmpty(const wchar_t* wstr) { return ((wstr == nullptr) || (wstr[0] == L'\0')); }
 
-    ///////////////////////////////////////////////////////////
 
+    //-----------------------------------------------------
+    // Desc:  convert input char string into wide string
+    // Args:  - str:      input source string of chars
+    //        - outWStr:  output string of wide chars
+    //-----------------------------------------------------
     inline static void StrToWide(const char* str, wchar_t* outWStr)
     {
-        // dummy way (or not?) to convert str => wstr
-
         if (outWStr == nullptr)
         {
             LogErr("in-out wide string == nullptr: so we cannot convert str => wstr");
@@ -42,12 +51,13 @@ public:
         mbstowcs(outWStr, str, sz);
     }
 
-    ///////////////////////////////////////////////////////////
-
+    //-----------------------------------------------------
+     // Desc:  convert input wide string into char string
+     // Args:  - wstr:    input source string of wide chars
+     //        - outStr:  output string of chars
+     //-----------------------------------------------------
     static void ToStr(const wchar_t* wstr, char* outStr)
     {
-        // convert std::wstring to std::string
-
         if (outStr == nullptr)
         {
             LogErr("in-out string == nullptr: so we cannot convert wstr => str");

@@ -130,80 +130,80 @@ void UserInterface::UndoEditorLastEvent()
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:  create a new GUI string by input data;
+//        the content of this string won't be changed;
+//        you can only change its position on the screen;
+// Args:  - text:   text content of the string
+//        - drawAt: upper left corner of sentence (x and y position on the screen)
+// Ret:   identifier of created sentence
+//---------------------------------------------------------
 SentenceID UserInterface::CreateConstStr(
     ID3D11Device* pDevice,
-    const std::string& content,                         
-    const POINT& drawAt)                            // upper left position of the text in the window
+    const char* text,                         
+    const POINT& drawAt)
 {
-    // create a new GUI string by input data;
-    // the content of this string won't be changed;
-    // you can only change its position on the screen;
+    if (!text || text[0] == '\0')
+    {
+        LogErr(LOG, "input text is empty");
+        return 0;
+    }
+
     try
     {
-        CAssert::True(!content.empty(), "wrong input data: str is empty");
-
-        return textStorage_.CreateConstSentence(
-            pDevice,
-            font1_,                             // a font which is used for this sentence
-            content,
-            ComputePosOnScreen(drawAt));
+        const DirectX::XMFLOAT2 pos = ComputePosOnScreen(drawAt);
+        return textStorage_.CreateConstSentence(pDevice, font1_, text, pos);
     }
     catch (EngineException& e)
     {
-        sprintf(g_String, "can't create the sentence: %s", content.c_str());
         LogErr(e);
-        LogErr(g_String);
+        LogErr(LOG, "can't create the sentence: %s", text);
         return 0;
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:  create a new GUI string by input data;
+//        the content of this string is supposed to be changed from frame to frame;
+//        you can also change its position on the screen;
+//---------------------------------------------------------
 SentenceID UserInterface::CreateDynamicStr(
     ID3D11Device* pDevice,
-    const std::string& content,
+    const char* text,
     const POINT& drawAt,
-    const int maxStrSize)                           // max possible length for this string
+    const int maxStrLen)
 {
-    // create a new GUI string by input data;
-    // the content of this string is supposed to be changed from frame to frame;
-    // you can also change its position on the screen;
     try
     {
-        CAssert::True((!content.empty()) && (maxStrSize > 0), "wrong input data");
-
-        // max possible length for this dynamic string
-        int maxSize = (maxStrSize >= content.length()) ? maxStrSize : (int)std::ssize(content);
+        CAssert::True(text && text[0] != '\0',           "input string is empty");
+        CAssert::True(maxStrLen >= (size)(strlen(text)), "input max len of str is can't be lower than input text length");
 
         return textStorage_.CreateSentence(
             pDevice,
             font1_,
-            content,
-            maxSize,
+            text,
+            maxStrLen,
             ComputePosOnScreen(drawAt),
             true);
     }
     catch (EngineException& e)
     {
-        sprintf(g_String, "can't create a sentence: %s", content.c_str());
+        sprintf(g_String, "can't create a sentence: %s", text);
         LogErr(e);
         LogErr(g_String);
         return 0;
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   load debug info strings params from the file and create these strings;
+//         and create some strings manually
+//---------------------------------------------------------
 void UserInterface::LoadDebugInfoStringFromFile(
     ID3D11Device* pDevice,
     const std::string& videoCardName,
     const int videoCardMemory)
 {
-    // load debug info string params from the file and create these strings;
-    // and create some strings manually
-
     // generate a path to the file
     char filePath[256]{ '\0' };
     strcat(filePath, g_RelPathUIDataDir);
@@ -213,8 +213,7 @@ void UserInterface::LoadDebugInfoStringFromFile(
     FILE* pFile = fopen(filePath, "r+");
     if (!pFile)
     {
-        sprintf(g_String, "can't open a file for reading debug strings: %s", filePath);
-        LogErr(g_String);
+        LogErr(LOG, "can't open a file for reading debug strings: %s", filePath);
         return;
     }
 

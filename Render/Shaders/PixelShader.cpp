@@ -21,13 +21,15 @@ PixelShader::~PixelShader()
     Shutdown();
 }
 
-///////////////////////////////////////////////////////////
-
-bool PixelShader::Initialize(ID3D11Device* pDevice, const char* shaderPath)
+//---------------------------------------------------------
+// Desc:   load a CSO (compiled shader object) file by path;
+//         compiles this shader into buffer, and then creates pixel shader object
+// 
+// Args:   - shaderPath:  a path to CSO file relatively to the working directory
+//---------------------------------------------------------
+bool PixelShader::LoadPrecompiled(ID3D11Device* pDevice, const char* path)
 {
-    // initializing of a pixel shader object
-
-    if (StrHelper::IsEmpty(shaderPath))
+    if (StrHelper::IsEmpty(path))
     {
         LogErr("input path to pixel shader file is empty!");
         return false;
@@ -36,11 +38,11 @@ bool PixelShader::Initialize(ID3D11Device* pDevice, const char* shaderPath)
     uint8_t* buffer = nullptr;
 
     // load in shader bytecode
-    const size_t len = LoadCSO(shaderPath, buffer);
+    const size_t len = LoadCSO(path, buffer);
     if (!len)
     {
         SafeDeleteArr(buffer);
-        LogErr(LOG, "Failed to load .CSO-file of pixel shader: %s", shaderPath);
+        LogErr(LOG, "Failed to load .CSO-file of pixel shader: %s", path);
         return false;
     }
 
@@ -48,7 +50,7 @@ bool PixelShader::Initialize(ID3D11Device* pDevice, const char* shaderPath)
     if (FAILED(hr))
     {
         SafeDeleteArr(buffer);
-        LogErr(LOG, "Failed to create a pixel shader obj: %s", shaderPath);
+        LogErr(LOG, "Failed to create a pixel shader obj: %s", path);
         Shutdown();
         return false;
     }
@@ -59,9 +61,16 @@ bool PixelShader::Initialize(ID3D11Device* pDevice, const char* shaderPath)
     return true;
 }
 
-///////////////////////////////////////////////////////////
-
-bool PixelShader::CompileShaderFromFile(
+//---------------------------------------------------------
+// Desc:   is used for hot reload:
+//         compile an HLSL shader by shaderPath and reinit shader object
+// Args:   - shaderPath:     a path to HLSL shader relatively to the working directory
+//         - funcName:       what function from the shader we want to compile
+//         - shaderProfile:  what HLSL shader profile we want to use
+//         - layoutDesc:     description for the vertex input layout
+//         - layoutElemNum:  how many elems we have in the input layout
+//---------------------------------------------------------
+bool PixelShader::CompileFromFile(
     ID3D11Device* pDevice,
     const char* shaderPath,
     const char* funcName,

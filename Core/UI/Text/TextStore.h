@@ -28,10 +28,11 @@ namespace UI
 {
 
 // setup some limitations for the debug text
-constexpr size maxNumDbgSentences      = 32;
-constexpr size maxNumCharsPerSentence  = 32;
-constexpr size maxNumCharsInDbgText    = maxNumDbgSentences * maxNumCharsPerSentence;
-constexpr size maxNumVerticesInDbgText = maxNumCharsInDbgText * 4;   // 4 vertices per symbol
+constexpr size MAX_NUM_DBG_SENTENCES        = 32;
+constexpr size MAX_NUM_CHARS_PER_SENTENCE   = 32;
+constexpr size MAX_NUM_CHARS_IN_DBG_TEXT    = MAX_NUM_DBG_SENTENCES * MAX_NUM_CHARS_PER_SENTENCE;
+constexpr size MAX_NUM_VERTICES_IN_DBG_TEXT = MAX_NUM_CHARS_IN_DBG_TEXT * 4;   // 4 vertices per symbol
+
 
 class TextStore
 {
@@ -50,15 +51,15 @@ public:
 
     SentenceID CreateConstSentence(
         ID3D11Device* pDevice,
-        FontClass& font,                     // font for the text
-        const std::string& textContent,      // the content of the text
-        const DirectX::XMFLOAT2& drawAt);    // upper left corner of the sentence
+        const FontClass& font,
+        const char* text,
+        const DirectX::XMFLOAT2& drawAt);
 
     SentenceID CreateSentence(
         ID3D11Device* pDevice,
-        FontClass& font,      
-        const std::string& textContent,       
-        const size maxStrSize,
+        const FontClass& font,
+        const char* text,
+        const size maxStrLen,
         const DirectX::XMFLOAT2& drawAt,
         const bool isDynamic);
 
@@ -90,10 +91,10 @@ private:
 
     void BuildTextVerticesIndices(
         ID3D11Device* pDevice,
-        const size maxStrSize,                             // maximal size for this string (if it will be bigger we will have a vertex buffer overflow)
-        const std::string& textContent,
-        const DirectX::XMFLOAT2& drawAt,                   // upper left position of the str
-        FontClass& font,                                   // font for the text
+        const size maxStrLen,
+        const char* text,
+        const DirectX::XMFLOAT2& drawAt,
+        const FontClass& font,
         cvector<Core::VertexFont>& vertices,
         cvector<UINT>& indices);
 
@@ -113,7 +114,7 @@ private:
 private:
     struct DbgSentence
     {
-        char  text[maxNumCharsPerSentence]{'\0'};
+        char  text[MAX_NUM_CHARS_PER_SENTENCE]{'\0'};
         float drawAtX = 0;
         float drawAtY = 0;
     };
@@ -136,11 +137,12 @@ private:
     cvector<Core::IndexBuffer<UINT>>              indexBuffers_;
 
 
-    size                numDbgConstSentences_ = 0;
+    size                numDbgConstSentences_   = 0;
     size                numDbgDynamicSentences_ = 0;
-    DbgSentence         dbgConstSentences_[maxNumDbgSentences];
-    DbgSentence         dbgDynamicSentences_[maxNumDbgSentences];
-    Core::VertexFont    dbgTextRawVertices_[maxNumVerticesInDbgText];
+
+    DbgSentence         dbgConstSentences_  [MAX_NUM_DBG_SENTENCES];
+    DbgSentence         dbgDynamicSentences_[MAX_NUM_DBG_SENTENCES];
+    Core::VertexFont    dbgTextRawVertices_ [MAX_NUM_VERTICES_IN_DBG_TEXT];
 
     Core::VertexBuffer<Core::VertexFont> vbDbgConstText_;
     Core::VertexBuffer<Core::VertexFont> vbDbgDynamicText_;

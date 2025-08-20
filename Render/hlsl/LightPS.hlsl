@@ -83,7 +83,7 @@ float4 PS(PS_IN pin) : SV_Target
 
     // TEMP: hacky fix for the vector to sample the proper pixel of sky
     float3 vec = -toEyeW;
-    vec.y -= 990;
+    vec.y -= 490;
 
     
 
@@ -99,13 +99,12 @@ float4 PS(PS_IN pin) : SV_Target
         return fogColor;
     }
 
-    float4 textureColor = gTextures[1].Sample(gBasicSampler, pin.tex);
-    float4 specularColor = gTextures[2].Sample(gBasicSampler, pin.tex);
-
+    float4 diffTex = gTextures[1].Sample(gBasicSampler, pin.tex);
+    float4 specTex = float4(0,0,0,0);//gTextures[2].Sample(gBasicSampler, pin.tex);
 
     // execute alpha clipping
     if (gAlphaClipping)
-        clip(textureColor.a - 0.1f);
+        clip(diffTex.a - 0.1f);
 
 
     // --------------------  NORMAL MAP   --------------------
@@ -129,7 +128,7 @@ float4 PS(PS_IN pin) : SV_Target
     float4 A, D, S;
 
     Material material = (Material)pin.material;
-    
+
     // sum the light contribution from each directional light source
     for (int i = 0; i < gNumOfDirLights; ++i)
     {
@@ -156,7 +155,7 @@ float4 PS(PS_IN pin) : SV_Target
             pin.posW,
             bumpedNormalW,
             toEyeW,
-            0.0f,           // specular map value
+            specTex.rgb,
             A, D, S);
 
         ambient += A;
@@ -201,16 +200,16 @@ float4 PS(PS_IN pin) : SV_Target
     }
     
     
+    
     // modulate with late add
-    float4 finalSpecular = spec;
-    float4 litColor = textureColor * (ambient + diffuse) + finalSpecular;
+    float4 litColor = diffTex * (ambient + diffuse) + spec;
 
     // reflection
     float3 incident = -toEyeW;
     float3 reflectionVec = reflect(incident, normalW);
     float4 reflectionColor = gCubeMap.Sample(gSkySampler, reflectionVec);
 
-    litColor += material.reflect * reflectionColor;
+    litColor += (material.reflect * reflectionColor);
 
     // common to take alpha from diffuse material and texture
     //litColor.a = ((Material)pin.material).diffuse.a * textureColor.a;

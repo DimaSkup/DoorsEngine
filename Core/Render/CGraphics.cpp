@@ -8,10 +8,11 @@
 #include "../Texture/TextureMgr.h"
 #include "../Model/ModelMgr.h"
 #include "../Mesh/MaterialMgr.h"
+#include <Render/RenderStates.h>
 
 using namespace DirectX;
+using namespace Render;
 
-#define TERRAIN_V1 false
 
 namespace Core
 {
@@ -106,7 +107,7 @@ bool CGraphics::InitHelper(
         CAssert::True(result, "can't initialize the D3DClass");
 
         // setup the rasterizer state to default params
-        d3d_.SetRS({ eRenderState::CULL_BACK, eRenderState::FILL_SOLID });
+        //d3d_.SetRS({ eRenderState::CULL_BACK, eRenderState::FILL_SOLID });
 
         // after initialization of the DirectX we can use pointers to the device and device context
         d3d_.GetDeviceAndContext(pDevice_, pContext_);
@@ -153,13 +154,8 @@ void CGraphics::UpdateHelper(
     ECS::EntityMgr* pEnttMgr,
     Render::CRender* pRender)
 {
-#define UPDATE_TERRAIN false
-
-#if UPDATE_TERRAIN
-    TerrainGeomip& terrain = g_ModelMgr.GetTerrainGeomip();
-#endif
-
-    const EntityID currCamID = currCameraID_;
+    TerrainGeomip& terrain   = g_ModelMgr.GetTerrainGeomip();
+    const EntityID currCamId = currCameraID_;
 
     // ---------------------------------------------
     // update the cameras states
@@ -169,7 +165,6 @@ void CGraphics::UpdateHelper(
         ECS::PlayerSystem& player = pEnttMgr->playerSystem_;
         XMFLOAT3 playerPos = player.GetPosition();
 
-#if UPDATE_TERRAIN
         const float terrainSize = (float)terrain.heightMap_.GetWidth();
 
         // clamp the camera position to be only on the terrain
@@ -192,18 +187,13 @@ void CGraphics::UpdateHelper(
         // we aren't in free fly mode
         else
         {
-            // make player's offset by Y-axis to be at fixed height over the terrain
+            // make player's offset by Y-axis to be always over the terrain even
+            // when jump from lower to higher position
             const float terrainHeight = terrain.GetScaledInterpolatedHeightAtPoint(playerPos.x, playerPos.z);
             const float offsetOverTerrain = 2;
 
-            // moving up and down the camera during movement
-            //float f = sinf(playerPos.x * 4.0f) + cosf(playerPos.z * 4.0f);
-            //f /= 35.0f;
-            //player.SetMinVerticalOffset(terrainHeight + offsetOverTerrain + f);
-
             player.SetMinVerticalOffset(terrainHeight + offsetOverTerrain);
         }
-#endif
 
         sysState.cameraPos = { playerPos.x, playerPos.y, playerPos.z };
     }
@@ -211,16 +201,18 @@ void CGraphics::UpdateHelper(
     // we aren't in the game mode (now is the editor mode)
     else
     {
-        sysState.cameraPos = pEnttMgr->transformSystem_.GetPosition(currCamID);
+        sysState.cameraPos = pEnttMgr->transformSystem_.GetPosition(currCamId);
     }
 
-    sysState.cameraDir = pEnttMgr->transformSystem_.GetDirection(currCamID);
+    sysState.cameraDir = pEnttMgr->transformSystem_.GetDirection(currCamId);
 
-    pEnttMgr->cameraSystem_.UpdateView(currCamID);
+    // update camera's view matrix
+    ECS::CameraSystem& camSys = pEnttMgr->cameraSystem_;
 
-    sysState.cameraView = pEnttMgr->cameraSystem_.GetView(currCamID);
-    sysState.cameraProj = pEnttMgr->cameraSystem_.GetProj(currCamID);
-    viewProj_ = sysState.cameraView * sysState.cameraProj;
+    camSys.UpdateView(currCamId);
+    sysState.cameraView = camSys.GetView(currCamId);
+    sysState.cameraProj = camSys.GetProj(currCamId);
+    viewProj_           = sysState.cameraView * sysState.cameraProj;
 
     // build the frustum in view space from the projection matrix
     DirectX::BoundingFrustum::CreateFromMatrix(frustums_[0], sysState.cameraProj);
@@ -237,39 +229,18 @@ void CGraphics::UpdateHelper(
     camParams.posY = sysState.cameraPos.y;
     camParams.posZ = sysState.cameraPos.z;
 
-    // setup view matrix
-    memcpy(camParams.viewMatrix, &sysState.cameraView.r->m128_f32, 16 * sizeof(float));
-    memcpy(camParams.projMatrix, &sysState.cameraProj.r->m128_f32, 16 * sizeof(float));
-
-    camParams.fovX = pEnttMgr->cameraSystem_.GetFovX(currCamID);
-    camParams.fovY = pEnttMgr->cameraSystem_.GetFovY(currCamID);
-
-    camParams.nearZ = pEnttMgr->cameraSystem_.GetNearZ(currCamID);
-    camParams.farZ = pEnttMgr->cameraSystem_.GetFarZ(currCamID);
+    camParams.fov         = camSys.GetFovX(currCamId);
+    camParams.aspectRatio = 1.0f / camSys.GetAspect(currCamId);
+    camParams.nearZ       = camSys.GetNearZ(currCamId);
+    camParams.farZ        = camSys.GetFarZ(currCamId);
 
 
-    // 6 planes representation of frustum
-    DirectX::XMVECTOR planes[6];
-    frustums_[0].GetPlanes(&planes[0], &planes[1], &planes[2], &planes[3], &planes[4], &planes[5]);
+    memcpy(camParams.view, sysState.cameraView.r[0].m128_f32, sizeof(float)*16);
+    memcpy(camParams.proj, sysState.cameraProj.r[0].m128_f32, sizeof(float)*16);
 
-    // setup params for each frustum plane 
-    for (int i = 0; i < 6; ++i)
-    {
-        // normalized plane (normal: x,y,z; w is d = -dot(n,p0))
-        camParams.planes[i][0] = -planes[i].m128_f32[0];
-        camParams.planes[i][1] = -planes[i].m128_f32[1];
-        camParams.planes[i][2] = -planes[i].m128_f32[2];
-        camParams.planes[i][3] = -planes[i].m128_f32[3];
-    }
-#if UPDATE_TERRAIN
-    // recompute terrain patches and load them into GPU
+    // update LOD and visibility for each terrain's patch
     terrain.Update(camParams);
-#endif
 
-#if TERRAIN_V1
-    terrain.vb_.UpdateDynamic(pDeviceContext_, terrain.vertices_, terrain.verticesOffset_);
-    terrain.ib_.Update(pDeviceContext_, terrain.indices_, terrain.indicesOffset_);
-#endif
 
     static XMFLOAT3 prevCamPos = { 0,0,0 };
     bool updateTerrain = false;
@@ -280,18 +251,9 @@ void CGraphics::UpdateHelper(
         prevCamPos = sysState.cameraPos;
     }
 
-    // recompute terrain's quadtree
-    if (updateTerrain)
-    {
-        //TerrainQuadtree& trnQuadtree = g_ModelMgr.GetTerrainQuadtree();
-        //trnQuadtree.Update(camParams);
-    }
-
-
 
     // perform frustum culling on all of our currently loaded entities
     ComputeFrustumCulling(sysState, pEnttMgr);
-    ComputeFrustumCullingOfLightSources(sysState, pEnttMgr);
 
     // Update shaders common data for this frame
     UpdateShadersDataPerFrame(pEnttMgr, pRender, totalGameTime);
@@ -314,24 +276,18 @@ void CGraphics::PrepInstancesForRender(ECS::EntityMgr* pEnttMgr, Render::CRender
    
     const cvector<EntityID>& visibleEntts = pEnttMgr->renderSystem_.GetAllVisibleEntts();
 
-    const EntityID* ids = visibleEntts.data();
-    const size numEntts = visibleEntts.size();
+    const EntityID* enttsIds = visibleEntts.data();
+    const size      numEntts = visibleEntts.size();
 
     if (numEntts == 0)
         return;
 
     Render::RenderDataStorage& storage = pRender->dataStorage_;
 
-    prep_.PrepareEnttsDataForRendering(
-        ids,
-        numEntts,
-        pEnttMgr,
-        storage.modelInstBuffer,
-        storage.modelInstances);
+    // gather entts data for rendering
+    prep_.PrepareEnttsDataForRendering(enttsIds, numEntts, pEnttMgr, storage);
 
-    // compute how many vertices will we render
-    for (const Render::Instance& inst : storage.modelInstances)
-        pSysState_->visibleVerticesCount += inst.numInstances * inst.GetNumVertices();
+    pRender->UpdateInstancedBuffer(pContext_, storage.instancesBuf);
 }
 
 // --------------------------------------------------------
@@ -398,67 +354,15 @@ void CGraphics::ComputeFrustumCulling(
 }
 
 //---------------------------------------------------------
-// Desc:   store IDs of light sources which are currently visible by camera frustum
-//         (by visibility means the WHOLE area which is lit by this light source)
+// Desc:   pdate shaders common data for this frame: 
+//         viewProj matrix, camera position, light sources data, etc.
+// Args:   - totalGameTime:  the time passed since the start of the application
 //---------------------------------------------------------
-void CGraphics::ComputeFrustumCullingOfLightSources(
-    SystemState& sysState,
-    ECS::EntityMgr* pEnttMgr)
-{
-    using namespace DirectX;
-    ECS::EntityMgr& mgr = *pEnttMgr;
-
-    mgr.renderSystem_.ClearVisibleLightSources();
-    cvector<EntityID>& visPointLights = mgr.renderSystem_.GetVisiblePointLights();
-
-    // get all the point light sources which are in the visibility range
-    const size numPointLights      = mgr.lightSystem_.GetNumPointLights();
-    const EntityID* pointLightsIDs = mgr.lightSystem_.GetPointLights().ids.data();
-
-    static cvector<XMMATRIX> invWorlds(numPointLights);
-    static cvector<XMMATRIX> localSpaces(numPointLights);
-
-    // get inverse world matrix of each point light source
-    mgr.transformSystem_.GetInverseWorlds(pointLightsIDs, numPointLights, invWorlds);
-
-    const XMMATRIX invView = mgr.cameraSystem_.GetInverseView(currCameraID_);
-
-    // compute local space matrices for frustum transformations
-    for (int i = 0; i < numPointLights; ++i)
-        localSpaces[i] = DirectX::XMMatrixMultiply(invView, invWorlds[i]);
-
-    visPointLights.resize(numPointLights);
-    u32 numVisPointLights = 0;
-    constexpr DirectX::BoundingSphere defaultBoundSphere({ 0,0,0 }, 1);
-
-    // go through each point light source and define if it is visible
-    for (int idx = 0; idx < numPointLights; ++idx)
-    {
-        // transform the camera frustum from view space to the point light local space
-        BoundingFrustum LSpaceFrustum;
-        frustums_[0].Transform(LSpaceFrustum, localSpaces[idx]);
-
-        // if we see any part of bound sphere we store an index to related light source
-        if (LSpaceFrustum.Intersects(defaultBoundSphere))
-            visPointLights[numVisPointLights++] = pointLightsIDs[idx];
-    }
-
-    visPointLights.resize(numVisPointLights);
-
-    // we'll use these values to render counts onto the screen
-    sysState.numVisiblePointLights = numVisPointLights;
-}
-
-///////////////////////////////////////////////////////////
-
 void CGraphics::UpdateShadersDataPerFrame(
     ECS::EntityMgr* pEnttMgr,
     Render::CRender* pRender,
     const float totalGameTime)
 {
-    // Update shaders common data for this frame: 
-    // viewProj matrix, camera position, light sources data, etc.
-
     Render::PerFrameData& data = pRender->perFrameData_;
 
     data.viewProj      = DirectX::XMMatrixTranspose(viewProj_);
@@ -467,7 +371,7 @@ void CGraphics::UpdateShadersDataPerFrame(
 
     SetupLightsForFrame(pEnttMgr, data);
 
-    // update lighting data, camera pos, etc. for this frame
+    // update const buffers with new data
     pRender->UpdatePerFrame(pContext_, data);
 }
 
@@ -482,116 +386,136 @@ void CGraphics::ClearRenderingDataBeforeFrame(
 }
 
 //---------------------------------------------------------
-// Desc:   setup rendering states according to input material
+// Desc:   setup rendering states according to input material params
 //---------------------------------------------------------
-void CGraphics::BindMaterial(const Material& mat, Render::CRender* pRender)
+void CGraphics::BindMaterial(
+    Render::CRender* pRender,
+    const uint32 renderStatesBitfields,
+    const TexID* texIds)
 {
-    RenderStates&        renderStates = d3d_.GetRenderStates();
-    ID3D11DeviceContext* pContext     = pContext_;
+    // find texture resource views by input textures ids
+    ID3D11ShaderResourceView* texViews[NUM_TEXTURE_TYPES]{ nullptr };
+    g_TextureMgr.GetTexViewsByIds(texIds, NUM_TEXTURE_TYPES, texViews);
 
+    BindMaterial(pRender, renderStatesBitfields, texViews);
+}
+
+//---------------------------------------------------------
+// Desc:   setup rendering states according to input material params
+//---------------------------------------------------------
+void CGraphics::BindMaterial(
+    Render::CRender* pRender,
+    const uint32 renderStatesBitfields,
+    ID3D11ShaderResourceView* const* texViews)
+{
+    if (!texViews)
+    {
+        LogErr(LOG, "input arr of textures IDs == nullptr");
+        return;
+    }
+
+    using enum Render::eRenderState;
+    Render::RenderStates& renderStates = d3d_.GetRenderStates();
+    ID3D11DeviceContext* pContext = pContext_;
 
     // switch alpha clipping
-    pRender->SwitchAlphaClipping(pContext, mat.HasAlphaClip());
-
+    const bool hasAlphaClip = renderStatesBitfields & MAT_PROP_ALPHA_CLIPPING;
+    pRender->SwitchAlphaClipping(pContext, hasAlphaClip);
 
     // switch fill mode if need
-    switch (mat.properties & ALL_FILL_MODES)
+    switch (renderStatesBitfields & ALL_FILL_MODES)
     {
-        case MAT_PROP_FILL_SOLID:
-            renderStates.SetRS(pContext, FILL_SOLID);
-            break;
+    case MAT_PROP_FILL_SOLID:
+        renderStates.SetRS(pContext, R_FILL_SOLID);
+        break;
 
-        case MAT_PROP_FILL_WIREFRAME:
-            renderStates.SetRS(pContext, FILL_WIREFRAME);
-            break;
+    case MAT_PROP_FILL_WIREFRAME:
+        renderStates.SetRS(pContext, R_FILL_WIREFRAME);
+        break;
     }
 
     // switch cull mode if need
-    switch (mat.properties & ALL_CULL_MODES)
+    switch (renderStatesBitfields & ALL_CULL_MODES)
     {
-        case MAT_PROP_CULL_BACK:
-            renderStates.SetRS(pContext, CULL_BACK);
-            break;
+    case MAT_PROP_CULL_BACK:
+        renderStates.SetRS(pContext, R_CULL_BACK);
+        break;
 
-        case MAT_PROP_CULL_FRONT:
-            renderStates.SetRS(pContext, CULL_FRONT);
-            break;
+    case MAT_PROP_CULL_FRONT:
+        renderStates.SetRS(pContext, R_CULL_FRONT);
+        break;
 
-        case MAT_PROP_CULL_NONE:
-            renderStates.SetRS(pContext, CULL_NONE);
-            break;
+    case MAT_PROP_CULL_NONE:
+        renderStates.SetRS(pContext, R_CULL_NONE);
+        break;
     }
 
     // switch blending state if necessary
-    switch (mat.properties & ALL_BLEND_STATES)
+    switch (renderStatesBitfields & ALL_BLEND_STATES)
     {
-        case MAT_PROP_NO_RENDER_TARGET_WRITES:
-            d3d_.TurnOnBlending(NO_RENDER_TARGET_WRITES);
-            break;
+    case MAT_PROP_NO_RENDER_TARGET_WRITES:
+        d3d_.TurnOnBlending(R_NO_RENDER_TARGET_WRITES);
+        break;
 
-        case MAT_PROP_ALPHA_DISABLE:
-            d3d_.TurnOnBlending(ALPHA_DISABLE);
-            break;
+    case MAT_PROP_BLEND_DISABLE:
+        d3d_.TurnOnBlending(R_ALPHA_DISABLE);
+        break;
 
-        case MAT_PROP_ALPHA_ENABLE:
-            d3d_.TurnOnBlending(ALPHA_ENABLE);
-            break;
+    case MAT_PROP_BLEND_ENABLE:
+        d3d_.TurnOnBlending(R_ALPHA_ENABLE);
+        break;
 
-        case MAT_PROP_ADDING:
-            d3d_.TurnOnBlending(ADDING);
-            break;
+    case MAT_PROP_ADDING:
+        d3d_.TurnOnBlending(R_ADDING);
+        break;
 
-        case MAT_PROP_SUBTRACTING:
-            d3d_.TurnOnBlending(SUBTRACTING);
-            break;
+    case MAT_PROP_SUBTRACTING:
+        d3d_.TurnOnBlending(R_SUBTRACTING);
+        break;
 
-        case MAT_PROP_MULTIPLYING:
-            d3d_.TurnOnBlending(MULTIPLYING);
-            break;
+    case MAT_PROP_MULTIPLYING:
+        d3d_.TurnOnBlending(R_MULTIPLYING);
+        break;
 
-        case MAT_PROP_TRANSPARENCY:
-            d3d_.TurnOnBlending(TRANSPARENCY);
-            break;
+    case MAT_PROP_TRANSPARENCY:
+        d3d_.TurnOnBlending(R_TRANSPARENCY);
+        break;
 
-        case MAT_PROP_ALPHA_TO_COVERAGE:
-            d3d_.TurnOnBlending(ALPHA_TO_COVERAGE);
-            break;
+    case MAT_PROP_ALPHA_TO_COVERAGE:
+        d3d_.TurnOnBlending(R_ALPHA_TO_COVERAGE);
+        break;
     }
 
     // switch depth-stencil state if need
-    switch (mat.properties & ALL_DEPTH_STENCIL_STATES)
+    switch (renderStatesBitfields & ALL_DEPTH_STENCIL_STATES)
     {
-        case MAT_PROP_DEPTH_ENABLED:
-            renderStates.SetDSS(pContext, DEPTH_ENABLED, 0);
-            break;
+    case MAT_PROP_DEPTH_ENABLED:
+        renderStates.SetDSS(pContext, R_DEPTH_ENABLED, 0);
+        break;
 
-        case MAT_PROP_DEPTH_DISABLED:
-            renderStates.SetDSS(pContext, DEPTH_DISABLED, 0);
-            break;
+    case MAT_PROP_DEPTH_DISABLED:
+        renderStates.SetDSS(pContext, R_DEPTH_DISABLED, 0);
+        break;
 
-        case MAT_PROP_MARK_MIRROR:
-            renderStates.SetDSS(pContext, MARK_MIRROR, 0);
-            break;
+    case MAT_PROP_MARK_MIRROR:
+        renderStates.SetDSS(pContext, R_MARK_MIRROR, 0);
+        break;
 
-        case MAT_PROP_DRAW_REFLECTION:
-            renderStates.SetDSS(pContext, DRAW_REFLECTION, 0);
-            break;
+    case MAT_PROP_DRAW_REFLECTION:
+        renderStates.SetDSS(pContext, R_DRAW_REFLECTION, 0);
+        break;
 
-        case MAT_PROP_NO_DOUBLE_BLEND:
-            renderStates.SetDSS(pContext, NO_DOUBLE_BLEND, 0);
-            break;
+    case MAT_PROP_NO_DOUBLE_BLEND:
+        renderStates.SetDSS(pContext, R_NO_DOUBLE_BLEND, 0);
+        break;
 
-        case MAT_PROP_SKY_DOME:
-            renderStates.SetDSS(pContext, SKY_DOME, 0);
-            break;
+    case MAT_PROP_SKY_DOME:
+        renderStates.SetDSS(pContext, R_SKY_DOME, 0);
+        break;
     }
 
     // bind textures of this material
-    ID3D11ShaderResourceView* texSRVs[2];
-    //texSRVs[0] = g_TextureMgr.GetTexPtrByName("tree_billboard")->GetTextureResourceView();
-    texSRVs[0] = g_TextureMgr.GetTexPtrByID(mat.textureIds[TEX_TYPE_DIFFUSE])->GetTextureResourceView();
-
-    pContext->PSSetShaderResources(10, 1, texSRVs);
+    pContext->PSSetShaderResources(10U, NUM_TEXTURE_TYPES, texViews);
 }
 
 //---------------------------------------------------------
@@ -601,6 +525,7 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
 {
     try
     {
+        RenderStates& renderStates    = d3d_.GetRenderStates();
         ID3D11DeviceContext* pContext = pContext_;
 
         // prepare the sky textures: in different shaders we will sample the sky
@@ -610,8 +535,8 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
         const Material&  skyMat   = g_MaterialMgr.GetMatById(skyMatId);
 
         // get shader resource views (textures) for the sky 
-        TexID skyTexId = skyMat.textureIds[TEX_TYPE_DIFFUSE];
-        ID3D11ShaderResourceView* skySRV = g_TextureMgr.GetSRVByTexID(skyTexId);
+        TexID skyTexId = skyMat.texIds[TEX_TYPE_DIFFUSE];
+        ID3D11ShaderResourceView* skySRV = g_TextureMgr.GetTexViewsById(skyTexId);
         pContext->PSSetShaderResources(0U, 1U, &skySRV);
 
         // bind a perlin noise texture for "fog movement"
@@ -619,20 +544,19 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
         ID3D11ShaderResourceView* pPerlinNoiseSRV = pTexPerlinNoise->GetTextureResourceView();
         pContext->PSSetShaderResources(1U, 1U, &pPerlinNoiseSRV);
 
-
+       
         // reset the render states before rendering
         pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        RenderStates& renderStates = d3d_.GetRenderStates();
-        renderStates.ResetRS(pContext);
-        renderStates.ResetBS(pContext);
-        renderStates.ResetDSS(pContext);
-    
-        RenderEntts(pRender);
-        //RenderTerrainGeomip(pRender, pEnttMgr);
+        RenderTerrainGeomip(pRender, pEnttMgr);
+
+
 
         // render sky
         pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         RenderSkyDome(pRender, pEnttMgr);
+
+
+        RenderEntts(pRender);
 
         // render billboards and particles
         //RenderParticles(pRender, pEnttMgr);
@@ -751,7 +675,7 @@ bool CGraphics::RenderBigMaterialIcon(
 
     // get a sphere model
     const ModelID basicSphereID    = g_ModelMgr.GetModelIdByName("basic_sphere");
-    BasicModel& sphere             = g_ModelMgr.GetModelByID(basicSphereID);
+    BasicModel& sphere             = g_ModelMgr.GetModelById(basicSphereID);
     const MeshGeometry& sphereMesh = sphere.meshes_;
 
     ID3D11Buffer* vb     = sphereMesh.vb_.Get();
@@ -775,18 +699,18 @@ bool CGraphics::RenderBigMaterialIcon(
     // prepare material data and its textures
     const Material& mat = g_MaterialMgr.GetMatById(matID);
 
-    const Render::Material renderMat(
-        DirectX::XMFLOAT4(&mat.ambient.x),
-        DirectX::XMFLOAT4(&mat.diffuse.x),
-        DirectX::XMFLOAT4(&mat.specular.x),
-        DirectX::XMFLOAT4(&mat.reflect.x));
+    const Render::MaterialColors renderMatColors(
+        XMFLOAT4(&mat.ambient.x),
+        XMFLOAT4(&mat.diffuse.x),
+        XMFLOAT4(&mat.specular.x),
+        XMFLOAT4(&mat.reflect.x));
 
-    cvector<ID3D11ShaderResourceView*> texSRVs;
-    g_TextureMgr.GetSRVsByTexIDs(mat.textureIds, NUM_TEXTURE_TYPES, texSRVs);
+    ID3D11ShaderResourceView* texSRVs[22] {nullptr};
+    g_TextureMgr.GetTexViewsByIds(mat.texIds, NUM_TEXTURE_TYPES, texSRVs);
 
     // render material into responsible frame buffer
     matIconShader.PrepareRendering(pContext, vb, ib, vertexSize);
-    matIconShader.Render(pContext, indexCount, texSRVs.data(), renderMat);
+    matIconShader.Render(pContext, indexCount, texSRVs, renderMatColors);
 
     // reset camera's viewProj to the previous one (it can be game or editor camera)
     pRender->SetViewProj(pContext, DirectX::XMMatrixTranspose(viewProj_));
@@ -836,7 +760,7 @@ void CGraphics::RenderMaterialsIcons(
 
     // get a sphere model
     const ModelID basicSphereID    = g_ModelMgr.GetModelIdByName("basic_sphere");
-    BasicModel& sphere             = g_ModelMgr.GetModelByID(basicSphereID);
+    BasicModel& sphere             = g_ModelMgr.GetModelById(basicSphereID);
     const MeshGeometry& sphereMesh = sphere.meshes_;
 
     ID3D11Buffer* vb     = sphereMesh.vb_.Get();
@@ -863,16 +787,16 @@ void CGraphics::RenderMaterialsIcons(
         // prepare material data and its textures
         Material& mat = g_MaterialMgr.GetMatById(matIdx);
 
-        const Render::Material renderMat(
+        const Render::MaterialColors renderMatColors(
             XMFLOAT4(&mat.ambient.x),
             XMFLOAT4(&mat.diffuse.x),
             XMFLOAT4(&mat.specular.x),
             XMFLOAT4(&mat.reflect.x));
 
-        cvector<ID3D11ShaderResourceView*> texSRVs;
-        g_TextureMgr.GetSRVsByTexIDs(mat.textureIds, NUM_TEXTURE_TYPES, texSRVs);
+        ID3D11ShaderResourceView* texSRVs[NUM_TEXTURE_TYPES] {nullptr};
+        g_TextureMgr.GetTexViewsByIds(mat.texIds, NUM_TEXTURE_TYPES, texSRVs);
         
-        matIconShader.Render(pContext, indexCount, texSRVs.data(), renderMat);
+        matIconShader.Render(pContext, indexCount, texSRVs, renderMatColors);
 
         ++matIdx;
     }
@@ -885,33 +809,62 @@ void CGraphics::RenderMaterialsIcons(
         outArrShaderResourceViews[i++] = buf.GetSRV();
 }
 
-///////////////////////////////////////////////////////////
+void CGraphics::RenderInstanceGroups(
+    ID3D11DeviceContext* pContext,
+    Render::CRender* pRender,
+    const cvector<Render::InstanceBatch>& instanceBatches,
+    UINT& startInstanceLocation,
+    int& numRenderedInstances,
+    int& drawCalls)
+{
+    for (const Render::InstanceBatch& batch : instanceBatches)
+    {
+        // bind material for this instance batch
+        BindMaterial(pRender, batch.renderStates, batch.textures);
 
+        // render instances
+        pRender->RenderInstances(
+            pContext,
+            Render::ShaderTypes::LIGHT,
+            batch,
+            startInstanceLocation);
+
+
+        startInstanceLocation += (UINT)batch.numInstances;
+        numRenderedInstances += batch.numInstances;
+        drawCalls++;
+    }
+}
+
+//---------------------------------------------------------
+// Desc:   render all the visible entities onto the screen
+//---------------------------------------------------------
 void CGraphics::RenderEntts(Render::CRender* pRender)
 {
     const Render::RenderDataStorage& storage = pRender->dataStorage_;
 
     // check if we have any instances to render
-    if (storage.modelInstances.empty())
+    if (storage.instancesBuf.GetSize() <= 0)
         return;
 
     
     ID3D11DeviceContext* pContext = pContext_;
 
-    // setup states before rendering
-    if (pRender->shadersContainer_.debugShader_.GetDebugType() == Render::eDebugState::DBG_WIREFRAME)
-    {
-        RenderStates& renderStates = d3d_.GetRenderStates();
-        renderStates.SetRS(pContext, { FILL_WIREFRAME, CULL_BACK, FRONT_CLOCKWISE });
-    }
+    UINT startInstanceLocation = 0;
+    int numRenderedInstances = 0;
+    int drawCalls = 0;
 
-    pRender->UpdateInstancedBuffer(pContext, storage.modelInstBuffer);
+    RenderInstanceGroups(pContext, pRender, storage.masked, startInstanceLocation, numRenderedInstances, drawCalls);
+    RenderInstanceGroups(pContext, pRender, storage.opaque, startInstanceLocation, numRenderedInstances, drawCalls);
+    RenderInstanceGroups(pContext, pRender, storage.blended, startInstanceLocation, numRenderedInstances, drawCalls);
+    RenderInstanceGroups(pContext, pRender, storage.blendedTransparent, startInstanceLocation, numRenderedInstances, drawCalls);
 
-    pRender->RenderInstances(
-        pContext,
-        Render::ShaderTypes::LIGHT,
-        storage.modelInstances.data(),
-        (int)storage.modelInstances.size());
+#if 0
+    printf("\n\n");
+    printf("num all instances: %d\n", numRenderedInstances);
+    printf("draw calls num:    %d\n", drawCalls);
+   // exit(0);
+#endif
 }
 
 //---------------------------------------------------------
@@ -956,7 +909,8 @@ void CGraphics::RenderParticles(
     {
         // bind a material for particles
         const MaterialID matId = particlesData.materialIds[i];
-        BindMaterial(g_MaterialMgr.GetMatById(matId), pRender);
+        const Material& mat = g_MaterialMgr.GetMatById(matId);
+        BindMaterial(pRender, mat.renderStates, mat.texIds);
 
         // render particles subset
         shader.Render(
@@ -995,7 +949,7 @@ void CGraphics::RenderSkyDome(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr
 
     // bind sky material
     const Material& skyMat = g_MaterialMgr.GetMatById(sky.GetMaterialId());
-    BindMaterial(skyMat, pRender);
+    BindMaterial(pRender, skyMat.renderStates, skyMat.texIds);
 
     // compute a worldViewProj matrix for the sky instance
     const XMFLOAT3 skyOffset     = pEnttMgr->transformSystem_.GetPosition(skyEnttID);
@@ -1014,6 +968,7 @@ void CGraphics::RenderSkyDome(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr
 //---------------------------------------------------------
 void CGraphics::RenderTerrainGeomip(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr)
 {
+#if 0
     const char* terrainName = "terrain_geomipmap";
     const EntityID terrainID = pEnttMgr->nameSystem_.GetIdByName(terrainName);
 
@@ -1023,6 +978,7 @@ void CGraphics::RenderTerrainGeomip(Render::CRender* pRender, ECS::EntityMgr* pE
         LogErr(LOG, "can't find terrain by name: %s", terrainName);
         return;
     }
+#endif
 
 
     // prepare the terrain instance
@@ -1031,14 +987,18 @@ void CGraphics::RenderTerrainGeomip(Render::CRender* pRender, ECS::EntityMgr* pE
 
     // prepare material
     const Material& mat = g_MaterialMgr.GetMatById(terrain.materialID_);
-    memcpy(&instance.material.ambient_.x,  &mat.ambient.x,  sizeof(float) * 4);
-    memcpy(&instance.material.diffuse_.x,  &mat.diffuse.x,  sizeof(float) * 4);
-    memcpy(&instance.material.specular_.x, &mat.specular.x, sizeof(float) * 4);
-    memcpy(&instance.material.reflect_.x,  &mat.reflect.x,  sizeof(float) * 4);
 
-    // prepare textures
-    g_TextureMgr.GetSRVsByTexIDs(mat.textureIds, NUM_TEXTURE_TYPES, texturesBuf_);
-    memcpy(instance.textures, texturesBuf_.begin(), NUM_TEXTURE_TYPES * sizeof(ID3D11ShaderResourceView*));
+    // prepare material color properties for the const buffer
+    instance.matColors =
+    {
+        XMFLOAT4(&mat.ambient.x),
+        XMFLOAT4(&mat.diffuse.x),
+        XMFLOAT4(&mat.specular.x),
+        XMFLOAT4(&mat.reflect.x)
+    };
+
+    // bind terrain material: switch render states and bind textures
+    BindMaterial(pRender, mat.renderStates, mat.texIds);
 
     // vertex/index buffers data
     instance.vertexStride   = terrain.GetVertexStride();
@@ -1048,32 +1008,20 @@ void CGraphics::RenderTerrainGeomip(Render::CRender* pRender, ECS::EntityMgr* pE
     const TerrainLodMgr& lodMgr = terrain.GetLodMgr();
     const int terrainLen        = terrain.GetTerrainLength();
     const int numPatchesPerSide = terrain.GetNumPatchesPerSide();
-    const int patchSize = lodMgr.GetPatchSize();
-    //const int numPatchesPerSide = (terrainLen - 1) / (patchSize - 1);
-    
+    const int patchSize         = lodMgr.GetPatchSize();
 
     // setup rendering pipeline before rendering of the terrain
-    RenderStates& renderStates = d3d_.GetRenderStates();
     ID3D11DeviceContext* pContext = pContext_;
-
-    if (pRender->shadersContainer_.debugShader_.GetDebugType() == Render::eDebugState::DBG_WIREFRAME)
-    {
-        renderStates.SetRS(pContext_, { FILL_WIREFRAME, CULL_BACK, FRONT_CLOCKWISE });
-        renderStates.ResetBS(pContext);
-        renderStates.ResetDSS(pContext);
-    }
-    else
-    {
-        renderStates.ResetRS(pContext);
-        renderStates.ResetBS(pContext);
-        renderStates.ResetDSS(pContext);
-    }
 
     // bind terrain shader
     Render::TerrainShader& shader = pRender->shadersContainer_.terrainShader_;
     shader.Prepare(pContext, instance);
 
+    int drawnTerrainPatches = 0;
 
+    const cvector<int>& visiblePatchesIdxs = terrain.GetVisiblePatches();
+
+#if 0
     // render each patch (sector) of the terrain
     for (int patchZ = 0; patchZ < numPatchesPerSide; ++patchZ)
     {
@@ -1087,11 +1035,34 @@ void CGraphics::RenderTerrainGeomip(Render::CRender* pRender, ECS::EntityMgr* pE
             const int x = patchX * (patchSize - 1);
             instance.baseVertex = (UINT)(z*terrainLen + x);
 
-            shader.RenderPatch(pContext, instance);      
+            shader.RenderPatch(pContext, instance);
+            drawnTerrainPatches++;
         }
     }
+#else
 
-    //terrain.wantDebug_ = false;
+    //(patchZ * numPatchesPerSide_) + patchX]
+
+    for (const int idx : visiblePatchesIdxs)
+    {
+        const TerrainLodMgr::PatchLod& plod = lodMgr.GetPatchLodInfo(idx);
+
+        terrain.GetLodInfoByPatch(plod, instance.baseIndex, instance.indexCount);
+
+        const int patchZ = idx / numPatchesPerSide;
+        const int patchX = idx % numPatchesPerSide;
+        const int z = patchZ * (patchSize - 1);
+        const int x = patchX * (patchSize - 1);
+        instance.baseVertex = (UINT)(z*terrainLen + x);
+
+        shader.RenderPatch(pContext, instance);
+        drawnTerrainPatches++;
+    }
+
+#endif
+
+    // write how many paches has been drawn so later we will render this value onto the screen
+    pSysState_->drawnTerrainPatches = drawnTerrainPatches;
 }
 
 //---------------------------------------------------------
@@ -1101,64 +1072,6 @@ void CGraphics::RenderTerrainGeomip(Render::CRender* pRender, ECS::EntityMgr* pE
 //---------------------------------------------------------
 void CGraphics::RenderTerrainQuadtree(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr)
 {
-    const char* terrainName = "terrain_quadtree";
-    const EntityID terrainID = pEnttMgr->nameSystem_.GetIdByName(terrainName);
-
-    // if we haven't any terrain entity
-    if (terrainID == INVALID_ENTITY_ID)
-    {
-        LogErr(LOG, "can't find terrain by name: %s", terrainName);
-        return;
-    }
-
-
-    // prepare the terrain instance
-    TerrainQuadtree& terrain = g_ModelMgr.GetTerrainQuadtree();
-    Render::TerrainInstance instance;
-
-    // prepare material
-    const Material& mat = g_MaterialMgr.GetMatById(terrain.GetMaterialId());
-    memcpy(&instance.material.ambient_.x,  &mat.ambient.x,  sizeof(float) * 4);
-    memcpy(&instance.material.diffuse_.x,  &mat.diffuse.x,  sizeof(float) * 4);
-    memcpy(&instance.material.specular_.x, &mat.specular.x, sizeof(float) * 4);
-    memcpy(&instance.material.reflect_.x,  &mat.reflect.x,  sizeof(float) * 4);
-
-    // prepare textures
-    g_TextureMgr.GetSRVsByTexIDs(mat.textureIds, NUM_TEXTURE_TYPES, texturesBuf_);
-    memcpy(instance.textures, texturesBuf_.begin(), NUM_TEXTURE_TYPES * sizeof(ID3D11ShaderResourceView*));
-
-    // prepare vertex/index buffers data
-   
-    instance.pVB          = terrain.GetVertexBuffer();
-    instance.vertexStride = terrain.GetVertexStride();
-    instance.pIB          = terrain.GetIndexBuffer();
-    instance.numVertices  = terrain.GetQuadtreeNumVertices();
-    instance.indexCount   = terrain.GetNumIndices();
-
-    // for debugging
-    //instance.wantDebug = terrain.wantDebug_;
-
-    // setup rendering pipeline before rendering of the terrain
-    RenderStates&        renderStates = d3d_.GetRenderStates();
-    ID3D11DeviceContext* pContext     = pContext_;
-
-    if (pRender->shadersContainer_.debugShader_.GetDebugType() == Render::eDebugState::DBG_WIREFRAME)
-    {
-        renderStates.SetRS(pContext_, { FILL_WIREFRAME, CULL_BACK, FRONT_CLOCKWISE });
-        renderStates.ResetBS(pContext);
-        renderStates.ResetDSS(pContext);
-    }
-    else
-    {
-        renderStates.ResetRS(pContext);
-        renderStates.ResetBS(pContext);
-        renderStates.ResetDSS(pContext);
-    }
-
-    pRender->shadersContainer_.terrainShader_.Render(pContext, instance);
-
-    // compute how many vertices we already rendered
-    pSysState_->visibleVerticesCount += (uint32_t)instance.numVertices;
 }
 
 ///////////////////////////////////////////////////////////
@@ -1300,7 +1213,7 @@ int CGraphics::TestEnttSelection(const int sx, const int sy, ECS::EntityMgr* pEn
     {
         //const EntityID enttID = visEntts[i];
         const ModelID modelID = pEnttMgr->modelSystem_.GetModelIdRelatedToEntt(enttID);
-        const BasicModel& model = g_ModelMgr.GetModelByID(modelID);
+        const BasicModel& model = g_ModelMgr.GetModelById(modelID);
 
         if (model.type_ == eModelType::Terrain)
         {

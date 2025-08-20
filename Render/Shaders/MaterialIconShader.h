@@ -52,7 +52,7 @@ public:
         ID3D11DeviceContext* pContext,
         const int indexCount,
         ID3D11ShaderResourceView* const* ppTextures,
-        const Render::Material& mat);
+        const Render::MaterialColors& matColors);
 
     void SetMatrix(
         ID3D11DeviceContext* pContext,
@@ -61,12 +61,6 @@ public:
         const DirectX::XMMATRIX& proj);
 
     inline const char* GetShaderName() const { return className_; }
-
-private:
-    void InitializeHelper(
-        ID3D11Device* pDevice,
-        const char* vsFilePath,
-        const char* psFilePath);
 
 private:
     VertexShader                                vs_;

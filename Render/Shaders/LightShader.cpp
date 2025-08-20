@@ -20,120 +20,96 @@ LightShader::~LightShader()
 }
 
 //---------------------------------------------------------
-// Desc:    load CSO / compile HLSL shaders and init the shader class object
+// Decs:   Load CSO / compile HLSL shaders and init this shader class instance
+// Args:   - vsPath:  a path to compiled (.cso) vertex shader file
+//         - psPath:  a path to compiled (.cso) pixel shader file
 //---------------------------------------------------------
 bool LightShader::Initialize(
     ID3D11Device* pDevice,
-    const char* vsFilePath,
-    const char* psFilePath)
+    const char* vsPath,
+    const char* psPath)
 {
-    bool result = false;
-    const InputLayoutLight inputLayout;
-
-    // init vertex shader
-    result = vs_.Initialize(pDevice, vsFilePath, inputLayout.desc, inputLayout.numElems);
-    if (!result)
+    try
     {
-        LogErr(LOG, "can't initialize the vertex shader");
+        CAssert::True(!StrHelper::IsEmpty(vsPath), "input path to vertex shader is empty");
+        CAssert::True(!StrHelper::IsEmpty(psPath), "input path to pixel shader is empty");
+
+        bool result = false;
+        const InputLayoutLight inputLayout;
+
+        // init vertex shader
+        result = vs_.LoadPrecompiled(pDevice, vsPath, inputLayout.desc, inputLayout.numElems);
+        CAssert::True(result, "can't initialize the vertex shader");
+
+        // init pixel shader
+        result = ps_.LoadPrecompiled(pDevice, psPath);
+        CAssert::True(result, "can't initialize the pixel shader");
+
+        LogDbg(LOG, "is initialized");
+        return true;
+    }
+    catch (EngineException& e)
+    {
+        LogErr(e, true);
+        LogErr(LOG, "can't init the light shader class");
         return false;
     }
-
-    // init pixel shader
-    result = ps_.Initialize(pDevice, psFilePath);
-    if (!result)
-    {
-        LogErr(LOG, "can't initialize the pixel shader");
-        return false;
-    }
-
-    LogDbg(LOG, "is initialized");
-    return true;
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   render instances starting from startInstanceLocation
+//         in the instances buffer
+//---------------------------------------------------------
 void LightShader::Render(
     ID3D11DeviceContext* pContext,
     ID3D11Buffer* pInstancedBuffer,
-    const Instance* instances,
-    const int numUniqueGeometry,       // aka the number of unique models
-    const UINT instancesBuffElemSize)
+    const InstanceBatch& instances,
+    const UINT instancesBuffElemSize,
+    const UINT startInstanceLocation)
 {
     // bind input layout, shaders, samplers
     pContext->IASetInputLayout(vs_.GetInputLayout());
     pContext->VSSetShader(vs_.GetShader(), nullptr, 0);
     pContext->PSSetShader(ps_.GetShader(), nullptr, 0);
 
-    // go through each instance and render it
-    for (int i = 0, startInstanceLocation = 0; i < numUniqueGeometry; ++i)
-    {
-        const Instance& instance = instances[i];
 
-        // bind vertex/index buffers
-        ID3D11Buffer* const vbs[2] = { instance.pVB, pInstancedBuffer };
-        const UINT stride[2] = { instance.vertexStride, instancesBuffElemSize };
-        const UINT offset[2] = { 0,0 };
+    // bind vertex/index buffers
+    ID3D11Buffer* const vbs[2] = { instances.pVB, pInstancedBuffer };
+    const UINT stride[2]       = { instances.vertexStride, instancesBuffElemSize };
+    const UINT offset[2]       = { 0,0 };
 
-        pContext->IASetVertexBuffers(0, 2, vbs, stride, offset);
-        pContext->IASetIndexBuffer(instance.pIB, DXGI_FORMAT_R32_UINT, 0);
+    pContext->IASetVertexBuffers(0, 2, vbs, stride, offset);
+    pContext->IASetIndexBuffer(instances.pIB, DXGI_FORMAT_R32_UINT, 0);
 
-        // textures arr
-        ID3D11ShaderResourceView* const* texSRVs = instance.texSRVs.data();
-        const int numSubsets = (int)std::ssize(instance.subsets);
+    const Subset& subset = instances.subset;
 
-        // go through each subset (mesh) of this model and render it
-        for (int subsetIdx = 0; subsetIdx < numSubsets; ++subsetIdx)
-        {
-            // update textures for the current subset
-            pContext->PSSetShaderResources(
-                10U,
-                NUM_TEXTURE_TYPES,
-                texSRVs + (subsetIdx * NUM_TEXTURE_TYPES));  // texture_buffer_begin + offset
-
-            const Subset& subset = instance.subsets[subsetIdx];
-
-            pContext->DrawIndexedInstanced(
-                subset.indexCount,
-                instance.numInstances,
-                subset.indexStart,
-                subset.vertexStart,
-                startInstanceLocation + (subsetIdx * instance.numInstances));
-        }
-
-        startInstanceLocation += numSubsets * instance.numInstances;
-    }
+    pContext->DrawIndexedInstanced(
+        subset.indexCount,
+        instances.numInstances,
+        subset.indexStart,
+        subset.vertexStart,
+        startInstanceLocation);
 }
 
 //---------------------------------------------------------
 // Desc:   recompile hlsl shaders from file and reinit shader class object
+// Args:   - pDevice:      a ptr to the DirectX11 device
+//         - vsPath:   a path to the vertex shader
+//         - psPath:   a path to the pixel shader
 //---------------------------------------------------------
 void LightShader::ShaderHotReload(
     ID3D11Device* pDevice,
-    const char* vsFilePath,
-    const char* psFilePath)
+    const char* vsPath,
+    const char* psPath)
 {
     bool result = false;
-    const InputLayoutLight inputLayout;
+    const InputLayoutLight layout;
 
-    result = vs_.CompileShaderFromFile(
-        pDevice,
-        vsFilePath,
-        "VS", "vs_5_0",
-        inputLayout.desc,
-        inputLayout.numElems);
-    if (!result)
-    {
-        LogErr(LOG, "can't hot reload the vertex shader");
-        return;
-    }
+    result = vs_.CompileFromFile(pDevice, vsPath, "VS", "vs_5_0", layout.desc, layout.numElems);
+    CAssert::True(result, "can't hot reload the vertex shader");
 
-    result = ps_.CompileShaderFromFile(pDevice, psFilePath, "PS", "ps_5_0");
-    if (!result)
-    {
-        LogErr(LOG, "can't hot reload the vertex shader");
-        return;
-    }
-
+    result = ps_.CompileFromFile(pDevice, psPath, "PS", "ps_5_0");
+    CAssert::True(result, "can't hot reload the pixel shader");
 }
 
 } // namespace Render

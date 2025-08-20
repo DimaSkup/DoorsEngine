@@ -65,7 +65,7 @@ void FontClass::BuildVertexArray(
 	const size numVertices,
 	const char* sentence,
 	const float drawAtX,
-    const float drawAtY)
+    const float drawAtY) const
 {
 	// BuildVertexIndexArrays() builds a vertices array by texture data which is based on 
 	// input sentence and upper-left position
@@ -113,10 +113,8 @@ void FontClass::BuildVertexArray(
 
 ///////////////////////////////////////////////////////////
 
-void FontClass::BuildIndexArray(UINT* indices, const size numIndices)
+void FontClass::BuildIndexArray(UINT* indices, const size numIndices) const
 {
-	// NOTE: the input indices array must be empty before initialization
-
 	CAssert::True((indices != nullptr) && (numIndices > 0), "invalid input params");
 	
 	for (UINT vIdx = 0, arrIdx = 0; arrIdx < (UINT)numIndices;)
@@ -133,7 +131,8 @@ void FontClass::BuildIndexArray(UINT* indices, const size numIndices)
 		indices[arrIdx++] = vIdx + 3;
 		indices[arrIdx++] = vIdx + 1;
 
-		vIdx += 4;  // stride by 4 (the number of vertices in a symbol)
+        // stride by 4 (the number of vertices in a symbol)
+		vIdx += 4;  
 	}
 }
 

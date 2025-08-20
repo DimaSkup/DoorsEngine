@@ -54,13 +54,6 @@ public:
     inline const char* GetShaderName() const { return className_; }
 
 private:
-    void InitializeShaders(
-        ID3D11Device* pDevice,
-        const char* vsFilename,
-        const char* gsFilename,
-        const char* psFilename);
-
-private:
     VertexShader        vs_;
     GeometryShader      gs_;
     PixelShader         ps_;

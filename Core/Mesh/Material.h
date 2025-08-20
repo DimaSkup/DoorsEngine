@@ -34,8 +34,8 @@ enum eMaterialProp : uint32
 
     // blending states
     MAT_PROP_NO_RENDER_TARGET_WRITES = (1 << 8),
-    MAT_PROP_ALPHA_DISABLE           = (1 << 9),
-    MAT_PROP_ALPHA_ENABLE            = (1 << 10),
+    MAT_PROP_BLEND_DISABLE           = (1 << 9),
+    MAT_PROP_BLEND_ENABLE            = (1 << 10),
     MAT_PROP_ADDING                  = (1 << 11),
     MAT_PROP_SUBTRACTING             = (1 << 12),
     MAT_PROP_MULTIPLYING             = (1 << 13),
@@ -54,11 +54,18 @@ enum eMaterialProp : uint32
     ALL_FILL_MODES                   = MAT_PROP_FILL_SOLID | MAT_PROP_FILL_WIREFRAME,
     ALL_CULL_MODES                   = MAT_PROP_CULL_BACK | MAT_PROP_CULL_FRONT | MAT_PROP_CULL_NONE,
     ALL_FRONT_CLOCKWISE_MODES        = MAT_PROP_FRONT_COUNTER_CLOCKWISE | MAT_PROP_FRONT_CLOCKWISE,
-    ALL_BLEND_STATES                 = MAT_PROP_NO_RENDER_TARGET_WRITES | MAT_PROP_ALPHA_DISABLE | MAT_PROP_ALPHA_ENABLE | MAT_PROP_ADDING | MAT_PROP_SUBTRACTING | MAT_PROP_MULTIPLYING | MAT_PROP_TRANSPARENCY | MAT_PROP_ALPHA_TO_COVERAGE,
+    ALL_BLEND_STATES                 = MAT_PROP_NO_RENDER_TARGET_WRITES | MAT_PROP_BLEND_DISABLE | MAT_PROP_BLEND_ENABLE | MAT_PROP_ADDING | MAT_PROP_SUBTRACTING | MAT_PROP_MULTIPLYING | MAT_PROP_TRANSPARENCY | MAT_PROP_ALPHA_TO_COVERAGE,
     ALL_DEPTH_STENCIL_STATES         = MAT_PROP_DEPTH_ENABLED | MAT_PROP_DEPTH_DISABLED | MAT_PROP_MARK_MIRROR | MAT_PROP_DRAW_REFLECTION | MAT_PROP_NO_DOUBLE_BLEND | MAT_PROP_SKY_DOME,
 
     // fill_solid / cull_back / front_clockwise / no_blending / depth_enabled
-    MAT_PROP_DEFAULT                 = MAT_PROP_FILL_SOLID | MAT_PROP_CULL_BACK | MAT_PROP_FRONT_CLOCKWISE | MAT_PROP_ALPHA_DISABLE | MAT_PROP_DEPTH_ENABLED,
+    MAT_PROP_DEFAULT                 = MAT_PROP_FILL_SOLID | MAT_PROP_CULL_BACK | MAT_PROP_FRONT_CLOCKWISE | MAT_PROP_BLEND_DISABLE | MAT_PROP_DEPTH_ENABLED,
+
+    MAT_BLENDING_NOT_TRANSPARENT     = MAT_PROP_ADDING | MAT_PROP_SUBTRACTING | MAT_PROP_MULTIPLYING | MAT_PROP_ALPHA_TO_COVERAGE,
+
+    // material groups
+    MAT_MASKED_GROUP = MAT_PROP_ALPHA_CLIPPING | MAT_PROP_FILL_SOLID | MAT_PROP_CULL_NONE | MAT_PROP_FRONT_CLOCKWISE | MAT_PROP_BLEND_DISABLE | MAT_PROP_DEPTH_ENABLED,
+    MAT_OPAQUE_GROUP =                           MAT_PROP_FILL_SOLID | MAT_PROP_CULL_BACK | MAT_PROP_FRONT_CLOCKWISE | MAT_PROP_BLEND_DISABLE | MAT_PROP_DEPTH_ENABLED,
+    MAT_BLEND_GROUP  =                           MAT_PROP_FILL_SOLID | MAT_PROP_CULL_BACK | MAT_PROP_FRONT_CLOCKWISE | ALL_BLEND_STATES       | MAT_PROP_DEPTH_ENABLED,
 
     NUM_PROPERTIES
 };
@@ -75,16 +82,16 @@ struct Material
     MaterialID id = INVALID_MATERIAL_ID;
     char       name[MAX_LENGTH_MATERIAL_NAME] = { "invalid" };
 
-    TexID      textureIds[NUM_TEXTURE_TYPES]{ INVALID_TEXTURE_ID };
-    uint32     properties = 0;                                      // bitfield for materials properties
+    TexID      texIds[NUM_TEXTURE_TYPES]{ INVALID_TEXTURE_ID };
+    uint32     renderStates = 0;                                      // bitfield for materials properties
 
     //-----------------------------------------------------
 
-    Material() : properties(MAT_PROP_DEFAULT)
+    Material() : renderStates(MAT_PROP_DEFAULT)
     {
     }
 
-    Material(const char* name) : properties(MAT_PROP_DEFAULT)
+    Material(const char* name) : renderStates(MAT_PROP_DEFAULT)
     {
         SetName(name);
     }
@@ -113,28 +120,28 @@ struct Material
 
     //-----------------------------------------------------
 
-    inline void SetTexture(const eTexType type, const TexID id)                          { textureIds[type] = id; }
+    inline void SetTexture(const eTexType type, const TexID id)                           { texIds[type] = id; }
 
-    inline void SetAmbient (const float r, const float g, const float b, const float a)  { ambient = Float4(r,g,b,a); }
-    inline void SetDiffuse (const float r, const float g, const float b, const float a)  { diffuse = Float4(r,g,b,a); }
-    inline void SetSpecular(const float r, const float g, const float b)                 { specular = Float4(r,g,b,specular.w); }   // specular power remains the same
-    inline void SetSpecularPower(const float power)                                      { specular.w = power; }
+    inline void SetAmbient (const float r, const float g, const float b, const float a)   { ambient = Float4(r,g,b,a); }
+    inline void SetDiffuse (const float r, const float g, const float b, const float a)   { diffuse = Float4(r,g,b,a); }
+    inline void SetSpecular(const float r, const float g, const float b)                  { specular = Float4(r,g,b,specular.w); }   // specular power remains the same
+    inline void SetSpecularPower(const float power)                                       { specular.w = power; }
     inline void SetReflection(const float r, const float g, const float b, const float a) { reflect = Float4(r,g,b,a); }
 
     inline void SetAlphaClip(const bool state)
     {
-        properties &= ~(MAT_PROP_ALPHA_CLIPPING);            // reset to 0
+        renderStates &= ~(MAT_PROP_ALPHA_CLIPPING);            // reset to 0
 
         if (state)
-            properties |= MAT_PROP_ALPHA_CLIPPING;           // set alpha clipping
+            renderStates |= MAT_PROP_ALPHA_CLIPPING;           // set alpha clipping
     }
 
     inline void SetFill(eMaterialProp prop)
     {
         if (prop & ALL_FILL_MODES)
         {
-            properties &= ~(ALL_FILL_MODES);       // reset all fill modes
-            properties |= prop;                    // set fill mode
+            renderStates &= ~(ALL_FILL_MODES);       // reset all fill modes
+            renderStates |= prop;                    // set fill mode
         }
     }
 
@@ -142,8 +149,8 @@ struct Material
     {
         if (prop & ALL_CULL_MODES)
         {
-            properties &= ~(ALL_CULL_MODES);      // reset all cull modes
-            properties |= prop;                   // set cull mode
+            renderStates &= ~(ALL_CULL_MODES);      // reset all cull modes
+            renderStates |= prop;                   // set cull mode
         }
     }
 
@@ -151,8 +158,8 @@ struct Material
     {
         if (prop & ALL_FRONT_CLOCKWISE_MODES)
         {
-            properties &= ~(ALL_FRONT_CLOCKWISE_MODES);
-            properties |= prop;
+            renderStates &= ~(ALL_FRONT_CLOCKWISE_MODES);
+            renderStates |= prop;
         }
     }
 
@@ -160,8 +167,8 @@ struct Material
     {
         if (prop & ALL_BLEND_STATES)
         {
-            properties &= ~(ALL_BLEND_STATES);    // reset all blend states
-            properties |= prop;                   // set blend state
+            renderStates &= ~(ALL_BLEND_STATES);    // reset all blend states
+            renderStates |= prop;                   // set blend state
         }
     }
 
@@ -169,15 +176,10 @@ struct Material
     {
         if (prop & ALL_DEPTH_STENCIL_STATES)
         {
-            properties &= ~(ALL_DEPTH_STENCIL_STATES);
-            properties |= prop;
+            renderStates &= ~(ALL_DEPTH_STENCIL_STATES);
+            renderStates |= prop;
         }
     }
-
-    //-----------------------------------------------------
-
-    inline bool HasAlphaClip() const { return (bool)(properties & MAT_PROP_ALPHA_CLIPPING); }
-
 };
 
 } // namespace Core
