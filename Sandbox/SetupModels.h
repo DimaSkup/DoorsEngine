@@ -226,15 +226,58 @@ void SetupAks74u(BasicModel& model)
 //---------------------------------------------------------
 void SetupTraktor(BasicModel& traktor)
 {
-    const int numSubsets = (int)traktor.meshes_.numSubsets_;
-    for (int i = 0; i < numSubsets; ++i)
-    {
-        const MaterialID matID = traktor.meshes_.subsets_[i].materialId;
-        Material& mat = g_MaterialMgr.GetMatById(matID);
+    const MeshGeometry::Subset& subset0  = traktor.meshes_.subsets_[0];
+    const MeshGeometry::Subset& subset1  = traktor.meshes_.subsets_[1];
+    const MeshGeometry::Subset& subset2  = traktor.meshes_.subsets_[2];
+    const MeshGeometry::Subset& subset3  = traktor.meshes_.subsets_[3];
+    const MeshGeometry::Subset& subset4  = traktor.meshes_.subsets_[4];
 
-        mat.ambient = { 0.5f, 0.5f, 0.5f, 1.0f };
-        mat.specular = { 0.0f, 0.0f, 0.0f, 32.0f };
-    }
+    const MaterialID matIdVehicle        = subset0.materialId;
+    const MaterialID matIdSpotlightTrace = subset1.materialId;
+    const MaterialID matIdSpotlightCone  = subset2.materialId;
+    const MaterialID matIdBacksideLight  = subset3.materialId;
+    const MaterialID matIdGlass          = subset4.materialId;
+
+    Material& matVehicle                 = g_MaterialMgr.GetMatById(matIdVehicle);
+    Material& matSpotlightTrace          = g_MaterialMgr.GetMatById(matIdSpotlightTrace);
+    Material& matSpotlightCone           = g_MaterialMgr.GetMatById(matIdSpotlightCone);
+    Material& matBacksideLight           = g_MaterialMgr.GetMatById(matIdBacksideLight);
+    Material& matGlass                   = g_MaterialMgr.GetMatById(matIdGlass);
+
+
+    // setup material for subset0 (vehicle)
+    matVehicle.ambient  = { 0.8f, 0.8f, 0.8f, 1.0f };
+    matVehicle.diffuse  = { 0.8f, 0.8f, 0.8f, 1.0f };
+    matVehicle.specular = { 0,0,0,1 };
+    matVehicle.reflect  = { 0,0,0,0 };
+    
+    // setup material for subset1 (spotlight trace)
+    matSpotlightTrace.ambient  = { 1,1,1,1 };
+    matSpotlightTrace.diffuse = { 1,1,1,1 };
+    matSpotlightTrace.specular = { 0,0,0,1 };
+    matSpotlightTrace.reflect = { 0,0,0,0 };
+    matSpotlightTrace.SetBlending(MAT_PROP_ADDING);
+    matSpotlightTrace.SetDepthStencil(MAT_PROP_DEPTH_DISABLED);
+
+    // setup material for subset2 (spotlight cone)
+    matSpotlightCone.ambient = { 1,1,1,1 };
+    matSpotlightCone.diffuse = { 1,1,1,1 };
+    matSpotlightCone.specular = { 0,0,0,1 };
+    matSpotlightCone.reflect = { 0,0,0,0 };
+    matSpotlightCone.SetBlending(MAT_PROP_ADDING);
+    matSpotlightCone.SetDepthStencil(MAT_PROP_DEPTH_DISABLED);
+
+    // setup material for subset3 (backside light)
+    matBacksideLight.ambient  = { 0.8f, 0.8f, 0.8f, 1.0f };
+    matBacksideLight.diffuse  = { 0.8f, 0.8f, 0.8f, 1.0f };
+    matBacksideLight.specular = { 0,0,0,1 };
+    matBacksideLight.reflect  = { 0,0,0,0 };
+
+    // setup material for subset4 (glass)
+    matGlass.specular = { 1,1,1,64 };
+    matGlass.reflect = { 0.5f, 0.5f, 0.5f, 0 };
+    matGlass.SetBlending(MAT_PROP_TRANSPARENCY);
+
 }
 
 ///////////////////////////////////////////////////////////

@@ -254,8 +254,6 @@ void EditorPanels::RenderDebugPanel(const Core::SystemState& systemState)
         const DirectX::XMFLOAT3& camDir = systemState.cameraDir;
         ImGui::Text("Camera pos: %.2f %.2f %.2f", camPos.x, camPos.y, camPos.z);
 
-        ImGui::Text("Visible point lights: %d", systemState.numVisiblePointLights);
-
         // show debug options
         if (ImGui::TreeNode("Show as Color:"))
         {

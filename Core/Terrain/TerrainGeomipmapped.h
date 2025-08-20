@@ -116,7 +116,7 @@ public:
 
     inline const TerrainLodMgr&   GetLodMgr()            const { return lodMgr_; }
     inline int                    GetNumPatchesPerSide() const { return lodMgr_.numPatchesPerSide_; }
-
+    inline int                    GetNumAllPatches()     const { return SQR(GetNumPatchesPerSide()); }
 
     // get the number of patches being rendered per frame
     //inline int GetNumPatchesPerFrame(void)    const { return patchesPerFrame_;   }

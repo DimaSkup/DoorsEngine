@@ -41,6 +41,15 @@ public:
         MESH,    // render AABB line box around each mesh of model
     };
 
+    // a container for rendering statistic for the current frame
+    struct RenderStat
+    {
+        uint32 numDrawnVertices         = 0;          
+        uint32 numDrawnTriangles        = 0;
+        uint32 numDrawnInstances        = 0;
+        uint32 numDrawCallsForInstances = 0;
+    };
+
 public:
     CGraphics();
     ~CGraphics();
@@ -147,15 +156,14 @@ private:
 
     // ------------------------------------------
 
-    void RenderEntts    (Render::CRender* pRender);
+    void RenderEntts(Render::CRender* pRender);
 
     void RenderInstanceGroups(
         ID3D11DeviceContext* pContext,
         Render::CRender* pRender,
         const cvector<Render::InstanceBatch>& instanceBatches,
         UINT& startInstanceLocation,
-        int& numRenderedInstances,
-        int& drawCalls);
+        RenderStat& stat);
 
     void RenderParticles(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);
 

@@ -400,7 +400,7 @@ void TerrainGeomip::CalcNormals(
 }
 
 //---------------------------------------------------------
-// Desc:   test if patch by (x,z) is in the view frustum
+// Desc:   test if patch by (x,z) is in the frustum
 //---------------------------------------------------------
 bool TerrainGeomip::IsPatchInsideViewFrustum(
     const int x0,
@@ -469,14 +469,14 @@ void TerrainGeomip::Update(const CameraParams& cam)
 
     // transform each frustum plane into world space
 
-    const int patchSize         = lodMgr_.patchSize_;
+    const int patchSize         = lodMgr_.patchSize_ - 1;
     const int numPatchesPerSide = lodMgr_.numPatchesPerSide_;
     int       numVisPatches     = 0;
 
+
+    // go through each patch and test if it is visible
     visiblePatches_.resize(SQR(numPatchesPerSide));
 
-#if 1
-    // go through each patch
     for (int pz = 0; pz < numPatchesPerSide; ++pz)
     {
         for (int px = 0; px < numPatchesPerSide; ++px)
@@ -493,31 +493,10 @@ void TerrainGeomip::Update(const CameraParams& cam)
                 continue;
             }
 
-            // store number of this patch so we will render it
-            const int patchNum = (pz * numPatchesPerSide) + px;
-            visiblePatches_[numVisPatches++] = patchNum;
+            // store number (idx) of this patch so we will render it
+            visiblePatches_[numVisPatches++] = (pz * numPatchesPerSide) + px;
         }
     }
-#else
-
-    const int px = 0;
-    const int pz = 0;
-    const int x = px * patchSize;
-    const int z = pz * patchSize;
-
-    DirectX::BoundingFrustum localSpaceFrustum;
-    frustum.Transform(localSpaceFrustum, invView);
-
-    // check if we see this patch
-    if (IsPatchInsideViewFrustum(x, z, localSpaceFrustum))
-    {
-        // store number of this patch so we will render it
-        const int patchNum = (pz * numPatchesPerSide) + px;
-        visiblePatches_[numVisPatches++] = patchNum;
-    }
-
-   
-#endif
 
     visiblePatches_.resize(numVisPatches);
 }
