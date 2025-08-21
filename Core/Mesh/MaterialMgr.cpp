@@ -253,4 +253,60 @@ MaterialID MaterialMgr::GetMatIdByIdx(const index idx) const
     return ids_[idx * isValid];
 }
 
+//---------------------------------------------------------
+// Desc:   get array of fill modes names
+//---------------------------------------------------------
+void MaterialMgr::GetFillModesNames(cvector<std::string>& outNames) const
+{
+    // for details look at enum eMaterialProp in Material.h
+    outNames = { "Solid", "Wireframe" };
+}
+
+//---------------------------------------------------------
+// Desc:   get array of fill modes names
+//---------------------------------------------------------
+void MaterialMgr::GetCullModesNames(cvector<std::string>& outNames) const
+{
+    // for details look at enum eMaterialProp in Material.h
+    outNames = { "Back", "Front", "None" };
+}
+
+//---------------------------------------------------------
+// Desc:   get array of blending states names
+// Args:   - bsNames:  output arr of names
+//---------------------------------------------------------
+void MaterialMgr::GetBlendingStatesNames(cvector<std::string>& outNames) const
+{
+    // for details look at enum eMaterialProp in Material.h
+    outNames =
+    {
+        "No render target writes",
+        "Blend disable",
+        "Blend enable",
+        "Add",
+        "Subtract",
+        "Multiply",
+        "Transparent",
+        "Alpha to coverage",
+    };
+}
+
+//---------------------------------------------------------
+// Desc:   get array of depth-stencil states names
+//---------------------------------------------------------
+void MaterialMgr::GetDepthStencilStatesNames(cvector<std::string>& outNames) const
+{
+    // for details look at enum eMaterialProp in Material.h
+    outNames =
+    {
+        "Depth enabled",
+        "Depth disabled",
+        "Mark mirror",
+        "Draw reflection",
+        "No double blend",
+        "Sky dome",
+    };
+}
+
+
 } // namespace Core

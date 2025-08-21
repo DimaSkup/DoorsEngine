@@ -139,7 +139,7 @@ EntityID EntityMgr::CreateEntity()
 //---------------------------------------------------------
 EntityID EntityMgr::CreateEntity(const char* enttName)
 {
-    if (!enttName || enttName[0] == '\0')
+    if (StrHelper::IsEmpty(enttName))
     {
         LogErr("input name for entity is empty!");
         return INVALID_ENTITY_ID;
@@ -342,31 +342,38 @@ void EntityMgr::SetEnttsHaveComponents(
         componentHashes_[idx] |= hashMask;
 }
 
-///////////////////////////////////////////////////////////
-
-void EntityMgr::AddNameComponent(const EntityID& id, const std::string& name)
+//---------------------------------------------------------
+// Desc:  add the Name component to entity by id
+//---------------------------------------------------------
+bool EntityMgr::AddNameComponent(const EntityID& id, const char* name)
 {
-    // add the Name component to a single entity in terms of arrays
-    AddNameComponent(&id, &name, 1);
+    if (nameSystem_.AddRecord(id, name))
+    {
+        SetEnttHasComponent(id, NameComponent);
+        return true;
+    }
+    else
+    {
+        LogErr(LOG, "can't add a name component to entt: %" PRIu32, id);
+        return false;
+    }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:  add the Name component to all the input entities
+//        so each entity will have its own name
+//---------------------------------------------------------
 void EntityMgr::AddNameComponent(
     const EntityID* ids,
     const std::string* names,
     const size numEntts)
 {
-    // add the Name component to all the input entities
-    // so each entity will have its own name
-    try
+    if (nameSystem_.AddRecords(ids, names, numEntts))
     {
-        nameSystem_.AddRecords(ids, names, numEntts);
         SetEnttsHaveComponent(ids, numEntts, NameComponent);
     }
-    catch (EngineException& e)
+    else
     {
-        LogErr(e);
         LogErr(GetErrMsg("can't add a name component to entts: ", ids, numEntts).c_str());
     }
 }

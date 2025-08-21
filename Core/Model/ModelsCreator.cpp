@@ -87,6 +87,11 @@ ModelID ModelsCreator::ImportFromFile(ID3D11Device* pDevice, const char* path)
         ModelImporter importer;
         BasicModel& model = g_ModelMgr.AddEmptyModel();
 
+        // set a name and type for the model
+        FileSys::GetFileStem(path, g_String);
+        model.SetName(g_String);
+        model.type_ = eModelType::Imported;
+
         // import model from a file by path
         importer.LoadFromFile(pDevice, model, path);
 
@@ -95,13 +100,6 @@ ModelID ModelsCreator::ImportFromFile(ID3D11Device* pDevice, const char* path)
         
         model.ComputeSubsetsAABB();
         model.ComputeModelAABB();
-
-        // set a name and type for the model
-        FileSys::GetFileStem(path, g_String);
-
-        model.SetName(g_String);
-        model.type_ = eModelType::Imported;
-
 
         return model.id_;
     }

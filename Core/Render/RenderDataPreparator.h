@@ -26,6 +26,7 @@ public:
     void PrepareEnttsDataForRendering(
         const EntityID* enttsIds,
         const size numEntts,
+        const DirectX::XMFLOAT3& cameraPos,
         ECS::EntityMgr* pEnttMgr,
         Render::RenderDataStorage& storage);
 

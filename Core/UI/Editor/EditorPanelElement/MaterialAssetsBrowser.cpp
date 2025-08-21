@@ -12,11 +12,12 @@
 namespace UI
 {
 
+//---------------------------------------------------------
+//---------------------------------------------------------
 void MaterialAssetsBrowser::Initialize(IFacadeEngineToUI* pFacade)
 {
     if (pFacade)
     {
-
         size numMaterials = 0;
         pFacade->GetNumMaterials(numMaterials);
         numItems_ = (int)numMaterials + 1;
@@ -25,12 +26,11 @@ void MaterialAssetsBrowser::Initialize(IFacadeEngineToUI* pFacade)
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:  render a browser (window) of loaded materials
+//---------------------------------------------------------
 void MaterialAssetsBrowser::Render(IFacadeEngineToUI* pFacade, bool* pOpen)
 {
-    // render a browser (window) of loaded materials
-
     if (!pFacade)
     {
         LogErr("can't render materials browser: input ptr to facade == nullptr");
@@ -96,8 +96,10 @@ void MaterialAssetsBrowser::Render(IFacadeEngineToUI* pFacade, bool* pOpen)
     ImGui::EndChild();
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   check if some material was changed during the frame
+// NOTE:   after this check we set a flag to false (!!!)
+//---------------------------------------------------------
 bool MaterialAssetsBrowser::WasMaterialChanged()
 {
     bool tmp = materialWasChanged_;
@@ -105,9 +107,9 @@ bool MaterialAssetsBrowser::WasMaterialChanged()
     return tmp;
 }
 
-// =================================================================================
-// Private methods
-// =================================================================================
+//---------------------------------------------------------
+// Desc:   draw a menu bar for the material browser
+//---------------------------------------------------------
 void MaterialAssetsBrowser::RenderMenuBar(bool* pOpen)
 {
     if (ImGui::BeginMenuBar())
@@ -135,12 +137,12 @@ void MaterialAssetsBrowser::RenderMenuBar(bool* pOpen)
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// when we did some manipulations over the browser's window (resized, zoomed)
+// we need to update the icons size and all the related stuff
+//---------------------------------------------------------
 void MaterialAssetsBrowser::UpdateLayoutSizes(int availWidth)
 {
-    // when we did some manipulations over the browser's window (resized, zoomed)
-    // we need to update the icons size and all the related stuff
 
     layoutItemSpacing_ = (float)iconSpacing_;
 
@@ -162,8 +164,9 @@ void MaterialAssetsBrowser::UpdateLayoutSizes(int availWidth)
     layoutOuterPadding_      = floorf(layoutItemSpacing_ * 0.5f);
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   print some debug info in the upper side of the material browser
+//---------------------------------------------------------
 void MaterialAssetsBrowser::RenderDebugInfo(const int availWidth)
 {
     ImGui::Text("ID: %d; ", selectedMaterialItemID_);
@@ -188,8 +191,10 @@ void MaterialAssetsBrowser::RenderDebugInfo(const int availWidth)
     ImGui::Text("spacing: %f", layoutItemSpacing_);
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:  draw a grid of icons where each icon represents some material
+// Args:  - startPos:  a window (children) start position (upper left)
+//---------------------------------------------------------
 void MaterialAssetsBrowser::DrawMaterialIcons(const ImVec2 startPos, IFacadeEngineToUI* pFacade)
 {
     // push specific colors
@@ -270,15 +275,16 @@ void MaterialAssetsBrowser::DrawMaterialIcons(const ImVec2 startPos, IFacadeEngi
     ImGui::PopStyleColor(3);
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   load data of the material by index
+//---------------------------------------------------------
 void MaterialAssetsBrowser::GetMaterialDataByIdx(const int matIdx, IFacadeEngineToUI* pFacade)
 {
-    // load data of the material by index
+
 
     if ((matIdx < 0) || (matIdx >= numItems_))
     {
-        LogErr("can't get data for material by idx: %d (is invalid)", matIdx);
+        LogErr(LOG, "can't get data for material by idx: %d (is invalid)", matIdx);
         return;
     }
 
@@ -286,27 +292,20 @@ void MaterialAssetsBrowser::GetMaterialDataByIdx(const int matIdx, IFacadeEngine
     {
         selectedItemIdx_ = matIdx;                        // update index so the icon of this material will be shown as selected
         materialWasChanged_ = true;                       // material was changed since the prev frame
-        constexpr int maxLen = MAX_LENGTH_MATERIAL_NAME;
-        char* name = new char[maxLen] {'\0'};
 
-        pFacade->GetMaterialNameById(selectedMaterialItemID_, &name, maxLen);
-        strncpy(selectedMaterialName_, name, maxLen);
-
-        if (name)
-        {
-            delete[] name;
-            name = nullptr;
-        }
+        pFacade->GetMaterialNameById(
+            selectedMaterialItemID_,
+            selectedMaterialName_,
+            MAX_LENGTH_MATERIAL_NAME);
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:  if we zoom in/out (Ctrl+mouse_wheel when over the material browser),
+//        we need to recompute icons sizes and related stuff
+//---------------------------------------------------------
 void MaterialAssetsBrowser::ComputeZooming(const ImVec2 startPos, const int availWidth)
 {
-    // if we zoom in/out (Ctrl+mouse_wheel when over the browser),
-    // we need to recompute icons sizes and related stuff
-
     ImGuiIO& io = ImGui::GetIO();
 
     // Zooming with CTRL+Wheel
@@ -347,27 +346,27 @@ void MaterialAssetsBrowser::ComputeZooming(const ImVec2 startPos, const int avai
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   show a window which is used to edit a chosen material
+// NOTE:   we split into half this window (left: preview; right: editing fields)
+//---------------------------------------------------------
 void MaterialAssetsBrowser::RenderMaterialEditWnd(IFacadeEngineToUI* pFacade)
 {
-    // show a window which is used to edit a material
-
     // always center this window when appearing
     const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-    const ImVec2 size = ImGui::GetMainViewport()->Size / 2;
+    const ImVec2 size   = ImGui::GetMainViewport()->Size / 2;
     ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
     ImGui::SetNextWindowSize(size, ImGuiCond_Appearing);
 
 
     if (ImGui::Begin("Material editor", &showMaterialEditorWnd_))
     {
-        const ImVec2 wndPos = ImGui::GetWindowPos();
-        const ImVec2 availReg = ImGui::GetContentRegionAvail();
-        const float halfWidth = availReg.x / 2;
+        const ImVec2 wndPos     = ImGui::GetWindowPos();
+        const ImVec2 availReg   = ImGui::GetContentRegionAvail();
+        const float halfWidth   = availReg.x / 2;
         constexpr float padding = 40.0f;
 
-        // render material preview sphere
+        // render material preview (model + material)
         ImGui::SetNextWindowPos(ImVec2(wndPos.x + padding, wndPos.y + padding));
 
         if (ImGui::BeginChild("Material preview", ImVec2(halfWidth, availReg.y)))
@@ -377,7 +376,7 @@ void MaterialAssetsBrowser::RenderMaterialEditWnd(IFacadeEngineToUI* pFacade)
         ImGui::EndChild();
 
 
-        // render material properties fields
+        // render material properties fields 
         ImGui::SetNextWindowPos(ImVec2(wndPos.x + halfWidth, wndPos.y + padding));
 
         if (ImGui::BeginChild("Material props", ImVec2(halfWidth, availReg.y)))
@@ -389,8 +388,10 @@ void MaterialAssetsBrowser::RenderMaterialEditWnd(IFacadeEngineToUI* pFacade)
     ImGui::End();
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   in editor window of a single material we render some shape to visualize
+//         this material (it can be sphere/cube/teapot/etc. with this material)
+//---------------------------------------------------------
 void MaterialAssetsBrowser::RenderMaterialPreview(IFacadeEngineToUI* pFacade)
 {
     ImGui::Text("Edit material:");
@@ -417,20 +418,21 @@ void MaterialAssetsBrowser::RenderMaterialPreview(IFacadeEngineToUI* pFacade)
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   draw fields for editing material properties
+//---------------------------------------------------------
 void MaterialAssetsBrowser::RenderMaterialPropsFields(IFacadeEngineToUI* pFacade)
 {
     ImGui::Checkbox("Rotate preview", &rotateMaterialBigIcon_);
 
-    static bool matChanged = false;
-    matChanged |= ImGui::DragFloat4("Ambient",        matData_.ambient.xyzw, 0.01f, 0.0f, 1.0f);
-    matChanged |= ImGui::DragFloat4("Diffuse",        matData_.diffuse.xyzw, 0.01f, 0.0f, 1.0f);
-    matChanged |= ImGui::DragFloat3("Specular",       matData_.specular.xyzw, 0.01f, 0.0f, 1.0f);
-    matChanged |= ImGui::DragFloat("Specular power", &matData_.specular.w, 0.1f, 0.0f, 128.0f);
-    matChanged |= ImGui::DragFloat4("Reflect",        matData_.reflect.xyzw, 0.01f, 0.0f, 1.0f);
+    bool matColorChanged = false;
+    matColorChanged |= ImGui::DragFloat4("Ambient",        matData_.ambient.xyzw,  0.01f, 0.0f, 1.0f);
+    matColorChanged |= ImGui::DragFloat4("Diffuse",        matData_.diffuse.xyzw,  0.01f, 0.0f, 1.0f);
+    matColorChanged |= ImGui::DragFloat3("Specular",       matData_.specular.xyzw, 0.01f, 0.0f, 1.0f);
+    matColorChanged |= ImGui::DragFloat("Specular power", &matData_.specular.w,    0.1f,  0.0f, 256.0f);
+    matColorChanged |= ImGui::DragFloat4("Reflect",        matData_.reflect.xyzw,  0.01f, 0.0f, 1.0f);
 
-    if (matChanged)
+    if (matColorChanged)
     {
         pFacade->SetMaterialColorData(
             matData_.id,
@@ -438,14 +440,106 @@ void MaterialAssetsBrowser::RenderMaterialPropsFields(IFacadeEngineToUI* pFacade
             matData_.diffuse,
             matData_.specular,
             matData_.reflect);
-
-        matChanged = false;
     }
+    ImGui::Separator();
+
+
+    using enum eMaterialPropGroup;
+
+    if (ImGui::TreeNode("Select fill mode"))
+    {
+        static index selected = -1;
+        cvector<std::string> fillModesNames;
+        pFacade->GetMaterialRenderStateNames(FILL, fillModesNames);
+
+        for (index idx = 0; idx < fillModesNames.size(); ++idx)
+        {
+            if (ImGui::Selectable(fillModesNames[idx].c_str(), selected == idx))
+            {
+                pFacade->SetMaterialRenderState(
+                    matData_.id,
+                    (uint32)idx,
+                    eMaterialPropGroup::FILL);
+
+                selected = idx;
+            }
+        }
+
+        ImGui::TreePop();
+    }
+    ImGui::Separator();
+
+
+    if (ImGui::TreeNode("Select cull mode"))
+    {
+        static index selected = -1;
+        cvector<std::string> cullModesNames;
+        pFacade->GetMaterialRenderStateNames(CULL, cullModesNames);
+
+        for (index idx = 0; idx < cullModesNames.size(); ++idx)
+        {
+            if (ImGui::Selectable(cullModesNames[idx].c_str(), selected == idx))
+            {
+                pFacade->SetMaterialRenderState(
+                    matData_.id,
+                    (uint32)idx,
+                    eMaterialPropGroup::CULL);
+
+                selected = idx;
+            }
+        }
+        ImGui::TreePop();
+    }
+    ImGui::Separator();
+
+
+    if (ImGui::TreeNode("Select blending state"))
+    {
+        static index selected = -1;
+        cvector<std::string> bsNames;
+        pFacade->GetMaterialRenderStateNames(BLENDING, bsNames);
+        
+        for (index idx = 0; idx < bsNames.size(); ++idx)
+        {
+            if (ImGui::Selectable(bsNames[idx].c_str(), selected == idx))
+            {
+                pFacade->SetMaterialRenderState(
+                    matData_.id,
+                    (uint32)idx,
+                    eMaterialPropGroup::BLENDING);
+
+                selected = idx;
+            }
+        }
+        ImGui::TreePop();
+    }
+    ImGui::Separator();
+
+    if (ImGui::TreeNode("Select depth-stencil state"))
+    {
+        static index selected = -1;
+        cvector<std::string> dssNames;
+        pFacade->GetMaterialRenderStateNames(DEPTH_STENCIL, dssNames);
+
+        for (index idx = 0; idx < dssNames.size(); ++idx)
+        {
+            if (ImGui::Selectable(dssNames[idx].c_str(), selected == idx))
+            {
+                pFacade->SetMaterialRenderState(
+                    matData_.id,
+                    (uint32)idx,
+                    eMaterialPropGroup::DEPTH_STENCIL);
+
+                selected = idx;
+            }
+        }
+        ImGui::TreePop();
+    }
+    ImGui::Separator();
 
     // apply changes (if we have any)
     if (ImGui::Button("Apply", ImVec2(120, 0)))
     {
-        matChanged = false;
         isNeedUpdateIcons_ = true;
         showMaterialEditorWnd_ = false;
     }
@@ -454,22 +548,19 @@ void MaterialAssetsBrowser::RenderMaterialPropsFields(IFacadeEngineToUI* pFacade
         // TODO: reset fields
 
         showMaterialEditorWnd_ = false;
-        matChanged = false;
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// show a modal window which is used to delete a material
+//---------------------------------------------------------
 void MaterialAssetsBrowser::RenderMaterialDeleteWnd()
 {
-    // show a modal window which is used to delete a material
-
     ImGui::OpenPopup("Delete?");
 
     // always center this window when appearing
     const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
     ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-
 
     if (ImGui::BeginPopupModal("Delete?", NULL, ImGuiWindowFlags_AlwaysAutoResize))
     {

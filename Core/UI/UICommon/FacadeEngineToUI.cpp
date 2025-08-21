@@ -138,7 +138,7 @@ bool FacadeEngineToUI::GetEntityAddedComponentsTypes(
 
 ///////////////////////////////////////////////////////////
 
-bool FacadeEngineToUI::AddNameComponent(const EntityID id, const std::string& name)
+bool FacadeEngineToUI::AddNameComponent(const EntityID id, const char* name)
 {
     pEnttMgr_->AddNameComponent(id, name);
     return true;
@@ -189,7 +189,7 @@ bool FacadeEngineToUI::GetAllEnttsIDs(
 
 ///////////////////////////////////////////////////////////
 
-EntityID FacadeEngineToUI::GetEnttIdByName(const std::string& name) const
+EntityID FacadeEngineToUI::GetEnttIdByName(const char* name) const
 {
     // return 0 if there is no entity by such a name
     return pEnttMgr_->nameSystem_.GetIdByName(name);
@@ -201,28 +201,6 @@ bool FacadeEngineToUI::GetEnttNameById(const EntityID enttID, std::string& name)
 {
     name = pEnttMgr_->nameSystem_.GetNameById(enttID);
     return true;
-}
-
-///////////////////////////////////////////////////////////
-
-bool FacadeEngineToUI::GetEnttsOfModelType(const EntityID*& enttsIDs, int& numEntts)
-{
-    pEnttMgr_->modelSystem_.GetAllEntts(enttsIDs, (size&)numEntts);
-    return true;
-}
-
-///////////////////////////////////////////////////////////
-
-bool FacadeEngineToUI::GetEnttsOfCameraType(const EntityID*& enttsIDs, int& numEntts)
-{
-    return false;
-}
-
-///////////////////////////////////////////////////////////
-
-bool FacadeEngineToUI::GetEnttsOfLightType(const EntityID*& enttsIDs, int& numEntts)
-{
-    return false;
 }
 
 ///////////////////////////////////////////////////////////
@@ -799,10 +777,18 @@ bool FacadeEngineToUI::GetMaterialIdByIdx(const index idx, MaterialID& outMatID)
 
 ///////////////////////////////////////////////////////////
 
-bool FacadeEngineToUI::GetMaterialNameById(const MaterialID id, char** outName, const int nameMaxLength) const
+bool FacadeEngineToUI::GetMaterialNameById(const MaterialID id, char* outName, const int nameMaxLength) const
 {
+    if (!outName)
+    {
+        LogErr(LOG, "input name ptr is invalid");
+        return false;
+    }
+
+    memset(outName, 0, nameMaxLength);
+
     const char* matName = g_MaterialMgr.GetMatById(id).name;
-    return (bool)strncpy(*outName, matName, nameMaxLength);
+    return (bool)strncpy(outName, matName, strlen(matName));
 }
 
 ///////////////////////////////////////////////////////////
@@ -834,6 +820,106 @@ bool FacadeEngineToUI::GetMaterialDataById(const MaterialID id, MaterialData& ou
     return true;
 }
 
+//---------------------------------------------------------
+// Desc:   get names array of particular render states group
+//         (groups: fill, cull, blending, etc.)
+// Args:   - type:      what kind of names we want to get
+//         - outNames:  output arr of names
+//---------------------------------------------------------
+void FacadeEngineToUI::GetMaterialRenderStateNames(
+    const eMaterialPropGroup type,
+    cvector<std::string>& outNames) const
+{
+    using enum eMaterialPropGroup;
+
+    switch (type)
+    {
+        case FILL:
+            g_MaterialMgr.GetFillModesNames(outNames);
+            break;
+
+        case CULL:
+            g_MaterialMgr.GetCullModesNames(outNames);
+            break;
+
+        case WINDING_ORDER:
+            break;
+
+        case BLENDING:
+            g_MaterialMgr.GetBlendingStatesNames(outNames);
+            break;
+
+        case DEPTH_STENCIL:
+            g_MaterialMgr.GetDepthStencilStatesNames(outNames);
+            break;
+
+        default:
+            LogErr(LOG, "unknown type of render states group: %u", type);
+            return;
+    }
+}
+
+//---------------------------------------------------------
+// Desc:   setup render state of particular type (group) for material by id
+//         (groups: fill, cull, blending, etc.)
+// Args:   - id:        material identifier
+//         - stateIdx:  an index of render state inside its group
+//         - type:      what kind of render states group we want to change
+//---------------------------------------------------------
+bool FacadeEngineToUI::SetMaterialRenderState(
+    const MaterialID id,
+    const uint32 stateIdx,
+    const eMaterialPropGroup type) const
+{
+    using enum eMaterialPropGroup;
+    Material& mat = g_MaterialMgr.GetMatById(id);
+
+    if (mat.id == INVALID_MATERIAL_ID)
+    {
+        LogErr(LOG, "can't change render state "
+                    "(idx: %" PRIu32 "; type: %d\n"
+                    "because there is no material by id : %" PRIu32, id);
+        return false;
+    }
+
+
+    switch (type)
+    {
+        case ALPHA_CLIP:
+            // for alpha clipping we switch the state to the opposite
+            mat.SetAlphaClip(!mat.HasAlphaClip());
+            break;
+
+        case FILL:
+            mat.SetFillByIdx(stateIdx);
+            break;
+
+        case CULL:
+            mat.SetCullByIdx(stateIdx);
+            break;
+
+        case WINDING_ORDER:
+            break;
+
+        case BLENDING:
+            mat.SetBlendingByIdx(stateIdx);
+            break;
+
+        case DEPTH_STENCIL:
+            mat.SetDepthStencilByIdx(stateIdx);
+            break;
+
+        default:
+            LogErr(LOG, "unknown type of render states group: %u", type);
+            return false;
+    }
+
+    return true;
+}
+
+//---------------------------------------------------------
+// Desc:   change color properties of material by id
+//---------------------------------------------------------
 bool FacadeEngineToUI::SetMaterialColorData(
     const MaterialID id,
     const Vec4& amb,           // ambient
@@ -848,7 +934,6 @@ bool FacadeEngineToUI::SetMaterialColorData(
         Float4(spec.x, spec.y, spec.z, spec.w),
         Float4(refl.x, refl.y, refl.z, refl.w));
 }
-
 
 ///////////////////////////////////////////////////////////
 

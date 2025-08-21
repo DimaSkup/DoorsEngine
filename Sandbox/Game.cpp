@@ -103,9 +103,9 @@ bool Game::Init(
     }
    
     // set the current camera
-    const bool startInGameMode       = configs.GetBool("START_IN_GAME_MODE");
-    const std::string cameraEnttName = (startInGameMode) ? "game_camera" : "editor_camera";
-    const EntityID    cameraID       = pEnttMgr->nameSystem_.GetIdByName(cameraEnttName);
+    const bool startInGameMode = configs.GetBool("START_IN_GAME_MODE");
+    const char* cameraEnttName = (startInGameMode) ? "game_camera" : "editor_camera";
+    const EntityID    cameraID = pEnttMgr->nameSystem_.GetIdByName(cameraEnttName);
     graphics.SetCurrentCamera(cameraID);
 
     //-----------------------------------------------------

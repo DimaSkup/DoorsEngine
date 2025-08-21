@@ -28,6 +28,7 @@ MeshGeometry::MeshGeometry(MeshGeometry&& rhs) noexcept :
     ib_(std::move(rhs.ib_)),
     vertexStride_(std::exchange(rhs.vertexStride_, 0)),
     subsets_(std::exchange(rhs.subsets_, nullptr)),
+    localSpaceMatrices_(std::exchange(rhs.localSpaceMatrices_, nullptr)),
     numSubsets_(std::exchange(rhs.numSubsets_, 0))
 {
     // move constructor
@@ -53,6 +54,7 @@ void MeshGeometry::Shutdown()
 {
     // release memory
     SafeDeleteArr(subsets_);
+    SafeDeleteArr(localSpaceMatrices_);
     numSubsets_ = 0;
 
     vb_.Shutdown();
@@ -81,33 +83,47 @@ void MeshGeometry::Copy(
     SetSubsets(mesh.subsets_, mesh.numSubsets_);
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   allocate memory for subsets data
+// Args:   - numSubsets:  how many subsets/sumeshes/meshes we have
+//---------------------------------------------------------
 void MeshGeometry::AllocateSubsets(const int numSubsets)
 {
-    // allocate memory for this number of subsets
-    try
+    if (numSubsets <= 0)
     {
-        CAssert::True(numSubsets > 0, "num of subsets must be > 0");
-
-        // we already have enough memory; just go out
-        if (this->numSubsets_ == numSubsets)
-            return;
-
-        this->~MeshGeometry();
-        subsets_ = new Subset[numSubsets];
-        numSubsets_ = numSubsets;
-
-        // setup ID for each subset
-        for (int i = 0; i < numSubsets_; ++i)
-            subsets_[i].id = i;
+        LogErr(LOG, "num of subsets must be > 0");
+        return;
     }
-    catch (EngineException& e)
+
+    // we already have enough memory; just go out
+    if (this->numSubsets_ == numSubsets)
+        return;
+
+    // release memory before allocation
+    Shutdown();
+
+    // alloc memory for a new number of subsets
+    subsets_ = NEW Subset[numSubsets];
+    if (!subsets_)
     {
-        LogErr(e);
-        LogErr("can't allocate memory for subsets");
-        throw EngineException("can't allocate memory for subsets");
+        Shutdown();
+        LogErr(LOG, "can't allocate memory for subsets of model");
+        return;
     }
+
+    localSpaceMatrices_ = NEW DirectX::XMMATRIX[numSubsets];
+    if (!localSpaceMatrices_)
+    {
+        Shutdown();
+        LogErr(LOG, "can't allocate memory for local space matrices of model");
+        return;
+    }
+
+    numSubsets_ = numSubsets;
+
+    // setup ID for each subset
+    for (int i = 0; i < numSubsets_; ++i)
+        subsets_[i].id = i;
 }
 
 ///////////////////////////////////////////////////////////
@@ -120,7 +136,7 @@ void MeshGeometry::SetSubsets(const Subset* subsets, const int numSubsets)
     CAssert::True(numSubsets > 0, "input number of subsets must be > 0");
     
     AllocateSubsets(numSubsets);
-    std::copy(subsets, subsets + numSubsets, this->subsets_);
+    std::copy(subsets, subsets + numSubsets, subsets_);
 }
 
 ///////////////////////////////////////////////////////////
@@ -156,31 +172,45 @@ void MeshGeometry::InitIndexBuffer(
 //---------------------------------------------------------
 // Desc:   set a name for subset by Id (identifier is the same as subset's idx)
 //---------------------------------------------------------
-void MeshGeometry::SetSubsetName(const SubsetID subsetId, const char* name)
+void MeshGeometry::SetSubsetName(const SubsetID subsetId, const char* inName)
 {
-    try
+    if (subsetId >= numSubsets_)
     {
-        size_t length = strlen(name);
-
-        CAssert::True(subsetId >= 0,   "subset id is invalid");
-        CAssert::True(name != nullptr, "input ptr to name string == nullptr");
-        CAssert::True(length > 0,      "length of input name string must be > 0");
-
-        // if input name is too long we limit its length
-        if (length > SUBSET_NAME_LENGTH_LIMIT-1)
-            length = SUBSET_NAME_LENGTH_LIMIT-1;
-
-        char* subsetName = subsets_[subsetId].name;
-
-        // set new name
-        strncpy(subsetName, name, length);
-        subsetName[length] = '\0';
+        LogErr(LOG, "subset id is invalid: %" PRIu16, subsetId);
+        return;
     }
-    catch (EngineException& e)
+
+    if (StrHelper::IsEmpty(inName))
     {
-        LogErr(e);
-        LogErr(LOG, "can't set a name for subset (id: %d): invalid input args", subsetId);
+        LogErr(LOG, "input name is empty");
+        return;
     }
+
+    size_t len = strlen(inName);
+
+    // if input name is too long we limit its length
+    if (len > SUBSET_NAME_LENGTH_LIMIT-1)
+        len = SUBSET_NAME_LENGTH_LIMIT-1;
+
+    // set new name
+    char* name = subsets_[subsetId].name;
+    strncpy(name, inName, len);
+    name[len] = '\0';
+}
+
+
+//---------------------------------------------------------
+// Desc:   setup local space matrix for subset (submesh) by id (its idx)
+//---------------------------------------------------------
+void MeshGeometry::SetSubsetLSpaceMatrix(const SubsetID subsetId, const DirectX::XMMATRIX& m)
+{
+    if (subsetId >= numSubsets_)
+    {
+        LogErr(LOG, "subset id is invalid: %" PRIu16, subsetId);
+        return;
+    }
+
+    localSpaceMatrices_[subsetId] = m;
 }
 
 ///////////////////////////////////////////////////////////
