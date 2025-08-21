@@ -107,16 +107,18 @@ struct Material
             return;
         }
 
-        size_t length = strlen(inName);
+        size_t len = strlen(inName);
 
-        CAssert::True(length > 0, "length of input name string must be > 0");
+        CAssert::True(len > 0, "length of input name string must be > 0");
 
-        if (length > MAX_LENGTH_MATERIAL_NAME-1)
-            length = MAX_LENGTH_MATERIAL_NAME-1;
+        if (len > MAX_LENGTH_MATERIAL_NAME-1)
+            len = MAX_LENGTH_MATERIAL_NAME-1;
 
-        strncpy(name, inName, length);
-        name[length] = '\0';
+        strncpy(name, inName, len);
+        name[len] = '\0';
     }
+
+    inline bool HasAlphaClip() const { return renderStates & MAT_PROP_ALPHA_CLIPPING; }
 
     //-----------------------------------------------------
 
@@ -179,6 +181,30 @@ struct Material
             renderStates &= ~(ALL_DEPTH_STENCIL_STATES);
             renderStates |= prop;
         }
+    }
+
+    //-----------------------------------------------------
+    // setup render state by idx of property inside its own group
+    // (groups: fill, cull, blending, depth-stencil, etc.)
+    //-----------------------------------------------------
+    inline void SetFillByIdx(const uint32 propIdx)
+    {
+        SetFill(eMaterialProp(MAT_PROP_FILL_SOLID << propIdx));
+    }
+
+    inline void SetCullByIdx(const uint32 propIdx)
+    {
+        SetCull(eMaterialProp(MAT_PROP_CULL_BACK << propIdx));
+    }
+
+    inline void SetBlendingByIdx(const uint32 propIdx)
+    {
+        SetBlending(eMaterialProp(MAT_PROP_NO_RENDER_TARGET_WRITES << propIdx));
+    }
+
+    inline void SetDepthStencilByIdx(const uint32 propIdx)
+    {
+        SetDepthStencil(eMaterialProp(MAT_PROP_DEPTH_ENABLED << propIdx));
     }
 };
 

@@ -1555,32 +1555,41 @@ void CreateAks74u(ECS::EntityMgr& mgr, const BasicModel& model, const XMFLOAT3& 
 {
     LogDbg(LOG, "create aks-74u entity");
 
-    const EntityID enttID = mgr.CreateEntity("aks_74u");
+    const EntityID enttId = mgr.CreateEntity();
+
+    if (enttId == INVALID_ENTITY_ID)
+    {
+        LogErr(LOG, "can't create an aks74u entity");
+        return;
+    }
 
     // setup transformation params
     const XMFLOAT3 position  = pos;
     const XMVECTOR dirQuat   = { 0, 0, 1, 0 };
     const float uniformScale = 3.5f;
+    const XMVECTOR q1 = DirectX::XMQuaternionRotationAxis({ 1,0,0 }, DirectX::XM_PIDIV2 - 0.1f);
 
     // setup bounding params
     const size numEntts = 1;
     const size numSubsets = model.GetNumSubsets();
 
-    // setup transformation
-    mgr.AddTransformComponent(enttID, position, dirQuat, uniformScale);
-    const XMVECTOR q1 = DirectX::XMQuaternionRotationAxis({ 1,0,0 }, DirectX::XM_PIDIV2 - 0.1f);
-    //const XMVECTOR q2 = DirectX::XMQuaternionRotationAxis({ 0,1,0 }, 0.1f);
-    //mgr.transformSystem_.RotateLocalSpaceByQuat(enttID, DirectX::XMQuaternionMultiply(q1, q2));
-    mgr.transformSystem_.RotateLocalSpaceByQuat(enttID, q1);
+    // setup name
+    char name[32]{'\0'};
+    snprintf(name, 32, "aks_74u_%u", enttId);
 
     // setup materials Ids
     const MeshGeometry::Subset* subsets = model.meshes_.subsets_;
     const MaterialID matId = subsets[0].materialId;
 
-    mgr.AddModelComponent(enttID, model.GetID());
-    mgr.AddRenderingComponent(enttID);
-    mgr.AddBoundingComponent(enttID, ECS::BoundingType::BOUND_BOX, model.GetModelAABB());
-    mgr.AddMaterialComponent(enttID, matId);
+
+    mgr.AddTransformComponent(enttId, position, dirQuat, uniformScale);
+    mgr.transformSystem_.RotateLocalSpaceByQuat(enttId, q1);
+
+    mgr.AddNameComponent(enttId, name);
+    mgr.AddModelComponent(enttId, model.GetID());
+    mgr.AddRenderingComponent(enttId);
+    mgr.AddBoundingComponent(enttId, ECS::BoundingType::BOUND_BOX, model.GetModelAABB());
+    mgr.AddMaterialComponent(enttId, matId);
 }
 
 //---------------------------------------------------------
@@ -1590,9 +1599,7 @@ void CreateAk74(ECS::EntityMgr& mgr, const BasicModel& model, const XMFLOAT3& po
 {
     LogDbg(LOG, "create ak-74 entity");
 
- 
-
-    const EntityID enttID = mgr.CreateEntity("ak_74");
+    const EntityID enttId = mgr.CreateEntity();
 
     // setup transformation params
     const XMFLOAT3 position  = pos;
@@ -1603,11 +1610,9 @@ void CreateAk74(ECS::EntityMgr& mgr, const BasicModel& model, const XMFLOAT3& po
     const size numEntts = 1;
     const size numSubsets = model.GetNumSubsets();
 
-    // setup transformation
-    mgr.AddTransformComponent(enttID, position, dirQuat, uniformScale);
-    const XMVECTOR q1 = DirectX::XMQuaternionRotationAxis({ 1,0,0 }, DirectX::XM_PIDIV2 - 0.1f);
-    const XMVECTOR q2 = DirectX::XMQuaternionRotationAxis({ 0,1,0 }, 0.1f);
-    mgr.transformSystem_.RotateLocalSpaceByQuat(enttID, DirectX::XMQuaternionMultiply(q1, q2));
+    // setup name
+    char name[32]{ '\0' };
+    snprintf(name, 32, "aks_74_%u", enttId);
 
     // setup materials Ids
     const MeshGeometry::Subset* subsets = model.meshes_.subsets_;
@@ -1619,10 +1624,18 @@ void CreateAk74(ECS::EntityMgr& mgr, const BasicModel& model, const XMFLOAT3& po
         subsets[3].materialId,
     };
 
-    mgr.AddModelComponent(enttID, model.GetID());
-    mgr.AddRenderingComponent(enttID);
-    mgr.AddBoundingComponent(enttID, ECS::BoundingType::BOUND_BOX, model.GetModelAABB());
-    mgr.AddMaterialComponent(enttID, matsIds, numSubsets);
+    mgr.AddTransformComponent(enttId, position, dirQuat, uniformScale);
+
+    mgr.AddModelComponent(enttId, model.GetID());
+    mgr.AddRenderingComponent(enttId);
+    mgr.AddBoundingComponent(enttId, ECS::BoundingType::BOUND_BOX, model.GetModelAABB());
+    mgr.AddMaterialComponent(enttId, matsIds, numSubsets);
+
+    // rotate entity
+    const XMVECTOR q1 = DirectX::XMQuaternionRotationAxis({ 1,0,0 }, DirectX::XM_PIDIV2 - 0.1f);
+    const XMVECTOR q2 = DirectX::XMQuaternionRotationAxis({ 0,1,0 }, 0.1f);
+    mgr.transformSystem_.RotateLocalSpaceByQuat(enttId, DirectX::XMQuaternionMultiply(q1, q2));
+
 }
 
 ///////////////////////////////////////////////////////////
@@ -1724,7 +1737,7 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     // 2. create relative entities
 
     ModelsCreator creator;
-
+#if 0
     // import a model (AKS-74u) from file
     const char* pathAks74u      = "data/models/ext/ak_74u/ak_74u.fbx";
     const char* pathAk74        = "data/models/ext/ak_74/scene.gltf";
@@ -1750,9 +1763,11 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     CreateAk74(mgr, ak74, { 260, 82, 205 });
 
     CreateStalkerFreedom(mgr);
-    CreateTraktor13(mgr);
-    CreateCubes(mgr, cube);
+    
+    //CreateCubes(mgr, cube);
     CreateTreesSpruce(mgr);
+#endif
+    CreateTraktor13(mgr);
 }
 
 //---------------------------------------------------------

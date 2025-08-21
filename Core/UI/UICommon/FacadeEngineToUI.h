@@ -51,20 +51,15 @@ public:
     virtual bool GetEntityAddedComponentsNames(const EntityID id, cvector<std::string>& componentsNames)              const override;
     virtual bool GetEntityAddedComponentsTypes(const EntityID id, cvector<eEnttComponentType>& componentTypes)        const override;
 
-    virtual bool AddNameComponent     (const EntityID id, const std::string& name)                                          override;
+    virtual bool AddNameComponent     (const EntityID id, const char* name)                                                 override;
     virtual bool AddTransformComponent(const EntityID id, const Vec3& pos, const Vec3& direction, const float uniformScale) override;
     virtual bool AddModelComponent    (const EntityID enttID, const uint32_t modelID)                                       override;
     virtual bool AddRenderedComponent (const EntityID enttID)                                                               override;
     virtual bool AddBoundingComponent (const EntityID id, const int boundType, const DirectX::BoundingBox& aabb)            override;
 
     virtual bool     GetAllEnttsIDs   (const EntityID*& outPtrToEnttsIDsArr, int& outNumEntts)                        const override;
-    virtual EntityID GetEnttIdByName  (const std::string& name)                                                       const override;
+    virtual EntityID GetEnttIdByName  (const char* name)                                                              const override;
     virtual bool     GetEnttNameById  (const EntityID id, std::string& outName)                                       const override;
-
-    // extract entities with particular component
-    virtual bool GetEnttsOfModelType  (const EntityID*& enttsIDs, int& numEntts)                                            override;
-    virtual bool GetEnttsOfCameraType (const EntityID*& enttsIDs, int& numEntts)                                            override;
-    virtual bool GetEnttsOfLightType  (const EntityID*& enttsIDs, int& numEntts)                                            override;
 
     virtual bool GetEnttTransformData (const EntityID id, Vec3& pos, Vec3& direction, float& uniScale)                const override;
     virtual bool GetEnttWorldMatrix   (const EntityID id, DirectX::XMMATRIX& outMat)                                  const override;
@@ -198,10 +193,19 @@ public:
     virtual bool GetModelsNamesList (cvector<std::string>& names)                                   const override;
     virtual bool GetTextureIdByIdx  (const index idx, TexID& outTextureID)                          const override;
     virtual bool GetMaterialIdByIdx (const index idx, MaterialID& outMatID)                         const override;
-    virtual bool GetMaterialNameById(const MaterialID id, char** outName, const int nameMaxLength)  const override;
+    virtual bool GetMaterialNameById(const MaterialID id, char* outName, const int nameMaxLength)   const override;
     virtual bool GetNumMaterials    (size& numMaterials)                                            const override;
 
     virtual bool GetMaterialDataById(const MaterialID id, MaterialData& outData)                    const override;
+
+    virtual void GetMaterialRenderStateNames(
+        const eMaterialPropGroup type,
+        cvector<std::string>& outNames) const override;
+
+    virtual bool SetMaterialRenderState(
+        const MaterialID id,
+        const uint32 stateIdx,
+        const eMaterialPropGroup type) const override;
 
     virtual bool SetMaterialColorData(
         const MaterialID id,

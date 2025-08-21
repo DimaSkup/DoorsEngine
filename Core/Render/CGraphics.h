@@ -95,7 +95,7 @@ public:
 
     void BindMaterial(
         Render::CRender* pRender,
-        const uint32 renderStatesBitfields,
+        const uint32 renderStatesBitfield,
         ID3D11ShaderResourceView* const* texViews);
 
     bool RenderBigMaterialIcon(
@@ -152,7 +152,10 @@ private:
     // ------------------------------------------
     // rendering data prepararion stage API
 
-    void PrepInstancesForRender(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender);
+    void PrepareRenderInstances(
+        ECS::EntityMgr* pEnttMgr,
+        Render::CRender* pRender,
+        const DirectX::XMFLOAT3& cameraPos);
 
     // ------------------------------------------
 

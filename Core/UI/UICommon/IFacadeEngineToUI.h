@@ -66,6 +66,18 @@ enum eEnttComponentType : uint8_t
 
 ///////////////////////////////////////////////////////////
 
+enum class eMaterialPropGroup
+{
+    ALPHA_CLIP,
+    FILL,
+    CULL,
+    WINDING_ORDER,
+    BLENDING,
+    DEPTH_STENCIL
+};
+
+///////////////////////////////////////////////////////////
+
 struct MaterialData
 {
     MaterialID id = 0;
@@ -109,22 +121,18 @@ public:
     virtual bool GetEntityAddedComponentsNames(const EntityID id, cvector<std::string>& componentsNames)               const { return false; }
     virtual bool GetEntityAddedComponentsTypes(const EntityID id, cvector<eEnttComponentType>& componentTypes)         const { return false; }
 
-    virtual bool AddNameComponent     (const EntityID id, const std::string& name)                                          { return false; }
-    virtual bool AddTransformComponent(const EntityID id, const Vec3& pos, const Vec3& direction, const float uniformScale) { return false; }
-    virtual bool AddModelComponent    (const EntityID enttID, const uint32_t modelID)                                       { return false; }
-    virtual bool AddRenderedComponent (const EntityID enttID)                                                               { return false; }
-    virtual bool AddBoundingComponent (const EntityID id, const int boundType, const DirectX::BoundingBox& aabb)            { return false; }
+    virtual bool AddNameComponent     (const EntityID id, const char* name)                                                  { return false; }
+    virtual bool AddTransformComponent(const EntityID id, const Vec3& pos, const Vec3& direction, const float uniformScale)  { return false; }
+    virtual bool AddModelComponent    (const EntityID enttID, const uint32_t modelID)                                        { return false; }
+    virtual bool AddRenderedComponent (const EntityID enttID)                                                                { return false; }
+    virtual bool AddBoundingComponent (const EntityID id, const int boundType, const DirectX::BoundingBox& aabb)             { return false; }
 
 
     virtual bool     GetAllEnttsIDs   (const EntityID*& outPtrToEnttsIDsArr, int& outNumEntts)        const { return false; }
-    virtual EntityID GetEnttIdByName  (const std::string& name)                                       const { return 0; }
+    virtual EntityID GetEnttIdByName  (const char* name)                                              const { return INVALID_ENTITY_ID; }
     virtual bool     GetEnttNameById  (const EntityID id, std::string& outName)                       const { return false; }
 
     // extract entities with particular component
-    virtual bool GetEnttsOfModelType  (const EntityID*& enttsIDs, int& numEntts)                             { return false; }
-    virtual bool GetEnttsOfCameraType (const EntityID*& enttsIDs, int& numEntts)                             { return false; }
-    virtual bool GetEnttsOfLightType  (const EntityID*& enttsIDs, int& numEntts)                             { return false; }
-
     virtual bool GetEnttTransformData (const EntityID id, Vec3& pos, Vec3& direction, float& uniScale) const { return false; }
     virtual bool GetEnttWorldMatrix   (const EntityID id, DirectX::XMMATRIX& outMat)                   const { return false; }
 
@@ -266,10 +274,19 @@ public:
     virtual bool GetModelsNamesList  (cvector<std::string>& names)                                  const { return false; }
     virtual bool GetTextureIdByIdx   (const index idx, TexID& outTextureID)                         const { return false; }
     virtual bool GetMaterialIdByIdx  (const index idx, MaterialID& outMatID)                        const { return false; }
-    virtual bool GetMaterialNameById (const MaterialID id, char** outName, const int nameMaxLength) const { return false; }
+    virtual bool GetMaterialNameById (const MaterialID id, char* outName, const int nameMaxLength)  const { return false; }
     virtual bool GetNumMaterials     (size& numMaterials)                                           const { return false; }
 
-    virtual bool GetMaterialDataById(const MaterialID id, MaterialData& outData) const { return false; }
+    virtual bool GetMaterialDataById(const MaterialID id, MaterialData& outData)                            const { return false; }
+
+    virtual void GetMaterialRenderStateNames(
+        const eMaterialPropGroup type,
+        cvector<std::string>& outNames) const { assert(0 && "override me!"); }
+    
+    virtual bool SetMaterialRenderState(
+        const MaterialID id,
+        const uint32 stateIdx,
+        const eMaterialPropGroup type) const { return false; }
 
     virtual bool SetMaterialColorData(
         const MaterialID id,

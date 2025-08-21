@@ -11,6 +11,8 @@
 
 #define PRINT_DBG_DATA 0
 
+using namespace DirectX;
+
 
 namespace Core
 {
@@ -30,11 +32,10 @@ RenderDataPreparator::RenderDataPreparator() {}
 
 //----------------------------------------------------------------------------------
 // Desc:   sort input data by material id
-// Args:   - data: input/output container of data to sort
+// Args:   - data: in/out container of data to sort
 //----------------------------------------------------------------------------------
 void SortData(cvector<EntityModelMesh>& data)
 {
-    // sort by material id
     std::qsort(
         data.data(),
         data.size(),
@@ -52,6 +53,90 @@ void SortData(cvector<EntityModelMesh>& data)
 
             return 0;
         });
+}
+
+//---------------------------------------------------------
+struct EntityDataAndPos
+{
+    EntityDataAndPos() {}
+
+    EntityDataAndPos(
+        const EntityID inEnttId,
+        const MaterialID inMatId,
+        const ModelID inModelId,
+        const SubmeshID inSubsetId)
+        :
+        enttId(inEnttId),
+        matId(inMatId),
+        modelId(inModelId),
+        subsetId(inSubsetId) {}
+
+
+    EntityID   enttId   = INVALID_ENTITY_ID;
+    MaterialID matId    = INVALID_MATERIAL_ID;
+    ModelID    modelId  = INVALID_MODEL_ID;
+    SubmeshID  subsetId = 0;
+    float      sqrDistToCamera = 0;
+};
+
+//---------------------------------------------------------
+// Desc:   sort input data elements by distance from the camera
+// Args:   - camPos:  camera's current position
+//         - data:    in/out container of data to sort
+//---------------------------------------------------------
+void SortByDistance(
+    ECS::EntityMgr& mgr,
+    const XMFLOAT3& camPos,
+    cvector<EntityModelMesh>& data)
+{
+    const vsize               numElems = data.size();
+    cvector<EntityID>         tempEnttsIds(numElems, INVALID_ENTITY_ID);
+    cvector<EntityDataAndPos> tempData(numElems);
+    cvector<XMFLOAT3>         positions(numElems);
+
+    // gather entities ids
+    for (index i = 0; i < numElems; ++i)
+        tempEnttsIds[i] = data[i].enttId;
+
+    // gather entities positions
+    mgr.transformSystem_.GetPositions(tempEnttsIds.data(), numElems, positions);
+
+    // convert to transient data
+    for (int i = 0; const EntityModelMesh& elem : data)
+    {
+        tempData[i] = { elem.enttId, elem.matId, elem.modelId, elem.subsetId };
+        tempData[i].sqrDistToCamera =
+            SQR(positions[i].x - camPos.x) +
+            SQR(positions[i].y - camPos.y) +
+            SQR(positions[i].z - camPos.z);
+
+        i++;
+    }
+
+    // sort by square of distance to camera
+    std::qsort(
+        tempData.data(),
+        tempData.size(),
+        sizeof(EntityDataAndPos),
+        [](const void* x, const void* y)
+        {
+            const EntityDataAndPos& arg1 = *(EntityDataAndPos*)(x);
+            const EntityDataAndPos& arg2 = *(EntityDataAndPos*)(y);
+
+            if (arg1.sqrDistToCamera > arg2.sqrDistToCamera)
+                return -1;
+
+            if (arg1.sqrDistToCamera < arg2.sqrDistToCamera)
+                return 1;
+
+            return 0;
+        });
+
+    // store sorted data into the output array
+    for (int i = 0; EntityDataAndPos& elem : tempData)
+    {
+        data[i++] = { elem.enttId, elem.matId, elem.modelId, elem.subsetId };
+    }
 }
 
 //----------------------------------------------------------------------------------
@@ -204,6 +289,7 @@ void PrepareBuffers(cvector<Render::InstanceBatch>& instanceBatches)
 //
 // Args:   - enttsIds:         entities by these ids will be rendered onto the screen
 //         - numEntts:         how many entts we want to render
+//         - cameraPos:        camera's current position
 //         - pEnttMgr:         a ptr to ECS entity manager
 //         - instanceBufData:  data for the instances buffer
 //         - instances:        models data for rendering
@@ -211,6 +297,7 @@ void PrepareBuffers(cvector<Render::InstanceBatch>& instanceBatches)
 void RenderDataPreparator::PrepareEnttsDataForRendering(
     const EntityID* enttsIds,
     const size numEntts,
+    const XMFLOAT3& cameraPos,
     ECS::EntityMgr* pEnttMgr,
     Render::RenderDataStorage& storage)
 {
@@ -323,6 +410,9 @@ void RenderDataPreparator::PrepareEnttsDataForRendering(
     PrintData(blendGroup,            "BLEND");
     PrintData(blendTransparentGroup, "BLEND (TRANSPARENT)");
 #endif
+
+    // sort both blending groups elements by distance from the camera
+    SortByDistance(*pEnttMgr, cameraPos, blendGroup);
 
     //------------------------------------------------
 

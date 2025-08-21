@@ -8,6 +8,7 @@
 #include <sstream>
 #include <map>
 #include <new>
+#include <inttypes.h> // For PRIu32
 
 #include "log.h"
 #include "CAssert.h"

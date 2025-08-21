@@ -42,6 +42,10 @@ public:
 
     inline size GetNumAllMaterials() const { return materials_.size(); }
 
+    void GetFillModesNames         (cvector<std::string>& outNames) const;
+    void GetCullModesNames         (cvector<std::string>& outNames) const;
+    void GetBlendingStatesNames    (cvector<std::string>& outNames) const;
+    void GetDepthStencilStatesNames(cvector<std::string>& outNames) const;
 
 private:
     cvector<MaterialID> ids_;

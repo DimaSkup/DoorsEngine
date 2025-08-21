@@ -24,7 +24,7 @@ public:
         ID3D11Device* pDevice,
         const char* path,
         const char* funcName,
-        const char* shaderModel);
+        const char* shaderProfile);
 
     void Shutdown();
 

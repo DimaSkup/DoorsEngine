@@ -246,8 +246,12 @@ void ModelImporter::ComputeNumOfData(
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:  go through each node of the scene's tree structure
+//        starting from the root node and initializes a mesh using data of this each node;
+//
+//        created mesh is pushed into the input model
+//---------------------------------------------------------
 void ModelImporter::ProcessNode(
     ID3D11Device* pDevice,
     BasicModel& model,
@@ -257,12 +261,6 @@ void ModelImporter::ProcessNode(
     const DirectX::XMMATRIX& parentTransformMatrix,  // a matrix which is used to transform position of this mesh to the proper location
     const char* filePath)                            // full path to the model
 {
-    //
-    // this function goes through each node of the scene's tree structure
-    // starting from the root node and initializes a mesh using data of this each node;
-    //
-    // created mesh is pushed into the input meshes array
-    //
 
     const XMMATRIX nodeTransformMatrix = XMMATRIX(&pNode->mTransformation.a1) * parentTransformMatrix;
 
@@ -309,54 +307,46 @@ void ModelImporter::ProcessMesh(
     const DirectX::XMMATRIX& transformMatrix,        // a matrix which is used to transform position of this mesh to the proper location
     const char* filePath)                      // full path to the model
 {
-    
-    MeshGeometry::Subset& subset = model.meshes_.subsets_[subsetIdx];
+
+    MeshGeometry& meshes = model.meshes_;
+    MeshGeometry::Subset& subset = meshes.subsets_[subsetIdx];
 
     try
     {
-        Material material;
+        meshes.SetSubsetName(subsetIdx, pMesh->mName.C_Str());
+        meshes.SetSubsetLSpaceMatrix(subsetIdx, transformMatrix);
 
-        model.meshes_.SetSubsetName(subsetIdx, pMesh->mName.C_Str());
+        // get material data of this mesh
+        aiMaterial* pAiMat  = pScene->mMaterials[pMesh->mMaterialIndex];
+        const char* matName = pAiMat->GetName().C_Str();
+        Material& material   = g_MaterialMgr.AddMaterial(matName);
+        subset.materialId = material.id;
+
+        // load ambient/diffuse/etc. colors for this material
+        LoadMaterialColorsData(pAiMat, material);
 
         // load vertices/indices/subsets data
         GetVerticesIndicesOfMesh(pMesh, model, subset, subsetIdx);
 
-        // get material data of this mesh
-        aiMaterial* pAiMat = pScene->mMaterials[pMesh->mMaterialIndex];
-        LoadMaterialColorsData(pAiMat, material);
-
         // load available textures for this mesh and store IDs of these texture into the material
         LoadMaterialTextures(pDevice, material.texIds, pAiMat, subset, pScene, filePath);
-
-        // store a material into the material manager and also store its material ID into the subset (mesh)
-        strncpy(material.name, pAiMat->GetName().C_Str(), MAX_LENGTH_MATERIAL_NAME);
-        subset.materialId = g_MaterialMgr.AddMaterial(std::move(material));
-        
     }
     catch (EngineException& e)
     {
         LogErr(e);
-        sprintf(g_String, "can't import a mesh \"%s\" for a model from file: %s", subset.name, filePath);
-        LogErr(g_String);
-        throw EngineException(g_String);
+        LogErr(LOG, "can't import a mesh \"%s\" for a model from file: %s", subset.name, filePath);
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   read material color properties for this mesh
+//---------------------------------------------------------
 void ModelImporter::LoadMaterialColorsData(aiMaterial* pMaterial, Material& mat)
 {
-    // read material properties for this mesh
-
-    // global default materials for this .cpp
-    const Float4 defaultAmbient (0.3f, 0.3f, 0.3f, 1);
-    const Float4 defaultDiffuse (0.8f, 0.8f, 0.8f, 1);
-    const Float4 defaultSpecular(0.0f, 0.0f, 0.0f, 1);           // w == spec power
-    const Float4 defaultReflect (0.5f, 0.5f, 0.5f, 1);
-
     aiColor4D ambient;
     aiColor4D diffuse;
     aiColor4D specular;
+    aiColor4D reflection;
     float shininess;
     
     // load materials from the aiMaterial
@@ -364,16 +354,28 @@ void ModelImporter::LoadMaterialColorsData(aiMaterial* pMaterial, Material& mat)
     const aiReturn isDiffuseLoaded   = pMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, diffuse);
     const aiReturn isSpecularLoaded  = pMaterial->Get(AI_MATKEY_COLOR_SPECULAR, specular);
     const aiReturn isShininessLoaded = pMaterial->Get(AI_MATKEY_SHININESS, shininess);
+    const aiReturn isReflectLoaded   = pMaterial->Get(AI_MATKEY_REFLECTIVITY, reflection);
 
-    mat.ambient    = (isAmbientLoaded == aiReturn_SUCCESS)   ? Float4(ambient.r, ambient.g, ambient.b, ambient.a) : defaultAmbient;
-    mat.diffuse    = (isDiffuseLoaded == aiReturn_SUCCESS)   ? Float4(diffuse.r, diffuse.g, diffuse.b, diffuse.a) : defaultDiffuse;
-    mat.specular   = (isSpecularLoaded == aiReturn_SUCCESS)  ? Float4(specular.r, specular.g, specular.b, 1.0f) : defaultSpecular;
-    mat.specular.w = (isShininessLoaded == aiReturn_SUCCESS) ? shininess : defaultSpecular.w;
-    mat.reflect    = defaultReflect;
+    if (isAmbientLoaded == aiReturn_SUCCESS)
+        mat.ambient = Float4(ambient.r, ambient.g, ambient.b, ambient.a);
+
+    if (isDiffuseLoaded == aiReturn_SUCCESS)
+        mat.diffuse = Float4(diffuse.r, diffuse.g, diffuse.b, diffuse.a);
+
+    if (isSpecularLoaded == aiReturn_SUCCESS)
+        mat.specular = Float4(specular.r, specular.g, specular.b, 1.0f);
+
+    // specular power / glossiness
+    if (isShininessLoaded == aiReturn_SUCCESS)
+        mat.specular.w = shininess;
+
+    if (isReflectLoaded == aiReturn_SUCCESS)
+        mat.reflect = Float4(reflection.r, reflection.g, reflection.b, reflection.a);
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   load all the available textures for this mesh by its material data (from aiMaterial)
+//---------------------------------------------------------
 void ModelImporter::LoadMaterialTextures(
     ID3D11Device* pDevice,
     TexID* texIDs,
@@ -382,10 +384,6 @@ void ModelImporter::LoadMaterialTextures(
     const aiScene* pScene,
     const char* filePath)
 {
-    //
-    // load all the available textures for this mesh by its material data
-    //
-
     char modelExt[8]{ '\0' };
     FileSys::GetFileExt(filePath, modelExt);
 

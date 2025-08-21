@@ -15,22 +15,29 @@ namespace ECS
 class NameSystem
 {
 public:
-	NameSystem(Name* pNameComponent);
-	~NameSystem() {}
+    NameSystem(Name* pNameComponent);
+    ~NameSystem() {}
 
-	void Serialize(std::ofstream& fout, u32& offset);
-	void Deserialize(std::ifstream& fin, const u32 offset);
 
-    void AddRecords(
+    bool AddRecord(const EntityID id, const char* name);
+
+    bool AddRecords(
         const EntityID* ids,
         const std::string* names,
         const size numEntts);
 
-	EntityID GetIdByName(const std::string& name);
-	const char* GetNameById(const EntityID& id) const;
+    EntityID    GetIdByName(const char* name) const;
+    const char* GetNameById(const EntityID& id) const;
 
 private:
-	Name* pNameComponent_ = nullptr;
+    // check if input name is unique
+    inline bool IsUnique(const char* name) const
+    {
+        return (GetIdByName(name) == INVALID_ENTITY_ID);
+    }
+
+private:
+    Name* pNameComponent_ = nullptr;
 
 };
 

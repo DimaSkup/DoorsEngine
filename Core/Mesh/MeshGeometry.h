@@ -62,6 +62,7 @@ public:
     void InitIndexBuffer (ID3D11Device* pDevice, const UINT* indices, const int count);
 
     void SetSubsetName(const SubsetID subsetID, const char* name);
+    void SetSubsetLSpaceMatrix(const SubsetID subsetId, const DirectX::XMMATRIX& m);
 
     void SetMaterialForSubset(const SubsetID subsetID, const MaterialID matID);
     void SetMaterialsForSubsets(const SubsetID* subsetsIDs, const MaterialID* materialsIDs, const size count);
@@ -77,6 +78,7 @@ public:
     VertexBuffer<Vertex3D> vb_;
     IndexBuffer<UINT>      ib_;
     MeshGeometry::Subset*  subsets_ = nullptr;       // data about each mesh of model
+    DirectX::XMMATRIX*     localSpaceMatrices_ = nullptr;
     uint16_t               vertexStride_ = 0;
     uint16_t               numSubsets_ = 0;
 };

@@ -244,48 +244,58 @@ void SetupTraktor(BasicModel& traktor)
     Material& matBacksideLight           = g_MaterialMgr.GetMatById(matIdBacksideLight);
     Material& matGlass                   = g_MaterialMgr.GetMatById(matIdGlass);
 
+    const TexID texIdBlankNorm           = g_TextureMgr.GetTexIdByName("blank_NRM");
 
     // setup material for subset0 (vehicle)
+    matVehicle.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
+
     matVehicle.ambient  = { 0.8f, 0.8f, 0.8f, 1.0f };
     matVehicle.diffuse  = { 0.8f, 0.8f, 0.8f, 1.0f };
     matVehicle.specular = { 0,0,0,1 };
     matVehicle.reflect  = { 0,0,0,0 };
     
     // setup material for subset1 (spotlight trace)
-    matSpotlightTrace.ambient  = { 1,1,1,1 };
-    matSpotlightTrace.diffuse = { 1,1,1,1 };
+   // matSpotlightTrace.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
+    matSpotlightTrace.ambient  = { 0.170f, 0.170f, 0.170f, 1 };
+    matSpotlightTrace.diffuse = { 0,0,0,1 };
     matSpotlightTrace.specular = { 0,0,0,1 };
     matSpotlightTrace.reflect = { 0,0,0,0 };
+    matSpotlightTrace.SetCull(MAT_PROP_CULL_NONE);
     matSpotlightTrace.SetBlending(MAT_PROP_ADDING);
     matSpotlightTrace.SetDepthStencil(MAT_PROP_DEPTH_DISABLED);
 
     // setup material for subset2 (spotlight cone)
-    matSpotlightCone.ambient = { 1,1,1,1 };
-    matSpotlightCone.diffuse = { 1,1,1,1 };
+   // matSpotlightCone.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
+    matSpotlightCone.ambient  = { 1,1,1,1 };
+    matSpotlightCone.diffuse  = { 1,1,1,1 };
     matSpotlightCone.specular = { 0,0,0,1 };
-    matSpotlightCone.reflect = { 0,0,0,0 };
+    matSpotlightCone.reflect  = { 0,0,0,0 };
+    matSpotlightCone.SetCull(MAT_PROP_CULL_NONE);
     matSpotlightCone.SetBlending(MAT_PROP_ADDING);
     matSpotlightCone.SetDepthStencil(MAT_PROP_DEPTH_DISABLED);
 
+
     // setup material for subset3 (backside light)
+    matBacksideLight.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
     matBacksideLight.ambient  = { 0.8f, 0.8f, 0.8f, 1.0f };
     matBacksideLight.diffuse  = { 0.8f, 0.8f, 0.8f, 1.0f };
     matBacksideLight.specular = { 0,0,0,1 };
     matBacksideLight.reflect  = { 0,0,0,0 };
 
     // setup material for subset4 (glass)
+    matGlass.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
+    matGlass.ambient = { 1,1,1,1 };
     matGlass.specular = { 1,1,1,64 };
     matGlass.reflect = { 0.5f, 0.5f, 0.5f, 0 };
-    matGlass.SetBlending(MAT_PROP_TRANSPARENCY);
-
+    matGlass.SetCull(MAT_PROP_CULL_NONE);
+    //matGlass.SetBlending(MAT_PROP_MULTIPLYING);
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   manually setup a stalker's small house model
+//---------------------------------------------------------
 void SetupStalkerSmallHouse(BasicModel& house)
 {
-    // manually setup materials for the model
-
     MeshGeometry::Subset* subsets = house.meshes_.subsets_;
 
     for (int i = 0; i < house.numSubsets_; ++i)
@@ -305,7 +315,7 @@ void SetupStalkerAbandonedHouse(BasicModel& house)
 {
     // manually setup materials for the model
 
-    char dirPath[64]{ '\0' };
+    char dirPath[128]{ '\0' };
     sprintf(dirPath, "%s%s", g_RelPathExtModelsDir, "/stalker/abandoned-house-20/");
 
     // load textures for the model

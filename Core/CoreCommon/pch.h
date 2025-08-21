@@ -13,6 +13,7 @@
 #include <string>
 #include <new>          // std::nothrow
 #include <stdlib.h>
+#include <inttypes.h>
 
 #include "RawFile.h"
 #include "log.h"

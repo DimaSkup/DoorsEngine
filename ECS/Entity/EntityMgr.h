@@ -43,6 +43,7 @@
 
 #include <deque>
 
+
 namespace ECS
 {
 
@@ -72,6 +73,7 @@ public:
 
     void                Update(const float totalGameTime, const float deltaTime);
     void                AddEvent(const Event& e);
+
 
     // =============================================================================
     // PUBLIC METHODS: ADD COMPONENTS 
@@ -108,7 +110,7 @@ public:
 
   
     // add NAME component
-    void AddNameComponent(const EntityID& id, const std::string& name);
+    bool AddNameComponent(const EntityID& id, const char* name);
     void AddNameComponent(const EntityID* ids, const std::string* names, const size numEntts);
 
     
