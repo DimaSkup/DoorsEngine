@@ -125,6 +125,8 @@ void GenerateLightColors(
 
 void InitPointLightEntities(ECS::EntityMgr& mgr)
 {
+    return;
+
     constexpr size numPointLights = 10;
 
     if (numPointLights > 0)
@@ -210,6 +212,8 @@ void InitPointLightEntities(ECS::EntityMgr& mgr)
 
 void InitSpotLightEntities(ECS::EntityMgr& mgr)
 {
+    return;
+
     constexpr size numSpotLights = 10;
 
     if (numSpotLights > 0)

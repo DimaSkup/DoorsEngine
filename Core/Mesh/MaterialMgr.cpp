@@ -15,7 +15,9 @@ MaterialMgr g_MaterialMgr;
 
 // setup some static fields
 MaterialMgr* MaterialMgr::pInstance_      = nullptr;
-MaterialID   MaterialMgr::lastMaterialID_ = 0;
+
+// since we already have an "invalid" material by ID == 0 we start from 1
+MaterialID   MaterialMgr::lastMaterialID_ = 1;         
 
 
 ///////////////////////////////////////////////////////////
@@ -31,6 +33,13 @@ MaterialMgr::MaterialMgr()
         constexpr size newCapacity = 128;
         ids_.reserve(newCapacity);
         materials_.reserve(newCapacity);
+
+        // create and setup an "invalid" material
+        ids_.push_back(INVALID_MATERIAL_ID);
+        materials_.push_back(Material("invalid"));
+
+        Material& invalidMat = materials_.back();
+        invalidMat.SetTexture(TEX_TYPE_DIFFUSE, INVALID_TEXTURE_ID);
     }
     else
     {
@@ -52,25 +61,25 @@ Material& MaterialMgr::AddMaterial(const char* matName)
         return materials_[INVALID_MATERIAL_ID];
     }
 
-    // check if input name is unique
-    if (GetMatIdByName(matName) != INVALID_MATERIAL_ID)
+    Material& mat = GetMatByName(matName);
+
+    // if input name isn't unique just return already existed material by this name
+    if (mat.id != INVALID_MATERIAL_ID)
     {
-        LogErr(LOG, "can't add a new empty material: input name must be unique: %s", matName);
-        return materials_[INVALID_MATERIAL_ID];
+        return mat;
     }
 
-
-    // generate id
+    // generate a new id
     const MaterialID id = lastMaterialID_;
     ++lastMaterialID_;
 
     ids_.push_back(id);
     materials_.push_back(Material(matName));
 
-    Material& mat = materials_.back();
-    mat.id = id;
+    Material& newMat = materials_.back();
+    newMat.id = id;
 
-    return mat;
+    return newMat;
 }
 
 //---------------------------------------------------------
@@ -168,7 +177,7 @@ Material& MaterialMgr::GetMatByName(const char* matName)
         return materials_[INVALID_MATERIAL_ID];
     }
 
-    // find material by name
+    // find a material by name
     for (Material& mat : materials_)
     {
         if (strcmp(mat.name, matName) == 0)

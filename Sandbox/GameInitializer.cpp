@@ -1737,7 +1737,7 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
     // 2. create relative entities
 
     ModelsCreator creator;
-#if 0
+#if 1
     // import a model (AKS-74u) from file
     const char* pathAks74u      = "data/models/ext/ak_74u/ak_74u.fbx";
     const char* pathAk74        = "data/models/ext/ak_74/scene.gltf";
@@ -1930,9 +1930,7 @@ bool GameInitializer::InitModelEntities(ID3D11Device* pDevice, ECS::EntityMgr& m
         // (this texture will serve us as "invalid")
         const TexID noTexID = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "notexture.dds");
 
-        // create and setup an "invalid" material
-        Material& invalidMat = g_MaterialMgr.AddMaterial("invalid");
-        invalidMat.SetTexture(TEX_TYPE_DIFFUSE, noTexID);
+        const Material& invalidMat = g_MaterialMgr.GetMatById(INVALID_MATERIAL_ID);
 
         // create a cube which will serve for us as an invalid model
         const ModelID cubeID = creator.CreateCube(pDevice);
