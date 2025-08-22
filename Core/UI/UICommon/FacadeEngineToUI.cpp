@@ -815,8 +815,6 @@ bool FacadeEngineToUI::GetMaterialDataById(const MaterialID id, MaterialData& ou
     strncpy(outData.name, mat.name, MAX_LENGTH_MATERIAL_NAME);
     memcpy(outData.textureIDs, mat.texIds, sizeof(TexID) * NUM_TEXTURE_TYPES);
 
-    outData.properties = mat.renderStates;
-
     return true;
 }
 

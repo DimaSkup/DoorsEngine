@@ -319,8 +319,8 @@ void ModelImporter::ProcessMesh(
         // get material data of this mesh
         aiMaterial* pAiMat  = pScene->mMaterials[pMesh->mMaterialIndex];
         const char* matName = pAiMat->GetName().C_Str();
-        Material& material   = g_MaterialMgr.AddMaterial(matName);
-        subset.materialId = material.id;
+        Material& material  = g_MaterialMgr.AddMaterial(matName);
+        subset.materialId   = material.id;
 
         // load ambient/diffuse/etc. colors for this material
         LoadMaterialColorsData(pAiMat, material);

@@ -288,7 +288,8 @@ void SetupTraktor(BasicModel& traktor)
     matGlass.specular = { 1,1,1,64 };
     matGlass.reflect = { 0.5f, 0.5f, 0.5f, 0 };
     matGlass.SetCull(MAT_PROP_CULL_NONE);
-    //matGlass.SetBlending(MAT_PROP_MULTIPLYING);
+    matGlass.SetBlending(MAT_PROP_TRANSPARENCY);
+    matGlass.SetDepthStencil(MAT_PROP_NO_DOUBLE_BLEND);
 }
 
 //---------------------------------------------------------

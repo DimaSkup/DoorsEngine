@@ -89,7 +89,11 @@ struct MaterialData
 
     char     name[MAX_LENGTH_MATERIAL_NAME]{ '\0' };
     TexID    textureIDs[NUM_TEXTURE_TYPES]{ INVALID_TEXTURE_ID };
-    uint32_t properties = 0;                                      // bitfield for materials properties
+
+    index    selectedFillModeIdx          = -1;
+    index    selectedCullModeIdx          = -1;
+    index    selectedBlendStateIdx        = -1;
+    index    selectedDepthStencilStateIdx = -1;
 };
 
 ///////////////////////////////////////////////////////////

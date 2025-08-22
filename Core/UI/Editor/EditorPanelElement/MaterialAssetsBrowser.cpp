@@ -88,10 +88,10 @@ void MaterialAssetsBrowser::Render(IFacadeEngineToUI* pFacade, bool* pOpen)
         }
 
         if (showMaterialEditorWnd_)
-            RenderMaterialEditWnd(pFacade);
+            RenderEditorWnd(pFacade);
 
         if (showMaterialDeleteWnd_)
-            RenderMaterialDeleteWnd();
+            RenderDeleteWnd();
     }
     ImGui::EndChild();
 }
@@ -350,7 +350,7 @@ void MaterialAssetsBrowser::ComputeZooming(const ImVec2 startPos, const int avai
 // Desc:   show a window which is used to edit a chosen material
 // NOTE:   we split into half this window (left: preview; right: editing fields)
 //---------------------------------------------------------
-void MaterialAssetsBrowser::RenderMaterialEditWnd(IFacadeEngineToUI* pFacade)
+void MaterialAssetsBrowser::RenderEditorWnd(IFacadeEngineToUI* pFacade)
 {
     // always center this window when appearing
     const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
@@ -371,7 +371,7 @@ void MaterialAssetsBrowser::RenderMaterialEditWnd(IFacadeEngineToUI* pFacade)
 
         if (ImGui::BeginChild("Material preview", ImVec2(halfWidth, availReg.y)))
         {
-            RenderMaterialPreview(pFacade);
+            RenderMatPreview(pFacade);
         }
         ImGui::EndChild();
 
@@ -381,7 +381,7 @@ void MaterialAssetsBrowser::RenderMaterialEditWnd(IFacadeEngineToUI* pFacade)
 
         if (ImGui::BeginChild("Material props", ImVec2(halfWidth, availReg.y)))
         {
-            RenderMaterialPropsFields(pFacade);
+            RenderMatPropsFields(pFacade);
         } 
         ImGui::EndChild();
     }
@@ -392,7 +392,7 @@ void MaterialAssetsBrowser::RenderMaterialEditWnd(IFacadeEngineToUI* pFacade)
 // Desc:   in editor window of a single material we render some shape to visualize
 //         this material (it can be sphere/cube/teapot/etc. with this material)
 //---------------------------------------------------------
-void MaterialAssetsBrowser::RenderMaterialPreview(IFacadeEngineToUI* pFacade)
+void MaterialAssetsBrowser::RenderMatPreview(IFacadeEngineToUI* pFacade)
 {
     ImGui::Text("Edit material:");
     ImGui::Text("ID:   %ld", selectedMaterialItemID_);
@@ -421,7 +421,7 @@ void MaterialAssetsBrowser::RenderMaterialPreview(IFacadeEngineToUI* pFacade)
 //---------------------------------------------------------
 // Desc:   draw fields for editing material properties
 //---------------------------------------------------------
-void MaterialAssetsBrowser::RenderMaterialPropsFields(IFacadeEngineToUI* pFacade)
+void MaterialAssetsBrowser::RenderMatPropsFields(IFacadeEngineToUI* pFacade)
 {
     ImGui::Checkbox("Rotate preview", &rotateMaterialBigIcon_);
 
@@ -444,98 +444,24 @@ void MaterialAssetsBrowser::RenderMaterialPropsFields(IFacadeEngineToUI* pFacade
     ImGui::Separator();
 
 
+    // render selectors for choosing render state params of material
     using enum eMaterialPropGroup;
 
-    if (ImGui::TreeNode("Select fill mode"))
-    {
-        static index selected = -1;
-        cvector<std::string> fillModesNames;
-        pFacade->GetMaterialRenderStateNames(FILL, fillModesNames);
+    RenderStatesSelectors("Select fill mode", FILL, pFacade, matData_.selectedFillModeIdx);
+    RenderStatesSelectors("Select cull mode", CULL, pFacade, matData_.selectedCullModeIdx);
 
-        for (index idx = 0; idx < fillModesNames.size(); ++idx)
-        {
-            if (ImGui::Selectable(fillModesNames[idx].c_str(), selected == idx))
-            {
-                pFacade->SetMaterialRenderState(
-                    matData_.id,
-                    (uint32)idx,
-                    eMaterialPropGroup::FILL);
+    RenderStatesSelectors(
+        "Select blend state",
+        BLENDING,
+        pFacade,
+        matData_.selectedBlendStateIdx);
 
-                selected = idx;
-            }
-        }
+    RenderStatesSelectors(
+        "Select depth-stencil state",
+        DEPTH_STENCIL,
+        pFacade,
+        matData_.selectedDepthStencilStateIdx);
 
-        ImGui::TreePop();
-    }
-    ImGui::Separator();
-
-
-    if (ImGui::TreeNode("Select cull mode"))
-    {
-        static index selected = -1;
-        cvector<std::string> cullModesNames;
-        pFacade->GetMaterialRenderStateNames(CULL, cullModesNames);
-
-        for (index idx = 0; idx < cullModesNames.size(); ++idx)
-        {
-            if (ImGui::Selectable(cullModesNames[idx].c_str(), selected == idx))
-            {
-                pFacade->SetMaterialRenderState(
-                    matData_.id,
-                    (uint32)idx,
-                    eMaterialPropGroup::CULL);
-
-                selected = idx;
-            }
-        }
-        ImGui::TreePop();
-    }
-    ImGui::Separator();
-
-
-    if (ImGui::TreeNode("Select blending state"))
-    {
-        static index selected = -1;
-        cvector<std::string> bsNames;
-        pFacade->GetMaterialRenderStateNames(BLENDING, bsNames);
-        
-        for (index idx = 0; idx < bsNames.size(); ++idx)
-        {
-            if (ImGui::Selectable(bsNames[idx].c_str(), selected == idx))
-            {
-                pFacade->SetMaterialRenderState(
-                    matData_.id,
-                    (uint32)idx,
-                    eMaterialPropGroup::BLENDING);
-
-                selected = idx;
-            }
-        }
-        ImGui::TreePop();
-    }
-    ImGui::Separator();
-
-    if (ImGui::TreeNode("Select depth-stencil state"))
-    {
-        static index selected = -1;
-        cvector<std::string> dssNames;
-        pFacade->GetMaterialRenderStateNames(DEPTH_STENCIL, dssNames);
-
-        for (index idx = 0; idx < dssNames.size(); ++idx)
-        {
-            if (ImGui::Selectable(dssNames[idx].c_str(), selected == idx))
-            {
-                pFacade->SetMaterialRenderState(
-                    matData_.id,
-                    (uint32)idx,
-                    eMaterialPropGroup::DEPTH_STENCIL);
-
-                selected = idx;
-            }
-        }
-        ImGui::TreePop();
-    }
-    ImGui::Separator();
 
     // apply changes (if we have any)
     if (ImGui::Button("Apply", ImVec2(120, 0)))
@@ -554,7 +480,7 @@ void MaterialAssetsBrowser::RenderMaterialPropsFields(IFacadeEngineToUI* pFacade
 //---------------------------------------------------------
 // show a modal window which is used to delete a material
 //---------------------------------------------------------
-void MaterialAssetsBrowser::RenderMaterialDeleteWnd()
+void MaterialAssetsBrowser::RenderDeleteWnd()
 {
     ImGui::OpenPopup("Delete?");
 
@@ -566,7 +492,7 @@ void MaterialAssetsBrowser::RenderMaterialDeleteWnd()
     {
         ImGui::Text("Do you really want to delete currenly selected material?");
         ImGui::Text("ID:   %ld", selectedMaterialItemID_);
-        ImGui::Text("Name: %s", selectedMaterialName_);
+        ImGui::Text("Name: %s",  selectedMaterialName_);
         ImGui::Separator();
 
         if (ImGui::Button("OK", ImVec2(120, 0)))
@@ -586,6 +512,46 @@ void MaterialAssetsBrowser::RenderMaterialDeleteWnd()
         }
         ImGui::EndPopup();
     }
+}
+
+//---------------------------------------------------------
+// Desc:   render selectors for choosing render state params of material
+// Args:   - label:             text label about this types of selectors
+//         - statesType:        what kind of render states selectors we will render
+//         - pFacade:           facade interface btw UI and engine
+//         - selectedStateIdx:  in/out index of selected state inside its group
+//---------------------------------------------------------
+void MaterialAssetsBrowser::RenderStatesSelectors(
+    const char* label,
+    const eMaterialPropGroup statesType,
+    IFacadeEngineToUI* pFacade,
+    index& selectedStateIdx)
+{
+    if (StrHelper::IsEmpty(label))
+    {
+        LogErr(LOG, "input label (string) for render state is empty");
+        return;
+    }
+
+    if (ImGui::TreeNode(label))
+    {
+        // get names of each state for the current render states group
+        cvector<std::string> statesNames;
+        pFacade->GetMaterialRenderStateNames(statesType, statesNames);
+
+
+        for (index idx = 0; idx < statesNames.size(); ++idx)
+        {
+            if (ImGui::Selectable(statesNames[idx].c_str(), selectedStateIdx == idx))
+            {
+                pFacade->SetMaterialRenderState(matData_.id, (uint32)idx, statesType);
+                selectedStateIdx = idx;
+            }
+        }
+
+        ImGui::TreePop();
+    }
+    ImGui::Separator();
 }
 
 } // namespace UI

@@ -33,11 +33,17 @@ private:
     void ComputeZooming      (const ImVec2 startPos, const int avaiWidth);
     void GetMaterialDataByIdx(const int matIdx, IFacadeEngineToUI* pFacade);
 
-    void RenderMaterialEditWnd(IFacadeEngineToUI* pFacade);
-    void RenderMaterialDeleteWnd();
+    // render elements of a single material editor
+    void RenderEditorWnd(IFacadeEngineToUI* pFacade);
+    void RenderDeleteWnd();
 
-    void RenderMaterialPreview    (IFacadeEngineToUI* pFacade);
-    void RenderMaterialPropsFields(IFacadeEngineToUI* pFacade);
+    void RenderMatPreview    (IFacadeEngineToUI* pFacade);
+    void RenderMatPropsFields(IFacadeEngineToUI* pFacade);
+    void RenderStatesSelectors(
+        const char* label,
+        const eMaterialPropGroup type,
+        IFacadeEngineToUI* pFacade,
+        index& selectedStateIdx);
 
 private:
     MaterialData matData_;      // material data of chosen material (this data is used for the material editor)

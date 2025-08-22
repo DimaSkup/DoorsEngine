@@ -1219,28 +1219,32 @@ void CGraphics::SetupLightsForFrame(
     // ----------------------------------------------------
     // prepare data of spot lights
 
-    lightSys.GetSpotLightsData(
-        spotLights.ids.data(),
-        numSpotLights,
-        s_LightTmpData.spotLightsData,
-        s_LightTmpData.spotLightsPositions,
-        s_LightTmpData.spotLightsDirections);
-
-    for (index i = 0; i < numSpotLights; ++i)
+    if (numSpotLights > 0)
     {
-        outData.spotLights[i].ambient  = s_LightTmpData.spotLightsData[i].ambient;
-        outData.spotLights[i].diffuse  = s_LightTmpData.spotLightsData[i].diffuse;
-        outData.spotLights[i].specular = s_LightTmpData.spotLightsData[i].specular;
-        outData.spotLights[i].range    = s_LightTmpData.spotLightsData[i].range;
-        outData.spotLights[i].spot     = s_LightTmpData.spotLightsData[i].spot;
-        outData.spotLights[i].att      = s_LightTmpData.spotLightsData[i].att;
+        lightSys.GetSpotLightsData(
+            spotLights.ids.data(),
+            numSpotLights,
+            s_LightTmpData.spotLightsData,
+            s_LightTmpData.spotLightsPositions,
+            s_LightTmpData.spotLightsDirections);
+
+        for (index i = 0; i < numSpotLights; ++i)
+        {
+            outData.spotLights[i].ambient = s_LightTmpData.spotLightsData[i].ambient;
+            outData.spotLights[i].diffuse = s_LightTmpData.spotLightsData[i].diffuse;
+            outData.spotLights[i].specular = s_LightTmpData.spotLightsData[i].specular;
+            outData.spotLights[i].range = s_LightTmpData.spotLightsData[i].range;
+            outData.spotLights[i].spot = s_LightTmpData.spotLightsData[i].spot;
+            outData.spotLights[i].att = s_LightTmpData.spotLightsData[i].att;
+        }
+
+        for (int i = 0; const XMFLOAT3 & pos : s_LightTmpData.spotLightsPositions)
+            outData.spotLights[i++].position = pos;
+
+        for (int i = 0; const XMFLOAT3 & dir : s_LightTmpData.spotLightsDirections)
+            outData.spotLights[i++].direction = dir;
     }
 
-    for (int i = 0; const XMFLOAT3& pos : s_LightTmpData.spotLightsPositions)
-        outData.spotLights[i++].position = pos;
-
-    for (int i = 0; const XMFLOAT3& dir : s_LightTmpData.spotLightsDirections)
-        outData.spotLights[i++].direction = dir;
 }
 
 ///////////////////////////////////////////////////////////

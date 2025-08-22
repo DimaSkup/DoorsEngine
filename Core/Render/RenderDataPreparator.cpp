@@ -373,7 +373,7 @@ void RenderDataPreparator::PrepareEnttsDataForRendering(
     //------------------------------------------------
 
     MaterialID matId = INVALID_MATERIAL_ID;
-    const Material* pMat = nullptr;
+    const Material* pMat = &g_MaterialMgr.GetMatById(matId);
 
     // group entities by materials
     for (vsize i = 0; i < numAllInstances; ++i)
