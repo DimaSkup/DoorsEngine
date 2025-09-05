@@ -16,8 +16,7 @@
 #include "Editor/Panels/EditorPanels.h"
 
 #include "../UI/Text/TextStore.h"
-#include "Shaders/FontShader.h"   // from the Render module
-
+#include <Render/CRender.h>
 
 namespace UI
 {
@@ -53,7 +52,7 @@ public:
 	// Public rendering API
 	void RenderGameUI(
 		ID3D11DeviceContext* pContext,
-		Render::FontShader& fontShader,
+		Render::CRender& render,
 		Core::SystemState& systemState);
 
 	void RenderEditor(Core::SystemState& systemState);
@@ -79,10 +78,10 @@ public:
 	inline uint32_t GetSelectedEntt()                    const { return editorPanels_.enttEditorController_.GetSelectedEnttID(); }
 
 	// gizmo stuff
-	inline void SetGizmoOperation(const int op)                { guiStates_.gizmoOperation = op; }
-	inline void SetGizmoClicked(const bool isClicked)          { guiStates_.isGizmoClicked = isClicked;}
-	inline bool IsGizmoHovered()                         const { return guiStates_.isGizmoHovered; }
-	inline void UseSnapping(const bool use)                    { guiStates_.useSnapping = use;}
+	inline void SetGizmoOperation(const int op)                { g_GuiStates.gizmoOperation = op; }
+	inline void SetGizmoClicked(const bool isClicked)          { g_GuiStates.isGizmoClicked = isClicked;}
+	inline bool IsGizmoHovered()                         const { return g_GuiStates.isGizmoHovered; }
+	inline void UseSnapping(const bool use)                    { g_GuiStates.useSnapping = use;}
 
 private:
 	void LoadDebugInfoStringFromFile(
@@ -94,7 +93,7 @@ private:
 	// debug info for the game mode
 	void RenderDebugInfo(
 		ID3D11DeviceContext* pContext,
-		Render::FontShader& fontShader,
+        Render::CRender& render,
 		const Core::SystemState& sysState);
 
 	DirectX::XMFLOAT2 ComputePosOnScreen(const POINT& drawAt);
@@ -102,7 +101,7 @@ private:
 private:
 	int                windowWidth_ = 800;
 	int                windowHeight_ = 600;
-	StatesGUI          guiStates_;
+
 
 	FontClass          font1_;        // a font class object (represents a font style)
 	TextStore          textStorage_;  // constains strings with debug data: fps, position/rotation, etc.

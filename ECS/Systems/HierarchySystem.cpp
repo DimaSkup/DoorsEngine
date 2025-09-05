@@ -15,13 +15,13 @@ HierarchySystem::HierarchySystem(
 {
     if (!pHierarchyComponent)
     {
-        LogErr("input ptr to the hierarchy component == nullptr");
+        LogErr(LOG, "input ptr to the hierarchy component == nullptr");
         return;
     }
 
     if (!pTransformSys)
     {
-        LogErr("input ptr to the transform system == nullptr");
+        LogErr(LOG, "input ptr to the transform system == nullptr");
         return;
     }
 
@@ -29,30 +29,29 @@ HierarchySystem::HierarchySystem(
     //pHierarchyComponent->data[0] = HierarchyNode();
 }
 
-///////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:  add a child for the entity by ID;
+// Args:  - id:       identifier of entity which will have a new child
+//        - childId:  identifier of entity chich will be a child 
+// Ret:   true if we managed to did it
+//---------------------------------------------------------
 bool HierarchySystem::AddChild(const EntityID id, const EntityID childID)
 {
-    // add a child for the entity by ID;
-    // return true if we managed to did it
-
     Hierarchy& comp = *pHierarchy_;
 
     // if child already has some another parent
     if (comp.data[childID].parentID != 0)
     {
-        sprintf(
-            g_String,
-            "can't add child (id: %ld) for parent (id: %ld) because the child "
+        LogErr(
+            LOG,
+            "can't add child (id: %" PRIu32 " for parent (id: %" PRIu32 ") because the child "
             "is already an element of another hierarchy and has another parent",
             childID, id);
-
-        LogErr(g_String);
         return false;
     }
 
     const XMFLOAT3 parentPos = pTransformSys_->GetPosition(id);
-    const XMFLOAT3 childPos = pTransformSys_->GetPosition(childID);
+    const XMFLOAT3 childPos  = pTransformSys_->GetPosition(childID);
 
     // compute position of child relatively to its parent (offset from parent to child)
     const XMFLOAT3 relPos =
@@ -69,16 +68,43 @@ bool HierarchySystem::AddChild(const EntityID id, const EntityID childID)
     // add a child entity for the parent entity by ID
     comp.data[id].children.insert(childID);
 
-
     return true;
 }
 
-///////////////////////////////////////////////////////
+//---------------------------------------------------------
+// Desc:   update a position of child relatively to its parent
+//---------------------------------------------------------
+void HierarchySystem::UpdateRelativePos(const EntityID childID)
+{
+    Hierarchy& comp = *pHierarchy_;
 
+    if (comp.data.contains(childID))
+    {
+        HierarchyNode& node = comp.data[childID];
+
+        // if we have a parent of this child
+        if (node.parentID)
+        {
+            XMFLOAT3 posParent = pTransformSys_->GetPosition(node.parentID);
+            XMFLOAT3 posChild  = pTransformSys_->GetPosition(childID);
+
+            // compute new relative position
+            node.relativePos =
+            {
+                posChild.x - posParent.x,
+                posChild.y - posParent.y,
+                posChild.z - posParent.z
+            };
+        }
+    }
+}
+
+//---------------------------------------------------------
+// Desc:  set a new parent to child entity;
+//        if necessary we detach this child from its previous parent
+//---------------------------------------------------------
 void HierarchySystem::SetParent(const EntityID childID, const EntityID parentID)
 {
-    // set a new parent to child entity;
-    // if necessary we detach this child from its previous parent
 
     Hierarchy& comp = *pHierarchy_;
 
@@ -91,11 +117,11 @@ void HierarchySystem::SetParent(const EntityID childID, const EntityID parentID)
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   get a position relatively to parent
+//---------------------------------------------------------
 XMFLOAT3 HierarchySystem::GetRelativePos(const EntityID childID) const
 {
-    // get a position relatively to parent
     const Hierarchy& comp = *pHierarchy_;
 
     if (comp.data.contains(childID))
@@ -104,8 +130,7 @@ XMFLOAT3 HierarchySystem::GetRelativePos(const EntityID childID) const
     }
     else
     {
-        sprintf(g_String, "there is no hierarchy data for entity: %d", childID);
-        LogErr(g_String);
+        LogErr(LOG, "there is no hierarchy data for entity: %" PRIu32, childID);
         return { 0,0,0 };
     }
 }

@@ -5,6 +5,7 @@
 // =================================================================================
 #include <CoreCommon/pch.h>
 #include "MaterialAssetsBrowser.h"
+#include <UICommon/StatesGUI.h>
 
 #pragma warning (disable : 4996)
 
@@ -16,14 +17,21 @@ namespace UI
 //---------------------------------------------------------
 void MaterialAssetsBrowser::Initialize(IFacadeEngineToUI* pFacade)
 {
-    if (pFacade)
+    if (!pFacade)
     {
-        size numMaterials = 0;
-        pFacade->GetNumMaterials(numMaterials);
-        numItems_ = (int)numMaterials + 1;
-
-        pFacade->RenderMaterialsIcons(0, numItems_, (int)iconSize_, (int)iconSize_);
+        LogErr(LOG, "can't init materials assets browser: input ptr to UI facade == nullptr");
+        return;
     }
+
+    size numMaterials = 0;
+    pFacade->GetNumMaterials(numMaterials);
+    numItems_ = (int)numMaterials + 1;
+
+    // init frame buffers so we will be able to render material icons into it
+    pFacade->InitMaterialsIcons(numItems_, (int)iconSize_, (int)iconSize_);
+
+    // and immediately render material icons so we won't re-render it each frame
+    pFacade->RenderMaterialsIcons();
 }
 
 //---------------------------------------------------------
@@ -33,9 +41,11 @@ void MaterialAssetsBrowser::Render(IFacadeEngineToUI* pFacade, bool* pOpen)
 {
     if (!pFacade)
     {
-        LogErr("can't render materials browser: input ptr to facade == nullptr");
+        LogErr(LOG, "can't render materials browser: input ptr to facade == nullptr");
         return;
     }
+
+    pFacade_ = pFacade;
 
     ImGui::SetNextWindowContentSize(ImVec2(0.0f, layoutOuterPadding_ + numLayoutLine_ * (layoutItemSize_.y + layoutItemSpacing_)));
 
@@ -48,14 +58,15 @@ void MaterialAssetsBrowser::Render(IFacadeEngineToUI* pFacade, bool* pOpen)
         const int availWidth = (int)ImGui::GetContentRegionAvail().x;
 
         // if we changed the width of the browser's window
-        if ((prevAvailWidth_ != availWidth) || isNeedUpdateIcons_)
+        if ((prevAvailWidth_ != availWidth) || g_GuiStates.needUpdateMatBrowserIcons)
         {
             UpdateLayoutSizes(availWidth);
             prevAvailWidth_ = availWidth;
-            isNeedUpdateIcons_ = false;
+            g_GuiStates.needUpdateMatBrowserIcons = false;
 
-            // update icons images
-            pFacade->RenderMaterialsIcons(0, numItems_, (int)iconSize_, (int)iconSize_);
+            // re-init and re-render materials icons since we have some change
+            pFacade->InitMaterialsIcons(numItems_, (int)iconSize_, (int)iconSize_);
+            pFacade->RenderMaterialsIcons();
         }
 
         // setup start position for debug info rendering
@@ -68,27 +79,15 @@ void MaterialAssetsBrowser::Render(IFacadeEngineToUI* pFacade, bool* pOpen)
         constexpr float offsetFromDbgInfo = 3;
         startPos = ImVec2(startPos.x, startPos.y + textLineHeight + offsetFromDbgInfo);
 
-        DrawMaterialIcons(startPos, pFacade);
+        DrawMaterialIcons(startPos);
         ComputeZooming(startPos, availWidth);
 
-        // context menu when press RMB over some icon
+
         if (showIconContextMenu_)
-        {
-            if (ImGui::BeginPopupContextWindow())
-            {
-                showMaterialEditorWnd_ = ImGui::MenuItem("Edit", "");
-                showMaterialDeleteWnd_ = ImGui::MenuItem("Delete", "");
-
-                // if any option in the context menu was chosed we hide the context menu
-                if (showMaterialEditorWnd_ || showMaterialDeleteWnd_)
-                    showIconContextMenu_ = false;
-
-                ImGui::EndPopup();
-            }
-        }
+            ShowContextMenu();
 
         if (showMaterialEditorWnd_)
-            RenderEditorWnd(pFacade);
+            RenderEditorWnd();
 
         if (showMaterialDeleteWnd_)
             RenderDeleteWnd();
@@ -116,7 +115,7 @@ void MaterialAssetsBrowser::RenderMenuBar(bool* pOpen)
     {
         if (ImGui::BeginMenu("File"))
         {
-            if (ImGui::MenuItem("Close", nullptr, false, pOpen != nullptr))
+            if (ImGui::MenuItem("Close browser", nullptr, false, pOpen != nullptr))
             {
                 *pOpen = false;
             }
@@ -195,7 +194,7 @@ void MaterialAssetsBrowser::RenderDebugInfo(const int availWidth)
 // Desc:  draw a grid of icons where each icon represents some material
 // Args:  - startPos:  a window (children) start position (upper left)
 //---------------------------------------------------------
-void MaterialAssetsBrowser::DrawMaterialIcons(const ImVec2 startPos, IFacadeEngineToUI* pFacade)
+void MaterialAssetsBrowser::DrawMaterialIcons(const ImVec2 startPos)
 {
     // push specific colors
     ImGui::PushStyleColor(ImGuiCol_Header, { 1,1,1,1 });
@@ -239,20 +238,19 @@ void MaterialAssetsBrowser::DrawMaterialIcons(const ImVec2 startPos, IFacadeEngi
                     // select a material when click LMB on some icon
                     if (ImGui::Selectable(buf, isSelected, ImGuiSelectableFlags_None, layoutItemSize_))
                     {
-                        GetMaterialDataByIdx(itemIdx, pFacade);
+                        GetMaterialDataByIdx(itemIdx);
                     }
 
                     // select a material when click RMB on some icon and open context menu
-                    if (ImGui::IsItemHovered(ImGuiHoveredFlags_RectOnly) &&
-                        ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+                    if (ImGui::IsItemHovered(ImGuiHoveredFlags_RectOnly) && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
                     {
-                        GetMaterialDataByIdx(itemIdx, pFacade);
+                        GetMaterialDataByIdx(itemIdx);
                         showIconContextMenu_ = true;
                     }
                
                     // draw texture image icon
                     ImGui::SetCursorScreenPos(pos);
-                    ImGui::Image((ImTextureID)pFacade->materialIcons_[itemIdx], { iconSize_, iconSize_ });
+                    ImGui::Image((ImTextureID)pFacade_->materialIcons_[itemIdx], { iconSize_, iconSize_ });
 
                     // draw label (just index)
                     const ImVec2 boxMin(pos.x - 1, pos.y - 1);
@@ -278,25 +276,32 @@ void MaterialAssetsBrowser::DrawMaterialIcons(const ImVec2 startPos, IFacadeEngi
 //---------------------------------------------------------
 // Desc:   load data of the material by index
 //---------------------------------------------------------
-void MaterialAssetsBrowser::GetMaterialDataByIdx(const int matIdx, IFacadeEngineToUI* pFacade)
+void MaterialAssetsBrowser::GetMaterialDataByIdx(const int matIdx)
 {
-
-
     if ((matIdx < 0) || (matIdx >= numItems_))
     {
         LogErr(LOG, "can't get data for material by idx: %d (is invalid)", matIdx);
         return;
     }
 
-    if (pFacade->GetMaterialIdByIdx(matIdx, selectedMaterialItemID_))
+    if (pFacade_->GetMaterialIdByIdx(matIdx, selectedMaterialItemID_))
     {
         selectedItemIdx_ = matIdx;                        // update index so the icon of this material will be shown as selected
         materialWasChanged_ = true;                       // material was changed since the prev frame
 
-        pFacade->GetMaterialNameById(
+        pFacade_->GetMaterialNameById(
             selectedMaterialItemID_,
             selectedMaterialName_,
             MAX_LENGTH_MATERIAL_NAME);
+
+        pFacade_->GetMaterialTexIds(
+            selectedMaterialItemID_,
+            matData_.textureIDs);
+
+        pFacade_->GetTexViewsByIds(
+            matData_.textureIDs,
+            matData_.textures,
+            NUM_TEXTURE_TYPES);
     }
 }
 
@@ -330,7 +335,7 @@ void MaterialAssetsBrowser::ComputeZooming(const ImVec2 startPos, const int avai
             iconSize_ *= powf(1.1f, zoomWheelAccum_);
             iconSize_ = std::clamp(iconSize_, 16.0f, 512.0f);
             zoomWheelAccum_ -= (int)zoomWheelAccum_;
-            isNeedUpdateIcons_ = true;
+            g_GuiStates.needUpdateMatBrowserIcons = true;
             UpdateLayoutSizes(availWidth);
             
 
@@ -350,38 +355,46 @@ void MaterialAssetsBrowser::ComputeZooming(const ImVec2 startPos, const int avai
 // Desc:   show a window which is used to edit a chosen material
 // NOTE:   we split into half this window (left: preview; right: editing fields)
 //---------------------------------------------------------
-void MaterialAssetsBrowser::RenderEditorWnd(IFacadeEngineToUI* pFacade)
+void MaterialAssetsBrowser::RenderEditorWnd()
 {
     // always center this window when appearing
     const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-    const ImVec2 size   = ImGui::GetMainViewport()->Size / 2;
+    const float sizeX   = ImGui::GetMainViewport()->Size.x * 0.5f;
+    const float sizeY   = ImGui::GetMainViewport()->Size.y * 0.66f;
     ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-    ImGui::SetNextWindowSize(size, ImGuiCond_Appearing);
+    ImGui::SetNextWindowSize(ImVec2(sizeX, sizeY), ImGuiCond_Appearing);
 
 
-    if (ImGui::Begin("Material editor", &showMaterialEditorWnd_))
+    if (ImGui::Begin("Material editor", &showMaterialEditorWnd_, ImGuiWindowFlags_NoScrollbar))
     {
         const ImVec2 wndPos     = ImGui::GetWindowPos();
         const ImVec2 availReg   = ImGui::GetContentRegionAvail();
         const float halfWidth   = availReg.x / 2;
-        constexpr float padding = 40.0f;
+        constexpr ImVec2 padding = { 20.0f, 40.0f };
+
+        const ImVec2 wndPos1 = wndPos + padding;
+        const ImVec2 wndPos2 = wndPos + padding + ImVec2(halfWidth, 0);
 
         // render material preview (model + material)
-        ImGui::SetNextWindowPos(ImVec2(wndPos.x + padding, wndPos.y + padding));
+        ImGui::SetNextWindowPos(wndPos1);
 
-        if (ImGui::BeginChild("Material preview", ImVec2(halfWidth, availReg.y)))
+        if (ImGui::BeginChild("Material preview", ImVec2(halfWidth-padding.x, availReg.y)))
         {
-            RenderMatPreview(pFacade);
+            RenderMatPreview();
         }
         ImGui::EndChild();
 
 
         // render material properties fields 
-        ImGui::SetNextWindowPos(ImVec2(wndPos.x + halfWidth, wndPos.y + padding));
+        ImGui::SetNextWindowPos(wndPos2);
 
-        if (ImGui::BeginChild("Material props", ImVec2(halfWidth, availReg.y)))
+        if (ImGui::BeginChild("Material props", ImVec2(halfWidth-padding.x, availReg.y)))
         {
-            RenderMatPropsFields(pFacade);
+            RenderMatPropsFields();
+
+            if (showTextureContextMenu_)
+                ShowTextureContextMenu();
+
         } 
         ImGui::EndChild();
     }
@@ -392,49 +405,80 @@ void MaterialAssetsBrowser::RenderEditorWnd(IFacadeEngineToUI* pFacade)
 // Desc:   in editor window of a single material we render some shape to visualize
 //         this material (it can be sphere/cube/teapot/etc. with this material)
 //---------------------------------------------------------
-void MaterialAssetsBrowser::RenderMatPreview(IFacadeEngineToUI* pFacade)
+void MaterialAssetsBrowser::RenderMatPreview()
 {
+    const MaterialID matId = selectedMaterialItemID_;
+
+    const ImVec2 wndPos   = ImGui::GetItemRectMin();
+    const ImVec2 availReg = ImGui::GetContentRegionAvail();
+    const int iAvailRegX  = (int)availReg.x;
+    const int iAvailRegY  = (int)availReg.y;
+    const int smallerSide = min(iAvailRegX, iAvailRegY);
+    const int iIconSize   = smallerSide;
+    const float fIconSize = (float)smallerSide;
+
+    if (!pFacade_->InitMaterialBigIcon(iIconSize, iIconSize))
+    {
+        LogErr(LOG, "can't init a material's big icon");
+    }
+
     ImGui::Text("Edit material:");
-    ImGui::Text("ID:   %ld", selectedMaterialItemID_);
+    ImGui::Text("ID:   %ld", matId);
     ImGui::Text("Name: %s", selectedMaterialName_);
     ImGui::Separator();
 
     // if we selected another material we need to reload its data
-    if (matData_.id != selectedMaterialItemID_)
-        pFacade->GetMaterialDataById(selectedMaterialItemID_, matData_);
+    if (matData_.id != matId)
+        pFacade_->GetMaterialDataById(matId, matData_);
 
-    if (rotateMaterialBigIcon_)
-        materialSphereRotationY_ += pFacade->deltaTime;
+    // material shape (sphere, cube, etc.) rotation
+    materialSphereRotationY_ += (pFacade_->deltaTime * rotateMaterialBigIcon_);
 
-    // render material image (sphere + single material)
-    pFacade->RenderMaterialBigIconByID(selectedMaterialItemID_, 256, 256, materialSphereRotationY_);
-    ImGui::Image((ImTextureID)pFacade->pMaterialBigIcon_, { 256, 256 });
+    // render material image
+    pFacade_->RenderMaterialBigIconById(matId, materialSphereRotationY_);
+
+    const ImVec2 imgSize = { fIconSize, fIconSize };
+    ImGui::Image((ImTextureID)pFacade_->pMaterialBigIcon_, imgSize);
 
     // rotate a preview sphere when mouse is over image and LMB is down
     if (ImGui::IsItemHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Left))
     {
         ImGuiIO& io = ImGui::GetIO();
-        materialSphereRotationY_ += (io.MouseDelta.x * pFacade->deltaTime);
+        materialSphereRotationY_ += (io.MouseDelta.x * pFacade_->deltaTime);
     }
 }
 
 //---------------------------------------------------------
 // Desc:   draw fields for editing material properties
 //---------------------------------------------------------
-void MaterialAssetsBrowser::RenderMatPropsFields(IFacadeEngineToUI* pFacade)
+void MaterialAssetsBrowser::RenderMatPropsFields()
 {
     ImGui::Checkbox("Rotate preview", &rotateMaterialBigIcon_);
 
     bool matColorChanged = false;
-    matColorChanged |= ImGui::DragFloat4("Ambient",        matData_.ambient.xyzw,  0.01f, 0.0f, 1.0f);
-    matColorChanged |= ImGui::DragFloat4("Diffuse",        matData_.diffuse.xyzw,  0.01f, 0.0f, 1.0f);
-    matColorChanged |= ImGui::DragFloat3("Specular",       matData_.specular.xyzw, 0.01f, 0.0f, 1.0f);
-    matColorChanged |= ImGui::DragFloat("Specular power", &matData_.specular.w,    0.1f,  0.0f, 256.0f);
-    matColorChanged |= ImGui::DragFloat4("Reflect",        matData_.reflect.xyzw,  0.01f, 0.0f, 1.0f);
+    ImGui::Text("Ambient color ....................");
+    ImGui::SameLine();
+    matColorChanged |= ImGui::ColorEdit4("Ambient", matData_.ambient.xyzw, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+
+    ImGui::Text("Diffuse color ......................");
+    ImGui::SameLine();
+    matColorChanged |= ImGui::ColorEdit4("Diffuse", matData_.diffuse.xyzw, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+
+    ImGui::Text("Specular color ...................");
+    ImGui::SameLine();
+    matColorChanged |= ImGui::ColorEdit4("Specular", matData_.specular.xyzw, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+
+    ImGui::Text("Reflect color ......................");
+    ImGui::SameLine();
+    matColorChanged |= ImGui::ColorEdit4("Reflect", matData_.reflect.xyzw, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+
+    ImGui::Text("Glossiness");
+    ImGui::SameLine();
+    matColorChanged |= ImGui::DragFloat("##glossiness", &matData_.specular.w, 0.1f, 0.0f, 256.0f);
 
     if (matColorChanged)
     {
-        pFacade->SetMaterialColorData(
+        pFacade_->SetMaterialColorData(
             matData_.id,
             matData_.ambient,
             matData_.diffuse,
@@ -447,26 +491,26 @@ void MaterialAssetsBrowser::RenderMatPropsFields(IFacadeEngineToUI* pFacade)
     // render selectors for choosing render state params of material
     using enum eMaterialPropGroup;
 
-    RenderStatesSelectors("Select fill mode", FILL, pFacade, matData_.selectedFillModeIdx);
-    RenderStatesSelectors("Select cull mode", CULL, pFacade, matData_.selectedCullModeIdx);
+    if (ImGui::TreeNode("Select render state"))
+    {
 
-    RenderStatesSelectors(
-        "Select blend state",
-        BLENDING,
-        pFacade,
-        matData_.selectedBlendStateIdx);
+        RenderStatesSelectors("Select fill mode", FILL, matData_.selectedFillModeIdx);
+        RenderStatesSelectors("Select cull mode", CULL, matData_.selectedCullModeIdx);
 
-    RenderStatesSelectors(
-        "Select depth-stencil state",
-        DEPTH_STENCIL,
-        pFacade,
-        matData_.selectedDepthStencilStateIdx);
+        RenderStatesSelectors("Select blend state",         BLENDING,      matData_.selectedBlendStateIdx);
+        RenderStatesSelectors("Select depth-stencil state", DEPTH_STENCIL, matData_.selectedDepthStencilStateIdx);
+
+        ImGui::TreePop();
+    }
+
+    DrawShadersSelectors();
+    DrawRelatedTextures();
 
 
     // apply changes (if we have any)
     if (ImGui::Button("Apply", ImVec2(120, 0)))
     {
-        isNeedUpdateIcons_ = true;
+        g_GuiStates.needUpdateMatBrowserIcons = true;
         showMaterialEditorWnd_ = false;
     }
     if (ImGui::Button("Cancel", ImVec2(120, 0)))
@@ -524,7 +568,6 @@ void MaterialAssetsBrowser::RenderDeleteWnd()
 void MaterialAssetsBrowser::RenderStatesSelectors(
     const char* label,
     const eMaterialPropGroup statesType,
-    IFacadeEngineToUI* pFacade,
     index& selectedStateIdx)
 {
     if (StrHelper::IsEmpty(label))
@@ -535,16 +578,17 @@ void MaterialAssetsBrowser::RenderStatesSelectors(
 
     if (ImGui::TreeNode(label))
     {
+        // TODO: maybe optimize somehow (to prevent dynamic alloc each time)
         // get names of each state for the current render states group
         cvector<std::string> statesNames;
-        pFacade->GetMaterialRenderStateNames(statesType, statesNames);
+        pFacade_->GetMaterialRenderStateNames(statesType, statesNames);
 
 
         for (index idx = 0; idx < statesNames.size(); ++idx)
         {
             if (ImGui::Selectable(statesNames[idx].c_str(), selectedStateIdx == idx))
             {
-                pFacade->SetMaterialRenderState(matData_.id, (uint32)idx, statesType);
+                pFacade_->SetMaterialRenderState(matData_.id, (uint32)idx, statesType);
                 selectedStateIdx = idx;
             }
         }
@@ -552,6 +596,212 @@ void MaterialAssetsBrowser::RenderStatesSelectors(
         ImGui::TreePop();
     }
     ImGui::Separator();
+}
+
+//---------------------------------------------------------
+// Desc:   draw a selection menu where we can
+//         switch rendering shader for the chosen material
+//---------------------------------------------------------
+void MaterialAssetsBrowser::DrawShadersSelectors()
+{
+    if (ImGui::TreeNode("Select shader"))
+    {
+        // TODO: maybe optimize somehow (to prevent dynamic alloc each time)
+        cvector<ShaderData> shaderData;
+        pFacade_->GetShadersIdAndName(shaderData);
+
+        // currently selected shader of currently selected material
+        ShaderID& selectedShaderId = matData_.shaderId;
+
+
+        for (index idx = 0; idx < shaderData.size(); ++idx)
+        {
+            const char* name  = shaderData[idx].name;
+            const ShaderID id = shaderData[idx].id;
+
+            if (ImGui::Selectable(name, selectedShaderId == id))
+            {
+                // try to set a shader for material
+                if (pFacade_->SetMaterialShaderId(matData_.id, id))
+                    selectedShaderId = id;
+            }
+        }
+
+        ImGui::TreePop();
+    }
+    ImGui::Separator();
+}
+
+//---------------------------------------------------------
+// Desc:   draw a list of textures which are bounded to the chosen material
+//         (so we will be able to change them)
+//---------------------------------------------------------
+void MaterialAssetsBrowser::DrawRelatedTextures()
+{
+    // push specific colors for borders around textures icons
+    ImGui::PushStyleColor(ImGuiCol_Header, { 1,1,1,1 });
+    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, { 1,1,1,1 });
+    ImGui::PushStyleColor(ImGuiCol_HeaderActive, { 1,1,1,1 });
+
+    ImGui::SetNextItemOpen(true, ImGuiCond_Appearing);
+    if (ImGui::TreeNode("Textures"))
+    {
+        ImVec2 wndPos = ImGui::GetItemRectMin();
+        ImVec2 availReg = ImGui::GetItemRectSize();
+
+        const char texTypesNames[NUM_TEXTURE_TYPES + 1][32] =
+        {
+            "NONE",
+            "DIFFUSE",
+            "SPECULAR",
+            "AMBIENT",
+            "EMISSIVE",
+            "HEIGHT",
+            "NORMALS",
+            "SHININESS",
+            "OPACITY",
+            "DISPLACEMENT",
+            "LIGHTMAP",
+            "REFLECTION",
+            "BASE_COLOR",
+            "NORMAL_CAMERA",
+            "EMISSION_COLOR",
+            "METALNESS",
+            "DIFFUSE_ROUGHNESS",
+            "AMBIENT_OCCLUSION",
+            "UNKNOWN",
+            "SHEEN",
+            "CLEARCOAT",
+            "TRANSMISSION"
+        };
+
+
+        const ImVec2 iconSize    = { 96.0f, 96.0f };
+        const ImVec2 padding     = { 20.0f, 20.0f };
+
+        // setup upper-left position of the table
+        ImGui::SetNextWindowPos(wndPos + padding);
+
+        constexpr ImGuiTableFlags flags =
+            ImGuiTableFlags_Borders |
+            ImGuiTableFlags_BordersH |
+            ImGuiTableFlags_BordersV |
+            ImGuiTableFlags_BordersOuterH |
+            ImGuiTableFlags_BordersOuterV |
+            ImGuiTableFlags_BordersInnerH |
+            ImGuiTableFlags_BordersInnerV |
+            ImGuiTableFlags_BordersOuter |
+            ImGuiTableFlags_BordersInner;
+
+        enum ContentsType { CT_Text, CT_FillButton };
+        static int contents_type = CT_Text;
+
+        if (ImGui::BeginTable("table", 2, flags))
+        {
+            const ImVec2 borderSize = { 2.0f, 2.0f };
+            const float minRowHeight = iconSize.y + borderSize.y*4;
+
+            for (index i = 0; i < NUM_TEXTURE_TYPES; ++i)
+            {
+                const TexID id = matData_.textureIDs[i];
+                const ID3D11ShaderResourceView* pSRV = matData_.textures[i];
+                
+                if (id != INVALID_TEXTURE_ID)
+                {
+                    ImGui::TableNextRow(ImGuiTableRowFlags_None, minRowHeight);
+
+                    // first column (texture info)
+                    ImGui::TableNextColumn();
+                    //ImGui::TableSetColumnIndex(0);
+                    ImGui::Text("ID: %" PRIu32, id);
+                    ImGui::Text("Type: %s (%d)", texTypesNames[i], (int)i);
+
+                   
+
+                    ImGui::TableNextColumn();
+
+                    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 1,1,1,1 });
+                    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, borderSize);
+
+                    char imgButtonId[32]{ '\0' };
+                    snprintf(imgButtonId, 32, "##tex_icon %d", (int)id);
+                    ImGui::ImageButton(imgButtonId, (ImTextureID)pSRV, iconSize);
+
+                    // select a texture when click RMB on some icon and open a context menu
+                    if (ImGui::IsItemHovered(ImGuiHoveredFlags_RectOnly) && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+                    {
+                        textureContextMenuPos_ = ImGui::GetIO().MousePos;
+                        showTextureContextMenu_ = true;
+                    }
+
+                    ImGui::PopStyleColor();
+                    ImGui::PopStyleVar();
+
+#if 0
+                     // second column (image)
+                    const ImVec2 cellPos = ImGui::GetCursorScreenPos();
+                    const ImVec2 bgPos   = cellPos - borderSize;
+                    const ImVec2 bgSize  = iconSize + borderSize * 2.0f;
+
+                    char imgButtonId[32]{ '\0' };
+                    snprintf(imgButtonId, 32, "##tex_icon %d", (int)id);
+
+                    // render a border around this icon
+                    ImGui::SetCursorScreenPos(bgPos);
+                    ImGui::Selectable(imgButtonId, false, ImGuiSelectableFlags_None, bgSize);
+
+                    // draw texture image icon
+                    ImGui::SetCursorScreenPos(cellPos);
+                    ImGui::Image((ImTextureID)pSRV, iconSize);
+#endif               
+                }
+            }
+
+            ImGui::EndTable();
+        }
+
+        ImGui::TreePop();
+    }
+
+    ImGui::PopStyleColor(3);
+}
+
+//---------------------------------------------------------
+// Desc:  render a context menu after pressing RMB over some icon
+//---------------------------------------------------------
+void MaterialAssetsBrowser::ShowContextMenu()
+{
+    if (ImGui::BeginPopupContextWindow())
+    {
+        showMaterialEditorWnd_ = ImGui::MenuItem("Edit", "");
+        showMaterialDeleteWnd_ = ImGui::MenuItem("Delete", "");
+
+        // if any option in the context menu was chosed we hide the context menu
+        if (showMaterialEditorWnd_ || showMaterialDeleteWnd_)
+            showIconContextMenu_ = false;
+
+        ImGui::EndPopup();
+    }
+}
+
+//---------------------------------------------------------
+// Desc:  render a context menu after pressing RMB over some icon
+//---------------------------------------------------------
+void MaterialAssetsBrowser::ShowTextureContextMenu()
+{
+    ImGui::SetNextWindowPos(textureContextMenuPos_);
+
+    if (ImGui::BeginPopupContextWindow())
+    {
+        showTextureSelectionMenu_ = ImGui::MenuItem("Select", "");
+        showTextureLoadingWnd_    = ImGui::MenuItem("Load new", "");
+
+        // if any option in the context menu was chosed we hide the context menu
+        if (showTextureSelectionMenu_ || showTextureLoadingWnd_)
+            showTextureContextMenu_ = false;
+
+        ImGui::EndPopup();
+    }
 }
 
 } // namespace UI

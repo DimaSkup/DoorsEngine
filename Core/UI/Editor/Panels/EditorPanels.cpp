@@ -12,11 +12,8 @@
 namespace UI
 {
 
-EditorPanels::EditorPanels(StatesGUI* pStatesGUI) :
-    enttEditorController_(pStatesGUI),
-    pStatesGUI_(pStatesGUI)
+EditorPanels::EditorPanels()
 {
-    CAssert::NotNullptr(pStatesGUI, "input ptr to the GUI states container == nullptr");
 }
 
 
@@ -26,25 +23,25 @@ EditorPanels::EditorPanels(StatesGUI* pStatesGUI) :
 void EditorPanels::Initialize(IFacadeEngineToUI* pFacade)
 {
     CAssert::NotNullptr(pFacade, "ptr to the facade interface == nullptr");
-    pFacadeEngineToUI_ = pFacade;
+    pFacade_ = pFacade;
 
-    enttEditorController_.Initialize(pFacadeEngineToUI_);
-    fogEditorController_.Initialize(pFacadeEngineToUI_);
-    skyEditorController_.Initialize(pFacadeEngineToUI_);
+    enttEditorController_.Initialize(pFacade_);
+    fogEditorController_.Initialize(pFacade_);
+    skyEditorController_.Initialize(pFacade_);
 
-    debugEditor_.Initialize(pFacadeEngineToUI_);
+    debugEditor_.Initialize(pFacade_);
 
-    texturesBrowser_.Initialize(pFacadeEngineToUI_);
-    materialsBrowser_.Initialize(pFacadeEngineToUI_);
+    texturesBrowser_.Initialize(pFacade_);
+    materialsBrowser_.Initialize(pFacade_);
 }
 
 ///////////////////////////////////////////////////////////
 
 void EditorPanels::Render(Core::SystemState& sysState)
 {
-    if (pFacadeEngineToUI_ == nullptr)
+    if (pFacade_ == nullptr)
     {
-        LogErr("you have to initialize a ptr to the facade interface!");
+        LogErr(LOG, "you have to initialize a ptr to the facade interface!");
         return;
     }
 
@@ -54,12 +51,12 @@ void EditorPanels::Render(Core::SystemState& sysState)
     RenderLogPanel();
     RenderEditorEventHistory();
 
-    if (pStatesGUI_->showWndModelsBrowser)
+    if (g_GuiStates.showWndModelsBrowser)
         RenderModelsBrowser();
-    if (pStatesGUI_->showWndTexturesBrowser)
+    if (g_GuiStates.showWndTexturesBrowser)
         RenderTexturesBrowser();
 
-    if (pStatesGUI_->showWndMaterialsBrowser)
+    if (g_GuiStates.showWndMaterialsBrowser)
         RenderMaterialsBrowser();
 
     
@@ -67,9 +64,9 @@ void EditorPanels::Render(Core::SystemState& sysState)
     //RenderWndModelAssetsCreation()
 
     // show modal window for entity creation
-    if (pStatesGUI_->showWndEnttCreation)
+    if (g_GuiStates.showWndEnttCreation)
     {
-        RenderWndEntityCreation(&pStatesGUI_->showWndEnttCreation, pFacadeEngineToUI_);
+        RenderWndEntityCreation(&g_GuiStates.showWndEnttCreation, pFacade_);
     }
 }
 
@@ -107,9 +104,9 @@ void EditorPanels::RenderLogPanel()
 
 void EditorPanels::RenderModelsBrowser()
 {
-    if (ImGui::Begin("Models browser", &pStatesGUI_->showWndTexturesBrowser))
+    if (ImGui::Begin("Models browser", &g_GuiStates.showWndTexturesBrowser))
     {
-        modelsAssetsList_.LoadModelsNamesList(pFacadeEngineToUI_);
+        modelsAssetsList_.LoadModelsNamesList(pFacade_);
         modelsAssetsList_.PrintModelsNamesList();
     }
     ImGui::End();
@@ -123,10 +120,10 @@ void EditorPanels::RenderTexturesBrowser()
 
     ImGui::SetNextWindowSize(texturesBrowser_.GetBrowserWndSize(), ImGuiCond_FirstUseEver);
 
-    if (ImGui::Begin("Textures browser", &pStatesGUI_->showWndTexturesBrowser, ImGuiWindowFlags_MenuBar))
+    if (ImGui::Begin("Textures browser", &g_GuiStates.showWndTexturesBrowser, ImGuiWindowFlags_MenuBar))
     {
         // render the textures icons (visualize the texture)
-        texturesBrowser_.Render(pFacadeEngineToUI_, &pStatesGUI_->showWndTexturesBrowser);
+        texturesBrowser_.Render(pFacade_, &g_GuiStates.showWndTexturesBrowser);
 
         if (texturesBrowser_.TexWasChanged())
         {
@@ -142,25 +139,17 @@ void EditorPanels::RenderMaterialsBrowser()
 {
     ImGui::SetNextWindowSize(texturesBrowser_.GetBrowserWndSize(), ImGuiCond_FirstUseEver);
 
-    if (ImGui::Begin("Materials browser", &pStatesGUI_->showWndMaterialsBrowser, ImGuiWindowFlags_MenuBar))
+    if (ImGui::Begin("Materials browser", &g_GuiStates.showWndMaterialsBrowser, ImGuiWindowFlags_MenuBar))
     {
-        materialsBrowser_.Render(pFacadeEngineToUI_, &pStatesGUI_->showWndMaterialsBrowser);
-
-        if (materialsBrowser_.WasMaterialChanged())
-        {
-            // TODO: this is temporal to simply test functional (for changing texture of the entity)
-            //const MaterialID currSelectedMat = materialsBrowser_.GetSelectedMaterialID();
-            //const EntityID currSelectedEntt = enttEditorController_.GetSelectedEnttID();
-            //pFacadeEngineToUI_->SetEnttMaterial(currSelectedEntt, 0, currSelectedMat);
-        }
-        //for (ID3D11ShaderResourceView* pIconTex : pFacade->pMaterialIcons_)
-        //    ImGui::Image((ImTextureID)pIconTex, { 200, 200 });
+        materialsBrowser_.Render(pFacade_, &g_GuiStates.showWndMaterialsBrowser);
     }
     ImGui::End();    
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   render a list of editor events  (changing position of entities,
+//         changing terrain geometry, and other such stuff)
+//---------------------------------------------------------
 void EditorPanels::RenderEditorEventHistory()
 {
     if (ImGui::Begin("Events history"))
@@ -177,20 +166,20 @@ void EditorPanels::RenderEditorEventHistory()
     ImGui::End();
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   render editor elements which are responsible for rendering 
+//         the scene hierarchy list, etc.
+//---------------------------------------------------------
 void EditorPanels::RenderEntitiesListWnd(Core::SystemState& sysState)
 {
-    // render editor elements which are responsible for rendering 
-    // the scene hierarchy list, etc.
 
-    if (ImGui::Begin("Entities List", &pStatesGUI_->showWndEnttsList))
+    if (ImGui::Begin("Entities List", &g_GuiStates.showWndEnttsList))
     {
-        const uint32_t* pEnttsIDs = nullptr;
+        const uint32* pEnttsIDs = nullptr;
         int numEntts = 0;
 
         // get an ID of each entity on the scene
-        pFacadeEngineToUI_->GetAllEnttsIDs(pEnttsIDs, numEntts);
+        pFacade_->GetAllEnttsIDs(pEnttsIDs, numEntts);
 
 
 
@@ -201,7 +190,7 @@ void EditorPanels::RenderEntitiesListWnd(Core::SystemState& sysState)
         // get a name of each entity on the scene
         for (int i = 0; std::string& name : enttsNames)
         {
-            pFacadeEngineToUI_->GetEnttNameById(pEnttsIDs[i++], name);
+            pFacade_->GetEnttNameById(pEnttsIDs[i++], name);
         }
 
 
@@ -222,9 +211,8 @@ void EditorPanels::RenderEntitiesListWnd(Core::SystemState& sysState)
                 // to this item in world and fix on in
                 if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
                 {
-                    pFacadeEngineToUI_->FocusCameraOnEntity(id);
-                    pStatesGUI_->gizmoOperation = 7;   // ImGizmo::OPERATION::TRANSLATE
-                    //LogMsg("double click on: " + enttsNames[i], eConsoleColor::YELLOW);
+                    pFacade_->FocusCameraOnEntity(id);
+                    g_GuiStates.gizmoOperation = 7;   // ImGizmo::OPERATION::TRANSLATE
                 }
             }
         }
@@ -232,8 +220,9 @@ void EditorPanels::RenderEntitiesListWnd(Core::SystemState& sysState)
     ImGui::End();
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   render a panel with debug info and some fields for debugging 
+//---------------------------------------------------------
 void EditorPanels::RenderDebugPanel(const Core::SystemState& systemState)
 {
     if (ImGui::Begin("Debug"))
@@ -264,42 +253,77 @@ void EditorPanels::RenderDebugPanel(const Core::SystemState& systemState)
     ImGui::End();
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   render editor elements which are responsible for editing of:
+//         sky, scene fog, entities, grass, etc.
+//---------------------------------------------------------
 void EditorPanels::RenderPropertiesControllerWnd()
 {
-    // render editor elements which are responsible for editing of:
-    // sky, scene fog, entities, etc.
-
-    if (ImGui::Begin("Properties"), &pStatesGUI_->showWndEnttProperties)
+    if (ImGui::Begin("Properties"), &g_GuiStates.showWndEnttProperties)
     {
         // if we have selected any entity
         if (enttEditorController_.selectedEnttData_.IsSelectedAnyEntt())
             enttEditorController_.Render();
         
 
-        // show fog editor
         if (ImGui::TreeNodeEx("FogEditor", ImGuiTreeNodeFlags_SpanFullWidth))
         {
             fogEditorController_.Draw();
             ImGui::TreePop();
         }
 
+
         if (ImGui::TreeNodeEx("SkyEditor", ImGuiTreeNodeFlags_SpanFullWidth))
         {
             skyEditorController_.Draw();
+            ImGui::TreePop();
+        }
+
+
+        if (ImGui::TreeNodeEx("GrassEditor", ImGuiTreeNodeFlags_SpanFullWidth))
+        {
+            float distFullSize = pFacade_->GetGrassDistFullSize();
+            float distVisible  = pFacade_->GetGrassDistVisible();
+
+            if (ImGui::DragFloat("dist full size", &distFullSize, 1.0f, 0.0f, distVisible))
+                pFacade_->SetGrassDistFullSize(distFullSize);
+
+            if (ImGui::DragFloat("dist visible", &distVisible, 1.0f, distFullSize))
+                pFacade_->SetGrassDistVisible(distVisible);
+
+            ImGui::TreePop();
+        }
+
+
+        if (ImGui::TreeNodeEx("TerrainEditor", ImGuiTreeNodeFlags_SpanFullWidth))
+        {
+            int numMaxLOD = pFacade_->GetTerrainNumMaxLOD();
+
+            for (int i = 0; i <= numMaxLOD; ++i)
+            {
+                int dist = pFacade_->GetTerrainDistanceToLOD(i);
+
+                ImGui::Text("LOD %d:  ", i);
+                ImGui::SameLine();
+                ImGui::PushID(i);
+                if (ImGui::DragInt("distance", &dist, 1.0f, 0))
+                {
+                    pFacade_->SetTerrainDistanceToLOD(i, dist);
+                }
+                ImGui::PopID();
+            }
+
             ImGui::TreePop();
         }
     }
     ImGui::End();
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   render a modal window for loading/importing/generation of assets
+//---------------------------------------------------------
 void EditorPanels::RenderWndModelAssetsCreation(bool* pOpen)
 {
-    // render a modal window for loading/importing/generation of assets
-
     ImGuiViewport* pViewport = ImGui::GetMainViewport();
 
     const ImVec2 wndSize     = { 0.5f * pViewport->Size.x, 0.5f * pViewport->Size.y };

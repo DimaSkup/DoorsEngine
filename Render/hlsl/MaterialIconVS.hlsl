@@ -1,18 +1,17 @@
 
-//
+//////////////////////////////////
 // CONSTANT BUFFERS
-//
-cbuffer cbVSRareChanged : register(b10)
+//////////////////////////////////
+cbuffer cbVSRareChanged : register(b1)
 {
-    matrix gWorldMatrix;
+    matrix gWorld;
     matrix gViewProj;
 }
 
 
-
-//
+//////////////////////////////////
 // TYPEDEFS
-//
+//////////////////////////////////
 struct VS_IN
 {
     // data per vertex
@@ -31,23 +30,22 @@ struct VS_OUT
     float2 tex       : TEXCOORD;
 };
 
-//
+//////////////////////////////////
 // VERTEX SHADER
-//
+//////////////////////////////////
 VS_OUT VS(VS_IN vin)
 {
     VS_OUT vout;
 
     // transform pos from local to world space
-    vout.posW       = mul(float4(vin.posL, 1.0f), gWorldMatrix).xyz;
+    vout.posW       = mul(float4(vin.posL, 1.0f), gWorld).xyz;
 
     // transform to homogeneous clip space
     vout.posH       = mul(float4(vout.posW, 1.0f), gViewProj);
 
-
     // just copy the rest values into the output struct
-    vout.normalW    = mul(float4(vin.normalL, 1.0f), gWorldMatrix).xyz;
-    vout.tangentW   = mul(float4(vin.tangentL, 1.0f), gWorldMatrix).xyz;
+    vout.normalW    = mul(float4(vin.normalL, 1.0f), gWorld).xyz;
+    vout.tangentW   = mul(float4(vin.tangentL, 1.0f), gWorld).xyz;
     vout.tex        = vin.tex;
 
     return vout;

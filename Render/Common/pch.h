@@ -9,6 +9,5 @@
 #include "cvector.h"
 #include "Types.h"
 #include "FileSystem.h"
-#include "InputLayouts.h"
 
 #pragma warning (disable : 4996)

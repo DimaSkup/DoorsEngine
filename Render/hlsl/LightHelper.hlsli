@@ -79,7 +79,7 @@ void ComputeDirectionalLight(
     ambient = mat.ambient * L.ambient;
 
     // use Lambert's cosine law to define a magnitude of the light intensity
-    float diffuseFactor = dot(lightVec, normal);
+    float diffuseFactor = saturate(dot(lightVec, normal));
 
     // flatten to avoit dynamic branching
     [flatten]

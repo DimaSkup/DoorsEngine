@@ -11,6 +11,28 @@
 namespace Render
 {
 
+// =================================================================================
+// ENUMS
+// =================================================================================
+enum eDebugState
+{
+    DBG_TURN_OFF,               // turn off the debug shader and use the default shader
+    DBG_SHOW_NORMALS,
+    DBG_SHOW_TANGENTS,
+    DBG_SHOW_BUMPED_NORMALS,
+    DBG_SHOW_ONLY_LIGTHING,
+    DBG_SHOW_ONLY_DIRECTED_LIGHTING,
+    DBG_SHOW_ONLY_POINT_LIGHTING,
+    DBG_SHOW_ONLY_SPOT_LIGHTING,
+    DBG_SHOW_ONLY_DIFFUSE_MAP,
+    DBG_SHOW_ONLY_NORMAL_MAP,
+    DBG_WIREFRAME,
+    DBG_SHOW_MATERIAL_AMBIENT,
+    DBG_SHOW_MATERIAL_DIFFUSE,
+    DBG_SHOW_MATERIAL_SPECULAR,
+    DBG_SHOW_MATERIAL_REFLECTION,
+};
+
 namespace ConstBufType
 {
     struct InstancedData
@@ -29,24 +51,46 @@ namespace ConstBufType
 
     // ----------------------------------------------------
 
-    struct cbvsPerFrame
+    struct DebugMode
+    {
+        int debugType = eDebugState::DBG_SHOW_NORMALS;
+    };
+
+
+    //===============================================================
+
+    struct ViewProj
     {
         // a structure for vertex shader data which is changed each frame
         DirectX::XMMATRIX  viewProj;
     };
 
-    struct Position
-    {
-        DirectX::XMFLOAT3 posW;
-    };
 
-    // ----------------------------------------------------
-
-    struct WorldViewProj
+    struct WorldAndViewProj
     {
         DirectX::XMMATRIX world    = DirectX::XMMatrixIdentity();
         DirectX::XMMATRIX viewProj = DirectX::XMMatrixIdentity();
     };
+
+
+    struct WorldViewProj
+    {
+        DirectX::XMMATRIX worldViewProj = DirectX::XMMatrixIdentity();
+    };
+
+
+    struct WorldViewOrtho
+    {
+        DirectX::XMMATRIX worldViewOrtho = DirectX::XMMatrixIdentity();
+    };
+
+    struct Position
+    {
+        DirectX::XMFLOAT3 posW = {-1,-1,-1};
+    };
+
+    //===============================================================
+
 
     struct MaterialData
     {
@@ -85,65 +129,39 @@ namespace ConstBufType
         int                fogEnabled = true;        // turn on/off the fog effect     
         int                turnOnFlashLight = false;       // turn on/off the flashlight
         int                alphaClipping = false;       // do we use alpha clipping?
-    };
 
-    // ----------------------------------------------------
-
-    
-    struct cbvsPerFrame_SkyDome
-    {
-        // const buffer data structure for the VS of the sky dome shader
-        DirectX::XMMATRIX worldViewProj_ = DirectX::XMMatrixIdentity();
-    };
-
-    struct cbpsRareChanged_SkyDome
-    {
-        // const buffer data structure for the PS of the sky dome shader
-
+        // sky dome params
         DirectX::XMFLOAT3 colorCenter_{ 1,1,1 };
         float             padding1_ = 1.0f;
         DirectX::XMFLOAT3 colorApex_{ 1,1,1 };
         float             padding2_ = 1.0f;
     };
 
-
-
     // ----------------------------------------------------
-    
-    struct ConstantMatrixBuffer_FontVS
-    {
-        // a constant matrix buffer structure for the font vertex shader
-        DirectX::XMMATRIX worldViewProj;
-    };
 
-    struct ConstantPixelBuffer_FontPS
+
+
+    struct ConstBuf_FontPixelColor
     {
-        // a constant buffer which contains colours are used inside the font pixel shader
-        DirectX::XMFLOAT3 pixelColor;         // UI text colour
-        float padding;
+        DirectX::XMFLOAT3 pixelColor = {1,0,0};
+        float padding = 0.0f;
     };
 
 
     // =======================================================
     // const buffers for GEOMETRY shader
     // =======================================================
-    struct GeometryShaderConstBuf_PerFrame
+    struct GS_PerFrame
     {
         DirectX::XMMATRIX viewProj;
         DirectX::XMFLOAT3 cameraPosW;
+        float time = 0;
     };
 
-    struct GeomertyShaderConstBuf_PerObject
+    struct GrassParams
     {
-        MaterialColors    matColors;
-    };
-
-    struct GeometryShaderConstBuf_Fixed
-    {
-        DirectX::XMFLOAT2 topLeft;       // 0 1
-        DirectX::XMFLOAT2 bottomLeft;    // 0 0
-        DirectX::XMFLOAT2 topRight;      // 1 1
-        DirectX::XMFLOAT2 bottomRight;   // 1 0
+        float distGrassFullSize = 10;   // distance around camera where grass planes are in full size
+        float distGrassVisible  = 20;   // after this distance we don't see any grass planes
     };
 };
 

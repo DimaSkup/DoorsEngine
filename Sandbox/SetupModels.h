@@ -4,6 +4,7 @@
 #include <FileSystemPaths.h>
 #include <Material.h>
 #include <MaterialMgr.h>
+#include <Render/CRender.h>
 
 #pragma warning (disable : 4996)
 using namespace Core;
@@ -35,7 +36,7 @@ void SetupTreeSpruce(BasicModel& tree)
 //---------------------------------------------------------
 // Desc:   manually setup of tree pine model
 //---------------------------------------------------------
-void SetupTree(BasicModel& tree)
+void SetupTreePine(BasicModel& tree)
 {
 
     // prepare path to textures directory
@@ -70,11 +71,12 @@ void SetupTree(BasicModel& tree)
     branchMat.SetTexture(TEX_TYPE_DIFFUSE, texBranchDiffID);
     branchMat.SetTexture(TEX_TYPE_NORMALS, texBranchNormID);
     branchMat.SetTexture(TEX_TYPE_OPACITY, texBranchSubsurfID);
-    branchMat.SetAmbient(0.17f, 0.30f, 0.28f, 1.0f);
+    branchMat.SetAmbient(0.17f, 0.22f, 0.20f, 1.0f);
     branchMat.SetDiffuse(0.6f, 0.6f, 0.6f, 1.0f);
     branchMat.SetSpecular(0.1f, 0.1f, 0.1f);
     branchMat.SetSpecularPower(1.0f);
     branchMat.SetAlphaClip(true);
+    branchMat.SetCull(MAT_PROP_CULL_NONE);
 
     Material capMat;
     capMat.SetName("tree_pine_cap");
@@ -217,14 +219,14 @@ void SetupAks74u(BasicModel& model)
 
     mat.ambient  = { 0.3f, 0.3f, 0.3f, 1.0f };
     mat.diffuse = { 0.8f, 0.8f, 0.8f, 1.0f };
-    mat.specular = { 0.1f, 0.1f, 0.1f, 1.0f };
-    mat.reflect = { 0.1f, 0.1f, 0.1f, 1.0f };
+    mat.specular = { 0.1f, 0.1f, 0.1f, 7.0f };
+    mat.reflect = { 0.05f, 0.05f, 0.05f, 1.0f };
 }
 
 //---------------------------------------------------------
 // Desc:   manually setup a traktor model
 //---------------------------------------------------------
-void SetupTraktor(BasicModel& traktor)
+void SetupTraktor(BasicModel& traktor, Render::CRender& render)
 {
     const MeshGeometry::Subset& subset0  = traktor.meshes_.subsets_[0];
     const MeshGeometry::Subset& subset1  = traktor.meshes_.subsets_[1];
@@ -245,6 +247,8 @@ void SetupTraktor(BasicModel& traktor)
     Material& matGlass                   = g_MaterialMgr.GetMatById(matIdGlass);
 
     const TexID texIdBlankNorm           = g_TextureMgr.GetTexIdByName("blank_NRM");
+    const ShaderID textureShaderId       = render.shaderMgr_.GetShaderIdByName("TextureShader");
+
 
     // setup material for subset0 (vehicle)
     matVehicle.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
@@ -262,7 +266,8 @@ void SetupTraktor(BasicModel& traktor)
     matSpotlightTrace.reflect = { 0,0,0,0 };
     matSpotlightTrace.SetCull(MAT_PROP_CULL_NONE);
     matSpotlightTrace.SetBlending(MAT_PROP_ADDING);
-    matSpotlightTrace.SetDepthStencil(MAT_PROP_DEPTH_DISABLED);
+    matSpotlightTrace.SetDepthStencil(MAT_PROP_MARK_MIRROR);
+    matSpotlightTrace.shaderId = textureShaderId;
 
     // setup material for subset2 (spotlight cone)
    // matSpotlightCone.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
@@ -272,8 +277,8 @@ void SetupTraktor(BasicModel& traktor)
     matSpotlightCone.reflect  = { 0,0,0,0 };
     matSpotlightCone.SetCull(MAT_PROP_CULL_NONE);
     matSpotlightCone.SetBlending(MAT_PROP_ADDING);
-    matSpotlightCone.SetDepthStencil(MAT_PROP_DEPTH_DISABLED);
-
+    matSpotlightCone.SetDepthStencil(MAT_PROP_MARK_MIRROR);
+    matSpotlightCone.shaderId = textureShaderId;
 
     // setup material for subset3 (backside light)
     matBacksideLight.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
@@ -299,15 +304,53 @@ void SetupStalkerSmallHouse(BasicModel& house)
 {
     MeshGeometry::Subset* subsets = house.meshes_.subsets_;
 
+    char dirPath[128]{ '\0' };
+    sprintf(dirPath, "%s%s", g_RelPathExtModelsDir, "/stalker-house/source/");
+    const TexID texIdBlankNorm = g_TextureMgr.GetTexIdByName("blank_NRM");
+
+    char texPaths[][32] = {
+        "wood_board_01.dds",
+        "wall_red_01.dds",
+        "crete_dirt_2.dds",
+        "wood_plank6.dds",
+        "briks_br2.dds",
+        "wood_old.dds",
+        "wood_plank6.dds",
+        "mtl_rust_dark.dds",
+        "wood_old.dds",
+        "wood_old.dds",
+        "wood_old.dds",
+        "crete_dirt_2.dds",
+        "wall_red_01.dds",
+        "briks_dirt_01.dds",
+        "wall_wallpaper_02.dds",
+        "tile_walls_red_01.dds",
+        "wall_stucco_05.dds",
+        "briks_br2.dds",
+        "wood_old.dds",
+        "wood_board_01.dds",
+        "wood_wire.dds",
+        "wood_wire.dds",
+    };
+
+    SetConsoleColor(MAGENTA);
+
     for (int i = 0; i < house.numSubsets_; ++i)
     {
         // get a material by ID from the manager and setup it
         Material& mat = g_MaterialMgr.GetMatById(subsets[i].materialId);
 
+        const TexID texId = g_TextureMgr.LoadFromFile(dirPath, texPaths[i]);
+        mat.SetTexture(TEX_TYPE_DIFFUSE, texId);
+        mat.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
+
         mat.ambient  = { 0.3f, 0.3f, 0.3f, 1.0f };
         mat.diffuse  = { 0.8f, 0.8f, 0.8f, 1.0f };
         mat.specular = { 0,0,0,2 };
+        mat.reflect  = { 0,0,0,0 };
     }
+
+    SetConsoleColor(RESET);
 }
 
 ///////////////////////////////////////////////////////////

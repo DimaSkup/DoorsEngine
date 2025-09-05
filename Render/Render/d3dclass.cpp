@@ -149,7 +149,7 @@ void D3DClass::Shutdown()
     SafeRelease(&pDepthStencilView_);
     SafeRelease(&pDepthStencilBuffer_);
     SafeRelease(&pRenderTargetView_);
-    SafeRelease(&pBackBuffer_);
+    //SafeRelease(&pBackBuffer_);
     SafeRelease(&pContext_);
     SafeRelease(&pDevice_);
     SafeRelease(&pSwapChain_);
@@ -353,8 +353,7 @@ bool D3DClass::ResizeSwapChain(HWND hwnd, SIZE newSize)
 
         // 1. Clear render targets from device context
         //    crear the previous window size specific context
-        ID3D11RenderTargetView* nullViews[] = { nullptr };
-        pContext->OMSetRenderTargets(_countof(nullViews), nullViews, nullptr);
+        pContext->OMSetRenderTargets(0, 0, 0);
 
         // 2. Release rendering target
         SafeRelease(&pDepthStencilBuffer_);
@@ -365,9 +364,14 @@ bool D3DClass::ResizeSwapChain(HWND hwnd, SIZE newSize)
         // 3. Resize buffer:
         //    Preserve the existing buffer count and format.
         //    Automatically choose the width and height to match the client rect for HWNDs.
-        hr = pSwapChain_->ResizeBuffers(0, 0, 0,
-            DXGI_FORMAT_UNKNOWN,                  
-            DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH);
+        hr = pSwapChain_->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH);
+        if (FAILED(hr))
+        {
+            LogErr(LOG, "can't resize swap chain's buffers");
+            //exit(0);
+        }
+
+        UpdateWindow(hwnd);
 
         // 4. recreate the render target view, depth stencil buffer/view, and viewport
         InitializeRenderTargetView();
@@ -492,16 +496,15 @@ void D3DClass::InitializeRenderTargetView()
             exit(0);
         }
     }
+    SafeRelease(&pBackBuffer);
 }
 
 //---------------------------------------------------------
-// Desc:  initialize the DirectX11 depth-stencil stuff
+// Desc:   create the depth stencil buffer, depth stencil view
+//         and bind them to the current device context
 //---------------------------------------------------------
 void D3DClass::InitializeDepthStencil(const UINT width, const UINT height)
 {
-    // creates the depth stencil buffer, depth stencil view
-    // and bind them to the current device context
-
     try
     {
         InitializeDepthStencilTextureBuffer(width, height);
@@ -521,12 +524,10 @@ void D3DClass::InitializeDepthStencil(const UINT width, const UINT height)
 }
 
 //---------------------------------------------------------
-// Desc:   initialize the DirectX11 depth-stencil buffer
+// Desc:   initialize the DirectX11 depth-stencil buffer texture
 //---------------------------------------------------------
 void D3DClass::InitializeDepthStencilTextureBuffer(const UINT width, const UINT height)
 {
-    // create a depth/stencil buffer texture
-
     // describe our Depth/Stencil Buffer
     D3D11_TEXTURE2D_DESC desc;
     desc.Width          = width;

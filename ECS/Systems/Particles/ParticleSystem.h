@@ -4,6 +4,7 @@
 #include "../../Components/ParticleEmitter.h"
 #include <Types.h>
 #include <log.h>
+#include <inttypes.h>
 
 namespace ECS
 {
@@ -37,7 +38,7 @@ public:
                 return emitter;
         }
 
-        LogErr(LOG, "can't find a particles emitter by entity ID: %d", id);
+        LogErr(LOG, "can't find a particles emitter by entity ID: %" PRIu32, id);
         return emitters_[0];
     }
 

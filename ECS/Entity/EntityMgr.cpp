@@ -23,7 +23,6 @@ EntityMgr::EntityMgr() :
     materialSystem_     { &materialComponent_, &nameSystem_ },
     texTransformSystem_ { &texTransform_ },
     lightSystem_        { &light_, &transformSystem_ },
-    //renderStatesSystem_ { &renderStates_ },
     boundingSystem_     { &bounding_ },
     cameraSystem_       { &camera_, &transformSystem_ },
     hierarchySystem_    { &hierarchy_, &transformSystem_ },
@@ -206,17 +205,21 @@ void EntityMgr::Update(const float totalGameTime, const float deltaTime)
         {
             case EVENT_TRANSLATE:
             {
-                // compute offset for translation
-                EntityID id = e.enttID;
-                XMFLOAT3 prevPos = transformSystem_.GetPosition(id);
-                XMFLOAT3 offset = { e.x-prevPos.x, e.y-prevPos.y, e.z-prevPos.z };
+                // make an arr of entt and all its children's ids
+                hierarchySystem_.GetChildrenArr(e.enttID, s_Ids);
+                s_Ids.push_back(e.enttID);
 
-                // make an arr of entt and its children's ids
-                hierarchySystem_.GetChildrenArr(id, s_Ids);
-                s_Ids.push_back(id);
+                XMFLOAT3 prevPos = transformSystem_.GetPosition(e.enttID);
 
-                // adjust position for entt and its children
-                transformSystem_.AdjustPositions(s_Ids.data(), s_Ids.size(), { offset.x, offset.y, offset.z });
+                // adjust position for entt and all its children
+                transformSystem_.AdjustPositions(
+                    s_Ids.data(),
+                    s_Ids.size(),
+                    { e.x-prevPos.x, e.y-prevPos.y, e.z-prevPos.z });  
+
+                // update relative position (relatively to parent if we have any)
+                hierarchySystem_.UpdateRelativePos(e.enttID);
+
                 break;
             }
             case EVENT_ROTATE:

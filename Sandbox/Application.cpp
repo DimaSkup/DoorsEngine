@@ -27,7 +27,8 @@ void App::Initialize()
     auto initStartTime = std::chrono::steady_clock::now();
 
     // explicitly init Windows Runtime and COM
-    HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+    //HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE);
+    HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
     if (FAILED(hr))
     {
         LogErr("can't explicitly initialize Windows Runtime and COM");
@@ -52,7 +53,8 @@ void App::Initialize()
         pContext,
         &render_,
         &entityMgr_,
-        &graphics);
+        &graphics,
+        &g_ModelMgr.GetTerrainGeomip());
 
     // after all init all the game related stuff
     game_.Init(&engine_, &entityMgr_, &render_, engineConfigs_);
@@ -105,13 +107,14 @@ bool App::InitWindow()
     return result;
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// init the engine (core)
+//---------------------------------------------------------
 bool App::InitEngine()
 {
     const std::string wndTitle = engineConfigs_.GetString("WINDOW_TITLE");
 
-    // init the engine
+    
     bool result = engine_.Initialize(
         hInstance_,
         mainHWND_,
@@ -127,14 +130,14 @@ bool App::InitEngine()
     return result;
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   prepare params for initialization of the "Render" module and init it
+//---------------------------------------------------------
 bool App::InitRenderModule(
     ID3D11Device* pDevice,
     const EngineConfigs& settings,
     Render::CRender* pRender)
 {
-    // setup render initial params
 
     // prepare WVO (world * base_view * ortho) matrix for 2D rendering
     const bool startInGameMode  = engineConfigs_.GetBool("START_IN_GAME_MODE");
@@ -145,10 +148,12 @@ bool App::InitRenderModule(
     const DirectX::XMMATRIX& ortho    = entityMgr_.cameraSystem_.GetOrtho(cameraID);
     const DirectX::XMMATRIX  WVO      = baseView * ortho;
 
+    // setup initial params for the "Render" module
     Render::InitParams renderParams;
-    renderParams.worldViewOrtho       = DirectX::XMMatrixTranspose(WVO);
 
-    // zaporizha sky box horizon (darker by 0.1f)
+    renderParams.worldViewOrtho = DirectX::XMMatrixTranspose(WVO);
+
+    // setup fog params
     renderParams.fogColor =
     {
         settings.GetFloat("FOG_RED"),
@@ -158,23 +163,29 @@ bool App::InitRenderModule(
     renderParams.fogStart = settings.GetFloat("FOG_START");
     renderParams.fogRange = settings.GetFloat("FOG_RANGE");
 
+    // setup horizon and apex (top) color of the sky
     const DirectX::XMFLOAT3 skyColorCenter = g_ModelMgr.GetSky().GetColorCenter();
     const DirectX::XMFLOAT3 skyColorApex   = g_ModelMgr.GetSky().GetColorApex();
 
-    // setup the fog color according to the sky center color
-    renderParams.fogColor.x;// *= skyColorCenter.x;
-    renderParams.fogColor.y;// *= skyColorCenter.y;
-    renderParams.fogColor.z;// *= skyColorCenter.z;
+    // setup terrain's material
+    const Material& terrainMat = g_MaterialMgr.GetMatByName("terrain_mat_geomip");
+    renderParams.terrainMatColors = 
+    {
+        DirectX::XMFLOAT4(&terrainMat.ambient.x),
+        DirectX::XMFLOAT4(&terrainMat.diffuse.x),
+        DirectX::XMFLOAT4(&terrainMat.specular.x),
+        DirectX::XMFLOAT4(&terrainMat.reflect.x)
+    };
 
-    
+
     ID3D11DeviceContext* pContext = nullptr;
     pDevice->GetImmediateContext(&pContext);
 
-    // init the render module
+    // init the "Render" module
     bool result = pRender->Initialize(pDevice, pContext, renderParams);
     if (!result)
     {
-        LogErr("can't init the render module");
+        LogErr(LOG, "can't init the render module");
         return false;
     }
 

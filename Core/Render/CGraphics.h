@@ -98,21 +98,22 @@ public:
         const uint32 renderStatesBitfield,
         ID3D11ShaderResourceView* const* texViews);
 
+    
+    bool InitMatBigIconFrameBuf(const int width, const int height);
+
+    bool InitMatIconFrameBuffers(
+        const size numBuffers,
+        const uint32 width,
+        const uint32 height,
+        cvector<ID3D11ShaderResourceView*>& outShaderResourceViews);
+
     bool RenderBigMaterialIcon(
         const MaterialID matID,
-        const int iconWidth,
-        const int iconHeight,
         const float yRotationAngle,
         Render::CRender* pRender,
         ID3D11ShaderResourceView** outMaterialImg);
 
-    void RenderMaterialsIcons(
-        ECS::EntityMgr* pEnttMgr,
-        Render::CRender* pRender,
-        ID3D11ShaderResourceView** outArrShaderResourceViews,
-        const size numIcons,
-        const int iconWidth,
-        const int iconHeight);
+    bool RenderMaterialsIcons(Render::CRender* pRender);
 
 
     // ---------------------------------------
@@ -160,6 +161,8 @@ private:
     // ------------------------------------------
 
     void RenderEntts(Render::CRender* pRender);
+
+    void RenderGrass(Render::CRender* pRender);
 
     void RenderInstanceGroups(
         ID3D11DeviceContext* pContext,

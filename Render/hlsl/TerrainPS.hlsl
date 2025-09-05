@@ -40,9 +40,14 @@ cbuffer cbRareChanged : register(b1)
     int    gFogEnabled;          // turn on/off the fog effect
     int    gTurnOnFlashLight;    // turn on/off the flashlight
     int    gAlphaClipping;       // turn on/off alpha clipping
+
+    float3 gSkyColorCenter;
+    float  padding0;
+    float3 gSkyColorApex;
+    float  padding1;
 };
 
-cbuffer cbTerrain : register(b5)
+cbuffer cbTerrain : register(b2)
 {
     float4 gAmbient;
     float4 gDiffuse;
@@ -91,14 +96,12 @@ float4 PS(PS_IN pin) : SV_Target
     float3 vec = -toEyeW;
     vec.y -= 490;
 
-    float2 noiseTexCoords = float2(pin.tex.x + gTime, pin.tex.y + gTime);
-    float4 perlinNoiseColor = gPerlinNoise.Sample(gBasicSampler, noiseTexCoords);
-    float4 skyTexColor = gCubeMap.Sample(gSkySampler, vec);
-
+    
     // return blended fixed fog color with the sky color at this pixel
     // if the pixel is fully fogged
     if (gFogEnabled && distToEye > (gFogStart + gFogRange))
     {
+        float4 skyTexColor = gCubeMap.Sample(gSkySampler, vec);
         return skyTexColor * float4(gFixedFogColor, 1.0f);
     }
 
@@ -118,7 +121,6 @@ float4 PS(PS_IN pin) : SV_Target
     float  brightness = 2.0f;
     float4 texColor = textureColor * detailMapColor * brightness;
 
-
     // --------------------  NORMAL MAP   --------------------
 
     float3 normalMap = gTextures[6].Sample(gBasicSampler, pin.tex*100).rgb;
@@ -133,10 +135,10 @@ float4 PS(PS_IN pin) : SV_Target
     // --------------------  LIGHTING  --------------------
 
     Material mat;
-    mat.ambient = gAmbient;
-    mat.diffuse = gDiffuse;
+    mat.ambient  = gAmbient;
+    mat.diffuse  = gDiffuse;
     mat.specular = gSpecular;
-    mat.reflect = gReflect;
+    mat.reflect  = gReflect;
 
     // start with a sum of zero
     float4 ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -226,11 +228,13 @@ float4 PS(PS_IN pin) : SV_Target
 
     if (gFogEnabled)
     {
+        float4 skyTexColor = gCubeMap.Sample(gSkySampler, vec);
+
         // blend sky texture pixel with fixed fog color
         float4 fogColor = skyTexColor * float4(gFixedFogColor, 1.0f);
 
         // compute linear interpolation of the fog and add perlin noise to achieve "moving fog"
-        float fogLerp = saturate((distToEye - gFogStart) / gFogRange + (perlinNoiseColor.x/1.5f));
+        float fogLerp = saturate((distToEye - gFogStart) / gFogRange);
 
         // blend using lerp the fog color and the final color
         finalColor = lerp(finalColor, fogColor, fogLerp);

@@ -57,6 +57,7 @@ void FrameBuffer::Shutdown()
     SafeRelease(&pShaderResourceView_);
     SafeRelease(&pRenderTargetView_);
     SafeRelease(&pRenderTargetTexture_);
+    isInit_ = false;
 }
 
 
@@ -87,6 +88,7 @@ bool FrameBuffer::Initialize(ID3D11Device* pDevice, const FrameBufferSpecificati
         // store the basic params
         specification_ = spec;
 
+        Shutdown();
         CreateRenderTargetTexture(pDevice);
         CreateRenderTargetView(pDevice);
         CreateShaderResourceView(pDevice);
@@ -154,17 +156,16 @@ void FrameBuffer::ResizeBuffers(
     }
 }
 
-//////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// this func changes where we are currently rendering to. We are usually rendering
+// to the back buffer (or another render texture), but when we call this function,
+// we will now be rendering to this render texture.
+// Note that we also need to set the viewport for this render texture, since
+// the dimensions might be different that the back buffer or wherever we were
+// rendering to before this function was called
+//---------------------------------------------------------
 void FrameBuffer::Bind(ID3D11DeviceContext* pContext)
 {
-    // this function changes where we are currently rendering to. We are usually rendering
-    // to the back buffer (or another render texture), but when we call this function,
-    // we will now be rendering to this render texture.
-    // Note that we also need to set the viewport for this render texture, since
-    // the dimensions might be different that the back buffer or wherever we were
-    // rendering to before this function was called
-
     // bind the render target view and depth stencil buffer to the output render pipeline
     pContext->OMSetRenderTargets(1, &pRenderTargetView_, pDepthStencilView_);
 
@@ -172,23 +173,23 @@ void FrameBuffer::Bind(ID3D11DeviceContext* pContext)
     pContext->RSSetViewports(1, &viewport_);
 }
 
-//////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   clear the prev content of the frame buffer before rendering
+//---------------------------------------------------------
 void FrameBuffer::ClearBuffers(
     ID3D11DeviceContext* pContext,
-    const DirectX::XMFLOAT4& rgbaColor)
+    const DirectX::XMFLOAT4& rgba)
 {
-    // this function is called right before rendering to this render texture so that
-    // the texture and the depth buffer are cleared from their previous contents
-
     // setup the colour to clear the buffer to
-    float color[4]{ rgbaColor.x, rgbaColor.y, rgbaColor.z, rgbaColor.w };
+    float color[4]{ rgba.x, rgba.y, rgba.z, rgba.w };
 
     // clear the back buffer
-    pContext->ClearRenderTargetView(pRenderTargetView_, color);
+    if (pRenderTargetView_)
+        pContext->ClearRenderTargetView(pRenderTargetView_, color);
 
     // clear the depth buffer
-    pContext->ClearDepthStencilView(pDepthStencilView_, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+    if (pDepthStencilView_)
+        pContext->ClearDepthStencilView(pDepthStencilView_, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 }
 
 
@@ -197,10 +198,11 @@ void FrameBuffer::ClearBuffers(
 //                               private methods
 // ====================================================================================
 
+//---------------------------------------------------------
+// Desc:   create a render target texture buffer
+//---------------------------------------------------------
 void FrameBuffer::CreateRenderTargetTexture(ID3D11Device* pDevice)
 {
-    // create a render target texture buffer
-
     HRESULT hr = S_OK;
     D3D11_TEXTURE2D_DESC desc;
     ZeroMemory(&desc, sizeof(D3D11_TEXTURE2D_DESC));
@@ -296,8 +298,8 @@ void FrameBuffer::CreateDepthStencilView(ID3D11Device* pDevice)
     ZeroMemory(&desc, sizeof(D3D11_DEPTH_STENCIL_VIEW_DESC));
 
     // set up the depth stencil view description
-    desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-    desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+    desc.Format             = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    desc.ViewDimension      = D3D11_DSV_DIMENSION_TEXTURE2D;
     desc.Texture2D.MipSlice = 0;
 
     // create the depth stencil view

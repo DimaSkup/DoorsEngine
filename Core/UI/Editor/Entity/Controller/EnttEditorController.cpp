@@ -16,13 +16,11 @@
 namespace UI
 {
 
-EnttEditorController::EnttEditorController(StatesGUI* pStatesGUI) :
+EnttEditorController::EnttEditorController() :
     viewEnttTransform_(this),
     viewEnttLight_(this),
-    viewEnttParticles_(this),
-    pStatesGUI_(pStatesGUI)
+    viewEnttParticles_(this)
 {
-    CAssert::NotNullptr(pStatesGUI, "input ptr to the GUI states container == nullptr");
 }
 
 
@@ -274,12 +272,11 @@ void EnttEditorController::Render()
 //---------------------------------------------------------
 void EnttEditorController::UpdateSelectedEnttWorld(const DirectX::XMMATRIX& world)
 {
-    int transformType = pStatesGUI_->gizmoOperation;
     DirectX::XMVECTOR scale, rotQuat, translation;
     XMMatrixDecompose(&scale, &rotQuat, &translation, world);
 
     // execute transformation of the selected entity according to the transformation type
-    switch (transformType)
+    switch (g_GuiStates.gizmoOperation)
     {
         case ImGuizmo::OPERATION::TRANSLATE:
         {
@@ -302,7 +299,7 @@ void EnttEditorController::UpdateSelectedEnttWorld(const DirectX::XMMATRIX& worl
         }
         default:
         {
-            sprintf(g_String, "Unknown ImGuizmo::OPERATION: %d", transformType);
+            sprintf(g_String, "Unknown ImGuizmo::OPERATION: %d", g_GuiStates.gizmoOperation);
             LogErr(g_String);
         }
     }

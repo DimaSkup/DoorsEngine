@@ -392,10 +392,12 @@ bool Texture::Initialize(
 {
     try
     {
+        printf("house tex name: %s\n", name);
+
         // check input params
         CAssert::True(!StrHelper::IsEmpty(name),   "input name for the texture is empty");
         CAssert::True(data != nullptr,            "input ptr to texture data == nullptr");
-        CAssert::True((width > 0) && (height > 0), "input img dimensions is wrong (must be > 0)");
+        //CAssert::True((width > 0) && (height > 0), "input img dimensions is wrong (must be > 0)");
 
         // release memory from prev data (if we have any)
         Release();
@@ -468,7 +470,7 @@ bool Texture::Initialize(
     catch (EngineException& e)
     {
         LogErr(e);
-        LogErr("can't create an embedded compressed texture");
+        LogErr(LOG, "can't create an embedded compressed texture");
 
         // in case of any exception we will try to create 1x1 single color texture
         Initialize1x1ColorTexture(pDevice, Colors::UnloadedTextureColor);
@@ -734,21 +736,21 @@ bool Texture::CreateCubeMap(const char* name, const CubeMapInitParams& params)
 // Private API
 // =================================================================================
 
-void Texture::LoadFromFile(ID3D11Device* pDevice, const char* filePath)
+void Texture::LoadFromFile(ID3D11Device* pDevice, const char* path)
 {
     // load a texture from file by input path and store texture obj into the manager;
     try
     {
-        CAssert::True((filePath != nullptr) && (filePath[0] != '\0'), "input path to texture is empty");
+        CAssert::True(path && (path[0] != '\0'), "input path to texture is empty");
 
         Img::ImageReader imageReader;
-        Img::DXTextureData data(filePath, &pTexture_, &pTextureView_);
+        Img::DXTextureData data(path, &pTexture_, &pTextureView_);
 
         bool result = imageReader.LoadTextureFromFile(pDevice, data);
 
         if (!result)
         {
-            LogErr(LOG, "can't load a texture from file: %s", filePath);
+            LogErr(LOG, "can't load a texture from file: %s", path);
 
             // if we didn't manage to initialize a texture from the file 
             // we create a 1x1 color texture for this texture object
@@ -760,7 +762,7 @@ void Texture::LoadFromFile(ID3D11Device* pDevice, const char* filePath)
             return;
         }
 
-        name_ = filePath;
+        name_ = path;
         width_ = data.textureWidth;
         height_ = data.textureHeight;
     }

@@ -4,9 +4,8 @@
 // =================================================================================
 #include "../Common/pch.h"
 #include "GeometryShader.h"
+#include "ShaderCompiler.h"
 
-#include "Helpers/CSOLoader.h"
-#include "Helpers/ShaderCompiler.h"
 
 namespace Render
 {
@@ -32,7 +31,7 @@ bool GeometryShader::LoadPrecompiled(ID3D11Device* pDevice, const char* shaderPa
     uint8_t* buf = nullptr;
 
     // load shader bytecode into the buffer
-    const size_t len = LoadCSO(shaderPath, buf);
+    const size_t len = ShaderCompiler::LoadCSO(shaderPath, buf);
     if (!len)
     {
         LogErr(LOG, "Failed to load .CSO-file of geometry shader: %s", shaderPath);

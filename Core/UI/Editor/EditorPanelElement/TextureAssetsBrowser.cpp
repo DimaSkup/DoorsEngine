@@ -6,6 +6,8 @@
 // =================================================================================
 #include <CoreCommon/pch.h>
 #include "TextureAssetsBrowser.h"
+#include <winFileDialog.h>
+#include <UICommon/StatesGUI.h>
 
 #pragma warning (disable : 4996)
 
@@ -18,7 +20,9 @@ void TextureAssetsBrowser::Initialize(IFacadeEngineToUI* pFacade)
     {
         // get a pointer to the array of textures shader resource views
         size tmpNumItems = 0;
-        pFacade->GetArrTexturesSRVs(arrShaderResourceViews_, tmpNumItems);
+        ID3D11ShaderResourceView** tempArr = nullptr;
+
+        pFacade->GetArrTexturesSRVs(tempArr, tmpNumItems);
         numItems_ = (int)tmpNumItems;
     }
     else
@@ -33,14 +37,15 @@ void TextureAssetsBrowser::Render(IFacadeEngineToUI* pFacade, bool* pOpen)
 {
     // render a browser (window) of loaded textures
 
-    if (!pFacade && !arrShaderResourceViews_)
+    if (!pFacade)
     {
-        LogErr("can't render textures browser");
+        LogErr(LOG, "can't render textures browser");
         return;
     }
+    pFacade_ = pFacade;
+
 
     ImGui::SetNextWindowContentSize(ImVec2(0.0f, layoutOuterPadding_ + numLayoutLine_ * (layoutItemSize_.y + layoutItemSpacing_)));
-  
     RenderMenuBar(pOpen);
 
     // ------------------------------------------
@@ -60,7 +65,8 @@ void TextureAssetsBrowser::Render(IFacadeEngineToUI* pFacade, bool* pOpen)
 
         // setup start position for debug info rendering
         ImVec2 startPos = ImGui::GetCursorScreenPos();
-        startPos = ImVec2(startPos.x + layoutOuterPadding_, startPos.y + layoutOuterPadding_);
+        ImVec2 padding  = { layoutOuterPadding_, layoutOuterPadding_ };
+        startPos += padding;
         ImGui::SetCursorScreenPos(startPos);
 
         RenderDebugInfo(availWidth);
@@ -68,15 +74,15 @@ void TextureAssetsBrowser::Render(IFacadeEngineToUI* pFacade, bool* pOpen)
         // setup start position for icons rendering
         constexpr float offsetFromDbgInfo = 3;
         startPos = ImVec2(startPos.x, startPos.y + textLineHeight + offsetFromDbgInfo);
-        DrawTextureIcons(startPos, pFacade);
+        DrawTextureIcons(startPos);
         ComputeZooming(startPos, availWidth);
 
-        // context menu
-        if (ImGui::BeginPopupContextWindow())
-        {
-            ImGui::Text("TODO: print here a texture ID + name");
-            ImGui::EndPopup();
-        }
+
+        if (showIconContextMenu_)
+            ShowContextMenu();
+
+        if (showEditorWnd_)
+            ShowEditorWnd();
     }
     ImGui::EndChild();
 }
@@ -103,15 +109,17 @@ void TextureAssetsBrowser::RenderMenuBar(bool* pOpen)
         }
         if (ImGui::BeginMenu("Add"))
         {
-            ImGui::MenuItem("Load");
-            ImGui::MenuItem("Generate");
+            if (ImGui::MenuItem("Load"))
+            {
+                std::string pathToTex;
+                TextureFileOpen(pathToTex);
+                const char* path = pathToTex.c_str();
 
-            ImGui::EndMenu();
-        }
-        if (ImGui::BeginMenu("Update"))
-        {
-            ImGui::MenuItem("Load");
-            ImGui::MenuItem("Set another");
+                if (!pFacade_->LoadTextureFromFile(path))
+                {
+                    LogErr(LOG, "can't load a texture from file: %s", path);
+                }
+            }
             ImGui::MenuItem("Generate");
 
             ImGui::EndMenu();
@@ -121,12 +129,12 @@ void TextureAssetsBrowser::RenderMenuBar(bool* pOpen)
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//-----------------------------------------------------------------------------
+// when we did some manipulations over the browser's window (resized, zoomed)
+// we need to update the icons size and all the related stuff
+//-----------------------------------------------------------------------------
 void TextureAssetsBrowser::UpdateLayoutSizes(float availWidth)
 {
-    // when we did some manipulations over the browser's window (resized, zoomed)
-    // we need to update the icons size and all the related stuff
 
     layoutItemSpacing_ = (float)iconSpacing_;    
 
@@ -150,16 +158,24 @@ void TextureAssetsBrowser::UpdateLayoutSizes(float availWidth)
 
 ///////////////////////////////////////////////////////
 
-void TextureAssetsBrowser::DrawTextureIcons(const ImVec2 startPos, IFacadeEngineToUI* pFacade)
+void TextureAssetsBrowser::DrawTextureIcons(const ImVec2 startPos)
 {
-    // push specific colors
+    // push specific colors (for
     ImGui::PushStyleColor(ImGuiCol_Header, { 1,1,1,1 });
     ImGui::PushStyleColor(ImGuiCol_HeaderHovered, { 1,1,1,1 });
     ImGui::PushStyleColor(ImGuiCol_HeaderActive, { 1,1,1,1 });
 
-    const int columnCount         = numLayoutColumn_;
-    //const int currSelectedItemIdx = selectedItemIdx_;
+    const int columnCount      = numLayoutColumn_;
+    const ImVec2 iconSize      = { iconSize_, iconSize_ };
 
+    // get a ptr to arr of shader resource views of all the currently loaded textures
+    size tmpNumItems = 0;
+    ID3D11ShaderResourceView** arrSRVs = nullptr;
+    pFacade_->GetArrTexturesSRVs(arrSRVs, tmpNumItems);
+    numItems_ = (int)tmpNumItems;
+
+
+    // render icons
     ImGuiListClipper clipper;
     clipper.Begin(numLayoutLine_, layoutItemStep_.y);
 
@@ -188,16 +204,31 @@ void TextureAssetsBrowser::DrawTextureIcons(const ImVec2 startPos, IFacadeEngine
                 if (ImGui::IsRectVisible(layoutItemSize_))
                 {
                     char buf[32]{'\0'};
-                    const bool isSelected = (itemIdx == selectedItemIdx_);
-
                     snprintf(buf, 32, "##texture_item %d", itemIdx);
 
+                    bool chooseAnother = false;
+                    const bool isSelected = (itemIdx == selectedItemIdx_);
+
                     // we can select a texture when click on some icon
+                    // ALSO: render a border around this icon
                     if (ImGui::Selectable(buf, isSelected, ImGuiSelectableFlags_None, layoutItemSize_))
                     {
+                        chooseAnother = true;
+                    }
+
+                    // select a texture when click RMB on some icon and open a context menu
+                    if (ImGui::IsItemHovered(ImGuiHoveredFlags_RectOnly) && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+                    {
+                        chooseAnother = true;
+                        showIconContextMenu_ = true;
+                    }
+
+                    if (chooseAnother)
+                    {
                         // try to get a texture ID by index
-                        selectedItemIdx_   = itemIdx;
-                        textureWasChanged_ = pFacade->GetTextureIdByIdx(itemIdx, selectedTexItemID_);
+                        selectedItemIdx_ = itemIdx;
+                        textureWasChanged_ = pFacade_->GetTextureIdByIdx(itemIdx, selectedTexItemID_);
+                        pFacade_->GetTextureNameById(selectedTexItemID_, selectedTextureName_);
                     }
 
                     // draw background
@@ -210,14 +241,15 @@ void TextureAssetsBrowser::DrawTextureIcons(const ImVec2 startPos, IFacadeEngine
 
                     // draw texture image icon
                     ImGui::SetCursorScreenPos(pos);
-                    ImGui::Image((ImTextureID)arrShaderResourceViews_[itemIdx], { iconSize_, iconSize_ });
+                    ImGui::Image((ImTextureID)arrSRVs[itemIdx], iconSize);
 
                     // draw label (just index)
-                    const ImU32 labelColor = ImGui::GetColorU32(ImGuiCol_Text);
+                    const ImVec2 labelPos   = { boxMin.x, boxMax.y - ImGui::GetFontSize() };
+                    const ImU32  labelColor = ImGui::GetColorU32(ImGuiCol_Text);
                     char label[16]{'\0'};
-
                     snprintf(label, 16, "%d", itemIdx);
-                    pDrawList->AddText(ImVec2(boxMin.x, boxMax.y - ImGui::GetFontSize()), labelColor, label);
+
+                    pDrawList->AddText(labelPos, labelColor, label);
                 }
 
                 ImGui::PopID();
@@ -253,13 +285,12 @@ void TextureAssetsBrowser::RenderDebugInfo(const float availWidth)
     ImGui::Text("spacing: %f", layoutItemSpacing_);
 }
 
-///////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   if we zoom in/out (Ctrl+mouse_wheel when over the browser),
+//         we need to recompute icons sizes and related stuff
+//---------------------------------------------------------
 void TextureAssetsBrowser::ComputeZooming(const ImVec2 startPos, const float availWidth)
 {
-    // if we zoom in/out (Ctrl+mouse_wheel when over the browser),
-    // we need to recompute icons sizes and related stuff
-
     ImGuiIO& io = ImGui::GetIO();
 
     // Zooming with CTRL+Wheel
@@ -278,7 +309,7 @@ void TextureAssetsBrowser::ComputeZooming(const ImVec2 startPos, const float ava
             // calculate hovered item index from mouse location
             const float hoveredItemNX = (io.MousePos.x - startPos.x + layoutItemSpacing_ * 0.5f) / layoutItemStep_.x;
             const float hoveredItemNY = (io.MousePos.y - startPos.y + layoutItemSpacing_ * 0.5f) / layoutItemStep_.y;
-            const int hoveredItemIdx = ((int)hoveredItemNY * numLayoutColumn_) + (int)hoveredItemNX;
+            const int hoveredItemIdx  = ((int)hoveredItemNY * numLayoutColumn_) + (int)hoveredItemNX;
 
             // zoom
             iconSize_ *= powf(1.1f, zoomWheelAccum_);
@@ -297,5 +328,118 @@ void TextureAssetsBrowser::ComputeZooming(const ImVec2 startPos, const float ava
         }
     }
 }
+
+//---------------------------------------------------------
+// Desc:  render a context menu after pressing RMB over some icon
+//---------------------------------------------------------
+void TextureAssetsBrowser::ShowContextMenu()
+{
+    if (ImGui::BeginPopupContextWindow())
+    {
+        showEditorWnd_ = ImGui::MenuItem("Edit", "");
+        showDeleteWnd_ = ImGui::MenuItem("Delete", "");
+
+        // if any option in the context menu was chosed we hide the context menu
+        if (showEditorWnd_ || showDeleteWnd_)
+            showIconContextMenu_ = false;
+
+        ImGui::EndPopup();
+    }
+}
+
+//---------------------------------------------------------
+// Desc:   show a window which is used to edit a chosen material
+// NOTE:   we split into half this window (left: preview; right: editing fields)
+//---------------------------------------------------------
+void TextureAssetsBrowser::ShowEditorWnd()
+{
+    // always center this window when appearing
+    const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    const ImVec2 size   = ImGui::GetMainViewport()->Size / 2;
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSize(size, ImGuiCond_Appearing);
+
+
+    if (ImGui::Begin("Texture editor", &showEditorWnd_, ImGuiWindowFlags_NoScrollbar))
+    {
+        const ImVec2 wndPos     = ImGui::GetWindowPos();
+        const ImVec2 availReg   = ImGui::GetContentRegionAvail();
+        const float halfWidth   = availReg.x / 2;
+        constexpr float padding = 20.0f;
+        const float wndWidth    = halfWidth - padding / 2;
+
+        // setup upper-left pos for each half, and its size as well
+        const ImVec2 wndPos1    = ImVec2(wndPos.x + padding,             wndPos.y + padding*2);
+        const ImVec2 wndPos2    = ImVec2(wndPos.x + halfWidth + padding, wndPos.y + padding*2);
+        const ImVec2 wndSize    = ImVec2(wndWidth, availReg.y);
+
+        
+        // get a ptr to arr of shader resource views of all the currently loaded textures
+        ptrdiff_t sz = 0;
+        ID3D11ShaderResourceView** arrSRVs = nullptr;
+        pFacade_->GetArrTexturesSRVs(arrSRVs, sz);
+
+        // render texture preview
+        ImGui::SetNextWindowPos(wndPos1);
+
+        if (ImGui::BeginChild("Preview", wndSize))
+        {
+            const float       imgSize = halfWidth - padding*2;
+            const ImTextureID texId   = (ImTextureID)arrSRVs[selectedItemIdx_];
+
+            ImGui::Image(texId, { imgSize, imgSize });
+        }
+        ImGui::EndChild();
+
+
+        // render texture properties fields 
+        ImGui::SetNextWindowPos(wndPos2);
+
+        if (ImGui::BeginChild("Properties", wndSize))
+        {
+            const TexID texId = selectedTexItemID_;
+            ImGui::Text("ID:   %" PRIu32, texId);
+            ImGui::Text("Name: %s", selectedTextureName_.name);
+
+            //-------------------------
+
+            if (ImGui::Button("Reload"))
+            {
+                // open dialog window to choose another texture, so we will get its path
+                std::string pathToTex;
+                TextureFileOpen(pathToTex);
+                const char* path = pathToTex.c_str();
+
+                if (!pFacade_->ReloadTextureFromFile(texId, path))
+                {
+                    LogErr(LOG, "can't reload a texture (%" PRIu32 ") from file : % s", texId, path);
+                }
+
+                // update UI info about the texture
+                pFacade_->GetTextureNameById(selectedTexItemID_, selectedTextureName_);
+
+                // update material icons since we changed a texture
+                g_GuiStates.needUpdateMatBrowserIcons = true;
+            }
+
+            //-------------------------
+
+            if (ImGui::Button("Set another"))
+            {
+
+            }
+
+            //-------------------------
+
+            if (ImGui::Button("Generate"))
+            {
+
+            }
+        }
+        ImGui::EndChild();
+    }
+    ImGui::End();
+}
+
 
 } // namespace UI

@@ -1,16 +1,19 @@
 #include "LightHelper.hlsli"
 
-//
+//////////////////////////////////
 // GLOBALS
-//
-Texture2D    gTextures[128] : register(t0);
+//////////////////////////////////
+TextureCube  gCubeMap       : register(t0);
+Texture2D    gPerlinNoise   : register(t1);
+Texture2D    gTextures[22]  : register(t10);
+
 SamplerState gBasicSampler  : register(s0);
 SamplerState gSkySampler    : register(s1);
 
 
-//
+//////////////////////////////////
 // CONSTANT BUFFERS
-//
+//////////////////////////////////
 cbuffer cbMaterialPerObj : register(b5)
 {
     float4 gAmbient;
@@ -20,9 +23,9 @@ cbuffer cbMaterialPerObj : register(b5)
 };
 
 
-//
+///////////////////////////////////
 // TYPEDEFS
-//
+///////////////////////////////////
 struct PS_IN
 {
     float4 posH      : SV_POSITION;   // homogeneous position
@@ -32,9 +35,9 @@ struct PS_IN
     float2 tex       : TEXCOORD;
 };
 
-//
+//////////////////////////////////
 // PIXEL SHADER
-//
+//////////////////////////////////
 float4 PS(PS_IN pin) : SV_Target
 {
     //return float4(pin.normalW, 1.0f);
@@ -70,6 +73,7 @@ float4 PS(PS_IN pin) : SV_Target
     // sum the light contribution from each light source (ambient, diffuse, specular)
     float4 A, D, S;
 
+    // hardcoded directed light
     DirectionalLight dirLight;
     dirLight.ambient = float4(0.5f, 0.5f, 0.5f, 1.0f);
     dirLight.diffuse = float4(0.8f, 0.8f, 0.8f, 1.0f);

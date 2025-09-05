@@ -8,7 +8,6 @@
 
 #include <Types.h>
 #include <log.h>
-#include <CAssert.h>
 #include "../Texture/TextureTypes.h"
 
 #pragma warning (disable : 4996)
@@ -76,14 +75,16 @@ struct Material
 {
     Float4     ambient  = { 1,1,1,1 };
     Float4     diffuse  = { 1,1,1,1 };
-    Float4     specular = { 0,0,0,1 };                              // w-component is a specPower (specular power)
+    Float4     specular = { 0,0,0,1 };                                // w-component is a specPower (specular power)
     Float4     reflect  = { 0,0,0,0 };
 
     MaterialID id = INVALID_MATERIAL_ID;
     char       name[MAX_LENGTH_MATERIAL_NAME] = { "invalid" };
 
+    ShaderID   shaderId = 0;                                          // default Light shader
     TexID      texIds[NUM_TEXTURE_TYPES]{ INVALID_TEXTURE_ID };
     uint32     renderStates = 0;                                      // bitfield for materials properties
+
 
     //-----------------------------------------------------
 
@@ -108,8 +109,6 @@ struct Material
         }
 
         size_t len = strlen(inName);
-
-        CAssert::True(len > 0, "length of input name string must be > 0");
 
         if (len > MAX_LENGTH_MATERIAL_NAME-1)
             len = MAX_LENGTH_MATERIAL_NAME-1;

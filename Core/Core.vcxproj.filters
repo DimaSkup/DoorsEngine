@@ -297,6 +297,9 @@
     <ClCompile Include="UI\Editor\Entity\Controller\EnttParticlesController.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="UI\UICommon\StatesGUI.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Input\Mouse.h">

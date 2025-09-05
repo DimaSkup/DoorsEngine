@@ -11,6 +11,7 @@
 #include "../../Render/CGraphics.h"
 #include "Entity/EntityMgr.h"            // from the ECS module
 #include <Render/CRender.h>              // from the Render module
+#include <Terrain/TerrainGeomipmapped.h>
 #include <d3d11.h>
 
 
@@ -21,17 +22,19 @@ namespace UI
 class FacadeEngineToUI : public IFacadeEngineToUI
 {
 private:
-    ID3D11DeviceContext* pContext_      = nullptr;
-    Render::CRender*     pRender_       = nullptr;
-    ECS::EntityMgr*      pEnttMgr_      = nullptr;
-    Core::CGraphics*     pGraphics_     = nullptr;
+    ID3D11DeviceContext*  pContext_      = nullptr;
+    Render::CRender*      pRender_       = nullptr;
+    ECS::EntityMgr*       pEnttMgr_      = nullptr;
+    Core::CGraphics*      pGraphics_     = nullptr;
+    Core::TerrainGeomip*  pTerrain_      = nullptr;
 
 public:
     FacadeEngineToUI(
         ID3D11DeviceContext* pContext,
         Render::CRender* pRender,
         ECS::EntityMgr* pEntityMgr,
-        Core::CGraphics* pGraphics);
+        Core::CGraphics* pGraphics,
+        Core::TerrainGeomip* pTerrain);
 
 
     virtual ModelID GetModelIdByName(const std::string& name) override;
@@ -190,10 +193,15 @@ public:
     // =============================================================================
     // for assets: models/textures/sounds/etc.
     // =============================================================================
+    virtual bool LoadTextureFromFile  (const char* path)                                            const override;
+    virtual bool ReloadTextureFromFile(const TexID id, const char* path)                            const override;
+
     virtual bool GetModelsNamesList (cvector<std::string>& names)                                   const override;
     virtual bool GetTextureIdByIdx  (const index idx, TexID& outTextureID)                          const override;
     virtual bool GetMaterialIdByIdx (const index idx, MaterialID& outMatID)                         const override;
     virtual bool GetMaterialNameById(const MaterialID id, char* outName, const int nameMaxLength)   const override;
+    virtual bool GetMaterialTexIds  (const MaterialID id, TexID* outTexIds)                const override;
+    virtual bool GetTextureNameById (const TexID id, TexName& outName)                              const override;
     virtual bool GetNumMaterials    (size& numMaterials)                                            const override;
 
     virtual bool GetMaterialDataById(const MaterialID id, MaterialData& outData)                    const override;
@@ -215,28 +223,31 @@ public:
         const Vec4& reflect) override;
 
     // get SRV (shader resource view)
-    virtual bool GetArrTexturesSRVs (SRV**& outArrShaderResourceViews, size& outNumViews)           const override;  // get array of all the textures SRVs
-    virtual bool GetArrMaterialsSRVs(SRV**& outArrShaderResourceViews, size& outNumViews)           const override;  // get array of SRVs which contains visualization of materials (sphere + material)
+    virtual bool GetArrTexturesSRVs(ID3D11ShaderResourceView**& outTexViews, size& outNumViews)             const override;
+    virtual bool GetTexViewsByIds  (TexID* texIds, ID3D11ShaderResourceView** outTexViews, size numTexTypes) const override;
 
     virtual bool SetEnttMaterial(
         const EntityID enttID,
         const SubsetID subsetID,
         const MaterialID matID) override;
 
-    virtual bool RenderMaterialsIcons(
-        const int startMaterialIdx,        // render materials of some particular range [start, start + num_of_views]
+    virtual bool InitMaterialBigIcon(const int width, const int height) const override;
+
+    virtual bool InitMaterialsIcons(
         const size numIcons,
         const int iconWidth,
         const int iconHeight) override;
 
-    virtual bool RenderMaterialBigIconByID(
-        const MaterialID matID,
-        const int iconWidth,
-        const int iconHeight,
-        const float yAxisRotation) override;
+    virtual bool RenderMaterialsIcons()                                                       const override;
+    virtual bool RenderMaterialBigIconById(const MaterialID matID, const float yAxisRotation)       override;
+
+
+    virtual bool GetShadersIdAndName(cvector<ShaderData>& outData)                    override;
+    virtual bool SetMaterialShaderId(const MaterialID matId, const ShaderID shaderId) override;
+
 
     // =============================================================================
-    // setup particles binded to entity by ID (note: actually we setup a particles system at all, not particular particles of particular entity)
+    // PARTICLES
     // =============================================================================
     virtual bool SetParticlesColor      (const EntityID id, const ColorRGB& c)         override;
     virtual bool SetParticlesExternForce(const EntityID id, const Vec3& force)         override;
@@ -255,6 +266,25 @@ public:
         float& mass,
         float& size,
         float& friction) override;
+
+
+    // =============================================================================
+    // TERRAIN
+    // =============================================================================
+    virtual int  GetTerrainNumMaxLOD()                                   const override;
+    virtual int  GetTerrainDistanceToLOD(const int lod)                  const override;
+    virtual bool SetTerrainDistanceToLOD(const int lod, const int dist)        override;
+
+
+    // =============================================================================
+    // GRASS
+    // =============================================================================
+    virtual float GetGrassDistFullSize()                const override;
+    virtual float GetGrassDistVisible()                 const override;
+
+    virtual bool SetGrassDistFullSize(const float dist)       override;
+    virtual bool SetGrassDistVisible (const float dist)       override;
+
 };
 
 } // namespace UI

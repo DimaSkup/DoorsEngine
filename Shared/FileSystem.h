@@ -108,7 +108,7 @@ public:
     inline static void GetFileName(const char* path, char* outFilename)
     {
         // returns the filename path component
-        const ptrdiff_t offset = GetLastSlashOffset(path) + 1;
+        const ptrdiff_t offset = GetLastSlashOffset(path);
 
         strcpy(outFilename, path+offset);
         //outFilename[offset] = '\0';              // put extra NULL

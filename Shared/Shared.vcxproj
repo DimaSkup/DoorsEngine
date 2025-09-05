@@ -31,10 +31,12 @@
     <ClInclude Include="MathHelper.h" />
     <ClInclude Include="MemHelpers.h" />
     <ClInclude Include="RawFile.h" />
+    <ClInclude Include="ShellHelpers.h" />
     <ClInclude Include="StrHelper.h" />
     <ClInclude Include="SystemState.h" />
     <ClInclude Include="Types.h" />
     <ClInclude Include="UtilsFilesystem.h" />
+    <ClInclude Include="winFileDialog.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="EngineException.cpp" />

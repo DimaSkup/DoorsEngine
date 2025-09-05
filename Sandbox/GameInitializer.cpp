@@ -3,10 +3,12 @@
 #include "LightEnttsInitializer.h"
 #include "SetupModels.h"
 #include "../Core/Engine/EngineConfigs.h"
+#include <inttypes.h>
 
 using namespace Core;
 using namespace Render;
 
+using XMFLOAT2 = DirectX::XMFLOAT2;
 using XMFLOAT3 = DirectX::XMFLOAT3;
 using XMFLOAT4 = DirectX::XMFLOAT4;
 using XMVECTOR = DirectX::XMVECTOR;
@@ -33,12 +35,13 @@ void InitMaterials()
     const TexID texIdBrickDiff      = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "brick01d.dds");
     const TexID texIdBrickNorm      = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "brick01n.dds");
     const TexID texIdPerlinNoise    = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "perlin_noise.png");
+    const TexID texIdGrassAtlat     = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "plants/grassPack.dds");
+    const TexID texIdGrass2Atlat    = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "plants/build_details.dds");
     //const TexID texIdBigPoleDiff    = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "power_line/bigpoleiron_co.png");
     //const TexID texIdBigPoleNorm    = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "power_line/bigpoleiron_nohq.png");
     //const TexID texIdGigachad       = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "gigachad.dds");
 
     // load some textures for particles
-    
     const TexID texIdFlare          = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "flare.png");
     const TexID texIdFlame0         = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "flame0.dds");
 
@@ -46,25 +49,34 @@ void InitMaterials()
     // create material for flame (fire) particles
     Material& flameParticleMat = g_MaterialMgr.AddMaterial("flameMat");
     flameParticleMat.SetTexture(TEX_TYPE_DIFFUSE, texIdFlame0);
-    flameParticleMat.SetAlphaClip(true);
+    flameParticleMat.SetAlphaClip(false);
     flameParticleMat.SetFill(MAT_PROP_FILL_SOLID);
-    flameParticleMat.SetCull(MAT_PROP_CULL_NONE);
-    flameParticleMat.SetBlending(MAT_PROP_BLEND_ENABLE);
-    flameParticleMat.SetDepthStencil(MAT_PROP_DEPTH_DISABLED);
+    flameParticleMat.SetBlending(MAT_PROP_ADDING);
+    flameParticleMat.SetDepthStencil(MAT_PROP_MARK_MIRROR);
 
     // create a material for flare particles
     Material& flareParticleMat = g_MaterialMgr.AddMaterial("flareMat");
     flareParticleMat.SetTexture(TEX_TYPE_DIFFUSE, texIdFlare);
-    flareParticleMat.SetAlphaClip(true);
+    flareParticleMat.SetAlphaClip(false);
     flareParticleMat.SetFill(MAT_PROP_FILL_SOLID);
-    flareParticleMat.SetCull(MAT_PROP_CULL_NONE);
-    flareParticleMat.SetBlending(MAT_PROP_BLEND_ENABLE);
-    flareParticleMat.SetDepthStencil(MAT_PROP_DEPTH_DISABLED);
+    flareParticleMat.SetBlending(MAT_PROP_ADDING);
+    flareParticleMat.SetDepthStencil(MAT_PROP_MARK_MIRROR);
 
     // cat
     Material& catMat = g_MaterialMgr.AddMaterial("cat");
     catMat.SetTexture(TEX_TYPE_DIFFUSE, texIdCat);
     catMat.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
+
+    // grass altlas
+    Material& grassMat0 = g_MaterialMgr.AddMaterial("grass_0");
+    grassMat0.SetTexture(TEX_TYPE_DIFFUSE, texIdGrassAtlat);
+    grassMat0.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
+    grassMat0.SetCull(MAT_PROP_CULL_NONE);
+
+    Material& grassMat1 = g_MaterialMgr.AddMaterial("grass_1");
+    grassMat1.SetTexture(TEX_TYPE_DIFFUSE, texIdGrass2Atlat);
+    grassMat1.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
+
 
     // firecamp animated
     Material& firecampMat = g_MaterialMgr.AddMaterial("firecamp");
@@ -170,20 +182,13 @@ void GameInitializer::InitParticles(ECS::EntityMgr& enttMgr)
 
     // setup point lights for sparcles
     ECS::PointLight flamePointL;
-    flamePointL.diffuse     = { 0.8f, 0.6f, 0.05f, 1.0f };
+    flamePointL.diffuse     = { 0.37f, 0.25f, 0.0f, 1.0f };
     flamePointL.ambient     = flamePointL.diffuse * 0.25f;
     flamePointL.specular    = flamePointL.diffuse;
     flamePointL.att         = { 0.1f, 0.1f, 0.005f };
     flamePointL.range       = 50;
 
-    ECS::PointLight sparclesPointL;
-    sparclesPointL.diffuse  = { 0.0f, 0.8f, 0.05f, 1.0f };
-    sparclesPointL.ambient  = sparclesPointL.diffuse * 0.25f;
-    sparclesPointL.specular = sparclesPointL.diffuse;
-    sparclesPointL.att      = { 0, 0.1f, 0.005f };
-    sparclesPointL.range    = 50;
-
-
+#if 0
     // create flame entity
     const EntityID flame1EnttId = enttMgr.CreateEntity("flame1");
     enttMgr.AddTransformComponent(flame1EnttId, { 257,101,235 });
@@ -200,11 +205,11 @@ void GameInitializer::InitParticles(ECS::EntityMgr& enttMgr)
     emitterFlame1.mass       = 0.5f;
     emitterFlame1.friction   = 0.05f;
     emitterFlame1.forces     = { 0.0f, 0.003f, 0.0f };
-
+#endif
 
     // create flame entity
     const EntityID flame2EnttId = enttMgr.CreateEntity("flame2");
-    enttMgr.AddTransformComponent(flame2EnttId, { 240,77,215 });
+    enttMgr.AddTransformComponent(flame2EnttId, { 245.0f, 82.5f, 247.5f });
     enttMgr.AddParticleEmitterComponent(flame2EnttId);
     enttMgr.AddBoundingComponent(flame2EnttId, ECS::BoundingType::BOUND_BOX, aabb);
     enttMgr.AddLightComponent(flame2EnttId, flamePointL);
@@ -214,28 +219,27 @@ void GameInitializer::InitParticles(ECS::EntityMgr& enttMgr)
     emitterFlame2.materialId = matIdFlame;
     emitterFlame2.life       = 1;
     emitterFlame2.color      = { 1, 1, 1 };
-    emitterFlame2.size       = 2.0f;
+    emitterFlame2.size       = 3.0f;
     emitterFlame2.mass       = 0.5f;
-    emitterFlame2.friction   = 0.05f;
+    emitterFlame2.friction   = 0.08f;
     emitterFlame2.forces     = { 0.0f, 0.003f, 0.0f };
 
-
-    // create green sparcles entity
+    // fire sparcles
     const EntityID sparclesEnttId = enttMgr.CreateEntity("sparcles");
-    enttMgr.AddTransformComponent(sparclesEnttId, { 250,77,215 });
+    enttMgr.AddTransformComponent(sparclesEnttId, { 245.0f, 83.3f, 247.5f });
     enttMgr.AddParticleEmitterComponent(sparclesEnttId);
     enttMgr.AddBoundingComponent(sparclesEnttId, ECS::BoundingType::BOUND_BOX, aabb);
-    enttMgr.AddLightComponent(sparclesEnttId, sparclesPointL);
+
 
     ECS::ParticleEmitter& emitterSparcle = particleSys.GetEmitterByEnttId(sparclesEnttId);
-    emitterSparcle.spawnRate    = 3000;
+    emitterSparcle.spawnRate    = 30;
     emitterSparcle.materialId   = matIdFlare;
     emitterSparcle.life         = 1;
-    emitterSparcle.color        = { 0.1f, 1.0f, 0.25f };
-    emitterSparcle.size         = 0.2f;
+    emitterSparcle.color        = { 1.0f, 0.57f, 0.0f };
+    emitterSparcle.size         = 0.14f;
     emitterSparcle.mass         = 1.24f;
-    emitterSparcle.friction     = 0.01f;
-    emitterSparcle.forces       = { 0.0f, -0.001f, 0.0f };
+    emitterSparcle.friction     = 0.083f;
+    emitterSparcle.forces       = { 0.0f, 0.006f, 0.0f };
 }
 
 //---------------------------------------------------------
@@ -258,11 +262,11 @@ void GameInitializer::InitPlayer(ID3D11Device* pDevice, ECS::EntityMgr* pEnttMgr
     ECS::NameSystem&      nameSys      = pEnttMgr->nameSystem_;
     ECS::HierarchySystem& hierarchySys = pEnttMgr->hierarchySystem_;
 
-    const EntityID stalkerEnttID = nameSys.GetIdByName("stalker_freedom");
-    const EntityID aks74EnttID   = nameSys.GetIdByName("aks_74");
-    const EntityID gameCameraID  = nameSys.GetIdByName("game_camera");
-    const EntityID flashlightID  = nameSys.GetIdByName("flashlight");
-    const EntityID swordID       = nameSys.GetIdByName("sword");
+    const EntityID stalkerEnttId = nameSys.GetIdByName("stalker_freedom");
+    const EntityID aks74uEnttId   = nameSys.GetIdByName("player_kalash");
+    const EntityID gameCameraId  = nameSys.GetIdByName("game_camera");
+    const EntityID flashlightId  = nameSys.GetIdByName("flashlight");
+    const EntityID swordId       = nameSys.GetIdByName("sword");
 
     // ------------------------------------------
 
@@ -272,9 +276,9 @@ void GameInitializer::InitPlayer(ID3D11Device* pDevice, ECS::EntityMgr* pEnttMgr
     pEnttMgr->AddRenderingComponent(playerID);
 
     // BIND some entities to the player
-    //hierarchySys.AddChild(playerID, aks74EnttID);
-    hierarchySys.AddChild(playerID, gameCameraID);
-    hierarchySys.AddChild(playerID, flashlightID);
+    hierarchySys.AddChild(playerID, aks74uEnttId);
+    hierarchySys.AddChild(playerID, gameCameraId);
+    hierarchySys.AddChild(playerID, flashlightId);
 
     pEnttMgr->AddPlayerComponent(playerID);
     pEnttMgr->AddBoundingComponent(playerID, ECS::BoundingType::BOUND_BOX, *sphere.GetSubsetsAABB());
@@ -285,8 +289,7 @@ void GameInitializer::InitPlayer(ID3D11Device* pDevice, ECS::EntityMgr* pEnttMgr
     player.SetCurrentSpeed(1.0f);
 
     // HACK setup (move player)
-    pEnttMgr->AddEvent(ECS::EventTranslate(playerID, 230, 80, 190));
-    //pEnttMgr->AddEvent(ECS::EventTranslate(playerID, 0, 100, 0));
+    pEnttMgr->AddEvent(ECS::EventTranslate(playerID, 230, 80, 200));
     player.SetFreeFlyMode(true);
 }
 
@@ -504,7 +507,8 @@ void CreateSkyBox(ECS::EntityMgr& mgr)
     // setup a material
     Material& mat = g_MaterialMgr.AddMaterial("sky_mat");
     mat.SetTexture(TEX_TYPE_DIFFUSE, skyMapId);
-    mat.SetCull(MAT_PROP_CULL_NONE);
+    mat.SetAlphaClip(false);
+    mat.SetCull(MAT_PROP_CULL_FRONT);
     mat.SetFrontClockwise(MAT_PROP_FRONT_COUNTER_CLOCKWISE);
     mat.SetDepthStencil(MAT_PROP_SKY_DOME);
 
@@ -870,13 +874,21 @@ void CreateSkull(ECS::EntityMgr& mgr, const BasicModel& model)
 
 ///////////////////////////////////////////////////////////
 
-void CreateTreesPine(ECS::EntityMgr& mgr, const BasicModel& model)
+void CreateTreesPine(ECS::EntityMgr& mgr)
 {
     LogDbg(LOG, "create tree pine entities");
 
-    constexpr size numEntts = 100;
+    // load a model from file
+    ModelsCreator creator;
+    const char* pathModel = "data/models/ext/trees/FBX format/tree_pine.fbx";
+    const ModelID modelId = creator.ImportFromFile(g_pDevice, pathModel);
+    BasicModel& model = g_ModelMgr.GetModelById(modelId);
+    SetupTreePine(model);
+
+
+    constexpr size numEntts          = 100;
     const cvector<EntityID> enttsIDs = mgr.CreateEntities(numEntts);
-    const EntityID* ids = enttsIDs.data();
+    const EntityID* ids              = enttsIDs.data();
 
     // ---------------------------------------------
 
@@ -889,14 +901,15 @@ void CreateTreesPine(ECS::EntityMgr& mgr, const BasicModel& model)
     // generate a name for each tree
     for (int i = 0; std::string& name : names)
     {
-        sprintf(g_String, "tree_pine_%ld", ids[i++]);
-        name = g_String;
+        char tmpName[32]{'\0'};
+        sprintf(tmpName, "tree_pine_%ld", ids[i++]);
+        name = tmpName;
     }
 
     // we will set heights according to the terrain's landscape
-    TerrainGeomip& terrain = g_ModelMgr.GetTerrainGeomip();
-    const float range = (float)terrain.heightMap_.GetWidth();
-    const float maxHeight = 60;// terrain.tiles_.regions[HIGHEST_TILE].lowHeight;
+    TerrainGeomip& terrain  = g_ModelMgr.GetTerrainGeomip();
+    const float range       = (float)terrain.heightMap_.GetWidth();
+    const float maxHeight   = 150;// terrain.tiles_.regions[HIGHEST_TILE].lowHeight;
 
     // generate positions
     for (XMFLOAT3& pos : positions)
@@ -912,11 +925,15 @@ void CreateTreesPine(ECS::EntityMgr& mgr, const BasicModel& model)
 
     // generate directions
     for (index i = 0; i < numEntts; ++i)
-        directions[i] = { 0,0,1 };
+    {
+        float angleY  = MathHelper::RandF(0, 314) * 0.01f;
+        directions[i] = DirectX::XMQuaternionRotationAxis({ 0,1,0 }, DirectX::XM_PIDIV2);
+    }
 
     // generate a scale value for each tree
     for (index i = 0; i < numEntts; ++i)
         uniScales[i] = 0.01f;
+
 
     // add components to each tree entity
     mgr.AddTransformComponent(ids, numEntts, positions, directions, uniScales);
@@ -946,9 +963,8 @@ void CreateTreesPine(ECS::EntityMgr& mgr, const BasicModel& model)
 
 
     // add material component to each tree
-    constexpr bool              matIsMeshBased = true;
-    const MeshGeometry::Subset* subsets        = model.meshes_.subsets_;
-    const MaterialID materialIDs[numSubsets] =
+    const MeshGeometry::Subset* subsets      = model.meshes_.subsets_;
+    const MaterialID materialIds[numSubsets] =
     {
         subsets[0].materialId,
         subsets[1].materialId,
@@ -956,7 +972,7 @@ void CreateTreesPine(ECS::EntityMgr& mgr, const BasicModel& model)
     };
 
     for (index i = 0; i < numEntts; ++i)
-        mgr.AddMaterialComponent(ids[i], materialIDs, numSubsets);
+        mgr.AddMaterialComponent(ids[i], materialIds, numSubsets);
 }
 
 ///////////////////////////////////////////////////////////
@@ -1009,8 +1025,9 @@ void CreateTreesSpruce(ECS::EntityMgr& mgr)
     // generate direction quats
     for (int i = 0; i < numEntts; ++i)
     {
-        float angleY = MathHelper::RandF(0, 314) * 0.01f;
-        directions[i] = DirectX::XMQuaternionRotationAxis({ 0,1,0 }, DirectX::XM_PIDIV2);
+        directions[i] = { 0,0,0,1 };
+       // float angleY = MathHelper::RandF(0, 314) * 0.01f;
+        //directions[i] = DirectX::XMQuaternionRotationAxis({ 0,1,0 }, DirectX::XM_PIDIV2);
     }
 
     // generate a scale value for each tree
@@ -1019,8 +1036,10 @@ void CreateTreesSpruce(ECS::EntityMgr& mgr)
         uniScales[i] = 3.5f + MathHelper::RandF(0.0f, 50.0f) * 0.01f;
     }
 
-    const MaterialID matId = model.meshes_.subsets_[0].materialId;
-    const int numSubmeshes = 1;
+    // setup bound data
+    const size numSubsets = 3;
+    const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
+
 
     // add components to each tree entity
     mgr.AddTransformComponent(ids, numEntts, positions, directions, uniScales);
@@ -1028,15 +1047,12 @@ void CreateTreesSpruce(ECS::EntityMgr& mgr)
     mgr.AddModelComponent(ids, model.GetID(), numEntts);
     mgr.AddRenderingComponent(ids, numEntts);
 
+    const MaterialID matId = model.meshes_.subsets_[0].materialId;
+
     for (int i = 0; i < numEntts; ++i)
     {
         mgr.AddMaterialComponent(ids[i], matId);
     }
-  
-
-    //const DirectX::XMMATRIX world = mgr.transformSystem_.GetWorldMatrixOfEntt(enttI)
-    const size numSubsets = model.GetNumSubsets();
-    const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
 
     // add bounding component to each entity
     mgr.AddBoundingComponent(
@@ -1179,9 +1195,13 @@ void CreateStalkerFreedom(ECS::EntityMgr& mgr)
     const EntityID enttId = mgr.CreateEntity("stalker_freedom");
 
     // setup transformation params
-    XMFLOAT3 position        = { 270, 80, 200 };
+    const TerrainGeomip& terrain = g_ModelMgr.GetTerrainGeomip();
+    const float posX = 280;
+    const float posZ = 230;
+    const float posY = terrain.GetScaledHeightAtPoint((int)posX, (int)posZ);
+    XMFLOAT3 position        = { posX, posY, posZ };
     XMVECTOR direction       = { 0, 1, 0, 0 };
-    const float uniformScale = 5.0f;
+    const float uniformScale = 2.0f;
 
     // setup bounding params
     const size numEntts = 1;
@@ -1216,27 +1236,80 @@ void CreateStalkerFreedom(ECS::EntityMgr& mgr)
 
 ///////////////////////////////////////////////////////////
 
-void CreateTraktor13(ECS::EntityMgr& mgr)
+void CreateStalkerHouse(ECS::EntityMgr& mgr)
+{
+    // import a model from file
+    ModelsCreator creator;
+    const char* pathTraktor = "data/models/ext/stalker-house/source/SmallHouse.fbx";
+    const ModelID modelId = creator.ImportFromFile(g_pDevice, pathTraktor);
+    BasicModel& model = g_ModelMgr.GetModelById(modelId);
+    SetupStalkerSmallHouse(model);
+
+    const EntityID enttID = mgr.CreateEntity("stalker_house");
+
+    // setup transformation params
+    const TerrainGeomip& terrain = g_ModelMgr.GetTerrainGeomip();
+    const float posX = 261;
+    const float posZ = 249;
+    const float posY = terrain.GetScaledHeightAtPoint((int)posX, (int)posZ);
+    XMFLOAT3 position = { posX, posY + 4.8f, posZ };
+    XMVECTOR direction = { 0, 1, 0, 0 };
+    const float uniformScale = 2.0f;
+
+    // setup bounding params
+    const size numEntts = 1;
+    const size numSubsets = model.GetNumSubsets();
+    const std::vector<ECS::BoundingType> boundTypes(numSubsets, ECS::BoundingType::BOUND_BOX);
+
+    // setup materials params
+    cvector<MaterialID> materialIDs(numSubsets);
+
+    for (index i = 0; i < numSubsets; ++i)
+        materialIDs[i] = model.meshes_.subsets_[i].materialId;
+
+
+    // add components
+    mgr.AddTransformComponent(enttID, position, direction, uniformScale);
+    mgr.AddModelComponent(enttID, model.GetID());
+    mgr.AddRenderingComponent(enttID);
+
+    mgr.AddBoundingComponent(
+        &enttID,
+        numEntts,
+        numSubsets,
+        boundTypes.data(),
+        model.GetSubsetsAABB());             // AABB data (center, extents)
+
+    mgr.AddMaterialComponent(enttID, materialIDs.data(), numSubsets);
+
+
+    const XMVECTOR q = DirectX::XMQuaternionRotationAxis({ 1,0,0 }, DirectX::XM_PIDIV2);
+    mgr.transformSystem_.RotateLocalSpaceByQuat(enttID, q);
+}
+
+///////////////////////////////////////////////////////////
+
+void CreateTraktor13(ECS::EntityMgr& mgr, Render::CRender& render)
 {
     LogDbg(LOG, "create a traktor (tr-13) entity");
 
-    // import stalker model from file
+    // import a model from file
     ModelsCreator creator;
     const char* pathTraktor = "data/models/ext/tr13/tr13.fbx";
     const ModelID traktorId = creator.ImportFromFile(g_pDevice, pathTraktor);
     BasicModel& model       = g_ModelMgr.GetModelById(traktorId);
-    SetupTraktor(model);
+    SetupTraktor(model, render);
     
     const EntityID enttID = mgr.CreateEntity("traktor_13");
 
     // setup transformation params
     const TerrainGeomip& terrain = g_ModelMgr.GetTerrainGeomip();
     const float posX         = 261;
-    const float posZ         = 249;
+    const float posZ         = 220;
     const float posY         = terrain.GetScaledHeightAtPoint((int)posX, (int)posZ);
     XMFLOAT3 position        = { posX, posY, posZ };
     XMVECTOR direction       = { 0, 1, 0, 0 };
-    const float uniformScale = 5.0f;
+    const float uniformScale = 3.0f;
 
     // setup bounding params
     const size numEntts = 1;
@@ -1269,6 +1342,13 @@ void CreateTraktor13(ECS::EntityMgr& mgr)
     const XMVECTOR rotQuat2 = DirectX::XMQuaternionRotationAxis({ 0,1,0 }, DirectX::XM_PI + DirectX::XM_PIDIV4);
     const XMVECTOR q = DirectX::XMQuaternionMultiply(rotQuat1, rotQuat2);
     mgr.transformSystem_.RotateLocalSpaceByQuat(enttID, q);
+
+    const EntityID enttIdTraktorSpotlightL = mgr.nameSystem_.GetIdByName("traktor_spotlight_L");
+    const EntityID enttIdTraktorSpotlightR = mgr.nameSystem_.GetIdByName("traktor_spotlight_R");
+
+    // BIND some entities to the traktor
+    mgr.hierarchySystem_.AddChild(enttID, enttIdTraktorSpotlightL);
+    mgr.hierarchySystem_.AddChild(enttID, enttIdTraktorSpotlightR);
 }
 
 ///////////////////////////////////////////////////////////
@@ -1551,7 +1631,11 @@ void CreateCastleTower(ECS::EntityMgr& mgr)
 //---------------------------------------------------------
 // Desc:   create an entity with aks-74u model
 //---------------------------------------------------------
-void CreateAks74u(ECS::EntityMgr& mgr, const BasicModel& model, const XMFLOAT3& pos)
+void CreateAks74u(
+    ECS::EntityMgr& mgr,
+    const BasicModel& model,
+    const XMFLOAT3& pos,
+    const char* inName = nullptr)
 {
     LogDbg(LOG, "create aks-74u entity");
 
@@ -1573,9 +1657,13 @@ void CreateAks74u(ECS::EntityMgr& mgr, const BasicModel& model, const XMFLOAT3& 
     const size numEntts = 1;
     const size numSubsets = model.GetNumSubsets();
 
-    // setup name
+    // setup a name
     char name[32]{'\0'};
-    snprintf(name, 32, "aks_74u_%u", enttId);
+
+    if (inName == nullptr)
+        snprintf(name, 32, "aks_74u_%" PRIu32, enttId);
+    else
+        strncpy(name, inName, 32);
 
     // setup materials Ids
     const MeshGeometry::Subset* subsets = model.meshes_.subsets_;
@@ -1725,17 +1813,41 @@ void PrintImportTimingInfo()
     SetConsoleColor(RESET);
 }
 
-///////////////////////////////////////////////////////////
-
-#define CREATE_SWORD 1
-#define CREATE_CASTLE 1
-#define CREATE_TREES 1
-
-void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
+//---------------------------------------------------------
+// Desc:   generate random params for grass and fill in a vertex buffer with this data
+//---------------------------------------------------------
+void CreateGrass()
 {
-    // 1. import models from different external formats (.obj, .blend, .fbx, etc.)
-    // 2. create relative entities
+    constexpr int numGrass       = 1000000;
+    const TerrainGeomip& terrain = g_ModelMgr.GetTerrainGeomip();
+    const float terrainSize      = (float)terrain.GetTerrainLength()-5;
 
+    cvector<VertexGrass>& grassVertices = g_ModelMgr.GetGrassVertices();
+    grassVertices.resize(numGrass);
+
+    for (VertexGrass& grass : grassVertices)
+    {
+        grass.pos.x  = MathHelper::RandF(0, terrainSize);
+        grass.pos.z  = MathHelper::RandF(0, terrainSize);
+        grass.pos.y  = terrain.GetScaledInterpolatedHeightAtPoint(grass.pos.x, grass.pos.z);
+
+        grass.size.x = MathHelper::RandF(0.5f, 2.5f);
+        grass.size.y = grass.size.x;
+    }
+
+    VertexBuffer<VertexGrass>& vb = g_ModelMgr.GetGrassVB();
+    vb.UpdateDynamic(g_pContext, grassVertices.data(), grassVertices.size());
+}
+
+//---------------------------------------------------------
+// Desc:  1. import models from different external formats (.obj, .blend, .fbx, etc.)
+//        2. create relative entities
+//---------------------------------------------------------
+void ImportExternalModels(
+    ID3D11Device* pDevice,
+    ECS::EntityMgr& mgr,
+    Render::CRender& render)
+{
     ModelsCreator creator;
 #if 1
     // import a model (AKS-74u) from file
@@ -1754,7 +1866,7 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
 
     //-------------------------------------------
 
-    CreateAks74u(mgr, aks74u, { 255, 80, 205 });
+    CreateAks74u(mgr, aks74u, { 0.80f, -1.35f, 0.9f }, "player_kalash");
     CreateAks74u(mgr, aks74u, { 250, 80, 205 });
     CreateAks74u(mgr, aks74u, { 245, 80, 205 });
     CreateAks74u(mgr, aks74u, { 240, 80, 205 });
@@ -1764,10 +1876,14 @@ void ImportExternalModels(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
 
     CreateStalkerFreedom(mgr);
     
-    //CreateCubes(mgr, cube);
+    CreateCubes(mgr, cube);
     CreateTreesSpruce(mgr);
+    //CreateTreesPine(mgr);
 #endif
-    CreateTraktor13(mgr);
+    CreateTraktor13(mgr, render);
+    CreateStalkerHouse(mgr);
+
+    CreateGrass();
 }
 
 //---------------------------------------------------------
@@ -1799,7 +1915,6 @@ void CreateTerrainGeomip(ECS::EntityMgr& mgr, const char* configPath)
     mat.SetTexture(TEX_TYPE_DIFFUSE_ROUGHNESS, terrainGeomip.detailMap_.GetID());
     mat.SetTexture(TEX_TYPE_LIGHTMAP,          terrainGeomip.lightmap_.id);
     mat.SetTexture(TEX_TYPE_NORMALS,           texIdNorm);
-    //terrainMat.SetTexture(TEX_TYPE_NORMALS, terrain.normalMap_.GetID());
 
     terrainGeomip.materialID_ = mat.id;
 
@@ -1913,7 +2028,10 @@ void LoadTreesBillboardsTextures()
 //---------------------------------------------------------
 // Desc:   initialize all the entities on the scene
 //---------------------------------------------------------
-bool GameInitializer::InitModelEntities(ID3D11Device* pDevice, ECS::EntityMgr& mgr)
+bool GameInitializer::InitModelEntities(
+    ID3D11Device* pDevice,
+    ECS::EntityMgr& mgr,
+    Render::CRender& render)
 {
     SetConsoleColor(YELLOW);
     LogMsg("\n");
@@ -1945,7 +2063,7 @@ bool GameInitializer::InitModelEntities(ID3D11Device* pDevice, ECS::EntityMgr& m
         //LoadTreesBillboardsTextures();
         InitMaterials();
         GenerateEntities(pDevice, mgr);
-        ImportExternalModels(pDevice, mgr);
+        ImportExternalModels(pDevice, mgr, render);
 
     }
     catch (const std::out_of_range& e)

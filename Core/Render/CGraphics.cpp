@@ -9,16 +9,10 @@
 #include "../Model/ModelMgr.h"
 #include "../Mesh/MaterialMgr.h"
 #include <Render/RenderStates.h>
+#include <Shaders/Shader.h>
 
 using namespace DirectX;
 using namespace Render;
-
-
-// temp for debug
-int s_NumMatsSwitch = 0;
-int s_NumCullSwitch = 0;
-int s_NumBlendSwitch = 0;
-int s_NumDepthSwitch = 0;
 
 
 namespace Core
@@ -197,7 +191,7 @@ void CGraphics::UpdateHelper(
             // make player's offset by Y-axis to be always over the terrain even
             // when jump from lower to higher position
             const float terrainHeight = terrain.GetScaledInterpolatedHeightAtPoint(playerPos.x, playerPos.z);
-            const float offsetOverTerrain = 2;
+            const float offsetOverTerrain = 3;
 
             player.SetMinVerticalOffset(terrainHeight + offsetOverTerrain);
         }
@@ -381,7 +375,7 @@ void CGraphics::UpdateShadersDataPerFrame(
 
     data.viewProj      = DirectX::XMMatrixTranspose(viewProj_);
     data.cameraPos     = pEnttMgr->transformSystem_.GetPosition(currCameraID_);
-    data.totalGameTime = totalGameTime * 0.01f;
+    data.totalGameTime = totalGameTime;
 
     SetupLightsForFrame(pEnttMgr, data);
 
@@ -441,8 +435,6 @@ void SwitchCullMode(
             renderStates.SetRS(pContext, R_CULL_NONE);
             break;
     }
-
-    s_NumCullSwitch++;
 }
 
 //---------------------------------------------------------
@@ -487,8 +479,6 @@ void SwitchBlendState(
             renderStates.SetBS(pContext, R_ALPHA_TO_COVERAGE);
             break;
     }
-
-    s_NumBlendSwitch++;
 }
 
 //---------------------------------------------------------
@@ -525,8 +515,6 @@ void SwitchDepthStencilState(
             renderStates.SetDSS(pContext, R_SKY_DOME, 0);
             break;
     }
-
-    s_NumDepthSwitch++;
 }
 
 //---------------------------------------------------------
@@ -631,12 +619,6 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
 {
     try
     {
-        // temp
-        s_NumMatsSwitch = 0;
-        s_NumCullSwitch = 0;
-        s_NumBlendSwitch = 0;
-        s_NumDepthSwitch = 0;
-
         RenderStates& renderStates    = d3d_.GetRenderStates();
         ID3D11DeviceContext* pContext = pContext_;
         UINT startInstanceLocation    = 0;
@@ -658,18 +640,25 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
         ID3D11ShaderResourceView* pPerlinNoiseSRV = pTexPerlinNoise->GetTextureResourceView();
         pContext->PSSetShaderResources(1U, 1U, &pPerlinNoiseSRV);
 
+
         const Render::RenderDataStorage& storage = pRender->dataStorage_;
 
         // check if we have any instances to render
         if (storage.instancesBuf.GetSize() > 0)
         {
+            // reset textures and render states so we will be able to setup it properly for rendering
+            ID3D11ShaderResourceView* zeroTexViews[NUM_TEXTURE_TYPES]{ nullptr };
+            BindMaterial(pRender, MAT_PROP_DEFAULT, zeroTexViews);
+
             // first of all we render masked and opaque geometry
+            pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+            RenderGrass(pRender);
+
+            pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
             RenderInstanceGroups(pContext, pRender, storage.masked, startInstanceLocation, stat);
             RenderInstanceGroups(pContext, pRender, storage.opaque, startInstanceLocation, stat);
 
-            pSysState_->numDrawnVertices += stat.numDrawnVertices;
-            pSysState_->numDrawnInstances += stat.numDrawnInstances;
-            pSysState_->numDrawCallsForInstances += stat.numDrawCallsForInstances;
+           
 
             // reset the render states before rendering
             pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -680,11 +669,17 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
             RenderSkyDome(pRender, pEnttMgr);
 
             // render billboards and particles
-            //RenderParticles(pRender, pEnttMgr);
+            pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+            RenderParticles(pRender, pEnttMgr);
 
             // after all we render blended geometry
+            pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
             RenderInstanceGroups(pContext, pRender, storage.blended, startInstanceLocation, stat);
             RenderInstanceGroups(pContext, pRender, storage.blendedTransparent, startInstanceLocation, stat);
+
+            pSysState_->numDrawnVertices += stat.numDrawnVertices;
+            pSysState_->numDrawnInstances += stat.numDrawnInstances;
+            pSysState_->numDrawCallsForInstances += stat.numDrawCallsForInstances;
         }
 
         // reset render states before rendering of 2D/UI elements
@@ -693,36 +688,42 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
         renderStates.ResetRS(pContext);
         renderStates.ResetBS(pContext);
         renderStates.ResetDSS(pContext);
-
-        //printf("num mats/cull/bs/dss switch: %d, %d, %d, %d\n-------------------\n\n", s_NumMatsSwitch, s_NumCullSwitch, s_NumBlendSwitch, s_NumDepthSwitch);
     }
     catch (const std::out_of_range& e)
     {
         LogErr(e.what());
-        LogErr("there is no such a key to data");
+        LogErr(LOG, "there is no such a key to data");
     }
     catch (EngineException& e)
     {
         LogErr(e);
-        LogErr("can't render 3D entts onto the scene");
+        LogErr(LOG, "can't render 3D entts onto the scene");
     }
 }
-///////////////////////////////////////////////////////////
 
-void InitMatIconFrameBuffer(
-    ID3D11Device* pDevice,
-    FrameBuffer& buf,
-    const int iconWidth,
-    const int iconHeight,
-    const float nearZ,
-    const float farZ)
+//---------------------------------------------------------
+// Desc:   init a single frame buffer which is used to render material big icon
+//         (for the editor's material browser)
+// Args:   - width, height:          frame buffer's dimensions
+//---------------------------------------------------------
+bool CGraphics::InitMatBigIconFrameBuf(const int width, const int height)
 {
-    // init a single frame buffer which is used to render material big icon (for the editor's material browser)
+    // check input args
+    if (width <= 0 && height <= 0)
+    {
+        LogErr(LOG, "input icon width or height is wrong, it must be > 0 (current w: %d, h: %d)", width, height);
+        return false;
+    }
+
+    D3DClass& d3d               = GetD3DClass();
+    ID3D11Device* pDevice       = d3d.GetDevice();
+    const float nearZ           = d3d.GetNearZ();
+    const float farZ            = d3d.GetFarZ();
 
     // setup params for the frame buffers
     FrameBufferSpecification frameBufSpec;
-    frameBufSpec.width          = (UINT)iconWidth;
-    frameBufSpec.height         = (UINT)iconHeight;
+    frameBufSpec.width          = (UINT)width;
+    frameBufSpec.height         = (UINT)height;
     frameBufSpec.format         = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM;
     frameBufSpec.screenNear     = nearZ;
     frameBufSpec.screenDepth    = farZ;
@@ -730,94 +731,137 @@ void InitMatIconFrameBuffer(
     // TODO: if input params differ from the frame buffer's params we
     // need to recreate the frame buffer according to new params
     
-    buf.Initialize(pDevice, frameBufSpec);
+    if (!materialBigIconFrameBuf_.Initialize(g_pDevice, frameBufSpec))
+    {
+        LogErr(LOG, "can't initialize material big icon");
+        return false;
+    }
+
+    return true;
 }
 
-///////////////////////////////////////////////////////////
-
-void InitMatIconFrameBuffers(
-    ID3D11Device* pDevice,
-    cvector<FrameBuffer>& frameBuffers,
-    const size numIcons,
-    const int iconWidth,
-    const int iconHeight,
-    const float nearZ,
-    const float farZ)
+//---------------------------------------------------------
+// Desc:   initialize frame buffers which will be used to render material icons
+//         (for material browser in the editor)
+// Args:   - numBuffers:             how many buffers we will init
+//         - width, height:          frame buffer's dimensions
+//         - outShaderResourceViews: output array of ptr to texture resource views
+//---------------------------------------------------------
+bool CGraphics::InitMatIconFrameBuffers(
+    const size numBuffers,
+    const uint32 width,
+    const uint32 height,
+    cvector<ID3D11ShaderResourceView*>& outShaderResourceViews)
 {
-    // initialize frame buffers which will be used to render material icons (for material browser in the editor)
+    // check input args
+    if (numBuffers <= 0)
+    {
+        LogErr(LOG, "input number of icons must be > 0");
+        return false;
+    }
+    if (width <= 0 && height <= 0)
+    {
+        LogErr(LOG, "input icon width or height is wrong, it must be > 0 (current w: %d, h: %d)", width, height);
+        return false;
+    }
+
+
+    D3DClass& d3d               = GetD3DClass();
+    ID3D11Device* pDevice       = d3d.GetDevice();
+    const float nearZ           = d3d.GetNearZ();
+    const float farZ            = d3d.GetFarZ();
 
     // setup params for the frame buffers (we will use the same params for each)
     FrameBufferSpecification frameBufSpec;
-    frameBufSpec.width          = (UINT)iconWidth;
-    frameBufSpec.height         = (UINT)iconHeight;
+    frameBufSpec.width          = (UINT)width;
+    frameBufSpec.height         = (UINT)height;
     frameBufSpec.format         = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM;
     frameBufSpec.screenNear     = nearZ;
     frameBufSpec.screenDepth    = farZ;
 
     // release memory from the previous set of frame buffers
-    for (FrameBuffer& buf : frameBuffers)
+    for (FrameBuffer& buf : materialsFrameBuffers_)
         buf.Shutdown();
 
-    // alloc memory for frame buffers and init each frame buffer
-    frameBuffers.resize(numIcons);
+    // alloc memory for frame buffers and init them
+    materialsFrameBuffers_.resize(numBuffers);
+    outShaderResourceViews.resize(numBuffers, nullptr);
 
-    for (index i = 0; i < numIcons; ++i)
+    for (index i = 0; FrameBuffer& buf : materialsFrameBuffers_)
     {
-        if (!frameBuffers[i].Initialize(pDevice, frameBufSpec))
+        // try to init a frame buffer
+        if (!buf.Initialize(pDevice, frameBufSpec))
         {
-            LogErr(LOG, "can't initialize a frame buffer (idx: %d)", (int)i);
+            for (FrameBuffer& buf : materialsFrameBuffers_)
+                buf.Shutdown();
+
+            LogErr(LOG, "can't init a frame buffer (idx: %d)", (int)i);
+            return false;
         }
+        ++i;
     }
+
+    // copy frame buffers texture ptrs into the output array
+    for (int i = 0; FrameBuffer & buf : materialsFrameBuffers_)
+        outShaderResourceViews[i++] = buf.GetSRV();
+
+    return true;
 }
 
 ///////////////////////////////////////////////////////////
 
 bool CGraphics::RenderBigMaterialIcon(
     const MaterialID matID,
-    const int iconWidth,
-    const int iconHeight,
     const float yRotationAngle,
     Render::CRender* pRender,
     ID3D11ShaderResourceView** outMaterialImg)
 {
     if (!pRender)
     {
-        LogErr("input ptr to render == nullptr");
+        LogErr(LOG, "input ptr to render == nullptr");
         return false;
     }
     if (!outMaterialImg)
     {
-        LogErr("input shader resource view == nullptr");
+        LogErr(LOG, "input shader resource view == nullptr");
         return false;
     }
 
- 
-    D3DClass& d3d                 = GetD3DClass();
-    ID3D11Device* pDevice         = d3d.GetDevice();
+    D3DClass&            d3d      = GetD3DClass();
     ID3D11DeviceContext* pContext = d3d.GetDeviceContext();
-    const float nearZ             = d3d.GetNearZ();
-    const float farZ              = d3d.GetFarZ();
 
-    if (!materialBigIconFrameBuf_.IsInit())
-        InitMatIconFrameBuffer(pDevice, materialBigIconFrameBuf_, iconWidth, iconHeight, nearZ, farZ);
 
     // get a sphere model
     const ModelID basicSphereID    = g_ModelMgr.GetModelIdByName("basic_sphere");
     BasicModel& sphere             = g_ModelMgr.GetModelById(basicSphereID);
     const MeshGeometry& sphereMesh = sphere.meshes_;
 
-    ID3D11Buffer* vb     = sphereMesh.vb_.Get();
-    ID3D11Buffer* ib     = sphereMesh.ib_.Get();
-    const int indexCount = (int)sphereMesh.ib_.GetIndexCount();
-    const int vertexSize = (int)sphereMesh.vb_.GetStride();
+    ID3D11Buffer* vb      = sphereMesh.vb_.Get();
+    ID3D11Buffer* ib      = sphereMesh.ib_.Get();
+    const UINT indexCount = (UINT)sphereMesh.ib_.GetIndexCount();
+    const UINT stride     = (UINT)sphereMesh.vb_.GetStride();
+    const UINT offset     = 0;
 
     // change view*proj matrix so we will be able to render material icons properly
     const XMMATRIX world    = XMMatrixRotationY(yRotationAngle);
     const XMMATRIX view     = XMMatrixTranslation(0, 0, 1.1f);
     const XMMATRIX proj     = XMMatrixPerspectiveFovLH(1.0f, 1.0f, 0.1f, 100.0f);
 
-    Render::MaterialIconShader& matIconShader = pRender->shadersContainer_.materialIconShader_;
-    matIconShader.SetMatrix(pContext, world, view, proj);
+
+    Render::Shader* pShader = pRender->shaderMgr_.GetShaderByName("MaterialIconShader");
+    if (!pShader)
+    {
+        LogErr(LOG, "there is no shader by name: MaterialIconShader");
+        return false;
+    }
+
+    // prepare IA for rendering, bind shaders, set matrices
+    pRender->shaderMgr_.BindShader(pContext, pShader);
+    pRender->SetWorldAndViewProj(pContext, world, view * proj);
+
+    pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    pContext->IASetVertexBuffers(0, 1, &vb, &stride, &offset);
+    pContext->IASetIndexBuffer(ib, DXGI_FORMAT_R32_UINT, 0U);
 
 
     // prepare responsible frame buffer for rendering
@@ -826,19 +870,20 @@ bool CGraphics::RenderBigMaterialIcon(
 
     // prepare material data and its textures
     const Material& mat = g_MaterialMgr.GetMatById(matID);
+    BindMaterial(pRender, mat.renderStates, mat.texIds);
 
-    const Render::MaterialColors renderMatColors(
+    pRender->cbpsMaterial_.data =
+    {
         XMFLOAT4(&mat.ambient.x),
         XMFLOAT4(&mat.diffuse.x),
         XMFLOAT4(&mat.specular.x),
-        XMFLOAT4(&mat.reflect.x));
+        XMFLOAT4(&mat.reflect.x)
+    };
+    pRender->cbpsMaterial_.ApplyChanges(pContext);
 
-    ID3D11ShaderResourceView* texSRVs[22] {nullptr};
-    g_TextureMgr.GetTexViewsByIds(mat.texIds, NUM_TEXTURE_TYPES, texSRVs);
+    // render geometry with material into frame buffer
+    pContext->DrawIndexed(indexCount, 0U, 0U);
 
-    // render material into responsible frame buffer
-    matIconShader.PrepareRendering(pContext, vb, ib, vertexSize);
-    matIconShader.Render(pContext, indexCount, texSRVs, renderMatColors);
 
     // reset camera's viewProj to the previous one (it can be game or editor camera)
     pRender->SetViewProj(pContext, DirectX::XMMatrixTranspose(viewProj_));
@@ -852,39 +897,26 @@ bool CGraphics::RenderBigMaterialIcon(
     return true;
 }
 
-///////////////////////////////////////////////////////////
-
-void CGraphics::RenderMaterialsIcons(
-    ECS::EntityMgr* pEnttMgr,
-    Render::CRender* pRender,
-    ID3D11ShaderResourceView** outArrShaderResourceViews,
-    const size numIcons,
-    const int iconWidth,
-    const int iconHeight)
+//-----------------------------------------------------------------------------
+// Desc:   render material icons (just sphere models with particular material) into
+//         frame buffer, so later we will use its shader resource views
+//         for visualization of materials (in the editor)
+//-----------------------------------------------------------------------------
+bool CGraphics::RenderMaterialsIcons(Render::CRender* pRender)
 {
-    // render material icon (just sphere model with particular material) into
-    // frame buffer and store shader resource view into the input arr;
-    //
-    // NOTE: outArrShaderResourceViews.size() must == numShaderResourceViews
-
+    // check input args
     if (!pRender)
     {
-        LogErr("input ptr to render == nullptr");
-        return;
+        LogErr(LOG, "input ptr to render == nullptr");
+        return false;
     }
-    if (!outArrShaderResourceViews)
-    {
-        LogErr("input arr of shader resource views == nullptr");
-        return;
-    }
+
 
     D3DClass& d3d                 = GetD3DClass();
     ID3D11Device* pDevice         = d3d.GetDevice();
     ID3D11DeviceContext* pContext = d3d.GetDeviceContext();
     const float nearZ             = d3d.GetNearZ();
     const float farZ              = d3d.GetFarZ();
-
-    InitMatIconFrameBuffers(pDevice, materialsFrameBuffers_, numIcons, iconWidth, iconHeight, nearZ, farZ);
 
     // get a sphere model
     const ModelID basicSphereID    = g_ModelMgr.GetModelIdByName("basic_sphere");
@@ -893,38 +925,53 @@ void CGraphics::RenderMaterialsIcons(
 
     ID3D11Buffer* vb     = sphereMesh.vb_.Get();
     ID3D11Buffer* ib     = sphereMesh.ib_.Get();
-    const int indexCount = (int)sphereMesh.ib_.GetIndexCount();
-    const int vertexSize = (int)sphereMesh.vb_.GetStride();
+    const UINT indexCount = (UINT)sphereMesh.ib_.GetIndexCount();
+    const UINT vertexSize = (UINT)sphereMesh.vb_.GetStride();
+    const UINT offset     = 0;
 
     // change view*proj matrix so we will be able to render material icons properly
-    const XMMATRIX world = XMMatrixRotationY(0.0f);
+    //const XMMATRIX world = XMMatrixRotationY(0.0f);
     const XMMATRIX view  = XMMatrixTranslation(0, 0, 1.1f);
     const XMMATRIX proj  = XMMatrixPerspectiveFovLH(1.0f, 1.0f, 0.1f, 100.0f);
 
-    Render::MaterialIconShader& matIconShader = pRender->shadersContainer_.materialIconShader_;
+    Render::Shader* pShader = pRender->shaderMgr_.GetShaderByName("MaterialIconShader");
+    if (!pShader)
+    {
+        LogErr(LOG, "there is no shader by name: MaterialIconShader");
+        return false;
+    }
 
-    matIconShader.SetMatrix(pContext, world, view, proj);
-    matIconShader.PrepareRendering(pContext, vb, ib, vertexSize);
+    // prepare IA for rendering, bind shaders, set matrices
+    pRender->shaderMgr_.BindShader(pContext, pShader);
+    pRender->SetWorldAndViewProj(pContext, DirectX::XMMatrixIdentity(), view * proj);
+
+    pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    pContext->IASetVertexBuffers(0, 1, &vb, &vertexSize, &offset);
+    pContext->IASetIndexBuffer(ib, DXGI_FORMAT_R32_UINT, 0U);
+
 
     // render material by idx into responsible frame buffer
     for (int matIdx = 0; FrameBuffer& buf : materialsFrameBuffers_)
     {
+        // clear prev content of this frame buffer and bind it for rendering
         buf.ClearBuffers(pContext, { 0,0,0,0 });
         buf.Bind(pContext);
 
-        // prepare material data and its textures
+        // bind material data and its textures
         Material& mat = g_MaterialMgr.GetMatById(matIdx);
+        BindMaterial(pRender, mat.renderStates, mat.texIds);
 
-        const Render::MaterialColors renderMatColors(
+        pRender->cbpsMaterial_.data =
+        {
             XMFLOAT4(&mat.ambient.x),
             XMFLOAT4(&mat.diffuse.x),
             XMFLOAT4(&mat.specular.x),
-            XMFLOAT4(&mat.reflect.x));
+            XMFLOAT4(&mat.reflect.x)
+        };
+        pRender->cbpsMaterial_.ApplyChanges(pContext);
 
-        ID3D11ShaderResourceView* texSRVs[NUM_TEXTURE_TYPES] {nullptr};
-        g_TextureMgr.GetTexViewsByIds(mat.texIds, NUM_TEXTURE_TYPES, texSRVs);
-        
-        matIconShader.Render(pContext, indexCount, texSRVs, renderMatColors);
+        // render geometry
+        pContext->DrawIndexed(indexCount, 0U, 0U);
 
         ++matIdx;
     }
@@ -932,10 +979,104 @@ void CGraphics::RenderMaterialsIcons(
     // reset camera's viewProj to the previous one (it can be game or editor camera)
     pRender->SetViewProj(pContext, DirectX::XMMatrixTranspose(viewProj_));
 
-    // copy frame buffers textures into the input array of SRVs
-    for (int i = 0; FrameBuffer& buf : materialsFrameBuffers_)
-        outArrShaderResourceViews[i++] = buf.GetSRV();
+    d3d.ResetBackBufferRenderTarget();
+    d3d.ResetViewport();
+
+    return true;
 }
+
+XMFLOAT3 s_CamPos;
+
+//---------------------------------------------------------
+// Desc:   sort input data elements by distance from the camera
+// Args:   - camPos:  camera's current position
+//         - data:    in/out container of data to sort
+//---------------------------------------------------------
+void SortByDistance(
+    const XMFLOAT3& cameraPos,
+    cvector<VertexGrass>& vertices)
+{
+    s_CamPos = cameraPos;
+
+    // sort by square of distance to camera
+    std::qsort(
+        vertices.data(),
+        vertices.size(),
+        sizeof(VertexGrass),
+        [](const void* x, const void* y)
+        {
+            const VertexGrass& v1 = *(VertexGrass*)(x);
+            const VertexGrass& v2 = *(VertexGrass*)(y);
+
+            const float sqrDistToCamera1 = SQR(v1.pos.x-s_CamPos.x) + SQR(v1.pos.y-s_CamPos.y) + SQR(v1.pos.z-s_CamPos.z);
+            const float sqrDistToCamera2 = SQR(v2.pos.x-s_CamPos.x) + SQR(v2.pos.y-s_CamPos.y) + SQR(v2.pos.z-s_CamPos.z);
+
+            if (sqrDistToCamera1 > sqrDistToCamera2)
+                return -1;
+
+            if (sqrDistToCamera1 < sqrDistToCamera2)
+                return 1;
+
+            return 0;
+        });
+}
+
+//---------------------------------------------------------
+//---------------------------------------------------------
+void CGraphics::RenderGrass(Render::CRender* pRender)
+{
+    Shader* pShader = pRender->shaderMgr_.GetShaderByName("GrassShader");
+    if (!pShader)
+    {
+        LogErr(LOG, "can't get a shader by name: GrassShader");
+        return;
+    }
+
+    // bind shader to use it for rendering
+    ID3D11DeviceContext* pContext = pContext_;
+    pRender->shaderMgr_.BindShader(pContext, pShader);
+
+    VertexBuffer<VertexGrass>& vb = g_ModelMgr.GetGrassVB();
+    //cvector<VertexGrass>& grassVertices = g_ModelMgr.GetGrassVertices();
+    //cvector<VertexGrass> nearGrass;
+
+    //GetNearGrass(pSysState_->cameraPos, grassVertices, nearGrass);
+    //SortByDistance(pSysState_->cameraPos, nearGrass);
+
+    
+    //vb.UpdateDynamic(pContext, nearGrass.data(), nearGrass.size());
+    
+    UINT stride = sizeof(VertexGrass);
+    UINT offset = 0;
+    pContext->IASetVertexBuffers(0, 1, vb.GetAddressOf(), &stride, &offset);
+
+    const Material& mat = g_MaterialMgr.GetMatByName("grass_0");
+    BindMaterial(pRender, mat.renderStates, mat.texIds);
+
+
+    RenderStates& renderStates = d3d_.GetRenderStates();
+    //renderStates.SetBS(pContext, R_ALPHA_TO_COVERAGE);
+
+    // render grass
+    pContext->Draw(vb.GetVertexCount()/2, 0);
+
+
+#if 0
+    const Material& mat2 = g_MaterialMgr.GetMatByName("grass_1");
+    BindMaterial(pRender, mat2.renderStates, mat2.texIds);
+
+   
+
+    pContext->VSSetShader(pShader2->GetVS()->GetShader(), nullptr, 0);
+    pContext->IASetInputLayout(pShader2->GetVS()->GetInputLayout());
+    pContext->GSSetShader(pShader2->GetGS()->GetShader(), nullptr, 0);
+    pContext->PSSetShader(pShader2->GetPS()->GetShader(), nullptr, 0);
+
+    pContext->Draw(500000, 1000000);
+#endif
+    //pSysState_->numDrawnVertices += nearGrass.size() *4;
+}
+
 
 //---------------------------------------------------------
 // Desc:   render all the instances from the input array
@@ -953,15 +1094,13 @@ void CGraphics::RenderInstanceGroups(
     UINT& startInstanceLocation,
     RenderStat& stat)
 {
+    const ShaderID shaderId = 0;
+
     for (const Render::InstanceBatch& batch : instanceBatches)
     {
         BindMaterial(pRender, batch.renderStates, batch.textures);
 
-        pRender->RenderInstances(
-            pContext,
-            Render::ShaderTypes::LIGHT,
-            batch,
-            startInstanceLocation);
+        pRender->RenderInstances(pContext, batch, startInstanceLocation);
 
         // stride idx in the instances buffer and accumulate render statistic
         startInstanceLocation  += (UINT)batch.numInstances;
@@ -969,6 +1108,35 @@ void CGraphics::RenderInstanceGroups(
         stat.numDrawnInstances += batch.numInstances;
         stat.numDrawCallsForInstances++;
     }
+}
+
+void SortParticlesByDistance(
+    const XMFLOAT3& cameraPos,
+    cvector<BillboardSprite>& vertices)
+{
+    s_CamPos = cameraPos;
+
+    // sort by square of distance to camera
+    std::qsort(
+        vertices.data(),
+        vertices.size(),
+        sizeof(BillboardSprite),
+        [](const void* x, const void* y)
+        {
+            const BillboardSprite& v1 = *(BillboardSprite*)(x);
+            const BillboardSprite& v2 = *(BillboardSprite*)(y);
+
+            const float sqrDist1ToCam = SQR(v1.pos.x - s_CamPos.x) + SQR(v1.pos.y - s_CamPos.y) + SQR(v1.pos.z - s_CamPos.z);
+            const float sqrDist2ToCam = SQR(v2.pos.x - s_CamPos.x) + SQR(v2.pos.y - s_CamPos.y) + SQR(v2.pos.z - s_CamPos.z);
+
+            if (sqrDist1ToCam > sqrDist2ToCam)
+                return -1;
+
+            if (sqrDist1ToCam < sqrDist2ToCam)
+                return 1;
+
+            return 0;
+        });
 }
 
 //---------------------------------------------------------
@@ -998,13 +1166,33 @@ void CGraphics::RenderParticles(
     }
 #else
     memcpy(vertices.data(), particlesData.particles.data(), sizeof(ECS::ParticleRenderInstance) * numVertices);
+
+    //SortParticlesByDistance(pSysState_->cameraPos, vertices);
 #endif
 
     // update the vertex buffer with updated particles data
     vb.UpdateDynamic(g_pContext, vertices.data(), numVertices);
 
-    Render::ParticleShader& shader = pRender->shadersContainer_.particleShader_;
-    shader.Prepare(g_pContext, vb.Get(), sizeof(BillboardSprite));
+    Shader* pShader = pRender->shaderMgr_.GetShaderByName("ParticleShader");
+    if (!pShader)
+    {
+        LogErr(LOG, "can't get a shader by name: ParticleShader");
+        return;
+    }
+
+    ID3D11DeviceContext* pContext = pContext_;
+
+    //pRender->shaderMgr_.BindShader(pContext, pShader);
+    //pRender->shaderMgr_.BindVertexBuffer(pContext, vb.Get(), sizeof(BillboardSprite), 0);
+
+    pContext->VSSetShader(pShader->GetVS()->GetShader(), nullptr, 0);
+    pContext->IASetInputLayout(pShader->GetVS()->GetInputLayout());
+    pContext->GSSetShader(pShader->GetGS()->GetShader(), nullptr, 0);
+    pContext->PSSetShader(pShader->GetPS()->GetShader(), nullptr, 0);
+
+    UINT stride = sizeof(BillboardSprite);
+    UINT offset = 0;
+    pContext->IASetVertexBuffers(0, 1, vb.GetAddressOf(), &stride, &offset);
 
     // go through emitters and render its particles
     const vsize numEmitters = particlesData.materialIds.size();
@@ -1013,17 +1201,15 @@ void CGraphics::RenderParticles(
     {
         // bind a material for particles
         const MaterialID matId = particlesData.materialIds[i];
-        const Material& mat = g_MaterialMgr.GetMatById(matId);
+        const Material& mat    = g_MaterialMgr.GetMatById(matId);
         BindMaterial(pRender, mat.renderStates, mat.texIds);
 
         // render particles subset
-        shader.Render(
-            g_pContext,
-            particlesData.baseInstance[i],
-            particlesData.numInstances[i]);
+        pContext->Draw(particlesData.numInstances[i], particlesData.baseInstance[i]);
     }
 
     pSysState_->numDrawnVertices += numVertices;
+
 }
 
 ///////////////////////////////////////////////////////////
@@ -1044,15 +1230,13 @@ void CGraphics::RenderSkyDome(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr
     instance.pVB          = sky.GetVertexBuffer();
     instance.pIB          = sky.GetIndexBuffer();
     instance.indexCount   = sky.GetNumIndices();
-    instance.colorCenter  = sky.GetColorCenter();
-    instance.colorApex    = sky.GetColorApex();
+    //instance.colorCenter  = sky.GetColorCenter();
+    //instance.colorApex    = sky.GetColorApex();
 
-
-    // setup rendering pipeline before rendering of the sky dome
-    ID3D11DeviceContext* pContext = pContext_;
 
     // bind sky material
-    const Material& skyMat = g_MaterialMgr.GetMatById(sky.GetMaterialId());
+    const MaterialID skyMatId = sky.GetMaterialId();
+    const Material& skyMat    = g_MaterialMgr.GetMatById(skyMatId);
     BindMaterial(pRender, skyMat.renderStates, skyMat.texIds);
 
     // compute a worldViewProj matrix for the sky instance
@@ -1062,7 +1246,7 @@ void CGraphics::RenderSkyDome(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr
     const XMMATRIX world         = DirectX::XMMatrixTranslation(translation.x, translation.y, translation.z);
     const XMMATRIX worldViewProj = DirectX::XMMatrixTranspose(world * viewProj_);
 
-    pRender->RenderSkyDome(pContext, instance, worldViewProj);
+    pRender->RenderSkyDome(pContext_, instance, worldViewProj);
 }
 
 //---------------------------------------------------------
@@ -1072,25 +1256,15 @@ void CGraphics::RenderSkyDome(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr
 //---------------------------------------------------------
 void CGraphics::RenderTerrainGeomip(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr)
 {
+#if 1
     // prepare the terrain instance
     TerrainGeomip& terrain = g_ModelMgr.GetTerrainGeomip();
     Render::TerrainInstance instance;
 
-    // prepare material
-    const Material& mat = g_MaterialMgr.GetMatById(terrain.materialID_);
-
-    // prepare material color properties for the const buffer
-    instance.matColors =
-    {
-        XMFLOAT4(&mat.ambient.x),
-        XMFLOAT4(&mat.diffuse.x),
-        XMFLOAT4(&mat.specular.x),
-        XMFLOAT4(&mat.reflect.x)
-    };
-
     // bind terrain material: switch render states and bind textures
+    const Material& mat = g_MaterialMgr.GetMatById(terrain.materialID_);
     BindMaterial(pRender, mat.renderStates, mat.texIds);
-
+ 
     // vertex/index buffers data
     instance.vertexStride   = terrain.GetVertexStride();
     instance.pVB            = terrain.GetVertexBuffer();
@@ -1105,8 +1279,37 @@ void CGraphics::RenderTerrainGeomip(Render::CRender* pRender, ECS::EntityMgr* pE
     ID3D11DeviceContext* pContext = pContext_;
 
     // bind terrain shader
-    Render::TerrainShader& shader = pRender->shadersContainer_.terrainShader_;
-    shader.Prepare(pContext, instance);
+    Render::Shader* pShader = pRender->shaderMgr_.GetShaderByName("TerrainShader");
+    if (!pShader)
+    {
+        LogErr(LOG, "can't get a shader: there is no shader by name: TerrainShader");
+        return;
+    }
+    pRender->shaderMgr_.BindShader(pContext, pShader);
+
+    // bind vb/ib
+    const UINT stride = instance.vertexStride;
+    const UINT offset = 0;
+
+    pContext->IASetVertexBuffers(0, 1, &instance.pVB, &stride, &offset);
+    pContext->IASetIndexBuffer(instance.pIB, DXGI_FORMAT_R32_UINT, 0U);
+
+
+    // setup material
+    pRender->cbpsTerrainMaterial_.data.ambient  = XMFLOAT4(&mat.ambient.x);
+    pRender->cbpsTerrainMaterial_.data.diffuse  = XMFLOAT4(&mat.diffuse.x);
+    pRender->cbpsTerrainMaterial_.data.specular = XMFLOAT4(&mat.specular.x);
+    pRender->cbpsTerrainMaterial_.data.reflect  = XMFLOAT4(&mat.reflect.x);
+
+#if 0
+    pRender->cbpsTerrainMaterial_.data.ambient  = instance.matColors.ambient;
+    pRender->cbpsTerrainMaterial_.data.diffuse  = instance.matColors.diffuse;
+    pRender->cbpsTerrainMaterial_.data.specular = instance.matColors.specular;
+    pRender->cbpsTerrainMaterial_.data.reflect  = instance.matColors.reflect;
+#endif
+    pRender->cbpsTerrainMaterial_.ApplyChanges(pContext);
+    //pContext->PSSetConstantBuffers(3, 1, pRender->cbpsTerrainMaterial_.GetAddressOf());
+
 
     int numDrawnTerrainPatches = 0;
     int numDrawnTerrainVertices = 0;
@@ -1124,7 +1327,9 @@ void CGraphics::RenderTerrainGeomip(Render::CRender* pRender, ECS::EntityMgr* pE
         const int x = patchX * (patchSize - 1);
         instance.baseVertex = (UINT)(z*terrainLen + x);
 
-        shader.RenderPatch(pContext, instance);
+        // draw a patch
+        pContext->DrawIndexed(instance.indexCount, instance.baseIndex, instance.baseVertex);
+
         numDrawnTerrainPatches++;
         numDrawnTerrainVertices += (instance.indexCount / 3);
     }
@@ -1133,15 +1338,7 @@ void CGraphics::RenderTerrainGeomip(Render::CRender* pRender, ECS::EntityMgr* pE
     pSysState_->numDrawnTerrainPatches = numDrawnTerrainPatches;
     pSysState_->numCulledTerrainPatches = terrain.GetNumAllPatches() - numDrawnTerrainPatches;
     pSysState_->numDrawnVertices += numDrawnTerrainVertices;
-}
-
-//---------------------------------------------------------
-// Desc:   render quadtree terrain onto the screen
-// Args:   - pRender:  a ptr to the Render class from Render module
-//         - pEnttMgr: a ptr to the Entity manager from ECS module
-//---------------------------------------------------------
-void CGraphics::RenderTerrainQuadtree(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr)
-{
+#endif
 }
 
 ///////////////////////////////////////////////////////////
@@ -1346,10 +1543,10 @@ int CGraphics::TestEnttSelection(const int sx, const int sy, ECS::EntityMgr* pEn
     // print a msg about selection of the entity
     if (selectedEnttID)
     {
-        const std::string& name = pEnttMgr->nameSystem_.GetNameById(selectedEnttID);
+        const char* name = pEnttMgr->nameSystem_.GetNameById(selectedEnttID);
 
         SetConsoleColor(YELLOW);
-        LogMsg("picked entt (id: %ld; name: %s)", selectedEnttID, name.c_str());
+        LogMsg("picked entt (id: %" PRIu32 "; name: % s)", selectedEnttID, name);
         SetConsoleColor(RESET);
     }
 

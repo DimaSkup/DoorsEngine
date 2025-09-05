@@ -6,7 +6,7 @@
 //
 // CONSTANT BUFFERS
 //
-cbuffer cbPerFrame : register(b1)
+cbuffer cbPerFrame : register(b2)
 {
 	matrix gWorldViewProj;
 };

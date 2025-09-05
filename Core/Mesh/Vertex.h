@@ -46,6 +46,14 @@ struct BillboardSprite
 
 // =================================================================================
 
+struct VertexGrass
+{
+    DirectX::XMFLOAT3 pos       = {0,0,0};
+    DirectX::XMFLOAT2 size;
+};
+
+// =================================================================================
+
 struct Vertex3DPos
 {
 	// a 3D vertex which contains only position data

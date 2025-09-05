@@ -6,7 +6,6 @@
 // =================================================================================
 #pragma once
 
-#include <UICommon/Types.h>
 #include <UICommon/IFacadeEngineToUI.h>
 #include <imgui.h>
 
@@ -29,23 +28,29 @@ private:
     void RenderMenuBar       (bool* pOpen);
     void UpdateLayoutSizes   (int availWidth);
     void RenderDebugInfo     (const int availWidth);
-    void DrawMaterialIcons   (const ImVec2 startPos, IFacadeEngineToUI* pFacade);
+    void DrawMaterialIcons   (const ImVec2 startPos);
     void ComputeZooming      (const ImVec2 startPos, const int avaiWidth);
-    void GetMaterialDataByIdx(const int matIdx, IFacadeEngineToUI* pFacade);
+    void GetMaterialDataByIdx(const int matIdx);
 
     // render elements of a single material editor
-    void RenderEditorWnd(IFacadeEngineToUI* pFacade);
+    void RenderEditorWnd();
     void RenderDeleteWnd();
 
-    void RenderMatPreview    (IFacadeEngineToUI* pFacade);
-    void RenderMatPropsFields(IFacadeEngineToUI* pFacade);
+    void RenderMatPreview    ();
+    void RenderMatPropsFields();
     void RenderStatesSelectors(
         const char* label,
         const eMaterialPropGroup type,
-        IFacadeEngineToUI* pFacade,
         index& selectedStateIdx);
 
+    void DrawShadersSelectors();
+    void DrawRelatedTextures();
+
+    void ShowContextMenu();
+    void ShowTextureContextMenu();
+
 private:
+    IFacadeEngineToUI* pFacade_ = nullptr;
     MaterialData matData_;      // material data of chosen material (this data is used for the material editor)
 
     MaterialID selectedMaterialItemID_ = -1;
@@ -54,6 +59,7 @@ private:
     float   materialSphereRotationY_ = 0.0f;  // current rotation angle for the material big icon (is used in the material editor)
     float   iconSize_        = 96.0f;
     float   zoomWheelAccum_  = 0.0f;      // Mouse wheel accumulator to handle smooth wheels better
+    int     bigIconSize_     = 256;       // size of material's preview image in the editor
     int     prevAvailWidth_  = 0;         // if curr and prev available wnd width aren't equal - we call UpdateLayoutSizes()
     int     iconSpacing_     = 8;
     int     iconHitSpacing_  = 4;         // Increase hit-spacing if you want to make it possible to clear or box-select from gaps. Some spacing is required to able to amend with Shift+box-select. Value is small in Explorer.
@@ -71,11 +77,17 @@ private:
 
     bool    stretchSpacing_         = false;
     bool    materialWasChanged_     = false;
-    bool    isNeedUpdateIcons_      = false;     // set true when we resizing the browser or zooming in/out
+    //bool    isNeedUpdateIcons_      = false;     // set true when we resizing the browser or zooming in/out
     bool    showMaterialEditorWnd_  = false;     // show a window for editing a single material (opens through contex menu when hit RMB over some icon) 
     bool    showMaterialDeleteWnd_  = false;     // show a window for deleting a single material (opens through contex menu when hit RMB over some icon)
     bool    showIconContextMenu_    = false;
+    bool    showTextureContextMenu_ = false;
+    bool    showTextureSelectionMenu_ = false;
+    bool    showTextureLoadingWnd_ = false;
     bool    rotateMaterialBigIcon_  = false;
+
+    ImVec2  textureContextMenuPos_ = { 0,0 };
+
     cvector<ID3D11ShaderResourceView*> materialsIcons_;
 };
 

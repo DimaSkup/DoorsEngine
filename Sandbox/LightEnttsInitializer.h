@@ -36,10 +36,8 @@ void InitDirectedLightEntities(ECS::EntityMgr& mgr)
         ECS::DirLight& dirLight2 = dirLightsParams.data[2];
 
         // setup main directed light source
-        //dirLight0.diffuse = { 0.8f, 0.8f, 0.8f, 1.0f };
-        dirLight0.ambient = { 0.5f, 0.5f, 0.5f, 1.0f };
-        dirLight0.diffuse  = { 0.9f, 0.9f, 0.9f, 1.0f };
-        //dirLight0.diffuse  = { 1.0f, 1.0f, 1.0f, 1.0f };
+        dirLight0.ambient = { 0.3f, 0.3f, 0.3f, 1.0f };
+        dirLight0.diffuse  = { 0.6f, 0.6f, 0.6f, 1.0f };
         dirLight0.specular = { 0.3f, 0.3f, 0.3f, 1.0f };
 
         // setup 2nd directed light source
@@ -71,16 +69,16 @@ void InitDirectedLightEntities(ECS::EntityMgr& mgr)
         mgr.AddLightComponent(ids, numDirLights, dirLightsParams);
         mgr.AddNameComponent(ids, names, numDirLights);
 
-
         const DirectX::XMFLOAT3 directions[numDirLights] =
         {
-            //{ 0.57735f, -0.9f, 0.57735f },
-            { -0.57735f, -0.9f, -0.57735f },
+            { 0.57735f, -0.4f, 0.57735f },
             { -0.57735f, -0.57735f, 0.57735f },
             { 0.0f, -0.707f, -0.707f }
         };
 
-        // add transform component to each directed light because we may need to manipulate directed lights icons (in editor we can change icons positions in the scene or manipulate light direction using gizmo) 
+        // add transform component to each directed light because we may need to
+        // manipulate directed lights icons (in editor we can change icons positions
+        // in the scene or manipulate light direction using gizmo) 
         for (index i = 0; i < numDirLights; ++i)
         {
             const XMFLOAT3 pos = { 3, 3, (float)i };
@@ -101,8 +99,7 @@ void GenerateLightColors(
     const float diffFactor,
     const float specFactor)
 {
-    // setup light color parameters
-
+    // generate light color random parameters
     const XMFLOAT4 color = MathHelper::RandColorRGBA();
 
     ambient.x = color.x * ambFactor;
@@ -212,9 +209,7 @@ void InitPointLightEntities(ECS::EntityMgr& mgr)
 
 void InitSpotLightEntities(ECS::EntityMgr& mgr)
 {
-    return;
-
-    constexpr size numSpotLights = 10;
+    constexpr size numSpotLights = 3;
 
     if (numSpotLights > 0)
     {
@@ -232,12 +227,17 @@ void InitSpotLightEntities(ECS::EntityMgr& mgr)
         for (index i = 1; i < numSpotLights; ++i)
         {
             ECS::SpotLight& light = spotLightsParams.data[i];
-            GenerateLightColors(light.ambient, light.diffuse, light.specular, 0.1f, 0.7f, 0.01f);
+            light.ambient = { 0.3f, 0.3f, 0.3f, 1.0f };
+            light.diffuse = { 0.9f, 0.9f, 0.9f, 1.0f };
+            light.specular = { 0.9f, 0.9f, 0.9f, 32.0f };
+            //GenerateLightColors(light.ambient, light.diffuse, light.specular, 0.1f, 0.7f, 0.01f);
         }
 
         // setup attenuation params (const, linear, quadratic)
         for (index i = 0; i < numSpotLights; ++i)
-            spotLightsParams.data[i].att = { 1.0f, 100.0f, 100.0f };
+            spotLightsParams.data[i].att = { 0.4f, 10.0f, 10.0f };
+
+        spotLightsParams.data[0].att = { 5.0f, 50.0f, 100.0f };
 
         // setup ranges (how far the spotlight can lit)
         for (index i = 0; i < numSpotLights; ++i)
@@ -245,7 +245,7 @@ void InitSpotLightEntities(ECS::EntityMgr& mgr)
 
         // setup spot exponent: light intensity fallof (for control the spotlight cone)
         for (index i = 0; i < numSpotLights; ++i)
-            spotLightsParams.data[i].spot = 5;
+            spotLightsParams.data[i].spot = 10;
 
 
         //
@@ -275,11 +275,16 @@ void InitSpotLightEntities(ECS::EntityMgr& mgr)
             positions[i + 1] = { +8, 10, (float)z };
         }
 
+        positions[1] = { 256, 87, 221 };
+        positions[2] = { 253, 87, 225 };
+
       
         // generate directions
         constexpr float PI_DIV6 = DirectX::XM_PI * 0.333f;
         constexpr float dir1 = -DirectX::XM_PIDIV2 - PI_DIV6;
         constexpr float dir2 = -DirectX::XM_PIDIV2 + PI_DIV6;
+
+
 
         for (index i = 0; i < numSpotLights / 2; i += 2)
         {
@@ -291,6 +296,14 @@ void InitSpotLightEntities(ECS::EntityMgr& mgr)
         positions[0]  = { 0,0,1 };
         directions[0] = { 0,0, -DirectX::XM_PIDIV2 + PI_DIV6 };
 
+        // traktor spotlights
+        positions[1] = { 257.3f, 86.7f, 222.0f };
+        directions[1] = { 249.6f - positions[1].x, 86.8f - positions[1].y, 214.5f - positions[1].z };
+        spotLightsNames[1] = "traktor_spotlight_L";
+
+        positions[2] = { 254.0f, 86.4f, 225.3f };
+        directions[2] = { 246.0f - positions[2].x, 86.8f - positions[2].y, 218.0f - positions[2].z };
+        spotLightsNames[2] = "traktor_spotlight_R";
 
         for (index i = 0; i < numSpotLights; ++i)
             uniformScales[i] = 1.0f;

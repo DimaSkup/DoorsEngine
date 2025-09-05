@@ -9,6 +9,7 @@
 #include "../../Mesh/MaterialMgr.h"
 #include "../../Model/ModelMgr.h"
 #include "../../Texture/TextureMgr.h"   // texture mgr is used to get textures by its IDs
+#include <Shaders/Shader.h>
 
 #pragma warning (disable : 4996)
 
@@ -22,18 +23,21 @@ FacadeEngineToUI::FacadeEngineToUI(
     ID3D11DeviceContext* pContext,
     Render::CRender* pRender,
     ECS::EntityMgr* pEntityMgr,
-    Core::CGraphics* pGraphics)
+    Core::CGraphics* pGraphics,
+    Core::TerrainGeomip* pTerrain)
     :
     pContext_(pContext),
     pRender_(pRender),
     pEnttMgr_(pEntityMgr),
-    pGraphics_(pGraphics)
+    pGraphics_(pGraphics),
+    pTerrain_(pTerrain)
 {
     // set pointers to the subsystems
-    CAssert::NotNullptr(pRender,    "ptr to render == nullptr");
-    CAssert::NotNullptr(pContext,   "ptr to device context == nullptr");
-    CAssert::NotNullptr(pEntityMgr, "ptr to the entt mgr == nullptr");
-    CAssert::NotNullptr(pGraphics,  "ptr to the graphics class == nullptr");
+    CAssert::NotNullptr(pRender,    "a ptr to render == nullptr");
+    CAssert::NotNullptr(pContext,   "a ptr to device context == nullptr");
+    CAssert::NotNullptr(pEntityMgr, "a ptr to the entt mgr == nullptr");
+    CAssert::NotNullptr(pGraphics,  "a ptr to the graphics class == nullptr");
+    CAssert::NotNullptr(pTerrain,   "a ptr to the terrain == nullptr");
 }
 
 ///////////////////////////////////////////////////////////
@@ -249,7 +253,9 @@ float FacadeEngineToUI::GetEnttScale(const EntityID id) const
 
 bool FacadeEngineToUI::SetEnttPosition(const EntityID id, const Vec3& pos)
 {
-    return pEnttMgr_->transformSystem_.SetPosition(id, pos.ToFloat3());
+    pEnttMgr_->AddEvent(ECS::EventTranslate(id, pos.x, pos.y, pos.z));
+    return true;
+    //return pEnttMgr_->transformSystem_.SetPosition(id, pos.ToFloat3());
 }
 
 bool FacadeEngineToUI::SetEnttDirection(const EntityID id, const Vec3& dir)
@@ -653,10 +659,8 @@ bool FacadeEngineToUI::GetSkyData(
     // the sky editor model must be initialized with some reasonable data
     // so we gather this data here
 
-    const Render::SkyDomeShader& skyDomeShader = pRender_->GetShadersContainer().skyDomeShader_;
-
-    center = skyDomeShader.GetColorCenter();
-    apex   = skyDomeShader.GetColorApex();
+    center = pRender_->GetSkyCenterColor();
+    apex   = pRender_->GetSkyApexColor();
     offset = pEnttMgr_->transformSystem_.GetPosition(skyEnttID);
 
     return true;
@@ -737,9 +741,28 @@ bool FacadeEngineToUI::SwitchDebugState(const int debugType)
 // =================================================================================
 // For assets manager
 // =================================================================================
+
+//---------------------------------------------------------
+// Desc:   load a new texture from file and add it into textures manager
+//---------------------------------------------------------
+bool FacadeEngineToUI::LoadTextureFromFile(const char* path) const
+{
+    return g_TextureMgr.LoadFromFile(path) != INVALID_TEXTURE_ID;
+}
+
+//---------------------------------------------------------
+// Desc:   reinit a texture by id with new data loaded from a file by path
+//---------------------------------------------------------
+bool FacadeEngineToUI::ReloadTextureFromFile(const TexID id, const char* path) const
+{
+    return g_TextureMgr.ReloadFromFile(id, path);
+}
+
+//---------------------------------------------------------
+// Desc:   get a name of each loaded model (geometry)
+//---------------------------------------------------------
 bool FacadeEngineToUI::GetModelsNamesList(cvector<std::string>& outNames) const
 {
-    // get a name of each loaded model
     cvector<ModelName> modelsNames;
     g_ModelMgr.GetModelsNamesList(modelsNames);
 
@@ -775,9 +798,13 @@ bool FacadeEngineToUI::GetMaterialIdByIdx(const index idx, MaterialID& outMatID)
     return true;
 }
 
-///////////////////////////////////////////////////////////
-
-bool FacadeEngineToUI::GetMaterialNameById(const MaterialID id, char* outName, const int nameMaxLength) const
+//---------------------------------------------------------
+// Desc:   get a name of material by its id
+// Args:   - id:          material identifier
+//         - outName:     output char arr for name
+//         - nameMaxLen:  output container size
+//---------------------------------------------------------
+bool FacadeEngineToUI::GetMaterialNameById(const MaterialID id, char* outName, const int nameMaxLen) const
 {
     if (!outName)
     {
@@ -785,10 +812,51 @@ bool FacadeEngineToUI::GetMaterialNameById(const MaterialID id, char* outName, c
         return false;
     }
 
-    memset(outName, 0, nameMaxLength);
+    if (nameMaxLen <= 0)
+    {
+        LogErr(LOG, "input max length for name is invalid (must be > 0): %d", nameMaxLen);
+        return false;
+    }
 
+    // reset output char arr and fill it with data
+    memset(outName, 0, nameMaxLen);
     const char* matName = g_MaterialMgr.GetMatById(id).name;
-    return (bool)strncpy(outName, matName, strlen(matName));
+    return (bool)strncpy(outName, matName, nameMaxLen);
+}
+
+//---------------------------------------------------------
+// Desc:   get an arr of texture ids which are bounded to this material by id
+// Args:   - id:         material identifier
+//         - outTexIds:  output arr of textures ids
+//---------------------------------------------------------
+bool FacadeEngineToUI::GetMaterialTexIds(const MaterialID id, TexID* outTexIds) const
+{
+    if (!outTexIds)
+    {
+        LogErr(LOG, "can't get texture ids for material: in-out arr of texture ids == nullptr");
+        return false;
+    }
+
+    Material& mat = g_MaterialMgr.GetMatById(id);
+
+    if (mat.id == INVALID_TEXTURE_ID)
+    {
+        LogErr(LOG, "can't get texture ids for material: there is no material by id: %" PRIu32, id);
+        return false;
+    }
+
+    memcpy(outTexIds, mat.texIds, sizeof(TexID) * NUM_TEXTURE_TYPES);
+    return true;
+}
+
+//---------------------------------------------------------
+// Desc:   get a name of texture by input ID
+//---------------------------------------------------------
+bool FacadeEngineToUI::GetTextureNameById(const TexID id, TexName& outName) const
+{
+    const char* texName = g_TextureMgr.GetTexByID(id).GetName().c_str();
+    strncpy(outName.name, texName, MAX_LENGTH_TEXTURE_NAME);
+    return true;
 }
 
 ///////////////////////////////////////////////////////////
@@ -933,27 +1001,44 @@ bool FacadeEngineToUI::SetMaterialColorData(
         Float4(refl.x, refl.y, refl.z, refl.w));
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// output: 1. a ptr to arr of pointers to shader resource views (of all the loaded textures)
+//         2. size of this array (number of currently loaded textures)
+//---------------------------------------------------------
 bool FacadeEngineToUI::GetArrTexturesSRVs(
-    SRV**& outArrShadersResourceViews,
+    ID3D11ShaderResourceView**& outTexViews,
     size& outNumViews) const
 {
-    // output: 1. array of pointers to shader resource views
-    //         2. size of this array
-
-    outArrShadersResourceViews = (SRV**)g_TextureMgr.GetAllShaderResourceViews();
-    outNumViews = g_TextureMgr.GetNumShaderResourceViews();
+    outTexViews = (ID3D11ShaderResourceView**)g_TextureMgr.GetAllShaderResourceViews();
+    outNumViews                = g_TextureMgr.GetNumShaderResourceViews();
     return true;
 }
 
-///////////////////////////////////////////////////////////
-
-bool FacadeEngineToUI::GetArrMaterialsSRVs(
-    SRV**& outArrShaderResourceViews,
-    size& outNumViews) const
+//---------------------------------------------------------
+// Desc:   get arr of shader resource views by ids of its texture objects
+// Args:   - texIds:       texture objects identifiers (look at TextureMgr)
+//         - outTexViews:  output array of ptrs to shader resource views
+//         - numTexTypes:  size of texIds and outTextures arr
+//---------------------------------------------------------
+bool FacadeEngineToUI::GetTexViewsByIds(
+    TexID* texIds,
+    ID3D11ShaderResourceView** outTexViews,
+    size numTexTypes) const
 {
-    return false;
+    if (!texIds || !outTexViews)
+    {
+        LogErr(LOG, "can't get textures by ids: some input arr == nullptr");
+        return false;
+    }
+
+    if (numTexTypes != NUM_TEXTURE_TYPES)
+    {
+        LogErr(LOG, "input number of texture types must == %d", (int)numTexTypes);
+        return false;
+    }
+
+    g_TextureMgr.GetTexViewsByIds(texIds, NUM_TEXTURE_TYPES, outTexViews);
+    return true;
 }
 
 ///////////////////////////////////////////////////////////
@@ -969,50 +1054,112 @@ bool FacadeEngineToUI::SetEnttMaterial(
     return true;
 }
 
-///////////////////////////////////////////////////////////
+//---------------------------------------------------------
+// Desc:   init a frame buffer for rendering of material big icon (from material editor)
+// Args:   - width, height:  frame buffer's dimensions (icon size)
+//---------------------------------------------------------
+bool FacadeEngineToUI::InitMaterialBigIcon(const int width, const int height) const
+{
+    return pGraphics_->InitMatBigIconFrameBuf(width, height);
+}
 
-bool FacadeEngineToUI::RenderMaterialsIcons(
-    const int startMaterialIdx,               // render materials of some particular range [start, start + num_of_views]
+//---------------------------------------------------------
+// Desc:   init frame buffers for rendering of materials icons,
+//         so each frame buffer will be responsible for visualization of one material
+//---------------------------------------------------------
+bool FacadeEngineToUI::InitMaterialsIcons(
     const size numIcons,
     const int iconWidth,
     const int iconHeight)
 {
-    materialIcons_.resize(numIcons);
-
-    pGraphics_->RenderMaterialsIcons(
-        pEnttMgr_,
-        pRender_,
-        materialIcons_.data(),
+    return pGraphics_->InitMatIconFrameBuffers(
         numIcons,
         iconWidth,
-        iconHeight);
+        iconHeight,
+        materialIcons_);
+}
+
+//---------------------------------------------------------
+// Desc:   in the material browser: we see a bunch of material icons
+//         (so here we call its rendering)
+//---------------------------------------------------------
+bool FacadeEngineToUI::RenderMaterialsIcons() const
+{
+    return pGraphics_->RenderMaterialsIcons(pRender_);
+}
+
+//---------------------------------------------------------
+// Desc:   in the material browser we can select editing of the chosen material;
+//         in the editor window we need to visualize the current state of the
+//         material so we render this big material icon
+//---------------------------------------------------------
+bool FacadeEngineToUI::RenderMaterialBigIconById(
+    const MaterialID matID,
+    const float yAxisRotation)
+{
+    return pGraphics_->RenderBigMaterialIcon(matID, yAxisRotation, pRender_, &pMaterialBigIcon_);
+}
+
+//---------------------------------------------------------
+// Desc:   get an arr of elems [shaderId, shaderName, etc.] about
+//         all the currently loaded shaders
+//---------------------------------------------------------
+bool FacadeEngineToUI::GetShadersIdAndName(cvector<ShaderData>& outData)
+{
+    const auto& map = pRender_->shaderMgr_.GetMapIdsToShaders();
+    const size numElems = std::ssize(map);
+
+    // prepare enough memory
+    outData.resize(numElems);
+
+    // fill the output arr with data 
+    for (int i = 0; const auto& it : map)
+    {
+        outData[i].id = it.first;                             // shader id
+        strncpy(outData[i].name, it.second->GetName(), 32);   // shader name
+
+        ++i;
+    }
 
     return true;
 }
 
-///////////////////////////////////////////////////////////
-
-bool FacadeEngineToUI::RenderMaterialBigIconByID(
-    const MaterialID matID,
-    const int iconWidth,
-    const int iconHeight,
-    const float yAxisRotation)
+//---------------------------------------------------------
+// Desc:   setup a rendering shader for material
+// Args:   - matId:     a material by this identifier will be changed
+//         - shaderId:  a shader by this identifier will be used to render
+//---------------------------------------------------------
+bool FacadeEngineToUI::SetMaterialShaderId(const MaterialID matId, const ShaderID shaderId)
 {
-    // in the material browser we can select editing of the chosen material;
-    // in the editor window we need to visualize the current state of the material so
-    // we render this big material icon
-    return pGraphics_->RenderBigMaterialIcon(
-        matID,
-        iconWidth,
-        iconHeight,
-        yAxisRotation,
-        pRender_,
-        &pMaterialBigIcon_);
+    // get material
+    Material& mat = g_MaterialMgr.GetMatById(matId);
+    if (mat.id == INVALID_MATERIAL_ID)
+    {
+        LogErr(LOG, "can't setup shader (id: %" PRIu32 ") \n\t"
+                    "for material because there is no material by id : %" PRIu32, shaderId, matId);
+        return false;
+    }
+
+    // get shader
+    Render::Shader* pShader = pRender_->shaderMgr_.GetShaderById(shaderId);
+    if (!pShader)
+    {
+        LogErr(LOG, "can't setup shader (id: %" PRIu32 ") \n\t"
+                    "for material (id: %d" PRIu32 ") because there is no such shader", shaderId, matId);
+        return false;
+    }
+
+    // setup rendering shader for material
+    mat.shaderId = shaderId;
+
+    return true;
 }
 
 
+
+
 // =============================================================================
-// setup particles binded to entity by ID (note: actually we setup a particles system at all, not particular particles of particular entity)
+// PARTICLES
 // =============================================================================
 bool FacadeEngineToUI::SetParticlesColor(const EntityID id, const ColorRGB& color)
 {
@@ -1080,6 +1227,66 @@ bool FacadeEngineToUI::GetEnttParticleEmitterData(
     friction    = emitter.friction;
 
     return true;
+}
+
+
+// =============================================================================
+// TERRAIN
+// =============================================================================
+
+//---------------------------------------------------------
+// Desc:   return a maximal number for terrain LOD
+//---------------------------------------------------------
+int FacadeEngineToUI::GetTerrainNumMaxLOD() const
+{
+    return pTerrain_->GetNumMaxLOD();
+}
+
+//---------------------------------------------------------
+// Desc:   return a distance from the camera where LOD starts
+//---------------------------------------------------------
+int FacadeEngineToUI::GetTerrainDistanceToLOD(const int lod) const
+{
+    const int dist = pTerrain_->GetDistanceToLOD(lod);
+
+    if (dist == -1)
+        LogErr(LOG, "can't get a distance to lod: %d", lod);
+
+    return dist;
+}
+
+//---------------------------------------------------------
+// Desc:   set a distance from the camera where LOD starts
+// Args:   - lod:   lod number to change
+//         - dist:  new distance to this lod
+//---------------------------------------------------------
+bool FacadeEngineToUI::SetTerrainDistanceToLOD(const int lod, const int dist)
+{
+    return pTerrain_->SetDistanceToLOD(lod, dist);
+}
+
+
+// =============================================================================
+// GRASS
+// =============================================================================
+float FacadeEngineToUI::GetGrassDistFullSize() const
+{
+    return pRender_->GetGrassDistFullSize();
+}
+
+float FacadeEngineToUI::GetGrassDistVisible() const
+{
+    return pRender_->GetGrassDistVisible();
+}
+
+bool FacadeEngineToUI::SetGrassDistFullSize(const float dist)
+{
+    return pRender_->SetGrassDistFullSize(dist);
+}
+
+bool FacadeEngineToUI::SetGrassDistVisible(const float dist)
+{
+    return pRender_->SetGrassDistVisible(dist);
 }
 
 } // namespace Core

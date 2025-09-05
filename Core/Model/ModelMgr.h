@@ -21,7 +21,10 @@ class ModelMgr
 public:
     ModelMgr();
 
+    bool        Init();
+
     bool        InitBillboardBuffer();
+    bool        InitGrassBuffer();
 
     void        Serialize  (ID3D11Device* pDevice);
     void        Deserialize(ID3D11Device* pDevice);
@@ -43,6 +46,8 @@ public:
     inline SkyModel&        GetSky()             { return sky_; }
 
     inline VertexBuffer<BillboardSprite>& GetBillboardsBuffer() { return billboardsVB_; }
+    inline VertexBuffer<VertexGrass>&     GetGrassVB() { return grassVB_; }
+    inline cvector<VertexGrass>&          GetGrassVertices() { return grassVertices_; }
 
     inline int                  GetNumAssets() const { return (int)std::ssize(ids_); }
 
@@ -50,6 +55,8 @@ public:
     
 private:
     VertexBuffer<BillboardSprite> billboardsVB_;
+    VertexBuffer<VertexGrass>     grassVB_;
+    cvector<VertexGrass>          grassVertices_;
 
     cvector<ModelID>    ids_;
     cvector<BasicModel> models_;

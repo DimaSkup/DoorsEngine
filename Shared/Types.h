@@ -45,6 +45,7 @@ using SubsetID          = uint16_t;             // entity/model submesh (subset)
 using ModelID           = uint32_t;
 using MaterialID        = uint32_t;
 using TexID             = uint32_t;             // texture ID
+using ShaderID          = uint32_t;
 
 // common constants
 constexpr EntityID   INVALID_ENTITY_ID = 0;
@@ -70,6 +71,12 @@ struct TexName
 {
     char name[MAX_LENGTH_TEXTURE_NAME]{ '\0' };
 };
+
+struct ShaderName
+{
+    char name[32]{ '\0' };
+};
+
 
 struct EntityModelMesh
 {

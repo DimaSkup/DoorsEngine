@@ -24,7 +24,7 @@ EventsHistory g_EventsHistory;
 // --------------------------------------------------------
 // UI constructor/desctructor
 // --------------------------------------------------------
-UserInterface::UserInterface() : editorPanels_(&guiStates_)
+UserInterface::UserInterface()
 {
 }
 
@@ -272,12 +272,12 @@ void UserInterface::LoadDebugInfoStringFromFile(
 // ====================================================================================
 void UserInterface::RenderGameUI(
     ID3D11DeviceContext* pContext,
-    Render::FontShader& fontShader,
+    Render::CRender& render,
     Core::SystemState& systemState)
 {
     // print onto the screen some debug info
     if (systemState.isShowDbgInfo)
-        RenderDebugInfo(pContext, fontShader, systemState);
+        RenderDebugInfo(pContext, render, systemState);
 }
 
 ///////////////////////////////////////////////////////////
@@ -309,11 +309,11 @@ void UserInterface::RenderEditor(Core::SystemState& systemState)
     ImGui::End();
 
 
-    editorMainMenuBar_.RenderBar(guiStates_);
+    editorMainMenuBar_.RenderBar();
 
     // show window to control engine options
-    if (guiStates_.showWndEngineOptions)
-        editorMainMenuBar_.RenderWndEngineOptions(&guiStates_.showWndEngineOptions);
+    if (g_GuiStates.showWndEngineOptions)
+        editorMainMenuBar_.RenderWndEngineOptions(&g_GuiStates.showWndEngineOptions);
 
     editorPanels_.Render(systemState);
 }
@@ -338,10 +338,10 @@ void UserInterface::RenderSceneWnd(Core::SystemState& sysState)
         uint32_t selectedEntt = GetSelectedEntt();
         
         // if any entt is selected and any gizmo operation is chosen
-        if (selectedEntt && (guiStates_.gizmoOperation != -1))    
+        if (selectedEntt && (g_GuiStates.gizmoOperation != -1))
         {
             // is any gizmo manipulator hovered by a mouse
-            guiStates_.isGizmoHovered = ImGuizmo::IsOver();
+            g_GuiStates.isGizmoHovered = ImGuizmo::IsOver();
 
             // set rendering of the gizmos only in the screen window space:
             // to make gizmo be rendered behind editor panels BUT in this case the gizmo is inactive :(
@@ -367,26 +367,32 @@ void UserInterface::RenderSceneWnd(Core::SystemState& sysState)
             rawWorld    = world.r->m128_f32;
 
 
-            if (guiStates_.useSnapping)
+            if (g_GuiStates.useSnapping)
             {
-                switch (guiStates_.gizmoOperation)
+                switch (g_GuiStates.gizmoOperation)
                 {
                     case ImGuizmo::TRANSLATE:
                     {
-                        guiStates_.snap = guiStates_.snapTranslation;
-                        ImGui::InputFloat3("Translation Snap", &guiStates_.snap.x);
+                        g_GuiStates.snapX = g_GuiStates.snapTranslationX;
+                        g_GuiStates.snapY = g_GuiStates.snapTranslationY;
+                        g_GuiStates.snapZ = g_GuiStates.snapTranslationZ;
+                        ImGui::InputFloat3("Translation Snap", &g_GuiStates.snapX);
                         break;
                     }
                     case ImGuizmo::ROTATE:
                     {
-                        guiStates_.snap = guiStates_.snapRotation;
-                        ImGui::InputFloat("Angle Snap", &guiStates_.snap.x);
+                        g_GuiStates.snapX = g_GuiStates.snapRotationX;
+                        g_GuiStates.snapY = g_GuiStates.snapRotationY;
+                        g_GuiStates.snapZ = g_GuiStates.snapRotationZ;
+                        ImGui::InputFloat("Angle Snap", &g_GuiStates.snapX);
                         break;
                     }
                     case ImGuizmo::SCALE:
                     {
-                        guiStates_.snap = guiStates_.snapScale;
-                        ImGui::InputFloat("Scale Snap", &guiStates_.snap.x);
+                        g_GuiStates.snapX = g_GuiStates.snapScaleX;
+                        g_GuiStates.snapY = g_GuiStates.snapScaleY;
+                        g_GuiStates.snapZ = g_GuiStates.snapScaleZ;
+                        ImGui::InputFloat("Scale Snap", &g_GuiStates.snapX);
                         break;
                     }
                 }
@@ -398,11 +404,11 @@ void UserInterface::RenderSceneWnd(Core::SystemState& sysState)
             ImGuizmo::Manipulate(
                 cameraView,
                 cameraProj,
-                ImGuizmo::OPERATION(guiStates_.gizmoOperation),
+                ImGuizmo::OPERATION(g_GuiStates.gizmoOperation),
                 ImGuizmo::MODE::WORLD,
                 rawWorld,
                 NULL,
-                (guiStates_.useSnapping) ? &guiStates_.snap.x : NULL);
+                (g_GuiStates.useSnapping) ? &g_GuiStates.snapX : NULL);
 
             // if we do some manipulations using guizmo
             if (ImGuizmo::IsUsingAny())
@@ -418,7 +424,7 @@ void UserInterface::RenderSceneWnd(Core::SystemState& sysState)
 
 void UserInterface::RenderDebugInfo(
     ID3D11DeviceContext* pContext,
-    Render::FontShader& fontShader,
+    Render::CRender& render,
     const Core::SystemState& sysState)
 {
     // render engine/game stats as text onto the sceen
@@ -441,7 +447,7 @@ void UserInterface::RenderDebugInfo(
         indexCounts[1]);                  // actual index count for debug dynamic text
 
     // render
-    fontShader.Render(
+    render.RenderFont(
         pContext,
         vertexBuffers,
         pIB,

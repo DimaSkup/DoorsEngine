@@ -10,6 +10,7 @@
 
 using namespace Core;
 
+
 namespace Game
 {
 
@@ -43,7 +44,7 @@ bool Game::Init(
     pRender_  = pRender;
 
   
-    LogMsg("scene initialization (start)");
+    LogMsg(LOG, "scene initialization (start)");
 
     GameInitializer gameInit;
     bool result = false;
@@ -53,20 +54,21 @@ bool Game::Init(
     const SIZE windowedSize     = d3d.GetWindowedWndSize();
     const SIZE fullscreenSize   = d3d.GetFullscreenWndSize();
     ID3D11Device* pDevice       = d3d.GetDevice();
-    //const TerrainGeomip& terrain = g_ModelMgr.GetTerrainGeomip();
 
 
     // create and init scene elements
-    if (!gameInit.InitModelEntities(pDevice, *pEnttMgr))
+    if (!gameInit.InitModelEntities(pDevice, *pEnttMgr, *pRender))
     {
-        LogErr("can't initialize models");
+        LogErr(LOG, "can't initialize models");
     }
+
 
     // init all the light source on the scene
     if (!gameInit.InitLightSources(*pEnttMgr))
     {
-        LogErr("can't initialize light sources");
+        LogErr(LOG, "can't initialize light sources");
     }
+
 
     //-----------------------------------------------------
 
@@ -81,9 +83,15 @@ bool Game::Init(
     editorCamParams.nearZ       = nearZ;
     editorCamParams.farZ        = farZ;
     editorCamParams.fovInRad    = fovInRad;
-    editorCamParams.posX        = 260.0f;
-    editorCamParams.posY        = 90.0f;
-    editorCamParams.posZ        = 170.0f;
+#if 1
+    editorCamParams.posX        = 235.0f;
+    editorCamParams.posY        = 80.0f;
+    editorCamParams.posZ        = 200.0f;
+#else
+    editorCamParams.posX = 0;
+    editorCamParams.posY = 0;
+    editorCamParams.posZ = 0;
+#endif
 
     CameraInitParams gameCamParams;
     gameCamParams.wndWidth      = (float)fullscreenSize.cx;
@@ -115,9 +123,6 @@ bool Game::Init(
 
     // add some entities with particle emitters
     gameInit.InitParticles(*pEnttMgr);
-
-    // HACK
-    //pRender->ShadersHotReload(pEngine->GetGraphicsClass().GetD3DClass().GetDevice());
 
 
     LogMsg(LOG, "is initialized");
@@ -326,9 +331,7 @@ void Game::HandleGameEventMouse(const float deltaTime)
 //---------------------------------------------------------
 void Game::SwitchFlashLight(ECS::EntityMgr& mgr, Render::CRender& render)
 {
-    // switch on/off the player's flashlight
-
-    ECS::PlayerSystem& player = mgr.playerSystem_;
+    ECS::PlayerSystem& player     = mgr.playerSystem_;
     const bool isFlashlightActive = !player.IsFlashLightActive();;
     player.SwitchFlashLight(isFlashlightActive);
 
