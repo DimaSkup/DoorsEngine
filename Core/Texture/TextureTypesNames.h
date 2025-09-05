@@ -2,8 +2,6 @@
 #pragma once
 
 
-#include <CoreCommon/Types.h>
-
 
 static const std::string namesOfTexTypes[NUM_TEXTURE_TYPES] =
 {

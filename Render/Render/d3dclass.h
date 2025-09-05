@@ -61,7 +61,6 @@ public:
     inline ID3D11Device*             GetDevice()           const { return pDevice_; }
     inline ID3D11DeviceContext*      GetDeviceContext()    const { return pContext_; }
     inline ID3D11DepthStencilView*   GetDepthStencilView() const { return pDepthStencilView_;}
-    inline ID3D11Texture2D*          GetBackBufferTex()    const { return pBackBuffer_;}
     inline ID3D11RenderTargetView*   GetRenderTargetView() const { return pRenderTargetView_; }
     inline DXGI_FORMAT               GetBackBufferFormat() const { return backBufferFormat_; }
     inline int                       GetWindowWidth()      const { return wndWidth_; }
@@ -69,12 +68,6 @@ public:
     inline float                     GetAspectRatio()      const { return (float)wndWidth_ / (float)wndHeight_; }
     inline float                     GetNearZ()            const { return nearZ_; }
     inline float                     GetFarZ()             const { return farZ_; }
-
-    // get world/ortho matrix
-    //inline const DirectX::XMMATRIX& GetWorldMatrix()       const { return worldMatrix_; }
-    //inline const DirectX::XMMATRIX& GetOrthoMatrix()       const { return orthoMatrix_; }
-    //inline void GetWorldMatrix(DirectX::XMMATRIX& worldMatrix)   { worldMatrix = worldMatrix_; }
-    //inline void GetOrthoMatrix(DirectX::XMMATRIX& orthoMatrix)   { orthoMatrix = orthoMatrix_; }
 
     inline RenderStates& GetRenderStates()                       { return renderStates_; }
 
@@ -104,10 +97,7 @@ public:
     // handler for the window resizing
     bool ResizeSwapChain(HWND hwnd, SIZE newSize);
 
-    // memory allocation
-    void* operator new(size_t i);
-    void operator delete(void* p);
-
+ 
 private:
 
     void InitializeDirectX(
@@ -117,7 +107,6 @@ private:
         const float nearZ, 
         const float farZ);
 
-    void EnumerateAdapters(); // get data about the video card, user's screen, etc.
     void InitializeDevice();
     void InitializeSwapChain(HWND hwnd, const int width, const int height);
     void InitializeRenderTargetView();
@@ -133,13 +122,9 @@ private:
 private:
     static D3DClass* pInstance_;
 
-    //DirectX::XMMATRIX         worldMatrix_ = DirectX::XMMatrixIdentity();
-    //DirectX::XMMATRIX         orthoMatrix_ = DirectX::XMMatrixIdentity();
-
     IDXGISwapChain*			  pSwapChain_        = nullptr;    
     ID3D11Device*			  pDevice_           = nullptr;    
     ID3D11DeviceContext*	  pContext_          = nullptr;    
-    ID3D11Texture2D*          pBackBuffer_       = nullptr;    // the render target texture resource
     ID3D11RenderTargetView*   pRenderTargetView_ = nullptr;    // where we are going to render our buffers
     D3D11_VIEWPORT            viewport_{0};
 

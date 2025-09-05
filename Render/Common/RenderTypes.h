@@ -31,29 +31,6 @@ constexpr int SUBSET_NAME_LENGTH_LIMIT = 32;
 
 
 // =================================================================================
-// ENUMS
-// =================================================================================
-enum eDebugState
-{
-    DBG_TURN_OFF,               // turn off the debug shader and use the default shader
-    DBG_SHOW_NORMALS,
-    DBG_SHOW_TANGENTS,
-    DBG_SHOW_BUMPED_NORMALS,
-    DBG_SHOW_ONLY_LIGTHING,
-    DBG_SHOW_ONLY_DIRECTED_LIGHTING,
-    DBG_SHOW_ONLY_POINT_LIGHTING,
-    DBG_SHOW_ONLY_SPOT_LIGHTING,
-    DBG_SHOW_ONLY_DIFFUSE_MAP,
-    DBG_SHOW_ONLY_NORMAL_MAP,
-    DBG_WIREFRAME,
-    DBG_SHOW_MATERIAL_AMBIENT,
-    DBG_SHOW_MATERIAL_DIFFUSE,
-    DBG_SHOW_MATERIAL_SPECULAR,
-    DBG_SHOW_MATERIAL_REFLECTION,
-};
-
-
-// =================================================================================
 // STRUCTURES
 // =================================================================================
 
@@ -73,8 +50,8 @@ struct PerFrameData
 {
     // common data
     DirectX::XMMATRIX WVO;                       // is used for 2D rendering (world * basic_view * ortho)
-    DirectX::XMMATRIX proj;
     DirectX::XMMATRIX viewProj;                  // (is already transposed)
+    DirectX::XMMATRIX worldViewProj;
     DirectX::XMFLOAT3 cameraPos;
     DirectX::XMFLOAT3 cameraDir;
 
@@ -231,6 +208,7 @@ struct Subset
 //---------------------------------------------------------
 struct InstanceBatch
 {
+    ShaderID               shaderId     = 0;
     ModelID                modelId      = INVALID_MODEL_ID;
     SubmeshID              subsetId     = UINT16_MAX;
     uint32                 numInstances = 1;             // how many times this instance will be rendered (at different positions)

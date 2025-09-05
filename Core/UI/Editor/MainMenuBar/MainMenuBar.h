@@ -17,7 +17,7 @@ namespace UI
 class MainMenuBar
 {
 public:
-    void RenderBar(StatesGUI& states);
+    void RenderBar();
     void RenderWndEngineOptions (bool* pOpen);
   
 private:

@@ -49,7 +49,7 @@ public:
     //-----------------------------------------------------
     // Desc:   get patch's LOD metadata by its idx
     //-----------------------------------------------------
-    const PatchLod& GetPatchLodInfo(const int idx) const
+    inline const PatchLod& GetPatchLodInfo(const int idx) const
     {   return map_[idx];   }
 
     //-----------------------------------------------------
@@ -57,7 +57,7 @@ public:
     // Args:   - patchX:  index by X-axis (not position)
     //         - patchZ:  index by Z-axis (not position)
     //-----------------------------------------------------
-    const PatchLod& GetPatchLodInfo(const int patchX, const int patchZ) const
+    inline const PatchLod& GetPatchLodInfo(const int patchX, const int patchZ) const
     {   return map_[(patchZ * numPatchesPerSide_) + patchX];    }
 
     //-----------------------------------------------------
@@ -65,6 +65,22 @@ public:
     //-----------------------------------------------------
     inline int GetPatchSize() const
     {   return patchSize_;  }
+
+    //-----------------------------------------------------
+    // Desc:   return a distance from the camera where LOD starts
+    //-----------------------------------------------------
+    inline int GetDistanceToLOD(const int lod) const
+    {
+        if ((lod < 0) || (lod > maxLOD_))
+            return -1;
+
+        return regions_[lod];
+    }
+
+    //-----------------------------------------------------
+
+    bool SetDistanceToLOD(const int lod, const int dist);
+
 
 private:
     void CalcLodRegions(const float farZ);

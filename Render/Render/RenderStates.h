@@ -90,7 +90,8 @@ private:
 
     ID3D11RasterizerState* GetRasterStateByHash(const uint8_t hash);
 
-    void UpdateRSHash(const std::set<eRenderState>& rsParams);
+    uint8 UpdateRSHash(const eRenderState rsParam);
+    uint8 UpdateRSHash(const std::set<eRenderState>& rsParams);
     void PrintErrAboutRSHash(const uint8_t bitfield);
 
 private:

@@ -4,9 +4,7 @@
 ////////////////////////////////////////////////////////////////////
 #include "../Common/pch.h"
 #include "PixelShader.h"
-
-#include "Helpers/CSOLoader.h"
-#include "Helpers/ShaderCompiler.h"
+#include "ShaderCompiler.h"
 
 
 namespace Render
@@ -31,14 +29,14 @@ bool PixelShader::LoadPrecompiled(ID3D11Device* pDevice, const char* path)
 {
     if (StrHelper::IsEmpty(path))
     {
-        LogErr("input path to pixel shader file is empty!");
+        LogErr(LOG, "input path to pixel shader file is empty!");
         return false;
     }
 
     uint8_t* buffer = nullptr;
 
     // load in shader bytecode
-    const size_t len = LoadCSO(path, buffer);
+    const size_t len = ShaderCompiler::LoadCSO(path, buffer);
     if (!len)
     {
         SafeDeleteArr(buffer);
@@ -76,11 +74,9 @@ bool PixelShader::CompileFromFile(
     const char* funcName,
     const char* shaderProfile)
 {
-    // is using for hot reload
-
     if (StrHelper::IsEmpty(shaderPath) || StrHelper::IsEmpty(funcName) || StrHelper::IsEmpty(shaderProfile))
     {
-        LogErr("input arguments are invalid: some string is empty");
+        LogErr(LOG, "input arguments are invalid: some string is empty");
         return false;
     }
 

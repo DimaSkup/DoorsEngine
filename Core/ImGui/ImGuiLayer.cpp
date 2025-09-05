@@ -124,12 +124,12 @@ void ImGuiLayer::Begin()
     //
     // ImGui docking
     //
-    static bool isDockspaceOpen = true;
-    static bool optFullscreen = true;
-    static bool optPadding = false;
-    static ImGuiDockNodeFlags_ dockspaceFlags = ImGuiDockNodeFlags_None;
-    const ImGuiViewport* viewport = ImGui::GetMainViewport();
-    static ImGuiDockNode* pSceneNode = nullptr;
+    static bool                isDockspaceOpen = true;
+    static bool                optFullscreen   = true;
+    static bool                optPadding      = false;
+    static ImGuiDockNodeFlags_ dockspaceFlags  = ImGuiDockNodeFlags_None;
+    const  ImGuiViewport*      viewport        = ImGui::GetMainViewport();
+    static ImGuiDockNode*      pSceneNode      = nullptr;
 
     // setup the dockspace wnd style
     ImGuiWindowFlags wndFlags = 0;

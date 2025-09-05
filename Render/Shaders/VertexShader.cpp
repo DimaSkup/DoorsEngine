@@ -4,9 +4,9 @@
 ////////////////////////////////////////////////////////////////////
 #include "../Common/pch.h"
 #include "VertexShader.h"
+#include "ShaderCompiler.h"
 
-#include "Helpers/CSOLoader.h"
-#include "Helpers/ShaderCompiler.h"
+#pragma warning (disable : 4996)
 
 
 namespace Render
@@ -55,7 +55,7 @@ bool VertexShader::LoadPrecompiled(
     uint8_t* buf = nullptr;
 
     // load in shader bytecode from the .cso file
-    const size_t len = LoadCSO(path, buf);
+    const size_t len = ShaderCompiler::LoadCSO(path, buf);
     if (!len)
     {
         LogErr(LOG, "Failed to load .CSO-file of vertex shader: %s", path);
@@ -91,7 +91,7 @@ bool VertexShader::LoadPrecompiled(
 //         compile an HLSL shader by shaderPath and reinit shader object
 // Args:   - shaderPath:     a path to HLSL shader relatively to the working directory
 //         - funcName:       what function from the shader we want to compile
-//         - shaderProfile:  what HLSL shader profile we want to use
+//         - shaderModel:    what HLSL shader model we want to use
 //         - layoutDesc:     description for the vertex input layout
 //         - layoutElemNum:  how many elems we have in the input layout
 //---------------------------------------------------------
@@ -99,20 +99,26 @@ bool VertexShader::CompileFromFile(
     ID3D11Device* pDevice,
     const char* shaderPath,
     const char* funcName,
-    const char* shaderProfile,
+    const char* shaderModel,
     const D3D11_INPUT_ELEMENT_DESC* layoutDesc,
     const UINT layoutElemNum)
 {
-    if (StrHelper::IsEmpty(shaderPath) || StrHelper::IsEmpty(funcName) || StrHelper::IsEmpty(shaderProfile))
+    if (StrHelper::IsEmpty(shaderPath) || StrHelper::IsEmpty(funcName) || StrHelper::IsEmpty(shaderModel))
     {
         LogErr("input arguments are invalid: some path is empty");
         return false;
     }
 
+
     ID3D10Blob*         pShaderBuffer = nullptr;
     ID3D11VertexShader* pShader = nullptr;
     ID3D11InputLayout*  pInputLayout = nullptr;
     HRESULT             hr = S_OK;
+
+    // generate full shader profile for this shader
+    char shaderProfile[8]{ '\0' };
+    strcat(shaderProfile, "vs_");
+    strcat(shaderProfile, shaderModel);
 
     // compile a shader and load bytecode into the buffer
     hr = ShaderCompiler::CompileShaderFromFile(

@@ -103,6 +103,7 @@ public:
     // ------------------------------------------
     // getters
     // ------------------------------------------
+    inline int                    GetNumMaxLOD()         const { return lodMgr_.maxLOD_; }
     inline const cvector<int>&    GetVisiblePatches()    const { return visiblePatches_; }
 
     inline int                    GetNumVertices()       const { return numVertices_; }
@@ -118,12 +119,12 @@ public:
     inline int                    GetNumPatchesPerSide() const { return lodMgr_.numPatchesPerSide_; }
     inline int                    GetNumAllPatches()     const { return SQR(GetNumPatchesPerSide()); }
 
-    // get the number of patches being rendered per frame
-    //inline int GetNumPatchesPerFrame(void)    const { return patchesPerFrame_;   }
 
     // get the current patch number by input coords
-    inline int GetPatchNumber(int px, int pz) const { return (pz*lodMgr_.numPatchesPerSide_) + px;   }
+    inline int GetPatchNumber(int px, int pz)  const { return (pz*lodMgr_.numPatchesPerSide_) + px;   }
 
+
+    inline int GetDistanceToLOD(const int lod) const { return lodMgr_.GetDistanceToLOD(lod); }
 
     inline void GetLodInfoByPatch(
         const TerrainLodMgr::PatchLod& plod,
@@ -148,6 +149,8 @@ public:
     void SetAABB    (const DirectX::XMFLOAT3& center, const DirectX::XMFLOAT3& extents);
     void SetMaterial(const MaterialID matID);
     void SetTexture (const eTexType type, const TexID texID);
+
+    bool SetDistanceToLOD(const int lod, const int dist);
 
 private:
     void InitVertices(Vertex3dTerrain* vertices, const int numVertices);
@@ -181,20 +184,6 @@ private:
         const UINT* indices,
         const int numVertices,
         const int numIndices);
-
-    void ComputeTesselation(void);
-
-    void ComputePatch(
-        const int currPatchNum,
-        const int px,
-        const int pz,
-        const int numPatchesPerSide);
-
-    void ComputeFan(
-        const float cx,
-        const float cz,
-        const float size,
-        const GeomNeighbor& neighbor);
 
     void CalcNormals(
         Vertex3dTerrain* vertices,

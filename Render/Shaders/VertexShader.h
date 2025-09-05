@@ -6,7 +6,6 @@
 ////////////////////////////////////////////////////////////////////
 #pragma once
 
-#include <cstdint>
 #include <d3d11.h>
 
 namespace Render 
@@ -28,7 +27,7 @@ public:
         ID3D11Device* pDevice,
         const char* shaderPath,
         const char* funcName,
-        const char* shaderProfile,
+        const char* shaderModel,
         const D3D11_INPUT_ELEMENT_DESC* layoutDesc,
         const UINT layoutElemNum);
     

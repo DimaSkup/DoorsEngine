@@ -71,7 +71,7 @@ public:
         }
 
         // calculating the length of the multibyte string
-        size_t len = wcstombs(nullptr, wstr, 0) + 1;
+        size_t len = std::wcstombs(nullptr, wstr, 0) + 1;
 
         if (len == 0)
         {
@@ -85,7 +85,7 @@ public:
         // if we got some err
         if (sz == (size_t)-1)
         {
-            LogErr("didn't manage to convert wstr => str");
+            LogErr(LOG, "didn't manage to convert wstr => str");
             outStr[0] = '\0';
             return;
         }

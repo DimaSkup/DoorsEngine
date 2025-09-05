@@ -214,6 +214,7 @@ void PrepareMaterials(
             pInstances               = &instaceBatches.back();
             pInstances->modelId      = data.modelId;
             pInstances->subsetId     = data.subsetId;
+            pInstances->shaderId     = pMat->shaderId;
             modelId                  = data.modelId;
             subsetId                 = data.subsetId;
             pInstances->numInstances = 1;
@@ -413,6 +414,7 @@ void RenderDataPreparator::PrepareEnttsDataForRendering(
 
     // sort both blending groups elements by distance from the camera
     SortByDistance(*pEnttMgr, cameraPos, blendGroup);
+    SortByDistance(*pEnttMgr, cameraPos, blendTransparentGroup);
 
     //------------------------------------------------
 

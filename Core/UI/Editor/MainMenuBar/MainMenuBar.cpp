@@ -11,7 +11,7 @@ namespace UI
 //                              public methods
 // =================================================================================
 
-void MainMenuBar::RenderBar(StatesGUI& states)
+void MainMenuBar::RenderBar()
 {
     // create a window called "Main menu bar" with a main menu 
     if (ImGui::BeginMainMenuBar())
@@ -39,9 +39,9 @@ void MainMenuBar::RenderBar(StatesGUI& states)
         if (ImGui::BeginMenu("View"))
         {
             // menu items to open particular windows
-            ImGui::MenuItem("Textures browser",  NULL, &states.showWndTexturesBrowser);
-            ImGui::MenuItem("Materials browser", NULL, &states.showWndMaterialsBrowser);
-            ImGui::MenuItem("Models browser",    NULL, &states.showWndModelsBrowser);
+            ImGui::MenuItem("Textures browser",  NULL, &g_GuiStates.showWndTexturesBrowser);
+            ImGui::MenuItem("Materials browser", NULL, &g_GuiStates.showWndMaterialsBrowser);
+            ImGui::MenuItem("Models browser",    NULL, &g_GuiStates.showWndModelsBrowser);
             ImGui::EndMenu();
         }
 
@@ -50,7 +50,7 @@ void MainMenuBar::RenderBar(StatesGUI& states)
         if (ImGui::BeginMenu("Create"))
         {
             // create a modal window for entities creation
-            ImGui::MenuItem("Entity", NULL, &states.showWndEnttCreation);
+            ImGui::MenuItem("Entity", NULL, &g_GuiStates.showWndEnttCreation);
             ImGui::EndMenu();
         }
 
@@ -62,7 +62,7 @@ void MainMenuBar::RenderBar(StatesGUI& states)
         if (ImGui::Button("Options"))
         {
             // create a window for control common engine options
-            states.showWndEngineOptions = !states.showWndEngineOptions;
+            g_GuiStates.showWndEngineOptions = !g_GuiStates.showWndEngineOptions;
         }
 
         ImGui::PopStyleColor();

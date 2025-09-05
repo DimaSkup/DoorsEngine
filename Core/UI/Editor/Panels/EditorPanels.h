@@ -26,7 +26,7 @@ namespace UI
 class EditorPanels
 {
 public:
-    EditorPanels(StatesGUI* pStatesGUI);
+    EditorPanels();
 
     void Initialize(IFacadeEngineToUI* pFacade);
 
@@ -53,9 +53,8 @@ public:
     SkyController        skyEditorController_;
 
 private:
-    IFacadeEngineToUI* pFacadeEngineToUI_ = nullptr;
-    StatesGUI*         pStatesGUI_        = nullptr;
-    EntityCreatorWnd* pEnttCreatorWnd_ = nullptr;
+    IFacadeEngineToUI* pFacade_         = nullptr;
+    EntityCreatorWnd*  pEnttCreatorWnd_ = nullptr;
 
     TextureAssetsBrowser  texturesBrowser_;
     MaterialAssetsBrowser materialsBrowser_;

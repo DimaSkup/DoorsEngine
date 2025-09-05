@@ -105,7 +105,8 @@ ID3D11DepthStencilState* RenderStates::GetDSS(const eRenderState state)
 //---------------------------------------------------------
 void RenderStates::SetRS(ID3D11DeviceContext* pContext, const eRenderState state)
 {
-    SetRS(pContext, std::set<eRenderState>{state});
+    const uint8 hash = UpdateRSHash(state);
+    pContext->RSSetState(GetRasterStateByHash(hash));
 }
 
 //---------------------------------------------------------
@@ -113,8 +114,8 @@ void RenderStates::SetRS(ID3D11DeviceContext* pContext, const eRenderState state
 //---------------------------------------------------------
 void RenderStates::SetRS(ID3D11DeviceContext* pContext, const std::set<eRenderState>& states)
 {
-    UpdateRSHash(states);
-    pContext->RSSetState(GetRasterStateByHash(GetCurrentRSHash()));
+    const uint8 hash = UpdateRSHash(states);
+    pContext->RSSetState(GetRasterStateByHash(hash));
 }
 
 //---------------------------------------------------------
@@ -493,6 +494,12 @@ void RenderStates::InitAllBlendStates(ID3D11Device* pDevice)
     a2CDesc.AlphaToCoverageEnable = true;
     a2CDesc.IndependentBlendEnable = false;
     a2CDesc.RenderTarget[0].BlendEnable = false;
+    a2CDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+    a2CDesc.RenderTarget[0].DestBlend = D3D11_BLEND_ZERO;
+    a2CDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+    a2CDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ZERO;
+    a2CDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+    a2CDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
     a2CDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
     hr = pDevice->CreateBlendState(&a2CDesc, &blendStates_[R_ALPHA_TO_COVERAGE]);
@@ -671,51 +678,64 @@ ID3D11RasterizerState* RenderStates::GetRasterStateByHash(const uint8_t hash)
 }
 
 //---------------------------------------------------------
-// Desc:  setup the rasterizer state hash according to the input params 
+// Desc:  setup the rasterizer state hash according to the input parameter
+// Args:  - rsParam:   rasterization parameter to set
+// Ret:   updated hash
 //---------------------------------------------------------
-void RenderStates::UpdateRSHash(const std::set<eRenderState>& rsParams)
+uint8 RenderStates::UpdateRSHash(const eRenderState rsParam)
+{
+    switch (rsParam)
+    {
+        // switch between rasterizer fill modes
+        case R_FILL_SOLID:
+        case R_FILL_WIREFRAME:
+        {
+            rasterStateHash_ &= turnOffFillModesHash_;   // turn off all the fill modes
+            TurnOnRasterParam(rsParam);
+            break;
+        }
+        // switch between rasterizer culling modes
+        case R_CULL_BACK:
+        case R_CULL_FRONT:
+        case R_CULL_NONE:
+        {
+            rasterStateHash_ &= turnOffCullModesHash_;   // turn off all the cull modes
+            TurnOnRasterParam(rsParam);
+            break;
+        }
+        case R_FRONT_CLOCKWISE:
+        {
+            // &= ~(1 << rsParam);
+            rasterStateHash_ &= ~(1 << R_FRONT_COUNTER_CLOCKWISE);  // turn off
+            rasterStateHash_ |=  (1 << R_FRONT_CLOCKWISE);          // turn on
+            break;
+        }
+        case R_FRONT_COUNTER_CLOCKWISE:
+        {
+            rasterStateHash_ &= ~(1 << R_FRONT_CLOCKWISE);          // turn off
+            rasterStateHash_ |=  (1 << R_FRONT_COUNTER_CLOCKWISE);  // turn on
+            break;
+        }
+        default:
+        {
+            LogErr(LOG, "unknown rasterizer state parameter: %u", rsParam);
+        }
+    }
+
+    return rasterStateHash_;
+}
+
+//---------------------------------------------------------
+// Desc:  setup the rasterizer state hash according to the input params
+// Args:  - rsParam:   rasterization parameters
+// Ret:   updated hash
+//---------------------------------------------------------
+uint8 RenderStates::UpdateRSHash(const std::set<eRenderState>& rsParams)
 {
     for (const eRenderState param : rsParams)
-    {
-        switch (param)
-        {
-            // switch between rasterizer fill modes
-            case R_FILL_SOLID:
-            case R_FILL_WIREFRAME:
-            {
-                rasterStateHash_ &= turnOffFillModesHash_;   // turn off all the fill modes
-                TurnOnRasterParam(param);
-                break;
-            }
-            // switch between rasterizer culling modes
-            case R_CULL_BACK:
-            case R_CULL_FRONT:
-            case R_CULL_NONE:
-            {
-                rasterStateHash_ &= turnOffCullModesHash_;   // turn off all the cull modes
-                TurnOnRasterParam(param);
-                break;
-            }
-            case R_FRONT_CLOCKWISE:
-            {
-                // &= ~(1 << rsParam);
-                rasterStateHash_ &= ~(1 << R_FRONT_COUNTER_CLOCKWISE);  // turn off
-                rasterStateHash_ |=  (1 << R_FRONT_CLOCKWISE);          // turn on
-                break;
-            }
-            case R_FRONT_COUNTER_CLOCKWISE:
-            {
-                rasterStateHash_ &= ~(1 << R_FRONT_CLOCKWISE);          // turn off
-                rasterStateHash_ |=  (1 << R_FRONT_COUNTER_CLOCKWISE);  // turn on
-                break;
-            }
-            default:
-            {
-                LogErr(LOG, "unknown rasterizer state parameter: %d", param);
-                return;
-            }
-        }
-    }	
+        UpdateRSHash(param);
+
+    return rasterStateHash_;
 }
 
 //---------------------------------------------------------

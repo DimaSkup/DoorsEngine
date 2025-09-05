@@ -222,4 +222,43 @@ int TerrainLodMgr::GetLodByDistance(float distance)
     return maxLOD_;
 }
 
+//-----------------------------------------------------
+// Desc:   set a distance from the camera where LOD starts
+// Args:   - lod:   the number of LOD to change
+//         - dist:  new distance to lod
+// Ret:    true if everything is ok
+//-----------------------------------------------------
+bool TerrainLodMgr::SetDistanceToLOD(const int lod, const int dist)
+{
+    assert(maxLOD_ > 0);
+
+    if ((lod < 0) || (lod > maxLOD_) || (dist <= 0))
+        return false;
+
+
+    // if input LOD is maximal we just check if input distance isn't lower than the prev lod distance
+    if ((lod == maxLOD_) && (dist > regions_[lod - 1]))
+    {
+        regions_[lod] = dist;
+    }
+
+    // if input LOD is minimal (equals to 0) we just check if input distance isn't bigger than the next lod distance
+    else if ((lod == 0) && (dist < regions_[lod + 1]))
+    {
+        regions_[lod] = dist;
+    }
+
+    // check if input distance is in proper range: (dist lod-1, dist lod+1)
+    else
+    {
+        const int prevLodDist = regions_[lod - 1];
+        const int nextLodDist = regions_[lod + 1];
+
+        if ((prevLodDist < dist) && (dist < nextLodDist))
+            regions_[lod] = dist;
+    }
+
+    return true;
+}
+
 } // namespace Core

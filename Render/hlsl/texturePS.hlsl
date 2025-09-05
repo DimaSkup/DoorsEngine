@@ -4,7 +4,10 @@
 //////////////////////////////////
 // GLOBALS
 //////////////////////////////////
-Texture2D    gTextures[128] : register(t0);
+TextureCube  gCubeMap       : register(t0);
+Texture2D    gPerlinNoise   : register(t1);
+Texture2D    gTextures[22]  : register(t10);
+
 SamplerState gBasicSampler  : register(s0);
 SamplerState gSkySampler    : register(s1);
 
@@ -12,80 +15,88 @@ SamplerState gSkySampler    : register(s1);
 //////////////////////////////////
 // CONSTANT BUFFERS
 //////////////////////////////////
-cbuffer cbPerFrame        : register(b0)
+cbuffer cbPerFrame    : register(b0)
 {
-	// light sources data
-	DirectionalLight  gDirLights[3];
-	PointLight        gPointLights[25];
-	SpotLight         gSpotLights[25];
-	float3            gEyePosW;                // eye position in world space  
-	int               gCurrNumPointLights;
-	int               gCurrNumSpotLights;
+    // light sources data
+    DirectionalLight  gDirLights[3];
+    PointLight        gPointLights[25];
+    SpotLight         gSpotLights[25];
+    float3            gEyePosW;                // eye position in world space
+    float             gTime;
+    int               gCurrNumPointLights;
+    int               gCurrNumSpotLights;
 };
 
-cbuffer cbRarelyChanged   : register(b1)
+
+cbuffer cbRareChanged : register(b1)
 {
-	// some flags for controlling the rendering process and
-	// params which are changed very rarely
+    // some flags for controlling the rendering process and
+    // params which are changed very rarely
 
-	float3 gFogColor;            // what is the color of fog?
-	float  gFogStart;            // how far from camera the fog starts?
-	float  gFogRange;            // how far from camera the object is fully fogged?
+    float3 gFixedFogColor;       // what is the color of fog?
+    float  gFogStart;            // how far from camera the fog starts?
+    float  gFogRange;            // how far from camera the object is fully fogged?
 
-	int    gNumOfDirLights;      // current number of directional light sources
+    int    gNumOfDirLights;      // current number of directional light sources
 
-    int   gFogEnabled;          // turn on/off the fog effect
-    int   gTurnOnFlashLight;    // turn on/off the flashlight
-    int   gAlphaClipping;       // turn on/off alpha clipping
+    int    gFogEnabled;          // turn on/off the fog effect
+    int    gTurnOnFlashLight;    // turn on/off the flashlight
+    int    gAlphaClipping;       // turn on/off alpha clipping
+
+    float3 gSkyColorCenter;
+    float  padding0;
+    float3 gSkyColorApex;
+    float  padding1;
 };
 
 
 //////////////////////////////////
 // TYPEDEFS
 //////////////////////////////////
-struct PS_INPUT
+struct PS_IN
 {
-	float4 posH        : SV_POSITION;  // homogeneous position of the vertex
-	float3 posW        : POSITION;     // world position of the vertex
-	float2 tex         : TEXCOORD0;
+    float4   posH       : SV_POSITION;    // homogeneous position
+    float3   posW       : POSITION;       // position in world
+    float2   tex        : TEXCOORD;
 };
+
 
 //////////////////////////////////
 // PIXEL SHADER
 //////////////////////////////////
-float4 PS(PS_INPUT pin) : SV_TARGET
+float4 PS(PS_IN pin) : SV_TARGET
 {
-
-	/////////////////////////  TEXTURE  ////////////////////////
-
-	// Sample the pixel color from the texture using the sampler
-	// at this texture coordinate location
 	float4 finalColor = gTextures[1].Sample(gBasicSampler, pin.tex);
 
-	// the pixels with black (or lower that 0.1f) alpha values will be refected by
-	// the clip function and not draw (this is used for rendering wires/fence/etc.);
-	//
-	// if the pixel was rejected we just return from the pixel shader since 
-	// any further computations have no sense
-
+	
 	if (gAlphaClipping)
 		clip(finalColor.a - 0.1f);
 	
 
-	/////////////////////////   FOG   ///////////////////////////
-
-	if (true)
+	if (gFogEnabled)
 	{
-		// the toEye vector is used in lighting
-		float3 toEye = gEyePosW - pin.posW.xyz;
-		float distToEye = length(toEye);
+		// the toEye vector is used to define a distance from camera to pixel
+		float3 toEyeW = gEyePosW - pin.posW.xyz;
+		float distToEye = length(toEyeW);
+
+        // normalize
+        toEyeW /= distToEye;
+
+        // TEMP: hacky fix for the vector to sample the proper pixel of sky
+        float3 vec = -toEyeW;
+        vec.y -= 490;
+
+
 		float fogLerp = saturate((distToEye - gFogStart) / gFogRange);
 
-		// blend the fog color and the lit color
-		finalColor = lerp(finalColor, float4(gFogColor, 1.0f), fogLerp);
+        // blend sky pixel color with fixed fog color
+        float4 skyBottomColor = gCubeMap.Sample(gSkySampler, vec);
+        float4 fogColor = skyBottomColor * float4(gFixedFogColor, 1.0f);
+
+		// blend the fog color and the texture color
+		finalColor = lerp(finalColor, fogColor, fogLerp);
 	}
 
-	/////////////////////////////////////////////////////////////
 
 	return finalColor;
 }

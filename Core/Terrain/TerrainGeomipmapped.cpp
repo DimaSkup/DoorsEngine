@@ -587,6 +587,17 @@ void TerrainGeomip::SetTexture(const eTexType type, const TexID texID)
     mat.SetTexture(type, texID);
 }
 
+//-----------------------------------------------------
+// Desc:   set a distance from the camera where LOD starts
+// Args:   - lod:   the number of LOD to change
+//         - dist:  new distance to lod
+// Ret:    true if everything is ok
+//-----------------------------------------------------
+bool TerrainGeomip::SetDistanceToLOD(const int lod, const int dist)
+{
+    return lodMgr_.SetDistanceToLOD(lod, dist);
+}
+
 //---------------------------------------------------------
 // Desc:   calculate the summary number of indices for
 //         a single patch for all its LODs

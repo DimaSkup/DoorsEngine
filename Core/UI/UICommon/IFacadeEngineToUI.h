@@ -23,11 +23,6 @@
 
 namespace UI
 {
-//
-// TYPEDEFS
-// 
-using SRV = ID3D11ShaderResourceView;
-
 
 enum eEnttComponentType : uint8_t
 {
@@ -81,6 +76,7 @@ enum class eMaterialPropGroup
 struct MaterialData
 {
     MaterialID id = 0;
+    ShaderID   shaderId = 0;
 
     Vec4   ambient  = { 1,1,1,1 };
     Vec4   diffuse  = { 1,1,1,1 };
@@ -89,11 +85,18 @@ struct MaterialData
 
     char     name[MAX_LENGTH_MATERIAL_NAME]{ '\0' };
     TexID    textureIDs[NUM_TEXTURE_TYPES]{ INVALID_TEXTURE_ID };
+    ID3D11ShaderResourceView* textures[NUM_TEXTURE_TYPES]{ nullptr };
 
     index    selectedFillModeIdx          = -1;
     index    selectedCullModeIdx          = -1;
     index    selectedBlendStateIdx        = -1;
     index    selectedDepthStencilStateIdx = -1;
+};
+
+struct ShaderData
+{
+    ShaderID   id = 0;
+    char       name[32]{'\0'};
 };
 
 ///////////////////////////////////////////////////////////
@@ -103,6 +106,7 @@ class IFacadeEngineToUI
 public:
     ID3D11ShaderResourceView*          pMaterialBigIcon_ = nullptr; // big material icon for browsing/editing particular chosen material
     cvector<ID3D11ShaderResourceView*> materialIcons_;              // list of icons in the editor material browser
+
     float                              deltaTime = 0.0f;
 
     virtual ~IFacadeEngineToUI() {};
@@ -275,10 +279,15 @@ public:
     // =============================================================================
     // for assets managers: models/textures/materials/sounds/etc.
     // =============================================================================
+    virtual bool LoadTextureFromFile  (const char* path)                 const { return false; }
+    virtual bool ReloadTextureFromFile(const TexID id, const char* path) const { return false; }
+
     virtual bool GetModelsNamesList  (cvector<std::string>& names)                                  const { return false; }
     virtual bool GetTextureIdByIdx   (const index idx, TexID& outTextureID)                         const { return false; }
     virtual bool GetMaterialIdByIdx  (const index idx, MaterialID& outMatID)                        const { return false; }
     virtual bool GetMaterialNameById (const MaterialID id, char* outName, const int nameMaxLength)  const { return false; }
+    virtual bool GetMaterialTexIds   (const MaterialID id, TexID* outTexIds)                        const { return false; }
+    virtual bool GetTextureNameById  (const TexID id, TexName& outName)                             const { return false; }
     virtual bool GetNumMaterials     (size& numMaterials)                                           const { return false; }
 
     virtual bool GetMaterialDataById(const MaterialID id, MaterialData& outData)                            const { return false; }
@@ -300,29 +309,30 @@ public:
         const Vec4& reflect) { return false; }
 
     // get SRV (shader resource view)
-    virtual bool GetArrTexturesSRVs (SRV**& outArrShaderResourceViews, size& outNumViews) const { return false; }  // get array of all the textures SRVs
-    virtual bool GetArrMaterialsSRVs(SRV**& outArrShaderResourceViews, size& outNumViews) const { return false; }  // get array of SRVs which contains visualization of materials (sphere + material)
+    virtual bool GetArrTexturesSRVs (ID3D11ShaderResourceView**& outTexViews, size& outNumViews) const { return false; }  // get array of all the textures SRVs
+    virtual bool GetTexViewsByIds(TexID* texIds, ID3D11ShaderResourceView** outTexViews, size numTexTypes)   const { return false; }
 
     virtual bool SetEnttMaterial(
         const EntityID enttID,
         const SubsetID subsetID,
         const MaterialID matID) { return false; }
 
-    virtual bool RenderMaterialsIcons(
-        const int startMaterialIdx,            // render materials of some particular range [start, start + num_of_views]
+    virtual bool InitMaterialBigIcon(const int width, const int height) const { return false; }
+
+    virtual bool InitMaterialsIcons(
         const size numIcons,
         const int iconWidth,
         const int iconHeight) { return false; }
 
-    virtual bool RenderMaterialBigIconByID(
-        const MaterialID matID,
-        const int iconWidth,
-        const int iconHeight,
-        const float yAxisRotation) { return false; }
+    virtual bool RenderMaterialsIcons()                                                       const { return false; }
+    virtual bool RenderMaterialBigIconById(const MaterialID matID, const float yAxisRotation)       { return false; }
+
+    virtual bool GetShadersIdAndName(cvector<ShaderData>& outData)                    { return false; }
+    virtual bool SetMaterialShaderId(const MaterialID matId, const ShaderID shaderId) { return false;  }
 
 
     // =============================================================================
-    // setup particles binded to entity by ID (note: actually we setup a particles system at all, not particular particles of particular entity)
+    // PARTICLES
     // =============================================================================
     virtual bool SetParticlesColor      (const EntityID id, const ColorRGB& c)         { return false; }
     virtual bool SetParticlesExternForce(const EntityID id, const Vec3& force)         { return false; }
@@ -341,6 +351,24 @@ public:
         float& mass,
         float& size,
         float& friction) { return false; }
+
+
+    // =============================================================================
+    // TERRAIN
+    // =============================================================================
+    virtual int  GetTerrainNumMaxLOD()                                   const { return -1; }
+    virtual int  GetTerrainDistanceToLOD(const int lod)                  const { return -1; }
+    virtual bool SetTerrainDistanceToLOD(const int lod, const int dist)        { return false; }
+
+
+    // =============================================================================
+    // GRASS
+    // =============================================================================
+    virtual float GetGrassDistFullSize()                const { return -1.0f; }
+    virtual float GetGrassDistVisible()                 const { return -1.0f; }
+
+    virtual bool SetGrassDistFullSize(const float dist)       { return false; };
+    virtual bool SetGrassDistVisible (const float dist)       { return false; };
 
 private:
     inline float     GetInvalidFloat() const { return NAN; }

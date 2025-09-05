@@ -4,7 +4,7 @@
 
 
 //////////////////////////////////
-// GLOBALS
+// CONST BUFFERS
 //////////////////////////////////
 cbuffer cbPerFrame : register(b0)
 {
@@ -14,33 +14,33 @@ cbuffer cbPerFrame : register(b0)
 //////////////////////////////////
 // TYPEDEFS
 //////////////////////////////////
-struct VS_INPUT
+struct VS_IN
 {
-	// data per instance
-	row_major matrix   world             : WORLD;
-	row_major matrix   worldInvTranspose : WORLD_INV_TRANSPOSE;
-	row_major float4x4 material          : MATERIAL;
-	uint               instanceID        : SV_InstanceID;
+    // data per instance
+    row_major matrix   world             : WORLD;
+    row_major matrix   worldInvTranspose : WORLD_INV_TRANSPOSE;
+    row_major float4x4 material          : MATERIAL;
+    uint               instanceID        : SV_InstanceID;
 
-	// data per vertex
-	float3 posL         : POSITION;      // vertex position in a local space
-	float2 tex          : TEXCOORD0;
+    // data per vertex
+    float3   posL                        : POSITION;       // vertex position in local space
+    float2   tex                         : TEXCOORD;
 };
 
-struct VS_OUTPUT
+struct VS_OUT
 {
-	float4 posH        : SV_POSITION;  // homogeneous position of the vertex
-	float3 posW        : POSITION;     // world position of the vertex
-	float2 tex         : TEXCOORD0;
+    float4   posH       : SV_POSITION;    // homogeneous position
+    float3   posW       : POSITION;       // position in world
+    float2   tex        : TEXCOORD;
 };
 
 
 //////////////////////////////////
 // VERTEX SHADER
 //////////////////////////////////
-VS_OUTPUT VS(VS_INPUT vin)
+VS_OUT VS(VS_IN vin)
 {
-	VS_OUTPUT vout;
+	VS_OUT vout;
 
 	// transform pos from local to world space
 	vout.posW = mul(float4(vin.posL, 1.0f), vin.world).xyz;

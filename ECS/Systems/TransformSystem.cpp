@@ -467,7 +467,7 @@ bool TransformSystem::RotateLocalSpaceByQuat(const EntityID id, const XMVECTOR& 
 
     if (comp.ids[idx] != id)
     {
-        LogErr(LOG, "there is no transform data for entt by id: %ld", id);
+        LogErr(LOG, "there is no transform data for entt by id: %" PRIu32, id);
         return false;
     }
 
@@ -639,8 +639,7 @@ index TransformSystem::GetIdx(const EntityID id) const
 
     if (pTransform_->ids[idx] != id)
     {
-        sprintf(g_String, "there is no transform data for entt by id: %ld", id);
-        LogErr(g_String);
+        LogErr(LOG, "there is no transform data for entt by id: %" PRIu32, id);
         return 0;
     }
 

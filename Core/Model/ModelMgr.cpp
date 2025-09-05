@@ -42,6 +42,28 @@ ModelMgr::ModelMgr()
     }
 }
 
+//---------------------------------------------------------
+// Desc:   initialize some stuff 
+//---------------------------------------------------------
+bool ModelMgr::Init()
+{
+    // init a vertex buffer for billboards 
+    if (!InitBillboardBuffer())
+    {
+        LogErr(LOG, "can't init a vertex buffer for billboards");
+        return false;
+    }
+
+    // init a vertex buffer for grass
+    if (!InitGrassBuffer())
+    {
+        LogErr(LOG, "can't init a vertex buffer for grass");
+        return false;
+    }
+
+    return true;
+}
+
 ///////////////////////////////////////////////////////////
 
 void SerializeModels(
@@ -67,11 +89,11 @@ void SerializeModels(
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:  init a billboards vertex buffer (mainly is used for particles)
+//---------------------------------------------------------
 bool ModelMgr::InitBillboardBuffer()
 {
-    // initialize a billboards buffer 
     constexpr int  maxNumBillboards = 30000;
     constexpr bool isDynamic = true;
 
@@ -83,6 +105,25 @@ bool ModelMgr::InitBillboardBuffer()
         maxNumBillboards, isDynamic))
     {
         LogErr(LOG, "can't create a vertex buffer for billboard sprites");
+        return false;
+    }
+
+    return true;
+}
+
+//---------------------------------------------------------
+// Desc:  init a vertex buffer for grass
+//---------------------------------------------------------
+bool ModelMgr::InitGrassBuffer()
+{
+    constexpr int  maxNumGrass = 1100000;
+    constexpr bool isDynamic = true;
+
+    cvector<VertexGrass> vertices(maxNumGrass);
+
+    if (!grassVB_.Initialize(Render::g_pDevice, vertices.data(), maxNumGrass, isDynamic))
+    {
+        LogErr(LOG, "can't create a vertex buffer for grass");
         return false;
     }
 

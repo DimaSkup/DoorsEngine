@@ -47,10 +47,9 @@ private:
     EnttSpotLightController     spotLightController_;
 
     IFacadeEngineToUI*          pFacade_ = nullptr;          // facade interface btw GUI and engine        
-    StatesGUI*                  pStatesGUI_ = nullptr;
 
 public:
-    EnttEditorController(StatesGUI* pStatesGUI);
+    EnttEditorController();
 
     void Initialize(IFacadeEngineToUI* pFacade);
     void Render();

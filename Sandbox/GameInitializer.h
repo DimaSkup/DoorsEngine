@@ -1,7 +1,7 @@
 #pragma once
 
-// Entity-Component-System
-#include "Entity/EntityMgr.h"
+#include <Entity/EntityMgr.h>
+#include <Render/CRender.h>
 
 namespace Game
 {
@@ -23,8 +23,8 @@ struct CameraInitParams
 class GameInitializer
 {
 public:
-    bool InitModelEntities(ID3D11Device* pDevice, ECS::EntityMgr& enttMgr);
-    void InitPlayer(ID3D11Device* pDevice, ECS::EntityMgr* pEnttMgr);
+    bool InitModelEntities(ID3D11Device* pDevice, ECS::EntityMgr& enttMgr, Render::CRender& render);
+    void InitPlayer       (ID3D11Device* pDevice, ECS::EntityMgr* pEnttMgr);
     bool InitLightSources(ECS::EntityMgr& mgr);
 
     bool InitCamera(

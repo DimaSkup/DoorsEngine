@@ -10,8 +10,9 @@
 #include "../Common/ConstBufferTypes.h"
 #include "../Common/RenderTypes.h"
 
-#include "../Shaders/ShadersContainer.h"
+#include "../Shaders/ShaderMgr.h"
 #include "../Shaders/SamplerState.h"        // for using the ID3D11SamplerState 
+#include "../Shaders/ConstantBuffer.h"
 
 #include <d3d11.h>
 #include <DirectXMath.h>
@@ -32,7 +33,9 @@ struct InitParams
     // fog params
     DirectX::XMFLOAT3 fogColor{ 0.5f, 0.5f, 0.5f };
     float             fogStart = 50;                 // a distance where the fog starts
-    float             fogRange = 200;                // max distance after which all the objects are fogged
+    float             fogRange = 200;                // start+range = after this distance all the objects are fully fogged
+
+    MaterialColors    terrainMatColors;
 };
 
 //---------------------------------------------------------
@@ -55,6 +58,14 @@ public:
         ID3D11DeviceContext* pContext,
         const InitParams& params);
 
+    bool InitConstBuffers(
+        ID3D11Device* pDevice,
+        ID3D11DeviceContext* pContext,
+        const InitParams& params);
+
+    bool InitInstancesBuffer(ID3D11Device* pDevice);
+    bool InitSamplers       (ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
+
     bool ShadersHotReload(ID3D11Device* pDevice);
 
 
@@ -70,14 +81,6 @@ public:
         const MaterialColors* matColors,
         const int count);
 
-    void UpdateInstancedBufferWorlds(
-        ID3D11DeviceContext* pContext, 
-        cvector<DirectX::XMMATRIX>& worlds);
-
-    void UpdateInstancedBufferMaterials(
-        ID3D11DeviceContext* pContext,
-        cvector<MaterialColors>& matColors);
-
 
     // ================================================================================
     //                                  Rendering
@@ -85,7 +88,6 @@ public:
 
     void RenderInstances(
         ID3D11DeviceContext* pContext,
-        const ShaderTypes shaderType,
         const InstanceBatch& instances,
         const UINT startInstanceLocation);
 
@@ -94,12 +96,19 @@ public:
         const SkyInstance& sky,
         const DirectX::XMMATRIX& worldViewProj);
 
+    void RenderFont(
+        ID3D11DeviceContext* pContext,
+        ID3D11Buffer* const* vertexBuffers,
+        ID3D11Buffer* pIndexBuffer,
+        const uint32* indexCounts,
+        const size numVertexBuffers,
+        const UINT fontVertexStride,
+        SRV* const* ppFontTexSRV);
+
 
     // ================================================================================
     //                                   Getters
     // ================================================================================
-    inline ShadersContainer& GetShadersContainer() { return shadersContainer_; }
-    inline LightShader&      GetLightShader()      { return shadersContainer_.lightShader_; }
 
     inline void GetFogData(DirectX::XMFLOAT3& color, float& start, float& range, bool& enabled)
     {
@@ -110,6 +119,16 @@ public:
         enabled = cbpsRareChanged_.data.fogEnabled;
     }
 
+    inline const DirectX::XMFLOAT3& GetSkyCenterColor() const
+    {
+        return cbpsRareChanged_.data.colorCenter_;
+    }
+
+    inline const DirectX::XMFLOAT3& GetSkyApexColor() const
+    {
+        return cbpsRareChanged_.data.colorApex_;
+    }
+
 
     // ================================================================================
     //                                   Setters
@@ -118,7 +137,6 @@ public:
     void SetFogStart        (ID3D11DeviceContext* pContext, const float start);
     void SetFogRange        (ID3D11DeviceContext* pContext, const float range);
     void SetFogColor        (ID3D11DeviceContext* pContext, const DirectX::XMFLOAT3 color);
-    void SetWorldViewOrtho  (ID3D11DeviceContext* pContext, const DirectX::XMMATRIX& WVO);
 
     void SwitchFlashLight   (ID3D11DeviceContext* pContext, const bool state);
 
@@ -126,11 +144,7 @@ public:
     void SwitchDebugState   (ID3D11DeviceContext* pContext, const eDebugState state);
     void SetDirLightsCount  (ID3D11DeviceContext* pContext, int numOfLights);
 
-    void InitFogParams(
-        ID3D11DeviceContext* pContext,
-        const DirectX::XMFLOAT3& fogColor,
-        const float fogStart,
-        const float fogRange);
+    void SetDebugFontColor(ID3D11DeviceContext* pContext, const DirectX::XMFLOAT3& color);
 
     void SetSkyGradient(
         ID3D11DeviceContext* pContext,
@@ -140,7 +154,31 @@ public:
     void SetSkyColorCenter(ID3D11DeviceContext* pContext, const DirectX::XMFLOAT3& color);
     void SetSkyColorApex  (ID3D11DeviceContext* pContext, const DirectX::XMFLOAT3& color);
 
-    void SetViewProj      (ID3D11DeviceContext* pContext, const DirectX::XMMATRIX& viewProj);
+
+    //-----------------------------------------------------
+    void SetViewProj(
+        ID3D11DeviceContext* pContext,
+        const DirectX::XMMATRIX& viewProj);
+
+    void SetWorldAndViewProj(
+        ID3D11DeviceContext* pContext,
+        const DirectX::XMMATRIX& world,
+        const DirectX::XMMATRIX& viewProj);
+
+    void SetWorldViewProj(
+        ID3D11DeviceContext* pContext,
+        const DirectX::XMMATRIX& wvp);
+
+    void SetWorldViewOrtho(
+        ID3D11DeviceContext* pContext,
+        const DirectX::XMMATRIX& WVO);
+
+    // GRASS
+    float GetGrassDistFullSize() const { return cbgsGrassParams_.data.distGrassFullSize; }
+    float GetGrassDistVisible()  const { return cbgsGrassParams_.data.distGrassVisible; }
+
+    bool SetGrassDistFullSize(const float dist);
+    bool SetGrassDistVisible(const float dist);
 
 private:
     void UpdateLights(
@@ -152,28 +190,33 @@ private:
         const int numSpotLights);
 
 public:
-    ID3D11DeviceContext*                          pContext_ = nullptr;
+    ShaderMgr shaderMgr_;
 
+    ID3D11DeviceContext*                          pContext_         = nullptr;
     ID3D11Buffer*                                 pInstancedBuffer_ = nullptr;
     cvector<ConstBufType::InstancedData>          instancedData_;    // instances common buffer
 
-    // const buffers for vertex shaders
-    ConstantBuffer<ConstBufType::cbvsPerFrame>    cbvsPerFrame_;     
-    ConstantBuffer<ConstBufType::cbpsPerFrame>    cbpsPerFrame_;    
 
-    // const buffers for pixel shaders
-    ConstantBuffer<ConstBufType::cbpsRareChanged> cbpsRareChanged_; 
+    // const buffers for vertex shaders
+    ConstantBuffer<ConstBufType::ViewProj>          cbvsViewProj_;
+    ConstantBuffer<ConstBufType::WorldAndViewProj>  cbvsWorldAndViewProj_;
+    ConstantBuffer<ConstBufType::WorldViewProj>     cbvsWorldViewProj_;
+    ConstantBuffer<ConstBufType::WorldViewOrtho>    cbvsWorldViewOrtho_;
 
     // const buffers for geometry shaders
-    //ConstantBuffer<ConstBufType::GeomertyShaderConstBuf_PerObject> cbgsPerObject_;
-    //ConstantBuffer<ConstBufType::GeometryShaderConstBuf_Fixed>     cbgsFixed_;
-    ConstantBuffer<ConstBufType::GeometryShaderConstBuf_PerFrame>  cbgsPerFrame_;
+    ConstantBuffer<ConstBufType::GS_PerFrame>       cbgsPerFrame_;
+    ConstantBuffer<ConstBufType::GrassParams>       cbgsGrassParams_;
 
-
+    // const buffers for pixel shaders
+    ConstantBuffer<ConstBufType::cbpsPerFrame>            cbpsPerFrame_;
+    ConstantBuffer<ConstBufType::cbpsRareChanged>         cbpsRareChanged_;
+    ConstantBuffer<ConstBufType::MaterialData>            cbpsTerrainMaterial_;
+    ConstantBuffer<ConstBufType::ConstBuf_FontPixelColor> cbpsFontPixelColor_;
+    ConstantBuffer<ConstBufType::DebugMode>               cbpsDebugMode_;
+    ConstantBuffer<ConstBufType::MaterialData>            cbpsMaterial_;
 
     RenderDataStorage dataStorage_;
     PerFrameData      perFrameData_;                              // we need to keep this data because we use it multiple times during the frame
-    ShadersContainer  shadersContainer_;                          // a struct with shader classes objects
 
     // samplers for texturing
     SamplerState basicSampler_;          

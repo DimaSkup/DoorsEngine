@@ -380,7 +380,7 @@ TexID TextureMgr::LoadFromFile(const char* path)
     {
         if ((path == nullptr) || (path[0] == '\0'))
         {
-            LogErr("input path to texture is empty!");
+            LogErr(LOG, "input path to texture is empty!");
             return INVALID_TEXTURE_ID;
         }
 
@@ -409,6 +409,57 @@ TexID TextureMgr::LoadFromFile(const char* path)
         LogErr(e);
         LogErr(LOG, "can't load a texture from file: %s", path);
         return INVALID_TEXTURE_ID;
+    }
+}
+
+//---------------------------------------------------------
+// Desc:   reinit a texture object by id with a new texture resource
+//         (load another texture from file)
+// Args:   - id:    texture identifier
+//         - path:  path to texture file
+//---------------------------------------------------------
+bool TextureMgr::ReloadFromFile(const TexID id, const char* path)
+{
+    try
+    {
+        if ((path == nullptr) || (path[0] == '\0'))
+        {
+            LogErr(LOG, "input path to texture is empty!");
+            return false;
+        }
+
+        // find an index to texture data and check if it is valid
+        const index idx = ids_.get_idx(id);
+        
+        if (ids_[idx] != id)
+        {
+            LogErr(LOG, "there is no texture by id: %" PRIu32, id);
+            return false;
+        }
+
+        // release all the prev data
+        Texture& tex = textures_[id];
+        tex.Release();
+
+        // generate a new name for texture
+        char name[64]{ '\0' };
+        FileSys::GetFileStem(path, name);
+
+        // reinit
+        tex.LoadFromFile(Render::g_pDevice, path);
+        tex.SetName(name);
+
+        // update data
+        names_[idx] = name;
+        shaderResourceViews_[idx] = tex.GetTextureResourceView();
+
+        return true;
+    }
+    catch (EngineException& e)
+    {
+        LogErr(e);
+        LogErr(LOG, "can't load a texture from file: %s", path);
+        return false;
     }
 }
 

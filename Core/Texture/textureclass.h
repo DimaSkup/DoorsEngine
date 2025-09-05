@@ -115,6 +115,9 @@ public:
         const uint height,
         const bool mipMapped);
 
+    void LoadFromFile(ID3D11Device* pDevice, const char* filePath);
+
+
     void Release();
 
     // deep copy
@@ -135,10 +138,7 @@ public:
 
 private:
   
-    void LoadFromFile(
-        ID3D11Device* pDevice, 
-        const char* filePath);
-
+   
     void Initialize1x1ColorTexture(
         ID3D11Device* pDevice, 
         const Color & colorData);

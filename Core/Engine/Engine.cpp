@@ -123,10 +123,10 @@ bool Engine::Initialize(
         cpu_.Initialize();
         imGuiLayer_.Initialize(hwnd_, pDevice, pContext);
 
-        // initialize a vertex buffer which will be used for billboards rendering 
-        if (!g_ModelMgr.InitBillboardBuffer())
+        if (!g_ModelMgr.Init())
         {
-            throw EngineException("can't initialize the billboards buffer");
+            LogErr(LOG, "can't init a model manager");
+            exit(0);
         }
 
         LogMsg("is initialized!");
@@ -341,7 +341,7 @@ void Engine::RenderUI(UI::UserInterface* pUI, Render::CRender* pRender)
     {
         pUI->RenderGameUI(
             d3d.GetDeviceContext(),
-            pRender->GetShadersContainer().fontShader_,
+            *pRender,
             systemState_);
     }
 

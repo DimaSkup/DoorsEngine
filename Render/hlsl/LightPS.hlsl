@@ -1,9 +1,8 @@
 #include "LightHelper.hlsli"
 
-
-// ==========================
+//////////////////////////////////
 // GLOBALS
-// ==========================
+//////////////////////////////////
 TextureCube  gCubeMap       : register(t0);
 Texture2D    gPerlinNoise   : register(t1);
 Texture2D    gTextures[22]  : register(t10);
@@ -12,9 +11,9 @@ SamplerState gBasicSampler  : register(s0);
 SamplerState gSkySampler    : register(s1);
 
 
-// ==========================
+//////////////////////////////////
 // CONSTANT BUFFERS
-// ==========================
+//////////////////////////////////
 cbuffer cbPerFrame    : register(b0)
 {
     // light sources data
@@ -38,14 +37,19 @@ cbuffer cbRareChanged : register(b1)
 
     int    gNumOfDirLights;      // current number of directional light sources
 
-    int   gFogEnabled;          // turn on/off the fog effect
-    int   gTurnOnFlashLight;    // turn on/off the flashlight
-    int   gAlphaClipping;       // turn on/off alpha clipping
-}
+    int    gFogEnabled;          // turn on/off the fog effect
+    int    gTurnOnFlashLight;    // turn on/off the flashlight
+    int    gAlphaClipping;       // turn on/off alpha clipping
 
-//
+    float3 gSkyColorCenter;
+    float  padding0;
+    float3 gSkyColorApex;
+    float  padding1;
+};
+
+//////////////////////////////////
 // TYPEDEFS
-//
+//////////////////////////////////
 struct PS_IN
 {
     float4x4 material           : MATERIAL;
@@ -64,9 +68,9 @@ struct PS_OUT
 };
 
 
-//
+//////////////////////////////////
 // PIXEL SHADER
-//
+//////////////////////////////////
 float4 PS(PS_IN pin) : SV_Target
 {
     // a vector in the world space from vertex to eye pos

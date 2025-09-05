@@ -35,12 +35,16 @@ private:
     void RenderMenuBar    (bool* pOpen);
     void UpdateLayoutSizes(const float availWidth);       
     void RenderDebugInfo  (const float availWidth);   
-    void DrawTextureIcons (const ImVec2 startPos, IFacadeEngineToUI* pFacade);
+    void DrawTextureIcons (const ImVec2 startPos);
     void ComputeZooming   (const ImVec2 startPos, const float availWidth);
+    void ShowContextMenu  ();
+
+    void ShowEditorWnd();
 
 private:
-    SRV**   arrShaderResourceViews_ = nullptr;
+    IFacadeEngineToUI* pFacade_ = nullptr;
     TexID   selectedTexItemID_ = -1;
+    TexName selectedTextureName_;
 
     float   prevAvailWidth_  = 0.0f;      // if curr and prev avail width aren't equal - we call UpdateLayoutSizes()
     float   iconSize_        = 96.0f;
@@ -61,6 +65,10 @@ private:
 
     bool    stretchSpacing_      = false;
     bool    textureWasChanged_   = false;
+
+    bool    showIconContextMenu_ = false;   // show a context menu when we click RMB over some texture icon
+    bool    showEditorWnd_       = false;   // show a window where we edit a chosen texture
+    bool    showDeleteWnd_       = false;   // show a window where we can decide to delete a chosen texture
 };
 
 } // namespace UI
