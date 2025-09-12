@@ -13,9 +13,221 @@ namespace Game
 {
 
 //---------------------------------------------------------
+// Desc:   manually setup model's materials
+//---------------------------------------------------------
+#if 0
+void SetupDefault(BasicModel& model)
+{
+    const TexID texIdBlankNorm = g_TextureMgr.GetTexIdByName("blank_NRM");
+    MeshGeometry::Subset* subsets = model.meshes_.subsets_;
+
+    if (!subsets)
+    {
+        LogErr(LOG, "can't setup a model: subsets == nullptr");
+        return;
+    }
+
+    for (int i = 0; i < model.GetNumSubsets(); ++i)
+    {
+        const MaterialID matId = subsets[i].materialId;
+        Material& mat = g_MaterialMgr.GetMatById(matId);
+
+        mat.SetAmbient(0.5f, 0.5f, 0.5f, 1.0f);
+        mat.SetSpecular(0.2f, 0.2f, 0.2f);
+        mat.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
+    }
+}
+#endif
+
+//---------------------------------------------------------
+// Desc:   manually setup a model's materials
+//---------------------------------------------------------
+void SetupMilitaryHouse(BasicModel& model, Render::CRender& render)
+{
+    char texDirPath[128]{'\0'};
+    strcat(texDirPath, g_RelPathExtModelsDir);
+    strcat(texDirPath, "building/abandoned-military-house/source/Textures/");
+
+    const ShaderID lightShaderId = render.shaderMgr_.GetShaderIdByName("LightShader");
+
+    TexID texIdsDiff[4]{0};
+    TexID texIdsNormal[4]{0};
+    TexID texIdsRough[4]{0};
+    TexID texIdsAO[4]{0};
+
+    texIdsDiff[0]   = g_TextureMgr.LoadFromFile(texDirPath, "Metal/BigBuilding_Metal_BaseColor.jpg");
+    texIdsNormal[0] = g_TextureMgr.LoadFromFile(texDirPath, "Metal/BigBuilding_Metal_Normal.jpg");
+    texIdsRough[0]  = g_TextureMgr.LoadFromFile(texDirPath, "Metal/BigBuilding_Metal_Roughness.jpg");
+    texIdsRough[0]  = g_TextureMgr.LoadFromFile(texDirPath, "Metal/BigBuilding_Metal_AO.jpg");
+
+    texIdsDiff[1]   = g_TextureMgr.LoadFromFile(texDirPath, "Concrete/BigBuilding_Concrete_BaseColor.jpg");
+    texIdsNormal[1] = g_TextureMgr.LoadFromFile(texDirPath, "Concrete/BigBuilding_Concrete_Normal.jpg");
+    texIdsRough[1]  = g_TextureMgr.LoadFromFile(texDirPath, "Concrete/BigBuilding_Concrete_Roughness.jpg");
+    texIdsAO[1]     = g_TextureMgr.LoadFromFile(texDirPath, "Concrete/BigBuilding_Concrete_AO.jpg");
+
+    texIdsDiff[2]   = g_TextureMgr.LoadFromFile(texDirPath, "Wood/BigBuilding_Wood_BaseColor.jpg");
+    texIdsNormal[2] = g_TextureMgr.LoadFromFile(texDirPath, "Wood/BigBuilding_Wood_Normal.jpg");
+    texIdsRough[2]  = g_TextureMgr.LoadFromFile(texDirPath, "Wood/BigBuilding_Wood_Roughness.jpg");
+    texIdsAO[2]     = g_TextureMgr.LoadFromFile(texDirPath, "Wood/BigBuilding_Wood_AO.jpg");
+
+    texIdsDiff[3]   = g_TextureMgr.LoadFromFile(texDirPath, "Roof/BigBuilding_Roof_BaseColor.jpg");
+    texIdsNormal[3] = g_TextureMgr.LoadFromFile(texDirPath, "Roof/BigBuilding_Roof_Normal.jpg");
+    texIdsRough[3]  = g_TextureMgr.LoadFromFile(texDirPath, "Roof/BigBuilding_Roof_Roughness.jpg");
+    texIdsAO[3]     = g_TextureMgr.LoadFromFile(texDirPath, "Roof/BigBuilding_Roof_AO.jpg");
+
+
+    MeshGeometry::Subset* subsets = model.meshes_.subsets_;
+    if (!subsets)
+    {
+        LogErr(LOG, "can't setup a model: subsets == nullptr");
+        return;
+    }
+
+    // setup textures for each material
+    for (int i = 0; i < model.GetNumSubsets(); ++i)
+    {
+        Material& mat = g_MaterialMgr.GetMatById(subsets[i].materialId);
+
+        mat.SetShaderId(lightShaderId);
+
+        mat.SetTexture(TEX_TYPE_DIFFUSE, texIdsDiff[i]);
+        mat.SetTexture(TEX_TYPE_NORMALS, texIdsNormal[i]);
+        mat.SetTexture(TEX_TYPE_SHININESS, texIdsRough[i]);
+        mat.SetTexture(TEX_TYPE_LIGHTMAP, texIdsAO[i]);
+
+        mat.SetAmbient(0.5f, 0.5f, 0.5f, 1.0f);
+        mat.SetSpecular(0.2f, 0.2f, 0.2f);
+        mat.SetSpecularPower(1.3f);
+    }
+}
+
+//---------------------------------------------------------
+// Desc:   manually setup a model's materials
+//---------------------------------------------------------
+void SetupPaz3201(BasicModel& model, Render::CRender& render)
+{
+    const TexID texIdDiff = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "vehicle/paz_3201/car_paz_3201.dds");
+    const TexID texIdSpec = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "vehicle/paz_3201/car_paz_3201_mask.dds");
+    const TexID texIdNorm = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "vehicle/paz_3201/car_paz_3201_norm.dds");
+
+    const ShaderID lightShaderId = render.shaderMgr_.GetShaderIdByName("LightShader");
+
+    MeshGeometry::Subset* subsets = model.meshes_.subsets_;
+    if (!subsets)
+    {
+        LogErr(LOG, "can't setup a model: subsets == nullptr");
+        return;
+    }
+
+    const MaterialID matId = subsets[0].materialId;
+    Material& mat = g_MaterialMgr.GetMatById(matId);
+
+    mat.SetShaderId(lightShaderId);
+    mat.SetName("paz_3201");
+    mat.SetAmbient(0.4f, 0.4f, 0.4f, 1.0f);
+    mat.SetDiffuse(0.5f, 0.5f, 0.5f, 1.0f);
+    mat.SetSpecular(0.1f, 0.1f, 0.1f);
+    mat.SetSpecularPower(5.0f);
+    mat.SetReflection(0,0,0,1);
+    mat.SetTexture(TEX_TYPE_DIFFUSE, texIdDiff);
+    mat.SetTexture(TEX_TYPE_SPECULAR, texIdSpec);
+    mat.SetTexture(TEX_TYPE_NORMALS, texIdNorm);
+}
+
+
+//---------------------------------------------------------
+// Desc:   manually setup a model's materials
+//---------------------------------------------------------
+void SetupZil131(BasicModel& model, Render::CRender& render)
+{
+    const TexID texIdDiff = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "vehicle/zil_131/zil_131.dds");
+    const TexID texIdSpec = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "vehicle/zil_131/zil_131_spec.dds");
+    const TexID texIdNorm = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "vehicle/zil_131/zil_131_norm.dds");
+
+    const ShaderID lightShaderId = render.shaderMgr_.GetShaderIdByName("LightShader");
+
+    MeshGeometry::Subset* subsets = model.meshes_.subsets_;
+    if (!subsets)
+    {
+        LogErr(LOG, "can't setup a model: subsets == nullptr");
+        return;
+    }
+
+    const MaterialID matId = subsets[0].materialId;
+    Material& mat = g_MaterialMgr.GetMatById(matId);
+
+    mat.SetShaderId(lightShaderId);
+    mat.SetName("zil_131");
+    mat.SetAmbient(0.4f, 0.4f, 0.4f, 1.0f);
+    mat.SetDiffuse(0.5f, 0.5f, 0.5f, 1.0f);
+    mat.SetSpecular(0.1f, 0.1f, 0.1f);
+    mat.SetSpecularPower(5.0f);
+    mat.SetReflection(0,0,0,1);
+    mat.SetTexture(TEX_TYPE_DIFFUSE, texIdDiff);
+    mat.SetTexture(TEX_TYPE_SPECULAR, texIdSpec);
+    mat.SetTexture(TEX_TYPE_NORMALS, texIdNorm);
+}
+
+//---------------------------------------------------------
+// Desc:   manually setup a model's materials
+//---------------------------------------------------------
+void SetupBtr(BasicModel& model, Render::CRender& render)
+{
+    // setup materials
+    const size numSubsets = model.GetNumSubsets();
+    const MeshGeometry::Subset* subsets = model.meshes_.subsets_;
+    const TexID texIdBlankNorm = g_TextureMgr.GetTexIdByName("blank_NRM");
+
+    const ShaderID lightShaderId = render.shaderMgr_.GetShaderIdByName("LightShader");
+
+    for (index i = 0; i < numSubsets; ++i)
+    {
+        const MaterialID matId = subsets[i].materialId;
+        Material& mat = g_MaterialMgr.GetMatById(matId);
+
+        mat.SetShaderId(lightShaderId);
+        mat.ambient  = { 0.5f, 0.5f, 0.5f, 1.0f };
+        mat.specular = { 0.1f, 0.1f, 0.1f, 25.0f };
+        mat.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
+    }
+}
+
+//---------------------------------------------------------
+// Desc:   manually setup a model's materials
+//---------------------------------------------------------
+void SetupZaz968(BasicModel& model, Render::CRender& render)
+{
+    const TexID texIdDiff = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "vehicle/zaz_968m/texture/cars_02.dds");
+    const TexID texIdSpec = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "vehicle/zaz_968m/texture/cars_02_mask.dds");
+    const TexID texIdNorm = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "vehicle/zaz_968m/texture/cars_02_norm.dds");
+
+    const ShaderID lightShaderId = render.shaderMgr_.GetShaderIdByName("LightShader");
+
+    MeshGeometry::Subset* subsets = model.meshes_.subsets_;
+    if (!subsets)
+    {
+        LogErr(LOG, "can't setup a model: subsets == nullptr");
+        return;
+    }
+
+    const MaterialID matId = subsets[0].materialId;
+    Material& mat = g_MaterialMgr.GetMatById(matId);
+
+    mat.SetShaderId(lightShaderId);
+    mat.SetName("zaz_968_rust");
+    mat.SetAmbient(0.4f, 0.4f, 0.4f, 1.0f);
+    mat.SetSpecular(0.1f, 0.1f, 0.1f);
+    mat.SetSpecularPower(5.0f);
+    mat.SetReflection(0.05f, 0.05f, 0.05f, 1.0f);
+    mat.SetTexture(TEX_TYPE_DIFFUSE, texIdDiff);
+    mat.SetTexture(TEX_TYPE_SPECULAR, texIdSpec);
+    mat.SetTexture(TEX_TYPE_NORMALS, texIdNorm);
+}
+
+//---------------------------------------------------------
 // Desc:   manually setup of tree spruce model
 //---------------------------------------------------------
-void SetupTreeSpruce(BasicModel& tree)
+void SetupTreeSpruce(BasicModel& tree, Render::CRender& render)
 {
     // load in textures
     const TexID normalMapID = g_TextureMgr.LoadFromFile(
@@ -26,6 +238,9 @@ void SetupTreeSpruce(BasicModel& tree)
     const MaterialID matID = tree.meshes_.subsets_[0].materialId;
     Material& mat          = g_MaterialMgr.GetMatById(matID);
 
+    const ShaderID lightShaderId = render.shaderMgr_.GetShaderIdByName("LightShader");
+
+    mat.SetShaderId(lightShaderId);
     mat.SetName("tree_spruce_mat");
     mat.SetTexture(TEX_TYPE_NORMALS, normalMapID);
     mat.SetDiffuse(1, 1, 1, 1);
@@ -36,7 +251,7 @@ void SetupTreeSpruce(BasicModel& tree)
 //---------------------------------------------------------
 // Desc:   manually setup of tree pine model
 //---------------------------------------------------------
-void SetupTreePine(BasicModel& tree)
+void SetupTreePine(BasicModel& tree, Render::CRender& render)
 {
 
     // prepare path to textures directory
@@ -55,9 +270,11 @@ void SetupTreePine(BasicModel& tree)
     const TexID texCapDiffID       = g_TextureMgr.LoadFromFile(pathToTreeModelDir, "Cap_Color.png");
     const TexID texCapNormID       = g_TextureMgr.LoadFromFile(pathToTreeModelDir, "Cap_Normal.png");
 
+    const ShaderID lightShaderId   = render.shaderMgr_.GetShaderIdByName("LightShader");
 
     // setup materials
     Material barkMat;
+    barkMat.SetShaderId(lightShaderId);
     barkMat.SetName("tree_pine_bark");
     barkMat.SetTexture(TEX_TYPE_DIFFUSE, texBarkDiffID);
     barkMat.SetTexture(TEX_TYPE_NORMALS, texBarkNormID);
@@ -67,6 +284,7 @@ void SetupTreePine(BasicModel& tree)
     barkMat.SetSpecularPower(1.0f);
 
     Material branchMat;
+    barkMat.SetShaderId(lightShaderId);
     branchMat.SetName("tree_pine_branch");
     branchMat.SetTexture(TEX_TYPE_DIFFUSE, texBranchDiffID);
     branchMat.SetTexture(TEX_TYPE_NORMALS, texBranchNormID);
@@ -79,6 +297,7 @@ void SetupTreePine(BasicModel& tree)
     branchMat.SetCull(MAT_PROP_CULL_NONE);
 
     Material capMat;
+    barkMat.SetShaderId(lightShaderId);
     capMat.SetName("tree_pine_cap");
     capMat.SetTexture(TEX_TYPE_DIFFUSE, texCapDiffID);
     capMat.SetTexture(TEX_TYPE_NORMALS, texCapNormID);
@@ -100,7 +319,7 @@ void SetupTreePine(BasicModel& tree)
 //---------------------------------------------------------
 // Desc:   manually setup a building model
 //---------------------------------------------------------
-void SetupBuilding9(BasicModel& building)
+void SetupBuilding9(BasicModel& building, Render::CRender& render)
 {
     // load textures
     const TexID texIdHousePart = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "building9/house_part.png");
@@ -108,17 +327,23 @@ void SetupBuilding9(BasicModel& building)
     const TexID texIdBalcony   = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "building9/balcony.png");
     const TexID texIdr5        = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "building9/r5.png");
 
+    const ShaderID lightShaderId = render.shaderMgr_.GetShaderIdByName("LightShader");
+
     // create and setup materials
     Material housePartMat = g_MaterialMgr.AddMaterial("house_part");
+    housePartMat.SetShaderId(lightShaderId);
     housePartMat.SetTexture(TEX_TYPE_DIFFUSE, texIdHousePart);
 
     Material arkaMat = g_MaterialMgr.AddMaterial("house_arka");
+    arkaMat.SetShaderId(lightShaderId);
     arkaMat.SetTexture(TEX_TYPE_DIFFUSE, texIdArka);
 
     Material balconyMat = g_MaterialMgr.AddMaterial("house_balcony");
+    balconyMat.SetShaderId(lightShaderId);
     balconyMat.SetTexture(TEX_TYPE_DIFFUSE, texIdBalcony);
 
     Material r5Mat = g_MaterialMgr.AddMaterial("house_r5");
+    r5Mat.SetShaderId(lightShaderId);
     r5Mat.SetTexture(TEX_TYPE_DIFFUSE, texIdr5);
    
     // setup model with materials
@@ -131,7 +356,7 @@ void SetupBuilding9(BasicModel& building)
 //---------------------------------------------------------
 // Desc:   setup some params of the stalker_freedom model
 //---------------------------------------------------------
-void SetupStalkerFreedom(BasicModel& model)
+void SetupStalkerFreedom(BasicModel& model, Render::CRender& render)
 {
     const TexID texIdBodyNorm = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "stalker_freedom_1/texture/act_stalker_freedom_1_NRM.dds");
     const TexID texIdHeadNorm = g_TextureMgr.LoadFromFile(g_RelPathTexDir, "blank_NRM.dds");
@@ -140,10 +365,12 @@ void SetupStalkerFreedom(BasicModel& model)
     model.meshes_.SetSubsetName(1, "body");
     MeshGeometry::Subset* subsets = model.meshes_.subsets_;
 
-    // get a material by ID from the manager and setup it
+    const ShaderID lightShaderId = render.shaderMgr_.GetShaderIdByName("LightShader");
 
+    // get a material by ID from the manager and setup it
     Material& mat0 = g_MaterialMgr.GetMatById(subsets[0].materialId);
 
+    mat0.SetShaderId(lightShaderId);
     mat0.SetTexture(eTexType::TEX_TYPE_NORMALS, texIdHeadNorm);
     mat0.ambient = { 0.8f, 0.8f, 0.8f, 1.0f };
     mat0.diffuse = { 0.8f, 0.8f, 0.8f, 1.0f };
@@ -152,7 +379,7 @@ void SetupStalkerFreedom(BasicModel& model)
 
 
     Material& mat1 = g_MaterialMgr.GetMatById(subsets[1].materialId);
-
+    mat1.SetShaderId(lightShaderId);
     mat1.SetTexture(eTexType::TEX_TYPE_NORMALS, texIdBodyNorm);
     mat1.ambient = { 0.8f, 0.8f, 0.8f, 1.0f };
     mat1.diffuse = { 0.8f, 0.8f, 0.8f, 1.0f };
@@ -161,17 +388,104 @@ void SetupStalkerFreedom(BasicModel& model)
 }
 
 //---------------------------------------------------------
+// Desc:   manually setup a model of sword
+//---------------------------------------------------------
+void SetupSword(BasicModel& model, Render::CRender& render)
+{
+    const MaterialID matId       = model.meshes_.subsets_[0].materialId;
+    Material& mat                = g_MaterialMgr.GetMatById(matId);
+    const ShaderID lightShaderId = render.shaderMgr_.GetShaderIdByName("LightShader");
+
+    mat.SetShaderId(lightShaderId);
+    mat.SetName("sword_mat");
+    mat.SetSpecular(0.5f, 0.5f, 0.5f);
+    mat.SetReflection(0, 0, 0, 0);
+}
+
+//---------------------------------------------------------
+// Desc:   manually setup a model of obrez bm-16
+//---------------------------------------------------------
+void SetupObrez(BasicModel& model, Render::CRender& render)
+{
+    const MaterialID matId       = model.meshes_.subsets_[0].materialId;
+    Material& mat                = g_MaterialMgr.GetMatById(matId);
+    const TexID texIdBlankNorm   = g_TextureMgr.GetTexIdByName("blank_NRM");
+    const ShaderID lightShaderId = render.shaderMgr_.GetShaderIdByName("LightShader");
+
+    mat.SetShaderId(lightShaderId);
+    mat.SetAmbient(0.5f, 0.5f, 0.5f, 1.0f);
+    mat.SetSpecular(0.2f, 0.2f, 0.2f);
+    mat.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
+}
+
+//---------------------------------------------------------
+void SetupAk74Stalker(BasicModel& model, Render::CRender& render)
+{
+    const MaterialID matId      = model.meshes_.subsets_[0].materialId;
+    Material& mat               = g_MaterialMgr.GetMatById(matId);
+    const TexID texIdBlankNorm  = g_TextureMgr.GetTexIdByName("blank_NRM");
+    const ShaderID lightShaderId = render.shaderMgr_.GetShaderIdByName("LightShader");
+
+    mat.SetShaderId(lightShaderId);
+    mat.SetAmbient(0.5f, 0.5f, 0.5f, 1.0f);
+    mat.SetSpecular(0.2f, 0.2f, 0.2f);
+    mat.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
+}
+
+//---------------------------------------------------------
+void SetupGroza(BasicModel& model, Render::CRender& render)
+{
+    const TexID texIdBlankNorm    = g_TextureMgr.GetTexIdByName("blank_NRM");
+    MeshGeometry::Subset* subsets = model.meshes_.subsets_;
+    const ShaderID lightShaderId  = render.shaderMgr_.GetShaderIdByName("LightShader");
+
+    if (!subsets)
+    {
+        LogErr(LOG, "can't setup groza: subsets == nullptr");
+        return;
+    }
+
+    for (int i = 0; i < model.GetNumSubsets(); ++i)
+    {
+        const MaterialID matId = subsets[i].materialId;
+        Material& mat          = g_MaterialMgr.GetMatById(matId);
+
+        mat.SetShaderId(lightShaderId);
+        mat.SetAmbient(0.5f, 0.5f, 0.5f, 1.0f);
+        mat.SetSpecular(0.2f, 0.2f, 0.2f);
+        mat.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
+    }
+}
+
+//---------------------------------------------------------
+void SetupHpsa(BasicModel& model, Render::CRender& render)
+{
+    const MaterialID matId       = model.meshes_.subsets_[0].materialId;
+    Material& mat                = g_MaterialMgr.GetMatById(matId);
+    const TexID texIdBlankNorm   = g_TextureMgr.GetTexIdByName("blank_NRM");
+    const ShaderID lightShaderId = render.shaderMgr_.GetShaderIdByName("LightShader");
+
+    mat.SetShaderId(lightShaderId);
+    mat.SetAmbient(0.5f, 0.5f, 0.5f, 1.0f);
+    mat.SetSpecular(0.2f, 0.2f, 0.2f);
+    mat.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
+}
+
+//---------------------------------------------------------
 // Desc:   manually setup a model of aks-74
 //---------------------------------------------------------
-void SetupAk74(BasicModel& model)
+void SetupAk74(BasicModel& model, Render::CRender& render)
 {
     model.SetName("ak_74");
+
+    const ShaderID lightShaderId = render.shaderMgr_.GetShaderIdByName("LightShader");
 
     // setup material of each subset (mesh) of the model
     MeshGeometry::Subset* subsets = model.meshes_.subsets_;
 
     // wooden furniture
     Material& mat0 = g_MaterialMgr.GetMatById(subsets[0].materialId);
+    mat0.SetShaderId(lightShaderId);
     mat0.ambient = { 0.5f, 0.5f, 0.5f, 1.0f };
     mat0.diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
     mat0.specular = { 0.9f, 0.9f, 0.9f, 35.0f };
@@ -179,6 +493,7 @@ void SetupAk74(BasicModel& model)
 
     // metalic magazine
     Material& mat1 = g_MaterialMgr.GetMatById(subsets[1].materialId);
+    mat1.SetShaderId(lightShaderId);
     mat1.ambient = { 0.5f, 0.5f, 0.5f, 1.0f };
     mat1.diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
     mat1.specular = { 0.8f, 0.8f, 0.8f,256 };
@@ -187,6 +502,7 @@ void SetupAk74(BasicModel& model)
 
     // metalic body
     Material& mat2 = g_MaterialMgr.GetMatById(subsets[2].materialId);
+    mat2.SetShaderId(lightShaderId);
     mat2.ambient = { 0.5f, 0.5f, 0.5f, 1.0f };
     mat2.diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
     mat2.specular = { 0.8f, 0.8f, 0.8f,256 };
@@ -195,6 +511,7 @@ void SetupAk74(BasicModel& model)
 
     // wooden furniture
     Material& mat3 = g_MaterialMgr.GetMatById(subsets[3].materialId);
+    mat3.SetShaderId(lightShaderId);
     mat3.ambient = { 0.5f, 0.5f, 0.5f, 1.0f };
     mat3.diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
     mat3.specular = { 0.7f, 0.7f, 0.7f, 35.0f };
@@ -204,16 +521,18 @@ void SetupAk74(BasicModel& model)
 //---------------------------------------------------------
 // Desc:   manually setup a model of aks-74u
 //---------------------------------------------------------
-void SetupAks74u(BasicModel& model)
+void SetupAks74u(BasicModel& model, Render::CRender& render)
 {
     model.SetName("aks_74u");
 
-    const MaterialID matID = model.meshes_.subsets_[0].materialId;
-    Material& mat          = g_MaterialMgr.GetMatById(matID);
+    const MaterialID matID       = model.meshes_.subsets_[0].materialId;
+    Material& mat                = g_MaterialMgr.GetMatById(matID);
+    const ShaderID lightShaderId = render.shaderMgr_.GetShaderIdByName("LightShader");
 
-    const TexID texDiff = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "ak_74u/texture/wpn_aksu.png");
-    const TexID texNorm = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "ak_74u/texture/wpn_aksu_NRM.dds");
+    const TexID texDiff = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "weapon/ak_74u/texture/wpn_aksu.png");
+    const TexID texNorm = g_TextureMgr.LoadFromFile(g_RelPathExtModelsDir, "weapon/ak_74u/texture/wpn_aksu_NRM.dds");
 
+    mat.SetShaderId(lightShaderId);
     mat.SetTexture(eTexType::TEX_TYPE_DIFFUSE, texDiff);
     mat.SetTexture(eTexType::TEX_TYPE_NORMALS, texNorm);
 
@@ -248,9 +567,10 @@ void SetupTraktor(BasicModel& traktor, Render::CRender& render)
 
     const TexID texIdBlankNorm           = g_TextureMgr.GetTexIdByName("blank_NRM");
     const ShaderID textureShaderId       = render.shaderMgr_.GetShaderIdByName("TextureShader");
-
+    const ShaderID lightShaderId         = render.shaderMgr_.GetShaderIdByName("LightShader");
 
     // setup material for subset0 (vehicle)
+    matVehicle.shaderId = lightShaderId;
     matVehicle.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
 
     matVehicle.ambient  = { 0.8f, 0.8f, 0.8f, 1.0f };
@@ -260,13 +580,13 @@ void SetupTraktor(BasicModel& traktor, Render::CRender& render)
     
     // setup material for subset1 (spotlight trace)
    // matSpotlightTrace.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
-    matSpotlightTrace.ambient  = { 0.170f, 0.170f, 0.170f, 1 };
-    matSpotlightTrace.diffuse = { 0,0,0,1 };
-    matSpotlightTrace.specular = { 0,0,0,1 };
-    matSpotlightTrace.reflect = { 0,0,0,0 };
+    matSpotlightTrace.ambient   = { 0.170f, 0.170f, 0.170f, 1 };
+    matSpotlightTrace.diffuse   = { 0,0,0,1 };
+    matSpotlightTrace.specular  = { 0,0,0,1 };
+    matSpotlightTrace.reflect   = { 0,0,0,0 };
     matSpotlightTrace.SetCull(MAT_PROP_CULL_NONE);
-    matSpotlightTrace.SetBlending(MAT_PROP_ADDING);
-    matSpotlightTrace.SetDepthStencil(MAT_PROP_MARK_MIRROR);
+    matSpotlightTrace.SetBlending(MAT_PROP_BS_ADD);
+    matSpotlightTrace.SetDepthStencil(MAT_PROP_DSS_MARK_MIRROR);
     matSpotlightTrace.shaderId = textureShaderId;
 
     // setup material for subset2 (spotlight cone)
@@ -276,8 +596,8 @@ void SetupTraktor(BasicModel& traktor, Render::CRender& render)
     matSpotlightCone.specular = { 0,0,0,1 };
     matSpotlightCone.reflect  = { 0,0,0,0 };
     matSpotlightCone.SetCull(MAT_PROP_CULL_NONE);
-    matSpotlightCone.SetBlending(MAT_PROP_ADDING);
-    matSpotlightCone.SetDepthStencil(MAT_PROP_MARK_MIRROR);
+    matSpotlightCone.SetBlending(MAT_PROP_BS_ADD);
+    matSpotlightCone.SetDepthStencil(MAT_PROP_DSS_MARK_MIRROR);
     matSpotlightCone.shaderId = textureShaderId;
 
     // setup material for subset3 (backside light)
@@ -286,26 +606,28 @@ void SetupTraktor(BasicModel& traktor, Render::CRender& render)
     matBacksideLight.diffuse  = { 0.8f, 0.8f, 0.8f, 1.0f };
     matBacksideLight.specular = { 0,0,0,1 };
     matBacksideLight.reflect  = { 0,0,0,0 };
+    matBacksideLight.shaderId = lightShaderId;
 
     // setup material for subset4 (glass)
+    matGlass.shaderId   = lightShaderId;
+    matGlass.ambient    = { 1,1,1,1 };
+    matGlass.specular   = { 1,1,1,64 };
+    matGlass.reflect    = { 0.5f, 0.5f, 0.5f, 0 };
     matGlass.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
-    matGlass.ambient = { 1,1,1,1 };
-    matGlass.specular = { 1,1,1,64 };
-    matGlass.reflect = { 0.5f, 0.5f, 0.5f, 0 };
     matGlass.SetCull(MAT_PROP_CULL_NONE);
-    matGlass.SetBlending(MAT_PROP_TRANSPARENCY);
-    matGlass.SetDepthStencil(MAT_PROP_NO_DOUBLE_BLEND);
+    matGlass.SetBlending(MAT_PROP_BS_TRANSPARENCY);
+    matGlass.SetDepthStencil(MAT_PROP_DSS_NO_DOUBLE_BLEND);
 }
 
 //---------------------------------------------------------
 // Desc:   manually setup a stalker's small house model
 //---------------------------------------------------------
-void SetupStalkerSmallHouse(BasicModel& house)
+void SetupStalkerSmallHouse(BasicModel& house, Render::CRender& render)
 {
     MeshGeometry::Subset* subsets = house.meshes_.subsets_;
 
     char dirPath[128]{ '\0' };
-    sprintf(dirPath, "%s%s", g_RelPathExtModelsDir, "/stalker-house/source/");
+    sprintf(dirPath, "%s%s", g_RelPathExtModelsDir, "building/stalker-house/source/");
     const TexID texIdBlankNorm = g_TextureMgr.GetTexIdByName("blank_NRM");
 
     char texPaths[][32] = {
@@ -333,14 +655,18 @@ void SetupStalkerSmallHouse(BasicModel& house)
         "wood_wire.dds",
     };
 
+    const ShaderID lightShaderId = render.shaderMgr_.GetShaderIdByName("LightShader");
+
     SetConsoleColor(MAGENTA);
 
     for (int i = 0; i < house.numSubsets_; ++i)
     {
         // get a material by ID from the manager and setup it
-        Material& mat = g_MaterialMgr.GetMatById(subsets[i].materialId);
-
+        Material& mat     = g_MaterialMgr.GetMatById(subsets[i].materialId);
         const TexID texId = g_TextureMgr.LoadFromFile(dirPath, texPaths[i]);
+
+
+        mat.SetShaderId(lightShaderId);
         mat.SetTexture(TEX_TYPE_DIFFUSE, texId);
         mat.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
 
@@ -353,102 +679,13 @@ void SetupStalkerSmallHouse(BasicModel& house)
     SetConsoleColor(RESET);
 }
 
-///////////////////////////////////////////////////////////
-
-void SetupStalkerAbandonedHouse(BasicModel& house)
+//---------------------------------------------------------
+// Desc:   manually setup materials for the model
+//---------------------------------------------------------
+void SetupBuildingMilitaryBlockpost(BasicModel& model)
 {
-    // manually setup materials for the model
 
-    char dirPath[128]{ '\0' };
-    sprintf(dirPath, "%s%s", g_RelPathExtModelsDir, "/stalker/abandoned-house-20/");
-
-    // load textures for the model
-    const TexID texBrickDiff      = g_TextureMgr.LoadFromFile(dirPath, "textures/Brick_BaseColor.jpg");
-    const TexID texConcreteDiff   = g_TextureMgr.LoadFromFile(dirPath, "textures/Concrete_BaseColor.jpg");
-    const TexID texConcrete2Diff  = g_TextureMgr.LoadFromFile(dirPath, "textures/Concrete_2_BaseColor.jpg");
-    const TexID texRoofDiff       = g_TextureMgr.LoadFromFile(dirPath, "textures/Roof_BaseColor.jpg");
-    const TexID texDoorDiff       = g_TextureMgr.LoadFromFile(dirPath, "textures/Door_BaseColor.jpg");
-    const TexID texMetalDiff      = g_TextureMgr.LoadFromFile(dirPath, "textures/Metal_BaseColor.jpg");
-    const TexID texWindowDiff     = g_TextureMgr.LoadFromFile(dirPath, "textures/Windows_BaseColor.jpg");
-    const TexID texGroundDiff     = g_TextureMgr.LoadFromFile(dirPath, "textures/Ground_BaseColor.jpg");
-
-    const TexID texBrickNorm      = g_TextureMgr.LoadFromFile(dirPath, "textures/Brick_Normal.jpg");
-    const TexID texConcreteNorm   = g_TextureMgr.LoadFromFile(dirPath, "textures/Concrete_Normal.jpg");
-    const TexID texConcrete2Norm  = g_TextureMgr.LoadFromFile(dirPath, "textures/Concrete_2_Normal.jpg");
-    const TexID texRoofNorm       = g_TextureMgr.LoadFromFile(dirPath, "textures/Roof_Normal.jpg");
-    const TexID texDoorNorm       = g_TextureMgr.LoadFromFile(dirPath, "textures/Door_Normal.jpg");
-    const TexID texMetalNorm      = g_TextureMgr.LoadFromFile(dirPath, "textures/Metal_Normal.jpg");
-    const TexID texWindowNorm     = g_TextureMgr.LoadFromFile(dirPath, "textures/Windows_Normal.jpg");
-    const TexID texGroundNorm     = g_TextureMgr.LoadFromFile(dirPath, "textures/Ground_Normal.jpg");
-
-    const TexID texBrickRough     = g_TextureMgr.LoadFromFile(dirPath, "textures/Brick_Roughness.jpg");
-    const TexID texConcreteRough  = g_TextureMgr.LoadFromFile(dirPath, "textures/Concrete_Roughness.jpg");
-    const TexID texConcrete2Rough = g_TextureMgr.LoadFromFile(dirPath, "textures/Concrete_2_Roughness.jpg");
-    const TexID texRoofRough      = g_TextureMgr.LoadFromFile(dirPath, "textures/Roof_Roughness.jpg");
-    const TexID texDoorRough      = g_TextureMgr.LoadFromFile(dirPath, "textures/Door_Roughness.jpg");
-    const TexID texMetalRough     = g_TextureMgr.LoadFromFile(dirPath, "textures/Metal_Roughness.jpg");
-    const TexID texWindowRough    = g_TextureMgr.LoadFromFile(dirPath, "textures/Windows_Roughness.jpg");
-    const TexID texGroundRough    = g_TextureMgr.LoadFromFile(dirPath, "textures/Ground_Roughness.jpg");
-
-
-    // setup materials of model's meshes
-    MeshGeometry::Subset* subsets = house.meshes_.subsets_;
-
-    Material& concreteMat = g_MaterialMgr.GetMatById(subsets[0].materialId);
-    concreteMat.SetName("abandoned_house_concrete");
-    concreteMat.SetTexture(TEX_TYPE_DIFFUSE, texConcreteDiff);
-    concreteMat.SetTexture(TEX_TYPE_NORMALS, texConcreteNorm);
-    concreteMat.SetTexture(TEX_TYPE_DIFFUSE_ROUGHNESS, texConcreteRough);
-    concreteMat.SetAmbient(0.2f, 0.2f, 0.2f, 1.0f);
-    concreteMat.SetDiffuse(0.8f, 0.8f, 0.8f, 1.0f);
-
-    Material& brickMat = g_MaterialMgr.GetMatById(subsets[1].materialId);
-    brickMat.SetName("abandoned_house_brick");
-    brickMat.SetTexture(TEX_TYPE_DIFFUSE, texBrickDiff);
-    brickMat.SetTexture(TEX_TYPE_NORMALS, texBrickNorm);
-    brickMat.SetTexture(TEX_TYPE_DIFFUSE_ROUGHNESS, texBrickRough);
-    concreteMat.SetAmbient(0.2f, 0.2f, 0.2f, 1.0f);
-    concreteMat.SetDiffuse(0.8f, 0.8f, 0.8f, 1.0f);
-
-    Material& roofMat = g_MaterialMgr.GetMatById(subsets[2].materialId);
-    roofMat.SetName("abandoned_house_roof");
-    roofMat.SetTexture(TEX_TYPE_DIFFUSE, texRoofDiff);
-    roofMat.SetTexture(TEX_TYPE_NORMALS, texRoofNorm);
-    roofMat.SetTexture(TEX_TYPE_DIFFUSE_ROUGHNESS, texRoofRough);
-    concreteMat.SetAmbient(0.2f, 0.2f, 0.2f, 1.0f);
-    concreteMat.SetDiffuse(0.8f, 0.8f, 0.8f, 1.0f);
-
-    Material& metalMat = g_MaterialMgr.GetMatById(subsets[3].materialId);
-    metalMat.SetName("abandoned_house_metal");
-    metalMat.SetTexture(TEX_TYPE_DIFFUSE, texMetalDiff);
-    metalMat.SetTexture(TEX_TYPE_NORMALS, texMetalNorm);
-    metalMat.SetTexture(TEX_TYPE_DIFFUSE_ROUGHNESS, texMetalRough);
-    concreteMat.SetAmbient(0.2f, 0.2f, 0.2f, 1.0f);
-    concreteMat.SetDiffuse(0.8f, 0.8f, 0.8f, 1.0f);
-
-    Material& groundMat = g_MaterialMgr.GetMatById(subsets[4].materialId);
-    groundMat.SetName("stalker_house_gnd");
-    groundMat.SetTexture(TEX_TYPE_DIFFUSE, texGroundDiff);
-    groundMat.SetTexture(TEX_TYPE_NORMALS, texGroundNorm);
-    groundMat.SetTexture(TEX_TYPE_DIFFUSE_ROUGHNESS, texGroundNorm);
-    concreteMat.SetAmbient(0.2f, 0.2f, 0.2f, 1.0f);
-    concreteMat.SetDiffuse(0.8f, 0.8f, 0.8f, 1.0f);
-
-    Material& doorMat = g_MaterialMgr.GetMatById(subsets[5].materialId);
-    doorMat.SetName("abandon_house_door");
-    doorMat.SetTexture(TEX_TYPE_DIFFUSE, texDoorDiff);
-    doorMat.SetTexture(TEX_TYPE_NORMALS, texDoorNorm);
-    doorMat.SetTexture(TEX_TYPE_DIFFUSE_ROUGHNESS, texDoorRough);
-    concreteMat.SetAmbient(0.2f, 0.2f, 0.2f, 1.0f);
-    concreteMat.SetDiffuse(0.8f, 0.8f, 0.8f, 1.0f);
-
-    Material& windowMat = g_MaterialMgr.GetMatById(subsets[6].materialId);
-    windowMat.SetName("abandoned_house_window");
-    windowMat.SetTexture(TEX_TYPE_DIFFUSE, texWindowDiff);
-    windowMat.SetTexture(TEX_TYPE_NORMALS, texWindowNorm);
-    windowMat.SetTexture(TEX_TYPE_DIFFUSE_ROUGHNESS, texWindowRough);
-    concreteMat.SetAmbient(0.2f, 0.2f, 0.2f, 1.0f);
-    concreteMat.SetDiffuse(0.8f, 0.8f, 0.8f, 1.0f);
 }
+
 
 } // namespace Game

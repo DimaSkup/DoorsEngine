@@ -20,7 +20,8 @@ Shader::Shader(ID3D11Device* pDevice, const ShaderInitParams& params)
 
         bool result = false;
 
-        // store a name
+        // store an id and name
+        id_ = (ShaderID)params.shaderId;
         strncpy(name_, params.name, 32);
 
 
@@ -39,7 +40,7 @@ Shader::Shader(ID3D11Device* pDevice, const ShaderInitParams& params)
 
 
         // load shaders from .cso files
-        if (params.loadPrecompiledShaders)
+        if (!params.runtimeCompilation)
         {
             result = LoadPrecompiled(pDevice, params);
             CAssert::True(result, "can't load precompiled shaders");
@@ -60,7 +61,7 @@ Shader::Shader(ID3D11Device* pDevice, const ShaderInitParams& params)
         SafeDelete(pGS_);
         SafeDelete(pPS_);
         LogErr(e);
-        LogErr(LOG, "can't initialize shader: %s", params.name);
+        LogErr(LOG, "can't init shader: %s", params.name);
     }
 }
 
@@ -69,9 +70,63 @@ Shader::Shader(ID3D11Device* pDevice, const ShaderInitParams& params)
 // Args:   - pDevice:  a ptr to the DirectX11 device
 //         - params:   a container of parameters for shader reinitialization 
 //---------------------------------------------------------
-void Shader::HotReload(ID3D11Device* pDevice, const ShaderInitParams& params)
+bool Shader::HotReload(ID3D11Device* pDevice, const ShaderInitParams& params)
 {
+    // reload vertex shader
+    if (pVS_)
+    {
+        if (params.vsPath[0] == '\0')
+        {
+            LogErr(LOG, "can't hot reload vertex shader (%s): input path to file is empty", name_);
+            return false;
+        }
 
+        if (!pVS_->CompileFromFile(
+            pDevice,
+            params.vsPath,
+            "VS",
+            params.shaderModel,
+            params.inputLayoutDesc,
+            params.inputLayoutNumElems))
+        {
+            LogErr(LOG, "can't recompile vertex shader (%s) from file: %s", name_, params.vsPath);
+            return false;
+        }
+    }
+
+    // reload geometry shader
+    if (pGS_)
+    {
+        if (params.gsPath[0] == '\0')
+        {
+            LogErr(LOG, "can't hot reload geometry shader (%s): input path to file is empty", name_);
+            return false;
+        }
+
+        if (!pGS_->CompileFromFile(pDevice, params.gsPath, "GS", params.shaderModel))
+        {
+            LogErr(LOG, "can't recompile geometry shader (%s) from file: %s", name_, params.gsPath);
+            return false;
+        }
+    }
+
+    // reload pixel shader
+    if (pPS_)
+    {
+        if (params.psPath[0] == '\0')
+        {
+            LogErr(LOG, "can't hot reload pixel shader (%s): input path to file is empty", name_);
+            return false;
+        }
+
+        if (!pPS_->CompileFromFile(pDevice, params.psPath, "PS", params.shaderModel))
+        {
+            LogErr(LOG, "can't recompile pixel shader (%s) from file: %s", name_, params.psPath);
+            return false;
+        }
+    }
+
+    return true;
 }
 
 
@@ -79,6 +134,8 @@ void Shader::HotReload(ID3D11Device* pDevice, const ShaderInitParams& params)
 //---------------------------------------------------------
 bool Shader::LoadPrecompiled(ID3D11Device* pDevice, const ShaderInitParams& params)
 {
+
+
     // init vertex shader
     bool result = pVS_->LoadPrecompiled(
         pDevice,
@@ -130,7 +187,7 @@ bool Shader::CompileFromFile(ID3D11Device* pDevice, const ShaderInitParams& para
     }
 
     // init pixel shader
-    if (!pPS_->CompileFromFile(pDevice, params.psPath, "PS", "ps_5_0"))
+    if (!pPS_->CompileFromFile(pDevice, params.psPath, "PS", params.shaderModel))
     {
         LogErr(LOG, "can't init a pixel shader");
         return false;
@@ -139,7 +196,7 @@ bool Shader::CompileFromFile(ID3D11Device* pDevice, const ShaderInitParams& para
     // init geometry shader
     if (params.NeedInitGS())
     {
-        if (!pGS_->CompileFromFile(pDevice, params.gsPath, "GS", "gs_5_0"))
+        if (!pGS_->CompileFromFile(pDevice, params.gsPath, "GS", params.shaderModel))
         {
             LogErr(LOG, "can't init a geometry shader");
             return false;

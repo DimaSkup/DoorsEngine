@@ -171,6 +171,8 @@ private:
         UINT& startInstanceLocation,
         RenderStat& stat);
 
+    void RenderPlayerWeapon(ID3D11DeviceContext* pContext, Render::CRender* pRender);
+
     void RenderParticles(Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);
 
     void RenderSkyDome            (Render::CRender* pRender, ECS::EntityMgr* pEnttMgr);

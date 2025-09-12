@@ -30,13 +30,13 @@ struct ShaderInitParams
         return gsPath[0] != '\0';
     }
 
-
-    char name[32]{'\0'};            // a name for shader class
-    char vsPath[64]{'\0'};          // path to vertex shader 
-    char gsPath[64]{'\0'};          // path to geometry shader 
-    char psPath[64]{'\0'};          // path to pixel shader
+    int  shaderId = -1;
+    char name[32]{'\0'};                    // a name for shader class
+    char vsPath[64]{'\0'};                  // path to vertex shader 
+    char gsPath[64]{'\0'};                  // path to geometry shader 
+    char psPath[64]{'\0'};                  // path to pixel shader
     char shaderModel[4]{ "5_0" };
-    bool loadPrecompiledShaders = true;    // do we use precompiled (.cso) shader files for initialization?
+    bool runtimeCompilation = false;         // do we execute runtime compilation of hlsl files?
 
     D3D11_INPUT_ELEMENT_DESC inputLayoutDesc[32];
     UINT inputLayoutNumElems = 0;
@@ -53,7 +53,7 @@ public:
     Shader(const Shader&) = delete;
     Shader& operator=(const Shader&) = delete;
         
-    void HotReload(ID3D11Device* pDevice, const ShaderInitParams& params);
+    bool HotReload(ID3D11Device* pDevice, const ShaderInitParams& params);
 
     // getters
     inline const char* GetName() const { return name_; }
@@ -67,6 +67,7 @@ private:
     bool CompileFromFile(ID3D11Device* pDevice, const ShaderInitParams& params);
 
 private:
+    ShaderID        id_  = -1;
     VertexShader*   pVS_ = nullptr;
     GeometryShader* pGS_ = nullptr;
     PixelShader*    pPS_ = nullptr;

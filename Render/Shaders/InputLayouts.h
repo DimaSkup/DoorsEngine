@@ -26,7 +26,7 @@ class VertexInputLayoutMgr
 public:
     VertexInputLayoutMgr();
 
-    const VertexInputLayout& GetInputLayoutByName(const char* name);
+    const VertexInputLayout& GetInputLayoutByName(const char* name) const;
 
 private:
     void LoadAndCreateInputLayouts();

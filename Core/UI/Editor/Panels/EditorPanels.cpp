@@ -285,11 +285,20 @@ void EditorPanels::RenderPropertiesControllerWnd()
             float distFullSize = pFacade_->GetGrassDistFullSize();
             float distVisible  = pFacade_->GetGrassDistVisible();
 
+            // setup a distance from camera where grass is in its full size
             if (ImGui::DragFloat("dist full size", &distFullSize, 1.0f, 0.0f, distVisible))
-                pFacade_->SetGrassDistFullSize(distFullSize);
+            {
+                if (distFullSize >= 0 && distFullSize <= distVisible)
+                    pFacade_->SetGrassDistFullSize(distFullSize);
+            }
 
+            // setup distance from the camera after which we don't see any grass
+            // ALSO from distFullSize to distVisible grass instances are linearly getting smaller until it won't dissapear
             if (ImGui::DragFloat("dist visible", &distVisible, 1.0f, distFullSize))
-                pFacade_->SetGrassDistVisible(distVisible);
+            {
+                if (distVisible >= 0 && distVisible >= distFullSize)
+                    pFacade_->SetGrassDistVisible(distVisible);
+            }
 
             ImGui::TreePop();
         }

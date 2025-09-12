@@ -36,8 +36,8 @@ void InitDirectedLightEntities(ECS::EntityMgr& mgr)
         ECS::DirLight& dirLight2 = dirLightsParams.data[2];
 
         // setup main directed light source
-        dirLight0.ambient = { 0.3f, 0.3f, 0.3f, 1.0f };
-        dirLight0.diffuse  = { 0.6f, 0.6f, 0.6f, 1.0f };
+        dirLight0.ambient = { 0.5f, 0.5f, 0.5f, 1.0f };
+        dirLight0.diffuse  = { 0.7f, 0.7f, 0.7f, 1.0f };
         dirLight0.specular = { 0.3f, 0.3f, 0.3f, 1.0f };
 
         // setup 2nd directed light source
@@ -235,13 +235,14 @@ void InitSpotLightEntities(ECS::EntityMgr& mgr)
 
         // setup attenuation params (const, linear, quadratic)
         for (index i = 0; i < numSpotLights; ++i)
-            spotLightsParams.data[i].att = { 0.4f, 10.0f, 10.0f };
+            spotLightsParams.data[i].att = { 0.0f, 15.0f, 600.0f };
 
-        spotLightsParams.data[0].att = { 5.0f, 50.0f, 100.0f };
+        //spotLightsParams.data[0].att = { 5.0f, 50.0f, 100.0f };
+        spotLightsParams.data[0].att = { 0.3f, 65, 300 };
 
         // setup ranges (how far the spotlight can lit)
         for (index i = 0; i < numSpotLights; ++i)
-            spotLightsParams.data[i].range = 100;
+            spotLightsParams.data[i].range = 130;
 
         // setup spot exponent: light intensity fallof (for control the spotlight cone)
         for (index i = 0; i < numSpotLights; ++i)

@@ -52,9 +52,11 @@ constexpr EntityID   INVALID_ENTITY_ID = 0;
 constexpr ModelID    INVALID_MODEL_ID = 0;
 constexpr MaterialID INVALID_MATERIAL_ID = 0;
 constexpr TexID      INVALID_TEXTURE_ID = 0;
+constexpr ShaderID   INVALID_SHADER_ID = 0;
 constexpr size       NUM_TEXTURE_TYPES = 21;           // limit of textures per mesh
 
 constexpr int        SUBSET_NAME_LENGTH_LIMIT = 32;    // max length for a model subset's (mesh) name
+constexpr int        MAX_LENGTH_ENTT_NAME = 32;
 constexpr int        MAX_LENGTH_MODEL_NAME = 32;       // limit for the model's name length
 constexpr int        MAX_LENGTH_TEXTURE_NAME = 32;     // limit for the texture's name length
 constexpr int        MAX_LENGTH_MATERIAL_NAME = 32;    // limit for the material's name length

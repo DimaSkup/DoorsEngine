@@ -87,6 +87,14 @@ ModelID ModelsCreator::ImportFromFile(ID3D11Device* pDevice, const char* path)
         ModelImporter importer;
         BasicModel& model = g_ModelMgr.AddEmptyModel();
 
+        FILE* pFile = fopen(path, "r");
+        if (!pFile)
+        {
+            LogErr(LOG, "there is no file by path: %s", path);
+            return INVALID_MODEL_ID;
+        }
+        fclose(pFile);
+
         // set a name and type for the model
         FileSys::GetFileStem(path, g_String);
         model.SetName(g_String);

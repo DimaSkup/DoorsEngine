@@ -160,8 +160,8 @@ namespace ConstBufType
 
     struct GrassParams
     {
-        float distGrassFullSize = 10;   // distance around camera where grass planes are in full size
-        float distGrassVisible  = 20;   // after this distance we don't see any grass planes
+        float distGrassFullSize = 0;   // distance around camera where grass planes are in full size
+        float distGrassVisible  = 40;   // after this distance we don't see any grass planes
     };
 };
 

@@ -1,0 +1,86 @@
+{
+	"params": {
+	    "runtime_compilation":       true,
+		"shader_model":              "5_0",
+		"dir_path_to_precompiled":   "data/shaders/cso/",
+		"dir_path_to_hlsl":          "data/shaders/hlsl/"
+	},
+
+	"shaders": [
+		{
+			"id":            0,
+			"name":          "InvalidShader",
+			"vs":            "colorVS",
+			"ps":            "colorPS",
+			"shader_model":  "5_0",
+			"input_layout":  "Pos"
+		},
+		{
+			"id":            1,
+			"name":          "ColorShader",
+			"vs":            "colorVS",
+			"ps":            "colorPS",
+			"shader_model":  "5_0",
+			"input_layout":  "Pos"
+		},
+		{
+			"id":            2,
+			"name":          "TextureShader",
+			"vs":            "textureVS",
+			"ps":            "texturePS",
+			"input_layout":  "PosTex"
+		},
+		{
+			"id":            3,
+			"name":          "LightShader",
+			"vs":            "LightVS",
+			"ps":            "LightPS",
+			"input_layout":  "Basic"
+		},
+		{
+			"id":            4,
+			"name":          "GrassShader",
+			"vs":            "grassVS",
+			"gs":            "grassGS",
+			"ps":            "grassPS",
+			"input_layout":  "VertexGrass"
+		},
+		{
+			"id":            5,
+			"name":          "ParticleShader",
+			"vs":            "particleVS",
+			"gs":            "particleGS",
+			"ps":            "particlePS",            
+			"input_layout":  "Particle"
+		},
+		{
+			"id":            6,
+			"name":          "SkyDomeShader",
+			"vs":            "SkyDomeVS",
+			"ps":            "SkyDomePS",
+			"input_layout":  "Sky"
+			
+		},
+		{
+			"id":            7,
+			"name":          "TerrainShader",
+			"vs":            "TerrainVS",
+			"ps":            "TerrainPS",
+			"input_layout":  "Terrain"
+		},
+		{
+			"id":            8,
+			"name":          "FontShader",
+			"vs":            "FontVS",
+			"ps":            "FontPS",
+			"input_layout":  "Font"
+		},
+		{
+			"id":             9,
+			"name":           "MaterialIconShader",
+			"vs":             "materialIconVS",
+			"ps":             "materialIconPS",
+			"input_layout":   "Vertex3d"
+		}
+	]
+}

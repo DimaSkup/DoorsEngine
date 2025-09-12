@@ -42,7 +42,38 @@ void RenderSystem::AddRecords(const EntityID* ids, const size numEntts)
 
 void RenderSystem::RemoveRecords(const EntityID* ids, const size numEntts)
 {
-    assert(0 && "TODO");
+    if (!ids)
+    {
+        LogErr(LOG, "can't remove records: input ptr to entts ids == nullptr");
+        return;
+    }
+
+    if (numEntts == 0)
+    {
+        LogErr(LOG, "can't remove records: input number of entts must be > 0 (curr: %d)", (int)numEntts);
+        return;
+    }
+
+
+    
+
+    // remove one record
+    if (numEntts == 1)
+        RemoveRecord(ids[0]);
+
+    // remove multiple records at once
+    else
+    {
+        Rendered& comp = *pRenderComponent_;
+        assert(0 && "TODO");
+    }
+}
+
+void RenderSystem::RemoveRecord(const EntityID id)
+{
+    Rendered& comp = *pRenderComponent_;
+    const index idx = comp.ids.get_idx(id);
+    comp.ids.erase(idx);
 }
 
 } // namespace ECS

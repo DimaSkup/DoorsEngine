@@ -190,11 +190,11 @@ private:
         const int numSpotLights);
 
 public:
-    ShaderMgr shaderMgr_;
+    ShaderMgr                                       shaderMgr_;
 
-    ID3D11DeviceContext*                          pContext_         = nullptr;
-    ID3D11Buffer*                                 pInstancedBuffer_ = nullptr;
-    cvector<ConstBufType::InstancedData>          instancedData_;    // instances common buffer
+    ID3D11DeviceContext*                            pContext_         = nullptr;
+    ID3D11Buffer*                                   pInstancedBuffer_ = nullptr;
+    cvector<ConstBufType::InstancedData>            instancedData_;    // instances common buffer
 
 
     // const buffers for vertex shaders
@@ -223,7 +223,7 @@ public:
     SamplerState skySampler_;          
 
 
-    bool              isDebugMode_ = false;                       // do we use the debug shader?
+    bool isDebugMode_ = false;                       // do we use the debug shader?
 };
 
 }; // namespace Render

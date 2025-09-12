@@ -28,6 +28,9 @@ public:
 
     inline void SetPlayer(const EntityID id) { playerID_ = id; }
 
+    inline void SetActiveWeapon(const EntityID id)       { data_.activeWeaponId = id; }
+    inline EntityID GetActiveWeapon()              const { return data_.activeWeaponId; }
+
     inline EntityID GetPlayerID()  const { return playerID_; }
     inline XMFLOAT3 GetPosition()  const { return pTransformSys_->GetPosition(playerID_); }
     inline XMFLOAT3 GetDirection() const { return pTransformSys_->GetDirection(playerID_); }

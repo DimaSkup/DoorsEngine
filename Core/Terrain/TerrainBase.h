@@ -250,21 +250,21 @@ public:
         int posX = (int)(floorf(x));
         int posZ = (int)(floorf(z));
 
-        float height1 = GetScaledHeightAtPoint(posX,   posZ);     //   3------4
-        float height2 = GetScaledHeightAtPoint(posX+1, posZ);     //   |      |
-        float height3 = GetScaledHeightAtPoint(posX,   posZ+1);   //   |      |
-        float height4 = GetScaledHeightAtPoint(posX+1, posZ+1);   //   1------2
+        float h1 = GetScaledHeightAtPoint(posX,   posZ);     //   3------4
+        float h2 = GetScaledHeightAtPoint(posX+1, posZ);     //   |      |
+        float h3 = GetScaledHeightAtPoint(posX,   posZ+1);   //   |      |
+        float h4 = GetScaledHeightAtPoint(posX+1, posZ+1);   //   1------2
 
         // interpolation parameters
         float tx = x - posX;
         float tz = z - posZ;
 
         // bilinear interpolation
-        float height12 = height1 + tx * (height2-height1);
-        float height34 = height3 + tx * (height4-height3);
+        float h12 = h1 + tx * (h2-h1);
+        float h34 = h3 + tx * (h4-h3);
 
         // return terrain height at point (x,z)
-        return height12 + tz * (height34-height12);
+        return h12 + tz * (h34-h12);
     }
 
     // ----------------------------------------------------

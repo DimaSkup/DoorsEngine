@@ -1,0 +1,121 @@
+{
+	"layouts": [
+		{
+			"name": "Basic",
+			"per_vertex": [
+				[ "POSITION",            3 ],
+				[ "TEXCOORD",            2 ],
+				[ "NORMAL",              3 ],
+				[ "TANGENT",             3 ]
+			],
+			"per_instance": [
+				[ "WORLD",               16 ],
+				[ "WORLD_INV_TRANSPOSE", 16 ],
+				[ "MATERIAL",            16 ]
+			]
+		},
+		
+		{
+			"name": "PosTex",
+			"per_vertex": [
+				[ "POSITION",            3 ],
+				[ "TEXCOORD",            2 ]
+			],
+			"per_instance": [
+				[ "WORLD",               16 ],
+				[ "WORLD_INV_TRANSPOSE", 16 ],
+				[ "MATERIAL",            16 ]
+			]
+		},
+		
+		{
+			"name": "Pos",
+			"per_vertex": [
+				[ "POSITION",            3 ]
+			],
+			"per_instance": [
+				[ "WORLD",               16 ],
+				[ "WORLD_INV_TRANSPOSE", 16 ],
+				[ "MATERIAL",            16 ]
+			]
+		},
+		
+		{
+			"name": "Vertex3d",
+			"per_vertex": [
+				[ "POSITION",            3 ],
+				[ "TEXCOORD",            2 ],
+				[ "NORMAL",              3 ],
+				[ "TANGENT",             3 ]
+			]
+		},
+		
+		{
+			"name": "VertexGrass",
+			"per_vertex": [
+				[ "POSITION",            3],
+				[ "SIZE",                2]
+			]
+		},
+		
+		{
+			"name": "Sky",
+			"per_vertex": [
+				[ "POSITION",            3 ]
+			]
+		},
+		
+		
+		{
+			"name": "Terrain",
+			"per_vertex": [
+				[ "POSITION",            3 ],
+				[ "TEXCOORD",            2 ],
+				[ "NORMAL",              3 ],
+				[ "TANGENT",             3 ],
+				[ "COLOR",               4 ]
+			]
+		},
+		
+		
+		{
+			"name": "Font",
+			"per_vertex": [
+				[ "POSITION",            2 ],
+				[ "TEXCOORD",            2 ]
+			]
+		},
+		
+		{
+			"name": "MaterialIcon",
+			"per_vertex": [
+				[ "POSITION",            3 ],
+				[ "TEXCOORD",            2 ],
+				[ "NORMAL",              3 ],
+				[ "TANGENT",             3 ]
+			]
+		},
+		
+		{
+			"name": "Particle",
+			"per_vertex": [
+				[ "POSITION",            3 ],
+				[ "TRANSLUCENCY",        1 ],
+				[ "COLOR",               3 ],
+				[ "SIZE",                2 ]
+			]
+		}, 
+		
+		{
+			"name": "Color", 
+			"per_vertex": [
+				[ "POSITION",            3 ]
+			],
+			"per_instance": [
+				[ "WORLD",               16 ]
+			]
+		}
+	]
+}
+
+

@@ -25,6 +25,7 @@
     <ClInclude Include="Components\Camera.h" />
     <ClInclude Include="Components\Helpers\TextureTransformHelpers.h" />
     <ClInclude Include="Components\Hierarchy.h" />
+    <ClInclude Include="Components\Inventory.h" />
     <ClInclude Include="Components\Light.h" />
     <ClInclude Include="Components\Material.h" />
     <ClInclude Include="Components\Model.h" />
@@ -40,6 +41,7 @@
     <ClInclude Include="Systems\BoundingSystem.h" />
     <ClInclude Include="Systems\CameraSystem.h" />
     <ClInclude Include="Systems\HierarchySystem.h" />
+    <ClInclude Include="Systems\InventorySystem.h" />
     <ClInclude Include="Systems\LightSystem.h" />
     <ClInclude Include="Systems\MaterialSystem.h" />
     <ClInclude Include="Systems\ModelSystem.h" />
@@ -62,6 +64,7 @@
     <ClCompile Include="Systems\BoundingSystem.cpp" />
     <ClCompile Include="Systems\CameraSystem.cpp" />
     <ClCompile Include="Systems\HierarchySystem.cpp" />
+    <ClCompile Include="Systems\InventorySystem.cpp" />
     <ClCompile Include="Systems\LightSystem.cpp" />
     <ClCompile Include="Systems\MaterialSystem.cpp" />
     <ClCompile Include="Systems\ModelSystem.cpp" />

@@ -447,35 +447,35 @@ void SwitchBlendState(
 {
     switch (blendState)
     {
-        case MAT_PROP_NO_RENDER_TARGET_WRITES:
+        case MAT_PROP_BS_NO_RENDER_TARGET_WRITES:
             renderStates.SetBS(pContext, R_NO_RENDER_TARGET_WRITES);
             break;
 
-        case MAT_PROP_BLEND_DISABLE:
+        case MAT_PROP_BS_DISABLE:
             renderStates.SetBS(pContext, R_ALPHA_DISABLE);
             break;
 
-        case MAT_PROP_BLEND_ENABLE:
+        case MAT_PROP_BS_ENABLE:
             renderStates.SetBS(pContext, R_ALPHA_ENABLE);
             break;
 
-        case MAT_PROP_ADDING:
+        case MAT_PROP_BS_ADD:
             renderStates.SetBS(pContext, R_ADDING);
             break;
 
-        case MAT_PROP_SUBTRACTING:
+        case MAT_PROP_BS_SUB:
             renderStates.SetBS(pContext, R_SUBTRACTING);
             break;
 
-        case MAT_PROP_MULTIPLYING:
+        case MAT_PROP_BS_MUL:
             renderStates.SetBS(pContext, R_MULTIPLYING);
             break;
 
-        case MAT_PROP_TRANSPARENCY:
+        case MAT_PROP_BS_TRANSPARENCY:
             renderStates.SetBS(pContext, R_TRANSPARENCY);
             break;
 
-        case MAT_PROP_ALPHA_TO_COVERAGE:
+        case MAT_PROP_BS_ALPHA_TO_COVERAGE:
             renderStates.SetBS(pContext, R_ALPHA_TO_COVERAGE);
             break;
     }
@@ -491,27 +491,27 @@ void SwitchDepthStencilState(
 {
     switch (depthStencilState)
     {
-        case MAT_PROP_DEPTH_ENABLED:
+        case MAT_PROP_DSS_DEPTH_ENABLED:
             renderStates.SetDSS(pContext, R_DEPTH_ENABLED, 0);
             break;
 
-        case MAT_PROP_DEPTH_DISABLED:
+        case MAT_PROP_DSS_DEPTH_DISABLED:
             renderStates.SetDSS(pContext, R_DEPTH_DISABLED, 0);
             break;
 
-        case MAT_PROP_MARK_MIRROR:
+        case MAT_PROP_DSS_MARK_MIRROR:
             renderStates.SetDSS(pContext, R_MARK_MIRROR, 0);
             break;
 
-        case MAT_PROP_DRAW_REFLECTION:
+        case MAT_PROP_DSS_DRAW_REFLECTION:
             renderStates.SetDSS(pContext, R_DRAW_REFLECTION, 0);
             break;
 
-        case MAT_PROP_NO_DOUBLE_BLEND:
+        case MAT_PROP_DSS_NO_DOUBLE_BLEND:
             renderStates.SetDSS(pContext, R_NO_DOUBLE_BLEND, 0);
             break;
 
-        case MAT_PROP_SKY_DOME:
+        case MAT_PROP_DSS_SKY_DOME:
             renderStates.SetDSS(pContext, R_SKY_DOME, 0);
             break;
     }
@@ -651,8 +651,8 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
             BindMaterial(pRender, MAT_PROP_DEFAULT, zeroTexViews);
 
             // first of all we render masked and opaque geometry
-            pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-            RenderGrass(pRender);
+            //pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+            //RenderGrass(pRender);
 
             pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
             RenderInstanceGroups(pContext, pRender, storage.masked, startInstanceLocation, stat);
@@ -676,6 +676,9 @@ void CGraphics::RenderHelper(ECS::EntityMgr* pEnttMgr, Render::CRender* pRender)
             pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
             RenderInstanceGroups(pContext, pRender, storage.blended, startInstanceLocation, stat);
             RenderInstanceGroups(pContext, pRender, storage.blendedTransparent, startInstanceLocation, stat);
+
+            pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            RenderPlayerWeapon(pContext, pRender);
 
             pSysState_->numDrawnVertices += stat.numDrawnVertices;
             pSysState_->numDrawnInstances += stat.numDrawnInstances;
@@ -1053,12 +1056,10 @@ void CGraphics::RenderGrass(Render::CRender* pRender)
     const Material& mat = g_MaterialMgr.GetMatByName("grass_0");
     BindMaterial(pRender, mat.renderStates, mat.texIds);
 
-
     RenderStates& renderStates = d3d_.GetRenderStates();
-    //renderStates.SetBS(pContext, R_ALPHA_TO_COVERAGE);
 
     // render grass
-    pContext->Draw(vb.GetVertexCount()/2, 0);
+    pContext->Draw(vb.GetVertexCount(), 0);
 
 
 #if 0
@@ -1110,6 +1111,15 @@ void CGraphics::RenderInstanceGroups(
     }
 }
 
+//---------------------------------------------------------
+// Desc:   render currently selected player's weapon
+//---------------------------------------------------------
+void CGraphics::RenderPlayerWeapon(ID3D11DeviceContext* pContext, Render::CRender* pRender)
+{
+}
+
+//---------------------------------------------------------
+//---------------------------------------------------------
 void SortParticlesByDistance(
     const XMFLOAT3& cameraPos,
     cvector<BillboardSprite>& vertices)
@@ -1375,11 +1385,11 @@ void CGraphics::SetupLightsForFrame(
     // store light properties, range, and attenuation
     for (index i = 0; i < numPointLights; ++i)
     {
-        outData.pointLights[i].ambient = pointLights.data[i].ambient;
-        outData.pointLights[i].diffuse = pointLights.data[i].diffuse;
+        outData.pointLights[i].ambient  = pointLights.data[i].ambient;
+        outData.pointLights[i].diffuse  = pointLights.data[i].diffuse;
         outData.pointLights[i].specular = pointLights.data[i].specular;
-        outData.pointLights[i].att = pointLights.data[i].att;
-        outData.pointLights[i].range = pointLights.data[i].range;
+        outData.pointLights[i].att      = pointLights.data[i].att;
+        outData.pointLights[i].range    = pointLights.data[i].range;
     }
 
     // store positions
@@ -1407,9 +1417,10 @@ void CGraphics::SetupLightsForFrame(
         numDirLights,
         s_LightTmpData.dirLightsDirections);
 
-    for (int i = 0; const XMVECTOR& dirQuat : s_LightTmpData.dirLightsDirections)
+    for (int i = 0; XMVECTOR& direction : s_LightTmpData.dirLightsDirections)
     {
-        DirectX::XMStoreFloat3(&outData.dirLights[i].direction, dirQuat);
+        direction = DirectX::XMVector3Normalize(direction);
+        DirectX::XMStoreFloat3(&outData.dirLights[i].direction, direction);
         ++i;
     }
 
@@ -1438,8 +1449,11 @@ void CGraphics::SetupLightsForFrame(
         for (int i = 0; const XMFLOAT3 & pos : s_LightTmpData.spotLightsPositions)
             outData.spotLights[i++].position = pos;
 
-        for (int i = 0; const XMFLOAT3 & dir : s_LightTmpData.spotLightsDirections)
+        for (int i = 0; XMFLOAT3& dir : s_LightTmpData.spotLightsDirections)
+        {
+            XMFloat3Normalize(dir);
             outData.spotLights[i++].direction = dir;
+        }
     }
 
 }

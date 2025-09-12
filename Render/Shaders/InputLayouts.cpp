@@ -26,7 +26,7 @@ VertexInputLayoutMgr::VertexInputLayoutMgr()
 // Desc:  return a ref to vertex input layout by its name
 //        or return InputLayout by idx 0 if there is no such name
 //---------------------------------------------------------
-const VertexInputLayout& VertexInputLayoutMgr::GetInputLayoutByName(const char* name)
+const VertexInputLayout& VertexInputLayoutMgr::GetInputLayoutByName(const char* name) const
 {
     // check input name
     if (!name || name[0] == '\0')
@@ -54,7 +54,7 @@ const VertexInputLayout& VertexInputLayoutMgr::GetInputLayoutByName(const char* 
 void VertexInputLayoutMgr::LoadAndCreateInputLayouts()
 {
     // read in input layouts declarations from json-config file
-    const char* path = "shaders/input_layouts.json";
+    const char* path = "data/shaders/input_layouts.json";
     char* json = nullptr;
     long jsonSize = 0;
     ReadInputLayoutsJSON(path, &json, jsonSize);

@@ -18,10 +18,6 @@
 namespace Core
 {
 
-// Global instance of the engine (I don't care)
-//Engine g_Engine;
-
-
 //---------------------------------------------------------
 // Default constructor / destructor
 //---------------------------------------------------------

@@ -27,7 +27,8 @@ EntityMgr::EntityMgr() :
     cameraSystem_       { &camera_, &transformSystem_ },
     hierarchySystem_    { &hierarchy_, &transformSystem_ },
     playerSystem_       { &transformSystem_, &cameraSystem_, &hierarchySystem_ },
-    particleSystem_     { &transformSystem_ }
+    particleSystem_     { &transformSystem_ },
+    inventorySystem_    { &inventory_ }
 {
     LogDbg(LOG, "start of entity mgr init");
 
@@ -88,6 +89,21 @@ std::string GetEnttsIDsAsString(
 inline std::string GetErrMsg(const std::string& prefix, const EntityID* ids, const size numEntts)
 {
     return prefix + GetEnttsIDsAsString(ids, numEntts);
+}
+
+
+///////////////////////////////////////////////////////////
+
+inline std::string GetErrMsgFailedAddComponent(const char* componentName, const EntityID id)
+{
+    char buf[256]{'\0'};
+
+    if (componentName && componentName[0] != '\0')
+        snprintf(buf, 256, "can't add %s component: there is no entity by id: %" PRIu32, componentName, id);
+    else
+        snprintf(buf, 256, "can't add a component: there is no entity by id: %" PRIu32, id);
+
+    return buf;
 }
 
 ///////////////////////////////////////////////////////////
@@ -287,6 +303,41 @@ void EntityMgr::Update(const float totalGameTime, const float deltaTime)
 void EntityMgr::AddEvent(const Event& e)
 {
     events_.push_back(e);
+}
+
+void EntityMgr::RemoveComponent(const EntityID id, eComponentType component)
+{
+    // check if there is such an entity
+    if (CheckEnttExist(id))
+    {
+        bool updateBitfield = false;
+
+        // remove a record from component
+        switch (component)
+        {
+            case RenderedComponent:
+                renderSystem_.RemoveRecord(id);
+                updateBitfield = true;
+                break;
+            default:
+            {
+                LogErr(LOG, "can't remove component (%d) of entt (%" PRIu32 "): there is no such component", (int)component, id);
+                return;
+            }
+        }
+
+        // set that an entity by id DON'T have such a component 
+        if (updateBitfield)
+        {
+            const index idx = ids_.get_idx(id);
+            componentHashes_[idx] &= ~(1 << component);
+        }
+    }
+    else
+    {
+        LogErr(LOG, "can't remove component (%d) of entt (%" PRIu32 "): there is no such entt", (int)component, id);
+        return;
+    }
 }
 
 // *********************************************************************************
@@ -742,8 +793,31 @@ void EntityMgr::AddPlayerComponent(const EntityID id)
 //---------------------------------------------------------
 void EntityMgr::AddParticleEmitterComponent(const EntityID id)
 {
+    // add component only if such entity exists
+    if (!ids_.binary_search(id))
+    {
+        LogErr(LOG, GetErrMsgFailedAddComponent("particle emitter", id).c_str());
+        return;
+    }
+
     particleSystem_.AddEmitter(id);
     SetEnttHasComponent(id, ParticlesComponent);
+}
+
+//---------------------------------------------------------
+// Desc:   an entity by input id will have its own inventory
+//---------------------------------------------------------
+void EntityMgr::AddInventoryComponent(const EntityID id)
+{
+    // add component only if such entity exists
+    if (!ids_.binary_search(id))
+    {
+        LogErr(LOG, GetErrMsgFailedAddComponent("inventory", id).c_str());
+        return;
+    }
+
+    inventorySystem_.AddInventory(id);
+    SetEnttHasComponent(id, InventoryComponent);
 }
 
 

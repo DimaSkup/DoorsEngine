@@ -66,11 +66,10 @@ struct PS_IN
 float4 PS(PS_IN pin) : SV_TARGET
 {
     float4 texColor = gTextures[1].Sample(gBasicSampler, pin.tex);
-
+   
     // execute alpha clipping
-    clip(texColor.a - 0.5f);
-
-
+    clip(texColor.a - 0.1f);
+    
     // a vector in the world space from vertex to eye pos
     float3 toEyeW = gEyePosW - pin.posW;
 
@@ -79,24 +78,6 @@ float4 PS(PS_IN pin) : SV_TARGET
 
     // normalize
     toEyeW /= distToEye;
-
-
-    // ------------------------------------------
-
-    // TEMP: hacky fix for the vector to sample the proper pixel of sky
-    float3 vec = -toEyeW;
-    vec.y -= 490;
-
-    // blend sky pixel color with fixed fog color
-    float4 skyBottomColor = gCubeMap.Sample(gSkySampler, vec);
-    float4 fogColor = skyBottomColor * float4(gFixedFogColor, 1.0f);
-
-    // return blended fixed fog color with the sky color at this pixel
-    // if the pixel is fully fogged
-    if (gFogEnabled && distToEye > (gFogStart + gFogRange))
-    {
-        return fogColor;
-    }
 
     // --------------------  LIGHT   --------------------
 
@@ -108,12 +89,12 @@ float4 PS(PS_IN pin) : SV_TARGET
     // sum the light contribution from each light source (ambient, diffuse, specular)
     float4 A, D, S;
 
-    Material mat;
+    Material material;
 
-    mat.ambient  = float4(1, 1, 1, 1);
-    mat.diffuse  = float4(1, 1, 1, 1);
-    mat.specular = float4(0, 0, 0, 1);                                // w-component is a specPower (specular power)
-    mat.reflect  = float4(0, 0, 0, 0);
+    material.ambient  = float4(1, 1, 1, 1);
+    material.diffuse  = float4(1, 1, 1, 1);
+    material.specular = float4(0, 0, 0, 1);                                // w-component is a specPower (specular power)
+    material.reflect  = float4(0, 0, 0, 0);
 
     // normalize the normal vector after interpolation
     float3 normalW = normalize(pin.normal);
@@ -122,7 +103,7 @@ float4 PS(PS_IN pin) : SV_TARGET
     for (int i = 0; i < gNumOfDirLights; ++i)
     {
         ComputeDirectionalLight(
-            mat,
+            material,
             gDirLights[i],
             normalW,
             toEyeW,
@@ -134,7 +115,95 @@ float4 PS(PS_IN pin) : SV_TARGET
         spec += S;
     }
 
-    float4 color = texColor * (ambient + diffuse) + spec;
+    ComputePointLight(
+        material,
+        gPointLights[0],
+        pin.posW,
+        normalW,
+        toEyeW,
+        0.0f,             // specular map value
+        A, D, S);
+
+    ambient += A;
+    diffuse += D;
+    spec += S;
+
+    // sum the light contribution from each point light source
+
+
+    // compute light from the flashlight
+    if (gTurnOnFlashLight)
+    {
+        ComputeSpotLight(
+            material,
+            gSpotLights[0],
+            pin.posW,
+            normalW,
+            toEyeW,
+            0.0f,             // specular map value
+            A, D, S);
+
+        ambient += A;
+        diffuse += D;
+        spec += S;
+    }
+
+    ComputeSpotLight(
+        material,
+        gSpotLights[1],
+        pin.posW,
+        normalW,
+        toEyeW,
+        0.0f,             // specular map value
+        A, D, S);
+
+    ComputeSpotLight(
+        material,
+        gSpotLights[2],
+        pin.posW,
+        normalW,
+        toEyeW,
+        0.0f,             // specular map value
+        A, D, S);
+
+
+    ambient += A;
+    diffuse += D;
+    spec += S;
+
+    
+    // sum the light contribution from each spot light source
+    for (i = 1; i < gCurrNumSpotLights; ++i)
+    {
+        ComputeSpotLight(
+            material,
+            gSpotLights[i],
+            pin.posW,
+            normalW, 
+            toEyeW,
+            0.0f,             // specular map value
+            A, D, S);
+
+        ambient += A;
+        diffuse += D;
+        spec += S;
+    }
+
+    //float texAlpha = texColor.a;
+    float4 color = float4(texColor.xyz * (ambient + diffuse).xyz, texColor.a);
+    //color.a = texAlpha;
+
+    // ------------------------------------------
+
+    // TEMP: hacky fix for the vector to sample the proper pixel of sky
+    float3 vec = -toEyeW;
+    vec.y -= 490;
+
+
+    // blend sky pixel color with fixed fog color
+    float4 skyBottomColor = gCubeMap.Sample(gSkySampler, vec);
+    float4 fogColor = skyBottomColor * float4(gFixedFogColor, 1.0f);
+
 
     if (gFogEnabled)
     {
