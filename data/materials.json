@@ -1,0 +1,179 @@
+{
+	"materials": [
+		{
+			"name":                 "cat",
+			"shader_id":            3,
+			"textures": [
+				{ "diff":           "cat.dds" },
+				{ "norm":           "blank_NRM.dds" }
+			]
+		},
+		{
+			"name":                 "grass_0",
+			"shader_id":            4,
+			"textures": [
+				{ "diff":           "plants/grassPack.dds" },
+				{ "norm":           "blank_NRM.dds" }
+			],
+			"states": [
+				{ "alpha_clip":     true },
+				{ "cull":           "none" },
+				{ "blend":          "alpha_to_coverage" },
+				{ "blend":          "disabled" }
+			]
+		},
+		{
+			"name":                 "grass_1",
+			"shader_id":            4,
+			"textures": [
+				{ "diff":           "plants/build_details.dds" },
+				{ "norm":           "blank_NRM.dds" }
+			],
+			"states": [
+				{ "alpha_clip":     true },
+				{ "cull":           "none" }
+			]
+		},
+		{
+			"name":                 "firecamp",
+			"shader_id":            3,
+			"textures": [
+				{ "diff":           "fire_atlas.dds" },
+				{ "norm":           "blank_NRM.dds" }
+			]
+		},
+		{
+			"name":                 "wood_crate_1",
+			"shader_id":            3,
+			"textures": [
+				{ "diff":           "woodCrate01.dds" },
+				{ "norm":           "blank_NRM.dds" }
+			]
+		},
+		{
+			"name":                 "wood_crate_2",
+			"shader_id":            3,
+			"textures": [
+				{ "diff":           "woodCrate02.dds" },
+				{ "norm":           "blank_NRM.dds" }
+			]
+		},
+		{
+			"name":                 "box01",
+			"shader_id":            3,
+			"colors": [
+				{ "ambient":        [0.2, 0.2, 0.2, 1.0] },
+				{ "diffuse":        [0.9, 0.9, 0.9, 1.0] },
+				{ "specular":       [0.14, 0.14, 0.14] },
+				{ "glossiness":     1.0 }
+			],
+			"textures": [
+				{ "diff":           "box01d.dds" },
+				{ "norm":           "box01n.dds" }
+			]
+		},
+		{
+			"name":                 "brick_01",
+			"shader_id":            3,
+			"colors": [
+				{ "ambient":        [0.4, 0.4, 0.4, 1.0] },
+				{ "diffuse":        [0.9, 0.9, 0.9, 1.0] },
+				{ "reflection":     [0.0, 0.0, 0.0, 1.0] },
+				{ "glossiness":     1.0 }
+			],
+			"textures": [
+				{ "diff":           "brick01d.dds" },
+				{ "norm":           "brick01n.dds" }
+			]
+		},
+		{
+			"name":                 "brick_blend_add",
+			"shader_id":            3,
+			"textures": [
+				{ "diff":           "brick01d.dds" },
+				{ "norm":           "brick01n.dds" }
+			],
+			"states": [
+				{ "blend":          "add" }
+			]
+		},
+		{
+			"name":                 "brick_blend_sub",
+			"shader_id":            3,
+			"textures": [
+				{ "diff":           "brick01d.dds" },
+				{ "norm":           "brick01n.dds" }
+			],
+			"states": [
+				{ "blend":          "sub" }
+			]
+		},
+		{
+			"name":                 "brick_blend_mul",
+			"shader_id":            3,
+			"textures": [
+				{ "diff":           "brick01d.dds" },
+				{ "norm":           "brick01n.dds" }
+			],
+			"states": [
+				{ "blend":          "mul" }
+			]
+		},
+		{
+			"name":                 "brick_blend_transparent",
+			"shader_id":            3,
+			"textures": [
+				{ "diff":           "brick01d.dds" },
+				{ "norm":           "brick01n.dds" }
+			],
+			"states": [
+				{ "blend":          "transparency" }
+			]
+		},
+		{
+			"name":                 "mirror",
+			"shader_id":            3,
+			"colors": [
+				{ "reflection":      [1.0, 1.0, 1.0, 1.0] }
+			],
+			"textures": [
+				{ "diff":           "gray.png" },
+				{ "norm":           "blank_NRM.dds" }
+			]
+		},
+		{
+			"name":                 "flameMat",
+			"shader_id":            5,
+			"textures": [
+				{ "diff":           "flame0.dds" }
+			],
+			"states": [
+				{ "blend":          "add" },
+				{ "depth_stencil":  "mark_mirror" }
+			]
+		},
+		{
+			"name":                 "flareMat",
+			"shader_id":            5,
+			"textures": [
+				{ "diff":           "flare.png" }
+			],
+			"states": [
+				{ "blend":          "add" },
+				{ "depth_stencil":  "mark_mirror" }
+			]
+		},
+		{
+			"name":                 "wirefence",
+			"shader_id":            3,
+			"textures": [
+				{ "diff":           "wireFence.dds" },
+				{ "norm":           "blank_NRM.dds" }
+			],
+			"states": [
+				{ "alpha_clip":     true },
+				{ "cull":           "none" }
+			]
+		}
+	]
+}

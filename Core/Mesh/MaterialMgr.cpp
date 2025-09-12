@@ -61,13 +61,13 @@ Material& MaterialMgr::AddMaterial(const char* matName)
         return materials_[INVALID_MATERIAL_ID];
     }
 
-    Material& mat = GetMatByName(matName);
+    //Material& mat = GetMatByName(matName);
 
     // if input name isn't unique just return already existed material by this name
-    if (mat.id != INVALID_MATERIAL_ID)
-    {
-        return mat;
-    }
+    //if (mat.id != INVALID_MATERIAL_ID)
+    //{
+    //    return mat;
+    //}
 
     // generate a new id
     const MaterialID id = lastMaterialID_;
@@ -185,6 +185,7 @@ Material& MaterialMgr::GetMatByName(const char* matName)
     }
 
     // if we didn't find any material by input name
+    LogErr(LOG, "there is no material by name: %s", matName);
     return materials_[INVALID_MATERIAL_ID];
 }
 

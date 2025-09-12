@@ -89,11 +89,11 @@ float4 PS(PS_IN pin) : SV_Target
     float3 vec = -toEyeW;
     vec.y -= 490;
 
-    
+
 
     // blend sky pixel color with fixed fog color
     float4 skyBottomColor = gCubeMap.Sample(gSkySampler, vec);
-    float4 fogColor    = skyBottomColor * float4(gFixedFogColor, 1.0f);
+    float4 fogColor = skyBottomColor * float4(gFixedFogColor, 1.0f);
 
 
     // return blended fixed fog color with the sky color at this pixel
@@ -104,11 +104,12 @@ float4 PS(PS_IN pin) : SV_Target
     }
 
     float4 diffTex = gTextures[1].Sample(gBasicSampler, pin.tex);
-    float4 specTex = float4(0,0,0,0);//gTextures[2].Sample(gBasicSampler, pin.tex);
+    //float4 specTex = float4(0,0,0,0);//gTextures[2].Sample(gBasicSampler, pin.tex);
+    float4 specTex = gTextures[2].Sample(gBasicSampler, pin.tex);
 
     // execute alpha clipping
     if (gAlphaClipping)
-        clip(diffTex.a - 0.1f);
+        clip(diffTex.a - 0.5f);
 
 
     // --------------------  NORMAL MAP   --------------------
@@ -126,7 +127,7 @@ float4 PS(PS_IN pin) : SV_Target
     // start with a sum of zero
     float4 ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
     float4 diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);
-    float4 spec    = float4(0.0f, 0.0f, 0.0f, 0.0f);
+    float4 spec = float4(0.0f, 0.0f, 0.0f, 0.0f);
 
     // sum the light contribution from each light source (ambient, diffuse, specular)
     float4 A, D, S;
@@ -136,28 +137,32 @@ float4 PS(PS_IN pin) : SV_Target
     // sum the light contribution from each directional light source
     for (int i = 0; i < gNumOfDirLights; ++i)
     {
+        float diffuseFactor = dot(-gDirLights[i].direction, normalW);
+
         ComputeDirectionalLight(
             material,
             gDirLights[i],
-            bumpedNormalW,
+            (diffuseFactor > 0) ? bumpedNormalW : normalW,
             toEyeW,
-            0.0f,             // specular map value
+            specTex.r,             // specular map value
             A, D, S);
 
         ambient += A;
         diffuse += D;
         spec += S;
     }
-    
-    
+
+
     // sum the light contribution from each point light source
     for (i = 0; i < gCurrNumPointLights; ++i)
     {
+        float diffuseFactor = dot(gPointLights[i].position - pin.posW, normalW);
+
         ComputePointLight(
             material,
             gPointLights[i],
             pin.posW,
-            bumpedNormalW,
+            (diffuseFactor > 0) ? bumpedNormalW : normalW,
             toEyeW,
             specTex.rgb,
             A, D, S);
@@ -166,8 +171,8 @@ float4 PS(PS_IN pin) : SV_Target
         diffuse += D;
         spec += S;
     }
-    
-    
+
+
     // compute light from the flashlight
     if (gTurnOnFlashLight)
     {
@@ -175,7 +180,7 @@ float4 PS(PS_IN pin) : SV_Target
             material,
             gSpotLights[0],
             pin.posW,
-            bumpedNormalW, 
+            bumpedNormalW,
             toEyeW,
             0.0f,      // specular map value
             A, D, S);
@@ -185,7 +190,7 @@ float4 PS(PS_IN pin) : SV_Target
         spec += S;
     }
 
-    
+
     // sum the light contribution from each spot light source
     for (i = 1; i < gCurrNumSpotLights; ++i)
     {
@@ -202,9 +207,9 @@ float4 PS(PS_IN pin) : SV_Target
         diffuse += D;
         spec += S;
     }
-    
-    
-    
+
+
+
     // modulate with late add
     float4 litColor = diffTex * (ambient + diffuse) + spec;
 
@@ -230,5 +235,5 @@ float4 PS(PS_IN pin) : SV_Target
     }
 
     return litColor;
-    
+
 }

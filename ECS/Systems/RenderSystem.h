@@ -23,6 +23,7 @@ public:
         const size numEntts);
 
     void RemoveRecords(const EntityID* ids, const size numEntts);
+    void RemoveRecord(const EntityID id);
 
 
     // clear an arr of entities that were visible in the previous frame;

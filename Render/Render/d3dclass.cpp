@@ -278,32 +278,44 @@ void D3DClass::InitializeDirectX(
 }
 
 //---------------------------------------------------------
-// Desc:  initialize DirectX11 device and device context
+// Desc:  initialize DirectX11 device and device context;
+//        also it check the quality level support for 4X MSAA.
 //---------------------------------------------------------
 void D3DClass::InitializeDevice()
 {
-    // creates the Direct3D 11 device and context;
-    // also it check the quality level support for 4X MSAA.
-
-    D3D_FEATURE_LEVEL featureLevel;
+    D3D_FEATURE_LEVEL actualFeatureLevel;
     UINT createDeviceFlags = 0;
 
 #if defined(DEBUG) || defined(_DEBUG)
     createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
+    const D3D_FEATURE_LEVEL featureLevels[] = {
+        D3D_FEATURE_LEVEL_11_1,
+        D3D_FEATURE_LEVEL_11_0,
+        D3D_FEATURE_LEVEL_10_1,
+        D3D_FEATURE_LEVEL_10_0,
+        D3D_FEATURE_LEVEL_9_3,
+        D3D_FEATURE_LEVEL_9_2,
+        D3D_FEATURE_LEVEL_9_1
+    };
+
+    const UINT numFeatureLevels = ARRAYSIZE(featureLevels);
+
+
     IDXGIAdapter* pAdapter = adaptersReader_.GetDXGIAdapterByIdx(displayAdapterIndex_);
 
     HRESULT hr = D3D11CreateDevice(
-        pAdapter,
-        D3D_DRIVER_TYPE_UNKNOWN,
-        0,                                          // no software device
-        createDeviceFlags,
-        0, 0,                                       // default feature level array
-        D3D11_SDK_VERSION,
-        &pDevice_,
-        &featureLevel,
-        &pContext_);
+        pAdapter,                         // adapter (null for default)
+        D3D_DRIVER_TYPE_UNKNOWN,          // driver type
+        nullptr,                          // software rasterizer (nullptr for hardware)
+        createDeviceFlags,                // flags
+        featureLevels,                    // arr of feature levels to try
+        numFeatureLevels,                 // number of feature levels in the arr
+        D3D11_SDK_VERSION,                // SDK version
+        &pDevice_,                        // pointer to the device
+        &actualFeatureLevel,              // pointer to the actual feature level created
+        &pContext_);                      // pointer to the immediate context
 
     if (FAILED(hr))
     {
@@ -311,9 +323,9 @@ void D3DClass::InitializeDevice()
         exit(0);
     }
 
-    if (featureLevel != D3D_FEATURE_LEVEL_11_0)
+    if (actualFeatureLevel < D3D_FEATURE_LEVEL_10_0)
     {
-        LogErr(LOG, "the engine supports only Direct3D Feature Level 11");
+        LogErr(LOG, "the engine supports Direct3D Feature Level >= 10_0 (your level is %u; look at D3D_FEATURE_LEVEL enum)", (UINT)actualFeatureLevel);
         exit(0);
     }
 

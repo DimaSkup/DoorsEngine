@@ -164,11 +164,11 @@ public:
     // ----------------------------------------------------
     inline uint8 GetPixelGray(const int x, const int y) const
     {
-#if (_DEBUG || DEBUG) && 0
+#if (_DEBUG || DEBUG)
         const uint imageSize = width_ * height_;
         const uint idx       = (y * width_) + x;
 
-        return (idx < imageSize) ? pixels_[idx] : 0;
+        return pixels_[idx * (idx < imageSize)];
 #else
         return pixels_[(y * width_) + x];
 #endif

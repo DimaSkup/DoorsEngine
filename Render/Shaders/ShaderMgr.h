@@ -25,10 +25,12 @@ public:
     bool Init(
         ID3D11Device* pDevice,
         ID3D11DeviceContext* pContext,
-        const DirectX::XMMATRIX& WVO);
+        const DirectX::XMMATRIX& WVO,
+        const bool forceRuntimeCompilation = false);
 
-    bool AddShader (ID3D11Device* pDevice, const ShaderInitParams* initParams);
+    bool HotReload(ID3D11Device* pDevice);
 
+  
     void BindVertexBuffer(
         ID3D11DeviceContext* pContext,
         ID3D11Buffer* pVB,
@@ -56,12 +58,19 @@ public:
 
 
     // getters
-    Shader*     GetShaderById    (const ShaderID id);
+    Shader*     GetShaderById(const ShaderID id);
     Shader*     GetShaderByName  (const char* name) const;
     ShaderID    GetShaderIdByName(const char* name) const;
     const char* GetShaderNameById(const ShaderID id);
 
+
     inline const std::map<ShaderID, Shader*>& GetMapIdsToShaders() const { return idToShader_; }
+
+    inline const VertexInputLayoutMgr& GetInputLayoutsMgr() const { return inputLayoutsMgr_; }
+
+private:
+    bool AddShader(ID3D11Device* pDevice, const ShaderInitParams* initParams);
+
 
 private:
     VertexInputLayoutMgr         inputLayoutsMgr_;

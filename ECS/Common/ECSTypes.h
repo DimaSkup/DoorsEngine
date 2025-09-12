@@ -38,6 +38,7 @@ enum eComponentType
 
     PlayerComponent,               // to hold First-Person-Shooter (FPS) player's data
     ParticlesComponent,
+    InventoryComponent,
 
     // NOT IMPLEMENTED YET
     AIComponent,

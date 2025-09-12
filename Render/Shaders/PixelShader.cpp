@@ -5,7 +5,7 @@
 #include "../Common/pch.h"
 #include "PixelShader.h"
 #include "ShaderCompiler.h"
-
+#pragma warning (disable : 4996)
 
 namespace Render
 {
@@ -64,7 +64,7 @@ bool PixelShader::LoadPrecompiled(ID3D11Device* pDevice, const char* path)
 //         compile an HLSL shader by shaderPath and reinit shader object
 // Args:   - shaderPath:     a path to HLSL shader relatively to the working directory
 //         - funcName:       what function from the shader we want to compile
-//         - shaderProfile:  what HLSL shader profile we want to use
+//         - shaderModel:    what HLSL shader model we want to use
 //         - layoutDesc:     description for the vertex input layout
 //         - layoutElemNum:  how many elems we have in the input layout
 //---------------------------------------------------------
@@ -72,9 +72,9 @@ bool PixelShader::CompileFromFile(
     ID3D11Device* pDevice,
     const char* shaderPath,
     const char* funcName,
-    const char* shaderProfile)
+    const char* shaderModel)
 {
-    if (StrHelper::IsEmpty(shaderPath) || StrHelper::IsEmpty(funcName) || StrHelper::IsEmpty(shaderProfile))
+    if (StrHelper::IsEmpty(shaderPath) || StrHelper::IsEmpty(funcName) || StrHelper::IsEmpty(shaderModel))
     {
         LogErr(LOG, "input arguments are invalid: some string is empty");
         return false;
@@ -84,6 +84,11 @@ bool PixelShader::CompileFromFile(
     ID3D10Blob*        pShaderBuffer = nullptr;
     ID3D11PixelShader* pShader = nullptr;
     HRESULT hr = S_OK;
+
+    // generate full shader profile for this shader
+    char shaderProfile[8]{ '\0' };
+    strcat(shaderProfile, "ps_");
+    strcat(shaderProfile, shaderModel);
 
     // compile a pixel shader and load bytecode into the buffer
     hr = ShaderCompiler::CompileShaderFromFile(

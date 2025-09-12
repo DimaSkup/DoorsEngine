@@ -4,6 +4,12 @@
 // =================================================================================
 
 //--------------------------------
+// GLOBALS
+//--------------------------------
+Texture2D    gPerlinNoise   : register(t1);
+SamplerState gBasicSampler  : register(s0);
+
+//--------------------------------
 // CONSTANT BUFFERS
 //--------------------------------
 cbuffer cbPerFrame : register(b0)
@@ -40,7 +46,7 @@ struct GS_OUT
 //--------------------------------
 // GEOMETRY SHADER
 //--------------------------------
-[maxvertexcount(12)]
+[maxvertexcount(18)]
 void GS(
     point GS_IN gin[1],
     uint primID : SV_PrimitiveID,
@@ -48,8 +54,6 @@ void GS(
 {
     // we expand each point into 3 quads (12 vertices), so the maximum number
     // of vertices we output per geometry shader invocation is 12
-
-    GS_OUT gout;
 
     // a vector in the world space from vertex to eye pos
     float3 toEyeW = gEyePosW - gin[0].posW;
@@ -87,6 +91,11 @@ void GS(
         float3(+0.707, 0.000, -0.707),
         float3(-0.707, 0.000, -0.707)
     };
+
+    for (int idx = 0; idx < 3; idx++)
+        if (dot(toEyeW, vNorm[idx]) < 0)
+            vNorm[idx] = -vNorm[idx];
+
 
     float  grassPatchSize = 5.0f;
     float  windStrength   = 2.0f;
@@ -138,11 +147,14 @@ void GS(
         windPower *= 0.05;
 
     float3 vWindFactor = windDirection * (windPower * windStrength);
+    float halfHeight = sizeY * 0.5f;
+    float heightOffset = sizeY * 0.4f;
+    
 
     [unroll]
     for (int i = 0; i < 3; i++)
     {       
-        float halfHeight  = sizeY * 0.5f;
+        
         float offsetX     = vBaseDir[i].x * sizeX * 0.5f;
         float offsetZ     = vBaseDir[i].z * sizeX * 0.5f;
 
@@ -162,26 +174,68 @@ void GS(
         v[3] = gin[0].posW + float3(-offsetX, halfHeight, -offsetZ) + vWindFactor;
      
  
-        v[0].y += halfHeight;
-        v[1].y += halfHeight;
-        v[2].y += halfHeight;
-        v[3].y += halfHeight;
+        v[0].y += heightOffset;
+        v[1].y += heightOffset;
+        v[2].y += heightOffset;
+        v[3].y += heightOffset;
 
         // transform quad vertices to world space and output them as a triangle strip
 
 
-        [unroll]
-        for (int vIdx = 0; vIdx < 4; ++vIdx)
-        {
-            
+        //[unroll]
+        //for (int vIdx = 0; vIdx < 4; ++vIdx)
+        //{
+
+            GS_OUT p0;
+            GS_OUT p1;
+            GS_OUT p2;
+            GS_OUT p3;
+
+            p0.posH = mul(float4(v[0], 1.0f), gViewProj);
+            p1.posH = mul(float4(v[1], 1.0f), gViewProj);
+            p2.posH = mul(float4(v[2], 1.0f), gViewProj);
+            p3.posH = mul(float4(v[3], 1.0f), gViewProj);
+
+            p0.posW = v[0];
+            p1.posW = v[1];
+            p2.posW = v[2];
+            p3.posW = v[3];
+
+            p0.normal = vNorm[i];
+            p1.normal = vNorm[i];
+            p2.normal = vNorm[i];
+            p3.normal = vNorm[i];
+
+            p0.tex = gTexC[0];
+            p1.tex = gTexC[1];
+            p2.tex = gTexC[2];
+            p3.tex = gTexC[3];
+
+            p0.primID = primID;
+            p1.primID = primID;
+            p2.primID = primID;
+            p3.primID = primID;
+
+            /*
             gout.posH   = mul(float4(v[vIdx], 1.0f), gViewProj);
             gout.posW   = v[vIdx];
-            gout.normal = vNorm[i];
+            gout.normal = vNorm[i];// vNorm[i];
             gout.tex    = gTexC[vIdx];
             gout.primID = primID;
+            */
+            triStream.Append(p0);
+            triStream.Append(p1);
+            triStream.Append(p2);
+            triStream.RestartStrip();
 
-            triStream.Append(gout);
-        }
+            triStream.Append(p2);
+            triStream.Append(p1);
+            triStream.Append(p3);
+            triStream.RestartStrip();
+
+
+            
+        //}
     }
   
 }

@@ -389,11 +389,11 @@ void RenderDataPreparator::PrepareEnttsDataForRendering(
         // define to which rendering group does this instance belongs to:
 
         // 1. blending group (add / sub / mul)
-        if (pMat->renderStates & MAT_BLENDING_NOT_TRANSPARENT)
+        if (pMat->renderStates & MAT_BLEND_NOT_TRANSPARENT)
             blendGroup.push_back(data[i]);
 
         // 2. blending group (transparency)
-        else if (pMat->renderStates & MAT_PROP_TRANSPARENCY)
+        else if (pMat->renderStates & MAT_PROP_BS_TRANSPARENCY)
             blendTransparentGroup.push_back(data[i]);
 
         // 3. masked / alpha clipping group

@@ -36,6 +36,7 @@ struct PlayerData
     float yaw = 0.0f;
     float jumpOffset = 0.0f;
     float minVerticalOffset = 0;
+    EntityID activeWeaponId = INVALID_ENTITY_ID;
 
     uint64 playerStates_ = 0;
 

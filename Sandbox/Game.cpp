@@ -196,6 +196,12 @@ void Game::HandleGameEventKeyboard()
                 break;
             }
             case KEY_SHIFT:
+            case KEY_1:
+            case KEY_2:
+            case KEY_3:
+            case KEY_4:
+            case KEY_5:
+            case KEY_6:
             case KEY_A:
             case KEY_D:
             case KEY_L:
@@ -236,6 +242,37 @@ void Game::HandlePlayerActions(const eKeyCodes code)
     
     switch (code)
     {
+        // switch weapon
+        case KEY_1:
+        case KEY_2:
+        case KEY_3:
+        case KEY_4:
+        case KEY_5:
+        case KEY_6:
+        {
+            
+            if (!pEngine_->GetKeyboard().WasPressedBefore(code))
+            {
+                const int itemIdx = (int)code - (int)KEY_1;
+
+                ECS::InventorySystem& inventorySys = pEnttMgr_->inventorySystem_;
+                ECS::PlayerSystem& playerSys       = pEnttMgr_->playerSystem_;
+
+                const EntityID playerId            = playerSys.GetPlayerID();
+                const EntityID prevWeaponId        = playerSys.GetActiveWeapon();
+                const EntityID itemId              = inventorySys.GetItemByIdx(playerId, itemIdx);
+
+                playerSys.SetActiveWeapon(itemId);
+
+                pEnttMgr_->RemoveComponent(prevWeaponId, ECS::RenderedComponent);
+                pEnttMgr_->AddRenderingComponent(itemId);
+
+                const char* itemName = pEnttMgr_->nameSystem_.GetNameById(itemId);
+                printf("%s switch to weapon: %s%s\n", YELLOW, itemName, RESET);
+            }
+            break;
+        }
+
         case KEY_SHIFT:
         {
             pEnttMgr_->AddEvent(EventPlayerRun(true));

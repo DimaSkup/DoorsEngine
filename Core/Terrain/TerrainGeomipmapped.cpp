@@ -23,7 +23,7 @@ namespace Core
 // 0 - we don't execute any smoothing computations during terrain initialization
 // 1 - mid smothing
 // 2 - hard smoothing
-constexpr int TERRAIN_SMOOTHING_LEVEL = 2;
+constexpr int TERRAIN_SMOOTHING_LEVEL = 0;
 
 
 //---------------------------------------------------------

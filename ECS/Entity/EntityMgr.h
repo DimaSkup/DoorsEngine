@@ -1,6 +1,6 @@
 // **********************************************************************************
 // Filename:     EntityMgr.h
-// Description:
+// Description:  an entity manager for component-centric ECS (entity-component-system)
 // 
 // Created:
 // **********************************************************************************
@@ -20,6 +20,7 @@
 #include "../Components/Camera.h"
 #include "../Components/Player.h"
 #include "../Components/Hierarchy.h"
+#include "../Components/Inventory.h"
 
 // systems (ECS)
 #include "../Systems/TransformSystem.h"
@@ -34,6 +35,7 @@
 #include "../Systems/CameraSystem.h"
 #include "../Systems/PlayerSystem.h"
 #include "../Systems/HierarchySystem.h"
+#include "../Systems/InventorySystem.h"
 
 // particles stuff
 #include "../Systems/Particles/ParticleSystem.h"
@@ -73,6 +75,8 @@ public:
 
     void                Update(const float totalGameTime, const float deltaTime);
     void                AddEvent(const Event& e);
+
+    void                RemoveComponent(const EntityID id, eComponentType component);
 
 
     // =============================================================================
@@ -173,12 +177,11 @@ public:
         const BoundingType* types,           // AABB type per mesh
         const DirectX::BoundingBox* AABBs);  // AABB per mesh
 
-    void AddCameraComponent(const EntityID id, const CameraData& data);
-
-    void AddPlayerComponent(const EntityID id);
-
-    // add ParticlesEmitter component
+    void AddCameraComponent         (const EntityID id, const CameraData& data);
+    void AddPlayerComponent         (const EntityID id);
     void AddParticleEmitterComponent(const EntityID id);
+    void AddInventoryComponent      (const EntityID id);
+
 
 
     // =============================================================================
@@ -242,6 +245,7 @@ public:
     PlayerSystem            playerSystem_;
     HierarchySystem         hierarchySystem_;
     ParticleSystem          particleSystem_;
+    InventorySystem         inventorySystem_;
     
 
     // "ID" of an entity is just a numeral index
@@ -269,6 +273,7 @@ private:
     Bounding         bounding_;
     Camera           camera_;
     Hierarchy        hierarchy_;
+    Inventory        inventory_;
 };
 
 };

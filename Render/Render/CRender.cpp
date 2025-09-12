@@ -6,6 +6,7 @@
 #include "../Common/pch.h"
 #include "CRender.h"
 #include "d3dclass.h"
+#include "../Shaders/Shader.h"
 
 using XMFLOAT3 = DirectX::XMFLOAT3;
 using XMFLOAT4 = DirectX::XMFLOAT4;
@@ -279,6 +280,8 @@ bool CRender::InitSamplers(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 
     // bind samplers
+    pContext->GSSetSamplers(0, 1, basicSampler_.GetAddressOf());
+
     pContext->PSSetSamplers(0, 1, basicSampler_.GetAddressOf());
     pContext->PSSetSamplers(1, 1, skySampler_.GetAddressOf());
 
@@ -292,17 +295,7 @@ bool CRender::InitSamplers(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 //---------------------------------------------------------
 bool CRender::ShadersHotReload(ID3D11Device* pDevice)
 {
-    try
-    {
-        LogDbg(LOG, "shaders are hot reloaded");
-
-        return true;
-    }
-    catch (EngineException& e)
-    {
-        LogErr(e, true);
-        return false;
-    }
+    return shaderMgr_.HotReload(pDevice);
 }
 
 
@@ -630,9 +623,11 @@ void CRender::SetDirLightsCount(ID3D11DeviceContext* pContext, int numOfLights)
 //---------------------------------------------------------
 bool CRender::SetGrassDistFullSize(const float dist)
 {
-    if ((dist < 0) || (dist > cbgsGrassParams_.data.distGrassVisible))
+    const float distVisible = cbgsGrassParams_.data.distGrassVisible;
+
+    if ((dist < 0) || (dist > distVisible))
     {
-        LogErr(LOG, "can't set distance for full sized grass (input dist == %f)", dist);
+        LogErr(LOG, "can't set distance for full sized grass (input dist == %f; must be <= %f)", dist, distVisible);
         return false;
     }
 
@@ -646,9 +641,11 @@ bool CRender::SetGrassDistFullSize(const float dist)
 //---------------------------------------------------------
 bool CRender::SetGrassDistVisible(const float dist)
 {
-    if ((dist < 0) || (dist < cbgsGrassParams_.data.distGrassFullSize))
+    const float distFullSize = cbgsGrassParams_.data.distGrassFullSize;
+
+    if ((dist < 0) || (dist < distFullSize))
     {
-        LogErr(LOG, "can't set grass visibility distance (input dist == %f)", dist);
+        LogErr(LOG, "can't set grass visibility distance (input dist == %f; must be >= %f)", dist, distFullSize);
         return false;
     }
 

@@ -29,11 +29,20 @@ public:
     EntityID    GetIdByName(const char* name) const;
     const char* GetNameById(const EntityID& id) const;
 
-private:
-    // check if input name is unique
+
+    //-----------------------------------------------------
+    // Desc:   check if input name is unique
+    //-----------------------------------------------------
     inline bool IsUnique(const char* name) const
     {
-        return (GetIdByName(name) == INVALID_ENTITY_ID);
+        if (!name || name[0] == '\0')
+        {
+            LogErr(LOG, "input name is empty");
+            return false;
+        }
+
+        // if there is no such a name its idx == -1 (so it is a unique name)
+        return pNameComponent_->names_.find(name) == -1;
     }
 
 private:

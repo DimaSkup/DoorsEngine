@@ -105,6 +105,46 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <Profile>true</Profile>
     </Link>
+    <PostBuildEvent>
+      <Command>if not exist "$(SolutionDir)build\$(IntDir)data\"                         mkdir "$(SolutionDir)build\$(IntDir)data"
+if not exist "$(SolutionDir)build\$(IntDir)data\models\"          mkdir "$(SolutionDir)build\$(IntDir)data\models\"
+if not exist "$(SolutionDir)build\$(IntDir)data\terrain\"            mkdir "$(SolutionDir)build\$(IntDir)data\terrain\"
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders"            mkdir "$(SolutionDir)build\$(IntDir)data\shaders"
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders\hlsl"    mkdir "$(SolutionDir)build\$(IntDir)data\shaders\hlsl"
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\models\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\models\" "$(SolutionDir)build\$(IntDir)data\models\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\particles\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\particles\" "$(SolutionDir)build\$(IntDir)data\particles\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\terrain\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\terrain\" "$(SolutionDir)build\$(IntDir)data\terrain\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\textures\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\textures\" "$(SolutionDir)build\$(IntDir)data\textures\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\ui\" | findstr .&gt;nul || ( 
+  xcopy /Y "$(SolutionDir)data\ui\" "$(SolutionDir)build\$(IntDir)data\ui\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)Render\hlsl\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)Render\hlsl\" "$(SolutionDir)build\$(IntDir)data\shaders\hlsl" /E
+)
+
+if not exist "$(SolutionDir)build\$(IntDir)data\materials.json"      xcopy /Y /f "$(SolutionDir)data\materials.json"                "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\settings.txt"           xcopy /Y /f "$(SolutionDir)data\settings.txt"                     "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\sky.cfg"                  xcopy /Y /f "$(SolutionDir)data\sky.cfg"                            "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mtd.dll" xcopy /Y /f "$(SolutionDir)Core\assimp-vc143-mtd.dll"  "$(SolutionDir)build\$(IntDir)"
+
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders\shaders.json"           xcopy /Y /f "$(SolutionDir)data\shaders\shaders.json"            "$(SolutionDir)build\$(IntDir)data\shaders"
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders\input_layouts.json" xcopy /Y /f "$(SolutionDir)data\shaders\input_layouts.json" "$(SolutionDir)build\$(IntDir)data\shaders"
+</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -128,19 +168,44 @@
       <Profile>true</Profile>
     </Link>
     <PostBuildEvent>
-      <Command>if not exist "$(SolutionDir)build\$(IntDir)data" mkdir "$(SolutionDir)build\$(IntDir)data"
+      <Command>if not exist "$(SolutionDir)build\$(IntDir)data\"                         mkdir "$(SolutionDir)build\$(IntDir)data"
+if not exist "$(SolutionDir)build\$(IntDir)data\models\"          mkdir "$(SolutionDir)build\$(IntDir)data\models\"
+if not exist "$(SolutionDir)build\$(IntDir)data\terrain\"            mkdir "$(SolutionDir)build\$(IntDir)data\terrain\"
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders"            mkdir "$(SolutionDir)build\$(IntDir)data\shaders"
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders\hlsl"    mkdir "$(SolutionDir)build\$(IntDir)data\shaders\hlsl"
 
-dir /b /s /a "$(SolutionDir)build\$(IntDir)data\" | findstr .&gt;nul || (
-  xcopy /Y "$(SolutionDir)data" "$(SolutionDir)build\$(IntDir)data" /E
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\models\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\models\" "$(SolutionDir)build\$(IntDir)data\models\" /E
 )
 
-if not exist "$(SolutionDir)build\$(IntDir)data\models" mkdir "$(SolutionDir)build\$(IntDir)data\models"
-
-dir /b /s /a "$(SolutionDir)build\$(IntDir)data\models" | findstr .&gt;nul || (
-  xcopy /Y "$(SolutionDir)data\models" "$(SolutionDir)build\$(IntDir)data\models" /E
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\particles\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\particles\" "$(SolutionDir)build\$(IntDir)data\particles\" /E
 )
 
-if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mtd.dll" xcopy /Y /f "$(SolutionDir)Core\assimp-vc143-mtd.dll" "$(SolutionDir)build\$(IntDir)"</Command>
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\terrain\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\terrain\" "$(SolutionDir)build\$(IntDir)data\terrain\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\textures\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\textures\" "$(SolutionDir)build\$(IntDir)data\textures\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\ui\" | findstr .&gt;nul || ( 
+  xcopy /Y "$(SolutionDir)data\ui\" "$(SolutionDir)build\$(IntDir)data\ui\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)Render\hlsl\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)Render\hlsl\" "$(SolutionDir)build\$(IntDir)data\shaders\hlsl" /E
+)
+
+if not exist "$(SolutionDir)build\$(IntDir)data\materials.json"      xcopy /Y /f "$(SolutionDir)data\materials.json"                "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\settings.txt"           xcopy /Y /f "$(SolutionDir)data\settings.txt"                     "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\sky.cfg"                  xcopy /Y /f "$(SolutionDir)data\sky.cfg"                            "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mtd.dll" xcopy /Y /f "$(SolutionDir)Core\assimp-vc143-mtd.dll"  "$(SolutionDir)build\$(IntDir)"
+
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders\shaders.json"           xcopy /Y /f "$(SolutionDir)data\shaders\shaders.json"            "$(SolutionDir)build\$(IntDir)data\shaders"
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders\input_layouts.json" xcopy /Y /f "$(SolutionDir)data\shaders\input_layouts.json" "$(SolutionDir)build\$(IntDir)data\shaders"
+</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>
@@ -167,6 +232,46 @@ if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mtd.dll" xcopy /Y /f "$(
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PostBuildEvent>
+      <Command>if not exist "$(SolutionDir)build\$(IntDir)data\"                         mkdir "$(SolutionDir)build\$(IntDir)data"
+if not exist "$(SolutionDir)build\$(IntDir)data\models\"          mkdir "$(SolutionDir)build\$(IntDir)data\models\"
+if not exist "$(SolutionDir)build\$(IntDir)data\terrain\"            mkdir "$(SolutionDir)build\$(IntDir)data\terrain\"
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders"            mkdir "$(SolutionDir)build\$(IntDir)data\shaders"
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders\hlsl"    mkdir "$(SolutionDir)build\$(IntDir)data\shaders\hlsl"
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\models\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\models\" "$(SolutionDir)build\$(IntDir)data\models\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\particles\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\particles\" "$(SolutionDir)build\$(IntDir)data\particles\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\terrain\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\terrain\" "$(SolutionDir)build\$(IntDir)data\terrain\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\textures\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\textures\" "$(SolutionDir)build\$(IntDir)data\textures\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\ui\" | findstr .&gt;nul || ( 
+  xcopy /Y "$(SolutionDir)data\ui\" "$(SolutionDir)build\$(IntDir)data\ui\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)Render\hlsl\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)Render\hlsl\" "$(SolutionDir)build\$(IntDir)data\shaders\hlsl" /E
+)
+
+if not exist "$(SolutionDir)build\$(IntDir)data\materials.json"      xcopy /Y /f "$(SolutionDir)data\materials.json"                "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\settings.txt"           xcopy /Y /f "$(SolutionDir)data\settings.txt"                     "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\sky.cfg"                  xcopy /Y /f "$(SolutionDir)data\sky.cfg"                            "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mtd.dll" xcopy /Y /f "$(SolutionDir)Core\assimp-vc143-mtd.dll"  "$(SolutionDir)build\$(IntDir)"
+
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders\shaders.json"           xcopy /Y /f "$(SolutionDir)data\shaders\shaders.json"            "$(SolutionDir)build\$(IntDir)data\shaders"
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders\input_layouts.json" xcopy /Y /f "$(SolutionDir)data\shaders\input_layouts.json" "$(SolutionDir)build\$(IntDir)data\shaders"
+</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -190,20 +295,44 @@ if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mtd.dll" xcopy /Y /f "$(
       <AdditionalDependencies>d3dcompiler.lib;d3d11.lib;d3dx11.lib;assimp-vc143-mt.lib;ECS.lib;Image.lib;Render.lib;ImGui.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>
-if not exist "$(SolutionDir)build\$(IntDir)data" mkdir "$(SolutionDir)build\$(IntDir)data"
+      <Command>if not exist "$(SolutionDir)build\$(IntDir)data\"                         mkdir "$(SolutionDir)build\$(IntDir)data"
+if not exist "$(SolutionDir)build\$(IntDir)data\models\"          mkdir "$(SolutionDir)build\$(IntDir)data\models\"
+if not exist "$(SolutionDir)build\$(IntDir)data\terrain\"            mkdir "$(SolutionDir)build\$(IntDir)data\terrain\"
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders"            mkdir "$(SolutionDir)build\$(IntDir)data\shaders"
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders\hlsl"    mkdir "$(SolutionDir)build\$(IntDir)data\shaders\hlsl"
 
-dir /b /s /a "$(SolutionDir)build\$(IntDir)data\" | findstr .&gt;nul || (
-  xcopy /Y "$(SolutionDir)data" "$(SolutionDir)build\$(IntDir)data" /E
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\models\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\models\" "$(SolutionDir)build\$(IntDir)data\models\" /E
 )
 
-if not exist "$(SolutionDir)build\$(IntDir)data\models" mkdir "$(SolutionDir)build\$(IntDir)data\models"
-
-dir /b /s /a "$(SolutionDir)build\$(IntDir)data\models" | findstr .&gt;nul || (
-  xcopy /Y "$(SolutionDir)data\models" "$(SolutionDir)build\$(IntDir)data\models" /E
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\particles\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\particles\" "$(SolutionDir)build\$(IntDir)data\particles\" /E
 )
 
-if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mtd.dll" xcopy /Y /f "$(SolutionDir)Core\assimp-vc143-mtd.dll" "$(SolutionDir)build\$(IntDir)"</Command>
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\terrain\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\terrain\" "$(SolutionDir)build\$(IntDir)data\terrain\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\textures\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\textures\" "$(SolutionDir)build\$(IntDir)data\textures\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\ui\" | findstr .&gt;nul || ( 
+  xcopy /Y "$(SolutionDir)data\ui\" "$(SolutionDir)build\$(IntDir)data\ui\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)Render\hlsl\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)Render\hlsl\" "$(SolutionDir)build\$(IntDir)data\shaders\hlsl" /E
+)
+
+if not exist "$(SolutionDir)build\$(IntDir)data\materials.json"      xcopy /Y /f "$(SolutionDir)data\materials.json"                "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\settings.txt"           xcopy /Y /f "$(SolutionDir)data\settings.txt"                     "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\sky.cfg"                  xcopy /Y /f "$(SolutionDir)data\sky.cfg"                            "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mtd.dll" xcopy /Y /f "$(SolutionDir)Core\assimp-vc143-mtd.dll"  "$(SolutionDir)build\$(IntDir)"
+
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders\shaders.json"           xcopy /Y /f "$(SolutionDir)data\shaders\shaders.json"            "$(SolutionDir)build\$(IntDir)data\shaders"
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders\input_layouts.json" xcopy /Y /f "$(SolutionDir)data\shaders\input_layouts.json" "$(SolutionDir)build\$(IntDir)data\shaders"
+</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>
@@ -243,6 +372,7 @@ if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mtd.dll" xcopy /Y /f "$(
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="ImGui\ImGuiLayer.cpp" />
+    <ClCompile Include="Mesh\MaterialLoader.cpp" />
     <ClCompile Include="Mesh\MaterialMgr.cpp" />
     <ClCompile Include="Mesh\Vertex3dTerrain.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
@@ -419,6 +549,7 @@ if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mtd.dll" xcopy /Y /f "$(
     <ClInclude Include="ImGui\misc\freetype\imgui_freetype.h" />
     <ClInclude Include="ImGui\misc\single_file\imgui_single_file.h" />
     <ClInclude Include="Input\KeyboardEvent.h" />
+    <ClInclude Include="Mesh\MaterialLoader.h" />
     <ClInclude Include="Mesh\MaterialMgr.h" />
     <ClInclude Include="Mesh\Vertex3dTerrain.h" />
     <ClInclude Include="Terrain\TerrainCreator.h" />
