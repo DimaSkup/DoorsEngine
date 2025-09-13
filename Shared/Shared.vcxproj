@@ -22,13 +22,15 @@
     <ClInclude Include="CAssert.h" />
     <ClInclude Include="Convert.h" />
     <ClInclude Include="cvector.h" />
-    <ClInclude Include="DMath.h" />
+    <ClInclude Include="math\math_helpers.h" />
     <ClInclude Include="EngineException.h" />
     <ClInclude Include="FileSystem.h" />
     <ClInclude Include="FileSystemPaths.h" />
+    <ClInclude Include="math\vec3.h" />
     <ClInclude Include="Image.h" />
     <ClInclude Include="log.h" />
-    <ClInclude Include="MathHelper.h" />
+    <ClInclude Include="math\dx_math_helpers.h" />
+    <ClInclude Include="math\vec4.h" />
     <ClInclude Include="MemHelpers.h" />
     <ClInclude Include="RawFile.h" />
     <ClInclude Include="ShellHelpers.h" />
@@ -36,13 +38,14 @@
     <ClInclude Include="SystemState.h" />
     <ClInclude Include="Types.h" />
     <ClInclude Include="UtilsFilesystem.h" />
+    <ClInclude Include="math\vec_functions.h" />
     <ClInclude Include="winFileDialog.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="EngineException.cpp" />
     <ClCompile Include="Image.cpp" />
     <ClCompile Include="log.cpp" />
-    <ClCompile Include="MathHelper.cpp" />
+    <ClCompile Include="math\dx_math_helpers.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

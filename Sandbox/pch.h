@@ -17,4 +17,3 @@
 #include <Types.h>
 #include <FileSystem.h>
 #include <FileSystemPaths.h>
-#include <MathHelper.h>

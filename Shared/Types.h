@@ -9,19 +9,6 @@
 #include <stdint.h>
 
 
-struct Float4
-{
-    Float4(const float _x, const float _y, const float _z, const float _w) :
-        x(_x), y(_y), z(_z), w(_w) {}
-
-    float x = 0.0f;
-    float y = 0.0f;
-    float z = 0.0f;
-    float w = 0.0f;
-};
-
-// --------------------------
-
 using uint8  = uint8_t;
 using uint16 = uint16_t;
 using uint32 = uint32_t;

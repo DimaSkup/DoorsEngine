@@ -1,4 +1,4 @@
-#include "MathHelper.h"
+#include "dx_math_helpers.h"
 #include <cmath>
 #include <DirectXMath.h>
 
@@ -6,7 +6,6 @@ using namespace DirectX;
 
 
 const float MathHelper::Infinity = FLT_MAX;
-const float MathHelper::Pi = 3.1415926535f;
 
 float MathHelper::AngleFromXY(const float x, const float y)
 {
@@ -102,8 +101,6 @@ const XMMATRIX MathHelper::InverseTranspose(const CXMMATRIX& M)
 	// we clear out any translation from the matrix because we use the inverse-transpose
 	// to transform vectors, and translations only apply to points
 	A.r[3] = { 0, 0, 0, 1 };
-
-	//XMVECTOR det;  // = DirectX::XMMatrixDeterminant(A);
 
 	// return a transformation matrix B
 	return XMMatrixTranspose(XMMatrixInverse(nullptr, A));

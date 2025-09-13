@@ -1,8 +1,8 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 
+#include <math/vec4.h>
 #include <assert.h>
-#include <DMath.h>
 #include <memory.h>
 
 

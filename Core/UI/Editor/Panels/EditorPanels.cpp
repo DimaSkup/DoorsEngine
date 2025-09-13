@@ -58,16 +58,6 @@ void EditorPanels::Render(Core::SystemState& sysState)
 
     if (g_GuiStates.showWndMaterialsBrowser)
         RenderMaterialsBrowser();
-
-    
-    //if (pStatesGUI_->showWnd)
-    //RenderWndModelAssetsCreation()
-
-    // show modal window for entity creation
-    if (g_GuiStates.showWndEnttCreation)
-    {
-        RenderWndEntityCreation(&g_GuiStates.showWndEnttCreation, pFacade_);
-    }
 }
 
 
@@ -368,38 +358,5 @@ void EditorPanels::RenderWndModelAssetsCreation(bool* pOpen)
 
     ImGui::End();
 }
-
-///////////////////////////////////////////////////////////
-
-void EditorPanels::RenderWndEntityCreation(bool* pOpen, IFacadeEngineToUI* pFacade)
-{
-    if (*pOpen)
-    {
-        if (pEnttCreatorWnd_ == nullptr)
-        {
-            pEnttCreatorWnd_ = new EntityCreatorWnd;
-
-            SetConsoleColor(YELLOW);
-            LogMsg(LOG, "Entity creator window is allocated");
-            SetConsoleColor(RESET);
-        }
-
-        pEnttCreatorWnd_->RenderCreationWindow(pOpen, pFacade);
-    }
-
-    if (*pOpen == false)
-    {
-        if (pEnttCreatorWnd_ != nullptr)
-        {
-            delete pEnttCreatorWnd_;
-            pEnttCreatorWnd_ = nullptr;
-        }
-
-        SetConsoleColor(YELLOW);
-        LogMsg(LOG, "Entity creator window is DEallocated");
-        SetConsoleColor(RESET);
-    }
-}
-
 
 } // namespace UI

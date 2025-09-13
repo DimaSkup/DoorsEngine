@@ -54,11 +54,11 @@ void UserInterface::Initialize(
 
     try
     {
-        CAssert::True(pFacadeEngineToUI,                                 "a ptr to the facade interface == nullptr");
-        CAssert::True((wndWidth > 0) && (wndHeight > 0),                 "wrong window dimensions");
-        CAssert::True((!videoCardName.empty()) && (videoCardMemory > 0), "wrong video card data");
-        CAssert::True((!fontDataFilePath.empty()),                       "wrong path to font data file");
-        CAssert::True((!fontTextureFilePath.empty()),                    "wrong path to font texture file");
+        CAssert::True(pFacadeEngineToUI,                                  "a ptr to the facade interface == nullptr");
+        CAssert::True((wndWidth > 0) && (wndHeight > 0),                  "wrong window dimensions");
+        CAssert::True((!videoCardName.empty()) && (videoCardMemory >= 0), "wrong video card data");
+        CAssert::True((!fontDataFilePath.empty()),                        "wrong path to font data file");
+        CAssert::True((!fontTextureFilePath.empty()),                     "wrong path to font texture file");
 
         // initialize the window dimensions members for internal using
         windowWidth_ = wndWidth;

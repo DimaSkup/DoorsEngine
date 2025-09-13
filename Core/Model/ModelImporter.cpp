@@ -357,20 +357,20 @@ void ModelImporter::LoadMaterialColorsData(aiMaterial* pMaterial, Material& mat)
     const aiReturn isReflectLoaded   = pMaterial->Get(AI_MATKEY_REFLECTIVITY, reflection);
 
     if (isAmbientLoaded == aiReturn_SUCCESS)
-        mat.ambient = Float4(ambient.r, ambient.g, ambient.b, ambient.a);
+        mat.ambient = Vec4(ambient.r, ambient.g, ambient.b, ambient.a);
 
     if (isDiffuseLoaded == aiReturn_SUCCESS)
-        mat.diffuse = Float4(diffuse.r, diffuse.g, diffuse.b, diffuse.a);
+        mat.diffuse = Vec4(diffuse.r, diffuse.g, diffuse.b, diffuse.a);
 
     if (isSpecularLoaded == aiReturn_SUCCESS)
-        mat.specular = Float4(specular.r, specular.g, specular.b, 1.0f);
+        mat.specular = Vec4(specular.r, specular.g, specular.b, 1.0f);
 
     // specular power / glossiness
     if (isShininessLoaded == aiReturn_SUCCESS)
         mat.specular.w = shininess;
 
     if (isReflectLoaded == aiReturn_SUCCESS)
-        mat.reflect = Float4(reflection.r, reflection.g, reflection.b, reflection.a);
+        mat.reflect = Vec4(reflection.r, reflection.g, reflection.b, reflection.a);
 }
 
 //---------------------------------------------------------

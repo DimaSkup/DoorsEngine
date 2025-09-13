@@ -9,6 +9,8 @@
 #include "ModelsCreator.h"
 #include "ModelStorageSerializer.h"
 
+#include <Render/d3dclass.h>
+
 namespace fs = std::filesystem;
 
 

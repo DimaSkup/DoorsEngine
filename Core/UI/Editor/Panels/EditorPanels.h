@@ -17,7 +17,6 @@
 #include "../Debug/DebugEditor.h"
 #include "../Entity/Controller/EnttEditorController.h"
 #include "../Fog/FogEditorController.h"
-#include "../Entity/Creator/EntityCreatorWnd.h"
 #include "../Terrain/Sky/SkyController.h"
 
 namespace UI
@@ -42,7 +41,6 @@ private:
     void RenderMaterialsBrowser();
     void RenderEditorEventHistory();
 
-    void RenderWndEntityCreation(bool* pOpen, IFacadeEngineToUI* pFacade);
     void RenderWndModelAssetsCreation(bool* pOpen);
 
 public:
@@ -54,7 +52,6 @@ public:
 
 private:
     IFacadeEngineToUI* pFacade_         = nullptr;
-    EntityCreatorWnd*  pEnttCreatorWnd_ = nullptr;
 
     TextureAssetsBrowser  texturesBrowser_;
     MaterialAssetsBrowser materialsBrowser_;

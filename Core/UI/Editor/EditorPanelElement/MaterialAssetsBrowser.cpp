@@ -423,12 +423,12 @@ void MaterialAssetsBrowser::RenderMatPreview()
     }
 
     ImGui::Text("Edit material:");
-    ImGui::Text("ID:   %ld", matId);
+    ImGui::Text("ID:   %" PRIu32, matId);
     ImGui::Text("Name: %s", selectedMaterialName_);
     ImGui::Separator();
 
     // if we selected another material we need to reload its data
-    if (matData_.id != matId)
+    if (matData_.materialId != matId)
         pFacade_->GetMaterialDataById(matId, matData_);
 
     // material shape (sphere, cube, etc.) rotation
@@ -479,7 +479,7 @@ void MaterialAssetsBrowser::RenderMatPropsFields()
     if (matColorChanged)
     {
         pFacade_->SetMaterialColorData(
-            matData_.id,
+            matData_.materialId,
             matData_.ambient,
             matData_.diffuse,
             matData_.specular,
@@ -588,7 +588,7 @@ void MaterialAssetsBrowser::RenderStatesSelectors(
         {
             if (ImGui::Selectable(statesNames[idx].c_str(), selectedStateIdx == idx))
             {
-                pFacade_->SetMaterialRenderState(matData_.id, (uint32)idx, statesType);
+                pFacade_->SetMaterialRenderState(matData_.materialId, (uint32)idx, statesType);
                 selectedStateIdx = idx;
             }
         }
@@ -622,7 +622,7 @@ void MaterialAssetsBrowser::DrawShadersSelectors()
             if (ImGui::Selectable(name, selectedShaderId == id))
             {
                 // try to set a shader for material
-                if (pFacade_->SetMaterialShaderId(matData_.id, id))
+                if (pFacade_->SetMaterialShaderId(matData_.materialId, id))
                     selectedShaderId = id;
             }
         }

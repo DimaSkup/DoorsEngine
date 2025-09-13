@@ -166,9 +166,10 @@ void PlayerSystem::Update(const float deltaTime)
     for (const EntityID childID : s_Ids)
     {
         const XMFLOAT3 childRelPos = pHierarchySys_->GetRelativePos(childID);
-        const XMFLOAT3 childNewPos = playerPos + childRelPos;
 
-        pTransformSys_->SetPosition(childID, childNewPos);
+        pTransformSys_->SetPosition(
+            childID,
+            XMFLOAT3(playerPos.x+childRelPos.x, playerPos.y+childRelPos.y, playerPos.z+childRelPos.z));
     }
 
     // reset all the movement states

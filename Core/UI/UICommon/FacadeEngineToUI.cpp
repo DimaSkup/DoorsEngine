@@ -13,7 +13,7 @@
 
 #pragma warning (disable : 4996)
 
-
+using namespace DirectX;
 using namespace Core;
 
 namespace UI
@@ -150,9 +150,9 @@ bool FacadeEngineToUI::AddNameComponent(const EntityID id, const char* name)
 
 ///////////////////////////////////////////////////////////
 
-bool FacadeEngineToUI::AddTransformComponent(const EntityID id, const Vec3& pos, const Vec3& direction, const float uniformScale)
+bool FacadeEngineToUI::AddTransformComponent(const EntityID id, const Vec3& pos, const Vec3& dir, const float uniformScale)
 {
-    pEnttMgr_->AddTransformComponent(id, pos.ToFloat3(), direction.ToXMVector(), uniformScale);
+    pEnttMgr_->AddTransformComponent(id, XMFLOAT3(pos.x, pos.y, pos.z), XMVECTOR{ dir.x, dir.y, dir.z }, uniformScale);
     return true;
 }
 
@@ -207,17 +207,23 @@ bool FacadeEngineToUI::GetEnttNameById(const EntityID enttID, std::string& name)
     return true;
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   get position, direction, and uniform scale of entt by ID
+//---------------------------------------------------------
 bool FacadeEngineToUI::GetEnttTransformData(
-    const EntityID enttID,
-    Vec3& position,
-    Vec3& direction,
-    float& uniformScale) const
+    const EntityID id,
+    Vec3& outPos,
+    Vec3& outDir,
+    float& outScale) const
 {
-    position     = pEnttMgr_->transformSystem_.GetPosition(enttID);
-    direction    = pEnttMgr_->transformSystem_.GetDirection(enttID);
-    uniformScale = pEnttMgr_->transformSystem_.GetUniformScale(enttID);
+    const ECS::TransformSystem& sys = pEnttMgr_->transformSystem_;
+    const XMFLOAT3 pos = sys.GetPosition(id);
+    const XMFLOAT3 dir = sys.GetDirection(id);
+    const float scale  = sys.GetUniformScale(id);
+
+    outPos = Vec3(pos.x, pos.y, pos.z);
+    outDir = Vec3(dir.x, dir.y, dir.z);
+    outScale = scale;
 
     return true;
 }
@@ -236,12 +242,14 @@ bool FacadeEngineToUI::GetEnttWorldMatrix(const EntityID id, DirectX::XMMATRIX& 
 
 Vec3 FacadeEngineToUI::GetEnttPosition(const EntityID id) const
 {
-    return pEnttMgr_->transformSystem_.GetPosition(id);
+    const XMFLOAT3 pos = pEnttMgr_->transformSystem_.GetPosition(id);
+    return Vec3(pos.x, pos.y, pos.z);
 }
 
 Vec3 FacadeEngineToUI::GetEnttDirection(const EntityID id) const
 {
-    return pEnttMgr_->transformSystem_.GetDirection(id);
+    const XMFLOAT3 dir = pEnttMgr_->transformSystem_.GetDirection(id);
+    return Vec3(dir.x, dir.y, dir.z);
 }
 
 float FacadeEngineToUI::GetEnttScale(const EntityID id) const
@@ -255,12 +263,11 @@ bool FacadeEngineToUI::SetEnttPosition(const EntityID id, const Vec3& pos)
 {
     pEnttMgr_->AddEvent(ECS::EventTranslate(id, pos.x, pos.y, pos.z));
     return true;
-    //return pEnttMgr_->transformSystem_.SetPosition(id, pos.ToFloat3());
 }
 
 bool FacadeEngineToUI::SetEnttDirection(const EntityID id, const Vec3& dir)
 {
-    return pEnttMgr_->transformSystem_.SetDirection(id, dir.ToXMVector());
+    return pEnttMgr_->transformSystem_.SetDirection(id, XMVECTOR{ dir.x, dir.y, dir.z });
 }
 
 bool FacadeEngineToUI::SetEnttUniScale(const EntityID id, const float scale)
@@ -268,18 +275,17 @@ bool FacadeEngineToUI::SetEnttUniScale(const EntityID id, const float scale)
     return pEnttMgr_->transformSystem_.SetUniScale(id, scale);
 }
 
-bool FacadeEngineToUI::RotateEnttByQuat(const EntityID id, const Vec4& rotQuat)
+bool FacadeEngineToUI::RotateEnttByQuat(const EntityID id, const Vec4& q)
 {
-    return pEnttMgr_->transformSystem_.RotateLocalSpaceByQuat(id, rotQuat.ToXMVector());
+    return pEnttMgr_->transformSystem_.RotateLocalSpaceByQuat(id, XMVECTOR{ q.x, q.y, q.z, q.w });
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// output:  a code of light type which is added to entity by ID
+// return:  false - if there is no light which is added to the entity;
+//---------------------------------------------------------
 bool FacadeEngineToUI::GetEnttLightType(const EntityID id, int& lightType) const
 {
-    // output:  a code of light type which is added to entity by ID
-    // return:  false - if there is no light which is added to the entity;
-
     if (pEnttMgr_->lightSystem_.IsLightSource(id))
     {
         lightType = pEnttMgr_->lightSystem_.GetLightType(id);
@@ -292,18 +298,16 @@ bool FacadeEngineToUI::GetEnttLightType(const EntityID id, int& lightType) const
     }
 }
 
-
-// =============================================================================
-// get all the data of light entity by ID
-// =============================================================================
+//---------------------------------------------------------
+// Desc:   get directed light data of entt by id
+// Ret:    false if entt hasn't any directed light component
+//---------------------------------------------------------
 bool FacadeEngineToUI::GetEnttDirectedLightData(
     const EntityID id,
     ColorRGBA& ambient,
     ColorRGBA& diffuse,
     ColorRGBA& specular)
 {
-    // get data of a directed light entity by input ID
-
     ECS::DirLight data;
 
     if (pEnttMgr_->lightSystem_.GetDirectedLightData(id, data))
@@ -316,13 +320,15 @@ bool FacadeEngineToUI::GetEnttDirectedLightData(
     }
     else
     {
-        LogErr(LOG, "can't get directed light data of the entity by ID: %ld", id);
+        LogErr(LOG, "can't get directed light data of the entity by ID: %" PRIu32, id);
         return false;
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   get point light data of entt by id
+// Ret:    false if entt hasn't any point light component
+//---------------------------------------------------------
 bool FacadeEngineToUI::GetEnttPointLightData(
     const EntityID id,
     ColorRGBA& ambient,
@@ -331,8 +337,6 @@ bool FacadeEngineToUI::GetEnttPointLightData(
     Vec3& attenuation,
     float& range)
 {
-    // get data of a point light entity by input ID
-
     ECS::PointLight data;
 
     if (pEnttMgr_->lightSystem_.GetPointLightData(id, data))
@@ -341,19 +345,21 @@ bool FacadeEngineToUI::GetEnttPointLightData(
         diffuse     = data.diffuse;
         specular    = data.specular;
         range       = data.range;
-        attenuation = data.att;
+        attenuation = Vec3(data.att.x, data.att.y, data.att.z);
 
         return true;
     }
     else
     {
-        LogErr(LOG, "can't get point light data of the entity by ID: %ld", id);
+        LogErr(LOG, "can't get point light data of the entity by ID: %" PRIu32, id);
         return false;
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   get spotlight data of entt by id
+// Ret:    false if entt hasn't any spotlight component
+//---------------------------------------------------------
 bool FacadeEngineToUI::GetEnttSpotLightData(
     const EntityID id,
     ColorRGBA& ambient,
@@ -363,27 +369,25 @@ bool FacadeEngineToUI::GetEnttSpotLightData(
     float& range,
     float& spotExponent)
 {
-    // get all the data of the spotlight entity by ID
-    ECS::SpotLight spotlight;
+    ECS::SpotLight data;
 
-    if (pEnttMgr_->lightSystem_.GetSpotLightData(id, spotlight))
+    if (pEnttMgr_->lightSystem_.GetSpotLightData(id, data))
     {
-        ambient      = spotlight.ambient;
-        diffuse      = spotlight.diffuse;
-        specular     = spotlight.specular;
-        range        = spotlight.range;
-        spotExponent = spotlight.spot;
-        attenuation  = spotlight.att;
+        ambient      = data.ambient;
+        diffuse      = data.diffuse;
+        specular     = data.specular;
+        range        = data.range;
+        spotExponent = data.spot;
+        attenuation  = Vec3(data.att.x, data.att.y, data.att.z);
 
         return true;
     }
     else
     {
-        LogErr(LOG, "can't get spotlight data of the entity by ID: %ld", id);
+        LogErr(LOG, "can't get spotlight data of the entity by ID: %" PRIu32, id);
         return false;
     }
 }
-
 
 // =============================================================================
 // SET directed light props
@@ -405,12 +409,7 @@ bool FacadeEngineToUI::SetDirectedLightSpecular(const EntityID id, const ColorRG
 
 bool FacadeEngineToUI::SetDirectedLightDirection(const EntityID id, const Vec3& dir)
 {
-    if (pEnttMgr_->lightSystem_.SetDirLightProp(id, ECS::LightProp::DIRECTION, dir.ToFloat3()))
-    {
-        return true;
-    }
-
-    return false;
+    return pEnttMgr_->lightSystem_.SetDirLightProp(id, ECS::LightProp::DIRECTION, XMFLOAT3(dir.x, dir.y, dir.z));
 }
 
 
@@ -462,7 +461,7 @@ bool FacadeEngineToUI::SetPointLightSpecular(const EntityID id, const ColorRGBA&
 
 bool FacadeEngineToUI::SetPointLightPos(const EntityID id, const Vec3& pos)
 {
-    if (pEnttMgr_->lightSystem_.SetPointLightProp(id, ECS::LightProp::POSITION, pos.ToFloat4()))
+    if (pEnttMgr_->lightSystem_.SetPointLightProp(id, ECS::LightProp::POSITION, XMFLOAT4(pos.x, pos.y, pos.z, 1.0f)))
     {
         return SetEnttPosition(id, pos);
     }
@@ -481,7 +480,7 @@ bool FacadeEngineToUI::SetPointLightRange(const EntityID id, const float range)
 
 bool FacadeEngineToUI::SetPointLightAttenuation(const EntityID id, const Vec3& att)
 {
-    return pEnttMgr_->lightSystem_.SetPointLightProp(id, ECS::LightProp::ATTENUATION, att.ToFloat4());
+    return pEnttMgr_->lightSystem_.SetPointLightProp(id, ECS::LightProp::ATTENUATION, XMFLOAT4(att.x, att.y, att.z, 1.0f));
 }
 
 
@@ -509,14 +508,14 @@ ColorRGBA FacadeEngineToUI::GetPointLightSpecular(const EntityID id) const
 Vec3 FacadeEngineToUI::GetPointLightPos(const EntityID id) const
 {
     // position values are stored in x,y,z
-    Vec4 pos = pEnttMgr_->lightSystem_.GetPointLightProp(id, ECS::LightProp::POSITION);
+    XMFLOAT4 pos = pEnttMgr_->lightSystem_.GetPointLightProp(id, ECS::LightProp::POSITION);
     return Vec3(pos.x, pos.y, pos.z);
 }
 
 Vec3 FacadeEngineToUI::GetPointLightAttenuation(const EntityID id) const
 {
     // attenuation values are stored in x,y,z
-    Vec4 att = pEnttMgr_->lightSystem_.GetPointLightProp(id, ECS::LightProp::ATTENUATION);
+    XMFLOAT4 att = pEnttMgr_->lightSystem_.GetPointLightProp(id, ECS::LightProp::ATTENUATION);
     return Vec3(att.x, att.y, att.z);
 }
 
@@ -525,7 +524,7 @@ Vec3 FacadeEngineToUI::GetPointLightAttenuation(const EntityID id) const
 float FacadeEngineToUI::GetPointLightRange(const EntityID id) const
 {
     // the same value of range is stored in each component of Vec4
-    Vec4 range = pEnttMgr_->lightSystem_.GetPointLightProp(id, ECS::LightProp::RANGE);
+    XMFLOAT4 range = pEnttMgr_->lightSystem_.GetPointLightProp(id, ECS::LightProp::RANGE);
     return range.x;
 }
 
@@ -553,7 +552,7 @@ bool FacadeEngineToUI::SetSpotLightSpecular(const EntityID id, const ColorRGBA& 
 
 bool FacadeEngineToUI::SetSpotLightPos(const EntityID id, const Vec3& pos)
 {
-    if (pEnttMgr_->lightSystem_.SetSpotLightProp(id, ECS::LightProp::POSITION, pos.ToFloat4()))
+    if (pEnttMgr_->lightSystem_.SetSpotLightProp(id, ECS::LightProp::POSITION, XMFLOAT4(pos.x, pos.y, pos.z, 1.0f)))
     {
         return SetEnttPosition(id, pos);
     }
@@ -563,17 +562,12 @@ bool FacadeEngineToUI::SetSpotLightPos(const EntityID id, const Vec3& pos)
 
 bool FacadeEngineToUI::SetSpotLightDirection(const EntityID id, const Vec3& dir)
 {
-    if (pEnttMgr_->lightSystem_.SetSpotLightProp(id, ECS::LightProp::DIRECTION, { dir.x, dir.y, dir.z, 0.0f }))
-    {
-        return true;
-        //return SetEnttDirectionQuat(id, dirQuat);
-    }
-    return false;
+    return pEnttMgr_->lightSystem_.SetSpotLightProp(id, ECS::LightProp::DIRECTION, { dir.x, dir.y, dir.z, 0.0f });
 }
 
 bool FacadeEngineToUI::SetSpotLightAttenuation(const EntityID id, const Vec3& att)
 {
-    return pEnttMgr_->lightSystem_.SetSpotLightProp(id, ECS::LightProp::ATTENUATION, att.ToFloat4());
+    return pEnttMgr_->lightSystem_.SetSpotLightProp(id, ECS::LightProp::ATTENUATION, XMFLOAT4(att.x, att.y, att.z, 1.0f));
 }
 
 ///////////////////////////////////////////////////////////
@@ -613,43 +607,42 @@ ColorRGBA FacadeEngineToUI::GetSpotLightSpecular(const EntityID id) const
 Vec3 FacadeEngineToUI::GetSpotLightPos(const EntityID id) const
 {
     // spotlight position is stored in the Transform component
-    return pEnttMgr_->transformSystem_.GetPosition(id);
+    const XMFLOAT3 pos = pEnttMgr_->transformSystem_.GetPosition(id);
+    return Vec3(pos.x, pos.y, pos.z);
 }
 
 Vec3 FacadeEngineToUI::GetSpotLightDirection(const EntityID id) const
 {
     // spotlight direction is stored in the Transform component
-    return pEnttMgr_->transformSystem_.GetDirection(id);
+    const XMFLOAT3 dir = pEnttMgr_->transformSystem_.GetDirection(id);
+    return Vec3(dir.x, dir.y, dir.z);
 }
 
 Vec3 FacadeEngineToUI::GetSpotLightAttenuation(const EntityID id) const
 {
     // attenuation values are stored in x,y,z
-    Vec4 v = pEnttMgr_->lightSystem_.GetSpotLightProp(id, ECS::LightProp::ATTENUATION);
-    return v.ToVec3();
+    const XMFLOAT4 att = pEnttMgr_->lightSystem_.GetSpotLightProp(id, ECS::LightProp::ATTENUATION);
+    return Vec3(att.x, att.y, att.z);
 }
 
 ///////////////////////////////////////////////////////////
 
 float FacadeEngineToUI::GetSpotLightRange(const EntityID id) const
 {
-    // the same value of range is stored in each component of Vec4
-    Vec4 range = pEnttMgr_->lightSystem_.GetSpotLightProp(id, ECS::LightProp::RANGE);
-    return range.x;
+    // the same value of range is stored in each component of Vec4 (so just return x)
+    return pEnttMgr_->lightSystem_.GetSpotLightProp(id, ECS::LightProp::RANGE).x;
 }
 
 float FacadeEngineToUI::GetSpotLightSpotExponent(const EntityID id) const
 {
-    // the same value of exponent is stored in each component of Vec4
-    Vec4 spotExp = pEnttMgr_->lightSystem_.GetSpotLightProp(id, ECS::LightProp::SPOT_EXP);
-    return spotExp.x;
+    // the same value of exponent is stored in each component of Vec4 (so just return x)
+    return pEnttMgr_->lightSystem_.GetSpotLightProp(id, ECS::LightProp::SPOT_EXP).x;
 }
 
 
 // =================================================================================
 // For the sky editor
 // =================================================================================
-
 bool FacadeEngineToUI::GetSkyData(
     const uint32_t skyEnttID,
     ColorRGB& center,
@@ -661,7 +654,9 @@ bool FacadeEngineToUI::GetSkyData(
 
     center = pRender_->GetSkyCenterColor();
     apex   = pRender_->GetSkyApexColor();
-    offset = pEnttMgr_->transformSystem_.GetPosition(skyEnttID);
+
+    const XMFLOAT3 pos = pEnttMgr_->transformSystem_.GetPosition(skyEnttID);
+    offset = Vec3(pos.x, pos.y, pos.z);
 
     return true;
 }
@@ -684,16 +679,16 @@ bool FacadeEngineToUI::SetSkyColorApex(const ColorRGB& color)
 
 bool FacadeEngineToUI::SetSkyOffset(const Vec3& offset)
 {
-    const EntityID enttID = pEnttMgr_->nameSystem_.GetIdByName("sky");
+    const EntityID id = pEnttMgr_->nameSystem_.GetIdByName("sky");
 
     // if we found the sky entity we change its offset
-    if (enttID != 0)
+    if (id != 0)
     {
-        pEnttMgr_->transformSystem_.SetPosition(enttID, offset.ToFloat3());
+        return pEnttMgr_->transformSystem_.SetPosition(id, XMFLOAT3(offset.x, offset.y, offset.z));
         return true;
     }
 
-    LogErr("there is no entity by such a name: sky");
+    LogErr(LOG, "there is no entity by such a name: sky");
     return false;
 }
 
@@ -874,11 +869,11 @@ bool FacadeEngineToUI::GetMaterialDataById(const MaterialID id, MaterialData& ou
 {
     Core::Material& mat = g_MaterialMgr.GetMatById(id);
 
-    outData.id       = id;
-    outData.ambient  = Vec4(&mat.ambient.x);
-    outData.diffuse  = Vec4(&mat.diffuse.x);
-    outData.specular = Vec4(&mat.specular.x);
-    outData.reflect  = Vec4(&mat.reflect.x);
+    outData.materialId  = id;
+    outData.ambient     = mat.ambient;
+    outData.diffuse     = mat.diffuse;
+    outData.specular    = mat.specular;
+    outData.reflect     = mat.reflect;
 
     strncpy(outData.name, mat.name, MAX_LENGTH_MATERIAL_NAME);
     memcpy(outData.textureIDs, mat.texIds, sizeof(TexID) * NUM_TEXTURE_TYPES);
@@ -920,7 +915,7 @@ void FacadeEngineToUI::GetMaterialRenderStateNames(
             break;
 
         default:
-            LogErr(LOG, "unknown type of render states group: %u", type);
+            LogErr(LOG, "unknown type of render states group: %d", (int)type);
             return;
     }
 }
@@ -995,10 +990,10 @@ bool FacadeEngineToUI::SetMaterialColorData(
 {
     return g_MaterialMgr.SetMatColorData(
         id,
-        Float4(amb.x, amb.y, amb.z, amb.w),
-        Float4(diff.x, diff.y, diff.z, diff.w),
-        Float4(spec.x, spec.y, spec.z, spec.w),
-        Float4(refl.x, refl.y, refl.z, refl.w));
+        Vec4(amb.x, amb.y, amb.z, amb.w),
+        Vec4(diff.x, diff.y, diff.z, diff.w),
+        Vec4(spec.x, spec.y, spec.z, spec.w),
+        Vec4(refl.x, refl.y, refl.z, refl.w));
 }
 
 //---------------------------------------------------------
@@ -1218,13 +1213,15 @@ bool FacadeEngineToUI::GetEnttParticleEmitterData(
 {
     ECS::ParticleEmitter& emitter = pEnttMgr_->particleSystem_.GetEmitterByEnttId(id);
 
-    color       = emitter.color;
-    externForce = emitter.forces;
-    spawnRate   = emitter.spawnRate;
-    lifespanMs  = (int)(emitter.life * 1000.0f);
-    mass        = emitter.mass;
-    size        = emitter.size;
-    friction    = emitter.friction;
+    color           = emitter.color;
+    externForce.x   = DirectX::XMVectorGetX(emitter.forces);
+    externForce.y   = DirectX::XMVectorGetY(emitter.forces);
+    externForce.z   = DirectX::XMVectorGetZ(emitter.forces);
+    spawnRate       = emitter.spawnRate;
+    lifespanMs      = (int)(emitter.life * 1000.0f);
+    mass            = emitter.mass;
+    size            = emitter.size;
+    friction        = emitter.friction;
 
     return true;
 }

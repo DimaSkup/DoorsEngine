@@ -36,7 +36,7 @@
     <ClInclude Include="log.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MathHelper.h">
+    <ClInclude Include="math\dx_math_helpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="MemHelpers.h">
@@ -57,7 +57,7 @@
     <ClInclude Include="RawFile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="DMath.h">
+    <ClInclude Include="math\math_helpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Image.h">
@@ -69,6 +69,15 @@
     <ClInclude Include="winFileDialog.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="math\vec3.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="math\vec_functions.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="math\vec4.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="EngineException.cpp">
@@ -77,7 +86,7 @@
     <ClCompile Include="log.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="MathHelper.cpp">
+    <ClCompile Include="math\dx_math_helpers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Image.cpp">

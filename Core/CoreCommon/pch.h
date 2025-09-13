@@ -19,13 +19,14 @@
 #include "log.h"
 #include "CAssert.h"
 #include "EngineException.h"
-#include "MathHelper.h"
 #include "MemHelpers.h"
 #include "StrHelper.h"
 #include "cvector.h"
 #include "Types.h"
 #include "FileSystem.h"
 #include "FileSystemPaths.h"
-#include "DMath.h"
+#include "math/math_helpers.h"
+#include "math/dx_math_helpers.h"
+
 
 #pragma warning (disable : 4996)

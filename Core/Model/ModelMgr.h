@@ -10,7 +10,6 @@
 #include <cvector.h>
 #include "SkyModel.h"
 #include "../Terrain/TerrainGeomipmapped.h"
-#include "../Terrain/TerrainQuadtree.h"
 #include "BasicModel.h"
 
 namespace Core
@@ -42,7 +41,6 @@ public:
 
     //inline Terrain&             GetTerrain()         { return terrain_; }
     inline TerrainGeomip&   GetTerrainGeomip()   { return terrainGeomip_; }
-    inline TerrainQuadtree& GetTerrainQuadtree() { return terrainQuadtree_; }
     inline SkyModel&        GetSky()             { return sky_; }
 
     inline VertexBuffer<BillboardSprite>& GetBillboardsBuffer() { return billboardsVB_; }
@@ -63,8 +61,7 @@ private:
 
     SkyModel            sky_;
     //Terrain             terrain_;
-    TerrainGeomip terrainGeomip_;
-    TerrainQuadtree     terrainQuadtree_;
+    TerrainGeomip       terrainGeomip_;
 
     static ModelMgr*    pInstance_;
     static ModelID      lastModelID_;

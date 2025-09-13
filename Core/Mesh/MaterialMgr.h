@@ -27,10 +27,10 @@ public:
 
     bool SetMatColorData(
         const MaterialID id,
-        const Float4& ambient,
-        const Float4& diffuse,
-        const Float4& specular,
-        const Float4& reflect);
+        const Vec4& ambient,
+        const Vec4& diffuse,
+        const Vec4& specular,
+        const Vec4& reflect);
 
     // getters
     Material&  GetMatById    (const MaterialID id);

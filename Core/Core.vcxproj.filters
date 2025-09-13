@@ -255,9 +255,6 @@
     <ClCompile Include="UI\Editor\Entity\Controller\EnttDirLightController.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UI\Editor\Entity\Creator\EntityCreatorWnd.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="UI\Editor\EditorPanelElement\ModelsAssetsList.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -286,9 +283,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CoreCommon\Frustum.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Terrain\TerrainQuadtree.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Terrain\TerrainLodMgr.cpp">
@@ -497,9 +491,6 @@
     <ClInclude Include="UI\UICommon\Color.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UI\UICommon\Vectors.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="UI\UICommon\IEditorController.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -632,9 +623,6 @@
     <ClInclude Include="UI\Editor\Entity\Controller\EnttDirLightController.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UI\Editor\Entity\Creator\EntityCreatorWnd.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="UI\Editor\EditorPanelElement\ModelsAssetsList.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -674,16 +662,10 @@
     <ClInclude Include="CoreCommon\Matrix.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Terrain\TerrainQuadtree.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Terrain\TerrainCreator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Terrain\TerrainGeomipmapCreator.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Terrain\TerrainQuadtreeCreator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Terrain\TerrainLodMgr.h">
@@ -699,6 +681,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Mesh\MaterialLoader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadTree\quad_tree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

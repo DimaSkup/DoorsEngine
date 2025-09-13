@@ -1,10 +1,11 @@
 #pragma once
 
-#include "../../Systems/TransformSystem.h"
-#include "../../Components/ParticleEmitter.h"
+#include "TransformSystem.h"
+#include "../Components/ParticleEmitter.h"
 #include <Types.h>
 #include <log.h>
 #include <inttypes.h>
+
 
 namespace ECS
 {

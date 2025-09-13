@@ -6,6 +6,7 @@
 // ********************************************************************************
 #pragma once
 
+#include <math/vec4.h>
 #include <Types.h>
 #include <log.h>
 #include "../Texture/TextureTypes.h"
@@ -73,10 +74,10 @@ enum eMaterialProp : uint32
 
 struct Material
 {
-    Float4     ambient  = { 1,1,1,1 };
-    Float4     diffuse  = { 1,1,1,1 };
-    Float4     specular = { 0,0,0,1 };                                // w-component is a glossiness (specPower, specular power)
-    Float4     reflect  = { 0,0,0,0 };
+    Vec4       ambient  = { 1,1,1,1 };
+    Vec4       diffuse  = { 1,1,1,1 };
+    Vec4       specular = { 0,0,0,1 };                                // w-component is a glossiness (specPower, specular power)
+    Vec4       reflect  = { 0,0,0,0 };
 
     MaterialID id = INVALID_MATERIAL_ID;
     ShaderID   shaderId = INVALID_SHADER_ID;                          // default "Invalid" shader with id == 0
@@ -126,13 +127,13 @@ struct Material
 
     inline void SetTexture(const eTexType type, const TexID id)                           { texIds[type] = id; }
 
-    inline void SetAmbient (const float r, const float g, const float b, const float a)   { ambient = Float4(r,g,b,a); }
-    inline void SetDiffuse (const float r, const float g, const float b, const float a)   { diffuse = Float4(r,g,b,a); }
+    inline void SetAmbient (const float r, const float g, const float b, const float a)   { ambient = Vec4(r,g,b,a); }
+    inline void SetDiffuse (const float r, const float g, const float b, const float a)   { diffuse = Vec4(r,g,b,a); }
 
     //-----------------------------------------------------
     // Desc:  setup specular RGB color (NOTE: specular power(glossiness remains the same)
     //-----------------------------------------------------
-    inline void SetSpecular(const float r, const float g, const float b)                  { specular = Float4(r,g,b,specular.w); }   
+    inline void SetSpecular(const float r, const float g, const float b)                  { specular = Vec4(r,g,b,specular.w); }   
 
     //-----------------------------------------------------
     // Desc:  setup specular power (glossiness)
@@ -143,7 +144,7 @@ struct Material
     //-----------------------------------------------------
    // Desc:  setup reflection RGB color
    //-----------------------------------------------------
-    inline void SetReflection(const float r, const float g, const float b, const float a) { reflect = Float4(r,g,b,a); }
+    inline void SetReflection(const float r, const float g, const float b, const float a) { reflect = Vec4(r,g,b,a); }
 
 
 

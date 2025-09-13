@@ -7,6 +7,7 @@
 #include "CRender.h"
 #include "d3dclass.h"
 #include "../Shaders/Shader.h"
+#include <math/dx_math_helpers.h>
 
 using XMFLOAT3 = DirectX::XMFLOAT3;
 using XMFLOAT4 = DirectX::XMFLOAT4;
