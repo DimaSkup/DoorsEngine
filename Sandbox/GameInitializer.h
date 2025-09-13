@@ -32,11 +32,6 @@ public:
         const char* cameraName,
         CameraInitParams& initParams);
 
-    bool InitCameras(
-        ECS::EntityMgr& mgr,
-        const CameraInitParams& editorCamParams,
-        const CameraInitParams& gameCamParams);
-
     void InitParticles(ECS::EntityMgr& mgr);
 };
 

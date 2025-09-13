@@ -1,9 +1,9 @@
+#include "../Common/pch.h"
 #include "ParticleSystem.h"
-#include <log.h>
-#include <DMath.h>
-#include <MathHelper.h>
+#pragma warning (disable : 4996)
 
 using namespace DirectX;
+
 
 namespace ECS
 {
@@ -58,16 +58,16 @@ void ParticleSystem::ParticlesInitDataGenerator(
     {
         // set the particle's angle
         constexpr float magnitude = 0.15f;
-        const float     yaw       = MathHelper::RandF() * 6.28318f;                    // randF * 2pi
-        const float     pitch     = DEG_TO_RAD(MathHelper::RandF() * (rand() % 360));
+        const float     yaw       = RandF() * 6.28318f;                    // randF * 2pi
+        const float     pitch     = DEG_TO_RAD(RandF() * (rand() % 360));
 
 
         // set the particle's position and velocity
         particle.pos = { 0,0,0 };
         particle.vel = {
-            cosf(pitch) * magnitude * MathHelper::RandF(),             // velocity X
-            sinf(pitch) * cosf(yaw) * magnitude * MathHelper::RandF(), // velocity Y
-            sinf(pitch) * sinf(yaw) * magnitude * MathHelper::RandF()  // velocity Z
+            cosf(pitch) * magnitude * RandF(),             // velocity X
+            sinf(pitch) * cosf(yaw) * magnitude * RandF(), // velocity Y
+            sinf(pitch) * sinf(yaw) * magnitude * RandF()  // velocity Z
         };
 
         particle.pos          = emitter.position;

@@ -43,7 +43,7 @@
 // Created:   10.06.2025 by DimaSkup
 // =================================================================================
 #pragma once
-
+#include <math/math_helpers.h>
 #include "../Mesh/Vertex3dTerrain.h"
 #include "../Mesh/VertexBuffer.h"
 #include "../Mesh/IndexBuffer.h"
@@ -53,6 +53,7 @@
 #include <CoreCommon/Frustum.h>
 #include <cstring>
 #include <DirectXCollision.h>
+
 
 
 namespace Core

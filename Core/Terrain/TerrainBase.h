@@ -18,7 +18,7 @@
 #pragma once
 
 #include <Image.h>
-#include <DMath.h>
+
 
 namespace Core
 {
@@ -94,7 +94,6 @@ struct TerrainConfig
 
     // lightmap generation params
     eLightingTypes      lightingType       = HEIGHT_BASED;
-    Vec3                lightColor         = { 0.5f, 0.5f, 0.5f };
     int                 lightDirX          = 0;
     int                 lightDirZ          = 0;
     float               lightMinBrightness = 0.0f;

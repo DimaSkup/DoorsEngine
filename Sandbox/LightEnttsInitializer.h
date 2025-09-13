@@ -7,7 +7,7 @@
 #pragma once
 
 #include <Types.h>
-#include <MathHelper.h>
+#include <math/dx_math_helpers.h>
 #include "Entity/EntityMgr.h"
 
 using XMFLOAT3 = DirectX::XMFLOAT3;
@@ -160,9 +160,9 @@ void InitPointLightEntities(ECS::EntityMgr& mgr)
         // generate random position for each point light source
         for (index i = 0; i < numPointLights; ++i)
         {
-            positions[i].x = MathHelper::RandF(-100, 100);
+            positions[i].x = RandF(-100, 100);
             positions[i].y = 4.0f;
-            positions[i].z = MathHelper::RandF(-100, 100);
+            positions[i].z = RandF(-100, 100);
         }
         positions[1] = { 263, 80, 205 };
 

@@ -1,17 +1,21 @@
 //==================================================================================
-// Filename:   DMath.h
+// Filename:   math_helpers.h
 // Desc:       different math stuff
 //
 // Created:    06.07.2025  by DimaSkup
 //==================================================================================
 #pragma once
 
-#include <math.h>
-
 //--------------------------------------------------------------
 // Constants
 //--------------------------------------------------------------
-#define PI		   3.1415926535897932384626433832795f
+constexpr float PI          = 3.1415926535897932384626433832795f;
+constexpr float M_2PI       = 6.283185307f;
+constexpr float M_1DIVPI    = 0.318309886f;
+constexpr float M_1DIV2PI   = 0.159154943f;
+constexpr float PIDIV2      = 1.570796327f;
+constexpr float PIDIV4      = 0.785398163f;
+
 #define PIOVER180  0.0174532925199432957692369076848861f
 #define PIUNDER180 57.2957795130823208767981548141052f
 #define EPSILON	   1.0e-8
@@ -49,74 +53,63 @@ inline float SQR(const float num)   { return num*num; }
 inline int   CUBE(const int num)    { return num*num*num; }
 inline float CUBE(const float num)  { return num*num*num; }
 
-
-//---------------------------------------------------------
-// Desc:   primitive vector of 3 floats
-//---------------------------------------------------------
-struct Vec3
+// return random unsigned int in range [min, max)
+inline unsigned int RandUint(const unsigned int min, const unsigned int max)
 {
-    inline float Length() const
-    {
-        return sqrtf(x * x + y * y + z * z);
-    }
-
-    Vec3& operator=(const Vec3& v)
-    {
-        x = v.x;
-        y = v.y;
-        z = v.z;
-
-        return *this;
-    }
-
-    float x = 0;
-    float y = 0;
-    float z = 0;
-};
-
-//---------------------------------------------------------
-// Desc:   primitive vector of 4 floats
-//---------------------------------------------------------
-struct Vec4
-{
-    Vec4() :
-        x{0}, y{0}, z{0}, w{0} {}
-
-    Vec4(const float _x, const float _y, const float _z, const float _w) :
-        x{_x}, y{_y}, z{_z}, w{_w} {}
-
-    inline Vec4 operator+(const Vec4& v) const
-    {
-        return { x+v.x, y+v.y, z+v.z, w+v.w };
-    }
-
-    inline Vec4 operator-(const Vec4& v) const
-    {
-        return { x-v.x, y-v.y, z-v.z, w-v.w };
-    }
-
-    inline float operator[](const int n)  const { return v[n]; }
-    inline float& operator[](const int n)       { return v[n]; }
-
-    union
-    {
-        float v[4];
-
-        struct
-        {
-            float x, y, z, w;
-        };
-    };
-    
-
-};
-
-//---------------------------------------------------------
-// Desc:   compute the dot product for two input 3D vectors
-// Args:   - v1, v2: vectors in 3D space
-// Ret:    - float value: the dot product
-//---------------------------------------------------------
-inline float Dot(const Vec3& v1, const Vec3& v2)
-{
-    return (v1.x * v2.x) + (v1.y * v2.y) + (v1.z * v2.z);
+    return min + (rand()) % (max - min);
 }
+
+// ----------------------------------------------------
+inline static float RandF()
+{
+    // returns random float in [0, 1)
+    return (float)rand() / (float)RAND_MAX;
+}
+
+// ----------------------------------------------------
+inline static float RandF(const float a, const float b)
+{
+    // returns random float in [a, b)
+    return a + RandF() * (b - a);
+}
+// ----------------------------------------------------
+template<typename T>
+static T Clamp(const T& x, const T& low, const T& high)
+{
+    return x < low ? low : (x > high ? high : x);
+}
+
+// ----------------------------------------------------
+inline void ClampPitch(float& pitch)
+{
+    // limit the pitch value in range (-(PI/2)+0.1f < pitch < (PI/2)-0.1f)
+    if (pitch > PIDIV2 - 0.1f)
+    {
+        pitch = PIDIV2 - 0.1f;
+    }
+    else if (pitch < -PIDIV2 + 0.1f)
+    {
+        pitch = -PIDIV2 + 0.1f;
+    }
+}
+
+// ----------------------------------------------------
+inline void ClampYaw(float& yaw)
+{
+    // limit the yaw value in range (-2PI < yaw < 2PI)
+    if (yaw > M_2PI)
+    {
+        yaw = -M_2PI;
+    }
+    else if (yaw < -M_2PI)
+    {
+        yaw = M_2PI;
+    }
+}
+
+// ----------------------------------------------------
+inline int powi(const int value, const int power)
+{
+    return (int)exp(log(value) * power);
+}
+

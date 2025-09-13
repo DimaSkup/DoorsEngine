@@ -36,9 +36,7 @@
 #include "../Systems/PlayerSystem.h"
 #include "../Systems/HierarchySystem.h"
 #include "../Systems/InventorySystem.h"
-
-// particles stuff
-#include "../Systems/Particles/ParticleSystem.h"
+#include "../Systems/ParticleSystem.h"
 
 // events (ECS)
 #include "../Events/IEvent.h"

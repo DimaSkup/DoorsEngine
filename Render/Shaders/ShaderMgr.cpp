@@ -188,7 +188,6 @@ bool ShaderMgr::HotReload(ID3D11Device* pDevice)
 
         // check if there is such a directory of shaders 
         const char* dirPath = commonParams.dirPathShaders;
-        struct stat sb;
 
         if (!ShaderDirExists(dirPath))
         {

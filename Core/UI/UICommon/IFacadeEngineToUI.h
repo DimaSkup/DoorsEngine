@@ -13,7 +13,8 @@
 
 #include <Types.h>
 #include "Color.h"
-#include "Vectors.h"
+#include <math/vec3.h>
+#include <math/vec4.h>
 #include <cvector.h>
 
 #include <string>
@@ -75,7 +76,7 @@ enum class eMaterialPropGroup
 
 struct MaterialData
 {
-    MaterialID id = 0;
+    MaterialID materialId = 0;
     ShaderID   shaderId = 0;
 
     Vec4   ambient  = { 1,1,1,1 };

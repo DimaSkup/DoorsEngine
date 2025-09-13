@@ -4,6 +4,7 @@
 #include "SetupModels.h"
 #include "../Core/Engine/EngineConfigs.h"
 #include "../Core/Mesh/MaterialLoader.h"
+#include <Render/d3dclass.h>
 #include <inttypes.h>
 
 using namespace Core;
@@ -483,8 +484,8 @@ void CreateCylinders(ECS::EntityMgr& mgr, const BasicModel& model)
     {
         do
         {
-            pos.x = MathHelper::RandF(0, range);
-            pos.z = MathHelper::RandF(0, range);
+            pos.x = RandF(0, range);
+            pos.z = RandF(0, range);
             pos.y = terrain.GetScaledHeightAtPoint((int)pos.x, (int)pos.z) + 2.5f;
 
         } while (maxHeight < pos.y);   // limit height for trees
@@ -783,8 +784,8 @@ void CreateTreesPine(ECS::EntityMgr& mgr, Render::CRender& render)
     {
         do
         {
-            pos.x = MathHelper::RandF(0, range);
-            pos.z = MathHelper::RandF(0, range);
+            pos.x = RandF(0, range);
+            pos.z = RandF(0, range);
             pos.y = terrain.GetScaledHeightAtPoint((int)pos.x, (int)pos.z) - 0.3f;
 
         } while (maxHeight < pos.y);   // limit height for trees
@@ -793,7 +794,7 @@ void CreateTreesPine(ECS::EntityMgr& mgr, Render::CRender& render)
     // generate directions
     for (index i = 0; i < numEntts; ++i)
     {
-        float angleY  = MathHelper::RandF(0, 314) * 0.01f;
+        float angleY  = RandF(0, 314) * 0.01f;
         directions[i] = DirectX::XMQuaternionRotationAxis({ 0,1,0 }, DirectX::XM_PIDIV2);
     }
 
@@ -882,8 +883,8 @@ void CreateTreesSpruce(ECS::EntityMgr& mgr, Render::CRender& render)
     {
         do
         {
-            pos.x = MathHelper::RandF(0, range);
-            pos.z = MathHelper::RandF(0, range);
+            pos.x = RandF(0, range);
+            pos.z = RandF(0, range);
             pos.y = terrain.GetScaledHeightAtPoint((int)pos.x, (int)pos.z) - 0.3f;
 
         } while (maxHeight < pos.y);   // limit height for trees
@@ -893,14 +894,12 @@ void CreateTreesSpruce(ECS::EntityMgr& mgr, Render::CRender& render)
     for (int i = 0; i < numEntts; ++i)
     {
         directions[i] = { 0,0,0,1 };
-       // float angleY = MathHelper::RandF(0, 314) * 0.01f;
-        //directions[i] = DirectX::XMQuaternionRotationAxis({ 0,1,0 }, DirectX::XM_PIDIV2);
     }
 
     // generate a scale value for each tree
     for (int i = 0; i < numEntts; ++i)
     {
-        uniScales[i] = 3.5f + MathHelper::RandF(0.0f, 50.0f) * 0.01f;
+        uniScales[i] = 3.5f + RandF(0.0f, 50.0f) * 0.01f;
     }
 
     // setup bound data
@@ -1640,11 +1639,11 @@ void CreateGrass()
 
     for (VertexGrass& grass : grassVertices)
     {
-        grass.pos.x  = MathHelper::RandF(0, terrainSize);
-        grass.pos.z  = MathHelper::RandF(0, terrainSize);
+        grass.pos.x  = RandF(0, terrainSize);
+        grass.pos.z  = RandF(0, terrainSize);
         grass.pos.y  = terrain.GetScaledInterpolatedHeightAtPoint(grass.pos.x, grass.pos.z);
 
-        grass.size.x = MathHelper::RandF(0.5f, 2.5f);
+        grass.size.x = RandF(0.5f, 2.5f);
         grass.size.y = grass.size.x;
     }
 

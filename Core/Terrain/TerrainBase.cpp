@@ -567,7 +567,7 @@ bool TerrainBase::GenHeightMidpointDisplacement(const int size, float roughness,
                         tempBuf[ni + (nj*size)];
 
                     tempBuf[idx] *= 0.25f;
-                    tempBuf[idx] += MathHelper::RandF(minHeight, maxHeight);
+                    tempBuf[idx] += RandF(minHeight, maxHeight);
                 }
             }
 
@@ -630,7 +630,7 @@ bool TerrainBase::GenHeightMidpointDisplacement(const int size, float roughness,
                         tempBuf[mi + (mj*size)];
 
                     tempBuf[idx1] *= 0.25f;
-                    tempBuf[idx1] += MathHelper::RandF(minHeight, maxHeight);
+                    tempBuf[idx1] += RandF(minHeight, maxHeight);
 
                     // calculate the square value for the left side of the rectangle
                     const int idx2 = i + (mj*size);
@@ -642,7 +642,7 @@ bool TerrainBase::GenHeightMidpointDisplacement(const int size, float roughness,
                         tempBuf[mi  + (mj*size)];
 
                     tempBuf[idx2] *= 0.25f;
-                    tempBuf[idx2] += MathHelper::RandF(minHeight, maxHeight);
+                    tempBuf[idx2] += RandF(minHeight, maxHeight);
                 }
             }
 

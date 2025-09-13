@@ -4,11 +4,13 @@
 // Created:   24.05.2025  by DimaSkup
 // =================================================================================
 #include "image.h"
+
+#include <stdexcept>
+
 #include "log.h"
 #include "FileSystem.h"
 #include "RawFile.h"
-#include <stdexcept>
-#include "DMath.h"
+#include "math/math_helpers.h"
 
 #pragma warning (disable : 4996)
 

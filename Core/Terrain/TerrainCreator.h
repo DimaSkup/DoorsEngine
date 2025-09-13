@@ -9,10 +9,8 @@
 #include "../Mesh/Vertex3dTerrain.h"
 #include "../Model/GeometryGenerator.h"
 #include <Log.h>
-#include <MathHelper.h>
-
+//#include <MathHelper.h>
 #include "TerrainGeomipmapCreator.h"
-#include "TerrainQuadtreeCreator.h"
 
 
 namespace Core

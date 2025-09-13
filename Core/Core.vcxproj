@@ -408,9 +408,6 @@ if not exist "$(SolutionDir)build\$(IntDir)data\shaders\input_layouts.json" xcop
     <ClCompile Include="Terrain\TerrainLodMgr.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Terrain\TerrainQuadtree.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="Texture\TextureMgr.cpp" />
     <ClCompile Include="Render\Color.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
@@ -447,9 +444,6 @@ if not exist "$(SolutionDir)build\$(IntDir)data\shaders\input_layouts.json" xcop
     <ClCompile Include="UI\Editor\Entity\Controller\EnttPointLightController.cpp" />
     <ClCompile Include="UI\Editor\Terrain\Sky\SkyController.cpp" />
     <ClCompile Include="UI\Editor\Entity\Controller\EnttSpotLightController.cpp" />
-    <ClCompile Include="UI\Editor\Entity\Creator\EntityCreatorWnd.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="UI\Editor\Entity\View\EnttComponentsEditor.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
     </ClCompile>
@@ -529,6 +523,7 @@ if not exist "$(SolutionDir)build\$(IntDir)data\shaders\input_layouts.json" xcop
     <ClInclude Include="Engine\EventListener.h" />
     <ClInclude Include="Engine\ProjectSaver.h" />
     <ClInclude Include="ECS_Entity\ECS_Types.h" />
+    <ClInclude Include="QuadTree\quad_tree.h" />
     <ClInclude Include="ImGuizmo\ImGuizmo.h" />
     <ClInclude Include="ImGui\backends\imgui_impl_dx11.h" />
     <ClInclude Include="ImGui\backends\imgui_impl_win32.h" />
@@ -567,8 +562,6 @@ if not exist "$(SolutionDir)build\$(IntDir)data\shaders\input_layouts.json" xcop
     <ClInclude Include="Terrain\TerrainGeomipmapCreator.h" />
     <ClInclude Include="Terrain\TerrainGeomipmapped.h" />
     <ClInclude Include="Terrain\TerrainLodMgr.h" />
-    <ClInclude Include="Terrain\TerrainQuadtree.h" />
-    <ClInclude Include="Terrain\TerrainQuadtreeCreator.h" />
     <ClInclude Include="Texture\TextureTypesNames.h" />
     <ClInclude Include="UI\Editor\Debug\DebugEditor.h" />
     <ClInclude Include="UI\Editor\EditorPanelElement\MaterialAssetsBrowser.h" />
@@ -583,7 +576,6 @@ if not exist "$(SolutionDir)build\$(IntDir)data\shaders\input_layouts.json" xcop
     <ClInclude Include="UI\Editor\Entity\View\EnttParticlesView.h" />
     <ClInclude Include="UI\Editor\Terrain\Sky\SkyController.h" />
     <ClInclude Include="UI\Editor\Entity\Controller\EnttSpotLightController.h" />
-    <ClInclude Include="UI\Editor\Entity\Creator\EntityCreatorWnd.h" />
     <ClInclude Include="UI\Editor\Entity\Model\EnttTransformData.h" />
     <ClInclude Include="UI\Editor\Entity\Model\SelectedEnttData.h" />
     <ClInclude Include="UI\Editor\Entity\View\EnttComponentsEditor.h" />
@@ -600,7 +592,6 @@ if not exist "$(SolutionDir)build\$(IntDir)data\shaders\input_layouts.json" xcop
     <ClInclude Include="UI\UICommon\EventsHistory.h" />
     <ClInclude Include="UI\UICommon\ICommand.h" />
     <ClInclude Include="UI\UICommon\StatesGUI.h" />
-    <ClInclude Include="UI\UICommon\Vectors.h" />
     <ClInclude Include="UI\UICommon\IEditorController.h" />
     <ClInclude Include="UI\Editor\Terrain\Sky\SkyEditorModel.h" />
     <ClInclude Include="UI\Editor\Terrain\Sky\SkyEditorView.h" />

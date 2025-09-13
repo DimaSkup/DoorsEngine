@@ -11,7 +11,7 @@
 #include "RenderStates.h"
 
 #include <d3dcommon.h>
-#include <DirectXMath.h>
+//#include <DirectXMath.h>
 
 
 namespace Render

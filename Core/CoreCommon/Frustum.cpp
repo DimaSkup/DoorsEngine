@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "Frustum.h"
 #include <DirectXCollision.h>
+#include <math/vec_functions.h>
 
-DirectX::BoundingFrustum dxFrustum;
 
 //---------------------------------------------------------
 // Desc:   create view frustum plane vectors in camera space in
@@ -106,7 +106,7 @@ Frustum::Frustum(
 //---------------------------------------------------------
 inline void NormalizePlane(FrustumPlane& pl)
 {
-    float invLen = 1.0f / pl.n.Length();
+    float invLen = 1.0f / Vec3Length(pl.n);
 
     pl.n.x *= invLen;
     pl.n.y *= invLen;
@@ -124,12 +124,12 @@ bool Frustum::PointTest(const float x, const float y, const float z) const
     // dot(n,p) + d: where n is a normal; p is an input point; d = -n*p0
 
     return
-        ((Dot(nearClipPlane_.n,   { x,y,z }) + nearClipPlane_.d)   > 0) &&
-        ((Dot(farClipPlane_.n,    { x,y,z }) + farClipPlane_.d)    > 0) &&
-        ((Dot(leftClipPlane_.n,   { x,y,z }) + leftClipPlane_.d)   > 0) &&
-        ((Dot(rightClipPlane_.n,  { x,y,z }) + rightClipPlane_.d)  > 0) &&
-        ((Dot(topClipPlane_.n,    { x,y,z }) + topClipPlane_.d)    > 0) &&
-        ((Dot(bottomClipPlane_.n, { x,y,z }) + bottomClipPlane_.d) > 0);
+        ((Vec3Dot(nearClipPlane_.n,   { x,y,z }) + nearClipPlane_.d)   > 0) &&
+        ((Vec3Dot(farClipPlane_.n,    { x,y,z }) + farClipPlane_.d)    > 0) &&
+        ((Vec3Dot(leftClipPlane_.n,   { x,y,z }) + leftClipPlane_.d)   > 0) &&
+        ((Vec3Dot(rightClipPlane_.n,  { x,y,z }) + rightClipPlane_.d)  > 0) &&
+        ((Vec3Dot(topClipPlane_.n,    { x,y,z }) + topClipPlane_.d)    > 0) &&
+        ((Vec3Dot(bottomClipPlane_.n, { x,y,z }) + bottomClipPlane_.d) > 0);
 }
 
 //---------------------------------------------------------
@@ -145,12 +145,12 @@ bool Frustum::SphereTest(
     const float r) const
 {
     return
-       ((Dot(nearClipPlane_.n,   { x,y,z }) + nearClipPlane_.d)   >= -r) &&
-       ((Dot(farClipPlane_.n,    { x,y,z }) + farClipPlane_.d)    >= -r) &&
-       ((Dot(leftClipPlane_.n,   { x,y,z }) + leftClipPlane_.d)   >= -r) &&
-       ((Dot(rightClipPlane_.n,  { x,y,z }) + rightClipPlane_.d)  >= -r) &&
-       ((Dot(topClipPlane_.n,    { x,y,z }) + topClipPlane_.d)    >= -r) &&
-       ((Dot(bottomClipPlane_.n, { x,y,z }) + bottomClipPlane_.d) >= -r);
+       ((Vec3Dot(nearClipPlane_.n,   { x,y,z }) + nearClipPlane_.d)   >= -r) &&
+       ((Vec3Dot(farClipPlane_.n,    { x,y,z }) + farClipPlane_.d)    >= -r) &&
+       ((Vec3Dot(leftClipPlane_.n,   { x,y,z }) + leftClipPlane_.d)   >= -r) &&
+       ((Vec3Dot(rightClipPlane_.n,  { x,y,z }) + rightClipPlane_.d)  >= -r) &&
+       ((Vec3Dot(topClipPlane_.n,    { x,y,z }) + topClipPlane_.d)    >= -r) &&
+       ((Vec3Dot(bottomClipPlane_.n, { x,y,z }) + bottomClipPlane_.d) >= -r);
 }
 
 //---------------------------------------------------------
