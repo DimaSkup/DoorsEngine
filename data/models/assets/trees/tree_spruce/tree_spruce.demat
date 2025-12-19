@@ -1,0 +1,13 @@
+newmtl tree_spruce_mat
+mat_id 64
+shader_id 11
+states 66187
+cull none
+Ka 1.00 1.00 1.00 1.00
+Kd 1.00 1.00 1.00 1.00
+Ks 0.00 0.00 0.00
+Kg 10.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff tree_spruce_diffuse.dds
+tex_norm tree_spruce_diffuse_NRM.dds
+

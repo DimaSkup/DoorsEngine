@@ -1,0 +1,13 @@
+newmtl Material_gaz_2101
+mat_id 69
+shader_id 3
+states 66186
+Ka 0.7 0.7 0.7 1.00
+Kd 0.3 0.3 0.3 1.00
+Ks 0.0 0.0 0.0
+Kg 1.30
+Kr 0.00 0.00 0.00 0.00
+tex_diff cars_01.dds
+tex_norm cars_01_norm.dds
+tex_spec cars_01_spec.dds
+

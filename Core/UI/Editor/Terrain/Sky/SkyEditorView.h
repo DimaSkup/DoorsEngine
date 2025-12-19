@@ -6,11 +6,14 @@
 // ====================================================================================
 #pragma once
 
-#include <UICommon/IEditorController.h>
 #include "SkyEditorModel.h"
+
 
 namespace UI
 {
+// forward declaration
+class IEditorController;
+
 
 class ViewSky
 {
@@ -18,9 +21,9 @@ private:
 	IEditorController* pController_ = nullptr;
 
 public:
-	ViewSky(IEditorController* pController);
-
-	void Render(const ModelSky& data);
+    ViewSky(IEditorController* pController);
+   
+    void Render(const ModelSky& data);
 };
 
 }

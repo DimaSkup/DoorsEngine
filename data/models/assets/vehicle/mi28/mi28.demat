@@ -1,0 +1,12 @@
+newmtl mi28_mat
+mat_id 83
+shader_id 3
+states 66186
+Ka 0.70 0.70 0.70 1.00
+Kd 0.30 0.30 0.30 1.00
+Ks 0.10 0.10 0.10
+Kg 8.00
+Kr 1.00 0.00 0.00 0.00
+tex_diff helicopter_mi-28.dds
+tex_norm helicopter_mi-28_norm.dds
+

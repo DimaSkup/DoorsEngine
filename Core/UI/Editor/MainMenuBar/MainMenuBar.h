@@ -8,8 +8,7 @@
 // =================================================================================
 #pragma once
 
-#include <UICommon/IFacadeEngineToUI.h>
-#include <UICommon/StatesGUI.h>
+
 
 namespace UI
 {
@@ -17,7 +16,7 @@ namespace UI
 class MainMenuBar
 {
 public:
-    void RenderBar(StatesGUI& states);
+    void RenderBar();
     void RenderWndEngineOptions (bool* pOpen);
   
 private:

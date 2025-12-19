@@ -7,14 +7,15 @@
 // =================================================================================
 #pragma once
 
-#include <UICommon/ICommand.h>
-#include <UICommon/IFacadeEngineToUI.h>
-
 #include "../Model/EnttLightData.h"
 
 
 namespace UI
 {
+// forward declaration
+class IFacadeEngineToUI;
+class ICommand;
+
 
 class EnttPointLightController
 {
@@ -31,6 +32,7 @@ public:
 
 private:
 	// change entt point light props
+    void ExecChangeActivation (const EntityID id, const float isActive);
 	void ExecChangeAmbient    (const EntityID id, const ColorRGBA& ambient);
 	void ExecChangeDiffuse    (const EntityID id, const ColorRGBA& diffuse);
 	void ExecChangeSpecular   (const EntityID id, const ColorRGBA& specular);

@@ -1,25 +1,32 @@
 // =================================================================================
 // Filename: LightSystem.cpp
 // =================================================================================
+#include "../Common/pch.h"
 #include "LightSystem.h"
 
-#include "../Common/MathHelper.h"
-#include "../Common/log.h"
-#include "../Common/Assert.h"
-#include "../Common/MathHelper.h"
-
+#pragma warning (disable : 4996)
 using namespace DirectX;
 
 
-namespace ECS 
+namespace ECS
 {
 
+//---------------------------------------------------------
+// static arrays for internal purposes
+//---------------------------------------------------------
+static cvector<EntityID> s_Ids;
+static cvector<index>    s_Idxs;
+
+
+//---------------------------------------------------------
+// Desc:  light system constructo/destructor
+//---------------------------------------------------------
 LightSystem::LightSystem(Light* pLightComponent, TransformSystem* pTransformSys) :
     pLightComponent_(pLightComponent),
     pTransformSys_(pTransformSys)
 {
-    Assert::NotNullptr(pLightComponent, "input ptr to the light component == nullptr");
-    Assert::NotNullptr(pTransformSys,   "input ptr to the Transform system == nullptr");
+    CAssert::NotNullptr(pLightComponent, "input ptr to the light component == nullptr");
+    CAssert::NotNullptr(pTransformSys,   "input ptr to the Transform system == nullptr");
 }
 
 LightSystem::~LightSystem()
@@ -30,22 +37,21 @@ LightSystem::~LightSystem()
 // =================================================================================
 // private API: common helpers
 // =================================================================================
-std::string GenerateMsgNoEntity(const EntityID id, const std::string& lightTypename)
+const char* GenerateMsgNoEntity(const EntityID id, const char* lightTypename)
 {
-    return { "there is no " + lightTypename + " light entity by ID: " + std::to_string(id) };
+    sprintf(g_String, "there is no %s light entity by ID: %" PRIu32, lightTypename, id);
+    return g_String;
 }
 
 ///////////////////////////////////////////////////////////
 
-std::string GenerateMsgUnknownProperty(
+const char* GenerateMsgUnknownProperty(
     const EntityID id,
     const int propertyCode,
-    const std::string& lightTypename)
+    const char* lightTypename)
 {
-    return {
-        "unknown type of " + lightTypename +
-        " light property (entt id: " + std::to_string(id) +
-        ", type: " + std::to_string(propertyCode) + ")" };
+    sprintf(g_String, "unknown type of %s light property (entt id: %" PRIu32 ", type: propertyCode: % d)", lightTypename, id, propertyCode);
+    return g_String;
 }
 
 ///////////////////////////////////////////////////////////
@@ -57,152 +63,96 @@ XMFLOAT4 GetLightPropInvalidData()
 }
 
 
-
 // =================================================================================
 // public API: creation
 // =================================================================================
 
-void LightSystem::AddDirLights(
-    const EntityID* ids,
-    const size numEntts,
-    DirLightsInitParams& params)
+//---------------------------------------------------------
+// Desc:   bind a directed light source to a single input entity by ID
+// Args:   - id:        entity identifier
+//         - initData:  initial params for directed light source
+//---------------------------------------------------------
+void LightSystem::AddDirLight(const EntityID id, const DirLight& initData)
 {
-    // add new directional light sources
+    if (id == INVALID_ENTITY_ID)
+    {
+        LogErr(LOG, "input entity ID == 0");
+        return;
+    }
 
-    Assert::True((ids != nullptr) && (numEntts > 0), "invalid input args");
-    
     Light& comp = *pLightComponent_;
-    cvector<index> idxs;
-    comp.ids.get_insert_idxs(ids, numEntts, idxs);
+    index idx = comp.ids.get_insert_idx(id);
 
-    // exec some index correction
-    for (index i = 0; i < numEntts; ++i)
-        idxs[i] += i;
+    // exec sorted insertion of a new record into each data array
+    comp.ids.insert_before(idx, id);
+    comp.types.insert_before(idx, LightType::DIRECTED);
+    comp.isActive.insert_before(idx, true);
 
-    // execute sorted insertion of new records into the data arrays of the component
-    for (index i = 0; i < numEntts; ++i)
-        comp.ids.insert_before(idxs[i], ids[i]);
-
-    for (index i = 0; i < numEntts; ++i)
-        comp.types.insert_before(idxs[i], LightType::DIRECTIONAL);
-
-    for (index i = 0; i < numEntts; ++i)
-        comp.isActive.insert_before(idxs[i], true);
-
-    // ------------------------------------------
-
-    // add ids and lights data into the light container
+    // add data into the lights container
     DirLights& lights = GetDirLights();
 
-    lights.ids.get_idxs(ids, numEntts, idxs);
-
-    // exec some index correction
-    for (index i = 0; i < numEntts; ++i)
-        idxs[i] += i;
-
-    // execute sorted insertion of data
-    for (index i = 0; i < numEntts; ++i)
-        lights.ids.insert_before(idxs[i], ids[i]);
-
-    for (index i = 0; i < numEntts; ++i)
-        lights.data.insert_before(idxs[i], params.data[i]);
+    idx = lights.ids.get_insert_idx(id);
+    lights.ids.insert_before(idx, id);
+    lights.data.insert_before(idx, initData);
 }
 
-///////////////////////////////////////////////////////////
-
-void LightSystem::AddPointLights(
-    const EntityID* ids,
-    const size numEntts,
-    PointLightsInitParams& params)
+//---------------------------------------------------------
+// Desc:   bind a point light source to a single input entity by ID
+// Args:   - id:        entity identifier
+//         - initData:  initial params for point light source
+//---------------------------------------------------------
+void LightSystem::AddPointLight(const EntityID id, const PointLight& initData)
 {
-    // create a new point light sources
-
-    Assert::True((ids != nullptr) && (numEntts > 0), "invalid input args");
+    if (id == INVALID_ENTITY_ID)
+    {
+        LogErr(LOG, "input entity ID == 0");
+        return;
+    }
 
     Light& comp = *pLightComponent_;
-    cvector<index> idxs;
-    comp.ids.get_insert_idxs(ids, numEntts, idxs);
+    index idx = comp.ids.get_insert_idx(id);
 
-    // exec some index correction
-    for (index i = 0; i < numEntts; ++i)
-        idxs[i] += i;
+    // exec sorted insertion of a new record into each data array
+    comp.ids.insert_before(idx, id);
+    comp.types.insert_before(idx, LightType::POINT);
+    comp.isActive.insert_before(idx, true);
 
-    // execute sorted insertion of new records into the data arrays of the component
-    for (index i = 0; i < numEntts; ++i)
-        comp.ids.insert_before(idxs[i], ids[i]);
-
-    for (index i = 0; i < numEntts; ++i)
-        comp.types.insert_before(idxs[i], LightType::POINT);
-
-    for (index i = 0; i < numEntts; ++i)
-        comp.isActive.insert_before(idxs[i], true);
-
-    // ------------------------------------------
-
-    // add ids and lights data into the light container
+    // add data into the lights container
     PointLights& lights = GetPointLights();
 
-    lights.ids.get_idxs(ids, numEntts, idxs);
-
-    // exec some index correction
-    for (index i = 0; i < numEntts; ++i)
-        idxs[i] += i;
-
-    // execute sorted insertion of data
-    for (index i = 0; i < numEntts; ++i)
-        lights.ids.insert_before(idxs[i], ids[i]);
-
-    for (index i = 0; i < numEntts; ++i)
-        lights.data.insert_before(idxs[i], params.data[i]);
+    idx = lights.ids.get_insert_idx(id);
+    lights.ids.insert_before(idx, id);
+    lights.data.insert_before(idx, initData);
 }
 
-///////////////////////////////////////////////////////////
-
-void LightSystem::AddSpotLights(
-    const EntityID* ids,
-    const size numEntts,
-    SpotLightsInitParams& params)
+//---------------------------------------------------------
+// Desc:   bind a spotlight source to a single input entity by ID
+// Args:   - id:        entity identifier
+//         - initData:  initial params for spotlight source
+//---------------------------------------------------------
+void LightSystem::AddSpotLight(const EntityID id, const SpotLight& initData)
 {
-    // create a new spotlight source
-
-    Assert::True((ids != nullptr) && (numEntts > 0), "invalid input args");
+    if (id == INVALID_ENTITY_ID)
+    {
+        LogErr(LOG, "input entity ID == 0");
+        return;
+    }
 
     Light& comp = *pLightComponent_;
-    cvector<index> idxs;
-    comp.ids.get_insert_idxs(ids, numEntts, idxs);
+    index idx = comp.ids.get_insert_idx(id);
 
-    // exec some index correction
-    for (index i = 0; i < numEntts; ++i)
-        idxs[i] += i;
+    // exec sorted insertion of a new record into each data array
+    comp.ids.insert_before(idx, id);
+    comp.types.insert_before(idx, LightType::SPOT);
+    comp.isActive.insert_before(idx, true);
 
-    // execute sorted insertion of new records into the data arrays of the component
-    for (index i = 0; i < numEntts; ++i)
-        comp.ids.insert_before(idxs[i], ids[i]);
-
-    for (index i = 0; i < numEntts; ++i)
-        comp.types.insert_before(idxs[i], LightType::SPOT);
-
-    for (index i = 0; i < numEntts; ++i)
-        comp.isActive.insert_before(idxs[i], true);
-
-    // ------------------------------------------
-
+    // add data into the lights container
     SpotLights& lights = GetSpotLights();
 
-    lights.ids.get_idxs(ids, numEntts, idxs);
-
-    // exec some index correction
-    for (index i = 0; i < numEntts; ++i)
-        idxs[i] += i;
-
-    // execute sorted insertion of data
-    for (index i = 0; i < numEntts; ++i)
-        lights.ids.insert_before(idxs[i], ids[i]);
-
-    for (index i = 0; i < numEntts; ++i)
-        lights.data.insert_before(idxs[i], params.data[i]);
+    idx = lights.ids.get_insert_idx(id);
+    lights.ids.insert_before(idx, id);
+    lights.data.insert_before(idx, initData);
 }
-
 
 // =================================================================================
 // public API: get/set directed light properties
@@ -218,7 +168,7 @@ bool LightSystem::GetDirectedLightData(EntityID id, ECS::DirLight& outDirLight) 
     // if we didn't find any entt by input ID
     if (idx == -1)
     {
-        Log::Error(GenerateMsgNoEntity(id, "directed"));
+        LogErr(GenerateMsgNoEntity(id, "directed"));
         return false;
     }
 
@@ -239,7 +189,7 @@ bool LightSystem::SetDirLightProp(
     // if there is no entity by such ID we cannot update any data so return false
     if (idx == -1)
     {
-        Log::Error(GenerateMsgNoEntity(id, "directed"));
+        LogErr(GenerateMsgNoEntity(id, "directed"));
         return false;
     }
 
@@ -247,24 +197,13 @@ bool LightSystem::SetDirLightProp(
 
     switch (prop)
     {
-        case LightProp::AMBIENT:
-        {
-            light.ambient = value;
-            break;
-        }
-        case LightProp::DIFFUSE:
-        {
-            light.diffuse = value;
-            break;
-        }
-        case LightProp::SPECULAR:
-        {
-            light.specular = value;
-            break;
-        }
+        case LightProp::AMBIENT:    light.ambient  = value; break;
+        case LightProp::DIFFUSE:    light.diffuse  = value; break;
+        case LightProp::SPECULAR:   light.specular = value; break;
+
         default:
         {
-            Log::Error(GenerateMsgUnknownProperty(id, prop, "directed"));
+            LogErr(GenerateMsgUnknownProperty(id, prop, "directed"));
             return false;
         }
     }
@@ -285,7 +224,7 @@ bool LightSystem::SetDirLightProp(
     // if there is no entity by such ID we cannot update any data so return false
     if (idx == -1)
     {
-        Log::Error(GenerateMsgNoEntity(id, "directed"));
+        LogErr(GenerateMsgNoEntity(id, "directed"));
         return false;
     }
 
@@ -294,13 +233,13 @@ bool LightSystem::SetDirLightProp(
     {
         case LightProp::DIRECTION:
         {
-            // the directed light cannot have direction data by itself so we update the related data in Transform component
-            pTransformSys_->SetDirectionQuatByID(id, XMVECTOR{ val.x, val.y, val.z, 1.0f });
+            // light direction is stored in the Transform component
+            pTransformSys_->SetDirection(id, XMVECTOR{ val.x, val.y, val.z, 1.0f });
             break;
         }
         default:
         {
-            Log::Error(GenerateMsgUnknownProperty(id, prop, "directed"));
+            LogErr(GenerateMsgUnknownProperty(id, prop, "directed"));
             return false;
         }
     }
@@ -320,7 +259,7 @@ XMFLOAT4 LightSystem::GetDirLightProp(const EntityID id, const LightProp prop)
     if (idx == -1)
     {
         // return invalid data since we didn't find any entity by input ID
-        Log::Error(GenerateMsgNoEntity(id, "directed"));
+        LogErr(GenerateMsgNoEntity(id, "directed"));
         return GetLightPropInvalidData();
     }
 
@@ -328,28 +267,20 @@ XMFLOAT4 LightSystem::GetDirLightProp(const EntityID id, const LightProp prop)
 
     switch (prop)
     {
-        case AMBIENT:
-        {
-            return light.ambient;
-        }
-        case DIFFUSE:
-        {
-            return light.diffuse;
-        }
-        case SPECULAR:
-        {
-            return light.specular;
-        }
+        case AMBIENT:       return light.ambient;
+        case DIFFUSE:       return light.diffuse;
+        case SPECULAR:      return light.specular;
+
         case DIRECTION:
         {
-            // the directed light cannot have direction data by itself so we get the related data from Transform component
+            // get light direction from the Transform component
             XMFLOAT4 dir;
-            DirectX::XMStoreFloat4(&dir, pTransformSys_->GetDirectionQuatByID(id));
+            DirectX::XMStoreFloat4(&dir, pTransformSys_->GetDirectionVec(id));
             return dir;
         }
         default:
         {
-            Log::Error(GenerateMsgUnknownProperty(id, prop, "directed"));
+            LogErr(GenerateMsgUnknownProperty(id, prop, "directed"));
             return GetLightPropInvalidData();
         }
     }
@@ -366,22 +297,45 @@ void LightSystem::GetPointLightsData(
     cvector<XMFLOAT3>& outPositions) const
 {
     // get point light data by the input array of entities IDs
+    if (!ids)
+    {
+        LogErr(LOG, "input ptr to entities IDs arr == nullptr");
+        return;
+    }
 
-    Assert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
-    Assert::True(numEntts > 0,   "input number of entities must be > 0");
+    if (numEntts == 0)
+    {
+        outData.resize(0);
+        outPositions.resize(0);
+        return;
+    }
 
-    cvector<index> idxs;
+
+    Light& comp = *pLightComponent_;
     PointLights& lights = GetPointLights();
-    lights.ids.get_idxs(ids, numEntts, idxs);
 
-    // get point lights data by indices
-    outData.resize(numEntts);
+    // get indices only of active light sources
+    size numActive = 0;
+    s_Ids.resize(numEntts);
+    comp.ids.get_idxs(ids, numEntts, s_Idxs);
 
-    for (int i = 0; const index idx : idxs)
+    for (const index idx : s_Idxs)
+    {
+        s_Ids[numActive] = comp.ids[idx];
+        numActive += comp.isActive[idx];
+    }
+    s_Ids.resize(numActive);
+    outData.resize(numActive);
+
+    // get data only of active light sources
+    lights.ids.get_idxs(s_Ids.data(), numActive, s_Idxs);
+
+    for (int i = 0; const index idx : s_Idxs)
         outData[i++] = lights.data[idx];
 
-    // get point light positions (are store in the Transform component)
-    pTransformSys_->GetPositionsByIDs(ids, numEntts, outPositions);
+
+    // get point light positions (are stored separatedly in the Transform component)
+    pTransformSys_->GetPositions(s_Ids.data(), numActive, outPositions);
 }
 
 ///////////////////////////////////////////////////////////
@@ -393,21 +347,42 @@ void LightSystem::GetSpotLightsData(
     cvector<XMFLOAT3>& outPositions,
     cvector<XMFLOAT3>& outDirections) const
 {
-    Assert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
-    Assert::True(numEntts > 0,   "input number of entities must be > 0");
+    if (!ids)
+    {
+        LogErr(LOG, "input ptr to entities IDs arr == nullptr");
+        return;
+    }
 
-    outData.resize(numEntts);
+    if (numEntts == 0)
+    {
+        outData.resize(0);
+        outPositions.resize(0);
+        return;
+    }
 
-    cvector<index> idxs;
+
+    Light& component   = *pLightComponent_;
     SpotLights& lights = GetSpotLights();
-    lights.ids.get_idxs(ids, numEntts, idxs);
+    lights.ids.get_idxs(ids, numEntts, s_Idxs);
 
-    // get spotlights by idxs
-    for (int i = 0; const index idx : idxs)
+
+    // get data only of active light sources
+    size numActive = 0;
+
+    for (const index idx : s_Idxs)
+    {
+        s_Idxs[numActive] = idx;
+        numActive += component.isActive[idx];
+    }
+    s_Idxs.resize(numActive);
+    outData.resize(numActive);
+
+    // get data by indices
+    for (int i = 0; const index idx : s_Idxs)
         outData[i++] = lights.data[idx];
 
     // get spotlights positions and directions
-    pTransformSys_->GetPositionsAndDirectionsByIDs(ids, numEntts, outPositions, outDirections);
+    pTransformSys_->GetPositionsAndDirections(ids, numEntts, outPositions, outDirections);
 }
 
 ///////////////////////////////////////////////////////////
@@ -423,7 +398,7 @@ bool LightSystem::GetPointLightData(const EntityID id, ECS::PointLight& outPoint
     // if we didn't find any entt by input ID
     if (idx == -1)
     {
-        Log::Error(GenerateMsgNoEntity(id, "point"));
+        LogErr(GenerateMsgNoEntity(id, "point"));
         return false;
     }
 
@@ -443,7 +418,7 @@ XMFLOAT4 LightSystem::GetPointLightProp(const EntityID id, const LightProp prop)
     if (idx == -1)
     {
         // return invalid data since we didn't find any entity by input ID
-        Log::Error(GenerateMsgNoEntity(id, "point"));
+        LogErr(GenerateMsgNoEntity(id, "point"));
         return GetLightPropInvalidData();
     }
 
@@ -451,27 +426,17 @@ XMFLOAT4 LightSystem::GetPointLightProp(const EntityID id, const LightProp prop)
 
     switch (prop)
     {
-        case AMBIENT:
-        {
-            return light.ambient;
-        }
-        case DIFFUSE:
-        {
-            return light.diffuse;
-        }
-        case SPECULAR:
-        {
-            return light.specular;
-        }
+        case AMBIENT:       return light.ambient;
+        case DIFFUSE:       return light.diffuse;
+        case SPECULAR:      return light.specular;
+
+        // get a light position from the Transform component
         case POSITION:
-        {
-            // the Light component doen't contain position data for the point light, but we can get this data from the Transform component
-            const XMFLOAT3 pos = pTransformSys_->GetPositionByID(id);
-            return { pos.x, pos.y, pos.z, 1.0f };
-        }
+            return pTransformSys_->GetPositionFloat4(id);
+
+        // return the range value in each component of XMFLOAT4
         case RANGE:
         {
-            // return the range value in each component of XMFLOAT4
             const float r = light.range;
             return { r, r, r, r };               
         }
@@ -482,7 +447,7 @@ XMFLOAT4 LightSystem::GetPointLightProp(const EntityID id, const LightProp prop)
         }
         default:
         {
-            Log::Error(GenerateMsgUnknownProperty(id, prop, "point"));
+            LogErr(GenerateMsgUnknownProperty(id, prop, "point"));
             return GetLightPropInvalidData();
         }
     }
@@ -500,7 +465,7 @@ bool LightSystem::SetPointLightProp(
     // if there is no entity by such ID we cannot update any data so return false
     if (idx == -1)
     {
-        Log::Error(GenerateMsgNoEntity(id, "point"));
+        LogErr(GenerateMsgNoEntity(id, "point"));
         return false;
     }
         
@@ -508,25 +473,14 @@ bool LightSystem::SetPointLightProp(
 
     switch (prop)
     {
-        case LightProp::AMBIENT:
-        {
-            light.ambient = value;
-            break;
-        }
-        case LightProp::DIFFUSE:
-        {
-            light.diffuse = value;
-            break;
-        }
-        case LightProp::SPECULAR:
-        {
-            light.specular = value;
-            break;
-        }
+        case LightProp::AMBIENT:    light.ambient  = value; break;
+        case LightProp::DIFFUSE:    light.diffuse  = value; break;
+        case LightProp::SPECULAR:   light.specular = value; break;
+
+        // store light position into the Transform component
         case LightProp::POSITION:
         {
-            // the Light component doen't contain position data for the point light, but we store this data in the Transform component
-            pTransformSys_->SetPositionByID(id, XMFLOAT3{ value.x, value.y, value.z });
+            pTransformSys_->SetPosition(id, XMFLOAT3{ value.x, value.y, value.z });
             break;
         }
         case LightProp::ATTENUATION:
@@ -536,7 +490,7 @@ bool LightSystem::SetPointLightProp(
         }
         default:
         {
-            Log::Error(GenerateMsgUnknownProperty(id, prop, "point"));
+            LogErr(GenerateMsgUnknownProperty(id, prop, "point"));
             return false;
         }
     }
@@ -558,7 +512,7 @@ bool LightSystem::SetPointLightProp(
     // if there is no entity by such ID we cannot update any data so return false
     if (idx == -1)
     {
-        Log::Error(GenerateMsgNoEntity(id, "point"));
+        LogErr(GenerateMsgNoEntity(id, "point"));
         return false;
     }
 
@@ -568,13 +522,12 @@ bool LightSystem::SetPointLightProp(
     switch (prop)
     {
         case LightProp::RANGE:
-        {
             light.range = value;
             break;
-        }
+
         default:
         {
-            Log::Error(GenerateMsgUnknownProperty(id, prop, "point"));
+            LogErr(GenerateMsgUnknownProperty(id, prop, "point"));
             return false;
         }
     }
@@ -598,7 +551,7 @@ bool LightSystem::GetSpotLightData(const EntityID id, ECS::SpotLight& outSpotlig
     // if we didn't find any entt by input ID
     if (idx == -1)
     {
-        Log::Error(GenerateMsgNoEntity(id, "spot"));
+        LogErr(GenerateMsgNoEntity(id, "spot"));
         return false;
     }
 
@@ -618,7 +571,7 @@ XMFLOAT4 LightSystem::GetSpotLightProp(const EntityID id, const LightProp prop)
     if (idx == -1)
     {
         // return invalid data since we didn't find any entity by input ID
-        Log::Error(GenerateMsgNoEntity(id, "spot"));
+        LogErr(GenerateMsgNoEntity(id, "spot"));
         return GetLightPropInvalidData();
     }
 
@@ -626,31 +579,19 @@ XMFLOAT4 LightSystem::GetSpotLightProp(const EntityID id, const LightProp prop)
 
     switch (prop)
     {
-        case AMBIENT:
-        {
-            return light.ambient;
-        }
-        case DIFFUSE:
-        {
-            return light.diffuse;
-        }
-        case SPECULAR:
-        {
-            return light.specular;
-        }
+        case AMBIENT:       return light.ambient;
+        case DIFFUSE:       return light.diffuse;
+        case SPECULAR:      return light.specular;
+
+        // get a light position from the Transform component
         case POSITION:
-        {
-            // the Light component doen't contain position data for the spotlight, but we can get this data in the Transform component
-            const XMFLOAT3 pos = pTransformSys_->GetPositionByID(id);
-            return { pos.x, pos.y, pos.z, 1.0f };
-        }
+            return pTransformSys_->GetPositionFloat4(id);
+
         case DIRECTION:
         {
-            // the Light component doen't contain position data for the spotlight, but we can get this data in the Transform component
-            const XMVECTOR q = pTransformSys_->GetDirectionQuatByID(id);
-            XMFLOAT4 dir;
-            DirectX::XMStoreFloat4(&dir, q);
-            return dir;
+            // get light direction from the Transform component
+            const XMFLOAT3 dir = pTransformSys_->GetDirection(id);
+            return XMFLOAT4{ dir.x, dir.y, dir.z, 0.0f };
         }
         case RANGE:
         {
@@ -671,7 +612,7 @@ XMFLOAT4 LightSystem::GetSpotLightProp(const EntityID id, const LightProp prop)
         }
         default:
         {
-            Log::Error(GenerateMsgUnknownProperty(id, prop, "spot"));
+            LogErr(GenerateMsgUnknownProperty(id, prop, "spot"));
             return GetLightPropInvalidData();
         }
     }
@@ -682,7 +623,7 @@ XMFLOAT4 LightSystem::GetSpotLightProp(const EntityID id, const LightProp prop)
 bool LightSystem::SetSpotLightProp(
     const EntityID id,
     const LightProp prop,
-    const XMFLOAT4& value)
+    const XMFLOAT4& val)
 {
     SpotLights& lights = GetSpotLights();
     const index idx    = GetIdxByID(lights.ids, id);
@@ -690,7 +631,7 @@ bool LightSystem::SetSpotLightProp(
     // if there is no entity by such ID we cannot update any data so return false
     if (idx == -1)
     {
-        Log::Error(GenerateMsgNoEntity(id, "spot"));
+        LogErr(GenerateMsgNoEntity(id, "spot"));
         return false;
     }
 
@@ -698,41 +639,30 @@ bool LightSystem::SetSpotLightProp(
 
     switch (prop)
     {
-        case LightProp::AMBIENT:
-        {
-            light.ambient = value;
-            break;
-        }
-        case LightProp::DIFFUSE:
-        {
-            light.diffuse = value;
-            break;
-        }
-        case LightProp::SPECULAR:
-        {
-            light.specular = value;
-            break;
-        }
+        case LightProp::AMBIENT:    light.ambient  = val; break;
+        case LightProp::DIFFUSE:    light.diffuse  = val; break;
+        case LightProp::SPECULAR:   light.specular = val; break;
+
         case LightProp::POSITION:
         {
-            // the Light component doen't contain position data for the spotlight, but we store this data in the Transform component
-            pTransformSys_->SetPositionByID(id, XMFLOAT3{ value.x, value.y, value.z });
+            // store light position into the Transform component
+            pTransformSys_->SetPosition(id, XMFLOAT3{ val.x, val.y, val.z });
             break;
         }
         case LightProp::DIRECTION:
         {
-            // the Light component doen't contain position data for the spotlight, but we store this data in the Transform component
-            pTransformSys_->SetDirectionQuatByID(id, { value.x, value.y, value.z, 1.0f });
+            // store light direction into the Transform component
+            pTransformSys_->SetDirection(id, { val.x, val.y, val.z, 1.0f });
             break;
         }
         case LightProp::ATTENUATION:
         {
-            light.att = { value.x, value.y, value.z };
+            light.att = { val.x, val.y, val.z };
             break;
         }
         default:
         {
-            Log::Error(GenerateMsgUnknownProperty(id, prop, "spot"));
+            LogErr(GenerateMsgUnknownProperty(id, prop, "spot"));
             return false;
         }
     }
@@ -754,7 +684,7 @@ bool LightSystem::SetSpotLightProp(
     // if there is no entity by such ID we cannot update any data so return false
     if (idx == -1)
     {
-        Log::Error(GenerateMsgNoEntity(id, "spot"));
+        LogErr(GenerateMsgNoEntity(id, "spot"));
         return false;
     }
 
@@ -762,19 +692,12 @@ bool LightSystem::SetSpotLightProp(
 
     switch (prop)
     {
-        case LightProp::RANGE:
-        {
-            light.range = value;
-            break;
-        }
-        case LightProp::SPOT_EXP:
-        {
-            light.spot = value;
-            break;
-        }
+        case LightProp::RANGE:      light.range = value; break;
+        case LightProp::SPOT_EXP:   light.spot  = value; break;
+
         default:
         {
-            Log::Error(GenerateMsgUnknownProperty(id, prop, "spot"));
+            LogErr(GenerateMsgUnknownProperty(id, prop, "spot"));
             return false;
         }
     }
@@ -782,7 +705,6 @@ bool LightSystem::SetSpotLightProp(
     // we successfully updated some property of the light entity
     return true;
 }
-
 
 
 // =================================================================================
@@ -843,8 +765,8 @@ void LightSystem::UpdateFlashlight(const EntityID id, const XMFLOAT3& pos, const
     // the spotlight takes on the camera position and is aimed in the same direction 
     // the camera is looking. In this way, it looks like we are holding a flashlight
 
-    pTransformSys_->SetPositionByID(id, pos);
-    pTransformSys_->SetDirectionQuatByID(id, XMVECTOR{ dir.x, dir.y, dir.z, 1.0f });
+    pTransformSys_->SetPosition(id, pos);
+    pTransformSys_->SetDirection(id, XMVECTOR{ dir.x, dir.y, dir.z, 1.0f });
 }
 
 ///////////////////////////////////////////////////////////
@@ -857,7 +779,7 @@ bool LightSystem::SetLightIsActive(const EntityID id, const bool state)
 
     if (idx == -1)
     {
-        Log::Error(GenerateMsgNoEntity(id, "directed/point/spot"));
+        LogErr(GenerateMsgNoEntity(id, "directed/point/spot"));
         return false;
     }
 
@@ -875,7 +797,7 @@ bool LightSystem::IsLightActive(const EntityID id)
 
     if (idx == -1)
     {
-        Log::Error(GenerateMsgNoEntity(id, "directed/point/spot"));
+        LogErr(GenerateMsgNoEntity(id, "directed/point/spot"));
         return false;
     }
 
@@ -890,18 +812,18 @@ bool LightSystem::IsLightActive(const EntityID id)
 bool LightSystem::GetPointLightsPositionAndRange(
     const EntityID* ids,
     const size numEntts,
-    ECS::cvector<XMFLOAT3>& outPositions,
-    ECS::cvector<float>& outRanges) const
+    cvector<XMFLOAT3>& outPositions,
+    cvector<float>& outRanges) const
 {
     // out: position and range of point light sources by input IDs;
     // NOTE: outData is supposed to be already allocated to size of numEntts
 
-    Assert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
-    Assert::True(numEntts,       "input number of entities must be > 0");
+    CAssert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
+    CAssert::True(numEntts,       "input number of entities must be > 0");
 
    
     // get position of each point light by ID
-    pTransformSys_->GetPositionsByIDs(ids, numEntts, outPositions);
+    pTransformSys_->GetPositions(ids, numEntts, outPositions);
 
     // get range of each point light by ID
     const cvector<PointLight>& lights = GetPointLights().data;
@@ -915,24 +837,5 @@ bool LightSystem::GetPointLightsPositionAndRange(
 
     return true;
 }
-
-///////////////////////////////////////////////////////////
-
-void* LightSystem::operator new(size_t i)
-{
-    if (void* ptr = _aligned_malloc(i, 16))
-    {
-        return ptr;
-    }
-
-    Log::Error("can't allocate the memory for object");
-    throw std::bad_alloc{};
-}
-
-void LightSystem::operator delete(void* p)
-{
-    _aligned_free(p);
-}
-
 
 };  // namespace ECS

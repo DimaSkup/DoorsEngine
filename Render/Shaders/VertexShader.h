@@ -7,36 +7,39 @@
 #pragma once
 
 #include <d3d11.h>
-#include <string>
-
 
 namespace Render 
 {
 
-
 class VertexShader
 {
 public:
-	~VertexShader();
+    ~VertexShader();
 
-	bool Initialize(
-		ID3D11Device* pDevice,
-		const std::string& shaderPath,
-		const D3D11_INPUT_ELEMENT_DESC* layoutDesc,
-		const UINT layoutElemNum);
-	
-	void Shutdown();
+    bool LoadPrecompiled(
+        ID3D11Device* pDevice,
+        const char* shaderPath,
+        const D3D11_INPUT_ELEMENT_DESC* layoutDesc,
+        const UINT layoutElemNum);
 
-	// public query API
-	inline ID3D11VertexShader* GetShader()      { return pShader_; };
-	inline ID3D11InputLayout*  GetInputLayout() { return pInputLayout_; };
+    // hot reload
+    bool CompileFromFile(
+        ID3D11Device* pDevice,
+        const char* shaderPath,
+        const char* funcName,
+        const char* shaderModel,
+        const D3D11_INPUT_ELEMENT_DESC* layoutDesc,
+        const UINT layoutElemNum);
+    
+    void Shutdown();
+
+    // public query API
+    inline ID3D11VertexShader* GetShader()      { return pShader_; };
+    inline ID3D11InputLayout*  GetInputLayout() { return pInputLayout_; };
 
 private:
-	ID3D11VertexShader* pShader_ = nullptr;
-	uint8_t* pShaderBuffer_ = nullptr;
-	ID3D11InputLayout* pInputLayout_ = nullptr;
-	//ID3DBlob*           pShaderBuffer_ = nullptr;
-	
+    ID3D11VertexShader* pShader_ = nullptr;
+    ID3D11InputLayout*  pInputLayout_ = nullptr;
 };
 
 };  // namespace Render

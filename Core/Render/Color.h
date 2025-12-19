@@ -1,8 +1,5 @@
 #pragma once
 
-#include <DirectXMath.h>
-#include <DirectXPackedVector.h>
-
 typedef unsigned char BYTE;
 
 class Color
@@ -30,8 +27,6 @@ public:
 	
 	inline const BYTE* GetRGBA() { return rgba;	}
 
-	DirectX::XMFLOAT4 GetFloat4() const;
-
 private:
 	union
 	{
@@ -40,32 +35,64 @@ private:
 	};
 };
 
+////////////////////////////////////////////////////////////////////////////////////
+
 namespace Colors
 {
 	const Color UnloadedTextureColor(255, 255, 255);
 	const Color UnhandledTextureColor(250, 0, 0);
+}
 
-	// color XM-vectors
-	XMGLOBALCONST DirectX::XMVECTORF32 vWhite = { 1.0f, 1.0f, 1.0f, 1.0f };
-	XMGLOBALCONST DirectX::XMVECTORF32 vBlack = { 0.0f, 0.0f, 0.0f, 1.0f };
-	XMGLOBALCONST DirectX::XMVECTORF32 vRed = { 1.0f, 0.0f, 0.0f, 1.0f };
-	XMGLOBALCONST DirectX::XMVECTORF32 vGreen = { 0.0f, 1.0f, 0.0f, 1.0f };
-	XMGLOBALCONST DirectX::XMVECTORF32 vBlue = { 0.0f, 0.0f, 1.0f, 1.0f };
-	XMGLOBALCONST DirectX::XMVECTORF32 vYellow = { 1.0f, 1.0f, 0.0f, 1.0f };
-	XMGLOBALCONST DirectX::XMVECTORF32 vCyan = { 0.0f, 1.0f, 1.0f, 1.0f };
-	XMGLOBALCONST DirectX::XMVECTORF32 vMagenta = { 1.0f, 0.0f, 1.0f, 1.0f };
-	XMGLOBALCONST DirectX::XMVECTORF32 vSilver = { 0.75f, 0.75f, 0.75f, 1.0f };
-	XMGLOBALCONST DirectX::XMVECTORF32 vLightSteelBlue = { 0.69f, 0.77f, 0.87f, 1.0f };
+////////////////////////////////////////////////////////////////////////////////////
+
+inline Color::Color()
+    : color(0)
+{
+}
+
+inline Color::Color(unsigned int val)
+    : color(val)
+{
+}
+
+inline Color::Color(BYTE r, BYTE g, BYTE b)
+    : Color(r, g, b, 255)
+{
+}
+
+inline Color::Color(BYTE r, BYTE g, BYTE b, BYTE a)
+{
+    rgba[0] = r;
+    rgba[1] = g;
+    rgba[2] = b;
+    rgba[3] = a;
+}
+
+inline Color::Color(const Color& src)
+    : color(src.color)
+{
+}
 
 
-	XMGLOBALCONST DirectX::PackedVector::XMCOLOR White = { 1.0f, 1.0f, 1.0f, 1.0f };
-	XMGLOBALCONST DirectX::PackedVector::XMCOLOR Black = { 0.0f, 0.0f, 0.0f, 1.0f };
-	XMGLOBALCONST DirectX::PackedVector::XMCOLOR Red= { 1.0f, 0.0f, 0.0f, 1.0f };
-	XMGLOBALCONST DirectX::PackedVector::XMCOLOR Green = { 0.0f, 1.0f, 0.0f, 1.0f };
-	XMGLOBALCONST DirectX::PackedVector::XMCOLOR Blue = { 0.0f, 0.0f, 1.0f, 1.0f };
-	XMGLOBALCONST DirectX::PackedVector::XMCOLOR Yellow = { 1.0f, 1.0f, 0.0f, 1.0f };
-	XMGLOBALCONST DirectX::PackedVector::XMCOLOR Cyan = { 0.0f, 1.0f, 1.0f, 1.0f };
-	XMGLOBALCONST DirectX::PackedVector::XMCOLOR Magenta = { 1.0f, 0.0f, 1.0f, 1.0f };
-	XMGLOBALCONST DirectX::PackedVector::XMCOLOR Silver = { 0.75f, 0.75f, 0.75f, 1.0f };
-	XMGLOBALCONST DirectX::PackedVector::XMCOLOR LightSteelBlue = { 0.69f, 0.77f, 0.87f, 1.0f };
+////////////////////////////////////////////////////////////////////////////////////
+//                               PUBLIC OPERATORS
+////////////////////////////////////////////////////////////////////////////////////
+
+inline Color& Color::operator=(const Color& src)
+{
+    if (*this == src)
+        return *this;
+
+    this->color = src.color;
+    return *this;
+}
+
+inline bool Color::operator==(const Color& rhs) const
+{
+    return (this->color == rhs.color);
+}
+
+inline bool Color::operator!=(const Color& rhs) const
+{
+    return !(*this == rhs.color);
 }

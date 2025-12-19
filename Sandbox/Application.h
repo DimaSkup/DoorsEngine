@@ -1,94 +1,64 @@
 // =================================================================================
-// Filename:      Application.h
+// Filename:      App.h
 // Description:   the application main class where everything starts
 // 
 // Created:       19.01.25  by DimaSkup
 // =================================================================================
 #pragma once
 
-#include "Engine/Engine.h"
-#include "Engine/Settings.h"
-#include <CoreCommon/EngineException.h>
+// core stuff
+#include "Engine/event_handler.h"
+#include "Engine/engine.h"
+#include "Engine/engine_configs.h"
+#include "Window/window_container.h"
+#include <EngineException.h>
 
-class Application
+// shared stuff
+#include <FileSystemPaths.h>
+
+// UI (also from Core)
+#include "../UI/UICommon/IFacadeEngineToUI.h"
+#include "../UI/UICommon/FacadeEngineToUI.h"
+#include "../UI/user_interface.h"
+
+#include "Game.h"
+
+
+namespace Game
+{
+
+class App
 {
 public:
-	Application() : windowContainer_(mainWnd_) {}
+    App();
+    ~App();
 
+    void Init();
+    void Run();
+    void Close();
 
-	void Initialize()
-	{
-		eventHandler_.AddEventListener(&engine_);
-
-		// set an event handler for the window container
-		windowContainer_.SetEventHandler(&eventHandler_);
-
-		// get main params for the window initialization
-		const bool isFullScreen = settings_.GetBool("FULL_SCREEN");
-		const std::string wndTitle = settings_.GetString("WINDOW_TITLE");
-		const std::string wndClass = "MyWindowClass";
-		const int wndWidth = settings_.GetInt("WINDOW_WIDTH");
-		const int wndHeight = settings_.GetInt("WINDOW_HEIGHT");
-
-		// init the main window
-		bool result = windowContainer_.renderWindow_.Initialize(
-			hInstance_,
-			mainWnd_,
-			isFullScreen,
-			wndTitle,
-			wndClass,
-			wndWidth,
-			wndHeight);
-		Core::Assert::True(result, "can't initialize the window");
-
-		// explicitly init Windows Runtime and COM
-		HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-		Core::Assert::NotFailed(hr, "ERROR: can't explicitly initialize Windows Runtime and COM");
-
-
-		// init the engine
-		result = engine_.Initialize(hInstance_, mainWnd_, settings_, wndTitle);
-		Core::Assert::True(result, "can't initialize the engine");
-	}
-
-	///////////////////////////////////////////////////////
-
-	void Run()
-	{
-		// run the engine
-		while (windowContainer_.renderWindow_.ProcessMessages(hInstance_, mainWnd_) == true)
-		{
-			if (!engine_.IsPaused())
-			{
-				engine_.Update();
-				engine_.RenderFrame();
-			}
-			else
-			{
-				Sleep(100);
-			}
-
-			if (engine_.IsExit())
-				break;
-		}
-	}
-
-	///////////////////////////////////////////////////////
-
-	void Close()
-	{
-		windowContainer_.renderWindow_.UnregisterWindowClass(hInstance_);
-	}
-
+    bool InitWindow();
+    void InitEngine();
+    bool InitRender(const Core::EngineConfigs& cfg);
+    bool InitScene (ID3D11Device* pDevice, const Core::EngineConfigs& cfg);
+    bool InitGUI   (ID3D11Device* pDevice, const int wndWidth, const int wndHeight);
 
 private:
-	HINSTANCE hInstance_ = GetModuleHandle(NULL);
-	Core::Log logger_;          // ATTENTION: put the declation of logger before all the others; this instance is necessary to create a logger text file
+    HINSTANCE hInstance_ = GetModuleHandle(NULL);
 
-	Core::Engine engine_;
-	HWND mainWnd_;
+    Game                   game_;
+    Core::Engine           engine_;
 
-	Core::Settings settings_;
-	EventHandler eventHandler_;
-	Core::WindowContainer  windowContainer_;
+    ECS::EntityMgr         entityMgr_;
+    Render::CRender        render_;                                // rendering module
+    UI::UserInterface      userInterface_;       // UI/GUI: for work with the graphics user interface (GUI)
+
+    UI::IFacadeEngineToUI* pFacadeEngineToUI_ = nullptr;  // a facade interface which are used by UI to contact with some engine's parts
+
+    HWND                   mainHWND_;
+    Core::EngineConfigs    engineConfigs_;
+    Core::EventHandler     eventHandler_;
+    Core::WindowContainer  wndContainer_;
 };
+
+} // namespace Game

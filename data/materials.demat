@@ -1,0 +1,272 @@
+newmtl grass_0
+mat_id 1
+shader_id 4
+states 0
+Kd 0.82 0.82 0.82 1.0
+Kd 0.82 0.82 0.82 1.0
+tex_diff textures/plants/grassPack.dds
+alpha_clip 1
+fill solid
+cull none
+bs disabled
+
+newmtl grass_1
+mat_id 2
+shader_id 4
+states 0
+tex_diff textures/plants/build_details.dds
+alpha_clip 1
+cull none
+bs disabled
+
+newmtl brick_01
+mat_id 3
+shader_id 3
+states 0
+Ka 0.4 0.4 0.4 1.0
+Kd 0.8 0.8 0.8 1.0
+Kg 1.0
+Kr 0.0 0.0 0.0 1.0
+tex_diff textures/brick01d.dds
+tex_norm textures/brick01n.dds
+
+newmtl brick_blend_add
+mat_id 4
+shader_id 3
+states 0
+Ka 0.4 0.4 0.4 1.0
+Kd 0.8 0.8 0.8 1.0
+Kg 1.0
+Kr 0.0 0.0 0.0 1.0
+tex_diff textures/brick01d.dds
+tex_norm textures/brick01n.dds
+bs add
+
+newmtl brick_blend_sub
+mat_id 5
+shader_id 3
+states 0
+Ka 0.4 0.4 0.4 1.0
+Kd 0.8 0.8 0.8 1.0
+Kg 1.0
+Kr 0.0 0.0 0.0 1.0
+tex_diff textures/brick01d.dds
+tex_norm textures/brick01n.dds
+bs sub
+
+newmtl brick_blend_mul
+mat_id 6
+shader_id 3
+states 0
+Ka 0.4 0.4 0.4 1.0
+Kd 0.8 0.8 0.8 1.0
+Kg 1.0
+Kr 0.0 0.0 0.0 1.0
+tex_diff textures/brick01d.dds
+tex_norm textures/brick01n.dds
+bs mul
+
+newmtl brick_blend_transparent
+mat_id 7
+shader_id 3
+states 0
+Ka 0.4 0.4 0.4 1.0
+Kd 0.8 0.8 0.8 1.0
+Kg 1.0
+Kr 0.0 0.0 0.0 1.0
+tex_diff textures/brick01d.dds
+tex_norm textures/brick01n.dds
+bs transparency
+
+newmtl mirror
+mat_id 8
+shader_id 12
+states 0
+Kr 1.0 1.0 1.0 1.0
+tex_diff textures/gray.png
+
+newmtl cat
+mat_id 9
+shader_id 3
+states 0
+tex_diff textures/cat.dds
+tex_norm textures/blank_NRM.dds
+
+newmtl wood_crate_1
+mat_id 10
+shader_id 3
+states 0
+tex_diff textures/woodCrate01.dds
+tex_norm textures/blank_NRM.dds
+
+newmtl wood_crate_2
+mat_id 11
+shader_id 3
+states 0
+tex_diff textures/woodCrate02.dds
+
+newmtl box01
+mat_id 12
+shader_id 3
+states 0
+Ka 0.20 0.20 0.20 1.0
+Kd 0.90 0.90 0.90 1.0
+Ks 0.14 0.14 0.14
+Kg 1.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff textures/box01d.dds
+tex_norm textures/box01n.dds
+
+newmtl flameMat
+mat_id 13
+shader_id 5
+states 0
+tex_diff textures/flame0.dds
+bs add
+dss mark_mirror
+
+newmtl flareMat
+mat_id 14
+shader_id 5
+states 0
+tex_diff textures/flare.png
+bs add
+dss mark_mirror
+
+newmtl wirefence
+mat_id 15
+shader_id 3
+states 0
+tex_diff textures/wireFence.dds
+alpha_clip 1
+cull none
+
+newmtl shodan
+mat_id 16
+shader_id 3
+states 0
+tex_diff textures/shodan.jpg
+tex_norm textures/blank_NRM.dds
+
+newmtl ground04
+mat_id 17
+shader_id 3
+states 0
+Ka 0.3 0.3 0.3 1.0
+Kd 0.5 0.5 0.5 1.0 
+Kg 1.0
+Kr 0.0 0.0 0.0 1.0
+tex_diff textures/ground04d.jpg
+tex_norm textures/blank_NRM.dds
+
+newmtl gigachad
+mat_id 18
+shader_id 3
+states 0
+Ka 0.3 0.3 0.3 1.0
+Kd 0.5 0.5 0.5 1.0 
+Kg 1.0
+Kr 0.0 0.0 0.0 1.0
+tex_diff textures/gigachad.dds
+
+newmtl tree_pine_lod_1
+mat_id 19
+shader_id 49
+states 66187
+bs alpha_to_coverage
+Ka 0.40 0.40 0.40 1.00
+Kd 0.65 0.65 0.65 1.00
+Ks 0.00 0.00 0.00
+Kg 1.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff textures/tree_pine_lods/diff.dds
+tex_norm textures/tree_pine_lods/norm.dds
+
+newmtl tree_pine_lod_2
+mat_id 19
+shader_id 50
+states 66187
+Ka 0.40 0.40 0.40 1.00
+Kd 0.65 0.65 0.65 1.00
+Ks 0.00 0.00 0.00
+Kg 1.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff  textures/tree_pine_lods/diff.dds
+tex_norm  textures/tree_pine_lods/norm.dds
+tex_light textures/tree_pine_lods/spritesheet.png
+
+newmtl tree_spruce_lod_1
+mat_id 19
+shader_id 49
+states 66187
+bs alpha_to_coverage
+Ka 1.00 1.00 1.00 1.00
+Kd 1.00 1.00 1.00 1.00
+Ks 0.00 0.00 0.00
+Kg 10.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff  textures/tree_spruce_lods/spruce_lod1_diff.dds
+tex_norm  textures/tree_spruce_lods/spruce_lod1_norm.dds
+
+newmtl tree_spruce_lod_2
+mat_id 19
+shader_id 50
+states 66187
+Ka 1.00 1.00 1.00 1.00
+Kd 1.00 1.00 1.00 1.00
+Ks 0.00 0.00 0.00
+Kg 10.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff textures/tree_spruce_lods/spruce_lod1_diff.dds
+tex_norm textures/tree_spruce_lods/spruce_lod1_norm.dds
+tex_light textures/tree_spruce_lods/spruce_lod2_lightmap.png
+
+newmtl rainMat0
+mat_id 20
+shader_id 5
+states 0
+tex_diff textures/rain.png
+bs add
+dss mark_mirror
+
+newmtl smokeMat0
+mat_id 21
+shader_id 5
+states 0
+tex_diff particles/smoke/smoke_01.png
+bs add
+dss mark_mirror
+
+newmtl smokeMat1
+mat_id 22
+shader_id 5
+states 0
+tex_diff particles/smoke/smoke_05.png
+bs add
+dss mark_mirror
+
+newmtl smokeMat2
+mat_id 23
+shader_id 5
+states 0
+tex_diff particles/smoke/smoke_08.png
+bs add
+dss mark_mirror
+
+newmtl sparkMat0
+mat_id 24
+shader_id 5
+states 0
+tex_diff particles/spark/spark_05.png
+bs add
+dss mark_mirror
+
+newmtl sparkMat1
+mat_id 25
+shader_id 5
+states 0
+tex_diff particles/spark/spark_06.png
+bs add
+dss mark_mirror
+
+

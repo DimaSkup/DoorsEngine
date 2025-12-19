@@ -1,0 +1,202 @@
+newentt       dirL_sun
+type          directed
+ambient       0.60 0.60 0.60 1.0
+diffuse       0.70 0.70 0.70 1.0
+specular      0.30 0.30 0.30 1.0
+direction     0.57 -0.4 0.57
+active        1
+archetype     light
+
+newentt       player_flashlight
+type          spotlight
+pos           0 0 1
+dir_quat      0 0 2.61 1
+ambient       0.01 0.01 0.01 1.0
+diffuse       0.10 0.10 0.10 1.0
+specular      0.10 0.10 0.10 1.0
+att           0.0 15.0 600.0
+range         130.0
+spot_fallof   10.0
+active        0
+parent        0
+archetype     light
+
+newentt       pointL_rainbow_0
+type          point
+pos           0.0 0.0 0.0
+ambient       0.21 0.43 0.45 1.0
+diffuse       0.42 0.86 0.90 1.0
+specular      0.42 0.86 0.90 1.0
+att           0.005 0.01 0.03
+range         30.0
+active        0
+parent        0
+archetype     light
+
+newentt       pointL_firecamp
+type          point
+pos           251.0 77.5 227.0
+ambient       0.23 0.17 0.05 1.0
+diffuse       0.47 0.35 0.10 1.0
+specular      0.47 0.35 0.10 1.0
+att           0.1 0.1 0.005
+range         30.0
+active        1
+parent        flame_firecamp
+archetype     light
+
+newentt       pointL_anomaly_flame_0
+type          point
+pos           238.0 76.5 260.0
+ambient       0.23 0.17 0.05 1.0
+diffuse       0.47 0.35 0.10 1.0
+specular      0.47 0.35 0.10 1.0
+att           0.1 0.1 0.005
+range         30.0
+active        1
+parent        anomaly_flame_0
+archetype     light
+
+newentt       pointL_anomaly_flame_1
+type          point
+pos           238.0 76.5 265.0
+ambient       0.23 0.17 0.05 1.0
+diffuse       0.47 0.35 0.10 1.0
+specular      0.47 0.35 0.10 1.0
+att           0.1 0.1 0.005
+range         30.0
+active        1
+parent        anomaly_flame_1
+archetype     light
+
+newentt       pointL_anomaly_flame_2
+type          point
+pos           241.0 76.5 263.0
+ambient       0.23 0.17 0.05 1.0
+diffuse       0.47 0.35 0.10 1.0
+specular      0.47 0.35 0.10 1.0
+att           0.1 0.1 0.005
+range         30.0
+active        1
+parent        anomaly_flame_2
+archetype     light
+
+newentt       pointL_anomaly_flame_3
+type          point
+pos           244.0 76.5 263.0
+ambient       0.23 0.17 0.05 1.0
+diffuse       0.47 0.35 0.10 1.0
+specular      0.47 0.35 0.10 1.0
+att           0.1 0.1 0.005
+range         30.0
+active        1
+parent        anomaly_flame_3
+archetype     light
+
+newentt       pointL_anomaly_flame_4
+type          point
+pos           244.0 76.5 267.0
+ambient       0.23 0.17 0.05 1.0
+diffuse       0.47 0.35 0.10 1.0
+specular      0.47 0.35 0.10 1.0
+att           0.1 0.1 0.005
+range         30.0
+active        1
+parent        anomaly_flame_4
+archetype     light
+
+newentt       pointL_rainbow_1
+type          point
+pos           0.0 0.0 0.0
+ambient       0.21 0.43 0.45 1.0
+diffuse       0.42 0.86 0.90 1.0
+specular      0.42 0.86 0.90 1.0
+att           0.133 0.015 0.033
+range         30.0
+active        0
+parent        0
+archetype     light
+
+newentt       pointL_rainbow_2
+type          point
+pos           0.0 0.0 0.0
+ambient       0.21 0.43 0.45 1.0
+diffuse       0.42 0.86 0.90 1.0
+specular      0.42 0.86 0.90 1.0
+att           0.133 0.015 0.033
+range         30.0
+active        0
+parent        0
+archetype     light
+
+newentt       pointL_rainbow_3
+type          point
+pos           0.0 0.0 0.0
+ambient       0.21 0.43 0.45 1.0
+diffuse       0.42 0.86 0.90 1.0
+specular      0.42 0.86 0.90 1.0
+att           0.133 0.015 0.033
+range         30.0
+active        0
+parent        0
+archetype     light
+
+newentt       pointL_rainbow_4
+type          point
+pos           0.0 0.0 0.0
+ambient       0.21 0.43 0.45 1.0
+diffuse       0.42 0.86 0.90 1.0
+specular      0.42 0.86 0.90 1.0
+att           0.133 0.015 0.033
+range         30.0
+active        0
+parent        0
+archetype     light
+
+newentt       pointL_rainbow_5
+type          point
+pos           0.0 0.0 0.0
+ambient       0.21 0.43 0.45 1.0
+diffuse       0.42 0.86 0.90 1.0
+specular      0.42 0.86 0.90 1.0
+att           0.133 0.015 0.033
+range         30.0
+active        0
+parent        0
+archetype     light
+
+newentt       pointL_rainbow_6
+type          point
+pos           0.0 0.0 0.0
+ambient       0.21 0.43 0.45 1.0
+diffuse       0.42 0.86 0.90 1.0
+specular      0.42 0.86 0.90 1.0
+att           0.133 0.015 0.033
+range         30.0
+active        0
+parent        0
+archetype     light
+
+newentt       pointL_rainbow_7
+type          point
+pos           0.0 0.0 0.0
+ambient       0.21 0.43 0.45 1.0
+diffuse       0.42 0.86 0.90 1.0
+specular      0.42 0.86 0.90 1.0
+att           0.133 0.015 0.033
+range         30.0
+active        0
+parent        0
+archetype     light
+
+newentt       pointL_rainbow_8
+type          point
+pos           0.0 0.0 0.0
+ambient       0.21 0.43 0.45 1.0
+diffuse       0.42 0.86 0.90 1.0
+specular      0.42 0.86 0.90 1.0
+att           0.133 0.015 0.033
+range         30.0
+active        0
+parent        0
+archetype     light

@@ -15,25 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Render.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Common\log.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Common\LIB_Exception.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Common\StringHelper.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Shaders\colorshaderclass.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Shaders\fontshaderclass.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Shaders\LightShaderClass.cpp">
+    <ClCompile Include="Render\CRender.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Shaders\PixelShader.cpp">
@@ -42,63 +24,42 @@
     <ClCompile Include="Shaders\SamplerState.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Shaders\shaderclass.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Shaders\TextureShader.cpp">
+    <ClCompile Include="Shaders\ShaderCompiler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Shaders\VertexShader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="InitRender.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Common\MathHelper.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Shaders\DebugShader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Shaders\SkyDomeShader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Shaders\OutlineShader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Shaders\BillboardShader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Shaders\GeometryShader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\pch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Render\RenderStates.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Render\d3dclass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Render\AdapterReader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Shaders\ShaderMgr.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Shaders\Shader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Shaders\InputLayouts.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Render.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\Assert.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\log.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\LIB_Exception.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\StringHelper.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Shaders\colorshaderclass.h">
+    <ClInclude Include="Render\CRender.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Shaders\ConstantBuffer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Shaders\fontshaderclass.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Shaders\LightShaderClass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Shaders\PixelShader.h">
@@ -107,28 +68,19 @@
     <ClInclude Include="Shaders\SamplerState.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Shaders\shaderclass.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Shaders\ShadersContainer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Shaders\TextureShader.h">
+    <ClInclude Include="Shaders\ShaderCompiler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Shaders\VertexShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Common\MemHelpers.h">
+    <ClInclude Include="Shaders\GeometryShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="InitRender.h">
+    <ClInclude Include="Shaders\InputLayouts.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Common\MathHelper.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\Types.h">
+    <ClInclude Include="Common\ConstBufferTypes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Common\MaterialLightTypes.h">
@@ -137,25 +89,22 @@
     <ClInclude Include="Common\RenderTypes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Shaders\Helpers\CSOLoader.h">
+    <ClInclude Include="Common\pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Shaders\DebugShader.h">
+    <ClInclude Include="Render\RenderStates.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Common\ConstBufferTypes.h">
+    <ClInclude Include="Render\d3dclass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Shaders\SkyDomeShader.h">
+    <ClInclude Include="Render\AdapterReader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Shaders\OutlineShader.h">
+    <ClInclude Include="Shaders\ShaderMgr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Shaders\BillboardShader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Shaders\GeometryShader.h">
+    <ClInclude Include="Shaders\Shader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -169,21 +118,108 @@
     <FxCompile Include="hlsl\fontVS.hlsl" />
     <FxCompile Include="hlsl\LightPS.hlsl" />
     <FxCompile Include="hlsl\LightVS.hlsl" />
-    <FxCompile Include="hlsl\skyPlanePixel.hlsl" />
-    <FxCompile Include="hlsl\skyPlaneVertex.hlsl" />
     <FxCompile Include="hlsl\texturePS.hlsl" />
     <FxCompile Include="hlsl\textureVS.hlsl" />
-    <FxCompile Include="hlsl\DebugVS.hlsl" />
-    <FxCompile Include="hlsl\DebugPS.hlsl" />
     <FxCompile Include="hlsl\SkyDomePS.hlsl" />
     <FxCompile Include="hlsl\SkyDomeVS.hlsl" />
-    <FxCompile Include="hlsl\OutlineVS.hlsl" />
-    <FxCompile Include="hlsl\OutlinePS.hlsl" />
-    <FxCompile Include="hlsl\billboardVS.hlsl" />
-    <FxCompile Include="hlsl\billboardPS.hlsl" />
-    <FxCompile Include="hlsl\billboardGS.hlsl" />
+    <FxCompile Include="hlsl\particleVS.hlsl" />
+    <FxCompile Include="hlsl\particlePS.hlsl" />
+    <FxCompile Include="hlsl\particleGS.hlsl" />
+    <FxCompile Include="hlsl\materialIconVS.hlsl" />
+    <FxCompile Include="hlsl\materialIconPS.hlsl" />
+    <FxCompile Include="hlsl\terrain_high_lod_PS.hlsl" />
+    <FxCompile Include="hlsl\terrain_high_lod_VS.hlsl" />
+    <FxCompile Include="hlsl\grassVS.hlsl" />
+    <FxCompile Include="hlsl\grassGS.hlsl" />
+    <FxCompile Include="hlsl\grassPS.hlsl" />
+    <FxCompile Include="hlsl\debugLinePS.hlsl" />
+    <FxCompile Include="hlsl\debugLineVS.hlsl" />
+    <FxCompile Include="hlsl\foliageVS.hlsl">
+      <Filter>Header Files</Filter>
+    </FxCompile>
+    <FxCompile Include="hlsl\foliagePS.hlsl" />
+    <FxCompile Include="hlsl\metallicPS.hlsl" />
+    <FxCompile Include="hlsl\metallicVS.hlsl" />
+    <FxCompile Include="hlsl\woodPS.hlsl" />
+    <FxCompile Include="hlsl\woodVS.hlsl" />
+    <FxCompile Include="hlsl\skyCloudVS.hlsl" />
+    <FxCompile Include="hlsl\skyCloudPS.hlsl" />
+    <FxCompile Include="hlsl\fullscreenQuadVS.hlsl" />
+    <FxCompile Include="hlsl\visualizeDepthPS.hlsl" />
+    <FxCompile Include="hlsl\depthResolvePS.hlsl" />
+    <FxCompile Include="hlsl\postFX_brightness_adjust_PS.hlsl" />
+    <FxCompile Include="hlsl\postFX_chromatic_aberration_PS.hlsl" />
+    <FxCompile Include="hlsl\postFX_invert_color_PS.hlsl" />
+    <FxCompile Include="hlsl\postFX_sepia_PS.hlsl" />
+    <FxCompile Include="hlsl\postFX_grayscale_PS.hlsl" />
+    <FxCompile Include="hlsl\postFX_color_tint_PS.hlsl" />
+    <FxCompile Include="hlsl\postFX_vignette_effect_PS.hlsl" />
+    <FxCompile Include="hlsl\postFX_gaussian_blur_PS.hlsl" />
+    <FxCompile Include="hlsl\postFX_bloom_extract_PS.hlsl" />
+    <FxCompile Include="hlsl\postFX_edge_detection_PS.hlsl" />
+    <FxCompile Include="hlsl\postFX_posterization_PS.hlsl" />
+    <FxCompile Include="hlsl\postFX_film_grain_PS.hlsl" />
+    <FxCompile Include="hlsl\postFX_CRT_and_scanlines_PS.hlsl" />
+    <FxCompile Include="hlsl\postFX_pixelation_PS.hlsl" />
+    <FxCompile Include="hlsl\postFX_color_shift_PS.hlsl" />
+    <FxCompile Include="hlsl\postFX_negative_glow_PS.hlsl" />
+    <FxCompile Include="hlsl\postFX_thermal_vision_PS.hlsl" />
+    <FxCompile Include="hlsl\postFX_night_vision_PS.hlsl" />
+    <FxCompile Include="hlsl\postFX_heat_distortion_PS.hlsl" />
+    <FxCompile Include="hlsl\postFX_shockwave_distortion_PS.hlsl" />
+    <FxCompile Include="hlsl\postFX_frosted_glass_blur_PS.hlsl" />
+    <FxCompile Include="hlsl\postFX_old_TV_distortion_PS.hlsl" />
+    <FxCompile Include="hlsl\postFX_color_split_PS.hlsl" />
+    <FxCompile Include="hlsl\postFX_radial_blur_PS.hlsl" />
+    <FxCompile Include="hlsl\postFX_swirl_distortion_PS.hlsl" />
+    <FxCompile Include="hlsl\postFX_glitch_PS.hlsl" />
+    <FxCompile Include="hlsl\depth_prepass_terrain_VS.hlsl" />
+    <FxCompile Include="hlsl\depth_prepass_entts_VS.hlsl" />
+    <FxCompile Include="hlsl\FXAA_PS.hlsl" />
+    <FxCompile Include="hlsl\FXAA_PS2.hlsl" />
+    <FxCompile Include="hlsl\postFX_dithering_ordered_PS.hlsl" />
+    <FxCompile Include="hlsl\depth_prepass_dummy_PS.hlsl" />
+    <FxCompile Include="hlsl\frame_buffer_filler_PS.hlsl" />
+    <FxCompile Include="hlsl\debug_model_PS.hlsl" />
+    <FxCompile Include="hlsl\debug_model_VS.hlsl" />
+    <FxCompile Include="hlsl\tree_lod1_PS.hlsl" />
+    <FxCompile Include="hlsl\tree_lod1_VS.hlsl" />
+    <FxCompile Include="hlsl\tree_lod2_VS.hlsl" />
+    <FxCompile Include="hlsl\tree_lod2_PS.hlsl" />
+    <FxCompile Include="hlsl\foliageGS.hlsl" />
+    <FxCompile Include="hlsl\terrain_mid_lod_PS.hlsl" />
+    <FxCompile Include="hlsl\skinned_mesh_VS.hlsl" />
+    <FxCompile Include="hlsl\skinned_mesh_PS.hlsl" />
+    <FxCompile Include="hlsl\terrain_mid_lod_VS.hlsl" />
+    <FxCompile Include="hlsl\terrain_low_lod_VS.hlsl" />
+    <FxCompile Include="hlsl\terrain_low_lod_PS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="hlsl\LightHelper.hlsli" />
+    <None Include="hlsl\helpers\noise_rand.hlsli" />
+    <None Include="hlsl\const_buffers\cb_time.hlsli" />
+    <None Include="hlsl\const_buffers\cbps_post_fx2.hlsli" />
+    <None Include="hlsl\const_buffers\cbps_rare_changed.hlsli" />
+    <None Include="hlsl\const_buffers\cbps_per_frame.hlsli" />
+    <None Include="hlsl\const_buffers\cb_view_proj.hlsli" />
+    <None Include="hlsl\const_buffers\cbps_sky.hlsli" />
+    <None Include="hlsl\const_buffers\cb_camera.hlsli" />
+    <None Include="hlsl\const_buffers\cbvs_world_view_proj.hlsli" />
+    <None Include="hlsl\const_buffers\cbvs_world_inverse_transpose.hlsli" />
+    <None Include="hlsl\const_buffers\cbvs_world_and_view_proj.hlsli" />
+    <None Include="hlsl\const_buffers\cb_weather.hlsli" />
+    <None Include="hlsl\const_buffers\cbvs_world_view_ortho.hlsli" />
+    <None Include="hlsl\const_buffers\cbps_material_colors.hlsli" />
+    <None Include="hlsl\types\vs_in_basic_inst.hlsli" />
+    <None Include="hlsl\types\vs_out_basic_inst.hlsli" />
+    <None Include="hlsl\types\gs_in_basic_inst.hlsli" />
+    <None Include="hlsl\types\gs_out_basic_inst.hlsli" />
+    <None Include="hlsl\types\ps_in_basic_inst.hlsli" />
+    <None Include="hlsl\types\vs_in_basic.hlsli" />
+    <None Include="hlsl\types\vs_out_basic.hlsli" />
+    <None Include="hlsl\types\ps_in_basic.hlsli" />
+    <None Include="hlsl\const_buffers\post_fx_params_enum.hlsli" />
+    <None Include="hlsl\color.hlsli" />
+    <None Include="hlsl\const_buffers\cbvs_skinned.hlsli" />
   </ItemGroup>
 </Project>

@@ -8,7 +8,7 @@
 #pragma once
 
 #include <UICommon/Color.h>
-#include <UICommon/Vectors.h>
+#include <math/vec3.h>
 
 
 namespace UI
@@ -51,6 +51,7 @@ public:
     Vec3      position;
     float     range = 0;
     Vec3      attenuation;
+    bool      isActive;
 
 public:
     inline void SetData(
@@ -58,13 +59,15 @@ public:
         const ColorRGBA& inDiffuse,
         const ColorRGBA& inSpecular,
         const float inRange,
-        const Vec3& inAttenuation)
+        const Vec3& inAttenuation,
+        const bool inIsActive)
     {
         ambient     = inAmbient;
         diffuse     = inDiffuse;
         specular    = inSpecular;
         range       = inRange;
         attenuation = inAttenuation;
+        isActive    = inIsActive;
     }
 
     inline EnttPointLightData GetData() const { return *this; }

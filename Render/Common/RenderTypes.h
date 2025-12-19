@@ -6,67 +6,52 @@
 // ********************************************************************************
 #pragma once
 
-#include "MemHelpers.h"
 #include "MaterialLightTypes.h"
-#include "Assert.h"
-#include "log.h"
+
+#include <mem_helpers.h>
+#include <CAssert.h>
+#include <Types.h>
+#include <log.h>
+#include <cvector.h>
 
 #include <d3d11.h>
 #include <DirectXMath.h>
-#include <vector>
 
 #pragma warning (disable : 4996)
+
 
 namespace Render
 {
 
-constexpr int SUBSET_NAME_LENGTH_LIMIT = 32;
-
-
 // =================================================================================
-// TYPEDEFS
+// DEFINES / TYPEDEFS / CONSTANTS
 // =================================================================================
 using SRV = ID3D11ShaderResourceView;
-
-
-// =================================================================================
-// ENUMS
-// =================================================================================
-enum DebugState
-{
-    TURN_OFF,               // turn off the debug shader and use the default shader
-    SHOW_NORMALS,
-    SHOW_TANGENTS,
-    SHOW_BINORMALS,
-    SHOW_BUMPED_NORMALS,
-    SHOW_ONLY_LIGTHING,
-    SHOW_ONLY_DIRECTED_LIGHTING,
-    SHOW_ONLY_POINT_LIGHTING,
-    SHOW_ONLY_SPOT_LIGHTING,
-    SHOW_ONLY_DIFFUSE_MAP,
-    SHOW_ONLY_NORMAL_MAP,
-};
-
-enum EnttsSetType
-{
-    DEFAULT,                // fill solid, cull back, no blending, no alpha clipping
-    ALPHA_CLIP_CULL_NONE,
-    BLENDED,
-    ANOTHER
-};
+constexpr int MAX_LEN_MESH_NAME = 32;
 
 
 // =================================================================================
 // STRUCTURES
 // =================================================================================
+
+//---------------------------------------------------------
+// Desc:   a container for entities materials (its part: textures + render states)
+//---------------------------------------------------------
+struct MaterialDataForBinding
+{
+    uint32 properties;                        // bitfild about render states
+    SRV*   texturesSRVs[NUM_TEXTURE_TYPES];   // textures of this material
+};
+
+//---------------------------------------------------------
+// Desc:   a container for data which is updated each frame
+//---------------------------------------------------------
 struct PerFrameData
 {
-    // constains data which is updated each frame
-
     // common data
     DirectX::XMMATRIX WVO;                       // is used for 2D rendering (world * basic_view * ortho)
-    DirectX::XMMATRIX proj;
     DirectX::XMMATRIX viewProj;                  // (is already transposed)
+    DirectX::XMMATRIX worldViewProj;
     DirectX::XMFLOAT3 cameraPos;
     DirectX::XMFLOAT3 cameraDir;
 
@@ -81,6 +66,7 @@ struct PerFrameData
     float             deltaTime      = 0;        // time passed since the previous frame
     float             totalGameTime  = 0;        // time passed since the start of the application
 
+    //-------------------------------------------
 
     void ResizeLightData(
         const int nDirLights,                    // number of dir lights
@@ -91,7 +77,12 @@ struct PerFrameData
         if (nDirLights > numDirLights)
         {
             SafeDeleteArr(dirLights);
-            dirLights = new DirLight[nDirLights];
+
+            dirLights = NEW DirLight[nDirLights];
+            if (!dirLights)
+            {
+                LogErr(LOG, "can't allocate memory for directed lights data buffer");
+            }
         }
         numDirLights = nDirLights;
 
@@ -100,7 +91,12 @@ struct PerFrameData
         if (nPointLights > numPointLights)
         {
             SafeDeleteArr(pointLights);
-            pointLights = new PointLight[nPointLights];
+
+            pointLights = NEW PointLight[nPointLights];
+            if (!pointLights)
+            {
+                LogErr(LOG, "can't allocate memory for point lights data buffer");
+            }
         }
         numPointLights = nPointLights;
 
@@ -108,60 +104,65 @@ struct PerFrameData
         if (nSpotLights > numSpotLights)
         {
             SafeDeleteArr(spotLights);
-            spotLights = new SpotLight[nSpotLights];
+
+            spotLights = NEW SpotLight[nSpotLights];
+            if (!spotLights)
+            {
+                LogErr(LOG, "can't allocate memory for spotlights data buffer");
+            }
         }
         numSpotLights = nSpotLights;
     }
 };
 
-///////////////////////////////////////////////////////////
-
-class InstBuffData
+//---------------------------------------------------------
+// Desc:   a transient data container for the instances buffer
+//---------------------------------------------------------
+class InstancesBuf
 {
-    //
-    // constains transient data for the instance buffer
-    //
+public:
+    DirectX::XMMATRIX* worlds_    = nullptr;  
+    MaterialColors*    materials_ = nullptr;  // material color data (ambient/diffuse/specular/reflection/etc.)
+
+private:
+    int                capacity_ = 0;               // how many elements we can put into this buffer
+    int                size_ = 0;                   // the current number of data elements
 
 public:
+    InstancesBuf()  {}
+    ~InstancesBuf() { Shutdown(); }
 
-    InstBuffData() {}
-
-    ~InstBuffData()
-    {
-        Shutdown();
-    }
-
-    /// ---------------------------------------------------
+    // ---------------------------------------------------
 
     void Shutdown()
     {
         SafeDeleteArr(worlds_);
-        SafeDeleteArr(texTransforms_);
         SafeDeleteArr(materials_);
-        SafeDeleteArr(textureSubsetIdxs_);
         capacity_ = 0;
         size_ = 0;
     }
 
-    /// ---------------------------------------------------
+    // ---------------------------------------------------
 
     void Resize(const int newSize)
     {
         try
         {
-            Assert::True(newSize > 0, "wrong value of new size: " + std::to_string(newSize));
+            if (newSize < 0)
+            {
+                sprintf(g_String, "wrong value of new size: %d", newSize);
+                throw EngineException(g_String);
+            }
 
-            // if we need a reallocation (just do nothing if we have enough memory)
+            // if we need a reallocation (or just do nothing if we have enough memory)
             if (newSize > capacity_)
             {
                 // release old memory before allocation of new memory
                 Shutdown();
 
-                worlds_             = new DirectX::XMMATRIX[newSize];
-                texTransforms_      = new DirectX::XMMATRIX[newSize];
-                materials_          = new Material[newSize];
-                textureSubsetIdxs_  = new uint8_t[newSize];
-                capacity_           = newSize;	
+                worlds_    = new DirectX::XMMATRIX[newSize];
+                materials_ = new MaterialColors[newSize];
+                capacity_  = newSize;	
             }
 
             // update the number of elements for this frame
@@ -170,124 +171,111 @@ public:
         catch (const std::bad_alloc& e)
         {
             Shutdown();
-            Log::Error(e.what());
-            Log::Error("can't allocate memory for the instanced transient data buffer");
+            LogErr(e.what());
+            LogErr("can't allocate memory for the instanced transient data buffer");
         }
-        catch (LIB_Exception& e)
+        catch (EngineException& e)
         {
             Shutdown();
-            Log::Error(e);
-            Log::Error("can't setup instanced transient data buffer");
+            LogErr(e);
+            LogErr("can't setup instanced transient data buffer");
         }
     }
 
     // ---------------------------------------------------
 
     inline const int GetSize() const { return size_; }
-
-public:
-    DirectX::XMMATRIX* worlds_ = nullptr;
-    DirectX::XMMATRIX* texTransforms_ = nullptr;
-    Material*          materials_ = nullptr;
-    uint8_t*           textureSubsetIdxs_ = nullptr;
-
-private:
-    int                capacity_ = 0;   // how many elements we can put into this buffer
-    int                size_ = 0;       // the current number of data elements
 };
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   a container for subset (mesh) data of the model
+//---------------------------------------------------------
 struct Subset
 {
-    // subset (mesh) data of the model
-    Subset() {}
+    // for debugging
+    char    name[MAX_LEN_MESH_NAME] {'\0'};
 
-    char     name[SUBSET_NAME_LENGTH_LIMIT] {'\0'};  // for debugging
-    uint32_t vertexStart = 0;                        // start pos of vertex in the common buffer
-    uint32_t vertexCount = 0;                        // how many vertices this subset has
-    uint32_t indexStart = 0;                         // start pos of index in the common buffer
-    uint32_t indexCount = 0;                         // how many indices this subset has
+    uint32  vertexStart = 0;                             // start pos of vertex in the common buffer
+    uint32  vertexCount = 0;                             // how many vertices this subset has
+    uint32  indexStart = 0;                              // start pos of index in the common buffer
+    uint32  indexCount = 0;                              // how many indices this subset has
 };
 
-///////////////////////////////////////////////////////////
-
-struct Instance
+//---------------------------------------------------------
+// Desc:   a data container for rendering instances
+//         (instance is a set of geometry with some rendering states:
+//          it can be a simple box with a single subset/mesh and single material)
+//---------------------------------------------------------
+struct InstanceBatch
 {
-    // data of a single model instance
-    Instance() {}
+    ShaderID               shaderId     = 0;
+    ModelID                modelId      = INVALID_MODEL_ID;
+    SubmeshID              subsetId     = UINT16_MAX;
+    uint32                 numInstances = 1;             // how many times this instance will be rendered (at different positions)
+    UINT                   vertexStride = 0;             // size in bytes of a single vertex
 
-    char                  name[32]{ '\0' };
-    int                   numInstances = 0;  // how many instances will be rendered
-    UINT                  vertexStride = 0;  // size in bytes of a single vertex
+    ID3D11Buffer*          pVB = nullptr;                // vertex buffer
+    ID3D11Buffer*          pIB = nullptr;                // index buffer
+    Subset                 subset;                       // mesh metadata
+    uint32                 renderStates;                 // a bitfield about render states of the current material
+    SRV*                   textures[NUM_TEXTURE_TYPES];  // textures of this material
 
-    ID3D11Buffer*         pVB = nullptr;     // vertex buffer
-    ID3D11Buffer*         pIB = nullptr;     // index buffer
-    std::vector<SRV*>     texSRVs;           // textures arr for each mesh
-    std::vector<Subset>   subsets;           // subInstance (mesh) data
-    std::vector<uint32_t> materialIDs;
-    
-
-    // --------------------------------
-
-    inline int GetNumVertices() const
-    {
-        return subsets.back().vertexStart + subsets.back().vertexCount;
-    }
-
-    // --------------------------------
-    
-    inline void Clear()
-    {
-        pVB = nullptr;
-        pIB = nullptr;
-        texSRVs.clear();
-        subsets.clear();
-        materialIDs.clear();
-    }
+    // debug data
+    char                   name[32]{ '\0' };
 };
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   a data container of a sky model instance
+//---------------------------------------------------------
 struct SkyInstance
 {
-    // data of a sky model instance
-
     UINT              indexCount = 0;
-    UINT              vertexStride = 0;  // size in bytes of a single vertex
-    ID3D11Buffer*     pVB = nullptr;     // vertex buffer
-    ID3D11Buffer*     pIB = nullptr;     // index buffer
-    std::vector<SRV*> texSRVs;           // textures arr
-    DirectX::XMFLOAT3 colorCenter;       // horizon sky color (for gradient)
-    DirectX::XMFLOAT3 colorApex;         // top sky color (for gradient)
+    UINT              vertexStride = 0;             // size in bytes of a single vertex
+    ID3D11Buffer*     pVB = nullptr;                // vertex buffer
+    ID3D11Buffer*     pIB = nullptr;                // index buffer
+    uint32            renderStates;                 // a bitfield about render states of the current material
+    SRV*              texSRVs[NUM_TEXTURE_TYPES];   // textures arr
+    DirectX::XMFLOAT3 colorCenter;                  // horizon sky color (for gradient)
+    DirectX::XMFLOAT3 colorApex;                    // top sky color (for gradient)
 };
 
-///////////////////////////////////////////////////////////
+//---------------------------------------------------------
+// Desc:   a data container for the terrain model
+//---------------------------------------------------------
+struct TerrainInstance
+{
+    UINT           numVertices   = 0;
+    UINT           indexCount    = 0;
+    UINT           baseIndex     = 0;
+    UINT           baseVertex    = 0;
+    UINT           vertexStride  = 0;
+    ID3D11Buffer*  pVB           = nullptr;
+    ID3D11Buffer*  pIB           = nullptr;
+    //SRV*           skyBoxTexture = nullptr;
+    //SRV*           textures[NUM_TEXTURE_TYPES]{nullptr};
+    MaterialColors matColors;
+    bool           wantDebug = false;
+};
 
+//---------------------------------------------------------
+// Desc:   stores render data of bunches of instances with different render states
+//---------------------------------------------------------
 struct RenderDataStorage
 {
-    // stores render data of bunches of instances with different render states
-
     void Clear()
     {
-        modelInstances.clear();
-        alphaClippedModelInstances.clear();
-        blendedModelInstances.clear();
-        boundingLineBoxInstances.clear();
+        masked.clear();
+        opaque.clear();
+        blended.clear();
+        blendedTransparent.clear();
     }
 
-    InstBuffData          modelInstBuffer;
-    InstBuffData          alphaClippedModelInstBuffer;
-    InstBuffData          blendedModelInstBuffer;
-    InstBuffData          boundingLineBoxBuffer;
+    InstancesBuf                instancesBuf;
 
-    std::vector<Instance> modelInstances;              // models with default render states
-    std::vector<Instance> alphaClippedModelInstances;
-    std::vector<Instance> blendedModelInstances;
-    std::vector<Instance> boundingLineBoxInstances;
+    cvector<InstanceBatch>      masked;                // grass, foliage, wireframe, etc.
+    cvector<InstanceBatch>      opaque;                // fully opaque geometry
+    cvector<InstanceBatch>      blended;               // blended geometry (add/sub/mul)
+    cvector<InstanceBatch>      blendedTransparent;    // blended geometry with transparency
 };
 
-///////////////////////////////////////////////////////////
-
-
-}  // namespace Render
+}  // namespace

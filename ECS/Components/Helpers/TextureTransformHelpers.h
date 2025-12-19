@@ -7,18 +7,16 @@
 #pragma once
 
 
-#include "../Common/Types.h"
-#include "../Common/cvector.h"
+#include "../Common/ECSTypes.h"
+#include <Types.h>
+#include <cvector.h>
 
 namespace ECS
 {
 
-
-// ************************************************************************************
-// 
-//              DATA STRUCTURES FOR INITIALIZATION OF TEXTURE TRANSFORMATIONS 
-// 
-// ************************************************************************************
+// ---------------------------------------------------------------------------------
+//           DATA STRUCTURES FOR INITIALIZATION OF TEXTURE TRANSFORMATIONS 
+// ---------------------------------------------------------------------------------
 
 struct TexTransformInitParams
 {
@@ -27,15 +25,15 @@ struct TexTransformInitParams
 
 ///////////////////////////////////////////////////////////
 
-struct StaticTexTransParams : public TexTransformInitParams
+struct StaticTexTransInitParams : public TexTransformInitParams
 {
     // contains array of init params for the texture static transformation 
     // (for example: scaling and then moving in one direction)
 
 
-    StaticTexTransParams() {};
+    StaticTexTransInitParams() {};
 
-    StaticTexTransParams(
+    StaticTexTransInitParams(
         const u32 transformsCount,
         const XMMATRIX& inInitTransform,
         const XMMATRIX& transformToUpdate = DirectX::XMMatrixIdentity())  // by default we have no changes of transformation during runtime
@@ -46,7 +44,7 @@ struct StaticTexTransParams : public TexTransformInitParams
         texTransforms.resize(transformsCount, transformToUpdate);
     }
 
-    StaticTexTransParams(
+    StaticTexTransInitParams(
         const cvector<XMMATRIX>& initTransformations,
         const cvector<XMMATRIX>& transformationsToUpdate)
     {
@@ -84,7 +82,7 @@ struct StaticTexTransParams : public TexTransformInitParams
 
 ///////////////////////////////////////////////////////////
 
-struct AtlasAnimParams : public TexTransformInitParams
+struct AtlasAnimInitParams : public TexTransformInitParams
 {
     // contains arrays of init params for the texture atlas animations
 
@@ -135,7 +133,7 @@ struct AtlasAnimParams : public TexTransformInitParams
 
 ///////////////////////////////////////////////////////////
 
-struct RotationAroundCoordParams : public TexTransformInitParams
+struct RotationAroundCoordInitParams : public TexTransformInitParams
 {
     // contains init params for the texture rotation around coordinates
     // (for instance: p(0.5, 0.5) - rotation arount its center)

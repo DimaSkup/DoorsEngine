@@ -6,8 +6,8 @@
 // =================================================================================
 #pragma once
 
-#include "../Common/Types.h"
-#include "../Common/cvector.h"
+#include <Types.h>
+#include <cvector.h>
 #include <DirectXCollision.h>
 
 namespace ECS
@@ -18,38 +18,35 @@ namespace ECS
 //
 enum BoundingType
 {
-	SPHERE,
-	BOUND_BOX,
+    BOUND_SPHERE,
+    BOUND_BOX,
 };
 
 // ----------------------------------------------
 
 struct BoundingData
 {
-	// contains bounding data for each subset (mesh / submesh) of the entity
-	// NOTE: idx == 0 means subset_0
-	//       idx == 1 means subset_1
-	//       etc.
+    BoundingData()
+    {
+    }
 
-    BoundingData() {};
+    BoundingData(
+        const BoundingType inType,
+        const DirectX::BoundingSphere& inSphere,
+        const DirectX::BoundingBox& inAABB)
+        :
+        mainType(inType),
+        sphere(inSphere),
+        aabb(inAABB)
+    {
+    }
 
-	BoundingData(
-		const size numData,
-		const BoundingType* types,             // AABB type per mesh
-		const DirectX::BoundingBox* AABBs) :
-		numData(numData),
-		types(types, types + numData)
-	{
-		obbs.resize(numData);
+    // of the whole entity
+    BoundingType mainType = BOUND_BOX;
 
-		// convert each input AABB into OBB
-		for (index i = 0; i < numData; ++i)
-			DirectX::BoundingOrientedBox::CreateFromBoundingBox(obbs[i], AABBs[i]);
-	}
-
-	size numData = 0;
-    cvector<BoundingType> types;                   // types: AABB/sphere
-	cvector<DirectX::BoundingOrientedBox> obbs;    // center, extents, rotation
+    // around the whole entity
+    DirectX::BoundingSphere sphere = { XMFLOAT3(0,0,0), 1 };
+    DirectX::BoundingBox    aabb   = { sphere.Center, XMFLOAT3(1.732f, 1.732f, 1.732f) };   // sqrt(3)
 }; 
 
 
@@ -58,14 +55,12 @@ struct BoundingData
 // =================================================================================
 struct Bounding
 {
-	// Bounding Box:
-	// center  - center of the box / sphere; 
-	// extents - Distance from the center to each side OR radius of the sphere
+    // Bounding Box:
+    // center  - center of the box / sphere; 
+    // extents - Distance from the center to each side OR radius of the sphere
 
-	cvector<EntityID>     ids;
-	cvector<BoundingData> data;
-
-    eComponentType componentType_ = eComponentType::BoundingComponent;
+    cvector<EntityID>     ids;
+    cvector<BoundingData> data;
 };
 
 

@@ -6,36 +6,31 @@
 ////////////////////////////////////////////////////////////////////
 #pragma once
 
-
-//////////////////////////////////
-// INCLUDES
-//////////////////////////////////
 #include <d3d11.h>
-#include <string>
-
 
 namespace Render
 {
-	
 
 class PixelShader
 {
 public:
-	PixelShader();
-	~PixelShader();
+    PixelShader();
+    ~PixelShader();
 
-	bool Initialize(
-		ID3D11Device* pDevice,
-		const std::string & shaderPath,
-		const std::string& funcName = "PS");
+    bool LoadPrecompiled(ID3D11Device* pDevice, const char* path);
 
-	void Shutdown();
+    bool CompileFromFile(
+        ID3D11Device* pDevice,
+        const char* path,
+        const char* funcName,
+        const char* shaderProfile);
 
-	inline ID3D11PixelShader* GetShader() { return pShader_; };
+    void Shutdown();
+
+    inline ID3D11PixelShader* GetShader() { return pShader_; };
 
 private:
-	ID3D11PixelShader* pShader_ = nullptr;
-	uint8_t* pShaderBuffer_ = nullptr;
+    ID3D11PixelShader* pShader_ = nullptr;
 };
 
-} // namespace Render
+} // namespace

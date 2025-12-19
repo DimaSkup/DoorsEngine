@@ -44,13 +44,15 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
+    <EnableASAN>false</EnableASAN>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
+    <EnableASAN>false</EnableASAN>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -75,8 +77,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(WindowsSDK_IncludePath);C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\um;$(DXSDK_DIR)Include\;$(VC_IncludePath);$(SolutionDir)Core\;$(SolutionDir)Core\UI\;$(SolutionDir)Core\ImGuizmo\;$(SolutionDir)ECS;$(SolutionDir)ImGui\;$(SolutionDir)Render;$(SolutionDir)ImageReader;$(SolutionDir)DirectXTex\;$(SolutionDir)Linking\include</IncludePath>
-    <LibraryPath>$(DXSDK_DIR)Lib\x64;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64;$(SolutionDir)Lib\x64\$(Configuration);$(SolutionDir)Linking\lib</LibraryPath>
+    <IncludePath>$(WindowsSDK_IncludePath);$(DXSDK_DIR)Include\;$(VC_IncludePath);$(SolutionDir)Core\;$(SolutionDir)Core\UI\;$(SolutionDir)Core\ImGuizmo\;$(SolutionDir)ECS;$(SolutionDir)ImGui\;$(SolutionDir)Render;$(SolutionDir)Image\;$(SolutionDir)DirectXTex\;$(SolutionDir)Linking\include;$(SolutionDir)Shared\</IncludePath>
+    <LibraryPath>$(DXSDK_DIR)Lib\x64;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64;$(SolutionDir)Lib\$(Platform)\$(Configuration);$(SolutionDir)Linking\lib</LibraryPath>
     <ExternalIncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);</ExternalIncludePath>
     <OutDir>$(SolutionDir)Lib\$(IntDir)</OutDir>
     <TargetName>$(ProjectName)_d</TargetName>
@@ -86,10 +88,10 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(WindowsSDK_IncludePath);$(DXSDK_DIR)Include\;$(VC_IncludePath);$(SolutionDir)Core\Includes;$(SolutionDir)Core;$(SolutionDir)Core\ImGuizmo;$(SolutionDir)Core\UI;$(SolutionDir)ECS;$(SolutionDir)ImageReader;$(SolutionDir)ImGui\;$(SolutionDir)Render</IncludePath>
-    <LibraryPath>$(WindowsSDK_LibraryPath_x64);$(DXSDK_DIR)Lib\x64;$(SolutionDir)Lib\x64\$(Configuration);$(VC_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
+    <IncludePath>$(WindowsSDK_IncludePath);$(DXSDK_DIR)Include\;$(VC_IncludePath);$(SolutionDir)Core;$(SolutionDir)Core\UI;$(SolutionDir)Core\ImGuizmo\;$(SolutionDir)ECS;$(SolutionDir)ImGui\;$(SolutionDir)Render;$(SolutionDir)Image\;$(SolutionDir)DirectXTex\;$(SolutionDir)Linking\include;$(SolutionDir)Shared\</IncludePath>
+    <LibraryPath>$(DXSDK_DIR)Lib\x64;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64;$(SolutionDir)Lib\$(Platform)\$(Configuration);$(SolutionDir)Linking\lib</LibraryPath>
     <ExcludePath>$(ExcludePath)</ExcludePath>
-    <OutDir>$(SolutionDir)build\$(IntDir)</OutDir>
+    <OutDir>$(SolutionDir)Lib\$(IntDir)</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -105,11 +107,50 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <Profile>true</Profile>
     </Link>
+    <PostBuildEvent>
+      <Command>if not exist "$(SolutionDir)build\$(IntDir)data\"                         mkdir "$(SolutionDir)build\$(IntDir)data"
+if not exist "$(SolutionDir)build\$(IntDir)data\models\"          mkdir "$(SolutionDir)build\$(IntDir)data\models\"
+if not exist "$(SolutionDir)build\$(IntDir)data\terrain\"            mkdir "$(SolutionDir)build\$(IntDir)data\terrain\"
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders"            mkdir "$(SolutionDir)build\$(IntDir)data\shaders"
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders\hlsl"    mkdir "$(SolutionDir)build\$(IntDir)data\shaders\hlsl"
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\models\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\models\" "$(SolutionDir)build\$(IntDir)data\models\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\particles\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\particles\" "$(SolutionDir)build\$(IntDir)data\particles\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\terrain\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\terrain\" "$(SolutionDir)build\$(IntDir)data\terrain\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\textures\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\textures\" "$(SolutionDir)build\$(IntDir)data\textures\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\ui\" | findstr .&gt;nul || ( 
+  xcopy /Y "$(SolutionDir)data\ui\" "$(SolutionDir)build\$(IntDir)data\ui\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)Render\hlsl\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)Render\hlsl\" "$(SolutionDir)build\$(IntDir)data\shaders\hlsl" /E
+)
+
+if not exist "$(SolutionDir)build\$(IntDir)data\materials.json"      xcopy /Y /f "$(SolutionDir)data\materials.json"                "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\settings.txt"           xcopy /Y /f "$(SolutionDir)data\settings.txt"                     "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\sky.cfg"                  xcopy /Y /f "$(SolutionDir)data\sky.cfg"                            "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mtd.dll" xcopy /Y /f "$(SolutionDir)Core\assimp-vc143-mtd.dll"  "$(SolutionDir)build\$(IntDir)"
+
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders\shaders.json"           xcopy /Y /f "$(SolutionDir)data\shaders\shaders.json"            "$(SolutionDir)build\$(IntDir)data\shaders"
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders\input_layouts.json" xcopy /Y /f "$(SolutionDir)data\shaders\input_layouts.json" "$(SolutionDir)build\$(IntDir)data\shaders"
+</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);PROJECT_DIR=R"($(ProjectDir))";SOLUTION_DIR=R"($(SolutionDir))";BUILD_DIR=R"($(SolutionDir)build\$(Platform)\$(Configuration)\)"</PreprocessorDefinitions>
@@ -117,35 +158,74 @@
       <AdditionalIncludeDirectories>$(SolutionDir)Lib\$(Platform)\$(Configuration);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <PrecompiledHeaderFile>CoreCommon/pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)Lib\x64\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>d3dcompiler.lib;d3d11.lib;d3dx11d.lib;assimp-vc143-mt.lib;ECS_d.lib;ImageReader.lib;ImGui.lib;Render_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d3dcompiler.lib;d3d11.lib;d3dx11d.lib;assimp-vc143-mt.lib;ECS_d.lib;Image.lib;ImGui.lib;Render_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>
       </IgnoreSpecificDefaultLibraries>
       <Profile>true</Profile>
     </Link>
     <PostBuildEvent>
-      <Command>if not exist "$(SolutionDir)build\$(IntDir)data" mkdir "$(SolutionDir)build\$(IntDir)data"
+      <Command>if not exist "$(SolutionDir)build\$(IntDir)data\"                         mkdir "$(SolutionDir)build\$(IntDir)data"
+if not exist "$(SolutionDir)build\$(IntDir)data\models\"          mkdir "$(SolutionDir)build\$(IntDir)data\models\"
+if not exist "$(SolutionDir)build\$(IntDir)data\terrain\"            mkdir "$(SolutionDir)build\$(IntDir)data\terrain\"
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders"            mkdir "$(SolutionDir)build\$(IntDir)data\shaders"
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders\hlsl"    mkdir "$(SolutionDir)build\$(IntDir)data\shaders\hlsl"
 
-dir /b /s /a "$(SolutionDir)build\$(IntDir)data\" | findstr .&gt;nul || (
-  xcopy /Y "$(SolutionDir)data" "$(SolutionDir)build\$(IntDir)data" /E
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\models\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\models\" "$(SolutionDir)build\$(IntDir)data\models\" /E
 )
 
-if not exist "$(SolutionDir)build\$(IntDir)data\models" mkdir "$(SolutionDir)build\$(IntDir)data\models"
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\particles\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\particles\" "$(SolutionDir)build\$(IntDir)data\particles\" /E
+)
 
-dir /b /s /a "$(SolutionDir)build\$(IntDir)data\models" | findstr .&gt;nul || (
-  xcopy /Y "$(SolutionDir)data\models" "$(SolutionDir)build\$(IntDir)data\models" /E
-)</Command>
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\terrain\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\terrain\" "$(SolutionDir)build\$(IntDir)data\terrain\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\textures\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\textures\" "$(SolutionDir)build\$(IntDir)data\textures\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\ui\" | findstr .&gt;nul || ( 
+  xcopy /Y "$(SolutionDir)data\ui\" "$(SolutionDir)build\$(IntDir)data\ui\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\shaders\hlsl\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)Render\hlsl\" "$(SolutionDir)build\$(IntDir)data\shaders\hlsl" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\sounds\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\sounds\" "$(SolutionDir)build\$(IntDir)data\sounds\" /E
+)
+
+if not exist "$(SolutionDir)build\$(IntDir)data\bindless_textures.cfg"   xcopy /Y /f "$(SolutionDir)data\bindless_textures.cfg"     "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\entities.dentt"                 xcopy /Y /f "$(SolutionDir)data\entities.dentt"                 "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\light.dentt"                     xcopy /Y /f "$(SolutionDir)data\light.dentt"                      "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\materials.demat"           xcopy /Y /f "$(SolutionDir)data\materials.demat"             "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\models.demdl"              xcopy /Y /f "$(SolutionDir)data\models.demdl"                "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\nature.cfg"                     xcopy /Y /f "$(SolutionDir)data\nature.cfg"                       "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\settings.txt"                    xcopy /Y /f "$(SolutionDir)data\settings.txt"                      "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\sky.cfg"                           xcopy /Y /f "$(SolutionDir)data\sky.cfg"                             "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\sky_plane.cfg"               xcopy /Y /f "$(SolutionDir)data\sky_plane.cfg"                  "$(SolutionDir)build\$(IntDir)data\"
+
+if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mtd.dll"          xcopy /Y /f "$(SolutionDir)Core\assimp-vc143-mtd.dll"   "$(SolutionDir)build\$(IntDir)"
+
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders\shaders.json"           xcopy /Y /f "$(SolutionDir)data\shaders\shaders.json"            "$(SolutionDir)build\$(IntDir)data\shaders"
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders\input_layouts.json" xcopy /Y /f "$(SolutionDir)data\shaders\input_layouts.json" "$(SolutionDir)build\$(IntDir)data\shaders"
+</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>
       </Command>
     </PreBuildEvent>
     <Lib>
-      <AdditionalDependencies>ImGui.lib;</AdditionalDependencies>
+      <AdditionalDependencies>ImGui.lib;Shared_d.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -165,12 +245,51 @@ dir /b /s /a "$(SolutionDir)build\$(IntDir)data\models" | findstr .&gt;nul || (
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PostBuildEvent>
+      <Command>if not exist "$(SolutionDir)build\$(IntDir)data\"                         mkdir "$(SolutionDir)build\$(IntDir)data"
+if not exist "$(SolutionDir)build\$(IntDir)data\models\"          mkdir "$(SolutionDir)build\$(IntDir)data\models\"
+if not exist "$(SolutionDir)build\$(IntDir)data\terrain\"            mkdir "$(SolutionDir)build\$(IntDir)data\terrain\"
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders"            mkdir "$(SolutionDir)build\$(IntDir)data\shaders"
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders\hlsl"    mkdir "$(SolutionDir)build\$(IntDir)data\shaders\hlsl"
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\models\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\models\" "$(SolutionDir)build\$(IntDir)data\models\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\particles\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\particles\" "$(SolutionDir)build\$(IntDir)data\particles\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\terrain\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\terrain\" "$(SolutionDir)build\$(IntDir)data\terrain\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\textures\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\textures\" "$(SolutionDir)build\$(IntDir)data\textures\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\ui\" | findstr .&gt;nul || ( 
+  xcopy /Y "$(SolutionDir)data\ui\" "$(SolutionDir)build\$(IntDir)data\ui\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)Render\hlsl\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)Render\hlsl\" "$(SolutionDir)build\$(IntDir)data\shaders\hlsl" /E
+)
+
+if not exist "$(SolutionDir)build\$(IntDir)data\materials.json"      xcopy /Y /f "$(SolutionDir)data\materials.json"                "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\settings.txt"           xcopy /Y /f "$(SolutionDir)data\settings.txt"                     "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\sky.cfg"                  xcopy /Y /f "$(SolutionDir)data\sky.cfg"                            "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mtd.dll" xcopy /Y /f "$(SolutionDir)Core\assimp-vc143-mtd.dll"  "$(SolutionDir)build\$(IntDir)"
+
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders\shaders.json"           xcopy /Y /f "$(SolutionDir)data\shaders\shaders.json"            "$(SolutionDir)build\$(IntDir)data\shaders"
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders\input_layouts.json" xcopy /Y /f "$(SolutionDir)data\shaders\input_layouts.json" "$(SolutionDir)build\$(IntDir)data\shaders"
+</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -178,6 +297,7 @@ dir /b /s /a "$(SolutionDir)build\$(IntDir)data\models" | findstr .&gt;nul || (
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <PrecompiledHeaderFile>CoreCommon/pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -185,108 +305,250 @@ dir /b /s /a "$(SolutionDir)build\$(IntDir)data\models" | findstr .&gt;nul || (
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)Lib\x64\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>d3dcompiler.lib;d3d11.lib;d3dx11.lib;assimp-vc143-mt.lib;ECS.lib;ImageReader.lib;Render.lib;ImGui.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d3dcompiler.lib;d3d11.lib;d3dx11.lib;assimp-vc143-mt.lib;ECS.lib;Image.lib;Render.lib;ImGui.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mt.dll" xcopy /Y "$(SolutionDir)Lib\$(IntDir)assimp-vc143-mt.dll" "$(SolutionDir)build\$(IntDir)"
+      <Command>if not exist "$(SolutionDir)build\$(IntDir)data\"                         mkdir "$(SolutionDir)build\$(IntDir)data"
+if not exist "$(SolutionDir)build\$(IntDir)data\models\"          mkdir "$(SolutionDir)build\$(IntDir)data\models\"
+if not exist "$(SolutionDir)build\$(IntDir)data\terrain\"            mkdir "$(SolutionDir)build\$(IntDir)data\terrain\"
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders"            mkdir "$(SolutionDir)build\$(IntDir)data\shaders"
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders\hlsl"    mkdir "$(SolutionDir)build\$(IntDir)data\shaders\hlsl"
 
-if not exist "$(SolutionDir)build\$(IntDir)data" mkdir "$(SolutionDir)build\$(IntDir)data"
-xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</Command>
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\models\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\models\" "$(SolutionDir)build\$(IntDir)data\models\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\particles\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\particles\" "$(SolutionDir)build\$(IntDir)data\particles\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\terrain\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\terrain\" "$(SolutionDir)build\$(IntDir)data\terrain\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\textures\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\textures\" "$(SolutionDir)build\$(IntDir)data\textures\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\ui\" | findstr .&gt;nul || ( 
+  xcopy /Y "$(SolutionDir)data\ui\" "$(SolutionDir)build\$(IntDir)data\ui\" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\shaders\hlsl\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)Render\hlsl\" "$(SolutionDir)build\$(IntDir)data\shaders\hlsl" /E
+)
+
+dir /b /s /a "$(SolutionDir)build\$(IntDir)data\sounds\" | findstr .&gt;nul || (
+  xcopy /Y "$(SolutionDir)data\sounds\" "$(SolutionDir)build\$(IntDir)data\sounds\" /E
+)
+
+if not exist "$(SolutionDir)build\$(IntDir)data\bindless_textures.cfg"   xcopy /Y /f "$(SolutionDir)data\bindless_textures.cfg"     "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\entities.dentt"                 xcopy /Y /f "$(SolutionDir)data\entities.dentt"                 "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\light.dentt"                     xcopy /Y /f "$(SolutionDir)data\light.dentt"                      "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\materials.demat"           xcopy /Y /f "$(SolutionDir)data\materials.demat"             "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\models.demdl"              xcopy /Y /f "$(SolutionDir)data\models.demdl"                "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\nature.cfg"                     xcopy /Y /f "$(SolutionDir)data\nature.cfg"                       "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\settings.txt"                    xcopy /Y /f "$(SolutionDir)data\settings.txt"                      "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\sky.cfg"                           xcopy /Y /f "$(SolutionDir)data\sky.cfg"                             "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\sky_plane.cfg"               xcopy /Y /f "$(SolutionDir)data\sky_plane.cfg"                  "$(SolutionDir)build\$(IntDir)data\"
+
+if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mtd.dll"          xcopy /Y /f "$(SolutionDir)Core\assimp-vc143-mtd.dll"   "$(SolutionDir)build\$(IntDir)"
+
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders\shaders.json"           xcopy /Y /f "$(SolutionDir)data\shaders\shaders.json"            "$(SolutionDir)build\$(IntDir)data\shaders"
+if not exist "$(SolutionDir)build\$(IntDir)data\shaders\input_layouts.json" xcopy /Y /f "$(SolutionDir)data\shaders\input_layouts.json" "$(SolutionDir)build\$(IntDir)data\shaders"
+</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>
       </Command>
     </PreBuildEvent>
+    <Lib>
+      <AdditionalDependencies>ImGui.lib;Shared.lib</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="2D\SpriteClass.cpp" />
-    <ClCompile Include="Camera\Camera.cpp" />
-    <ClCompile Include="CoreCommon\MathHelper.cpp" />
-    <ClCompile Include="CoreCommon\EngineException.cpp" />
-    <ClCompile Include="Engine\EventHandler.cpp" />
-    <ClCompile Include="CoreCommon\StringHelper.cpp" />
-    <ClCompile Include="Engine\ProjectSaver.cpp" />
-    <ClCompile Include="Engine\UtilsForDLL.cpp" />
-    <ClCompile Include="ImGuizmo\ImGuizmo.cpp" />
-    <ClCompile Include="ImGui\ImGuiLayer.cpp" />
-    <ClCompile Include="Input\KeyboardEvent.cpp" />
-    <ClCompile Include="Mesh\MaterialMgr.cpp" />
-    <ClCompile Include="Model\GeometryGenerator.cpp" />
-    <ClCompile Include="Model\ModelExporter.cpp" />
-    <ClCompile Include="Model\ModelLoader.cpp" />
-    <ClCompile Include="Model\ModelLoaderM3D.cpp" />
-    <ClCompile Include="Model\ModelsCreator.cpp" />
-    <ClCompile Include="Mesh\Vertex.cpp" />
-    <ClCompile Include="Mesh\MeshGeometry.cpp" />
-    <ClCompile Include="Model\BasicModel.cpp" />
-    <ClCompile Include="Model\ModelImporter.cpp" />
-    <ClCompile Include="Model\ModelMath.cpp" />
-    <ClCompile Include="Model\ModelMgr.cpp" />
-    <ClCompile Include="Model\ModelStorageSerializer.cpp" />
-    <ClCompile Include="Model\SkyDomeClass.cpp" />
-    <ClCompile Include="Model\SkyModel.cpp" />
-    <ClCompile Include="Model\SkyPlaneClass.cpp" />
-    <ClCompile Include="Model\TerrainCellClass.cpp" />
-    <ClCompile Include="Model\TerrainClass.cpp" />
-    <ClCompile Include="Tests\ECS\ECS_Tester.cpp" />
-    <ClCompile Include="Texture\TextureMgr.cpp" />
-    <ClCompile Include="Physics\IntersectionWithGameObjects.cpp" />
-    <ClCompile Include="Render\AdapterReader.cpp" />
-    <ClCompile Include="Render\Color.cpp" />
-    <ClCompile Include="Render\d3dclass.cpp" />
-    <ClCompile Include="Render\InitializeGraphics.cpp" />
-    <ClCompile Include="Input\KeyboardClass.cpp" />
-    <ClCompile Include="Texture\textureclass.cpp" />
-    <ClCompile Include="Engine\Settings.cpp" />
-    <ClCompile Include="Render\RenderDataPreparator.cpp" />
-    <ClCompile Include="Render\RenderStates.cpp" />
-    <ClCompile Include="Render\FrameBuffer.cpp" />
-    <ClCompile Include="Sound\SoundClass.cpp" />
-    <ClCompile Include="Timers\cpuclass.cpp" />
-    <ClCompile Include="Engine\Engine.cpp" />
+    <ClCompile Include="CoreCommon\pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pch.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <ClCompile Include="Engine\event_handler.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Engine\gpu_profiler.cpp" />
+    <ClCompile Include="ImGuizmo\ImGuizmo.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui_layer.cpp" />
+    <ClCompile Include="Mesh\material_mgr.cpp" />
+    <ClCompile Include="Mesh\material_reader.cpp" />
+    <ClCompile Include="Mesh\material_writer.cpp" />
+    <ClCompile Include="Mesh\vertex3d_terrain.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </PrecompiledHeaderFile>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Model\animation_helper.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Model\animation_mgr.cpp" />
+    <ClCompile Include="Model\geometry_generator.cpp" />
+    <ClCompile Include="Model\grass_mgr.cpp" />
+    <ClCompile Include="Model\model_exporter.cpp" />
+    <ClCompile Include="Model\model_creator.cpp" />
+    <ClCompile Include="Mesh\vertex.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </PrecompiledHeaderFile>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Mesh\mesh_geometry.cpp" />
+    <ClCompile Include="Model\basic_model.cpp" />
+    <ClCompile Include="Model\model_importer.cpp" />
+    <ClCompile Include="Model\model_math.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Model\model_mgr.cpp" />
+    <ClCompile Include="Model\model_loader.cpp" />
+    <ClCompile Include="Model\sky_model.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CoreCommon/pch.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <ClCompile Include="Model\sky_plane.cpp" />
+    <ClCompile Include="QuadTree\quad_tree.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="QuadTree\quad_tree_node.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CoreCommon/pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CoreCommon/pch.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <ClCompile Include="QuadTree\quad_tree_rect.cpp" />
+    <ClCompile Include="QuadTree\scene_object.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Render\debug_draw_manager.cpp" />
+    <ClCompile Include="Sound\direct_sound.cpp" />
+    <ClCompile Include="Sound\sound.cpp" />
+    <ClCompile Include="Terrain\TerrainBase.cpp" />
+    <ClCompile Include="Terrain\TerrainGeomipmapped.cpp" />
+    <ClCompile Include="Terrain\TerrainLodMgr.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Terrain\terrain_geomip_creator.cpp" />
+    <ClCompile Include="Texture\texture_mgr.cpp" />
+    <ClCompile Include="Input\keyboard.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Texture\texture.cpp" />
+    <ClCompile Include="Engine\engine_configs.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Render\rnd_data_preparator.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Render\frame_buffer.cpp" />
+    <ClCompile Include="Timers\cpuclass.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Engine\engine.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="UI\Editor\Debug\ui_debug_control.cpp" />
+    <ClCompile Include="UI\Editor\EditorPanelElement\MaterialAssetsBrowser.cpp" />
     <ClCompile Include="UI\Editor\EditorPanelElement\ModelsAssetsList.cpp" />
     <ClCompile Include="UI\Editor\EditorPanelElement\TextureAssetsBrowser.cpp" />
     <ClCompile Include="UI\Editor\Entity\Controller\EnttDirLightController.cpp" />
     <ClCompile Include="UI\Editor\Entity\Controller\EnttEditorController.cpp" />
+    <ClCompile Include="UI\Editor\Entity\Controller\EnttParticlesController.cpp" />
     <ClCompile Include="UI\Editor\Entity\Controller\EnttTransformController.cpp" />
     <ClCompile Include="UI\Editor\Entity\Controller\EnttPointLightController.cpp" />
+    <ClCompile Include="UI\Editor\Entity\View\EnttParticlesView.cpp" />
+    <ClCompile Include="UI\Editor\Fog\FogEditorView.cpp" />
+    <ClCompile Include="UI\Editor\Panels\ui_post_fx_control.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="UI\Editor\Terrain\Sky\SkyController.cpp" />
     <ClCompile Include="UI\Editor\Entity\Controller\EnttSpotLightController.cpp" />
-    <ClCompile Include="UI\Editor\Entity\Creator\EntityCreatorWnd.cpp" />
-    <ClCompile Include="UI\Editor\Terrain\Sky\SkyEditorModel.cpp" />
-    <ClCompile Include="UI\Editor\Entity\View\EnttComponentsEditor.cpp" />
+    <ClCompile Include="UI\Editor\Entity\View\EnttComponentsEditor.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="UI\Editor\Entity\View\EnttTransformView.cpp" />
-    <ClCompile Include="UI\Editor\Entity\View\EnttLightView.cpp" />
-    <ClCompile Include="UI\Editor\Terrain\Sky\SkyEditorView.cpp" />
+    <ClCompile Include="UI\Editor\Entity\View\EnttLightView.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="UI\Editor\Fog\FogEditorController.cpp" />
-    <ClCompile Include="UI\Editor\MainMenuBar\MainMenuBar.cpp" />
+    <ClCompile Include="UI\Editor\MainMenuBar\MainMenuBar.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="UI\Editor\Panels\EditorPanels.cpp" />
-    <ClCompile Include="UI\UICommon\EventsHistory.cpp" />
-    <ClCompile Include="UI\UICommon\FacadeEngineToUI.cpp" />
+    <ClCompile Include="UI\Editor\Terrain\Sky\SkyEditorView.cpp" />
+    <ClCompile Include="UI\Editor\Tools\model_screenshot.cpp" />
+    <ClCompile Include="UI\UICommon\events_history.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="UI\Text\fontclass.cpp" />
-    <ClCompile Include="Render\graphicsclass.cpp" />
-    <ClCompile Include="Input\inputmanager.cpp" />
-    <ClCompile Include="CoreCommon\log.cpp" />
-    <ClCompile Include="Input\MouseClass.cpp" />
-    <ClCompile Include="Input\MouseEvent.cpp" />
-    <ClCompile Include="UI\UserInterface.cpp" />
-    <ClCompile Include="Window\RenderWindow.cpp" />
+    <ClCompile Include="Render\CGraphics.cpp" />
+    <ClCompile Include="Input\inputmanager.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Input\mouse.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="UI\UICommon\FacadeEngineToUI.cpp" />
+    <ClCompile Include="UI\UICommon\gui_states.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+      </PrecompiledHeaderFile>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+      </PrecompiledHeaderFile>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </PrecompiledHeaderFile>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </PrecompiledHeaderFile>
+    </ClCompile>
+    <ClCompile Include="UI\user_interface.cpp" />
+    <ClCompile Include="Window\render_window.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="UI\Text\TextStore.cpp" />
-    <ClCompile Include="Timers\GameTimer.cpp" />
-    <ClCompile Include="Window\WindowContainer.cpp" />
+    <ClCompile Include="Timers\game_timer.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </PrecompiledHeaderFile>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Window\window_container.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="2D\SpriteClass.h" />
-    <ClInclude Include="Camera\Camera.h" />
-    <ClInclude Include="CoreCommon\Assert.h" />
-    <ClInclude Include="CoreCommon\Convert.h" />
-    <ClInclude Include="CoreCommon\cvector.h" />
-    <ClInclude Include="CoreCommon\FileSystemPaths.h" />
-    <ClInclude Include="CoreCommon\MathHelper.h" />
-    <ClInclude Include="CoreCommon\MemHelpers.h" />
-    <ClInclude Include="CoreCommon\Types.h" />
-    <ClInclude Include="CoreCommon\Utils.h" />
-    <ClInclude Include="CoreCommon\UtilsFilesystem.h" />
+    <ClInclude Include="CoreCommon\pch.h" />
     <ClInclude Include="ECS_Components\MeshComponent.h" />
     <ClInclude Include="ECS_Components\Rendered.h" />
     <ClInclude Include="ECS_Components\WorldMatrix.h" />
@@ -300,18 +562,26 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClInclude Include="ECS_System\RenderSystem.h" />
     <ClInclude Include="ECS_Entity\Utils.h" />
     <ClInclude Include="ECS_System\TransformSystem.h" />
-    <ClInclude Include="Engine\DumpGenerator.h" />
-    <ClInclude Include="Engine\EventHandler.h" />
-    <ClInclude Include="Engine\EventListener.h" />
-    <ClInclude Include="Engine\ProjectSaver.h" />
-    <ClInclude Include="Engine\UtilsForDLL.h" />
+    <ClInclude Include="Engine\dump_generator.h" />
+    <ClInclude Include="Engine\event_handler.h" />
+    <ClInclude Include="Engine\event_listener.h" />
+    <ClInclude Include="Engine\gpu_profiler.h" />
     <ClInclude Include="ECS_Entity\ECS_Types.h" />
+    <ClInclude Include="Mesh\material_reader.h" />
+    <ClInclude Include="Mesh\material_writer.h" />
+    <ClInclude Include="Model\animation_helper.h" />
+    <ClInclude Include="Model\animation_mgr.h" />
+    <ClInclude Include="Model\grass_mgr.h" />
+    <ClInclude Include="Model\model_loader.h" />
+    <ClInclude Include="Model\sky_plane.h" />
+    <ClInclude Include="Model\vertices_splitter.h" />
+    <ClInclude Include="QuadTree\quad_tree.h" />
     <ClInclude Include="ImGuizmo\ImGuizmo.h" />
     <ClInclude Include="ImGui\backends\imgui_impl_dx11.h" />
     <ClInclude Include="ImGui\backends\imgui_impl_win32.h" />
     <ClInclude Include="ImGui\imconfig.h" />
     <ClInclude Include="ImGui\imgui.h" />
-    <ClInclude Include="ImGui\ImGuiLayer.h" />
+    <ClInclude Include="ImGui\imgui_layer.h" />
     <ClInclude Include="ImGui\ImGuiSrc\imconfig.h" />
     <ClInclude Include="ImGui\ImGuiSrc\imgui.h" />
     <ClInclude Include="ImGui\ImGuiSrc\imgui_internal.h" />
@@ -325,32 +595,43 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClInclude Include="ImGui\misc\cpp\imgui_stdlib.h" />
     <ClInclude Include="ImGui\misc\freetype\imgui_freetype.h" />
     <ClInclude Include="ImGui\misc\single_file\imgui_single_file.h" />
-    <ClInclude Include="Input\KeyboardEvent.h" />
-    <ClInclude Include="Mesh\MaterialMgr.h" />
-    <ClInclude Include="Model\GeometryGenerator.h" />
-    <ClInclude Include="Mesh\MeshGeometry.h" />
-    <ClInclude Include="Mesh\MeshHelperTypes.h" />
-    <ClInclude Include="Model\ModelExporter.h" />
-    <ClInclude Include="Model\ModelImporterHelpers.h" />
-    <ClInclude Include="Model\ModelLoaderM3D.h" />
-    <ClInclude Include="Model\ModelLoader.h" />
-    <ClInclude Include="Model\ModelsCreator.h" />
-    <ClInclude Include="Model\ModelStorageSerializer.h" />
-    <ClInclude Include="Model\SkyModel.h" />
-    <ClInclude Include="Render\SetupModels.h" />
-    <ClInclude Include="Tests\ECS\ECS_Tester.h" />
-    <ClInclude Include="Tests\ECS\HelperTypes.h" />
-    <ClInclude Include="Texture\TextureTypesNames.h" />
-    <ClInclude Include="UI\Editor\Debug\DebugEditor.h" />
+    <ClInclude Include="Input\keyboard_event.h" />
+    <ClInclude Include="Mesh\material_mgr.h" />
+    <ClInclude Include="Mesh\vertex3d_terrain.h" />
+    <ClInclude Include="QuadTree\quad_tree_node.h" />
+    <ClInclude Include="QuadTree\quad_tree_rect.h" />
+    <ClInclude Include="QuadTree\scene_object.h" />
+    <ClInclude Include="Render\debug_draw_manager.h" />
+    <ClInclude Include="Sound\direct_sound.h" />
+    <ClInclude Include="Sound\sound.h" />
+    <ClInclude Include="Terrain\TerrainCreator.h" />
+    <ClInclude Include="Model\geometry_generator.h" />
+    <ClInclude Include="Mesh\mesh_geometry.h" />
+    <ClInclude Include="Mesh\mesh_gen_helper_types.h" />
+    <ClInclude Include="Model\model_exporter.h" />
+    <ClInclude Include="Model\model_importer_helpers.h" />
+    <ClInclude Include="Model\model_creator.h" />
+    <ClInclude Include="Model\sky_model.h" />
+    <ClInclude Include="Terrain\TerrainBase.h" />
+    <ClInclude Include="Terrain\terrain_geomip_creator.h" />
+    <ClInclude Include="Terrain\TerrainGeomipmapped.h" />
+    <ClInclude Include="Terrain\TerrainLodMgr.h" />
+    <ClInclude Include="Texture\texture_type_names.h" />
+    <ClInclude Include="UI\Editor\Debug\rnd_dbg_type_switcher.h" />
+    <ClInclude Include="UI\Editor\Debug\ui_debug_control.h" />
+    <ClInclude Include="UI\Editor\EditorPanelElement\MaterialAssetsBrowser.h" />
     <ClInclude Include="UI\Editor\EditorPanelElement\ModelsAssetsList.h" />
     <ClInclude Include="UI\Editor\EditorPanelElement\TextureAssetsBrowser.h" />
     <ClInclude Include="UI\Editor\Entity\Controller\EnttDirLightController.h" />
     <ClInclude Include="UI\Editor\Entity\Controller\EnttEditorController.h" />
+    <ClInclude Include="UI\Editor\Entity\Controller\EnttParticlesController.h" />
     <ClInclude Include="UI\Editor\Entity\Controller\EnttTransformController.h" />
     <ClInclude Include="UI\Editor\Entity\Controller\EnttPointLightController.h" />
+    <ClInclude Include="UI\Editor\Entity\Model\EnttParticlesModel.h" />
+    <ClInclude Include="UI\Editor\Entity\View\EnttParticlesView.h" />
+    <ClInclude Include="UI\Editor\Panels\ui_post_fx_control.h" />
     <ClInclude Include="UI\Editor\Terrain\Sky\SkyController.h" />
     <ClInclude Include="UI\Editor\Entity\Controller\EnttSpotLightController.h" />
-    <ClInclude Include="UI\Editor\Entity\Creator\EntityCreatorWnd.h" />
     <ClInclude Include="UI\Editor\Entity\Model\EnttTransformData.h" />
     <ClInclude Include="UI\Editor\Entity\Model\SelectedEnttData.h" />
     <ClInclude Include="UI\Editor\Entity\View\EnttComponentsEditor.h" />
@@ -362,65 +643,48 @@ xcopy /Y "$(SolutionDir)data\settings.txt" "$(SolutionDir)build\$(IntDir)data"</
     <ClInclude Include="UI\Editor\Fog\FogEditorView.h" />
     <ClInclude Include="UI\Editor\MainMenuBar\MainMenuBar.h" />
     <ClInclude Include="UI\Editor\Panels\EditorPanels.h" />
-    <ClInclude Include="UI\UICommon\Color.h" />
-    <ClInclude Include="UI\UICommon\cvector.h" />
-    <ClInclude Include="UI\UICommon\EditorCommands.h" />
-    <ClInclude Include="UI\UICommon\EventsHistory.h" />
-    <ClInclude Include="UI\UICommon\ICommand.h" />
-    <ClInclude Include="UI\UICommon\StatesGUI.h" />
-    <ClInclude Include="UI\UICommon\Types.h" />
-    <ClInclude Include="UI\UICommon\Vectors.h" />
-    <ClInclude Include="UI\UICommon\IEditorController.h" />
+    <ClInclude Include="UI\Editor\Tools\model_screenshot.h" />
+    <ClInclude Include="UI\UICommon\color.h" />
+    <ClInclude Include="UI\UICommon\editor_cmd.h" />
+    <ClInclude Include="UI\UICommon\events_history.h" />
+    <ClInclude Include="UI\UICommon\icommand.h" />
+    <ClInclude Include="UI\UICommon\gui_states.h" />
+    <ClInclude Include="UI\UICommon\ieditor_controller.h" />
     <ClInclude Include="UI\Editor\Terrain\Sky\SkyEditorModel.h" />
     <ClInclude Include="UI\Editor\Terrain\Sky\SkyEditorView.h" />
     <ClInclude Include="UI\UICommon\FacadeEngineToUI.h" />
     <ClInclude Include="UI\UICommon\IFacadeEngineToUI.h" />
-    <ClInclude Include="Texture\TextureTypes.h" />
-    <ClInclude Include="CoreCommon\EngineException.h" />
-    <ClInclude Include="Engine\Settings.h" />
-    <ClInclude Include="CoreCommon\StringHelper.h" />
-    <ClInclude Include="Mesh\Material.h" />
-    <ClInclude Include="Model\BasicModel.h" />
-    <ClInclude Include="Mesh\IndexBuffer.h" />
-    <ClInclude Include="Model\ModelImporter.h" />
-    <ClInclude Include="Model\ModelMath.h" />
-    <ClInclude Include="Model\ModelMgr.h" />
-    <ClInclude Include="Model\SkyDomeClass.h" />
-    <ClInclude Include="Model\SkyPlaneClass.h" />
-    <ClInclude Include="Model\TerrainCellClass.h" />
-    <ClInclude Include="Model\TerrainClass.h" />
-    <ClInclude Include="Texture\TextureMgr.h" />
-    <ClInclude Include="Physics\IntersectionWithGameObjects.h" />
-    <ClInclude Include="Render\AdapterReader.h" />
+    <ClInclude Include="Texture\enum_texture_types.h" />
+    <ClInclude Include="Engine\engine_configs.h" />
+    <ClInclude Include="Mesh\material.h" />
+    <ClInclude Include="Model\basic_model.h" />
+    <ClInclude Include="Mesh\index_buffer.h" />
+    <ClInclude Include="Model\model_importer.h" />
+    <ClInclude Include="Model\model_math.h" />
+    <ClInclude Include="Model\model_mgr.h" />
+    <ClInclude Include="Texture\texture_mgr.h" />
     <ClInclude Include="Render\Color.h" />
-    <ClInclude Include="Render\d3dclass.h" />
-    <ClInclude Include="Render\InitGraphicsHelperDataTypes.h" />
-    <ClInclude Include="Render\InitializeGraphics.h" />
-    <ClInclude Include="Input\KeyboardClass.h" />
-    <ClInclude Include="Texture\textureclass.h" />
-    <ClInclude Include="Render\RenderDataPreparator.h" />
-    <ClInclude Include="Render\RenderStates.h" />
-    <ClInclude Include="Render\FrameBuffer.h" />
-    <ClInclude Include="CoreCommon\SystemState.h" />
-    <ClInclude Include="Sound\SoundClass.h" />
+    <ClInclude Include="Input\keyboard.h" />
+    <ClInclude Include="Texture\texture.h" />
+    <ClInclude Include="Render\rnd_data_preparator.h" />
+    <ClInclude Include="Render\frame_buffer.h" />
+    <ClInclude Include="CoreCommon\system_state.h" />
     <ClInclude Include="Timers\cpuclass.h" />
     <ClInclude Include="UI\Text\fontclass.h" />
-    <ClInclude Include="Render\graphicsclass.h" />
+    <ClInclude Include="Render\CGraphics.h" />
     <ClInclude Include="Input\inputcodes.h" />
     <ClInclude Include="Input\inputlistener.h" />
     <ClInclude Include="Input\inputmanager.h" />
-    <ClInclude Include="CoreCommon\log.h" />
-    <ClInclude Include="Input\MouseClass.h" />
-    <ClInclude Include="Input\MouseEvent.h" />
-    <ClInclude Include="Mesh\Vertex.h" />
-    <ClInclude Include="Mesh\VertexBuffer.h" />
-    <ClInclude Include="UI\Text\SentenceType.h" />
-    <ClInclude Include="UI\UserInterface.h" />
-    <ClInclude Include="Window\RenderWindow.h" />
-    <ClInclude Include="Engine\Engine.h" />
+    <ClInclude Include="Input\mouse.h" />
+    <ClInclude Include="Input\mouse_event.h" />
+    <ClInclude Include="Mesh\vertex.h" />
+    <ClInclude Include="Mesh\vertex_buffer.h" />
+    <ClInclude Include="UI\user_interface.h" />
+    <ClInclude Include="Window\render_window.h" />
+    <ClInclude Include="Engine\engine.h" />
     <ClInclude Include="UI\Text\TextStore.h" />
-    <ClInclude Include="Timers\GameTimer.h" />
-    <ClInclude Include="Window\WindowContainer.h" />
+    <ClInclude Include="Timers\game_timer.h" />
+    <ClInclude Include="Window\window_container.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ECS_Entity\EntityManagerInlineFunc.inl" />

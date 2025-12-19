@@ -6,15 +6,14 @@
 // *********************************************************************************
 #pragma once
 
-#include "../Common/Types.h"
-#include "../Common/cvector.h"
+#include "../Common/ECSTypes.h"
+#include <Types.h>
+#include <cvector.h>
 #include <DirectXMath.h>
 
 
 namespace ECS
 {
-
-
 
 // *********************************************************************************
 //        STRUCTURES TO REPRESENT TYPES OF LIGHTS (DIRECTIONAL, POINT, SPOT)
@@ -22,9 +21,11 @@ namespace ECS
 
 enum LightType
 {
-    DIRECTIONAL,
+    DIRECTED,
     POINT,
     SPOT,
+
+    NUM_LIGHT_TYPES,
 };
 
 // Common description for members:
@@ -55,7 +56,12 @@ enum LightProp
 
 struct DirLight
 {
-    DirLight() {}
+    DirLight() :
+        ambient{ NAN, NAN, NAN, NAN },
+        diffuse{ NAN, NAN, NAN, NAN },
+        specular{ NAN, NAN, NAN, NAN }
+    {
+    }
 
     DirLight(const DirLight& rhs)
     {
@@ -98,9 +104,10 @@ struct PointLight
         ambient{ NAN, NAN, NAN, NAN },
         diffuse{ NAN, NAN, NAN, NAN },
         specular{ NAN, NAN, NAN, NAN },
-        range{ NAN },
-        att{ NAN, NAN, NAN }
-    {}
+        att{ NAN, NAN, NAN },
+        range{ NAN }
+    {
+    }
 
     PointLight(const PointLight& rhs)
     {
@@ -115,8 +122,8 @@ struct PointLight
         ambient  = rhs.ambient;
         diffuse  = rhs.diffuse;
         specular = rhs.specular;
-        range    = rhs.range;
         att      = rhs.att;
+        range    = rhs.range;
 
         return *this;
     }
@@ -125,8 +132,8 @@ struct PointLight
         const XMFLOAT4& ambient,
         const XMFLOAT4& diffuse,
         const XMFLOAT4& specular,
-        const float range,
-        const XMFLOAT3& attenuation)
+        const XMFLOAT3& attenuation,
+        const float range)
         :
         ambient(ambient),
         diffuse(diffuse),
@@ -194,27 +201,6 @@ struct SpotLight
     float spot;
 };
 
-
-// *********************************************************************************
-//        STRUCTURES TO REPRESENT CONTAINERS FOR INIT PARAMS FOR LIGHT SOURCES
-// *********************************************************************************
-
-struct DirLightsInitParams
-{
-    cvector<DirLight> data;
-};
-
-struct PointLightsInitParams
-{
-    cvector<PointLight> data;
-};
-
-struct SpotLightsInitParams
-{
-    cvector<SpotLight> data;
-};
-
-
 // *********************************************************************************
 //           STRUCTURES TO REPRESENT CONTAINERS FOR LIGHT SOURCES
 // *********************************************************************************
@@ -258,8 +244,6 @@ struct Light
     DirLights           dirLights;
     PointLights         pointLights;
     SpotLights          spotLights;
-
-    eComponentType type = eComponentType::LightComponent;
 };
 
 

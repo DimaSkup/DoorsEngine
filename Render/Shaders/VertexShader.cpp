@@ -2,100 +2,181 @@
 // Filename: VertexShader.cpp
 // Revising: 05.11.22
 ////////////////////////////////////////////////////////////////////
+#include "../Common/pch.h"
 #include "VertexShader.h"
+#include "ShaderCompiler.h"
 
-#include "../Common/MemHelpers.h"
-#include "../Common/Assert.h"
-#include "../Common/Log.h"
+#pragma warning (disable : 4996)
 
-#include "Helpers/CSOLoader.h"
 
 namespace Render
 {
 
-
 VertexShader::~VertexShader()
 {
-	Shutdown();
+    Shutdown();
 }
 
-///////////////////////////////////////////////////////////
-
-bool VertexShader::Initialize(
-	ID3D11Device* pDevice,
-	const std::string& shaderPath,
-	const D3D11_INPUT_ELEMENT_DESC* layoutDesc,
-	const UINT layoutElemNum)
+//---------------------------------------------------------
+// Desc:   a helper to release objects when we failed an initialization
+//---------------------------------------------------------
+inline void BuffersSafeRelease(
+    ID3D11VertexShader* pShader,
+    ID3D10Blob* pShaderBuffer,
+    ID3D11InputLayout* pInputLayout)
 {
-	// THIS FUNC compiles/load an HLSL/CSO shader by shaderPath;
-	// compiles this shader into buffer, and then creates
-	// a vertex shader object and an input layout using this buffer;
-
-	try
-	{
-#if 0
-		// compile a vertex shader into the buffer
-		hr = ShaderClass::CompileShaderFromFile(
-			shaderPath.c_str(), 
-			funcName.c_str(),
-			"vs_5_0",
-			&pShaderBuffer_,
-			errorMgr);
-		Assert::NotFailed(hr, errorMgr);
-#endif
-
-		
-		std::streampos len = 0;
-
-		// load in shader bytecode
-		LoadCSO(shaderPath, &pShaderBuffer_, len);
-
-		// --------------------------------------------
-
-		HRESULT hr = pDevice->CreateVertexShader(
-			pShaderBuffer_,                 //pShaderBuffer_->GetBufferPointer(),
-			len,                            //pShaderBuffer_->GetBufferSize(),
-			nullptr,
-			&pShader_);
-
-		// check if we managed to create a vertex shader
-		Assert::NotFailed(hr, "Failed to create a vertex shader obj: " + shaderPath);
-
-		// --------------------------------------------
-		
-		hr = pDevice->CreateInputLayout(
-			layoutDesc, 
-			layoutElemNum,
-			pShaderBuffer_,                 //pShaderBuffer_->GetBufferPointer(),
-			len,                            //pShaderBuffer_->GetBufferSize(),
-			&pInputLayout_);
-		
-		Assert::NotFailed(hr, "can't create the input layout for vs: " + shaderPath);
-
-
-	}
-	catch (LIB_Exception & e)
-	{
-		Log::Error(e, true);
-		Shutdown();
-
-		return false;
-	}
-
-	return true;  
+    SafeRelease(&pShader);
+    SafeRelease(&pShaderBuffer);
+    SafeRelease(&pInputLayout);
 }
 
-///////////////////////////////////////////////////////////
+//---------------------------------------------------------
+// Desc:   load a CSO (compiled shader object) file by shaderPath;
+//         compiles this shader into buffer, and then creates
+//         a vertex shader object and an input layout using this buffer;
+// 
+// Args:   - path:           a path to CSO file relatively to the working directory
+//         - layoutDesc:     description for the vertex input layout
+//         - layoutElemNum:  how many elems we have in the input layout
+//---------------------------------------------------------
+bool VertexShader::LoadPrecompiled(
+    ID3D11Device* pDevice,
+    const char* path,
+    const D3D11_INPUT_ELEMENT_DESC* layoutDesc,
+    const UINT layoutElemNum)
+{
+    if (StrHelper::IsEmpty(path))
+    {
+        LogErr("input path to vertex shader file is empty!");
+        return false;
+    }
 
+    HRESULT hr = S_OK;
+    uint8_t* buf = nullptr;
+
+    // load in shader bytecode from the .cso file
+    const size_t len = ShaderCompiler::LoadCSO(path, buf);
+    if (!len)
+    {
+        LogErr(LOG, "Failed to load .CSO-file of vertex shader: %s", path);
+        Shutdown();
+        return false;
+    }
+
+    hr = pDevice->CreateVertexShader((void*)buf, len, nullptr, &pShader_);
+    if (FAILED(hr))
+    {
+        SafeDeleteArr(buf);
+        LogErr(LOG, "Failed to create a vertex shader obj: %s", path);
+        return false;
+    }
+
+    hr = pDevice->CreateInputLayout(layoutDesc, layoutElemNum, (void*)buf, len, &pInputLayout_);
+    if (FAILED(hr))
+    {
+        SafeDeleteArr(buf);
+        SafeRelease(&pShader_);
+        LogErr(LOG, "Failed to create the input layout for vertex shader: %s", path);
+        return false;
+    }
+
+    // Release the temp CSO buffer since it is no longer needed.
+    SafeDeleteArr(buf);
+
+    return true;  
+}
+
+//---------------------------------------------------------
+// Desc:   is used for hot reload:
+//         compile an HLSL shader by shaderPath and reinit shader object
+// Args:   - shaderPath:     a path to HLSL shader relatively to the working directory
+//         - funcName:       what function from the shader we want to compile
+//         - shaderModel:    what HLSL shader model we want to use
+//         - layoutDesc:     description for the vertex input layout
+//         - layoutElemNum:  how many elems we have in the input layout
+//---------------------------------------------------------
+bool VertexShader::CompileFromFile(
+    ID3D11Device* pDevice,
+    const char* shaderPath,
+    const char* funcName,
+    const char* shaderModel,
+    const D3D11_INPUT_ELEMENT_DESC* layoutDesc,
+    const UINT layoutElemNum)
+{
+    if (StrHelper::IsEmpty(shaderPath) || StrHelper::IsEmpty(funcName) || StrHelper::IsEmpty(shaderModel))
+    {
+        LogErr("input arguments are invalid: some path is empty");
+        return false;
+    }
+
+
+    ID3D10Blob*         pShaderBuffer = nullptr;
+    ID3D11VertexShader* pShader = nullptr;
+    ID3D11InputLayout*  pInputLayout = nullptr;
+    HRESULT             hr = S_OK;
+
+    // generate full shader profile for this shader
+    char shaderProfile[8]{ '\0' };
+    strcat(shaderProfile, "vs_");
+    strcat(shaderProfile, shaderModel);
+
+    // compile a shader and load bytecode into the buffer
+    hr = ShaderCompiler::CompileShaderFromFile(
+        shaderPath,
+        funcName,
+        shaderProfile,
+        &pShaderBuffer);
+    if (FAILED(hr))
+    {
+        SafeRelease(&pShaderBuffer);
+        LogErr(LOG, "can't compile a vertex shader from file: %s", shaderPath);
+        return false;
+    }
+
+    hr = pDevice->CreateVertexShader(
+        pShaderBuffer->GetBufferPointer(),          
+        pShaderBuffer->GetBufferSize(),
+        nullptr,
+        &pShader);
+    if (FAILED(hr))
+    {
+        BuffersSafeRelease(pShader, pShaderBuffer, pInputLayout);
+        LogErr(LOG, "Failed to create a vertex shader obj: %s", shaderPath);
+        return false;
+    }
+
+    hr = pDevice->CreateInputLayout(
+        layoutDesc,
+        layoutElemNum,
+        pShaderBuffer->GetBufferPointer(),
+        pShaderBuffer->GetBufferSize(),
+        &pInputLayout);
+    if (FAILED(hr))
+    {
+        BuffersSafeRelease(pShader, pShaderBuffer, pInputLayout);
+        LogErr(LOG, "Failed to create the input layout for vertex shader: %s", shaderPath);
+        return false;
+    }
+
+    // Release the vertex shader buffer since it is no longer needed.
+    SafeRelease(&pShaderBuffer);
+
+    // release previous shader's data if we have any
+    Shutdown();
+
+    pShader_        = pShader;
+    pInputLayout_   = pInputLayout;
+
+    return true;
+}
+
+//---------------------------------------------------------
+// Desc:   Shutting down of the vertex shader class object
+//---------------------------------------------------------
 void VertexShader::Shutdown()
 {
-	// Shutting down of the class object, releasing of the memory, etc.
-
-	Log::Debug("Shutdown");
-
-	SafeRelease(&pInputLayout_);
-	SafeDeleteArr(pShaderBuffer_);
-	SafeRelease(&pShader_);
+    SafeRelease(&pInputLayout_);
+    SafeRelease(&pShader_);
 }
 
 }; // namespace Render

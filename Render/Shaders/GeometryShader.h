@@ -7,7 +7,6 @@
 #pragma once
 
 #include <d3d11.h>
-#include <string>
 
 namespace Render 
 {
@@ -15,19 +14,24 @@ namespace Render
 class GeometryShader
 {
 public:
-	~GeometryShader();
+    ~GeometryShader();
 
-	bool Initialize(ID3D11Device* pDevice, const std::string& shaderPath);
-	
-	void Shutdown();
+    bool LoadPrecompiled(ID3D11Device* pDevice, const char* shaderPath);
 
-	// public query API
-	inline ID3D11GeometryShader* GetShader()    { return pShader_; };
+    // hot reload
+    bool CompileFromFile(
+        ID3D11Device* pDevice,
+        const char* shaderPath,
+        const char* funcName,
+        const char* shaderProfile);
+    
+    void Shutdown();
+
+    // public query API
+    inline ID3D11GeometryShader* GetShader() { return pShader_; };
 
 private:
-	ID3D11GeometryShader* pShader_ = nullptr;
-	uint8_t* pShaderBuffer_ = nullptr;
-	
+    ID3D11GeometryShader* pShader_ = nullptr;
 };
 
 };  // namespace Render

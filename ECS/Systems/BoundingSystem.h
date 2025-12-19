@@ -2,85 +2,59 @@
 // Filename:      BoundingSystem.h
 // Description:   ECS system for handling bounding data of entts
 // 
-// Created:       26.09.24
+// Created:       26.09.2024
+// Revisited:     30.11.2025 (God damn, I simplified this shit alot)
 // **********************************************************************************
 #pragma once
 
+#include "../Common/ECSTypes.h"
 #include "../Components/Bounding.h"
 
 namespace ECS
 {
 
-class BoundingSystem final
+class BoundingSystem
 {
 public:
     BoundingSystem(Bounding* pBoundingComponent);
     ~BoundingSystem() {}
 
-    void Update(
-        const EntityID* ids,
-        const XMMATRIX* transforms,
-        const size numEntts,
-        const size numMatrices);
 
-    void Add(                                   // add only one entt with only one subset (mesh)
-        const EntityID id,
-        const BoundingType type,
+    // add one record
+    bool Add(const EntityID id, const DirectX::BoundingSphere& sphere);
+    bool Add(const EntityID id, const DirectX::BoundingBox& aabb);
+
+    // add multiple records
+    bool Add(
+        const EntityID* ids,
+        const size numEntts,
         const DirectX::BoundingBox& aabb);
 
-    void Add(
+    // ----------------------------------------------------
+
+    void GetBoundSpheres(
         const EntityID* ids,
         const size numEntts,
-        const size numSubsets,                  // it is supposed that each input entt has the same number of meshes (for instance: the same trees)
-        const BoundingType* types,              // AABB type per mesh
-        const DirectX::BoundingBox* AABBs);     // AABB per mesh
+        cvector<DirectX::BoundingSphere>& outBoundSpheres);
 
-    void Add(
-        const EntityID* ids,
-        const size numEntts,
-        const DirectX::BoundingSphere* spheres);
-
-#if 0
-    const BoundingData& GetBoundingDataByID(const EntityID id);
-
-    void GetBoundingDataByIDs(
-        const std::vector<EntityID>& ids,
-        std::vector<BoundingData>& outData);
-#endif
-
-    void GetEnttAABB(const EntityID id, DirectX::BoundingBox& outAABB);
-
-    void GetOBBs(
-        const EntityID* ids,
-        const size numEntts,
-        cvector<size>& outNumBoxesPerEntt,
-        cvector<DirectX::BoundingOrientedBox>& outOBBs);
-
-    void GetBoxLocalSpaceMatricesByIDs(
-        const EntityID* ids,
-        const size numEntts,
-        cvector<size>& outNumBoxesPerEntt,
-        cvector<DirectX::XMMATRIX>& outLocalMatrices);
-
-    void GetBoxesLocalSpaceMatrices(
-        const DirectX::BoundingBox* boundingBoxes,
-        const size numBoundingBoxes,
-        cvector<DirectX::XMMATRIX>& outMatrices);
-
-    void GetBoxLocalSpaceMatrix(
-        const DirectX::BoundingBox& aabb,
-        DirectX::XMMATRIX& mat);
+    const DirectX::BoundingBox&    GetAABB(const EntityID id)        const;
+    const DirectX::BoundingSphere& GetBoundSphere(const EntityID id) const;
 
 private:
-    inline index GetIdxByID(const EntityID id)
-    {
-        // return valid idx if there is an entity by such ID;
-        // or return -1 if there is no such entity;
-        const Bounding& comp = *pBoundingComponent_;
-        const index idx = comp.ids.get_idx(id);
-        const bool exist = (comp.ids[idx] == id);
 
-        return (exist) ? comp.ids.get_idx(id) : -1;
+    //-----------------------------------------------------
+    // Desc:  return idx if there is a record by such ID;
+    //        or return 0 (it is an index to "invalid" bounding shape)
+    //-----------------------------------------------------
+    inline index GetIdxByID(const EntityID id) const
+    {
+        const Bounding& comp = *pBoundingComponent_;
+        const index     idx  = comp.ids.get_idx(id);
+
+        if (idx > 0 || idx < comp.ids.size())
+            return idx;
+
+        return 0;
     }
 
 private:

@@ -1,286 +1,249 @@
+#include "../Common/pch.h"
 #include "BoundingSystem.h"
 
-#include "../Common/Assert.h"
-#include "../Common/log.h"
-
-#include <algorithm>
 
 namespace ECS
 {
 
+using namespace DirectX;
+
+// static arrays for internal purposes
+static cvector<index> s_Idxs;
+
+
+// functions prototypes
+BoundingSphere CreateSphereFromBoxes(const BoundingBox* AABBs, const size count);
+BoundingSphere CreateSphereFromBox  (const BoundingBox& aabb);
+BoundingBox    CreateBoxFromSphere  (const BoundingSphere& sphere);
+BoundingBox    ComputeAABB          (const BoundingBox* AABBs, const size count);
+
+///////////////////////////////////////////////////////////
 
 BoundingSystem::BoundingSystem(Bounding* pBoundingComponent) :
     pBoundingComponent_(pBoundingComponent)
 {
-    Assert::NotNullptr(pBoundingComponent, "ptr to the bounding component == nullptr");
+    CAssert::NotNullptr(pBoundingComponent, "ptr to the bounding component == nullptr");
+
+    Bounding& comp = *pBoundingComponent;
+
+    // alloc memory ahead
+    comp.ids.reserve(256);
+    comp.data.reserve(256);
+
+    // add "invalid" bounding shape
+    comp.ids.push_back(INVALID_ENTITY_ID);
+    comp.data.push_back(BoundingData());
 }
 
-///////////////////////////////////////////////////////////
-
-void BoundingSystem::Update(
-    const EntityID* ids,
-    const XMMATRIX* transforms,
-    const size numEntts,
-    const size numMatrices)
+//---------------------------------------------------------
+// Desc:  add only one entt with only one bounding SPHERE
+//---------------------------------------------------------
+bool BoundingSystem::Add(const EntityID id, const BoundingSphere& sphere)
 {
-    // apply a transform matrix by idx to all the bounding boxes 
-    // of entity by the same idx;
-
-    Assert::True(ids && transforms && (numEntts > 0) && (numEntts == numMatrices), "wrong input data");
-
     Bounding& comp = *pBoundingComponent_;
-    cvector<index> idxs;
-
-    comp.ids.get_idxs(ids, numEntts, idxs);
-
-    for (index i = 0; i < numEntts; ++i)
-    {
-        BoundingData& data = comp.data[idxs[i]];
-        
-        for (index boxIdx = 0; boxIdx < data.numData; ++boxIdx)
-        {
-            data.obbs[boxIdx].Transform(data.obbs[boxIdx], transforms[i]);
-        }
-    }
-}
-
-///////////////////////////////////////////////////////////
-
-void BoundingSystem::Add(
-    const EntityID id,
-    const BoundingType type,
-    const DirectX::BoundingBox& aabb)
-{
-    // add only one entt with only one subset (mesh)
-    Add(&id, 1, 1, &type, &aabb);
-}
-
-///////////////////////////////////////////////////////////
-
-void BoundingSystem::Add(
-    const EntityID* ids,
-    const size numEntts,
-    const size numSubsets,               // the number of entt's meshes (the num of AABBs)
-    const BoundingType* types,           // AABB type per mesh
-    const DirectX::BoundingBox* AABBs)   // AABB per mesh
-{
-    // add BOUNDING BOX for each mesh (subset) of the input entity;
-
-    Assert::True((numEntts > 0) && (numSubsets > 0), "num of entts/subsets must be > 0");
-    Assert::True(ids && types && AABBs, "wrong data arrays");
 
     // check if we already have a record with such ID
-    Bounding& comp = *pBoundingComponent_;
-    bool canAddComponent = !comp.ids.binary_search(ids, numEntts);
-    Assert::True(canAddComponent, "can't add component: there is already a record with some entity id");
+    if (comp.ids.binary_search(id))
+    {
+        LogErr(LOG, "there is already a record with entity: %" PRIu32, id);
+        return false;
+    }
 
-    // ---------------------------------------------
+    const index          idx = comp.ids.get_insert_idx(id);
+    const BoundingBox    aabb = CreateBoxFromSphere(sphere);
 
-    cvector<index> idxs;
-    comp.ids.get_insert_idxs(ids, numEntts, idxs);
+    // execute sorted insertion of ID and initial data
+    comp.data.insert_before(idx, BoundingData(BOUND_SPHERE, sphere, aabb));
 
-    // exec indices correction
-    for (index i = 0; i < numEntts; ++i)
-        idxs[i] += i;
-
-    // execute sorted insertion of input values
-    for (index i = 0; i < numEntts; ++i)
-        comp.ids.insert_before(idxs[i], ids[i]);
-
-    for (index i = 0; i < numEntts; ++i)
-        comp.data.insert_before(idxs[i], BoundingData(numSubsets, types, AABBs));
+    return true;
 }
 
-///////////////////////////////////////////////////////////
+//---------------------------------------------------------
+// Desc:  add only one entt with only one axis-aligned bounding box (AABB)
+//---------------------------------------------------------
+bool BoundingSystem::Add(const EntityID id, const BoundingBox& aabb)
+{
+    Bounding& comp = *pBoundingComponent_;
 
-void BoundingSystem::Add(
+    // check if we already have a record with such ID
+    if (comp.ids.binary_search(id))
+    {
+        LogErr(LOG, "there is already a record with entity: %" PRIu32, id);
+        return false;
+    }
+
+    const index          idx      = comp.ids.get_insert_idx(id);
+    const BoundingSphere sphere   = CreateSphereFromBox(aabb);
+
+    // execute sorted insertion of ID and initial data
+    comp.ids.insert_before(idx, id);
+    comp.data.insert_before(idx, BoundingData(BOUND_SPHERE, sphere, aabb));
+
+    return true;
+}
+
+//---------------------------------------------------------
+// Desc:  add the same BOUNDING BOX for each input entity;
+// 
+// Args:  - ids:        array of entities IDs
+//        - numEntts:   how many entities in the input arr
+//        - aabb:       axis-aligned bounding box
+//---------------------------------------------------------
+bool BoundingSystem::Add(
     const EntityID* ids,
     const size numEntts,
-    const DirectX::BoundingSphere* spheres)
+    const DirectX::BoundingBox& aabb)
 {
-    assert(0 && "IMPLEMENT IT FOR SPHERES");
-    Assert::True((ids != nullptr) && (spheres != nullptr) && (numEntts > 0), "input data is invalid");
+    if (!ids)
+    {
+        LogErr(LOG, "input arr of entities IDs == nullptr");
+        return false;
+    }
+    if (numEntts <= 0)
+    {
+        LogErr(LOG, "input number of entities can't be <= 0");
+        return false;
+    }
+
+    // check that there is no records with input IDs yet
+    Bounding& comp = *pBoundingComponent_;
+    if (comp.ids.binary_search(ids, numEntts))
+    {
+        LogErr(LOG, "there is already a record with some input ID");
+        return false;
+    }
+
+
+    const BoundingSphere sphere = CreateSphereFromBox(aabb);
+    const BoundingData initData = { BOUND_BOX, sphere, aabb };
+
+    comp.ids.get_insert_idxs(ids, numEntts, s_Idxs);
+
+    // sorted insertion of IDs and initial data
+    for (index i = 0; i < numEntts; ++i)
+        comp.ids.insert_before(s_Idxs[i] + i, ids[i]);
+
+    for (index i = 0; i < numEntts; ++i)
+        comp.data.insert_before(s_Idxs[i] + i, initData);
+
+    return true;
 }
 
-///////////////////////////////////////////////////////////
-
-void ComputeAABB(
-    const DirectX::BoundingOrientedBox* obbs,
-    const size numOBBs,
-    DirectX::BoundingBox& outAABB)
+//--------------------------------------------------------
+// Desc:  get bounding sphere for each input entity so we will be able
+//        to execute basic frustum culling test using these sphere
+//--------------------------------------------------------
+void BoundingSystem::GetBoundSpheres(
+    const EntityID* ids,
+    const size numEntts,
+    cvector<BoundingSphere>& outSpheres)
 {
-    // compute an AABB by array of OBBs
+    if (!ids)
+    {
+        LogErr(LOG, "input ptr to ids arr == nullptr");
+        return;
+    }
+    if (numEntts <= 0)
+    {
+        LogErr(LOG, "input number of entts can't be <= 0");
+        return;
+    }
 
-    using namespace DirectX;
+    Bounding& comp = *pBoundingComponent_;
+
+    comp.ids.get_idxs(ids, numEntts, s_Idxs);
+    outSpheres.resize(numEntts);
+
+    for (int i = 0; const index idx : s_Idxs)
+        outSpheres[i++] = comp.data[idx].sphere;
+}
+
+//--------------------------------------------------------
+// Desc:  get an axis-aligned bounding box around entity by input ID
+//--------------------------------------------------------
+const BoundingBox& BoundingSystem::GetAABB(const EntityID id) const
+{
+    return pBoundingComponent_->data[GetIdxByID(id)].aabb;
+}
+
+//--------------------------------------------------------
+// Desc:  get a bounding spehre around entity by input ID
+//--------------------------------------------------------
+const BoundingSphere& BoundingSystem::GetBoundSphere(const EntityID id) const
+{
+    return pBoundingComponent_->data[GetIdxByID(id)].sphere;
+}
+
+
+
+//**********************************************************************************
+// PRIVATE INTERNAL HELPERS
+//**********************************************************************************
+
+//--------------------------------------------------------
+// Desc:  compute a bounding sphere from input arr of axis-aligned bounding boxes
+//--------------------------------------------------------
+BoundingSphere CreateSphereFromBoxes(const BoundingBox* AABBs, const size count)
+{
+    if (!AABBs || count <= 0)
+    {
+        LogErr(LOG, "invalid input args; return default bound sphere (center: <0,0,0>, radius: 1.0");
+        return BoundingSphere({ 0,0,0 }, 1);
+    }
+
+    return CreateSphereFromBox(ComputeAABB(AABBs, count));
+}
+
+//--------------------------------------------------------
+// Desc:  compute a bounding sphere from input axis-aligned bounding box
+//--------------------------------------------------------
+BoundingSphere CreateSphereFromBox(const BoundingBox& aabb)
+{
+    return BoundingSphere {
+        aabb.Center,
+        sqrtf(SQR(aabb.Extents.x) + SQR(aabb.Extents.y) + SQR(aabb.Extents.z))
+    };
+}
+
+//--------------------------------------------------------
+// Desc:  compute a axis-aligned bounding box from input bounding sphere
+//--------------------------------------------------------
+BoundingBox CreateBoxFromSphere(const BoundingSphere& sphere)
+{
+    return BoundingBox(sphere.Center, XMFLOAT3(sphere.Radius, sphere.Radius, sphere.Radius));
+}
+
+//---------------------------------------------------------
+// Desc:  compute a merged AABB based on input array of AABBs
+//---------------------------------------------------------
+BoundingBox ComputeAABB(const BoundingBox* AABBs, const size count)
+{
+    if (!AABBs || count <= 0)
+    {
+        LogErr(LOG, "invalid input args; return default AABB (center: <0,0,0>, ext: <1,1,1>)");
+        return BoundingBox(XMFLOAT3(0,0,0), XMFLOAT3(1,1,1));
+    }
 
     XMVECTOR vMin{ FLT_MAX, FLT_MAX, FLT_MAX };
     XMVECTOR vMax{ FLT_MIN, FLT_MIN, FLT_MIN };
 
     // go through each subset (mesh)
-    for (int i = 0; i < numOBBs; ++i)
+    for (int i = 0; i < count; ++i)
     {
-        const DirectX::BoundingOrientedBox& subsetAABB = obbs[i];
-
         // define min/max point of this mesh
-        const XMVECTOR center  = XMLoadFloat3(&subsetAABB.Center);
-        const XMVECTOR extents = XMLoadFloat3(&subsetAABB.Extents);
-        const XMVECTOR max     = center + extents;
-        const XMVECTOR min     = center - extents;
+        const XMVECTOR center  = XMLoadFloat3(&AABBs[i].Center);
+        const XMVECTOR extents = XMLoadFloat3(&AABBs[i].Extents);
 
-        vMin = XMVectorMin(vMin, min);
-        vMax = XMVectorMax(vMax, max);
+        vMin = XMVectorMin(vMin, center - extents);
+        vMax = XMVectorMax(vMax, center + extents);
     }
 
     // compute a model's AABB
-    XMStoreFloat3(&outAABB.Center,  0.5f * (vMin + vMax));
+    BoundingBox outAABB;
+    XMStoreFloat3(&outAABB.Center, 0.5f * (vMin + vMax));
     XMStoreFloat3(&outAABB.Extents, 0.5f * (vMax - vMin));
-}
 
-///////////////////////////////////////////////////////////
-
-void BoundingSystem::GetEnttAABB(const EntityID id, DirectX::BoundingBox& outAABB)
-{
-    // get an axis-aligned bounding box of entity by input ID
-    // (AABB of the whole entity)
-
-    Bounding&     comp = *pBoundingComponent_;
-    BoundingData& data = comp.data[GetIdxByID(id)];
-
-    ComputeAABB(data.obbs.data(), data.obbs.size(), outAABB);
-}
-
-///////////////////////////////////////////////////////////
-
-void BoundingSystem::GetOBBs(
-    const EntityID* ids,
-    const size numEntts,
-    cvector<size>& outNumBoxesPerEntt,
-    cvector<DirectX::BoundingOrientedBox>& outOBBs)
-{
-    Assert::True((ids != nullptr) && (numEntts > 0), "can't get OBBs: invalid input args");
-
-    Bounding& comp = *pBoundingComponent_;
-    size numOBBs = 0;
-    cvector<index> idxs;
-
-
-    // get indices to responsible data by IDs
-    comp.ids.get_idxs(ids, numEntts, idxs);
-
-    // get the number of bounding boxes per each entity
-    outNumBoxesPerEntt.resize(numEntts);
-
-    for (int i = 0; const index idx : idxs)
-        outNumBoxesPerEntt[i++] = comp.data[idx].numData;
-
-    // compute the number of all bounding boxes which we will get
-    for (index i = 0; i < numEntts; ++i)
-        numOBBs += outNumBoxesPerEntt[i];
-
-
-    // get oriented bounding boxes for each mesh of each entity
-    outOBBs.resize(numOBBs);
-
-    for (int obbIdx = 0; const index idx : idxs)
-    {
-        for (DirectX::BoundingOrientedBox& obb : comp.data[idx].obbs)
-            outOBBs[obbIdx++] = obb;
-    }
-}
-
-///////////////////////////////////////////////////////////
-
-void BoundingSystem::GetBoxLocalSpaceMatricesByIDs(
-    const EntityID* ids,
-    const size numEntts,
-    cvector<size>& outNumBoxesPerEntt,
-    cvector<DirectX::XMMATRIX>& outLocalMatrices)
-{
-    // in:   entity ID which will be used to get bounding boxes
-    // out:  1. how many bounding boxes this entt has
-    //       2. local space matrix of each bounding box
-
-    Assert::True((ids != nullptr) && (numEntts > 0), "can't get local space matrices: invalid input args");
-
-    Bounding& comp = *pBoundingComponent_;
-    size numOBBs = 0;
-    cvector<index> idxs;
-
-
-    comp.ids.get_idxs(ids, numEntts, idxs);
-
-    // get the number of bounding boxes per each entity
-    outNumBoxesPerEntt.resize(numEntts);
-
-    for (int i = 0; const index idx : idxs)
-        outNumBoxesPerEntt[i++] = comp.data[idx].numData;
-
-    // compute the number of all bounding boxes which we will get
-    for (index i = 0; i < numEntts; ++i)
-        numOBBs += outNumBoxesPerEntt[i];
-
-
-    // compute local world matrix for each bounding box
-    outLocalMatrices.resize(numOBBs);
-
-    for (int enttIdx = 0, obbIdx = 0; const index idx : idxs)
-    {
-        for (const DirectX::BoundingOrientedBox& obb : comp.data[idx].obbs)
-        {
-            const XMVECTOR boxLScale    = XMLoadFloat3(&obb.Extents);
-            const XMVECTOR boxLRotQuat  = XMLoadFloat4(&obb.Orientation);
-            const XMVECTOR boxLPos      = XMLoadFloat3(&obb.Center);
-            
-            const XMMATRIX boxLScaleMat = DirectX::XMMatrixScalingFromVector(boxLScale);
-            const XMMATRIX boxLRotMat   = DirectX::XMMatrixRotationQuaternion(boxLRotQuat);
-            const XMMATRIX boxLTransMat = DirectX::XMMatrixTranslationFromVector(boxLPos);
-
-            // store local space matrix of this OBB
-            outLocalMatrices[obbIdx++] = boxLScaleMat * boxLRotMat * boxLTransMat;
-        }
-    }
-}
-
-///////////////////////////////////////////////////////////
-
-void BoundingSystem::GetBoxesLocalSpaceMatrices(
-    const DirectX::BoundingBox* boundingBoxes,
-    const size numBoundingBoxes,
-    cvector<DirectX::XMMATRIX>& outMatrices)
-{
-    // make a local space matrices by input bounding boxes params
-
-    Assert::True((boundingBoxes != nullptr) && (numBoundingBoxes > 0), "invalid input args");
-
-    outMatrices.resize(numBoundingBoxes);
-
-    for (index i = 0; i < numBoundingBoxes; ++i)
-    {
-        const DirectX::BoundingBox& aabb = boundingBoxes[i];
-        const XMVECTOR boxLScale    = XMLoadFloat3(&aabb.Extents);
-        const XMVECTOR boxLPos      = XMLoadFloat3(&aabb.Center);
-
-        const XMMATRIX boxLScaleMat = DirectX::XMMatrixScalingFromVector(boxLScale);
-        const XMMATRIX boxLTransMat = DirectX::XMMatrixTranslationFromVector(boxLPos);
-
-        // store local space matrix of this OBB
-        outMatrices[i++] = boxLScaleMat * boxLTransMat;
-    }
-}
-
-///////////////////////////////////////////////////////////
-
-void BoundingSystem::GetBoxLocalSpaceMatrix(
-    const DirectX::BoundingBox& aabb,
-    DirectX::XMMATRIX& mat)
-{
-    // make a local space matrix by input bounding box params
-
-    const XMVECTOR boxLScale = XMLoadFloat3(&aabb.Extents);
-    const XMVECTOR boxLPos   = XMLoadFloat3(&aabb.Center);
-
-    // Local_space = Scale * Transform
-    mat = DirectX::XMMatrixScalingFromVector(boxLScale) * DirectX::XMMatrixTranslationFromVector(boxLPos);
+    return outAABB;
 }
 
 } // namespace ECS

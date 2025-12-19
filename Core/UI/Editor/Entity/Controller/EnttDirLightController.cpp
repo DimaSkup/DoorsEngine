@@ -3,20 +3,25 @@
 // 
 // Created:       15.03.25  by DimaSkup
 // =================================================================================
+#include <CoreCommon/pch.h>
 #include "EnttDirLightController.h"
+#include <UICommon/events_history.h>
+#include <UICommon/icommand.h>
+#include <UICommon/editor_cmd.h>
+#include <UICommon/IFacadeEngineToUI.h>
 
-#include <UICommon/EventsHistory.h>
-#include <UICommon/EditorCommands.h>
-#include <CoreCommon/Assert.h>
-#include <CoreCommon/log.h>
+#pragma warning (disable : 4996)
 
 namespace UI
 {
 
+//---------------------------------------------------------
+// Desc:   initialize the directed light controller
+// Args:   - pFacade: the facade interface is used to contact with the rest of the engine
+//---------------------------------------------------------
 void EnttDirLightController::Initialize(IFacadeEngineToUI* pFacade)
 {
-    // the facade interface is used to contact with the rest of the engine
-    Core::Assert::NotNullptr(pFacade, "ptr to the facade == nullptr");
+    CAssert::NotNullptr(pFacade, "ptr to the facade == nullptr");
     pFacade_ = pFacade;
 }
 
@@ -33,7 +38,8 @@ void EnttDirLightController::LoadEnttData(const EntityID id)
         model.diffuse,
         model.specular))
     {
-        Core::Log::Error("can't load data of the directed light entity by ID: " + std::to_string(id));
+        sprintf(g_String, "can't load data of the directed light entity by ID: %ld", id);
+        LogErr(g_String);
     }
 }
 
@@ -60,7 +66,8 @@ void EnttDirLightController::ExecuteCommand(const ICommand* pCmd, const EntityID
         }
         default:
         {
-            Core::Log::Error("unknown type of command: " + pCmd->type_);
+            sprintf(g_String, "unknown type of command: %d", pCmd->type_);
+            LogErr(g_String);
         }
     }
 }
@@ -94,7 +101,8 @@ void EnttDirLightController::UndoCommand(const ICommand* pCmd, const EntityID id
 
         default:
         {
-            Core::Log::Error("unknown undo command for entity (directed light): " + std::to_string(id));
+            sprintf(g_String, "unknown undo command for entity (directed light): %ld", id);
+            LogErr(g_String);
             return;
         }
     }
@@ -130,14 +138,14 @@ void EnttDirLightController::ExecChangeAmbient(const EntityID id, const ColorRGB
         dirLightModel_.ambient = ambient;
 
         // generate an "undo" command and store it into the history
-        gEventsHistory.Push(
+        g_EventsHistory.Push(
             CmdChangeColor(CHANGE_DIR_LIGHT_AMBIENT, oldAmbient),
             GenerateMsgForHistory(id, "ambient"),
             id);
     }
     else
     {
-        Core::Log::Error(GenerateErrMsg(id, "ambient"));
+        LogErr(GenerateErrMsg(id, "ambient").c_str());
     }
 }
 
@@ -153,14 +161,14 @@ void EnttDirLightController::ExecChangeDiffuse(const EntityID id, const ColorRGB
         dirLightModel_.diffuse = diffuse;
 
         // generate an "undo" command and store it into the history
-        gEventsHistory.Push(
+        g_EventsHistory.Push(
             CmdChangeColor(CHANGE_DIR_LIGHT_DIFFUSE, oldDiffuse),
             GenerateMsgForHistory(id, "diffuse"),
             id);
     }
     else
     {
-        Core::Log::Error(GenerateErrMsg(id, "diffuse"));
+        LogErr(GenerateErrMsg(id, "diffuse").c_str());
     }
 }
 
@@ -176,14 +184,14 @@ void EnttDirLightController::ExecChangeSpecular(const EntityID id, const ColorRG
         dirLightModel_.specular = specular;
 
         // generate an "undo" command and store it into the history
-        gEventsHistory.Push(
+        g_EventsHistory.Push(
             CmdChangeColor(CHANGE_DIR_LIGHT_SPECULAR, oldSpecular),
             GenerateMsgForHistory(id, "specular"),
             id);
     }
     else
     {
-        Core::Log::Error(GenerateErrMsg(id, "specular"));
+        LogErr(GenerateErrMsg(id, "specular").c_str());
     }
 }
 

@@ -6,52 +6,42 @@
 // **********************************************************************************
 #pragma once
 
-#include "../Common/Types.h"
+#include <Types.h>
 #include "../Components/Name.h"
 
 namespace ECS
 {
 
-class NameSystem final
+class NameSystem
 {
 public:
-	NameSystem(Name* pNameComponent);
-	~NameSystem() {}
+    NameSystem(Name* pNameComponent);
+    ~NameSystem() {}
 
-	void Serialize(std::ofstream& fout, u32& offset);
-	void Deserialize(std::ifstream& fin, const u32 offset);
 
-    void AddRecords(
+    bool AddRecord(const EntityID id, const char* name);
+
+    bool AddRecords(
         const EntityID* ids,
-        const EntityName* names,
+        const std::string* names,
         const size numEntts);
-	
-#if 0
-	// TODO
-	void RenameRecords(
-		const cvector<EntityID>& enttsIDs,
-		const cvector<EntityName>& newEnttsNames);
 
-	void RemoveRecords(const cvector<EntityID>& enttsIDs);
-#endif
+    EntityID    GetIdByName(const char* name) const;
+    const char* GetNameById(const EntityID id) const;
 
-	//
-	// getters
-	//
-	EntityID GetIdByName(const EntityName& name);
-	const EntityName& GetNameById(const EntityID& id) const;
+    void GetIdsByNames(const char** names, const size numNames, cvector<EntityID>& outIds) const;
+    void GetIdsByNames(const char** names, const size numNames, EntityID* outIdsArr)       const;
 
-	
-private:
-	void CheckInputData(
-		const cvector<EntityID>& ids,
-		const cvector<EntityName>& names);
-
-	index GetIdxByID(const EntityID id) const;
+    bool IsUnique(const char* name) const;
 
 private:
-	Name* pNameComponent_ = nullptr;
+    inline bool IsIdxValid(const index idx) const
+    {
+        return (idx >= 0 && idx < pNameComponent_->ids_.size());
+    }
 
+private:
+    Name* pNameComponent_ = nullptr;
 };
 
 }

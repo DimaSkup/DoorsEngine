@@ -2,13 +2,10 @@
 // Filename: PixelShader.cpp
 // Revising: 05.11.22
 ////////////////////////////////////////////////////////////////////
+#include "../Common/pch.h"
 #include "PixelShader.h"
-
-#include "../Common/MemHelpers.h"
-#include "../Common/Assert.h"
-#include "../Common/Log.h"
-
-#include "Helpers/CSOLoader.h"
+#include "ShaderCompiler.h"
+#pragma warning (disable : 4996)
 
 namespace Render
 {
@@ -19,66 +16,123 @@ PixelShader::PixelShader()
 
 PixelShader::~PixelShader()
 {
-	Shutdown();
+    Shutdown();
 }
 
-///////////////////////////////////////////////////////////
-
-bool PixelShader::Initialize(
-	ID3D11Device* pDevice,
-	const std::string& shaderPath,
-	const std::string& funcName)
+//---------------------------------------------------------
+// Desc:   load a CSO (compiled shader object) file by path;
+//         compiles this shader into buffer, and then creates pixel shader object
+// 
+// Args:   - shaderPath:  a path to CSO file relatively to the working directory
+//---------------------------------------------------------
+bool PixelShader::LoadPrecompiled(ID3D11Device* pDevice, const char* path)
 {
-	// initializing of a pixel shader object
+    if (StrHelper::IsEmpty(path))
+    {
+        LogErr(LOG, "input path to pixel shader file is empty!");
+        return false;
+    }
 
-	try
-	{
-#if 0
-		std::string errorMgr;
+    uint8_t* buffer = nullptr;
 
-		// loading of the shader code
-		hr = ShaderClass::CompileShaderFromFile(
-			shaderPath.c_str(),
-			funcName.c_str(),
-			"ps_5_0",
-			&pShaderBuffer_,
-			errorMgr);
-		Assert::NotFailed(hr, errorMgr);
-#endif
+    // load in shader bytecode
+    const size_t len = ShaderCompiler::LoadCSO(path, buffer);
+    if (!len)
+    {
+        SafeDeleteArr(buffer);
+        LogErr(LOG, "Failed to load .CSO-file of pixel shader: %s", path);
+        return false;
+    }
 
-		std::streampos len = 0;
-		
-		// load in shader bytecode
-		LoadCSO(shaderPath, &pShaderBuffer_, len);
+    HRESULT hr = pDevice->CreatePixelShader((void*)buffer, len, nullptr, &pShader_);
+    if (FAILED(hr))
+    {
+        SafeDeleteArr(buffer);
+        LogErr(LOG, "Failed to create a pixel shader obj: %s", path);
+        Shutdown();
+        return false;
+    }
 
-		// --------------------------------------------
+    // Release the pixel shader buffer since it is no longer needed.
+    SafeDeleteArr(buffer);
 
-		HRESULT hr = pDevice->CreatePixelShader(
-			pShaderBuffer_,
-			len,
-			nullptr,
-			&pShader_);
-
-		Assert::NotFailed(hr, "Failed to create a pixel shader obj: " + shaderPath);
-	}
-	catch (LIB_Exception& e)
-	{
-		Shutdown();
-
-		Log::Error(e, true);
-		return false;
-	}
-
-	return true;
+    return true;
 }
 
-///////////////////////////////////////////////////////////
+//---------------------------------------------------------
+// Desc:   is used for hot reload:
+//         compile an HLSL shader by shaderPath and reinit shader object
+// Args:   - shaderPath:     a path to HLSL shader relatively to the working directory
+//         - funcName:       what function from the shader we want to compile
+//         - shaderModel:    what HLSL shader model we want to use
+//         - layoutDesc:     description for the vertex input layout
+//         - layoutElemNum:  how many elems we have in the input layout
+//---------------------------------------------------------
+bool PixelShader::CompileFromFile(
+    ID3D11Device* pDevice,
+    const char* shaderPath,
+    const char* funcName,
+    const char* shaderModel)
+{
+    if (StrHelper::IsEmpty(shaderPath) || StrHelper::IsEmpty(funcName) || StrHelper::IsEmpty(shaderModel))
+    {
+        LogErr(LOG, "input arguments are invalid: some string is empty");
+        return false;
+    }
 
+
+    ID3D10Blob*        pShaderBuffer = nullptr;
+    ID3D11PixelShader* pShader = nullptr;
+    HRESULT hr = S_OK;
+
+    // generate full shader profile for this shader
+    char shaderProfile[8]{ '\0' };
+    strcat(shaderProfile, "ps_");
+    strcat(shaderProfile, shaderModel);
+
+    // compile a pixel shader and load bytecode into the buffer
+    hr = ShaderCompiler::CompileShaderFromFile(
+        shaderPath,
+        funcName,
+        shaderProfile,
+        &pShaderBuffer);
+    if (FAILED(hr))
+    {
+        SafeRelease(&pShaderBuffer);
+        LogErr(LOG, "can't compile a pixel shader from file: %s", shaderPath);
+        return false;
+    }
+
+
+    hr = pDevice->CreatePixelShader(
+        pShaderBuffer->GetBufferPointer(),
+        pShaderBuffer->GetBufferSize(),
+        nullptr,
+        &pShader);
+    if (FAILED(hr))
+    {
+        LogErr(LOG, "Failed to create a pixel shader obj: %s", shaderPath);
+        Shutdown();
+        return false;
+    }
+
+    // Release the pixel shader buffer since it is no longer needed.
+    SafeRelease(&pShaderBuffer);
+
+    // release previous shader's data if we have any
+    Shutdown();
+
+    pShader_ = pShader;
+
+    return true;
+}
+
+//---------------------------------------------------------
+// Desc:   Shutting down of the pixel shader class object
+//---------------------------------------------------------
 void PixelShader::Shutdown()
 {
-	SafeRelease(&pShader_);
-	SafeDeleteArr(pShaderBuffer_);
+    SafeRelease(&pShader_);
 }
 
-
-} // namespace Render
+} // namespace 

@@ -12,7 +12,7 @@
 #pragma once
 
 #include "../Components/TextureTransform.h"
-#include "../Common/cvector.h"
+#include <cvector.h>
 
 namespace ECS
 {
@@ -32,12 +32,10 @@ public:
 
     void GetTexTransformsForEntts(
         const EntityID* ids,
-        XMMATRIX* outTexTransforms,
-        const size numEntts);
+        const size numEntts,
+        cvector<XMMATRIX>& outTexTransforms);
 
-    void UpdateAllTextrureAnimations(
-        const float totalGameTime, 
-        const float deltaTime);
+    void UpdateAllTextrureAnimations(const float totalGameTime, const float deltaTime);
 
 private:
     inline bool CheckCanAddRecords(const EntityID* ids, const size numEntts) const { return !pTexTransformComponent_->ids.binary_search(ids, numEntts); }

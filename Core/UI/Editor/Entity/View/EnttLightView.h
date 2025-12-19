@@ -6,12 +6,14 @@
 // =================================================================================
 #pragma once
 
-#include <UICommon/IEditorController.h>
 #include "../Model/EnttLightData.h"
 
 
 namespace UI
 {
+// forward declaration
+class IEditorController;
+
 
 class EnttLightView
 {

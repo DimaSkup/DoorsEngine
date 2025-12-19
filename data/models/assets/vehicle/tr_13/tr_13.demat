@@ -1,0 +1,65 @@
+newmtl veh_veh_traktor
+mat_id 33
+shader_id 3
+states 66186
+Ka 0.80 0.80 0.80 1.00
+Kd 0.80 0.80 0.80 1.00
+Ks 0.00 0.00 0.00
+Kg 1.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff veh_traktor.dds
+tex_norm blank_NRM.dds
+tex_opac veh_traktor.dds
+
+newmtl lights_lights_cone_handing_lamp
+mat_id 34
+shader_id 2
+states 264354
+bs no_render_target_writes
+Ka 0.17 0.17 0.17 1.00
+Kd 0.00 0.00 0.00 1.00
+Ks 0.00 0.00 0.00
+Kg 1.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff lights_cone_handing_lamp.dds
+tex_opac lights_cone_handing_lamp.dds
+
+newmtl glow_glow_Orange
+mat_id 35
+shader_id 2
+states 264354
+bs no_render_target_writes
+Ka 1.00 1.00 1.00 1.00
+Kd 1.00 1.00 1.00 1.00
+Ks 0.00 0.00 0.00
+Kg 1.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff glow_orange.dds
+tex_opac glow_orange.dds
+
+newmtl veh_veh_traktor_001
+mat_id 36
+shader_id 3
+states 66186
+Ka 0.80 0.80 0.80 1.00
+Kd 0.80 0.80 0.80 1.00
+Ks 0.00 0.00 0.00
+Kg 1.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff veh_traktor.dds
+tex_norm blank_NRM.dds
+tex_opac veh_traktor.dds
+
+newmtl veh_veh_nivaglass1
+mat_id 37
+shader_id 3
+states 1065122
+Ka 1.00 1.00 1.00 1.00
+Kd 0.80 0.80 0.80 1.00
+Ks 1.00 1.00 1.00
+Kg 64.00
+Kr 0.50 0.50 0.50 0.00
+tex_diff veh_nivaglass1.dds
+tex_norm blank_NRM.dds
+tex_opac veh_nivaglass1.dds
+

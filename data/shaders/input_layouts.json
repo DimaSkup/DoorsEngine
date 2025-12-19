@@ -1,0 +1,213 @@
+{
+	"layouts": [
+		{
+			"name": "None"
+		},
+		
+		{
+			"name": "Basic",
+			"per_vertex": [
+				[ "POSITION",            "f3" ],
+				[ "TEXCOORD",            "f2" ],
+				[ "NORMAL",              "f3" ],
+				[ "TANGENT",             "f4" ]
+			],
+			"per_instance": [
+				[ "WORLD",               "f16" ],
+				[ "WORLD_INV_TRANSPOSE", "f16" ],
+				[ "MATERIAL",            "f16" ]
+			]
+		},
+		
+		{
+			"name": "PositionInstances",
+			"per_vertex": [
+				[ "POSITION",            "f3" ]
+			],
+			"per_instance": [
+				[ "WORLD",               "f16" ],
+				[ "WORLD_INV_TRANSPOSE", "f16" ],
+				[ "MATERIAL",            "f16" ]
+			]
+		},
+		
+		{
+			"name": "DepthPrepass",
+			"per_vertex": [
+				[ "POSITION",            "f3" ]
+			],
+			"per_instance": [
+				[ "WORLD",               "f16" ]
+			]
+		},
+		
+		{
+			"name": "PosTex",
+			"per_vertex": [
+				[ "POSITION",            "f3" ],
+				[ "TEXCOORD",            "f2" ]
+			],
+			"per_instance": [
+				[ "WORLD",               "f16" ],
+				[ "WORLD_INV_TRANSPOSE", "f16" ],
+				[ "MATERIAL",            "f16" ]
+			]
+		},
+		
+		{
+			"name": "Pos",
+			"per_vertex": [
+				[ "POSITION",            "f3" ]
+			],
+			"per_instance": [
+				[ "WORLD",               "f16" ],
+				[ "WORLD_INV_TRANSPOSE", "f16" ],
+				[ "MATERIAL",            "f16" ]
+			]
+		},
+		
+		{
+			"name": "Vertex3d",
+			"per_vertex": [
+				[ "POSITION",            "f3" ],
+				[ "TEXCOORD",            "f2" ],
+				[ "NORMAL",              "f3" ],
+				[ "TANGENT",             "f4" ]
+			]
+		},
+		
+		{
+			"name": "VertexGrass",
+			"per_vertex": [
+				[ "POSITION",            "f3" ],
+				[ "SIZE",                "f2" ]
+			]
+		},
+		
+		{
+			"name": "Sky",
+			"per_vertex": [
+				[ "POSITION",            "f3" ]
+			]
+		},
+		
+		
+		{
+			"name": "Position",
+			"per_vertex": [
+				[ "POSITION",            "f3" ]
+			]
+		},
+		
+		
+		{
+			"name": "Terrain",
+			"per_vertex": [
+				[ "POSITION",            "f3" ],
+				[ "TEXCOORD",            "f2" ],
+				[ "NORMAL",              "f3" ]
+			]
+		},
+		
+		{
+			"name": "TerrainPos",
+			"per_vertex": [
+				[ "POSITION",            "f3" ]
+			]
+		},
+		
+		{
+			"name": "TerrainSimple",
+			"per_vertex": [
+				[ "POSITION",            "f3" ],
+				[ "TEXCOORD",            "f2" ],
+				[ "NORMAL",              "f3" ]
+			]
+		},
+		
+		
+		{
+			"name": "Font",
+			"per_vertex": [
+				[ "POSITION",            "f2" ],
+				[ "TEXCOORD",            "f2" ]
+			]
+		},
+		
+		{
+			"name": "MaterialIcon",
+			"per_vertex": [
+				[ "POSITION",            "f3" ],
+				[ "TEXCOORD",            "f2" ],
+				[ "NORMAL",              "f3" ],
+				[ "TANGENT",             "f4" ]
+			]
+		},
+		
+		{
+			"name": "Particle",
+			"per_vertex": [
+				[ "POSITION",            "f3" ],
+				[ "TRANSLUCENCY",        "f1" ],
+				[ "COLOR",               "f3" ],
+				[ "SIZE",                "f2" ]
+			]
+		}, 
+		
+		{
+			"name": "Color", 
+			"per_vertex": [
+				[ "POSITION",            "f3" ]
+			],
+			"per_instance": [
+				[ "WORLD",               "f16" ]
+			]
+		},
+		
+		{
+			"name": "DebugLine",
+			"per_vertex": [
+				[ "POSITION",            "f3"],
+				[ "COLOR",               "f1"]
+			]
+		},
+		
+		{
+			"name": "VertexPosTex",
+			"per_vertex": [
+				[ "POSITION",            "f3" ],
+				[ "TEXCOORD",            "f2" ]
+			]
+		},
+		
+		{
+			"name": "TreeLod",
+			"per_vertex": [
+				[ "POSITION",            "f3" ],
+				[ "TEXCOORD",            "f2" ]
+			],
+			"per_instance": [
+				[ "WORLD",               "f16" ],
+				[ "WORLD_INV_TRANSPOSE", "f16" ],
+				[ "MATERIAL",            "f16" ]
+			]
+		},
+		
+		{
+			"name": "SkinnedMesh",
+			"num_input_slots": 2,
+			"per_vertex_slot_0": [
+				[ "POSITION",            "f3" ],
+				[ "TEXCOORD",            "f2" ],
+				[ "NORMAL",              "f3" ],
+				[ "TANGENT",             "f4" ]
+			],
+			"per_vertex_slot_1": [
+				[ "WEIGHTS",             "f4" ],
+				[ "BONEINDICES",         "rgba32u" ]
+			]
+		}
+	]
+}
+
+

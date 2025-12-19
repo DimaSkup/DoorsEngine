@@ -1,0 +1,13 @@
+newmtl Material_gaz_m24
+mat_id 100
+shader_id 3
+states 66186
+Ka 0.70 0.70 0.70 1.00
+Kd 0.30 0.30 0.30 1.00
+Ks 0.70 0.70 0.70
+Kg 1.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff cars_01.dds
+tex_norm cars_01_norm.dds
+tex_spec cars_01_spec.dds
+

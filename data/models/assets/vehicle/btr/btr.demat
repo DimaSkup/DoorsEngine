@@ -1,0 +1,35 @@
+newmtl veh_BTR_S_001
+mat_id 30
+shader_id 3
+states 66186
+Ka 0.40 0.40 0.40 1.00
+Kd 0.60 0.60 0.60 1.00
+Ks 0.10 0.10 0.10
+Kg 25.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff veh_btr_br.dds
+tex_norm blank_NRM.dds
+
+newmtl veh_BTR_S4_001
+mat_id 31
+shader_id 3
+states 66186
+Ka 0.40 0.40 0.40 1.00
+Kd 0.60 0.60 0.60 1.00
+Ks 0.10 0.10 0.10
+Kg 25.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff veh_btr_br.dds
+tex_norm blank_NRM.dds
+
+newmtl veh_BTR_S3_001
+mat_id 32
+shader_id 3
+states 66186
+Ka 0.40 0.40 0.40 1.00
+Kd 0.60 0.60 0.60 1.00
+Ks 0.10 0.10 0.10
+Kg 25.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff veh_btr_br.dds
+tex_norm blank_NRM.dds

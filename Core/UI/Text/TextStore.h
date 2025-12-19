@@ -11,22 +11,33 @@
 
 #include "fontclass.h"              // text font
 
-#include <UICommon/Types.h>
-#include <UICommon/cvector.h>
-#include <CoreCommon/SystemState.h>
+#include "../../Mesh/vertex.h"
+#include "../../Mesh/vertex_buffer.h"
+#include "../../Mesh/index_buffer.h"
 
-#include "../../Mesh/Vertex.h"
-#include "../../Mesh/VertexBuffer.h"
-#include "../../Mesh/IndexBuffer.h"
+#include <types.h>
+#include <cvector.h>
+#include <CoreCommon/system_state.h>
 
-#include <map>
-#include <DirectXMath.h>
 
+// NOTATION:
+//       dbg - debug
+//       dyn - dynamic
+//       VB - vertex buffer
+//       IB - index buffer
 
 namespace UI
 {
 
-class TextStore final
+// setup some limitations for the debug text
+constexpr size MAX_SENTENCE_KEY_LEN         = 32;
+constexpr size MAX_NUM_DBG_SENTENCES        = 64;
+constexpr size MAX_SENTENCE_LEN             = 32;
+constexpr size MAX_NUM_CHARS_IN_DBG_TEXT    = MAX_NUM_DBG_SENTENCES * MAX_SENTENCE_LEN;
+constexpr size MAX_NUM_VERTICES_IN_DBG_TEXT = MAX_NUM_CHARS_IN_DBG_TEXT * 4;   // 4 vertices per symbol
+
+
+class TextStore
 {
 public:
 
@@ -39,73 +50,104 @@ public:
 
     // ---------------------------------------------
 
-    SentenceID CreateConstSentence(
-        ID3D11Device* pDevice,
-        FontClass& font,                     // font for the text
-        const std::string& textContent,      // the content of the text
-        const DirectX::XMFLOAT2& drawAt);    // upper left corner of the sentence
+    bool Init(ID3D11Device* pDevice, FontClass* pFont);
+    void SetFont(FontClass* pFont);
 
-    SentenceID CreateSentence(
-        ID3D11Device* pDevice,
-        FontClass& font,      
-        const std::string& textContent,       
-        const size maxStrSize,
-        const DirectX::XMFLOAT2& drawAt,
-        const bool isDynamic);
+    SentenceID AddDebugConstStr(
+        const char* text,
+        const float drawAtX,
+        const float drawAtY);
 
-    void SetKeyByID(const std::string& key, const SentenceID id);
+    SentenceID AddDebugDynamicStr(
+        const char* key,
+        const char* text,
+        const uint  maxLen,
+        const float drawAtX,
+        const float drawAtY);
 
     void GetRenderingData(
-        cvector<ID3D11Buffer*>& outVbPtrs,
-        cvector<ID3D11Buffer*>& outIbPtrs,
-        cvector<u32>& outIndexCounts);
+        ID3D11Buffer** outConstVbPtr,
+        ID3D11Buffer** outDynamicVbPtr,
+        ID3D11Buffer** outIbPtr,
+        u32& outConstIndexCount,    // index count for debug const sentences
+        u32& outDynamicIndexCount); // index count for debug dynamic sentences
 
     void Update(
         ID3D11DeviceContext* pContext,
-        FontClass& font,
         const Core::SystemState& systemState);
 
-    void UpdateSentenceByKey(
-        ID3D11DeviceContext* pContext,
-        FontClass& font,
-        const std::string& key,            // semantic key
-        const std::string& newStr);
+private:
+    void RebuildConstVB(ID3D11Device* pDevice);
+    void RebuildDynVB  (ID3D11DeviceContext* pContext);
+
+    void UpdateDynDbgText(const Core::SystemState& sysState);
+
+    void UpdateStrByKey(const char* key, const char* fmt, const float val);
+    void UpdateStrByKey(const char* key, const char* fmt, const int val);
+    void UpdateStrByKey(const char* key, const char* fmt, const uint32 val);
+
+    void UpdateDynTiming(const char* key, const float avgTiming);
+
+    //-----------------------------------------------------
+    // return a ptr to dynamic string by input semantic key
+    //-----------------------------------------------------
+    char* GetDynStr(const char* key);
+
+    //-----------------------------------------------------
+    // return an index of dynamic string by input semantic key
+    //-----------------------------------------------------
+    index GetDynStrIdx(const char* key);
+
 
 private:
+    struct SentenceKey
+    {
+        char key[MAX_SENTENCE_KEY_LEN]{'\0'};
+    };
 
-    void BuildTextVerticesIndices(
-        ID3D11Device* pDevice,
-        const size maxStrSize,                             // maximal size for this string (if it will be bigger we will have a vertex buffer overflow)
-        const std::string& textContent,
-        const DirectX::XMFLOAT2& drawAt,                   // upper left position of the str
-        FontClass& font,                                   // font for the text
-        cvector<Core::VertexFont>& vertices,
-        cvector<UINT>& indices);
+    struct DbgConstSentence
+    {
+        char text[MAX_SENTENCE_LEN]{ '\0' };
+        float drawAtX = 0;
+        float drawAtY = 0;
+    };
 
-    void UpdateSentenceByIdx(
-        ID3D11DeviceContext* pContext,
-        FontClass& font,
-        const index idx,
-        const std::string& newStr);
+    struct DbgDynamicSentence
+    {
+        char text[MAX_SENTENCE_LEN]{'\0'};
+        float drawAtX = 0;
+        float drawAtY = 0;
+        uint  maxLen = 0;
+    };
 
 private:
+    // currently selected font
+    FontClass* pFont_ = nullptr;   
+
     static SentenceID staticID_;
-
-    cvector<SentenceID>               ids_;
-    cvector<std::string>              textContent_;
+    cvector<SentenceID> ids_;
 
     // semantic keys for navigation (is useful to find a str to update it);
-    // these keys are set manually using the SetKeyByID() method;
-    std::map<std::string, SentenceID> keyToID_;       
+    SentenceKey dbgDynStrKeys_[MAX_NUM_DBG_SENTENCES];
 
-    cvector<DirectX::XMFLOAT2>        drawAt_;         // upper left corner of sentence
-    cvector<size>                     maxStrSize_;     // maximal number of vertices per each string
-    cvector<bool>                     isDynamic_;      // is this str modifiable?
+    // current number of strings
+    size                numDbgConstStr_   = 0;
+    size                numDbgDynStr_ = 0;
 
-    cvector<Core::VertexBuffer<Core::VertexFont>> vertexBuffers_;
-    cvector<Core::IndexBuffer<UINT>>              indexBuffers_;
+    DbgConstSentence    dbgConstSentences_[MAX_NUM_DBG_SENTENCES];
+    DbgDynamicSentence  dbgDynSentences_  [MAX_NUM_DBG_SENTENCES];
 
-    //std::unique_ptr<TextDetails::TextStoreTransientData> pDataToUpdate_;
+    Core::VertexBuffer<Core::VertexFont> vbDbgConstText_;
+    Core::VertexBuffer<Core::VertexFont> vbDbgDynText_;
+
+    // we use the same index buffer for const and dynamic debug
+    // sentences since vertex order is the same for both
+    Core::IndexBuffer<UINT> ib_;  
+
+    uint numIndicesDbgConstText_   = 0;
+    uint numIndicesDbgDynText_ = 0;
+
+    bool needUpdConstVB_ = false;
 };
 
 } // namespace UI

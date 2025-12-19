@@ -11,39 +11,150 @@
 namespace Render
 {
 
-namespace BuffTypes
+namespace ConstBufType
 {
     struct InstancedData
     {
         DirectX::XMMATRIX  world;
         DirectX::XMMATRIX  worldInvTranspose;
-        DirectX::XMMATRIX  texTransform;
-        Material           material;
-        uint8_t            textureSubsetIdx = 0;
+        MaterialColors     matColors;
     };
 
     __declspec(align(16)) struct InstancedDataBillboards
     {
-        Material material;
+        MaterialColors    matColors;
         DirectX::XMFLOAT3 posW;        // billboard position in world
         DirectX::XMFLOAT2 size;        // billboard size
     };
 
     // ----------------------------------------------------
 
-    struct cbvsPerFrame
+    struct Debug
+    {
+        uint currBoneId = 0;
+    };
+
+
+    // ----------------------------------------------------
+
+    // container for different weather params (is used in different shader stages: VS, GS)
+    struct Weather
+    {
+        DirectX::XMFLOAT3 windDir   = { 0.707f, 0.0f, 0.707f };  // normalized direction of wind
+        float windSpeed             = 1.0f;
+        float waveAmplitude         = 0.3f;   // control how far blades bend
+        float windStrength          = 2.0f;   // control how far blades bend
+        float turbulence            = 0.5f;   // adds jitter / small ripples (noise)
+        float gustDecay             = 0.5f;
+        float gustPower             = 0.1f;      
+        float waveFrequency         = 0.5f;   // controls wavelength; higher = faster small waves
+        float bendScale             = 0.5f;
+        float swayDistance          = 30.0f;  // from us (camera) and to this distance the swaying is linearly goes down
+                                              // after this distance we see no swaying
+
+        DirectX::XMFLOAT3  fogColor = { 0.5f, 0.5f, 0.5f };
+        float              fogStart = 15.0f;                 // how far from camera the fog starts?
+
+        DirectX::XMFLOAT3  skyColorCenter = { 1,1,1 };       // near horizon
+        float              fogRange = 250.0f;          // how far from camera the object is fully fogged?
+
+        DirectX::XMFLOAT3  skyColorApex = { 1,1,1 };       // top color
+    };
+
+    // ----------------------------------------------------
+
+    // container for bone transformation matrices which are used for model skinning (animation)
+    struct Skinned
+    {
+        DirectX::XMMATRIX boneTransforms[MAX_NUM_BONES_PER_CHARACTER];
+    };
+
+    // ----------------------------------------------------
+
+    struct Sky
+    {
+        float cloud1TranslationX = 0;
+        float cloud1TranslationZ = 0;
+        float cloud2TranslationX = 0;
+        float cloud2TranslationZ = 0;
+        float brightness = 1;
+        float padding0;
+        float padding1;
+        float padding2;
+    };
+
+    // ----------------------------------------------------
+
+    struct CameraParams
+    {
+        DirectX::XMMATRIX view;
+        DirectX::XMMATRIX proj;
+        DirectX::XMMATRIX invView;
+        DirectX::XMMATRIX invProj;
+
+        DirectX::XMFLOAT3 cameraPosW = { 0,0,0 };
+        float nearPlane = 0.01f;
+        float farPlane  = 100.0f;
+    };
+
+    //===============================================================
+
+    struct ViewProj
     {
         // a structure for vertex shader data which is changed each frame
         DirectX::XMMATRIX  viewProj;
     };
 
-    // TEMP: for billboard shader
-    struct cbvsPerObject
+
+    struct WorldAndViewProj
     {
-        DirectX::XMFLOAT3 posW;
+        DirectX::XMMATRIX world    = DirectX::XMMatrixIdentity();
+        DirectX::XMMATRIX viewProj = DirectX::XMMatrixIdentity();
     };
 
-    // ----------------------------------------------------
+
+    struct WorldViewProj
+    {
+        DirectX::XMMATRIX worldViewProj = DirectX::XMMatrixIdentity();
+    };
+
+
+    struct WorldViewOrtho
+    {
+        DirectX::XMMATRIX worldViewOrtho = DirectX::XMMatrixIdentity();
+    };
+
+
+    struct WorldInvTranspose
+    {
+        DirectX::XMMATRIX worldInvTranspose = DirectX::XMMatrixIdentity();
+    };
+
+
+    struct Position
+    {
+        DirectX::XMFLOAT3 posW = {-1,-1,-1};
+    };
+
+    struct Time
+    {
+        float deltaTime = 0;
+        float gameTime  = 0;
+        float pad0;
+        float pad1;
+    };
+
+    //===============================================================
+
+
+    struct MaterialData
+    {
+        // material data for the pixel shader
+        DirectX::XMFLOAT4 ambient;
+        DirectX::XMFLOAT4 diffuse;
+        DirectX::XMFLOAT4 specular;
+        DirectX::XMFLOAT4 reflect;
+    };
 
     struct cbpsPerFrame
     {
@@ -52,9 +163,9 @@ namespace BuffTypes
         DirLight           dirLights[3];
         PointLight         pointLights[25];
         SpotLight          spotLights[25];
-        DirectX::XMFLOAT3  cameraPos;
-        int                currNumPointLights = 0;
-        int                currNumSpotLights = 0;
+        int                currNumDirLights   = 1;   // current number of directed lights 
+        int                currNumPointLights = 0;   // current number of point lights
+        int                currNumSpotLights  = 0;   // current number of spotlights
     };
 
     // ----------------------------------------------------
@@ -62,76 +173,48 @@ namespace BuffTypes
     struct cbpsRareChanged
     {
         // a structure for pixel shader data which is rarely changed
-
-        DirectX::XMFLOAT3  fogColor = { 0.5f, 0.5f, 0.5f };
-        float              fogStart = 15.0f;               // how far from camera the fog starts?
-        float              fogRange = 250.0f;              // how far from camera the object is fully fogged?
-
-        int                numOfDirLights = 1;           // current number of directional light sources
-
-        int                fogEnabled = true;        // turn on/off the fog effect     
-        int                turnOnFlashLight = false;       // turn on/off the flashlight
-        int                alphaClipping = false;       // do we use alpha clipping?
+        int                debugType      = 0;               // (int type in shader) by default render as usual
+        int                fogEnabled       = true;          // turn on/off the fog effect     
+        int                turnOnFlashLight = false;         // turn on/off the flashlight
+        int                alphaClipping    = false;         // do we use alpha clipping?
     };
 
     // ----------------------------------------------------
 
-    
-    struct cbvsPerFrame_SkyDome
+    struct ConstBuf_FontPixelColor
     {
-        // const buffer data structure for the VS of the sky dome shader
-        DirectX::XMMATRIX worldViewProj_ = DirectX::XMMatrixIdentity();
-    };
-
-    struct cbpsRareChanged_SkyDome
-    {
-        // const buffer data structure for the PS of the sky dome shader
-
-        DirectX::XMFLOAT3 colorCenter_{ 1,1,1 };
-        float             padding1_ = 1.0f;
-        DirectX::XMFLOAT3 colorApex_{ 1,1,1 };
-        float             padding2_ = 1.0f;
+        DirectX::XMFLOAT3 pixelColor = {1,0,0};
+        float padding = 0.0f;
     };
 
     // ----------------------------------------------------
 
-    
-    struct ConstantMatrixBuffer_FontVS
+    struct PostFx
     {
-        // a constant matrix buffer structure for the font vertex shader
-        DirectX::XMMATRIX worldViewProj;
-    };
-
-    struct ConstantPixelBuffer_FontPS
-    {
-        // a constant buffer which contains colours are used inside the font pixel shader
-        DirectX::XMFLOAT3 pixelColor;         // UI text colour
-        float padding;
+        float data[256];       // for meaning of each index look at enum ePostFxParam
     };
 
 
     // =======================================================
     // const buffers for GEOMETRY shader
     // =======================================================
-    struct GeometryShaderConstBuf_PerFrame
+    struct GS_PerFrame
     {
         DirectX::XMMATRIX viewProj;
         DirectX::XMFLOAT3 cameraPosW;
+        float time = 0;
     };
 
-    struct GeomertyShaderConstBuf_PerObject
+    struct GrassParams
     {
-        Material          material;
+        float distGrassFullSize = 0;    // distance around camera where grass planes are in full size
+        float distGrassVisible  = 40;   // after this distance we don't see any grass planes
+        float pad0 = NAN;
+        float pad1 = NAN;
     };
 
-    struct GeometryShaderConstBuf_Fixed
-    {
-        DirectX::XMFLOAT2 topLeft;       // 0 1
-        DirectX::XMFLOAT2 bottomLeft;    // 0 0
-        DirectX::XMFLOAT2 topRight;      // 1 1
-        DirectX::XMFLOAT2 bottomRight;   // 1 0
-    };
+
 };
 
 
-} // namespace Render
+} // namespace

@@ -1,0 +1,348 @@
+newentt     player_aks74u
+model       aks_74u
+pos         0.70 -1.35 0.96
+dir         0 0 1
+rot_axis    1 0 0 1.570796327
+uni_scale   3.5
+archetype   weapon
+
+newentt     aks74_0
+model       aks_74u
+pos         250.0 80.0 205.0
+dir         0 0 1
+rot_axis    1 0 0 1.570796327
+uni_scale   3.5
+archetype   weapon
+
+newentt     aks74_1
+model       aks_74u
+pos         245.0 80.0 205.0
+dir         0 0 1
+rot_axis    1 0 0 1.570796327
+uni_scale   3.5
+archetype   weapon
+
+newentt     aks74_2
+model       aks_74u
+pos         240.0 80.0 205.0
+dir         0 0 1
+rot_axis    1 0 0 1.570796327
+uni_scale   3.5
+archetype   weapon
+
+newentt     sword
+model       sword
+pos         0.7 -0.4 1.1
+dir         0 0 1
+rot_axis    0 1 0 1.570796327
+uni_scale   0.015
+archetype   weapon
+
+newentt     obrez_1
+model       obrez
+pos         0.3 -0.4 0.5
+dir         0 0 1
+rot_axis    1 0 0 1.570796327
+uni_scale   2.0
+archetype   weapon
+
+newentt     obrez_2
+model       obrez
+pos         240.0 83.0 210.0
+dir         0 0 1
+rot_axis    1 0 0 1.570796327
+uni_scale   2.0
+archetype   weapon
+
+newentt     player_ak_74_stalker
+model       ak_74
+pos         0.50 -0.35 0.51
+dir         0 0 1
+rot_axis    1 0 0 1.570796327
+uni_scale   2.0
+archetype   weapon
+
+newentt     player_groza
+model       groza
+pos         0.50 -0.39 0.63
+dir         0 0 1
+rot_axis    1 0 0 1.570796327
+uni_scale   2.0
+archetype   weapon
+
+newentt     player_hpsa
+model       hpsa
+pos         0.63 -0.35 0.77
+dir         0 0 1
+rot_axis    1 0 0 1.570796327
+uni_scale   2.0
+archetype   weapon
+
+newentt     ak_74_stalker
+model       ak_74
+pos         240.0 83.0 215.0
+dir         0 0 1
+rot_axis    1 0 0 1.570796327
+uni_scale   2.0
+archetype   weapon
+
+newentt     groza
+model       groza
+pos         240.0 83.0 220.0
+dir         0 0 1
+rot_axis    1 0 0 1.570796327
+uni_scale   2.0
+archetype   weapon
+
+newentt     hpsa
+model       hpsa
+pos         245.0 83.0 215.0
+dir         0 0 1
+rot_axis    1 0 0 1.570796327
+uni_scale   2.0
+archetype   weapon
+
+newentt     stalker_house
+model       stalker_house
+pos         261.47 78.8 227.9
+dir         0 0 1
+rot_axis    1 0 0 1.570796327
+uni_scale   1.0
+archetype   building
+
+newentt     military_house
+model       military_house
+pos         434.8 63.92 445.0
+dir         0 0 1
+rot_axis    1 0 0 1.570796327
+uni_scale   0.013
+archetype   building
+
+newentt     traktor_tr13
+model       tr_13
+pos         427.1 63.9 437.6
+dir         0 0 1
+rot_axis    1 0 0 1.57
+uni_scale   1.4
+archetype   vehicle
+
+newentt     stalker_btr
+model       btr
+pos         234.5 75.13 280.6
+dir         0 0 1
+rot_axis    1 0 0 1.57
+uni_scale   1.5
+archetype   vehicle
+
+newentt     paz_3201
+model       paz_3201
+pos         342.0 75.49 186.0
+dir         0 0 1
+uni_scale   1.5
+archetype   vehicle
+
+newentt     zaz_968
+model       zaz_968
+pos         313.7 38.45 352.5
+dir         0 0 1
+rot_quat    0.131 0.015 0.244 0.961
+uni_scale   1.7
+archetype   vehicle
+
+newentt     zil_131
+model       zil_131
+pos         191.7 75.4 301.5
+dir         0 0 1
+rot_axis    0 1 0 2.12
+uni_scale   1.5
+archetype   vehicle
+
+newentt     zil_131_2
+model       zil_131
+pos         168.2 75.4 318.5
+dir         0 0 1
+rot_axis_y  2.44
+uni_scale   1.5
+archetype   vehicle
+
+newentt     gaz_2101
+model       gaz_2101
+pos         284.46 75.51 220.0
+dir         0 0 1
+rot_axis_x  -0.09
+rot_axis_z  -0.2
+uni_scale   1.0
+archetype   vehicle
+
+newentt     box_cat
+model       basic_cube
+material    0 cat
+pos         230.0 80.0 200.0
+dir         0 0 1
+rot_quat    0 0 0 1
+uni_scale   1.0
+archetype   cube
+
+newentt     box_wirefence
+model       basic_cube
+material    0 wirefence
+pos         230.0 80.0 202.0
+dir         0 0 1
+rot_quat    0 0 0 1
+uni_scale   1.0
+archetype   cube
+
+newentt     box_box01
+model       basic_cube
+material    0 box01
+pos         230.0 80.0 204.0
+dir         0 0 1
+rot_quat    0 0 0 1
+uni_scale   1.0
+archetype   cube
+
+newentt     box_woodCrate01
+model       basic_cube
+material    0 wood_crate_1
+pos         230.0 80.0 206.0
+dir         0 0 1
+rot_quat    0 0 0 1
+uni_scale   1.0
+archetype   cube
+
+newentt     box_woodCrate02
+model       basic_cube
+material    0 wood_crate_2
+pos         230.0 80.0 208.0
+dir         0 0 1
+rot_quat    0 0 0 1
+uni_scale   1.0
+archetype   cube
+
+newentt     box_blendAdd
+model       basic_cube
+material    0 brick_blend_add
+pos         230.0 82.0 200.0
+dir         0 0 1
+rot_quat    0 0 0 1
+uni_scale   1.0
+archetype   cube
+
+newentt     box_blendSub
+model       basic_cube
+material    0 brick_blend_sub
+pos         230.0 82.0 202.0
+dir         0 0 1
+rot_quat    0 0 0 1
+uni_scale   1.0
+archetype   cube
+
+newentt     box_blendMul
+model       basic_cube
+material    0 brick_blend_mul
+pos         230.0 82.0 204.0
+dir         0 0 1
+rot_quat    0 0 0 1
+uni_scale   1.0
+archetype   cube
+
+newentt     box_blendTransp
+model       basic_cube
+material    0 brick_blend_transparent
+pos         230.0 82.0 206.0
+dir         0 0 1
+rot_quat    0 0 0 1
+uni_scale   1.0
+archetype   cube
+
+newentt     box_Mirror
+model       basic_cube
+material    0 mirror
+pos         230.0 82.0 208.0
+dir         0 0 1
+rot_quat    0 0 0 1
+uni_scale   1.0
+archetype   cube
+
+newentt     box_shodan
+model       basic_cube
+material    0 shodan
+pos         230.0 84.0 200.0
+dir         0 0 1
+rot_quat    0 0 0 1
+uni_scale   1.0
+archetype   cube
+
+newentt     box_ground04
+model       basic_cube
+material    0 ground04
+pos         230.0 86.0 200.0
+dir         0 0 1
+rot_quat    0 0 0 1
+uni_scale   1.0
+archetype   cube
+
+newentt     LAZ_1
+model       LAZ_1
+pos         112.5 75.47 363.5
+dir         0 0 1
+rot_axis    0 1 0 2.17
+uni_scale   1.2
+archetype   vehicle
+
+newentt     LAZ_2
+model       LAZ_2
+pos         112.5 75.47 363.5
+dir         0 0 1
+rot_axis    0 1 0 2.17
+uni_scale   1.2
+archetype   vehicle
+
+newentt     LAZ_3
+model       LAZ_3
+pos         112.5 75.47 363.5
+dir         0 0 1
+rot_axis    0 1 0 2.17
+uni_scale   1.2
+archetype   vehicle
+
+newentt     mi24
+model       mi24
+pos         162.68 114.55 195.6
+dir         0 0 1
+rot_axis_x  0.09
+uni_scale   1.3
+archetype   vehicle
+
+newentt     mi28
+model       mi28
+pos         314.86 68.7 249.6
+uni_scale   1.1
+rot_axis_x  0.6
+rot_axis_z  -0.25
+dir         0 0 1
+archetype   vehicle
+
+newentt     tumba_village_1
+model       tumba_village_1
+pos         256.52 76.79 227.67
+uni_scale   0.7
+dir         0 0 1
+rot_axis_x  1.57
+rot_axis_y  -1.57
+archetype   vehicle
+
+newentt     tumba_village_2
+model       tumba_village_2
+pos         257.03 76.81 232.78
+uni_scale   1.0
+dir         0 0 1
+rot_axis_x  1.57
+archetype   vehicle
+
+newentt     boblampclean
+model       boblampclean
+pos         257.03 76.81 250.78
+uni_scale   0.035
+dir         0 0 1
+archetype   vehicle

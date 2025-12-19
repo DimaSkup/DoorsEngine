@@ -1,17 +1,9 @@
 // ************************************************************************************
 // Filename: fontclass.cpp
 // ************************************************************************************
+#include <CoreCommon/pch.h>
 #include "fontclass.h"
-
-#include <CoreCommon/MemHelpers.h>
-#include <CoreCommon/Assert.h>
-#include <CoreCommon/Log.h>
-#include "../../Texture/TextureMgr.h"
-
-#include <fstream>
-#include <filesystem>
-
-namespace fs = std::filesystem;
+#include "../../Texture/texture_mgr.h"
 
 using namespace Core;
 
@@ -19,39 +11,35 @@ using namespace Core;
 namespace UI
 {
 
-FontClass::FontClass()
-{
-}
-
-FontClass::~FontClass() 
-{
-	Log::Debug();
-}
-
+FontClass::FontClass() {}
+FontClass::~FontClass() {}
 
 
 // ************************************************************************************
 //                           PUBLIC MODIFICATION API
 // ************************************************************************************
-
 void FontClass::Initialize(
 	ID3D11Device* pDevice,
-	const std::string& fontDataFilePath,
-	const std::string& fontTexFilePath)
+	const char* fontDataFilePath,
+	const char* fontTexFilePath)
 {
 	// this function will load the font data and the font texture
 
-	Log::Debug();
+	LogDbg(LOG, "init");
 
 	try
 	{
+        bool canInit = true;
+
 		// check input params
-		fs::path fontDataPath = fontDataFilePath;
-		fs::path fontTexPath = fontTexFilePath;
+        canInit &= FileSys::Exists(fontDataFilePath);
+        canInit &= FileSys::Exists(fontTexFilePath);
 
-		Assert::True(fs::exists(fontDataPath), "there is no file for font data: " + fontDataFilePath);
-		Assert::True(fs::exists(fontTexPath), "there is no file for font texture" + fontTexFilePath);
-
+        if (!canInit)
+        {
+            LogErr("isn't able to initialize the font class: input args are invalid");
+            return;
+        }
 
 		// load and initialize a texture for this font
 		fontTexID_ = g_TextureMgr.LoadFromFile(fontTexFilePath);
@@ -62,16 +50,10 @@ void FontClass::Initialize(
 		// load the data into the font data array
 		LoadFontData(fontDataFilePath, charNum_, fontDataArr_);
 	}
-	catch (const std::bad_alloc& e)
-	{
-		this->~FontClass();
-		Log::Error(e.what());
-		throw EngineException("can't initialize the FontClass object");
-	}
 	catch (EngineException & e)
 	{
 		this->~FontClass();
-		Log::Error(e, true);
+		LogErr(e, true);
 		throw EngineException("can't initialize the FontClass object");
 	}
 }
@@ -81,24 +63,26 @@ void FontClass::Initialize(
 void FontClass::BuildVertexArray(
 	Core::VertexFont* vertices,
 	const size numVertices,
-	const std::string& sentence,
-	const DirectX::XMFLOAT2& drawAt)
+	const char* sentence,
+	const float drawAtX,
+    const float drawAtY) const
 {
 	// BuildVertexIndexArrays() builds a vertices array by texture data which is based on 
 	// input sentence and upper-left position
 	// (this function is called by a TextStore object)
 
-	Assert::True((vertices != nullptr) & (numVertices > 0), "wrong input vertices buffer");
-	Assert::True(std::ssize(sentence) <= numVertices, "input vertices buffer is too small");
+	CAssert::True(vertices && (numVertices > 0),             "wrong input vertices buffer");
+    CAssert::True(sentence && (sentence[0] != '\0'),         "input sentence is empty");
+	CAssert::True((size)strlen(sentence) <= (numVertices/4), "input vertices buffer is too small");
 
-	float drawX = drawAt.x;
-	const float topY = drawAt.y;
+	float       drawX   = drawAtX;
+	const float topY    = drawAtY;
 	const float bottomY = topY - fontHeight_;
 
 	// go through each character of the input sentence
-	for (int index = 0; const int ch : sentence)
+	for (int i = 0, symbolIdx = 0; symbolIdx < strlen(sentence); ++symbolIdx)
 	{
-		const int symbol = ch - 32;
+		const int symbol = sentence[symbolIdx] - 32;
 
 		// if there is a space (symbol == 0)
 		if (!symbol) 
@@ -110,37 +94,16 @@ void FontClass::BuildVertexArray(
 		else  
 		{
 			// the symbol texture params
-			const float texLeft = fontDataArr_[symbol].left;
+			const float texLeft  = fontDataArr_[symbol].left;
 			const float texRight = fontDataArr_[symbol].right;
-			const float width = static_cast<float>(fontDataArr_[symbol].size);
+			const float width    = (float)(fontDataArr_[symbol].size);
 
 			// set pos(x,y) and texture(tu,tv) for each font vertex:
 			// top left, bottom right, bottom left, top right
-			vertices[index++] = { { drawX, topY },            { texLeft, 0.0f } };
-			vertices[index++] = { { drawX + width, bottomY }, { texRight, 1.0f } };
-			vertices[index++] = { { drawX, bottomY },         { texLeft, 1.0f } };
-			vertices[index++] = { { drawX + width, topY },    { texRight, 0.0f } };
-
-#if 0       // OLD CODE
-
-			// top left
-			vertices[index].position     = { drawX, topY };
-			vertices[index].texture      = { texLeft, 0.0f };
-
-			// bottom right
-			vertices[index + 1].position = { drawX + width, bottomY };
-			vertices[index + 1].texture  = { texRight, 1.0f };
-
-			// bottom left
-			vertices[index + 2].position = { drawX, bottomY };
-			vertices[index + 2].texture  = { texLeft, 1.0f };
-
-			// top right
-			vertices[index + 3].position = { drawX + width, topY };
-			vertices[index + 3].texture  = { texRight, 0.0f };
-
-			index += 4;
-#endif
+			vertices[i++] = { { drawX, topY },            { texLeft, 0.0f } };
+			vertices[i++] = { { drawX + width, bottomY }, { texRight, 1.0f } };
+			vertices[i++] = { { drawX, bottomY },         { texLeft, 1.0f } };
+			vertices[i++] = { { drawX + width, topY },    { texRight, 0.0f } };
 			
 			// shift the drawing position by (char width + 1) pixel
 			drawX += (width + 1.0f);
@@ -150,10 +113,9 @@ void FontClass::BuildVertexArray(
 
 ///////////////////////////////////////////////////////////
 
-void FontClass::BuildIndexArray(UINT* indices, const size numIndices)
+void FontClass::BuildIndexArray(UINT* indices, const size numIndices) const
 {
-	// NOTE: the input indices array must be empty before initialization
-	Assert::True(bool(indices) & (numIndices > 0), "wrong num of indices (must be > 0): " + std::to_string(numIndices));
+	CAssert::True((indices != nullptr) && (numIndices > 0), "invalid input params");
 	
 	for (UINT vIdx = 0, arrIdx = 0; arrIdx < (UINT)numIndices;)
 	{
@@ -169,15 +131,8 @@ void FontClass::BuildIndexArray(UINT* indices, const size numIndices)
 		indices[arrIdx++] = vIdx + 3;
 		indices[arrIdx++] = vIdx + 1;
 
-#if 0
-		indices.insert(indices.end(),  
-		{
-			v_idx, v_idx+1, v_idx+2,  
-			v_idx, v_idx+3, v_idx+1, 
-		});
-#endif
-
-		vIdx += 4;  // stride by 4 (the number of vertices in a symbol)
+        // stride by 4 (the number of vertices in a symbol)
+		vIdx += 4;  
 	}
 }
 
@@ -193,7 +148,7 @@ void* FontClass::operator new(size_t i)
 		return ptr;
 	}
 
-	Log::Error("can't allocate the memory for object");
+	LogErr("can't allocate the memory for object");
 	throw std::bad_alloc{};
 }
 
@@ -221,9 +176,8 @@ ID3D11ShaderResourceView* const* FontClass::GetTextureResourceViewAddress()
 // ************************************************************************************
 //                             PRIVATE MODIFICATION API 
 // ************************************************************************************
-
 void FontClass::LoadFontData(
-	const std::string& fontDataFilePath,
+	const char* fontDataFilePath,
 	const int numOfFontChars,
 	FontType* fontData)
 {
@@ -235,7 +189,7 @@ void FontClass::LoadFontData(
 	try 
 	{
 		fin.open(fontDataFilePath, std::ifstream::in);
-		Assert::True(fin.is_open(), "can't open the file with font data");
+		CAssert::True(fin.is_open(), "can't open the file with font data");
 
 		// read in data from the buffer
 		for (int i = 0; i < numOfFontChars - 2; i++)
@@ -260,7 +214,7 @@ void FontClass::LoadFontData(
 	catch (EngineException & e)
 	{
 		fin.close();
-		Log::Error(e);
+		LogErr(e);
 		throw EngineException("can't load the font data from the file");
 	}
 }

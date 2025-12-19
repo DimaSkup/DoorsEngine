@@ -18,28 +18,28 @@ namespace UI
 class EnttTransformController
 {
 public:
-	EnttTransformController();
+    EnttTransformController();
 
-	void Initialize(IFacadeEngineToUI* pFacade);
-	void LoadEnttData(const EntityID id);
+    void Initialize(IFacadeEngineToUI* pFacade);
+    void LoadEnttData(const EntityID id);
 
-	void ExecuteCommand(const ICommand* pCmd, const EntityID id);
-	void UndoCommand   (const ICommand* pCmd, const EntityID id);
+    void ExecuteCommand(const ICommand* pCmd, const EntityID id);
+    void UndoCommand   (const ICommand* pCmd, const EntityID id);
 
-	inline const EnttTransformData& GetModel() const { return data_; }
+    inline const EnttTransformData& GetModel() const { return data_; }
 
 private:
-	void ExecChangePosition     (const EntityID id, const Vec3& pos);
-	void ExecChangeDirectionQuat(const EntityID id, const Vec4& quat);
-	void ExecChangeUniformScale (const EntityID id, const float scale);
-	
-	void UndoChangePosition     (const EntityID id, const Vec3& pos);
-	void UndoChangeDirection    (const EntityID id, const Vec4& rotQuat);
-	void UndoChangeScale        (const EntityID id, const float uniformScale);
+    void ExecChangePosition    (const EntityID id, const Vec3& pos);
+    void ExecChangeRotation    (const EntityID id, const Vec4& rotationQuat);
+    void ExecChangeUniformScale(const EntityID id, const float scale);
+    
+    void UndoChangePosition    (const EntityID id, const Vec3& pos);
+    void UndoChangeRotation    (const EntityID id, const Vec4& rotQuat);
+    void UndoChangeScale       (const EntityID id, const float uniformScale);
 
 private:
     EnttTransformData  data_;
-	IFacadeEngineToUI* pFacade_ = nullptr;    // facade interface btw GUI and engine        
+    IFacadeEngineToUI* pFacade_ = nullptr;    // facade interface btw GUI and engine        
 };
 
 }

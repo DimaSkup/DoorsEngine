@@ -6,15 +6,20 @@
 ////////////////////////////////////////////////////////////////////
 #pragma once
 
-#include <CoreCommon/Log.h>
-#include "MouseClass.h"
-#include "KeyboardClass.h"
+#include "Mouse.h"
+#include "Keyboard.h"
+
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+
 
 class InputManager
 {
 public:
-	LRESULT HandleKeyboardMessage(KeyboardClass & keyboard, const UINT &message, WPARAM wParam, LPARAM lParam);
-	LRESULT HandleMouseMessage(MouseClass & mouse, const UINT &message, WPARAM wParam, LPARAM lParam);
+	LRESULT HandleKeyboardMessage(Keyboard & keyboard, const UINT &message, WPARAM wParam, LPARAM lParam);
+	LRESULT HandleMouseMessage   (Mouse & mouse,       const UINT &message, WPARAM wParam, LPARAM lParam);
 };
 
 

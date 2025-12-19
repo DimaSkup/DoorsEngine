@@ -6,7 +6,7 @@
 
 
 LRESULT InputManager::HandleKeyboardMessage(
-	KeyboardClass & keyboard, 
+	Keyboard & keyboard, 
 	const UINT & message, 
 	WPARAM wParam, 
 	LPARAM lParam)
@@ -27,7 +27,6 @@ LRESULT InputManager::HandleKeyboardMessage(
 					keyboard.OnKeyPressed(static_cast<unsigned char>(wParam));
 				}
 			}
-			
 			return 0;
 		}
 		case WM_KEYUP:
@@ -64,7 +63,7 @@ LRESULT InputManager::HandleKeyboardMessage(
 ///////////////////////////////////////////////////////////
 
 LRESULT InputManager::HandleMouseMessage(
-	MouseClass & mouse, 
+	Mouse & mouse, 
 	const UINT& uMsg, 
 	WPARAM wParam,
 	LPARAM lParam)

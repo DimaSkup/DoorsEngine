@@ -8,20 +8,16 @@
 #pragma once
 
 #include "../Components/Model.h"
-#include <fstream>
 
 
 namespace ECS
 {
 
-class ModelSystem final
+class ModelSystem
 {
 public:
     ModelSystem(Model* pModelComponent);
     ~ModelSystem() {}
-
-    void Serialize(std::ofstream& fout, u32& offset);
-    void Deserialize(std::ifstream& fin, const u32 offset);
 
     void AddRecords(
         const EntityID* enttsIDs,
@@ -31,6 +27,11 @@ public:
     void RemoveRecords(const EntityID* ids, const size numEntts);
 
     ModelID GetModelIdRelatedToEntt(const EntityID enttID);
+
+    void GetModelsIdsPerEntts(
+        const EntityID* enttsIds,
+        const size numEntts,
+        cvector<ModelID>& outModelsIds);
 
     void GetModelsIdsRelatedToEntts(
         const EntityID* enttsIDs,

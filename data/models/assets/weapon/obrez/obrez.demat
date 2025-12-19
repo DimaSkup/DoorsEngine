@@ -1,0 +1,13 @@
+newmtl wpn_wpn_bm_16
+mat_id 22
+shader_id 3
+states 66186
+Ka 0.50 0.50 0.50 1.00
+Kd 0.80 0.80 0.80 1.00
+Ks 0.20 0.20 0.20
+Kg 25.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff wpn_bm-16.dds
+tex_norm blank_NRM.dds
+tex_opac wpn_bm-16.dds
+

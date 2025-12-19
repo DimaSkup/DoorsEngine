@@ -1,0 +1,37 @@
+newmtl pine_bark_001
+mat_id 66
+shader_id 13
+states 66186
+Ka 0.40 0.40 0.40 1.00
+Kd 0.65 0.65 0.65 1.00
+Ks 0.00 0.00 0.00
+Kg 1.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff Bark_Color.dds
+tex_norm Bark_Normal.dds
+
+newmtl pine_cap_001
+mat_id 67
+shader_id 13
+states 66186
+Ka 0.40 0.40 0.40 1.00
+Kd 0.65 0.65 0.65 1.00
+Ks 0.00 0.00 0.00
+Kg 1.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff Cap_Color.dds
+tex_norm Cap_Normal.dds
+
+newmtl pine_leaf_001
+mat_id 68
+shader_id 11
+states 66186
+alpha_clip 1
+cull none
+Ka 0.40 0.40 0.40 1.00
+Kd 0.65 0.65 0.65 1.00
+Ks 0.00 0.00 0.00
+Kg 1.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff pine_leaf_color.png
+tex_norm pine_leaf_norm.dds

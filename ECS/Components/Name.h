@@ -6,8 +6,9 @@
 // *********************************************************************************
 #pragma once
 
-#include "../Common/Types.h"
-#include "../Common/cvector.h"
+#include <Types.h>
+#include <cvector.h>
+#include <string>
 
 namespace ECS
 {
@@ -17,9 +18,7 @@ struct Name
 	// both vectors have the same length because 
 	// there is one to one records ['entity_id' => 'entity_name']
 	cvector<EntityID> ids_;
-	cvector<EntityName> names_;
-
-    eComponentType type_ = eComponentType::NameComponent;
+	cvector<std::string> names_;
 };
 
 }

@@ -4,41 +4,31 @@
 // 
 // Created:       29.06.24
 // ********************************************************************************
+#include "../Common/pch.h"
 #include "TextureTransformSystem.h"
-
-#include "../Common/Assert.h"
-#include "../Common/log.h"
-
-#include <fstream>    // for serialization / deserialization of data
 
 
 namespace ECS
 {
 
-
-// *********************************************************************************
-// 
-//                               PUBLIC METHODS
-// 
-// *********************************************************************************
-
-
 TextureTransformSystem::TextureTransformSystem(TextureTransform* pTexTransformComp)
 {
-    Assert::NotNullptr(pTexTransformComp, "input ptr to the texture transform component == nullptr");
+    CAssert::NotNullptr(pTexTransformComp, "input ptr to the texture transform component == nullptr");
     pTexTransformComponent_ = pTexTransformComp;
 }
 
-///////////////////////////////////////////////////////////
 
+// *********************************************************************************
+//                               PUBLIC METHODS
+// *********************************************************************************
 void TextureTransformSystem::AddTexTransformation(
     const EntityID* ids,
     const size numEntts,
     const TexTransformType type,
     const TexTransformInitParams& params)
 {
-    Assert::True(ids != nullptr, "input ptr to entities arr == nullptr");
-    Assert::True(numEntts > 0, "input number of entts must be > 0");
+    CAssert::True(ids != nullptr, "input ptr to entities arr == nullptr");
+    CAssert::True(numEntts > 0, "input number of entts must be > 0");
 
     if (type == STATIC)
     {
@@ -58,20 +48,18 @@ void TextureTransformSystem::AddTexTransformation(
 
 void TextureTransformSystem::GetTexTransformsForEntts(
     const EntityID* ids,
-    XMMATRIX* outTexTransforms,
-    const size numEntts)
+    const size numEntts,
+    cvector<XMMATRIX>& outTexTransforms)
 {
     // what we do here:
     // go through each input entity and define if it has some tex transformation 
     // if so we store this transformation or in another case we store an identity matrix;
     //
-    // NOTE:  outTexTransforms arr already must have size == numEntts
-    // 
     // in:    arr of entities IDs
     // out:   arr of texture transformations for these entities
 
-    Assert::True((ids != nullptr) && (outTexTransforms != nullptr) && (numEntts > 0), "invalid input args");
-    
+    CAssert::True((ids != nullptr) && (numEntts > 0), "invalid input args");
+
     const TextureTransform& comp = *pTexTransformComponent_;
     cvector<bool> exist(numEntts);
     cvector<index> idxs(numEntts);
@@ -83,6 +71,8 @@ void TextureTransformSystem::GetTexTransformsForEntts(
         exist[i] = (comp.ids[idxs[i]] == ids[i]);
 
     // fill in the output arr with texture transformation matrices
+    outTexTransforms.resize(numEntts);
+
     for (index i = 0; i < numEntts; ++i)
         outTexTransforms[i] = (exist[i]) ? comp.texTransforms[idxs[i]] : DirectX::XMMatrixIdentity();
 }
@@ -110,11 +100,11 @@ void TextureTransformSystem::AddStaticTexTransform(
 {
     // add a STATIC (it won't move) texture transformation to each input entity
 
-    Assert::True(CheckCanAddRecords(ids, numEntts), "there is already a record with some input entity ID");
+    CAssert::True(CheckCanAddRecords(ids, numEntts), "there is already a record with some input entity ID");
 
     TextureTransform& comp = *pTexTransformComponent_;
     TexStaticTransformations& staticTransf = comp.texStaticTrans;
-    const StaticTexTransParams& params = static_cast<const StaticTexTransParams&>(inParams);
+    const StaticTexTransInitParams& params = static_cast<const StaticTexTransInitParams&>(inParams);
 
     cvector<index> idxs;
     comp.ids.get_insert_idxs(ids, numEntts, idxs);
@@ -154,7 +144,7 @@ void TextureTransformSystem::AddStaticTexTransform(
 
 void PrepareAtlasAnimationInitData(
     const size numEntts,
-    const AtlasAnimParams& params,
+    const AtlasAnimInitParams& params,
     cvector<TexAtlasAnimationData>& outData)
 {
     outData.resize(numEntts);
@@ -182,11 +172,11 @@ void TextureTransformSystem::AddAtlasTextureAnimation(
     // (it's supposed that we use an atlas texture getting it from the Textured component);
     // and go through these frames during the time so we make a texture animation;
 
-    Assert::True(CheckCanAddRecords(ids, numEntts), "there is already a record with some input entity ID");
+    CAssert::True(CheckCanAddRecords(ids, numEntts), "there is already a record with some input entity ID");
 
 
     TextureTransform& comp = *pTexTransformComponent_;
-    const AtlasAnimParams& params = static_cast<const AtlasAnimParams&>(inParams);
+    const AtlasAnimInitParams& params = static_cast<const AtlasAnimInitParams&>(inParams);
 
     // prepare animation data for storing
     cvector<TexAtlasAnimationData> animData(numEntts);
@@ -230,14 +220,14 @@ void TextureTransformSystem::AddRotationAroundTexCoord(
     // input: inParams.center         -- texture coords
     //        rotationSpeed -- how fast the texture will rotate
 
-    Assert::True(ids != nullptr, "input entts arr == nullptr");
-    Assert::True(numEntts > 0, "input number of entts must be > 0");
-    Assert::True(CheckCanAddRecords(ids, numEntts), "there is already a record with some input entity ID");
+    CAssert::True(ids != nullptr, "input entts arr == nullptr");
+    CAssert::True(numEntts > 0, "input number of entts must be > 0");
+    CAssert::True(CheckCanAddRecords(ids, numEntts), "there is already a record with some input entity ID");
 
 
     TextureTransform& comp = *pTexTransformComponent_;
     TexRotationsAroundCoords& rotations = comp.texRotations;
-    const RotationAroundCoordParams& rotationParams = static_cast<const RotationAroundCoordParams&>(inParams);
+    const RotationAroundCoordInitParams& rotationParams = static_cast<const RotationAroundCoordInitParams&>(inParams);
 
     cvector<index> idxs;
     comp.ids.get_insert_idxs(ids, numEntts, idxs);
@@ -285,10 +275,10 @@ const index TextureTransformSystem::AddAtlasAnimationData(
     // add new texture atlas animation for entity by ID;
     // return:  idx into array of animations in the TextureTransform component
 
-    Assert::True(id != INVALID_ENTITY_ID, "invalid input entity ID");
-    Assert::True(data.texRows > 0, "the number of atlas texture rows must be > 0");
-    Assert::True(data.texColumns > 0, "the number of atlas texture columns must be > 0");
-    Assert::True(data.animDuration > 0, " the duration of atlas animation must be > 0");
+    CAssert::True(id != INVALID_ENTITY_ID, "invalid input entity ID");
+    CAssert::True(data.texRows > 0, "the number of atlas texture rows must be > 0");
+    CAssert::True(data.texColumns > 0, "the number of atlas texture columns must be > 0");
+    CAssert::True(data.animDuration > 0, " the duration of atlas animation must be > 0");
 
     TexAtlasAnimations& anim = pTexTransformComponent_->texAtlasAnim;
     const index animIdx = anim.ids.get_insert_idx(id);

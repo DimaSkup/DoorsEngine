@@ -7,17 +7,17 @@
 #pragma once
 
 #include <UICommon/IFacadeEngineToUI.h>
-#include <UICommon/StatesGUI.h>
-#include <CoreCommon/SystemState.h>
+#include <CoreCommon/system_state.h>
 
 #include "../EditorPanelElement/ModelsAssetsList.h"
 #include "../EditorPanelElement/TextureAssetsBrowser.h"
+#include "../EditorPanelElement/MaterialAssetsBrowser.h"
 
-#include "../Debug/DebugEditor.h"
+#include "../Tools/model_screenshot.h"
+#include "../Debug/ui_debug_control.h"
 #include "../Entity/Controller/EnttEditorController.h"
 #include "../Fog/FogEditorController.h"
-#include "../Entity/Creator/EntityCreatorWnd.h"
-
+#include "../Terrain/Sky/SkyController.h"
 
 namespace UI
 {
@@ -25,7 +25,7 @@ namespace UI
 class EditorPanels
 {
 public:
-    EditorPanels(StatesGUI* pStatesGUI);
+    EditorPanels();
 
     void Initialize(IFacadeEngineToUI* pFacade);
 
@@ -41,22 +41,22 @@ private:
     void RenderMaterialsBrowser();
     void RenderEditorEventHistory();
 
-    void RenderWndEntityCreation(bool* pOpen, IFacadeEngineToUI* pFacade);
     void RenderWndModelAssetsCreation(bool* pOpen);
 
 public:
 
-    DebugEditor          debugEditor_;
+    DebugControl         debugControl_;
     EnttEditorController enttEditorController_;
     FogEditorController  fogEditorController_;
+    SkyController        skyEditorController_;
 
 private:
-    IFacadeEngineToUI* pFacadeEngineToUI_ = nullptr;
-    StatesGUI*         pStatesGUI_        = nullptr;
-    EntityCreatorWnd* pEnttCreatorWnd_ = nullptr;
+    IFacadeEngineToUI* pFacade_         = nullptr;
 
-    TextureAssetsBrowser texAssetsBrowser_;
-    ModelsAssetsList     modelsAssetsList_;
+    TextureAssetsBrowser  texturesBrowser_;
+    MaterialAssetsBrowser materialsBrowser_;
+    ModelsAssetsList      modelsAssetsList_;
+    ModelScreenshot       modelScreenshot_;
 };
 
 } // namespace UI

@@ -1,14 +1,12 @@
-// ================================================================================**
+// ================================================================================
 // Filename:      MoveSystem.h
 // Description:   implementation of the MoveSystem's functional
 // 
 // Created:       23.05.24
-// ================================================================================**
+// ================================================================================
+#include "../Common/pch.h"
 #include "MoveSystem.h"
 
-#include "../Common/Assert.h"
-#include "../Common/log.h"
-#include "SaveLoad/MoveSysSerDeser.h"
 
 namespace ECS
 {
@@ -16,8 +14,8 @@ namespace ECS
 
 MoveSystem::MoveSystem(Transform* pTransformComponent, Movement* pMoveComponent)
 {
-    Assert::NotNullptr(pTransformComponent, "ptr to the Transform component == nullptr");
-    Assert::NotNullptr(pMoveComponent, "ptr to the Movement component == nullptr");
+    CAssert::NotNullptr(pTransformComponent, "ptr to the Transform component == nullptr");
+    CAssert::NotNullptr(pMoveComponent, "ptr to the Movement component == nullptr");
 
     pTransformComponent_ = pTransformComponent;
     pMoveComponent_ = pMoveComponent;
@@ -133,8 +131,8 @@ void MoveSystem::UpdateAllMoves(
     }
     catch (const std::out_of_range& e)
     {
-        Log::Error(e.what());
-        throw LIB_Exception("Went out of range during movement updating");
+        LogErr(e.what());
+        throw EngineException("Went out of range during movement updating");
     }
 }
 
@@ -196,7 +194,7 @@ void MoveSystem::AddRecords(
 
 void MoveSystem::RemoveRecords(const cvector<EntityID>& enttsIDs)
 {
-    throw LIB_Exception("TODO: IMPLEMENT IT!");
+    throw EngineException("TODO: IMPLEMENT IT!");
 }
 
 }

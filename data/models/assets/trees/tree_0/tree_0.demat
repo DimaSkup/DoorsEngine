@@ -1,0 +1,51 @@
+newmtl Tex_0332_0_dds
+mat_id 74
+shader_id 3
+states 0
+Ka 0.59 0.59 0.59 1.00
+Kd 0.59 0.59 0.59 1.00
+Ks 0.00 0.00 0.00
+Kg 10.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff Tex_0515_0.dds
+tex_norm TreeBark-01_N.dds
+
+newmtl Tex_0329_0_dds
+mat_id 75
+shader_id 3
+states 0
+Ka 0.59 0.59 0.59 1.00
+Kd 0.59 0.59 0.59 1.00
+Ks 0.00 0.00 0.00
+Kg 10.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff Tex_0515_0.dds
+tex_amb Tex_0515_0.dds
+tex_norm TreeBark-01_N.dds
+
+newmtl Tex_0563_0_dds
+mat_id 76
+shader_id 3
+states 0
+Ka 0.59 0.59 0.59 1.00
+Kd 0.59 0.59 0.59 1.00
+Ks 0.00 0.00 0.00
+Kg 10.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff Tex_0563_0.dds
+tex_amb Tex_0563_0.dds
+tex_norm TreeBark-01_N.dds
+
+newmtl Tex_0566_0_dds
+mat_id 77
+shader_id 3
+states 0
+Ka 0.59 0.59 0.59 1.00
+Kd 0.59 0.59 0.59 1.00
+Ks 0.00 0.00 0.00
+Kg 10.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff Tex_0566_0.dds
+tex_amb Tex_0566_0.dds
+tex_norm TreeBark-01_N.dds
+

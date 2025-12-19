@@ -4,10 +4,8 @@
 // 
 // Created:       28.06.24
 // **********************************************************************************
+#include "../Common/pch.h"
 #include "MaterialSystem.h"
-
-#include "../Common/Assert.h"
-#include "../Common/log.h"
 
 #pragma warning (disable : 4996)
 
@@ -15,15 +13,15 @@
 namespace ECS
 {
 
-MaterialSystem::MaterialSystem(
-    Material* pMaterialComponent,
-    NameSystem* pNameSys)
+static cvector<index> s_Idxs;
+
+MaterialSystem::MaterialSystem(Material* pMaterialComponent, NameSystem* pNameSys)
     :
     pMaterialComponent_(pMaterialComponent),
     pNameSystem_(pNameSys)
 {
-    Assert::True(pMaterialComponent != nullptr, "input ptr to the Material component == nullptr");
-    Assert::True(pNameSys != nullptr,           "input ptr to the Name system == nullptr");
+    CAssert::True(pMaterialComponent != nullptr, "input ptr to the Material component == nullptr");
+    CAssert::True(pNameSys != nullptr,           "input ptr to the Name system == nullptr");
 
     // setup default (invalid) material which has ID == 0 for invalid entity
     const cvector<MaterialID> materialsIDs(1, INVALID_MATERIAL_ID);
@@ -32,40 +30,23 @@ MaterialSystem::MaterialSystem(
 
     pMaterialComponent->enttsIDs.push_back(INVALID_ENTITY_ID);
     pMaterialComponent->data.push_back(std::move(matData));
-    pMaterialComponent->flagsMeshBasedMaterials.push_back(isMeshBasedMaterials);
 }
 
-///////////////////////////////////////////////////////////
-
-void MaterialSystem::Serialize(std::ofstream& fout, u32& offset)
-{
-    Assert::True(false, "TODO: implement it!");
-}
-
-///////////////////////////////////////////////////////////
-
-void MaterialSystem::Deserialize(std::ifstream& fin, const u32 offset)
-{
-    Assert::True(false, "TODO: implement it!");
-}
-
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   add own textures set to each input entity
+// Args:   - materialsIDs: arr of material IDs (each material ID will be related
+//                         to a single submesh of the entity)
+//         - numSubmeshes: how many meshes does input entity have
+//---------------------------------------------------------
 void MaterialSystem::AddRecord(
     const EntityID enttID,
     const MaterialID* materialsIDs,
-    const size numSubmeshes,
-    const bool areMaterialsMeshBased)
+    const size numSubmeshes)
 {
-    // add own textures set to each input entity;
-    // 
-    // in: materialsIDs          -- arr of material IDs (each material ID will be related to a single submesh of the entity)
-    //     numSubmeshes          -- how many meshes does input entity have
-    //     areMaterialsMeshBased -- defines if all the materials IDs are the same as materials IDs of the related model
 
-    Assert::True(enttID != INVALID_ENTITY_ID, "invalid entity");
-    Assert::True(materialsIDs != nullptr,     "input ptr to materials IDs arr == nullptr");
-    Assert::True(numSubmeshes > 0,            "input number of submeshes must be > 0");
+    CAssert::True(enttID != INVALID_ENTITY_ID, "invalid entity");
+    CAssert::True(materialsIDs != nullptr,     "input ptr to materials IDs arr == nullptr");
+    CAssert::True(numSubmeshes > 0,            "input number of submeshes must be > 0");
 
 
     Material& comp = *pMaterialComponent_;
@@ -73,7 +54,7 @@ void MaterialSystem::AddRecord(
     // if there is already a record with such entt ID
     if (comp.enttsIDs.binary_search(enttID))
     {
-        Log::Error("can't add record: there is already an entity by ID: {})" + std::to_string(enttID));
+        LogErr(LOG, "can't add record: there is already an entity by ID: %ld", enttID);
         return;
     }
 
@@ -82,108 +63,81 @@ void MaterialSystem::AddRecord(
 
     comp.enttsIDs.insert_before(idx, enttID);
     comp.data.insert_before(idx, MaterialData(materialsIDs, numSubmeshes));
-    comp.flagsMeshBasedMaterials.insert_before(idx, areMaterialsMeshBased);
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   set a material (matID) for subset/mesh (enttSubmeshId) of entity (enttID)
+//---------------------------------------------------------
 void MaterialSystem::SetMaterial(
     const EntityID enttID,
-    const SubmeshID enttSubmeshID,
+    const SubmeshID enttSubmeshId,
     const MaterialID matID)
 {
-    // set a material (matID) for subset/mesh (enttSubmeshID) of entity (enttID)
-
     Material& comp = *pMaterialComponent_;
-    const index idx      = comp.enttsIDs.get_idx(enttID);
-    const bool exist     = (comp.enttsIDs[idx] == enttID);
+    const index idx = comp.enttsIDs.get_idx(enttID);
+    cvector<MaterialID>& matsIds = comp.data[idx].materialsIds;
 
-    if (exist)
+    // if such entt doesn't have a material component (we have no such record)
+    if (comp.enttsIDs[idx] != enttID)
     {
-        comp.data[idx].materialsIDs[0] = matID;
-        comp.flagsMeshBasedMaterials[idx] = false;
+        LogErr(LOG, "there is no entity by ID: %d", (int)enttID);
+        return;
     }
-    else
+ 
+    // if input submesh id is invalid (is too big)
+    if ((vsize)enttSubmeshId >= matsIds.size())
     {
-        char buf[64];
-        sprintf(buf, "there is no entity by ID: %d", enttID);
-        Log::Error(buf);
+        LogErr(LOG, "input submesh id is invalid: %d", (int)enttSubmeshId);
+        return;
     }
+
+    // set new material id for a submesh
+    matsIds[enttSubmeshId] = matID;
 }
 
-///////////////////////////////////////////////////////////
-
-const MaterialData& MaterialSystem::GetDataByEnttID(const EntityID id) const
+//---------------------------------------------------------
+// Desc:   get arr of material Ids for entity by input ID
+//---------------------------------------------------------
+const MaterialData& MaterialSystem::GetDataByEnttId(const EntityID id) const
 {
-    // get data (arr of material IDs) for entity by input ID
-
     const Material& comp = *pMaterialComponent_;
-    const index idx = comp.enttsIDs.get_idx(id);
-    const bool exist = (comp.enttsIDs[idx] == id);
+    const index idx      = comp.enttsIDs.get_idx(id);
+    const bool exist     = (comp.enttsIDs[idx] == id);
 
     // if there no data by input ID we return "invalid" data (by idx == 0)
     return comp.data[idx * exist];
 }
 
-///////////////////////////////////////////////////////////
-
-void MaterialSystem::GetDataByEnttsIDs(
+//---------------------------------------------------------
+// Desc:   get an array of materials data per each input entity id;
+//         (array per entity because each entity can have multiple meshes with one material)
+// Args:   - ids:                 arr of entities identifiers
+//         - numEntts:            how many entities in arr
+//         - outMatsDataPerEntt:  arr of material data per each entity
+//---------------------------------------------------------
+void MaterialSystem::GetDataByEnttsIds(
     const EntityID* ids,
     const size numEntts,
-    cvector<MaterialData>& outMaterialsDataPerEntt)
+    cvector<MaterialData>& outMatsDataPerEntt)
 {
-    // get an array of materials data per each input entity id;
-    // (array per entity because each entity can have multiple meshes with one material)
-
-    Assert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
-    Assert::True(numEntts > 0,   "input number of entities must be > 0");
+    CAssert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
+    CAssert::True(numEntts > 0,   "input number of entities must be > 0");
 
     const Material& comp = *pMaterialComponent_;
-    cvector<index> idxs;
 
-    comp.enttsIDs.get_idxs(ids, numEntts, idxs);
+    comp.enttsIDs.get_idxs(ids, numEntts, s_Idxs);
 
 #if DEBUG || _DEBUG
-    CheckEnttsHaveMaterialComponent(ids, idxs.data(), numEntts);
+    CheckEnttsHaveMaterialComponent(ids, s_Idxs.data(), numEntts);
 #endif
 
-    outMaterialsDataPerEntt.resize(numEntts);
+    outMatsDataPerEntt.resize(numEntts);
 
-    for (int i = 0; const index idx : idxs)
-        outMaterialsDataPerEntt[i++] = comp.data[idx];
+    for (int i = 0; const index idx : s_Idxs)
+    {
+        outMatsDataPerEntt[i++] = comp.data[idx];
+    }
 }
-
-///////////////////////////////////////////////////////////
-
-void MaterialSystem::GetMaterialsFlagsByEntts(
-    const EntityID* ids,
-    const size numEntts,
-    cvector<bool>& outFlags) const
-{
-    // get flags which defines if materials of particular entity by ID are based on
-    // materials of the related original model; if so we will render such entity
-    // using INSTANCING;
-
-    Assert::True(ids != nullptr, "input ptr to entities IDs arr == nullptr");
-    Assert::True(numEntts > 0,   "input number of entities must be > 0");
-
-    Material& comp = *pMaterialComponent_;
-    cvector<index> idxs;
-
-    comp.enttsIDs.get_idxs(ids, numEntts, idxs);
-
-    // check if we have valid entities IDs
-#if DEBUG || _DEBUG
-    CheckEnttsHaveMaterialComponent(ids, idxs.data(), numEntts);
-#endif
-
-    outFlags.resize(numEntts);
-
-    for (int i = 0; const index idx : idxs)
-        outFlags[i++] = comp.flagsMeshBasedMaterials[idx];
-}
-
-
 
 // =================================================================================
 // Private helper methods
@@ -203,26 +157,13 @@ void MaterialSystem::CheckEnttsHaveMaterialComponent(
         // if we have not the same ID
         if (comp.enttsIDs[idxs[i]] != ids[i])
         {
-            std::string errMsg = GenerateErrMsgNotHaveComponent(ids[i], pNameSystem_->GetNameById(ids[i]));
-            Log::Error(errMsg);
+            LogErr(
+                LOG,
+                "entity (ID: %d; name: %s) doesn't have a material component!",
+                (int)ids[i],
+                pNameSystem_->GetNameById(ids[i]));
         }
     }
-}
-
-///////////////////////////////////////////////////////////
-
-std::string MaterialSystem::GenerateErrMsgNotHaveComponent(
-    const EntityID id,
-    const EntityName& name) const
-{
-    // a helper to generate a message about the entity doesn't have this component
-
-    std::string errMsg;
-    errMsg += "entity (id: " + std::to_string(id);
-    errMsg += "; name: " + pNameSystem_->GetNameById(id);
-    errMsg += ") doesn't have a material component!";
-
-    return errMsg;
 }
 
 } // namespace ECS

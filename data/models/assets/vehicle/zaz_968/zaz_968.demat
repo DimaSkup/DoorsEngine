@@ -1,0 +1,13 @@
+newmtl zaz_968_rust
+mat_id 28
+shader_id 3
+states 66186
+Ka 0.40 0.40 0.40 1.00
+Kd 0.30 0.30 0.30 1.00
+Ks 0.10 0.10 0.10
+Kg 5.00
+Kr 0.05 0.05 0.05 1.00
+tex_diff cars_02.dds
+tex_spec cars_02_mask.dds
+tex_norm cars_02_norm.dds
+

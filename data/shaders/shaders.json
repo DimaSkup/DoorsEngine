@@ -1,0 +1,394 @@
+{
+	"params": {
+	    "runtime_compilation":       false,
+		"shader_model":              "5_0",
+		"dir_path_to_precompiled":   "data/shaders/cso/",
+		"dir_path_to_hlsl":          "data/shaders/hlsl/"
+	},
+
+	"shaders": [
+		{
+			"id":            0,
+			"name":          "InvalidShader",
+			"vs":            "colorVS",
+			"ps":            "colorPS",
+			"shader_model":  "5_0",
+			"input_layout":  "Pos"
+		},
+		{
+			"id":            1,
+			"name":          "ColorShader",
+			"vs":            "colorVS",
+			"ps":            "colorPS",
+			"shader_model":  "5_0",
+			"input_layout":  "Pos"
+		},
+		{
+			"id":            2,
+			"name":          "TextureShader",
+			"vs":            "textureVS",
+			"ps":            "texturePS",
+			"input_layout":  "PosTex"
+		},
+		{
+			"id":            3,
+			"name":          "LightShader",
+			"vs":            "LightVS",
+			"ps":            "LightPS",
+			"input_layout":  "Basic"
+		},
+		{
+			"id":            4,
+			"name":          "GrassShader",
+			"vs":            "grassVS",
+			"gs":            "grassGS",
+			"ps":            "grassPS",
+			"input_layout":  "VertexGrass"
+		},
+		{
+			"id":            5,
+			"name":          "ParticleShader",
+			"vs":            "particleVS",
+			"gs":            "particleGS",
+			"ps":            "particlePS",            
+			"input_layout":  "Particle"
+		},
+		{
+			"id":            6,
+			"name":          "SkyDomeShader",
+			"vs":            "SkyDomeVS",
+			"ps":            "SkyDomePS",
+			"input_layout":  "Sky"
+			
+		},
+		{
+			"id":            7,
+			"name":          "TerrainShader",
+			"vs":            "terrain_high_lod_VS",
+			"ps":            "terrain_high_lod_PS",
+			"input_layout":  "Terrain"
+		},
+		{
+			"id":            8,
+			"name":          "FontShader",
+			"vs":            "FontVS",
+			"ps":            "FontPS",
+			"input_layout":  "Font"
+		},
+		{
+			"id":             9,
+			"name":           "MaterialIconShader",
+			"vs":             "materialIconVS",
+			"ps":             "materialIconPS",
+			"input_layout":   "Vertex3d"
+		},
+		{
+			"id":             10,
+			"name":           "DebugLineShader",
+			"vs":             "debugLineVS",
+			"ps":             "debugLinePS",
+			"input_layout":   "DebugLine"
+		},
+		{
+			"id":             11,
+			"name":           "FoliageShader",
+			"vs":             "foliageVS",
+			"ps":             "foliagePS",
+			"input_layout":   "Basic"
+		},
+		{
+			"id":             12,
+			"name":           "MetallicShader",
+			"vs":             "metallicVS",
+			"ps":             "metallicPS",
+			"input_layout":   "Basic"
+		},
+		{
+			"id":             13,
+			"name":           "WoodShader",
+			"vs":             "woodVS",
+			"ps":             "woodPS",
+			"input_layout":   "Basic"
+		},
+		{
+			"id":             14,
+			"name":           "SkyCloudShader",
+			"vs":             "skyCloudVS",
+			"ps":             "skyCloudPS",
+			"input_layout":   "VertexPosTex"
+		},
+		{
+			"id":             15,
+			"name":           "VisualizeDepthShader",
+			"vs":             "fullscreenQuadVS",
+			"ps":             "visualizeDepthPS",
+			"input_layout":   "None"
+		},
+		{
+			"id":             16,
+			"name":           "DepthResolveShader",
+			"vs":             "fullscreenQuadVS",
+			"ps":             "depthResolvePS",
+			"input_layout":   "None"
+		},
+		{
+			"id":             17,
+			"name":           "postFX_Grayscale",
+			"vs":             "fullscreenQuadVS",
+			"ps":             "postFX_grayscale_PS",
+			"input_layout":   "None"
+		},
+		{
+			"id":             18,
+			"name":           "postFX_InvertColors",
+			"vs":             "fullscreenQuadVS",
+			"ps":             "postFX_invert_color_PS",
+			"input_layout":   "None"
+		},
+		{
+			"id":             19,
+			"name":           "postFX_BrightContrastAdjust",
+			"vs":             "fullscreenQuadVS",
+			"ps":             "postFX_brightness_adjust_PS",
+			"input_layout":   "None"
+		},
+		{
+			"id":             20,
+			"name":           "postFX_Sepia",
+			"vs":             "fullscreenQuadVS",
+			"ps":             "postFX_sepia_PS",
+			"input_layout":   "None"
+		},
+		{
+			"id":             21,
+			"name":           "postFX_ChromaticAberration",
+			"vs":             "fullscreenQuadVS",
+			"ps":             "postFX_chromatic_aberration_PS",
+			"input_layout":   "None"
+		},
+		{
+			"id":             22,
+			"name":           "postFX_ColorTint",
+			"vs":             "fullscreenQuadVS",
+			"ps":             "postFX_color_tint_PS",
+			"input_layout":   "None"
+		},
+		{
+			"id":             23,
+			"name":           "postFX_VignetteEffect",
+			"vs":             "fullscreenQuadVS",
+			"ps":             "postFX_vignette_effect_PS",
+			"input_layout":   "None"
+		},
+		{
+			"id":             24,
+			"name":           "postFX_GaussianBlur",
+			"vs":             "fullscreenQuadVS",
+			"ps":             "postFX_gaussian_blur_PS",
+			"input_layout":   "None"
+		},
+		{
+			"id":             25,
+			"name":           "postFX_BloomBrightExtract",
+			"vs":             "fullscreenQuadVS",
+			"ps":             "postFX_bloom_extract_PS",
+			"input_layout":   "None"
+		},
+		{
+			"id":             26,
+			"name":           "postFX_EdgeDetection",
+			"vs":             "fullscreenQuadVS",
+			"ps":             "postFX_edge_detection_PS",
+			"input_layout":   "None"
+		},
+		{
+			"id":             27,
+			"name":           "postFX_Posterization",
+			"vs":             "fullscreenQuadVS",
+			"ps":             "postFX_posterization_PS",
+			"input_layout":   "None"
+		},
+		{
+			"id":             28,
+			"name":           "postFX_FilmGrain",
+			"vs":             "fullscreenQuadVS",
+			"ps":             "postFX_film_grain_PS",
+			"input_layout":   "None"
+		},
+		{
+			"id":             29,
+			"name":           "postFX_CRT_and_Scanlines",
+			"vs":             "fullscreenQuadVS",
+			"ps":             "postFX_CRT_and_scanlines_PS",
+			"input_layout":   "None"
+		},
+		{
+			"id":             30,
+			"name":           "postFX_Pixelation",
+			"vs":             "fullscreenQuadVS",
+			"ps":             "postFX_pixelation_PS",
+			"input_layout":   "None"
+		},
+		{
+			"id":             31,
+			"name":           "postFX_ColorShift",
+			"vs":             "fullscreenQuadVS",
+			"ps":             "postFX_color_shift_PS",
+			"input_layout":   "None"
+		},
+		{
+			"id":             32,
+			"name":           "postFX_NegativeGlow",
+			"vs":             "fullscreenQuadVS",
+			"ps":             "postFX_negative_glow_PS",
+			"input_layout":   "None"
+		},
+		{
+			"id":             33,
+			"name":           "postFX_ThermalVision",
+			"vs":             "fullscreenQuadVS",
+			"ps":             "postFX_thermal_vision_PS",
+			"input_layout":   "None"
+		},
+		{
+			"id":             34,
+			"name":           "postFX_NightVision",
+			"vs":             "fullscreenQuadVS",
+			"ps":             "postFX_night_vision_PS",
+			"input_layout":   "None"
+		},
+		{
+			"id":             35,
+			"name":           "postFX_HeatDistortion",
+			"vs":             "fullscreenQuadVS",
+			"ps":             "postFX_heat_distortion_PS",
+			"input_layout":   "None"
+		},
+		{
+			"id":             36,
+			"name":           "postFX_ShockwaveDistortion",
+			"vs":             "fullscreenQuadVS",
+			"ps":             "postFX_shockwave_distortion_PS",
+			"input_layout":   "None"
+		},
+		{
+			"id":             37,
+			"name":           "postFX_FrostGlassBlur",
+			"vs":             "fullscreenQuadVS",
+			"ps":             "postFX_frosted_glass_blur_PS",
+			"input_layout":   "None"
+		},
+		{
+			"id":             38,
+			"name":           "postFX_old_TV_distortion",
+			"vs":             "fullscreenQuadVS",
+			"ps":             "postFX_old_TV_distortion_PS",
+			"input_layout":   "None"
+		},
+		{
+			"id":             39,
+			"name":           "postFX_ColorSplit",
+			"vs":             "fullscreenQuadVS",
+			"ps":             "postFX_color_split_PS",
+			"input_layout":   "None"
+		},
+		{
+			"id":             40,
+			"name":           "postFX_RadialBlur",
+			"vs":             "fullscreenQuadVS",
+			"ps":             "postFX_radial_blur_PS",
+			"input_layout":   "None"
+		},
+		{
+			"id":             41,
+			"name":           "postFX_SwirlDistortion",
+			"vs":             "fullscreenQuadVS",
+			"ps":             "postFX_swirl_distortion_PS",
+			"input_layout":   "None"
+		},
+		{
+			"id":             42,
+			"name":           "postFX_Glitch",
+			"vs":             "fullscreenQuadVS",
+			"ps":             "postFX_glitch_PS",
+			"input_layout":   "None"
+		},
+		{
+			"id":             43,
+			"name":           "postFX_DitheringOrdered",
+			"vs":             "fullscreenQuadVS",
+			"ps":             "postFX_dithering_ordered_PS",
+			"input_layout":   "None"
+		},
+		{
+			"id":             44,
+			"name":           "FXAA",
+			"vs":             "fullscreenQuadVS",
+			"ps":             "FXAA_PS",
+			"input_layout":   "None"
+		},
+		{
+			"id":             45,
+			"name":           "TerrainDepthPrepass",
+			"vs":             "depth_prepass_terrain_VS",
+			"ps":             "depth_prepass_dummy_PS",
+			"input_layout":   "Position"
+		},
+		{
+			"id":             46,
+			"name":           "EnttsDepthPrepass",
+			"vs":             "depth_prepass_entts_VS",
+			"ps":             "depth_prepass_dummy_PS",
+			"input_layout":   "DepthPrepass"
+		},
+		{
+			"id":             47,
+			"name":           "ScreenFiller",
+			"vs":             "fullscreenQuadVS",
+			"ps":             "frame_buffer_filler_PS",
+			"input_layout":   "None"
+		},
+		{
+			"id":             48,
+			"name":           "DebugModelShader",
+			"vs":             "debug_model_VS",
+			"ps":             "debug_model_PS",
+			"input_layout":   "Vertex3d"
+		},
+		{
+			"id":             49,
+			"name":           "TreeLod1Shader",
+			"vs":             "tree_lod1_VS",
+			"ps":             "tree_lod1_PS",
+			"input_layout":   "TreeLod"
+		},
+		{
+			"id":             50,
+			"name":           "TreeLod2Shader",
+			"vs":             "tree_lod2_VS",
+			"ps":             "tree_lod2_PS",
+			"input_layout":   "TreeLod"
+		},
+		{
+			"id":             51,
+			"name":           "SkinnedMeshShader",
+			"vs":             "skinned_mesh_VS",
+			"ps":             "skinned_mesh_PS",
+			"input_layout":   "SkinnedMesh"
+		},
+		{
+			"id":             52,
+			"name":           "TerrainMidLodShader",
+			"vs":             "terrain_mid_lod_VS",
+			"ps":             "terrain_mid_lod_PS",
+			"input_layout":   "Terrain"
+		},
+		{
+			"id":             53,
+			"name":           "TerrainLowLodShader",
+			"vs":             "terrain_low_lod_VS",
+			"ps":             "terrain_low_lod_PS",
+			"input_layout":   "TerrainPos"
+		}
+	]
+}

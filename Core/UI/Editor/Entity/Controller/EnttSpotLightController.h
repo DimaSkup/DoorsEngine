@@ -7,14 +7,15 @@
 // =================================================================================
 #pragma once
 
-#include <UICommon/ICommand.h>
-#include <UICommon/IFacadeEngineToUI.h>
-
 #include "../Model/EnttLightData.h"
 
 
 namespace UI
 {
+// forward declaration
+class IFacadeEngineToUI;
+class ICommand;
+
 
 class EnttSpotLightController
 {

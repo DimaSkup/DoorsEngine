@@ -1,0 +1,14 @@
+newmtl zil_131
+mat_id 29
+shader_id 3
+states 66186
+Ka 0.40 0.40 0.40 1.00
+Kd 0.50 0.50 0.50 1.00
+Ks 0.10 0.10 0.10
+Kg 5.00
+Kr 0.00 0.00 0.00 1.00
+tex_diff zil_131.dds
+tex_spec zil_131_spec.dds
+tex_amb zil_131.dds
+tex_norm zil_131_norm.dds
+

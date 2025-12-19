@@ -1,8 +1,6 @@
 #include "MainMenuBar.h"
-#include <CoreCommon/log.h>
+#include <UICommon/gui_states.h>
 #include <imgui.h>
-#include "../Entity/Creator/EntityCreatorWnd.h"
-
 
 
 namespace UI
@@ -12,7 +10,7 @@ namespace UI
 //                              public methods
 // =================================================================================
 
-void MainMenuBar::RenderBar(StatesGUI& states)
+void MainMenuBar::RenderBar()
 {
     // create a window called "Main menu bar" with a main menu 
     if (ImGui::BeginMainMenuBar())
@@ -27,6 +25,16 @@ void MainMenuBar::RenderBar(StatesGUI& states)
             {
                 // TODO:: make saving of the engine project
             }
+            else if (ImGui::BeginMenu("Import..."))
+            {
+                if (ImGui::MenuItem("Model"))
+                    g_GuiStates.showWndImportModels = true;
+
+                if (ImGui::MenuItem("Sound"))
+                    g_GuiStates.showWndImportSound = true;
+
+                ImGui::EndMenu();
+            }
             else if (ImGui::MenuItem("Exit"))
             {
                 // TODO: execute exit from the engine
@@ -39,19 +47,29 @@ void MainMenuBar::RenderBar(StatesGUI& states)
 
         if (ImGui::BeginMenu("View"))
         {
+            bool showWndTexturesBrowser  = g_GuiStates.showWndTexturesBrowser;
+            bool showWndMaterialsBrowser = g_GuiStates.showWndMaterialsBrowser;
+            bool showWndModelsBrowser    = g_GuiStates.showWndModelsBrowser;
+
             // menu items to open particular windows
-            ImGui::MenuItem("Textures browser",  NULL, &states.showWndTexturesBrowser);
-            ImGui::MenuItem("Materials browser", NULL, &states.showWndMaterialsBrowser);
-            ImGui::MenuItem("Models browser",    NULL, &states.showWndModelsBrowser);
+            ImGui::MenuItem("Textures browser",  NULL, &showWndTexturesBrowser);
+            ImGui::MenuItem("Materials browser", NULL, &showWndMaterialsBrowser);
+            ImGui::MenuItem("Models browser",    NULL, &showWndModelsBrowser);
+
+            g_GuiStates.showWndTexturesBrowser = showWndTexturesBrowser;
+            g_GuiStates.showWndMaterialsBrowser = showWndMaterialsBrowser;
+            g_GuiStates.showWndModelsBrowser = showWndModelsBrowser;
+
             ImGui::EndMenu();
         }
 
         // --------------------------------------------
 
-        if (ImGui::BeginMenu("Create"))
+        if (ImGui::BeginMenu("Toools"))
         {
-            // create a modal window for entities creation
-            ImGui::MenuItem("Entity", NULL, &states.showWndEnttCreation);
+            if (ImGui::MenuItem("Model screenshot", NULL))
+                g_GuiStates.showWndModelScreenshot = true;
+
             ImGui::EndMenu();
         }
 
@@ -63,7 +81,7 @@ void MainMenuBar::RenderBar(StatesGUI& states)
         if (ImGui::Button("Options"))
         {
             // create a window for control common engine options
-            states.showWndEngineOptions = !states.showWndEngineOptions;
+            g_GuiStates.showWndEngineOptions = ~g_GuiStates.showWndEngineOptions;
         }
 
         ImGui::PopStyleColor();

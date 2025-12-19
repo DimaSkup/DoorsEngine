@@ -1200,7 +1200,7 @@ static ImVec2           CalcNextScrollFromScrollTargetAndClamp(ImGuiWindow* wind
 
 static void             AddWindowToSortBuffer(ImVector<ImGuiWindow*>* out_sorted_windows, ImGuiWindow* window);
 
-// Settings
+// EngineConfigs
 static void             WindowSettingsHandler_ClearAll(ImGuiContext*, ImGuiSettingsHandler*);
 static void*            WindowSettingsHandler_ReadOpen(ImGuiContext*, ImGuiSettingsHandler*, const char* name);
 static void             WindowSettingsHandler_ReadLine(ImGuiContext*, ImGuiSettingsHandler*, void* entry, const char* line);
@@ -1431,7 +1431,7 @@ ImGuiIO::ImGuiIO()
     memset(this, 0, sizeof(*this));
     IM_STATIC_ASSERT(IM_ARRAYSIZE(ImGuiIO::MouseDown) == ImGuiMouseButton_COUNT && IM_ARRAYSIZE(ImGuiIO::MouseClicked) == ImGuiMouseButton_COUNT);
 
-    // Settings
+    // EngineConfigs
     ConfigFlags = ImGuiConfigFlags_None;
     BackendFlags = ImGuiBackendFlags_None;
     DisplaySize = ImVec2(-1.0f, -1.0f);
@@ -16579,7 +16579,7 @@ void ImGui::DestroyPlatformWindows()
 // Docking: Public Functions (SetWindowDock, DockSpace, DockSpaceOverViewport)
 // Docking: Builder Functions
 // Docking: Begin/End Support Functions (called from Begin/End)
-// Docking: Settings
+// Docking: EngineConfigs
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
@@ -16685,7 +16685,7 @@ struct ImGuiDockPreviewData
     ImGuiDockPreviewData() : FutureNode(0) { IsDropAllowed = IsCenterAvailable = IsSidesAvailable = IsSplitDirExplicit = false; SplitNode = NULL; SplitDir = ImGuiDir_None; SplitRatio = 0.f; for (int n = 0; n < IM_ARRAYSIZE(DropRectsDraw); n++) DropRectsDraw[n] = ImRect(+FLT_MAX, +FLT_MAX, -FLT_MAX, -FLT_MAX); }
 };
 
-// Persistent Settings data, stored contiguously in SettingsNodes (sizeof() ~32 bytes)
+// Persistent EngineConfigs data, stored contiguously in SettingsNodes (sizeof() ~32 bytes)
 struct ImGuiDockNodeSettings
 {
     ImGuiID             ID;
@@ -16752,7 +16752,7 @@ namespace ImGui
     static ImGuiDockNode*   DockNodeTreeFindVisibleNodeByPos(ImGuiDockNode* node, ImVec2 pos);
     static ImGuiDockNode*   DockNodeTreeFindFallbackLeafNode(ImGuiDockNode* node);
 
-    // Settings
+    // EngineConfigs
     static void             DockSettingsRenameNodeReferences(ImGuiID old_node_id, ImGuiID new_node_id);
     static void             DockSettingsRemoveNodeReferences(ImGuiID* node_ids, int node_ids_count);
     static ImGuiDockNodeSettings*   DockSettingsFindNodeSettings(ImGuiContext* ctx, ImGuiID node_id);
@@ -20299,7 +20299,7 @@ void ImGui::BeginDockableDragDropTarget(ImGuiWindow* window)
 }
 
 //-----------------------------------------------------------------------------
-// Docking: Settings
+// Docking: EngineConfigs
 //-----------------------------------------------------------------------------
 // - DockSettingsRenameNodeReferences()
 // - DockSettingsRemoveNodeReferences()
@@ -21373,8 +21373,8 @@ void ImGui::ShowMetricsWindow(bool* p_open)
     }
 #endif // #ifdef IMGUI_HAS_DOCK
 
-    // Settings
-    if (TreeNode("Settings"))
+    // EngineConfigs
+    if (TreeNode("EngineConfigs"))
     {
         if (SmallButton("Clear"))
             ClearIniSettings();
@@ -21391,20 +21391,20 @@ void ImGui::ShowMetricsWindow(bool* p_open)
             TextUnformatted("<NULL>");
         Checkbox("io.ConfigDebugIniSettings", &io.ConfigDebugIniSettings);
         Text("SettingsDirtyTimer %.2f", g.SettingsDirtyTimer);
-        if (TreeNode("SettingsHandlers", "Settings handlers: (%d)", g.SettingsHandlers.Size))
+        if (TreeNode("SettingsHandlers", "EngineConfigs handlers: (%d)", g.SettingsHandlers.Size))
         {
             for (ImGuiSettingsHandler& handler : g.SettingsHandlers)
                 BulletText("\"%s\"", handler.TypeName);
             TreePop();
         }
-        if (TreeNode("SettingsWindows", "Settings packed data: Windows: %d bytes", g.SettingsWindows.size()))
+        if (TreeNode("SettingsWindows", "EngineConfigs packed data: Windows: %d bytes", g.SettingsWindows.size()))
         {
             for (ImGuiWindowSettings* settings = g.SettingsWindows.begin(); settings != NULL; settings = g.SettingsWindows.next_chunk(settings))
                 DebugNodeWindowSettings(settings);
             TreePop();
         }
 
-        if (TreeNode("SettingsTables", "Settings packed data: Tables: %d bytes", g.SettingsTables.size()))
+        if (TreeNode("SettingsTables", "EngineConfigs packed data: Tables: %d bytes", g.SettingsTables.size()))
         {
             for (ImGuiTableSettings* settings = g.SettingsTables.begin(); settings != NULL; settings = g.SettingsTables.next_chunk(settings))
                 DebugNodeTableSettings(settings);
@@ -21412,7 +21412,7 @@ void ImGui::ShowMetricsWindow(bool* p_open)
         }
 
 #ifdef IMGUI_HAS_DOCK
-        if (TreeNode("SettingsDocking", "Settings packed data: Docking"))
+        if (TreeNode("SettingsDocking", "EngineConfigs packed data: Docking"))
         {
             ImGuiDockContext* dc = &g.DockContext;
             Text("In SettingsWindows:");
@@ -21437,7 +21437,7 @@ void ImGui::ShowMetricsWindow(bool* p_open)
         }
 #endif // #ifdef IMGUI_HAS_DOCK
 
-        if (TreeNode("SettingsIniData", "Settings unpacked data (.ini): %d bytes", g.SettingsIniData.size()))
+        if (TreeNode("SettingsIniData", "EngineConfigs unpacked data (.ini): %d bytes", g.SettingsIniData.size()))
         {
             InputTextMultiline("##Ini", (char*)(void*)g.SettingsIniData.c_str(), g.SettingsIniData.Buf.Size, ImVec2(-FLT_MIN, GetTextLineHeight() * 20), ImGuiInputTextFlags_ReadOnly);
             TreePop();
@@ -21445,7 +21445,7 @@ void ImGui::ShowMetricsWindow(bool* p_open)
         TreePop();
     }
 
-    // Settings
+    // EngineConfigs
     if (TreeNode("Memory allocations"))
     {
         ImGuiDebugAllocInfo* info = &g.DebugAllocInfo;

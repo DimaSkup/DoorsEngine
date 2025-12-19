@@ -108,25 +108,19 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Input\MouseClass.cpp">
+    <ClCompile Include="Input\mouse.cpp">
       <Filter>Source Files\Mouse</Filter>
     </ClCompile>
-    <ClCompile Include="Input\MouseEvent.cpp">
-      <Filter>Source Files\Mouse</Filter>
-    </ClCompile>
-    <ClCompile Include="Window\RenderWindow.cpp">
+    <ClCompile Include="Window\render_window.cpp">
       <Filter>Source Files\Window</Filter>
     </ClCompile>
-    <ClCompile Include="Window\WindowContainer.cpp">
+    <ClCompile Include="Window\window_container.cpp">
       <Filter>Source Files\Window</Filter>
     </ClCompile>
     <ClCompile Include="Input\inputmanager.cpp">
       <Filter>Source Files\Input</Filter>
     </ClCompile>
-    <ClCompile Include="CoreCommon\log.cpp">
-      <Filter>Source Files\Engine</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Engine.cpp">
+    <ClCompile Include="Engine\engine.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
     <ClCompile Include="Timers\cpuclass.cpp">
@@ -135,127 +129,67 @@
     <ClCompile Include="UI\Text\fontclass.cpp">
       <Filter>Source Files\Text</Filter>
     </ClCompile>
-    <ClCompile Include="Render\graphicsclass.cpp">
+    <ClCompile Include="Render\CGraphics.cpp">
       <Filter>Source Files\Render</Filter>
     </ClCompile>
-    <ClCompile Include="Input\KeyboardClass.cpp">
+    <ClCompile Include="Input\keyboard.cpp">
       <Filter>Source Files\Keyboard</Filter>
     </ClCompile>
-    <ClCompile Include="Render\InitializeGraphics.cpp">
-      <Filter>Source Files\Render</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Settings.cpp">
+    <ClCompile Include="Engine\engine_configs.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
-    <ClCompile Include="Sound\SoundClass.cpp">
-      <Filter>Source Files\Sound</Filter>
+    <ClCompile Include="UI\user_interface.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Model\TerrainClass.cpp">
+    <ClCompile Include="Render\frame_buffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Texture\texture.cpp">
       <Filter>Source Files\Model</Filter>
     </ClCompile>
-    <ClCompile Include="Model\SkyDomeClass.cpp">
-      <Filter>Source Files\Model</Filter>
-    </ClCompile>
-    <ClCompile Include="Model\TerrainCellClass.cpp">
+    <ClCompile Include="Texture\texture_mgr.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UI\UserInterface.cpp">
+    <ClCompile Include="Model\model_importer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Model\SkyPlaneClass.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\UtilsForDLL.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="2D\SpriteClass.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Render\FrameBuffer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Physics\IntersectionWithGameObjects.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Render\Color.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CoreCommon\StringHelper.cpp">
-      <Filter>Source Files\Engine</Filter>
-    </ClCompile>
-    <ClCompile Include="Texture\textureclass.cpp">
-      <Filter>Source Files\Model</Filter>
-    </ClCompile>
-    <ClCompile Include="Texture\TextureMgr.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Model\ModelImporter.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Model\ModelMath.cpp">
+    <ClCompile Include="Model\model_math.cpp">
       <Filter>Source Files\Model</Filter>
     </ClCompile>
     <ClCompile Include="UI\Text\TextStore.cpp">
       <Filter>Source Files\Text</Filter>
     </ClCompile>
-    <ClCompile Include="Model\ModelsCreator.cpp">
+    <ClCompile Include="Model\model_creator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Timers\GameTimer.cpp">
+    <ClCompile Include="Timers\game_timer.cpp">
       <Filter>Source Files\Timers</Filter>
     </ClCompile>
-    <ClCompile Include="CoreCommon\EngineException.cpp">
+    <ClCompile Include="Model\geometry_generator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Model\GeometryGenerator.cpp">
+    <ClCompile Include="Mesh\vertex.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CoreCommon\MathHelper.cpp">
+    <ClCompile Include="Engine\event_handler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Mesh\Vertex.cpp">
+    <ClCompile Include="Render\rnd_data_preparator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Render\d3dclass.cpp">
+    <ClCompile Include="Mesh\mesh_geometry.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Render\AdapterReader.cpp">
+    <ClCompile Include="Model\basic_model.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\EventHandler.cpp">
+    <ClCompile Include="Model\model_mgr.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Render\RenderStates.cpp">
+    <ClCompile Include="Model\model_exporter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Render\RenderDataPreparator.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Model\ModelLoaderM3D.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Mesh\MeshGeometry.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Model\BasicModel.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Model\ModelMgr.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Model\ModelExporter.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Model\ModelLoader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\ProjectSaver.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Model\SkyModel.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="UI\UICommon\FacadeEngineToUI.cpp">
+    <ClCompile Include="Model\sky_model.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="UI\Editor\Fog\FogEditorController.cpp">
@@ -276,19 +210,13 @@
     <ClCompile Include="ImGuizmo\ImGuizmo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ImGui\ImGuiLayer.cpp">
+    <ClCompile Include="ImGui\imgui_layer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="UI\Editor\Entity\View\EnttLightView.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Camera\Camera.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Input\KeyboardEvent.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="UI\UICommon\EventsHistory.cpp">
+    <ClCompile Include="UI\UICommon\events_history.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="UI\Editor\Entity\Controller\EnttTransformController.cpp">
@@ -303,28 +231,13 @@
     <ClCompile Include="UI\Editor\Terrain\Sky\SkyController.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UI\Editor\Terrain\Sky\SkyEditorView.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="UI\Editor\Terrain\Sky\SkyEditorModel.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Model\ModelStorageSerializer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Tests\ECS\ECS_Tester.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="UI\Editor\Entity\Controller\EnttDirLightController.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="UI\Editor\Entity\Creator\EntityCreatorWnd.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="UI\Editor\EditorPanelElement\ModelsAssetsList.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Mesh\MaterialMgr.cpp">
+    <ClCompile Include="Mesh\material_mgr.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="UI\Editor\Entity\View\EnttComponentsEditor.cpp">
@@ -333,18 +246,111 @@
     <ClCompile Include="UI\Editor\EditorPanelElement\TextureAssetsBrowser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="UI\Editor\EditorPanelElement\MaterialAssetsBrowser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Mesh\vertex3d_terrain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Terrain\TerrainBase.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CoreCommon\pch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Terrain\TerrainGeomipmapped.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Terrain\TerrainLodMgr.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Editor\Entity\Controller\EnttParticlesController.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\UICommon\gui_states.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadTree\quad_tree_node.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadTree\scene_object.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadTree\quad_tree.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadTree\quad_tree_rect.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Render\debug_draw_manager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\gpu_profiler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Mesh\material_writer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Model\model_loader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Mesh\material_reader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Model\grass_mgr.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Terrain\terrain_geomip_creator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\UICommon\FacadeEngineToUI.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Model\sky_plane.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Editor\Tools\model_screenshot.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Editor\Panels\ui_post_fx_control.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Editor\Debug\ui_debug_control.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Sound\direct_sound.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Sound\sound.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Model\animation_helper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Model\animation_mgr.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Editor\Entity\View\EnttParticlesView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Editor\Fog\FogEditorView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Editor\Terrain\Sky\SkyEditorView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Input\MouseClass.h">
+    <ClInclude Include="Input\mouse.h">
       <Filter>Header Files\Mouse</Filter>
     </ClInclude>
-    <ClInclude Include="Input\MouseEvent.h">
+    <ClInclude Include="Input\mouse_event.h">
       <Filter>Header Files\Mouse</Filter>
     </ClInclude>
-    <ClInclude Include="Window\RenderWindow.h">
+    <ClInclude Include="Window\render_window.h">
       <Filter>Header Files\Window</Filter>
     </ClInclude>
-    <ClInclude Include="Window\WindowContainer.h">
+    <ClInclude Include="Window\window_container.h">
       <Filter>Header Files\Window</Filter>
     </ClInclude>
     <ClInclude Include="Input\inputmanager.h">
@@ -356,10 +362,7 @@
     <ClInclude Include="Input\inputcodes.h">
       <Filter>Header Files\Input</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Engine.h">
-      <Filter>Header Files\Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="CoreCommon\log.h">
+    <ClInclude Include="Engine\engine.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
     <ClInclude Include="Timers\cpuclass.h">
@@ -368,109 +371,67 @@
     <ClInclude Include="UI\Text\fontclass.h">
       <Filter>Header Files\Text</Filter>
     </ClInclude>
-    <ClInclude Include="Render\graphicsclass.h">
+    <ClInclude Include="Render\CGraphics.h">
       <Filter>Header Files\Render</Filter>
     </ClInclude>
-    <ClInclude Include="Input\KeyboardClass.h">
+    <ClInclude Include="Input\keyboard.h">
       <Filter>Header Files\Keyboard</Filter>
     </ClInclude>
-    <ClInclude Include="CoreCommon\SystemState.h">
+    <ClInclude Include="CoreCommon\system_state.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Settings.h">
+    <ClInclude Include="Engine\engine_configs.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
-    <ClInclude Include="Render\InitializeGraphics.h">
-      <Filter>Header Files\Render</Filter>
-    </ClInclude>
-    <ClInclude Include="Sound\SoundClass.h">
-      <Filter>Header Files\Sound</Filter>
-    </ClInclude>
-    <ClInclude Include="CoreCommon\EngineException.h">
-      <Filter>Header Files\Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="Model\TerrainClass.h">
+    <ClInclude Include="UI\user_interface.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Model\SkyDomeClass.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Model\TerrainCellClass.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="UI\UserInterface.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="UI\Text\SentenceType.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Model\SkyPlaneClass.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\UtilsForDLL.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="2D\SpriteClass.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Render\FrameBuffer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Physics\IntersectionWithGameObjects.h">
+    <ClInclude Include="Render\frame_buffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Render\Color.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CoreCommon\StringHelper.h">
-      <Filter>Header Files\Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="Mesh\Vertex.h">
+    <ClInclude Include="Mesh\vertex.h">
       <Filter>Header Files\Model</Filter>
     </ClInclude>
-    <ClInclude Include="Mesh\VertexBuffer.h">
+    <ClInclude Include="Mesh\vertex_buffer.h">
       <Filter>Header Files\Model</Filter>
     </ClInclude>
-    <ClInclude Include="Mesh\IndexBuffer.h">
+    <ClInclude Include="Mesh\index_buffer.h">
       <Filter>Header Files\Model</Filter>
     </ClInclude>
-    <ClInclude Include="Texture\textureclass.h">
+    <ClInclude Include="Texture\texture.h">
       <Filter>Header Files\Model</Filter>
     </ClInclude>
-    <ClInclude Include="Texture\TextureMgr.h">
+    <ClInclude Include="Texture\texture_mgr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Model\ModelImporter.h">
+    <ClInclude Include="Model\model_importer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Model\ModelMath.h">
+    <ClInclude Include="Model\model_math.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\Text\TextStore.h">
       <Filter>Header Files\Text</Filter>
     </ClInclude>
-    <ClInclude Include="Model\ModelsCreator.h">
+    <ClInclude Include="Model\model_creator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Model\ModelImporterHelpers.h">
+    <ClInclude Include="Model\model_importer_helpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Timers\GameTimer.h">
+    <ClInclude Include="Timers\game_timer.h">
       <Filter>Header Files\Timers</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\EventHandler.h">
+    <ClInclude Include="Engine\event_handler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\EventListener.h">
+    <ClInclude Include="Engine\event_listener.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Model\GeometryGenerator.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CoreCommon\MathHelper.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CoreCommon\Convert.h">
+    <ClInclude Include="Model\geometry_generator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ECS_Components\Transform.h">
@@ -497,7 +458,7 @@
     <ClInclude Include="ECS_Components\MeshComponent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Mesh\MeshHelperTypes.h">
+    <ClInclude Include="Mesh\mesh_gen_helper_types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ECS_System\MeshSystem.h">
@@ -512,10 +473,7 @@
     <ClInclude Include="ECS_System\Helpers\MoveSystemUpdateHelpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Render\InitGraphicsHelperDataTypes.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Texture\TextureTypes.h">
+    <ClInclude Include="Texture\enum_texture_types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ECS_Components\WorldMatrix.h">
@@ -524,64 +482,25 @@
     <ClInclude Include="ECS_Entity\Utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CoreCommon\Types.h">
+    <ClInclude Include="Render\rnd_data_preparator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CoreCommon\Utils.h">
+    <ClInclude Include="Mesh\mesh_geometry.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CoreCommon\Assert.h">
+    <ClInclude Include="Mesh\material.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CoreCommon\MemHelpers.h">
+    <ClInclude Include="Model\basic_model.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Render\d3dclass.h">
+    <ClInclude Include="Model\model_mgr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Render\AdapterReader.h">
+    <ClInclude Include="Model\model_exporter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Render\RenderStates.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Render\RenderDataPreparator.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Model\ModelLoaderM3D.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Mesh\MeshGeometry.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Mesh\Material.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CoreCommon\UtilsFilesystem.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Model\BasicModel.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Model\ModelMgr.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Model\ModelExporter.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Model\ModelLoader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CoreCommon\FileSystemPaths.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\ProjectSaver.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Render\SetupModels.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Model\SkyModel.h">
+    <ClInclude Include="Model\sky_model.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\Editor\Terrain\Sky\SkyEditorModel.h">
@@ -590,16 +509,13 @@
     <ClInclude Include="UI\Editor\Terrain\Sky\SkyEditorView.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UI\UICommon\ICommand.h">
+    <ClInclude Include="UI\UICommon\icommand.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UI\UICommon\Color.h">
+    <ClInclude Include="UI\UICommon\color.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UI\UICommon\Vectors.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="UI\UICommon\IEditorController.h">
+    <ClInclude Include="UI\UICommon\ieditor_controller.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\UICommon\IFacadeEngineToUI.h">
@@ -617,7 +533,7 @@
     <ClInclude Include="UI\Editor\Fog\FogEditorModel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UI\Editor\Debug\DebugEditor.h">
+    <ClInclude Include="UI\Editor\Debug\ui_debug_control.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\Editor\Entity\Controller\EnttEditorController.h">
@@ -665,7 +581,7 @@
     <ClInclude Include="ImGui\misc\single_file\imgui_single_file.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ImGui\ImGuiLayer.h">
+    <ClInclude Include="ImGui\imgui_layer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ImGui\imconfig.h">
@@ -698,22 +614,19 @@
     <ClInclude Include="UI\Editor\Entity\Model\EnttLightData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Camera\Camera.h">
+    <ClInclude Include="UI\UICommon\gui_states.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UI\UICommon\StatesGUI.h">
+    <ClInclude Include="Input\keyboard_event.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Input\KeyboardEvent.h">
+    <ClInclude Include="UI\UICommon\events_history.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UI\UICommon\EventsHistory.h">
+    <ClInclude Include="UI\UICommon\editor_cmd.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UI\UICommon\EditorCommands.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\DumpGenerator.h">
+    <ClInclude Include="Engine\dump_generator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\Editor\Entity\Controller\EnttTransformController.h">
@@ -728,37 +641,16 @@
     <ClInclude Include="UI\Editor\Terrain\Sky\SkyController.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Model\ModelStorageSerializer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Tests\ECS\ECS_Tester.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Tests\ECS\HelperTypes.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="UI\Editor\Entity\Controller\EnttDirLightController.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="UI\Editor\Entity\Creator\EntityCreatorWnd.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CoreCommon\cvector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\Editor\EditorPanelElement\ModelsAssetsList.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Mesh\MaterialMgr.h">
+    <ClInclude Include="Mesh\material_mgr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Texture\TextureTypesNames.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="UI\UICommon\Types.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="UI\UICommon\cvector.h">
+    <ClInclude Include="Texture\texture_type_names.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\Editor\Entity\Model\SelectedEnttData.h">
@@ -768,6 +660,96 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\Editor\EditorPanelElement\TextureAssetsBrowser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Editor\EditorPanelElement\MaterialAssetsBrowser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Mesh\vertex3d_terrain.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Terrain\TerrainBase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CoreCommon\pch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Terrain\TerrainGeomipmapped.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Terrain\TerrainCreator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Terrain\terrain_geomip_creator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Terrain\TerrainLodMgr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Editor\Entity\View\EnttParticlesView.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Editor\Entity\Model\EnttParticlesModel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Editor\Entity\Controller\EnttParticlesController.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadTree\quad_tree.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadTree\quad_tree_node.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadTree\scene_object.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadTree\quad_tree_rect.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\debug_draw_manager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\gpu_profiler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Mesh\material_writer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Model\model_loader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Mesh\material_reader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Model\grass_mgr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Model\sky_plane.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Editor\Tools\model_screenshot.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Editor\Panels\ui_post_fx_control.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Editor\Debug\rnd_dbg_type_switcher.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Sound\direct_sound.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Sound\sound.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Model\animation_helper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Model\animation_mgr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Model\vertices_splitter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

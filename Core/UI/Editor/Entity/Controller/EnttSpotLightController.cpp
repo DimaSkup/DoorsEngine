@@ -3,12 +3,16 @@
 // 
 // Created:       20.02.25  by DimaSkup
 // =================================================================================
+#include <CoreCommon/pch.h>
 #include "EnttSpotLightController.h"
 
-#include <UICommon/EventsHistory.h>
-#include <UICommon/EditorCommands.h>
-#include <CoreCommon/Assert.h>
-#include <CoreCommon/log.h>
+#include <UICommon/events_history.h>
+#include <UICommon/editor_cmd.h>
+#include <UICommon/icommand.h>
+#include <UICommon/IFacadeEngineToUI.h>
+
+
+#pragma warning (disable : 4996)
 
 namespace UI
 {
@@ -16,26 +20,31 @@ namespace UI
 void EnttSpotLightController::Initialize(IFacadeEngineToUI* pFacade)
 {
     // the facade interface is used to contact with the rest of the engine
-    Core::Assert::NotNullptr(pFacade, "ptr to the facade == nullptr");
+    CAssert::NotNullptr(pFacade, "ptr to the facade == nullptr");
     pFacade_ = pFacade;
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:   load params of spot light which is bound to entt by ID
+//---------------------------------------------------------
 void EnttSpotLightController::LoadEnttData(const EntityID id)
 {
-    EnttSpotLightData& model = spotLightModel_;  // MVC model
+    if (pFacade_ == nullptr)
+    {
+        LogErr(LOG, "ptr to facade interface == nullptr (you have to init it first!)");
+        return;
+    }
 
     if (!pFacade_->GetEnttSpotLightData(
         id,
-        model.ambient,
-        model.diffuse,
-        model.specular,
-        model.attenuation,
-        model.range,
-        model.spotExp))
+        spotLightModel_.ambient,
+        spotLightModel_.diffuse,
+        spotLightModel_.specular,
+        spotLightModel_.attenuation,
+        spotLightModel_.range,
+        spotLightModel_.spotExp))
     {
-        Core::Log::Error("can't load data of the spotlight entity by ID: " + std::to_string(id));
+        LogErr(LOG, "can't load spotlight data of the entity by ID: %ld", id);
     }
 }
 
@@ -154,14 +163,14 @@ void EnttSpotLightController::ExecChangeAmbient(const EntityID id, const ColorRG
         spotLightModel_.ambient = ambient;
 
         // generate an "undo" command and store it into the history
-        gEventsHistory.Push(
+        g_EventsHistory.Push(
             CmdChangeColor(CHANGE_SPOT_LIGHT_AMBIENT, oldAmbient),
             GenerateMsgForHistory(id, "ambient"),
             id);
     }
     else
     {
-        Core::Log::Error(GenerateErrMsg(id, "ambient"));
+        LogErr(GenerateErrMsg(id, "ambient").c_str());
     }
 }
 
@@ -177,14 +186,14 @@ void EnttSpotLightController::ExecChangeDiffuse(const EntityID id, const ColorRG
         spotLightModel_.diffuse = diffuse;
 
         // generate an "undo" command and store it into the history
-        gEventsHistory.Push(
+        g_EventsHistory.Push(
             CmdChangeColor(CHANGE_SPOT_LIGHT_DIFFUSE, oldDiffuse),
             GenerateMsgForHistory(id, "diffuse"),
             id);
     }
     else
     {
-        Core::Log::Error(GenerateErrMsg(id, "diffuse"));
+        LogErr(GenerateErrMsg(id, "diffuse").c_str());
     }
 }
 
@@ -200,14 +209,14 @@ void EnttSpotLightController::ExecChangeSpecular(const EntityID id, const ColorR
         spotLightModel_.specular = specular;
 
         // generate an "undo" command and store it into the history
-        gEventsHistory.Push(
+        g_EventsHistory.Push(
             CmdChangeColor(CHANGE_SPOT_LIGHT_SPECULAR, oldSpecular),
             GenerateMsgForHistory(id, "specular"),
             id);
     }
     else
     {
-        Core::Log::Error(GenerateErrMsg(id, "specular"));
+        LogErr(GenerateErrMsg(id, "specular").c_str());
     }
 }
 
@@ -232,7 +241,7 @@ void EnttSpotLightController::ExecChangeDirection(const EntityID id, const Vec3&
     }
     else
     {
-        Core::Log::Error(GenerateErrMsg(id, "direction"));
+        Core::LogErr(GenerateErrMsg(id, "direction"));
     }
 }
 
@@ -265,7 +274,7 @@ void EnttSpotLightController::ExecChangeDirectionByQuat(const EntityID id, const
     }
     else
     {
-        Core::Log::Error(GenerateErrMsg(id, "direction"));
+        Core::LogErr(GenerateErrMsg(id, "direction"));
     }
 }
 #endif
@@ -284,14 +293,14 @@ void EnttSpotLightController::ExecChangeRange(const EntityID id, const float ran
         spotLightModel_.range = range;
 
         // generate an "undo" command and store it into the history
-        gEventsHistory.Push(
+        g_EventsHistory.Push(
             CmdChangeFloat(CHANGE_SPOT_LIGHT_RANGE, oldRange),
             GenerateMsgForHistory(id, "range"),
             id);
     }
     else
     {
-        Core::Log::Error(GenerateErrMsg(id, "range"));
+        LogErr(GenerateErrMsg(id, "range").c_str());
     }
 }
 
@@ -309,7 +318,7 @@ void EnttSpotLightController::ExecChangeAttenuation(const EntityID id, const Vec
         spotLightModel_.attenuation = att;
 
         // generate an "undo" command and store it into the history
-        gEventsHistory.Push(
+        g_EventsHistory.Push(
             CmdChangeVec3(CHANGE_SPOT_LIGHT_ATTENUATION, oldAttenuation),
             GenerateMsgForHistory(id, "attenuation"),
             id);
@@ -330,14 +339,14 @@ void EnttSpotLightController::ExecChangeSpotExponent(const EntityID id, const fl
         spotLightModel_.spotExp = spotExponent;
 
         // generate an "undo" command and store it into the history
-        gEventsHistory.Push(
+        g_EventsHistory.Push(
             CmdChangeFloat(CHANGE_SPOT_LIGHT_SPOT_EXPONENT, oldSpotExponent),
             GenerateMsgForHistory(id, "spot exponent"),
             id);
     }
     else
     {
-        Core::Log::Error(GenerateErrMsg(id, "spot exponent"));
+        LogErr(GenerateErrMsg(id, "spot exponent").c_str());
     }
 }
 

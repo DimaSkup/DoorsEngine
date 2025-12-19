@@ -5,28 +5,36 @@ WINDOW_WIDTH                  1600
 WINDOW_HEIGHT                 900
 FULL_SCREEN                   false
 VSYNC_ENABLED                 false
-ENABLE_4X_MSAA                true
+ENABLE_4X_MSAA                false
+START_IN_GAME_MODE            false
 
-CAMERA_WALK_SPEED             10.0f
-CAMERA_RUN_SPEED              20.0f
-CAMERA_SENSITIVITY            1.0f
-CAMERA_HEIGHT_OFFSET          0.6f
+PLAYER_SPEED_WALK             5.0f
+PLAYER_SPEED_RUN              10.0f
+PLAYER_SPEED_CRAWL            2.0f
+PLAYER_SPEED_FREE_FLY         15.0f
+PLAYER_OFFSET_Y               1.7f
+PLAYER_JUMP_MAX_HEIGHT        1.1f
+PLAYER_START_IN_FREE_FLY      false
+PLAYER_POS_X_AFTER_INIT       245.0f 
+PLAYER_POS_Y_AFTER_INIT       80.0f
+PLAYER_POS_Z_AFTER_INIT       240.0f
+MOUSE_SENSITIVITY             1.0f
+
+CAMERA_HEIGHT_OFFSET          10.0f
 FOV_IN_RAD                    1.30796f
-NEAR_Z                        0.3f
-FAR_Z                         1000.0f
+EDITOR_CAM_NEAR_Z             0.01f
+EDITOR_CAM_FAR_Z              1000.0f
+GAME_CAM_NEAR_Z               0.01f
+GAME_CAM_FAR_Z                1000.0f
+
+GRASS_DIST_FULL_SIZE          0.0
+GRASS_DIST_VISIBLE            40.0
 
 EDITOR_GRID_DIMENSION         100
 EDITOR_GRID_CELL_DIMENSION    10
 
 CHUNK_DIMENSION               50
 CREATE_CHUNK_BOUNDING_BOXES   false
-
-SPHERES_NUMBER                10
-GEOSPHERES_NUMBER             10
-CYLINDERS_NUMBER              10
-CUBES_NUMBER                  1
-PLANES_NUMBER                 40
-TREES_NUMBER                  20
 
 
 WAVES_NUM_ROWS                200 
@@ -48,27 +56,23 @@ IS_CREATE_SKY_PLANE                         true
 
 IS_CREATE_TERRAIN_FROM_FILE                 false
 TERRAIN_LOAD_RAW_HEIGHT_MAP                 false
-TERRAIN_SETUP_FILE_LOAD_BMP                 data/terrain/setup_load_bmp_height_map.txt
-TERRAIN_SETUP_FILE_LOAD_RAW                 data/terrain/setup_load_raw_height_map.txt
+TERRAIN_SETUP_FILE_LOAD_BMP                 setup_load_bmp_height_map.txt
+TERRAIN_SETUP_FILE_LOAD_RAW                 setup_load_raw_height_map.txt
 
 IS_GENERATE_TERRAIN_MANUALLY                true
-TERRAIN_WIDTH                               100
-TERRAIN_DEPTH                               100
-TERRAIN_CELL_DEFAULT_DIFFUSE_TEXTURE_PATH   data/textures/dirt01d.dds
-TERRAIN_CELL_DEFAULT_NORMALS_TEXTURE_PATH   data/textures/dirt01n.dds
-
-
 CREATE_COPY_OF_DEFAULT_CUBE                 true          
 
 
 FOG_ENABLED                                 false
-FOG_START                                   50.0f
-FOG_RANGE                                   150.0f
-FOG_RED                                     0.28f 
-FOG_GREEN                                   0.35f
-FOG_BLUE                                    0.41f
+FOG_START                                   120.0f
+FOG_RANGE                                   200.0f
+FOG_RED                                     0.952f 
+FOG_GREEN                                   0.952f
+FOG_BLUE                                    0.952f
 
 USE_ALPHA_CLIP                              false
 
-FONT_DATA_FILE_PATH                         font01.txt
-FONT_TEXTURE_FILE_PATH                      font01.dds
+DBG_FONT_DATA_PATH                         dbgFont01.txt
+DBG_FONT_TEX_PATH                          dbgFont01.dds
+GAME_FONT_DATA_PATH                        gameFont01.txt
+GAME_FONT_TEX_PATH                         gameFont01.dds
