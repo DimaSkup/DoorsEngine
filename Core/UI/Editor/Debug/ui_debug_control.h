@@ -23,10 +23,10 @@
 namespace UI
 {
 
+// forward declaration
 class IFacadeEngineToUI;
 
-//---------------------------------------------------------
-    
+
 class DebugControl
 {
 public:

@@ -58,32 +58,37 @@ public:
         const bool mipMapped,
         Texture& inOutTex);
 
-    bool ReloadFromFile(const TexID id, const char* path);
-
-    TexID Add          (const char* name, Texture&& tex);
-    TexID LoadFromFile (const char* dirPath, const char* texturePath);
-    TexID LoadFromFile (const char* path);
-    TexID CreateCubeMap(const char* name, const CubeMapInitParams& params);
-        
     TexID LoadTextureArray(
         const char* textureObjName,
         const std::string* texturePaths,
         const size numTextures,
         const DXGI_FORMAT format);
 
-    TexID CreateWithColor(const Color& textureColor);
+    bool        ReloadFromFile(const TexID id, const char* path);
+    TexID       Add          (const char* name, Texture&& tex);
+    TexID       LoadFromFile (const char* dirPath, const char* texturePath);
+    TexID       LoadFromFile (const char* path);
+    TexID       CreateCubeMap(const char* name, const CubeMapInitParams& params);
+
+    TexID       CreateWithColor(const Color& textureColor);
     
 
-    Texture& GetTexByID     (const TexID id);
-    Texture* GetTexPtrByID  (const TexID id);
-    Texture& GetTexByName   (const char* name);
-    Texture* GetTexPtrByName(const char* name);
-    void     SetTexName     (const TexID id, const char* inName);
+    Texture&    GetTexByID     (const TexID id);
+    Texture*    GetTexPtrByID  (const TexID id);
+    Texture&    GetTexByName   (const char* name);
+    Texture*    GetTexPtrByName(const char* name);
+    void        SetTexName     (const TexID id, const char* inName);
 
-    TexID GetTexIdByName    (const char* name);
-    TexID GetTexIdByIdx     (const index idx) const;
+    const char* GetTexTypeName(const uint texType) const;
+    const char**GetTexTypesNames()                 const;
+    const uint  GetNumTexTypesNames()              const;
+    
 
-    SRV* GetTexViewsById    (const TexID texID);
+    TexID       GetTexIdByName (const char* name);
+    TexID       GetTexIdByIdx  (const index idx) const;
+
+    SRV*        GetTexViewsById(const TexID texID);
+
 
     void GetTexViewsByIds(
         const TexID* texIDs,

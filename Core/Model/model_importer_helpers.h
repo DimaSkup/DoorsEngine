@@ -469,6 +469,10 @@ void AddAnimationsToSkeleton(const aiScene* pScene, AnimSkeleton& skeleton)
 {
     assert(pScene);
 
+    // do we have any animations?
+    if (pScene->mNumAnimations == 0)
+        return;
+
     const uint    animId = skeleton.AddAnimation("search");
     AnimationClip&  anim = skeleton.GetAnimation(animId);
 

@@ -672,4 +672,54 @@ void TextureMgr::GetTexViewsByIds(
         outSRVs[i++] = shaderResourceViews_[idx];
 }
 
+//---------------------------------------------------------
+
+static const char* s_TexTypesNames[] =
+{
+    "NONE",
+    "DIFFUSE",
+    "SPECULAR",
+    "AMBIENT",
+    "EMISSIVE",
+    "HEIGHT",
+    "NORMALS",
+    "SHININESS",
+    "OPACITY",
+    "DISPLACEMENT",
+    "LIGHTMAP",
+    "REFLECTION",
+    "BASE_COLOR",
+    "NORMAL_CAMERA",
+    "EMISSION_COLOR",
+    "METALNESS",
+    "DIFFUSE_ROUGHNESS",
+    "AMBIENT_OCCLUSION",
+    "UNKNOWN",
+    "SHEEN",
+    "CLEARCOAT",
+    "TRANSMISSION"
+};
+
+const char** TextureMgr::GetTexTypesNames() const
+{
+    return (const char**)s_TexTypesNames;
+}
+
+const uint TextureMgr::GetNumTexTypesNames() const
+{
+    return NUM_TEXTURE_TYPES + 1;
+}
+
+const char* TextureMgr::GetTexTypeName(const uint texType) const
+{
+    eTexType type = eTexType(texType);
+
+    if (type >= NUM_TYPES)
+        type = TEX_TYPE_NONE;
+
+    const char* name = s_TexTypesNames[type];
+
+    return name;
+}
+
 } // namespace Core

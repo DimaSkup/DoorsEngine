@@ -234,7 +234,7 @@
     <ClCompile Include="UI\Editor\Entity\Controller\EnttDirLightController.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UI\Editor\EditorPanelElement\ModelsAssetsList.cpp">
+    <ClCompile Include="UI\Editor\EditorPanelElement\ui_models_browser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Mesh\material_mgr.cpp">
@@ -243,10 +243,10 @@
     <ClCompile Include="UI\Editor\Entity\View\EnttComponentsEditor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UI\Editor\EditorPanelElement\TextureAssetsBrowser.cpp">
+    <ClCompile Include="UI\Editor\EditorPanelElement\ui_textures_browser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UI\Editor\EditorPanelElement\MaterialAssetsBrowser.cpp">
+    <ClCompile Include="UI\Editor\EditorPanelElement\ui_materials_browser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Mesh\vertex3d_terrain.cpp">
@@ -644,7 +644,7 @@
     <ClInclude Include="UI\Editor\Entity\Controller\EnttDirLightController.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UI\Editor\EditorPanelElement\ModelsAssetsList.h">
+    <ClInclude Include="UI\Editor\EditorPanelElement\ui_models_browser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Mesh\material_mgr.h">
@@ -659,10 +659,10 @@
     <ClInclude Include="UI\Editor\Entity\View\EnttComponentsEditor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UI\Editor\EditorPanelElement\TextureAssetsBrowser.h">
+    <ClInclude Include="UI\Editor\EditorPanelElement\ui_textures_browser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UI\Editor\EditorPanelElement\MaterialAssetsBrowser.h">
+    <ClInclude Include="UI\Editor\EditorPanelElement\ui_materials_browser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Mesh\vertex3d_terrain.h">
@@ -750,6 +750,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Model\vertices_splitter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\UICommon\mat_data_container.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

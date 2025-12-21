@@ -298,18 +298,6 @@
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)build\$(IntDir)data\shaders\cso\%(Filename).cso</ObjectFileOutput>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)build\$(IntDir)data\shaders\cso\%(Filename).cso</ObjectFileOutput>
     </FxCompile>
-    <FxCompile Include="hlsl\foliageGS.hlsl">
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">GS</EntryPointName>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Geometry</ShaderType>
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)build\$(IntDir)data\shaders\cso\%(Filename).cso</ObjectFileOutput>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">GS</EntryPointName>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Geometry</ShaderType>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='ASAN|x64'">GS</EntryPointName>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='ASAN|x64'">Geometry</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='ASAN|x64'">5.0</ShaderModel>
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)build\$(IntDir)data\shaders\cso\%(Filename).cso</ObjectFileOutput>
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='ASAN|x64'">$(SolutionDir)build\$(IntDir)data\shaders\cso\%(Filename).cso</ObjectFileOutput>
-    </FxCompile>
     <FxCompile Include="hlsl\frame_buffer_filler_PS.hlsl">
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PS</EntryPointName>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>

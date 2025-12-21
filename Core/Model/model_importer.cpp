@@ -99,6 +99,8 @@ bool ModelImporter::LoadFromFile(
     }
 
 
+    assert(FileSys::Exists(filePath) == true);
+
     // compute duration of importing process
     auto importStart = std::chrono::steady_clock::now();
 
@@ -129,7 +131,7 @@ bool ModelImporter::LoadFromFile(
     if (ret)
         LogDbg(LOG, "Model is imported from file: %s", filePath);
     else
-        LogErr(LOG, "didn't manager to import model: %s", filePath);
+        LogErr(LOG, "didn't manage to import model: %s", filePath);
 
 
     // release memory from temp data
@@ -247,6 +249,7 @@ bool InitFromScene(
         int numMeshVert      = subset.vertexCount;
         int numMeshIdxs      = subset.indexCount;
 
+        math.CalcNormals(vertices, indices, numMeshVert, numMeshIdxs);
         math.CalcTangents(vertices, indices, numMeshVert, numMeshIdxs);
     }
 
@@ -601,6 +604,7 @@ void InitMeshGeometry(const aiMesh* pMesh, RawMesh& outMesh)
         outMesh.indices[idx++] = pMesh->mFaces[faceIdx].mIndices[2];
     }
 }
+
 
 //---------------------------------------------------------
 // fill in the arrays with vertices/indices/subset data of the input mesh

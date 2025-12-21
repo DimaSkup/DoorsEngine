@@ -6,12 +6,11 @@
 // =================================================================================
 #pragma once
 
-#include <UICommon/IFacadeEngineToUI.h>
 #include <CoreCommon/system_state.h>
 
-#include "../EditorPanelElement/ModelsAssetsList.h"
-#include "../EditorPanelElement/TextureAssetsBrowser.h"
-#include "../EditorPanelElement/MaterialAssetsBrowser.h"
+#include "../EditorPanelElement/ui_models_browser.h"
+#include "../EditorPanelElement/ui_textures_browser.h"
+#include "../EditorPanelElement/ui_materials_browser.h"
 
 #include "../Tools/model_screenshot.h"
 #include "../Debug/ui_debug_control.h"
@@ -21,14 +20,16 @@
 
 namespace UI
 {
+// forward declarations
+class IFacadeEngineToUI;
+
 
 class EditorPanels
 {
 public:
     EditorPanels();
 
-    void Initialize(IFacadeEngineToUI* pFacade);
-
+    void Init(IFacadeEngineToUI* pFacade);
     void Render(Core::SystemState& sysState);
 
 private:
@@ -44,19 +45,20 @@ private:
     void RenderWndModelAssetsCreation(bool* pOpen);
 
 public:
-
-    DebugControl         debugControl_;
-    EnttEditorController enttEditorController_;
-    FogEditorController  fogEditorController_;
-    SkyController        skyEditorController_;
+    DebugControl          debugControl_;
+    EnttEditorController  enttEditorController_;
+    FogEditorController   fogEditorController_;
+    SkyController         skyEditorController_;
 
 private:
-    IFacadeEngineToUI* pFacade_         = nullptr;
+    IFacadeEngineToUI*    pFacade_ = nullptr;
 
-    TextureAssetsBrowser  texturesBrowser_;
-    MaterialAssetsBrowser materialsBrowser_;
-    ModelsAssetsList      modelsAssetsList_;
+    UITexturesBrowser     texturesBrowser_;
+    UIMaterialsBrowser    materialsBrowser_;
+    UIModelsBrowser       modelsBrowser_;
     ModelScreenshot       modelScreenshot_;
+
+    cvector<std::string>  enttsNames_;
 };
 
 } // namespace UI

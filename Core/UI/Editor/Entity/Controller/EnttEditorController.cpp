@@ -9,6 +9,9 @@
 #include <UICommon/editor_cmd.h>
 #include <UICommon/events_history.h>
 
+#include <UICommon/icommand.h>
+#include <UICommon/IFacadeEngineToUI.h>
+
 #include <imgui.h>
 #include <ImGuizmo.h>
 

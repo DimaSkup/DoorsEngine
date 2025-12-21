@@ -8,8 +8,6 @@
 #pragma once
 
 #include <UICommon/ieditor_controller.h>
-#include <UICommon/icommand.h>
-#include <UICommon/IFacadeEngineToUI.h>
 
 #include "../View/EnttTransformView.h"
 #include "../View/EnttLightView.h"
@@ -25,6 +23,11 @@
 
 namespace UI
 {
+
+// forward declarations
+class IFacadeEngineToUI;
+class ICommand;
+
 
 class EnttEditorController : public IEditorController
 {

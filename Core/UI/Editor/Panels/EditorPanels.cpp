@@ -9,6 +9,7 @@
 #include <UICommon/gui_states.h>
 #include <UICommon/events_history.h>
 #include <imgui.h>
+#include <UICommon/IFacadeEngineToUI.h>
 
 
 namespace UI
@@ -21,7 +22,7 @@ EditorPanels::EditorPanels()
 // =================================================================================
 //                              public methods
 // =================================================================================
-void EditorPanels::Initialize(IFacadeEngineToUI* pFacade)
+void EditorPanels::Init(IFacadeEngineToUI* pFacade)
 {
     CAssert::NotNullptr(pFacade, "ptr to the facade interface == nullptr");
     pFacade_ = pFacade;
@@ -30,8 +31,8 @@ void EditorPanels::Initialize(IFacadeEngineToUI* pFacade)
     fogEditorController_.Initialize(pFacade_);
     skyEditorController_.Initialize(pFacade_);
 
-    texturesBrowser_.Initialize(pFacade_);
-    materialsBrowser_.Initialize(pFacade_);
+    texturesBrowser_.Init(pFacade_);
+    materialsBrowser_.Init(pFacade_);
 
     modelScreenshot_.Init(pFacade_);
 }
@@ -78,16 +79,16 @@ void EditorPanels::RenderLogPanel()
     if (ImGui::Begin("Log"))
     {
         constexpr ImVec4 textColors[4] = {
-            ImVec4(0, 1, 0, 1),             // color for LOG_TYPE_MESSAGE
-            ImVec4(1, 1, 1, 1),             // color for LOG_TYPE_DEBUG
-            ImVec4(1, 0, 0, 1),             // color for LOG_TYPE_ERROR
-            ImVec4(1, 1, 0, 1)              // color for LOG_TYPE_FORMATTED
+            ImVec4(0, 1, 0, 1),             // green:  color for LOG_TYPE_MESSAGE
+            ImVec4(1, 1, 1, 1),             // white:  color for LOG_TYPE_DEBUG
+            ImVec4(1, 0, 0, 1),             // red:    color for LOG_TYPE_ERROR
+            ImVec4(1, 1, 0, 1)              // yellow: color for LOG_TYPE_FORMATTED
         };
 
         for (int i = 0; i < GetNumLogMsgs(); ++i)
         {
             const eLogType logType = GetLogTypeByIdx(i);
-            const char* logMsg     = GetLogTextByIdx(i);
+            const char*    logMsg  = GetLogTextByIdx(i);
 
             ImGui::TextColored(textColors[logType], logMsg);
         }
@@ -104,8 +105,8 @@ void EditorPanels::RenderModelsBrowser()
 
     if (ImGui::Begin("Models browser", &showWndTexturesBrowser))
     {
-        modelsAssetsList_.LoadModelsNamesList(pFacade_);
-        modelsAssetsList_.PrintModelsNamesList();
+        modelsBrowser_.LoadModelsNamesList(pFacade_);
+        modelsBrowser_.PrintModelsNamesList();
     }
     ImGui::End();
     g_GuiStates.showWndTexturesBrowser = showWndTexturesBrowser;
@@ -117,7 +118,9 @@ void EditorPanels::RenderModelsBrowser()
 //---------------------------------------------------------
 void EditorPanels::RenderTexturesBrowser()
 {
-    ImGui::SetNextWindowSize(texturesBrowser_.GetBrowserWndSize(), ImGuiCond_FirstUseEver);
+    const float wndSizeX = texturesBrowser_.GetWndSizeX();
+    const float wndSizeY = texturesBrowser_.GetWndSizeY();
+    ImGui::SetNextWindowSize(ImVec2(wndSizeX, wndSizeY), ImGuiCond_FirstUseEver);
 
     bool showWndTexBrowser = g_GuiStates.showWndTexturesBrowser;
 
@@ -135,7 +138,9 @@ void EditorPanels::RenderTexturesBrowser()
 //---------------------------------------------------------
 void EditorPanels::RenderMaterialsBrowser()
 {
-    ImGui::SetNextWindowSize(texturesBrowser_.GetBrowserWndSize(), ImGuiCond_FirstUseEver);
+    const float wndSizeX = materialsBrowser_.GetWndSizeX();
+    const float wndSizeY = materialsBrowser_.GetWndSizeY();
+    ImGui::SetNextWindowSize(ImVec2(wndSizeX, wndSizeY), ImGuiCond_FirstUseEver);
 
     bool showWndMatBrowser = g_GuiStates.showWndMaterialsBrowser;
 
@@ -144,7 +149,7 @@ void EditorPanels::RenderMaterialsBrowser()
         materialsBrowser_.Render(pFacade_, &showWndMatBrowser);
     }
     ImGui::End();
-    showWndMatBrowser = g_GuiStates.showWndMaterialsBrowser;
+    g_GuiStates.showWndMaterialsBrowser = showWndMatBrowser;
 }
 
 //---------------------------------------------------------
@@ -182,26 +187,24 @@ void EditorPanels::RenderEntitiesListWnd(Core::SystemState& sysState)
 
         // get an ID of each entity on the scene
         pFacade_->GetAllEnttsIDs(pEnttsIDs, numEntts);
+        
 
-        cvector<std::string> enttsNames(numEntts);
-
-        // ------ TODO: optimize ----------
-        // 
         // get a name of each entity on the scene
-        for (int i = 0; std::string& name : enttsNames)
+        enttsNames_.resize(numEntts);
+
+        for (int i = 0; std::string& name : enttsNames_)
         {
             pFacade_->GetEnttNameById(pEnttsIDs[i++], name);
         }
 
-
-        const EntityID currSelectedEnttID = enttEditorController_.GetSelectedEnttID();
+        const EntityID currSelectedEnttId = enttEditorController_.GetSelectedEnttID();
         constexpr ImGuiSelectableFlags_ flags = ImGuiSelectableFlags_AllowDoubleClick;
 
         // render selectable menu with entts names
         for (int i = 0; i < numEntts; ++i)
         {
-            const char* name = enttsNames[i].c_str();
-            bool isSelected  = (pEnttsIDs[i] == currSelectedEnttID);
+            const char* name = enttsNames_[i].c_str();
+            bool isSelected  = (pEnttsIDs[i] == currSelectedEnttId);
             
             if (ImGui::Selectable(name, isSelected, flags))
             {
@@ -225,6 +228,7 @@ void EditorPanels::RenderEntitiesListWnd(Core::SystemState& sysState)
 
 
 //---------------------------------------------------------
+// Desc:  a little helper for showing checkboxes to turn on/off debug shapes rendering
 // NOTE:  I check fucking nothing (input args), so be careful
 //---------------------------------------------------------
 inline bool CheckboxDbgShape(
@@ -343,18 +347,14 @@ void EditorPanels::RenderDebugPanel(const Core::SystemState& systemState)
 }
 
 //---------------------------------------------------------
-
+// Desc:  a little helper for rendering weather control fields
+// NOTE:  I check fucking nothing (input args), so be careful
+//---------------------------------------------------------
 inline void DragWeatherParam(
     IFacadeEngineToUI* pFacade,
     const char* text,
     const eWeatherParam param)
 {
-    if (!text || text[0] == '\0')
-    {
-        LogErr(LOG, "can't drag weather param (%d): input text is empty!", (int)param);
-        return;
-    }
-
     float value = pFacade->GetWeatherParam(param);
 
     if (ImGui::DragFloat(text, &value, 0.01f))

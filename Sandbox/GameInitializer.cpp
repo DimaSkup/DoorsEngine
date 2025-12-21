@@ -1923,9 +1923,23 @@ void ImportExternalModels(
 
     //ModelsCreator creator;
     creator.ImportFromFile(pDevice, "data/models/animation/boblampclean.md5mesh");
+    creator.ImportFromFile(pDevice, "data/models/stalker_freedom_1/stalker_freedom_1.fbx");
+    const ModelID ak74hudId = creator.ImportFromFile(pDevice, "data/models/ak_74_hud/ak_74_hud.fbx");
+
+    const TexID texIdBlankNorm = g_TextureMgr.GetTexIdByName("blank_NRM");
+
+    BasicModel& ak74hud = g_ModelMgr.GetModelById(ak74hudId);
+    Core::Subset* subsets = ak74hud.meshes_.subsets_;
+
+    // setup normal map for each subset (mesh) of ak_74_hud model
+    for (int i = 0; i < ak74hud.GetNumSubsets(); ++i)
+    {
+        const MaterialID matId = subsets[i].materialId;
+        g_MaterialMgr.SetMatTexture(matId, texIdBlankNorm, TEX_TYPE_NORMALS);
+    }
+
 
     LoadEntities("data/entities.dentt", enttMgr);
-
 
     BasicModel& stalkerHouse = g_ModelMgr.GetModelByName("stalker_house");
     BasicModel& tr13         = g_ModelMgr.GetModelByName("tr_13");
@@ -1937,13 +1951,7 @@ void ImportExternalModels(
 
 
 #if 1
-    //stalkerHouse.SetLod(LOD_1, cube.id_);
-    //stalkerHouse.SetLodDistance(LOD_1, 20);
-
-    //tr13.SetLod(LOD_1, cube.id_);
-    //tr13.SetLodDistance(LOD_1, 20);
-
-    const DirectX::BoundingBox& treePineAABB = treePine.GetModelAABB();
+    const DirectX::BoundingBox& treePineAABB   = treePine.GetModelAABB();
     const DirectX::BoundingBox& treeSpruceAABB = treeSpruce.GetModelAABB();
 
     float treePineWidth  = treePineAABB.Extents.x * 3;

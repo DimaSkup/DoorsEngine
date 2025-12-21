@@ -12,13 +12,16 @@
 #pragma once
 
 #include <enum_weather_params.h>
-#include <Types.h>
+#include <types.h>
 #include <math/vec3.h>
 #include <math/vec4.h>
+
+#include "mat_data_container.h"
+
 #include <log.h>
 #include "Color.h"
-#include <cvector.h>
 
+#include <cvector.h>
 #include <string>
 
 #include <d3d11.h>
@@ -97,7 +100,9 @@ enum class eMaterialPropGroup
     CULL,
     WINDING_ORDER,
     BLENDING,
-    DEPTH_STENCIL
+    DEPTH_STENCIL,
+
+    NUM_GROUPS
 };
 
 //---------------------------------------------------------
@@ -135,26 +140,6 @@ enum eModelPreviewParams
 };
 
 ///////////////////////////////////////////////////////////
-
-struct MaterialData
-{
-    MaterialID materialId = -1;
-    ShaderID   shaderId   = -1;                                 // id of currently selected shader for rendering this material
-
-    Vec4 ambient  = { 1,1,1,1 };
-    Vec4 diffuse  = { 1,1,1,1 };
-    Vec4 specular = { 0,0,0,1 };                              // w-component is a specPower (specular power)
-    Vec4 reflect  = { .5f, .5f, .5f, 1 };
-
-    char     name[MAX_LEN_MAT_NAME]{ '\0' };
-    TexID    textureIDs[NUM_TEXTURE_TYPES]{ INVALID_TEXTURE_ID };
-    ID3D11ShaderResourceView* textures[NUM_TEXTURE_TYPES]{ nullptr };
-
-    index    selectedFillModeIdx          = -1;
-    index    selectedCullModeIdx          = -1;
-    index    selectedBlendStateIdx        = -1;
-    index    selectedDepthStencilStateIdx = -1;
-};
 
 struct ShaderData
 {
@@ -382,8 +367,8 @@ public:
     // =============================================================================
     virtual bool ImportModelFromFile  (const char* path, const char* modelName)                     const { NOTIFY;  return false; }
 
-    virtual bool LoadTextureFromFile  (const char* path)                                            const { NOTIFY;  return false; }
-    virtual bool ReloadTextureFromFile(const TexID id, const char* path)                            const { NOTIFY;  return false; }
+    virtual TexID LoadTextureFromFile  (const char* path)                                           const { NOTIFY;  return 0; }
+    virtual bool  ReloadTextureFromFile(const TexID id, const char* path)                           const { NOTIFY;  return false; }
 
     virtual bool GetModelsNamesList  (cvector<std::string>& names)                                  const { NOTIFY;  return false; }
     virtual bool GetTextureIdByIdx   (const index idx, TexID& outTextureID)                         const { NOTIFY;  return false; }
@@ -397,7 +382,13 @@ public:
 
     virtual uint         GetNumRenderStates (const eMaterialPropGroup type)                         const { NOTIFY; return 0;}
     virtual const char** GetRenderStateNames(const eMaterialPropGroup type)                         const { NOTIFY; return nullptr; }
-    
+
+    virtual uint         GetNumTexTypesNames()              const { NOTIFY; return 0; }
+    virtual const char** GetTexTypesNames()                 const { NOTIFY; return nullptr; }
+    virtual const char*  GetTexTypeName(const uint texType) const { NOTIFY; return nullptr; }
+
+    virtual bool SetMaterialTexture(const MaterialID matId, const TexID texId, const uint texType)  const { NOTIFY; return false; }
+
     virtual bool SetMaterialRenderState(
         const MaterialID id,
         const uint32 stateIdx,

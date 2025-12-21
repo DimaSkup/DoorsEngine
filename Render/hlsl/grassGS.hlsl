@@ -207,19 +207,6 @@ void GS(
         gTexC[3] = float2(0.25f, 0.0f);
     }
 
-    /*
-    // 1/30 == 0.0333
-    // 1/20 == 0.05
-    float windPower = 0.5 + sin(
-        gin[0].posW.x*0.0333 + gin[0].posW.z*0.0333 +  // different instances will oscillate by wind in a different way
-        gTime * (1.2 + windStrength * 0.05)            // according to time and wind strength
-        + sizeY);                                      // and height of the grass (higher will oscillate bigger)
-
-    
-    windPower *= (0.02 + 0.03*(windPower >= 0.0));
-    float3 vWindFactor = windDir * (windPower * windStrength);
-    */
-
     float halfHeight   = sizeY * 0.5f;
     float heightOffset = sizeY * 0.4f;
     
@@ -228,26 +215,11 @@ void GS(
     for (int i = 0; i < 3; i++)
     {       
         
-        float offsetX     = vBaseDir[i].x * sizeX * 0.5f;
-        float offsetZ     = vBaseDir[i].z * sizeX * 0.5f;
+        float offsetX = vBaseDir[i].x * sizeX * 0.5f;
+        float offsetZ = vBaseDir[i].z * sizeX * 0.5f;
 
         // compute triangle strip vertices (quad) in world space
         float3 v[4];
-
-        /*
-        // BR
-        v[0] = gin[0].posW + float3(offsetX, -halfHeight, offsetZ);
-
-        // TR
-        v[1] = gin[0].posW + float3(offsetX, +halfHeight, offsetZ) + disp;
-
-        // BL
-        v[2] = gin[0].posW + float3(-offsetX, -halfHeight, -offsetZ);
-
-        // TL
-        v[3] = gin[0].posW + float3(-offsetX, halfHeight, -offsetZ) + disp;
-        */
-
 
         v[0] = gin[0].posW + float3(offsetX, -halfHeight, offsetZ) ;
 
@@ -291,13 +263,6 @@ void GS(
         p1.texU = gTexC[1].x;
         p2.texU = gTexC[2].x;
         p3.texU = gTexC[3].x;
-
-    /*
-        p0.primID = primID;
-        p1.primID = primID;
-        p2.primID = primID;
-        p3.primID = primID;
-    */
 
         p0.texV = 1;
         p1.texV = 0;

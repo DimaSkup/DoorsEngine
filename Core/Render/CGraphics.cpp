@@ -2864,6 +2864,12 @@ bool CGraphics::RenderModelIntoFrameBuf()
     Render::CRender*     pRender  = pRender_;
     ID3D11DeviceContext* pContext = pRender->GetContext();
 
+    // reset render states to prevent rendering bugs
+    Render::RenderStates& renderStates = pRender->GetRenderStates();
+    renderStates.ResetRS(pContext);
+    renderStates.ResetBS(pContext);
+    renderStates.SetDSS(pContext, R_DEPTH_ENABLED, 0);
+
     // prepare model's instance
     const ModelPreviewRenderParams& params = modelPreviewRndParams_;
     BasicModel&                     model  = g_ModelMgr.GetModelById(params.modelId);

@@ -186,7 +186,6 @@
     <FxCompile Include="hlsl\tree_lod1_VS.hlsl" />
     <FxCompile Include="hlsl\tree_lod2_VS.hlsl" />
     <FxCompile Include="hlsl\tree_lod2_PS.hlsl" />
-    <FxCompile Include="hlsl\foliageGS.hlsl" />
     <FxCompile Include="hlsl\terrain_mid_lod_PS.hlsl" />
     <FxCompile Include="hlsl\skinned_mesh_VS.hlsl" />
     <FxCompile Include="hlsl\skinned_mesh_PS.hlsl" />

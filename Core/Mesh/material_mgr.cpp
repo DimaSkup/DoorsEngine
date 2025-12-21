@@ -139,6 +139,29 @@ MaterialID MaterialMgr::AddMaterial(Material&& material)
 }
 
 //---------------------------------------------------------
+// Desc:  bind a texture to material at a particular texture slot by texType
+//---------------------------------------------------------
+bool MaterialMgr::SetMatTexture(
+    const MaterialID matId,
+    const TexID texId,
+    const uint texType)
+{
+    Material& mat = GetMatById(matId);
+
+    if (mat.id == INVALID_MATERIAL_ID)
+        return false;
+
+    //if (texId == INVALID_TEXTURE_ID)
+    //    return false;
+
+    if (texType >= NUM_TEXTURE_TYPES)
+        return false;
+
+    mat.SetTexture((eTexType)texType, texId);
+    return true;
+}
+
+//---------------------------------------------------------
 // Desc:   setup color properties for material by ID
 //---------------------------------------------------------
 bool MaterialMgr::SetMatColorData(

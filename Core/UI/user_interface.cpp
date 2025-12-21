@@ -77,7 +77,7 @@ void UserInterface::Initialize(
 
         // initialize the editor parts and interfaces
         pFacadeEngineToUI_ = pFacadeEngineToUI;
-        editorPanels_.Initialize(pFacadeEngineToUI_);
+        editorPanels_.Init(pFacadeEngineToUI_);
 
         // create text strings to show debug info onto the screen
         LoadDebugInfoStringFromFile(pDevice, videoCardName, videoCardMemory);

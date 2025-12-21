@@ -26,6 +26,8 @@ public:
     MaterialID AddMaterial(const Material& material);
     MaterialID AddMaterial(Material&& material);
 
+    bool SetMatTexture(const MaterialID matId, const TexID texId, const uint texType);
+
     bool SetMatColorData(
         const MaterialID id,
         const Vec4& ambient,

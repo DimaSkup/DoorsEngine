@@ -11,6 +11,42 @@ namespace Core
 {
 
 //---------------------------------------------------------
+// Desc:  calculate per-vertex normals with interpolation
+//---------------------------------------------------------
+void ModelMath::CalcNormals(
+    Vertex3D* vertices,
+    const UINT* indices,
+    const int numVertices,
+    const int numIndices)
+{
+    // reset all normals
+    for (int i = 0; i < numVertices; ++i)
+        vertices[i].normal = { 0,0,0 };
+
+    // for each triangle
+    for (int i = 0; i < numIndices; i += 3)
+    {
+        const UINT i0 = indices[i + 0];
+        const UINT i1 = indices[i + 1];
+        const UINT i2 = indices[i + 2];
+
+        const XMVECTOR pos0 = DirectX::XMLoadFloat3(&vertices[i0].position);
+        const XMVECTOR pos1 = DirectX::XMLoadFloat3(&vertices[i1].position);
+        const XMVECTOR pos2 = DirectX::XMLoadFloat3(&vertices[i2].position);
+
+        const XMVECTOR normal = XMVector3Cross(pos1 - pos0, pos2 - pos0);
+
+        vertices[i0].normal += normal;
+        vertices[i1].normal += normal;
+        vertices[i2].normal += normal;
+    }
+
+    // normalize all the vertex normals
+    for (int i = 0; i < numVertices; ++i)
+        XMFloat3Normalize(vertices[i].normal);
+}
+
+//---------------------------------------------------------
 // Desc:  compute per-vertex tangents
 //
 // from: https://terathon.com/blog/tangent-space.html

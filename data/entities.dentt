@@ -6,6 +6,14 @@ rot_axis    1 0 0 1.570796327
 uni_scale   3.5
 archetype   weapon
 
+newentt     ak_74_hud
+model       ak_74_hud
+pos         257.03 76.81 253.78
+dir         0 0 1
+rot_axis    1 0 0 1.570796327
+uni_scale   1.0
+archetype   weapon
+
 newentt     aks74_0
 model       aks_74u
 pos         250.0 80.0 205.0

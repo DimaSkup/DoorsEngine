@@ -5,9 +5,9 @@
 // =================================================================================
 #pragma once
 
+#include <UICommon/ieditor_controller.h>
 #include "FogEditorView.h"
 #include "FogEditorModel.h"
-#include <UICommon/ieditor_controller.h>
 
 
 namespace UI

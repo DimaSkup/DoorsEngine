@@ -226,8 +226,8 @@ public:
     // =============================================================================
     virtual bool ImportModelFromFile(const char* filePath, const char* modelName)                   const override;
      
-    virtual bool LoadTextureFromFile  (const char* path)                                            const override;
-    virtual bool ReloadTextureFromFile(const TexID id, const char* path)                            const override;
+    virtual TexID LoadTextureFromFile  (const char* path)                                           const override;
+    virtual bool  ReloadTextureFromFile(const TexID id, const char* path)                           const override;
 
     virtual bool GetModelsNamesList (cvector<std::string>& names)                                   const override;
     virtual bool GetTextureIdByIdx  (const index idx, TexID& outTextureID)                          const override;
@@ -241,6 +241,12 @@ public:
 
     virtual uint         GetNumRenderStates (const eMaterialPropGroup type)                         const override;
     virtual const char** GetRenderStateNames(const eMaterialPropGroup type)                         const override;
+
+    virtual uint         GetNumTexTypesNames()                                                      const override;
+    virtual const char** GetTexTypesNames()                                                         const override;
+    virtual const char*  GetTexTypeName(const uint texType)                                         const override;
+
+    virtual bool SetMaterialTexture(const MaterialID matId, const TexID texId, const uint texType)  const override;
 
     virtual bool SetMaterialRenderState(
         const MaterialID id,

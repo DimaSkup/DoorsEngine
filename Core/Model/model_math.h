@@ -15,6 +15,12 @@ namespace Core
 class ModelMath
 {
 public:
+    void CalcNormals(
+        Vertex3D* vertices,
+        const UINT* indices,
+        const int numVertices,
+        const int numIndices);
+
     void CalcTangents(
         Vertex3D* vertices,
         const UINT* indices,

@@ -837,9 +837,9 @@ bool FacadeEngineToUI::ImportModelFromFile(const char* filePath, const char* mod
 //---------------------------------------------------------
 // Desc:   load a new texture from file and add it into textures manager
 //---------------------------------------------------------
-bool FacadeEngineToUI::LoadTextureFromFile(const char* path) const
+TexID FacadeEngineToUI::LoadTextureFromFile(const char* path) const
 {
-    return g_TextureMgr.LoadFromFile(path) != INVALID_TEXTURE_ID;
+    return g_TextureMgr.LoadFromFile(path);
 }
 
 //---------------------------------------------------------
@@ -1049,6 +1049,37 @@ const char** FacadeEngineToUI::GetRenderStateNames(const eMaterialPropGroup type
             LogErr(LOG, "unknown type of render states group: %d", (int)type);
             return nullptr;
     }
+}
+
+//---------------------------------------------------------
+// Desc:  return a number of texture types names,
+//        arr of texture types names,
+//        or a name of texture type by its code (idx)
+//---------------------------------------------------------
+uint FacadeEngineToUI::GetNumTexTypesNames() const
+{
+    return g_TextureMgr.GetNumTexTypesNames();
+}
+
+const char** FacadeEngineToUI::GetTexTypesNames() const
+{
+    return g_TextureMgr.GetTexTypesNames();
+}
+
+const char* FacadeEngineToUI::GetTexTypeName(const uint texType) const
+{
+    return g_TextureMgr.GetTexTypeName(texType);
+}
+
+//---------------------------------------------------------
+// Desc:  bind a texture to material at a particular texture slot by texType
+//---------------------------------------------------------
+bool FacadeEngineToUI::SetMaterialTexture(
+    const MaterialID matId,
+    const TexID texId,
+    const uint texType) const
+{
+    return g_MaterialMgr.SetMatTexture(matId, texId, texType);
 }
 
 //---------------------------------------------------------
