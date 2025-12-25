@@ -27,11 +27,11 @@ enum eEnttLightType
 
 struct SelectedEnttData
 {
-    inline bool IsSelectedAnyEntt()         const { return (id != 0); }
+    inline bool IsSelectedAnyEntt() const { return (id != 0); }
 
     
-    EntityID        id = 0;                         // selected entity ID
-    std::string     name;                           // selected entity name
+    EntityID        id = 0;                        // selected entity ID
+    char            name[MAX_LEN_ENTT_NAME];       // selected entity name
     eEnttLightType  lightType = NUM_LIGHT_TYPES;
     
     cvector<eEnttComponentType> componentsTypes;   // types of components which are added to the entity

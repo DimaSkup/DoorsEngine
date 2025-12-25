@@ -65,7 +65,7 @@
     <ClInclude Include="ShellHelpers.h" />
     <ClInclude Include="StrHelper.h" />
     <ClInclude Include="SystemState.h" />
-    <ClInclude Include="Types.h" />
+    <ClInclude Include="types.h" />
     <ClInclude Include="UtilsFilesystem.h" />
     <ClInclude Include="math\vec_functions.h" />
     <ClInclude Include="win_file_dialog.h" />

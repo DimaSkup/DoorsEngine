@@ -29,6 +29,7 @@
   <ItemGroup>
     <ClInclude Include="Common\ECSTypes.h" />
     <ClInclude Include="Common\pch.h" />
+    <ClInclude Include="Components\animation.h" />
     <ClInclude Include="Components\Bounding.h" />
     <ClInclude Include="Components\Camera.h" />
     <ClInclude Include="Components\Helpers\TextureTransformHelpers.h" />
@@ -46,6 +47,7 @@
     <ClInclude Include="Components\Transform.h" />
     <ClInclude Include="Entity\EntityMgr.h" />
     <ClInclude Include="Events\IEvent.h" />
+    <ClInclude Include="Systems\AnimationSystem.h" />
     <ClInclude Include="Systems\BoundingSystem.h" />
     <ClInclude Include="Systems\CameraSystem.h" />
     <ClInclude Include="Systems\HierarchySystem.h" />
@@ -69,6 +71,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Entity\EntityMgr.cpp" />
+    <ClCompile Include="Systems\AnimationSystem.cpp" />
     <ClCompile Include="Systems\BoundingSystem.cpp" />
     <ClCompile Include="Systems\CameraSystem.cpp" />
     <ClCompile Include="Systems\HierarchySystem.cpp" />

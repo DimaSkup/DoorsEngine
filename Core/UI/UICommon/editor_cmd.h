@@ -62,7 +62,9 @@ enum eEditorCmdType
     CHANGE_PARTICLES_SIZE,
     CHANGE_PARTICLES_FRICTION,   // air resistance
 
-
+    // model animations (vertex skinning)
+    CHANGE_ENTITY_ANIMATION_SKELETON,
+    CHANGE_ENTITY_ANIMATION_TYPE,
 };
 
 ///////////////////////////////////////////////////////////

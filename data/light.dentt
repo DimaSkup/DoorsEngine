@@ -14,9 +14,9 @@ dir_quat      0 0 2.61 1
 ambient       0.01 0.01 0.01 1.0
 diffuse       0.10 0.10 0.10 1.0
 specular      0.10 0.10 0.10 1.0
-att           0.0 15.0 600.0
+att           0.0 2.5 200.0
 range         130.0
-spot_fallof   10.0
+spot_fallof   20.0
 active        0
 parent        0
 archetype     light

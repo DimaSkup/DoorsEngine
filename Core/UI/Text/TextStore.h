@@ -69,8 +69,8 @@ public:
         ID3D11Buffer** outConstVbPtr,
         ID3D11Buffer** outDynamicVbPtr,
         ID3D11Buffer** outIbPtr,
-        u32& outConstIndexCount,    // index count for debug const sentences
-        u32& outDynamicIndexCount); // index count for debug dynamic sentences
+        uint32& outConstIndexCount,    // index count for debug const sentences
+        uint32& outDynamicIndexCount); // index count for debug dynamic sentences
 
     void Update(
         ID3D11DeviceContext* pContext,

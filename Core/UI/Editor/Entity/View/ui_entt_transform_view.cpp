@@ -1,10 +1,11 @@
 // ====================================================================================
-// Filename:      EnttTransformView.cpp
+// Filename:      ui_entt_transform_view.cpp
 // Created:       01.01.25
 // ====================================================================================
 #include <CoreCommon/pch.h>
-#include "EnttTransformView.h"
-#include <UICommon/ieditor_controller.h>
+#include "ui_entt_transform_view.h"       // MVC view
+#include "../Model/EnttTransformData.h"   // MVC model
+#include <UICommon/ieditor_controller.h>  // MVC controller
 #include <UICommon/color.h>
 #include <UICommon/editor_cmd.h>
 
@@ -17,17 +18,19 @@
 namespace UI
 {
 
-EnttTransformView::EnttTransformView(IEditorController* pController) :
-    pController_(pController)
+//---------------------------------------------------------
+// Desc:  show editor's fields to control
+//        the selected entity transformation properties
+//---------------------------------------------------------
+void EnttTransformView::Render(
+    IEditorController* pController,
+    const EnttTransformData* pData)
 {
-    CAssert::NotNullptr(pController, "ptr to the editor controller == nullptr");
-}
-
-///////////////////////////////////////////////////////////
-
-void EnttTransformView::Render(const EnttTransformData& data)
-{
-    // show editor fields to control the selected entity model properties
+    if (!pController || !pData)
+    {
+        LogErr(LOG, "some input ptr == nullptr");
+        return;
+    }
 
     // make local copies of the current model data to use it in the fields
     Vec3 pos;
@@ -35,7 +38,7 @@ void EnttTransformView::Render(const EnttTransformData& data)
     Vec4 rotQuat;
     float scale;
 
-    data.GetData(pos, dir, rotQuat, scale);
+    pData->GetData(pos, dir, rotQuat, scale);
 
     //
     // draw editor fields
@@ -43,7 +46,7 @@ void EnttTransformView::Render(const EnttTransformData& data)
     if (ImGui::DragFloat3("Position", pos.xyz, 0.005f, -FLT_MAX, +FLT_MAX))
     {
         CmdChangeVec3 cmd(CHANGE_ENTITY_POSITION, pos);
-        pController_->ExecCmd(&cmd);
+        pController->ExecCmd(&cmd);
     }
 
     ImGui::DragFloat3("Direction",     dir.xyz,      0.005f, -FLT_MAX, +FLT_MAX, "%.3f", ImGuiSliderFlags_NoInput);
@@ -52,7 +55,7 @@ void EnttTransformView::Render(const EnttTransformData& data)
     if (ImGui::DragFloat("Uniform scale", &scale, 0.001f))
     {
         CmdChangeFloat cmd(CHANGE_ENTITY_SCALE, scale);
-        pController_->ExecCmd(&cmd);
+        pController->ExecCmd(&cmd);
     }
 }
 

@@ -376,7 +376,7 @@ bool CameraSystem::GetFrustumInitParams(
     float& fov,
     float& aspect,
     float& nearZ,
-    float& farZ)
+    float& farZ) const
 {
     if (HasEntity(camId))
     {

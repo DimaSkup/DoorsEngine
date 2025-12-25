@@ -21,6 +21,8 @@ public:
     MaterialMgr();
     ~MaterialMgr();
 
+    bool Init();
+
     // adders/setters
     Material&  AddMaterial(const char* materialName);
     MaterialID AddMaterial(const Material& material);

@@ -17,7 +17,7 @@ namespace UI
 // =================================================================================
 // Directed light data (for instance: sun)
 // =================================================================================
-struct EnttDirLightData 
+class EnttDirLightData 
 {
 public:
     ColorRGBA ambient;

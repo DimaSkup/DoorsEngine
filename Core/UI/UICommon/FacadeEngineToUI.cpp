@@ -14,6 +14,7 @@
 #include <Model/model_mgr.h>
 #include <Model/model_creator.h>
 #include <Model/model_exporter.h>
+#include <Model/animation_mgr.h>
 #include <ImgConverter.h>
 
 #pragma warning (disable : 4996)
@@ -21,16 +22,19 @@
 using namespace DirectX;
 using namespace Core;
 
+
 namespace UI
 {
 
 FacadeEngineToUI::FacadeEngineToUI(
+    Core::Engine* pEngine,
     ID3D11DeviceContext* pContext,
     Render::CRender* pRender,
     ECS::EntityMgr* pEntityMgr,
     Core::CGraphics* pGraphics,
     Core::TerrainGeomip* pTerrain)
     :
+    pEngine_(pEngine),
     pContext_(pContext),
     pRender_(pRender),
     pEnttMgr_(pEntityMgr),
@@ -38,6 +42,7 @@ FacadeEngineToUI::FacadeEngineToUI(
     pTerrain_(pTerrain)
 {
     // set pointers to the subsystems
+    CAssert::NotNullptr(pEngine,    "a ptr to engine == nullptr");
     CAssert::NotNullptr(pRender,    "a ptr to render == nullptr");
     CAssert::NotNullptr(pContext,   "a ptr to device context == nullptr");
     CAssert::NotNullptr(pEntityMgr, "a ptr to the entt mgr == nullptr");
@@ -107,7 +112,7 @@ void FacadeEngineToUI::GetCameraViewAndProj(
 //---------------------------------------------------------
 void FacadeEngineToUI::FocusCameraOnEntity(const EntityID enttID)
 {
-    assert(0 && "FIXME");
+    //assert(0 && "FIXME");
 #if 0
     if (enttID == 0)
         return;
@@ -132,7 +137,7 @@ EntityID FacadeEngineToUI::CreateEntity()
 // out:    names array of components which are added to entity by ID;
 // return: false if there is no entity by ID in the Entity Manager
 //---------------------------------------------------------
-bool FacadeEngineToUI::GetEntityAddedComponentsNames(
+bool FacadeEngineToUI::GetEnttAddedComponentsNames(
     const EntityID id,
     cvector<std::string>& componentsNames) const
 {
@@ -148,7 +153,7 @@ bool FacadeEngineToUI::GetEntityAddedComponentsNames(
 // out:    array of components types which are added to entity by ID;
 // return: false if there is no entity by ID in the Entity Manager
 //---------------------------------------------------------
-bool FacadeEngineToUI::GetEntityAddedComponentsTypes(
+bool FacadeEngineToUI::GetEnttAddedComponentsTypes(
     const EntityID id,
     cvector<eEnttComponentType>& componentTypes) const
 {
@@ -179,9 +184,13 @@ bool FacadeEngineToUI::AddNameComponent(const EntityID id, const char* name)
 
 ///////////////////////////////////////////////////////////
 
-bool FacadeEngineToUI::AddTransformComponent(const EntityID id, const Vec3& pos, const Vec3& dir, const float uniformScale)
+bool FacadeEngineToUI::AddTransformComponent(
+    const EntityID id,
+    const Vec3& pos,
+    const Vec3& dir,
+    const float scale)
 {
-    pEnttMgr_->AddTransformComponent(id, XMFLOAT3(pos.x, pos.y, pos.z), XMVECTOR{ dir.x, dir.y, dir.z }, uniformScale);
+    pEnttMgr_->AddTransformComponent(id, XMFLOAT3(pos.x, pos.y, pos.z), XMVECTOR{ dir.x, dir.y, dir.z }, scale);
     return true;
 }
 
@@ -211,29 +220,25 @@ bool FacadeEngineToUI::AddBoundingComponent(const EntityID id, const int boundTy
 
 ///////////////////////////////////////////////////////////
 
-bool FacadeEngineToUI::GetAllEnttsIDs(
-    const EntityID*& outPtrToEnttsIDsArr,
-    int& outNumEntts) const
+const cvector<EntityID>* FacadeEngineToUI::GetAllEnttsIDs(void) const
 {
-    outPtrToEnttsIDsArr = pEnttMgr_->GetAllEnttsIDs();    // +1 because entity by [0] is the default invalid entity
-    outNumEntts         = static_cast<int>(pEnttMgr_->GetNumAllEntts());
-    return true;
+    return &pEnttMgr_->GetAllEnttsIDs();
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:  return an ID of entity by its name
+//---------------------------------------------------------
 EntityID FacadeEngineToUI::GetEnttIdByName(const char* name) const
 {
-    // return 0 if there is no entity by such a name
     return pEnttMgr_->nameSystem_.GetIdByName(name);
 }
 
-///////////////////////////////////////////////////////////
-
-bool FacadeEngineToUI::GetEnttNameById(const EntityID enttID, std::string& name) const
+//---------------------------------------------------------
+// Desc:  return a name of entity by its id
+//---------------------------------------------------------
+const char* FacadeEngineToUI::GetEnttNameById(const EntityID id) const
 {
-    name = pEnttMgr_->nameSystem_.GetNameById(enttID);
-    return true;
+    return pEnttMgr_->nameSystem_.GetNameById(id);
 }
 
 //---------------------------------------------------------
@@ -259,10 +264,7 @@ bool FacadeEngineToUI::GetEnttTransformData(
 bool FacadeEngineToUI::GetEnttWorldMatrix(const EntityID id, DirectX::XMMATRIX& outMat) const
 {
     outMat = pEnttMgr_->transformSystem_.GetWorld(id);
-
-    // if we have NAN in the m00 component of matrix that means
-    // there is no world matrix in the Transform component (ECS) for entity by ID 
-    return isnan(DirectX::XMVectorGetX(outMat.r[0]));
+    return true;
 }
 
 ///////////////////////////////////////////////////////////
@@ -323,17 +325,89 @@ bool FacadeEngineToUI::RotateEnttByQuat(const EntityID id, const Vec4& q)
 //---------------------------------------------------------
 bool FacadeEngineToUI::GetEnttLightType(const EntityID id, int& lightType) const
 {
-    if (pEnttMgr_->lightSystem_.IsLightSource(id))
-    {
-        lightType = pEnttMgr_->lightSystem_.GetLightType(id);
-        return true;
-    }
-    else
+    if (!pEnttMgr_->lightSystem_.IsLightSource(id))
     {
         lightType = -1;
         return false;
     }
+
+    lightType = pEnttMgr_->lightSystem_.GetLightType(id);
+    return true;
 }
+
+//---------------------------------------------------------
+// Desc:  change skeleton animation for entity by enttId
+//---------------------------------------------------------
+bool FacadeEngineToUI::SetEnttSkeletonAnimation(const EntityID enttId, const AnimationID animId)
+{
+    ECS::AnimationSystem& animSys    = pEnttMgr_->animationSystem_;
+    const SkeletonID      skeletonId = animSys.GetSkeletonId(enttId);
+    const AnimSkeleton&   skeleton   = g_AnimationMgr.GetSkeleton(skeletonId);
+    const AnimationClip&  anim       = skeleton.GetAnimation(animId);
+
+    return animSys.SetAnimation(enttId, animId, anim.GetEndTime());
+}
+
+//---------------------------------------------------------
+// Desc:  get animation data of entity
+//---------------------------------------------------------
+SkeletonID FacadeEngineToUI::GetEnttSkeletonId(const EntityID enttId) const
+{
+    return pEnttMgr_->animationSystem_.GetSkeletonId(enttId);
+}
+
+//---------------------------------------------------------
+
+const char* FacadeEngineToUI::GetSkeletonName(const SkeletonID id) const
+{
+    return g_AnimationMgr.GetSkeleton(id).GetName();
+}
+
+//---------------------------------------------------------
+
+size FacadeEngineToUI::GetSkeletonNumAnimations(const SkeletonID id) const
+{
+    return g_AnimationMgr.GetSkeleton(id).GetNumAnimations();
+}
+
+//---------------------------------------------------------
+
+const cvector<AnimationName>* FacadeEngineToUI::GetSkeletonAnimNames(const SkeletonID id) const
+{
+    Core::AnimSkeleton& skeleton = g_AnimationMgr.GetSkeleton(id);
+    return &skeleton.GetAnimNames();
+}
+
+//---------------------------------------------------------
+
+const char* FacadeEngineToUI::GetSkeletonAnimName(
+    const SkeletonID skeletonId,
+    const AnimationID animId) const
+{
+    return g_AnimationMgr.GetSkeleton(skeletonId).GetAnimationName(animId);
+}
+
+//---------------------------------------------------------
+
+AnimationID FacadeEngineToUI::GetEnttAnimationId(const EntityID id) const
+{
+    return pEnttMgr_->animationSystem_.GetAnimationId(id);
+}
+
+//---------------------------------------------------------
+
+float FacadeEngineToUI::GetEnttCurrAnimTime(const EntityID id) const
+{
+    return pEnttMgr_->animationSystem_.GetCurrAnimTime(id);
+}
+
+//---------------------------------------------------------
+
+float FacadeEngineToUI::GetEnttEndAnimTime(const EntityID id) const
+{
+    return pEnttMgr_->animationSystem_.GetEndAnimTime(id);
+}
+
 
 //---------------------------------------------------------
 // Desc:   get directed light data of entt by id
@@ -347,19 +421,18 @@ bool FacadeEngineToUI::GetEnttDirectedLightData(
 {
     ECS::DirLight data;
 
-    if (pEnttMgr_->lightSystem_.GetDirectedLightData(id, data))
-    {
-        ambient   = data.ambient;
-        diffuse   = data.diffuse;
-        specular  = data.specular;
-
-        return true;
-    }
-    else
+    bool result = pEnttMgr_->lightSystem_.GetDirectedLightData(id, data);
+    if (!result)
     {
         LogErr(LOG, "can't get directed light data of the entity by ID: %" PRIu32, id);
         return false;
     }
+
+    ambient  = data.ambient;
+    diffuse  = data.diffuse;
+    specular = data.specular;
+
+    return true;
 }
 
 //---------------------------------------------------------
@@ -377,22 +450,21 @@ bool FacadeEngineToUI::GetEnttPointLightData(
 {
     ECS::PointLight data;
 
-    if (pEnttMgr_->lightSystem_.GetPointLightData(id, data))
-    {
-        ambient     = data.ambient;
-        diffuse     = data.diffuse;
-        specular    = data.specular;
-        range       = data.range;
-        attenuation = Vec3(data.att.x, data.att.y, data.att.z);
-        isActive    = GetLightIsActive(id);
-
-        return true;
-    }
-    else
+    bool result = pEnttMgr_->lightSystem_.GetPointLightData(id, data);
+    if (!result)
     {
         LogErr(LOG, "can't get point light data of the entity by ID: %" PRIu32, id);
         return false;
     }
+
+    ambient     = data.ambient;
+    diffuse     = data.diffuse;
+    specular    = data.specular;
+    range       = data.range;
+    attenuation = Vec3(data.att.x, data.att.y, data.att.z);
+    isActive    = GetLightIsActive(id);
+
+    return true;
 }
 
 //---------------------------------------------------------
@@ -410,22 +482,21 @@ bool FacadeEngineToUI::GetEnttSpotLightData(
 {
     ECS::SpotLight data;
 
-    if (pEnttMgr_->lightSystem_.GetSpotLightData(id, data))
-    {
-        ambient      = data.ambient;
-        diffuse      = data.diffuse;
-        specular     = data.specular;
-        range        = data.range;
-        spotExponent = data.spot;
-        attenuation  = Vec3(data.att.x, data.att.y, data.att.z);
-
-        return true;
-    }
-    else
+    bool result = pEnttMgr_->lightSystem_.GetSpotLightData(id, data);
+    if (!result)
     {
         LogErr(LOG, "can't get spotlight data of the entity by ID: %" PRIu32, id);
         return false;
     }
+
+    ambient      = data.ambient;
+    diffuse      = data.diffuse;
+    specular     = data.specular;
+    range        = data.range;
+    spotExponent = data.spot;
+    attenuation  = Vec3(data.att.x, data.att.y, data.att.z);
+
+    return true;
 }
 
 //---------------------------------------------------------
@@ -517,7 +588,10 @@ bool FacadeEngineToUI::SetPointLightSpecular(const EntityID id, const ColorRGBA&
 
 bool FacadeEngineToUI::SetPointLightPos(const EntityID id, const Vec3& pos)
 {
-    if (pEnttMgr_->lightSystem_.SetPointLightProp(id, ECS::LightProp::POSITION, XMFLOAT4(pos.x, pos.y, pos.z, 1.0f)))
+    const ECS::LightProp prop     = ECS::LightProp::POSITION;
+    const XMFLOAT4       position = { pos.x, pos.y, pos.z, 1.0f };
+
+    if (pEnttMgr_->lightSystem_.SetPointLightProp(id, prop, position))
     {
         return SetEnttPosition(id, pos);
     }
@@ -536,7 +610,10 @@ bool FacadeEngineToUI::SetPointLightRange(const EntityID id, const float range)
 
 bool FacadeEngineToUI::SetPointLightAttenuation(const EntityID id, const Vec3& att)
 {
-    return pEnttMgr_->lightSystem_.SetPointLightProp(id, ECS::LightProp::ATTENUATION, XMFLOAT4(att.x, att.y, att.z, 1.0f));
+    const ECS::LightProp prop        = ECS::LightProp::ATTENUATION;
+    const XMFLOAT4       attenuation = { att.x, att.y, att.z, 1.0f };
+
+    return pEnttMgr_->lightSystem_.SetPointLightProp(id, prop, attenuation);
 }
 
 
@@ -740,7 +817,7 @@ bool FacadeEngineToUI::SetSkyOffset(const Vec3& offset)
     // if we found the sky entity we change its offset
     if (id != 0)
     {
-        return pEnttMgr_->transformSystem_.SetPosition(id, XMFLOAT3(offset.x, offset.y, offset.z));
+        return pEnttMgr_->transformSystem_.SetPosition(id, { offset.x, offset.y, offset.z });
     }
 
     LogErr(LOG, "there is no entity by such a name: sky");
@@ -776,10 +853,10 @@ bool FacadeEngineToUI::GetFogData(
 
 ///////////////////////////////////////////////////////////
 
-bool FacadeEngineToUI::SetFogStart  (const float start)     { pRender_->SetFogStart(start); return true; }
-bool FacadeEngineToUI::SetFogRange  (const float range)     { pRender_->SetFogRange(range); return true; }
-bool FacadeEngineToUI::SetFogEnabled(const bool enabled)    { pRender_->SetFogEnabled(enabled); return true; }
-bool FacadeEngineToUI::SetFogColor  (const ColorRGB& color) { pRender_->SetFogColor(color.ToFloat3()); return true; }
+bool FacadeEngineToUI::SetFogStart  (const float start)     { pRender_->SetFogStart(start);             return true; }
+bool FacadeEngineToUI::SetFogRange  (const float range)     { pRender_->SetFogRange(range);             return true; }
+bool FacadeEngineToUI::SetFogEnabled(const bool enabled)    { pRender_->SetFogEnabled(enabled);         return true; }
+bool FacadeEngineToUI::SetFogColor  (const ColorRGB& color) { pRender_->SetFogColor(color.ToFloat3());  return true; }
 
 void FacadeEngineToUI::SetWeatherParam(const eWeatherParam param, const float val)
 {
@@ -809,21 +886,28 @@ bool FacadeEngineToUI::SwitchDebugState(const int debugType)
 // Desc:   import a model from external format (.fbx, .obj, etc.)
 //         and convert it into model's internal format (.de3d)
 //---------------------------------------------------------
-bool FacadeEngineToUI::ImportModelFromFile(const char* filePath, const char* modelName) const
+bool FacadeEngineToUI::ImportModelFromFile(const char* filepath, const char* modelName) const
 {
-    if (!filePath || filePath[0] == L'\0')
+    if (StrHelper::IsEmpty(filepath))
     {
         LogErr(LOG, "can't import a model from file: input path is empty!");
         return false;
     }
 
+    if (StrHelper::IsEmpty(filepath))
+    {
+        LogErr(LOG, "can't import a model from file: input model name is empty!");
+        return false;
+    }
+
+
     ModelsCreator creator;
     ModelExporter exporter;
-    const ModelID modelId = creator.ImportFromFile(Render::g_pDevice, filePath);
+    const ModelID modelId = creator.ImportFromFile(Render::g_pDevice, filepath);
 
     if (modelId == INVALID_MODEL_ID)
     {
-        LogErr(LOG, "can't import a model from file: %s", filePath);
+        LogErr(LOG, "can't import a model from file: %s", filepath);
         return false;
     }
 
@@ -867,54 +951,28 @@ bool FacadeEngineToUI::GetModelsNamesList(cvector<std::string>& outNames) const
 }
 
 //---------------------------------------------------------
-// Desc:   get 
+// Desc:  get texture ID by its index in the texture manager
 //---------------------------------------------------------
-bool FacadeEngineToUI::GetTextureIdByIdx(const index idx, TexID& outTextureID) const
+TexID FacadeEngineToUI::GetTextureIdByIdx(const index idx) const
 {
-    outTextureID = g_TextureMgr.GetTexIdByIdx(idx);
-
-    // if we got an "invalid" texture ID
-    if (outTextureID == 0)
-    {
-        LogErr(LOG, "there is no texture ID by idx: %lld", idx);
-        return false;
-    }
-
-    return true;
+    return g_TextureMgr.GetTexIdByIdx(idx);
 }
 
-///////////////////////////////////////////////////////////
-
-bool FacadeEngineToUI::GetMaterialIdByIdx(const index idx, MaterialID& outMatID) const
+//---------------------------------------------------------
+// Desc:  get material ID by its index in the material manager
+//---------------------------------------------------------
+MaterialID FacadeEngineToUI::GetMaterialIdByIdx(const index idx) const
 {
-    outMatID = g_MaterialMgr.GetMatIdByIdx(idx);
-    return true;
+    return g_MaterialMgr.GetMatIdByIdx(idx);
 }
 
 //---------------------------------------------------------
 // Desc:   get a name of material by its id
 // Args:   - id:          material identifier
-//         - outName:     output char arr for name
-//         - nameMaxLen:  output container size
 //---------------------------------------------------------
-bool FacadeEngineToUI::GetMaterialNameById(const MaterialID id, char* outName, const int nameMaxLen) const
+const char* FacadeEngineToUI::GetMaterialNameById(const MaterialID id) const
 {
-    if (!outName)
-    {
-        LogErr(LOG, "input name ptr is invalid");
-        return false;
-    }
-
-    if (nameMaxLen <= 0)
-    {
-        LogErr(LOG, "input max length for name is invalid (must be > 0): %d", nameMaxLen);
-        return false;
-    }
-
-    // reset output char arr and fill it with data
-    memset(outName, 0, nameMaxLen);
-    const char* matName = g_MaterialMgr.GetMatById(id).name;
-    return (bool)strncpy(outName, matName, nameMaxLen);
+    return g_MaterialMgr.GetMatById(id).name;
 }
 
 //---------------------------------------------------------
@@ -945,20 +1003,17 @@ bool FacadeEngineToUI::GetMaterialTexIds(const MaterialID id, TexID* outTexIds) 
 //---------------------------------------------------------
 // Desc:   get a name of texture by input ID
 //---------------------------------------------------------
-bool FacadeEngineToUI::GetTextureNameById(const TexID id, TexName& outName) const
+const char* FacadeEngineToUI::GetTextureNameById(const TexID id) const
 {
-    const char* texName = g_TextureMgr.GetTexByID(id).GetName().c_str();
-    strncpy(outName.name, texName, MAX_LEN_TEX_NAME);
-    return true;
+    return g_TextureMgr.GetTexByID(id).GetName().c_str();
 }
 
-///////////////////////////////////////////////////////////
-
-bool FacadeEngineToUI::GetNumMaterials(size& numMaterials) const
+//---------------------------------------------------------
+// get the number of all the currenly loaded materials
+//---------------------------------------------------------
+size FacadeEngineToUI::GetNumMaterials(void) const
 {
-    // get the number of all the currenly loaded materials
-    numMaterials = g_MaterialMgr.GetNumAllMaterials();
-    return true;
+    return g_MaterialMgr.GetNumAllMaterials();
 }
 
 ///////////////////////////////////////////////////////////
@@ -1317,6 +1372,9 @@ ID3D11ShaderResourceView* FacadeEngineToUI::GetModelFrameBufView() const
     return pSRV;
 }
 
+
+//---------------------------------------------------------
+
 static DirectX::Image texAtlasImg;
 static uint atlasElemIdx = 0;
 
@@ -1450,7 +1508,7 @@ void FacadeEngineToUI::ClearTexAtlasMemory()
 //---------------------------------------------------------
 void FacadeEngineToUI::SaveTexToFile(
     const char* filename,
-    ID3D11ShaderResourceView* pSRV,
+    SRV* pSRV,
     const DXGI_FORMAT targetFormat = DXGI_FORMAT_R8G8B8A8_UNORM)
 {
     if (StrHelper::IsEmpty(filename))
@@ -1535,24 +1593,12 @@ bool FacadeEngineToUI::RenderMaterialBigIconById(
 // Desc:   get an arr of elems [shaderId, shaderName, etc.] about
 //         all the currently loaded shaders
 //---------------------------------------------------------
-bool FacadeEngineToUI::GetShadersIdAndName(cvector<ShaderData>& outData)
+void FacadeEngineToUI::GetShadersIdsAndNames(
+    cvector<ShaderID>& outIds,
+    cvector<ShaderName>& outNames) const
 {
-    const auto& map = pRender_->shaderMgr_.GetMapIdsToShaders();
-    const size numElems = std::ssize(map);
-
-    // prepare enough memory
-    outData.resize(numElems);
-
-    // fill the output arr with data 
-    for (int i = 0; const auto& it : map)
-    {
-        outData[i].id = it.first;                             // shader id
-        strncpy(outData[i].name, it.second->GetName(), 32);   // shader name
-
-        ++i;
-    }
-
-    return true;
+    pRender_->GetArrShadersIds(outIds);
+    pRender_->GetArrShadersNames(outNames);
 }
 
 //---------------------------------------------------------
@@ -1560,11 +1606,11 @@ bool FacadeEngineToUI::GetShadersIdAndName(cvector<ShaderData>& outData)
 // Args:   - matId:     a material by this identifier will be changed
 //         - shaderId:  a shader by this identifier will be used to render
 //---------------------------------------------------------
-bool FacadeEngineToUI::SetMaterialShaderId(const MaterialID matId, const ShaderID shaderId)
+bool FacadeEngineToUI::SetMaterialShaderId(
+    const MaterialID matId,
+    const ShaderID shaderId)
 {
-    // check if there is such a shader
-    Render::Shader* pShader = pRender_->shaderMgr_.GetShaderById(shaderId);
-    if (!pShader)
+    if (!pRender_->ShaderExist(shaderId))
     {
         LogErr(LOG, "can't setup shader (id: %" PRIu32 ") \n\t"
                     "for material (id: %d" PRIu32 ") because there is no such shader", shaderId, matId);
@@ -1577,8 +1623,6 @@ bool FacadeEngineToUI::SetMaterialShaderId(const MaterialID matId, const ShaderI
 
     return true;
 }
-
-
 
 
 // =============================================================================
@@ -1717,12 +1761,12 @@ bool FacadeEngineToUI::SetGrassDistVisible(const float dist)
 // draw debug shapes (turn on/off rendering of particular debug shapes)
 // =============================================================================
 void FacadeEngineToUI::SwitchRenderDebugShape(
-    const eRenderDebugShapes shapeType,
+    const eRenderDbgShape shapeType,
     const bool state)
 {
     switch (shapeType)
     {
-        case RENDER_DBG_SHAPES:              g_DebugDrawMgr.doRendering_          = state;
+        case RENDER_DBG_SHAPES:              g_DebugDrawMgr.doRendering_          = state; break;
         case RENDER_DBG_SHAPES_LINE:         g_DebugDrawMgr.renderDbgLines_       = state; break;
         case RENDER_DBG_SHAPES_CROSS:        g_DebugDrawMgr.renderDbgCross_       = state; break;
         case RENDER_DBG_SHAPES_SPHERE:       g_DebugDrawMgr.renderDbgSphere_      = state; break;

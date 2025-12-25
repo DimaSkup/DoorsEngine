@@ -1,5 +1,5 @@
 // ====================================================================================
-// Filename:      EnttTransformView.h
+// Filename:      ui_entt_transform_view.h
 // Description:   (MVC view) contains control fields for
 //                change transformation of selected entity
 // 
@@ -7,24 +7,17 @@
 // ====================================================================================
 #pragma once
 
-#include "../Model/EnttTransformData.h"
-
-
 namespace UI
 {
 // forward declaration
 class IEditorController;
+class EnttTransformData;
 
 
 class EnttTransformView
 {
 public:
-    EnttTransformView(IEditorController* pController);
-
-	void Render(const EnttTransformData& data);
-
-private:
-	IEditorController* pController_ = nullptr;
+	void Render(IEditorController* pController, const EnttTransformData* pData);
 };
 
 }

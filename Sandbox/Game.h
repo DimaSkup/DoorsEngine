@@ -7,7 +7,6 @@
 #include <Engine/engine_configs.h>
 #include <Sound/direct_sound.h>
 #include <Sound/sound.h>
-#include <Model/animation_mgr.h>
 
 namespace Game
 {
@@ -46,26 +45,49 @@ private:
     void UpdateRainbowAnomaly();
     void UpdateRainPos();
 
+    void SwitchPlayerHudAnimations();
+
+    void UpdateShootSound(const float dt);
+    void StartPlayShootSound();
+
 private:
     Core::Engine*    pEngine_    = nullptr;
-    ECS::EntityMgr*  pEnttMgr_ = nullptr;
+    ECS::EntityMgr*  pEnttMgr_   = nullptr;
     Render::CRender* pRender_    = nullptr;
 
     Core::DirectSound directSound_;
     Core::Sound       soundRain_;
     Core::Sound       soundStepL_;
     Core::Sound       soundStepR_;
+    Core::Sound       soundShoot_;
 
     HANDLE eventStepLDone = nullptr;
+    HANDLE eventShootDone = nullptr;
 
     bool engineModeWasChanged_ = false;  // if we did switching from editor to game mode or vise versa
 
     bool rainSoundIsPlaying_ = false;
     bool soundStepL_Playing = false;
     bool soundStepR_Played  = false;
+    bool soundShootIsPlaying_ = false;
 
-    float stepTimer = 0;
-    float stepInterval = 0.5f;
+    float stepTimer_ = 0;
+    float stepInterval_ = 0.5f;
+    float shootTimer_ = 0;
+    float shootInterval_ = 0.374994f;
+
+    // rain over player
+    EntityID    rainEnttId_     = 0;
+
+    // player animation stuff
+    EntityID    currHudId_      = 0;
+    SkeletonID  currSkeletonId_ = 0;
+    AnimationID animIdReload_   = 0;
+    AnimationID animIdShoot_    = 0;
+    AnimationID animIdRun_      = 0;
+    AnimationID animIdIdle_     = 0;
+
+    
 };
 
 } // namespace

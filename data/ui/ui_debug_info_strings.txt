@@ -2,73 +2,78 @@ const_str: Video_card 5 10
 const_str: Video_memory 5 30
 const_str: Fps 5 50
 const_str: Frame_time 5 70
-const_str: Update 5 90
-const_str: Render 5 110
-const_str: grass  20 140
-const_str: masked 20 160
-const_str: opaque 20 180
-const_str: skinned 20 200
-const_str: terrain 20 220
-const_str: sky     20 240
-const_str: sky_plane 20 260
-const_str: blended 20 280
-const_str: transparent 20 300
-const_str: particles 20 320
-const_str: weapon 20 340
-const_str: dbg_shape 20 360
-const_str: post_fx 20 380
-const_str: full_scene 20 400
-const_str: UI 20 420
-const_str: GPU_frame_time 5 450 
-const_str: CPU_frame_time 5 470
-const_str: pos_x: 5 490
-const_str: pos_y: 5 510
-const_str: pos_z: 5 530
-const_str: dir_x: 5 550
-const_str: dir_y: 5 570
-const_str: dir_z: 5 590
-const_str: rnd_verts: 5 620
-const_str: rnd_tris: 5 640
-const_str: rnd_trn_patch: 5 660
-const_str: cull_trn_patch: 5 680
-const_str: rnd_entt_inst: 5 700
-const_str: inst_draw_calls 5 720
-const_str: vis_pointL 5 740
-const_str: vis_spotL 5 760
+const_str: ***Update 5 90
+const_str: game 20 110
+const_str: engine 20 130
+const_str: ***Render 5 150
+const_str: grass  20 170
+const_str: masked 20 190
+const_str: opaque 20 210
+const_str: skinned 20 230
+const_str: terrain 20 250
+const_str: sky     20 270
+const_str: sky_plane 20 290
+const_str: blended 20 310
+const_str: transparent 20 330
+const_str: particles 20 350
+const_str: weapon 20 370
+const_str: dbg_shape 20 390
+const_str: post_fx 20 410
+const_str: full_scene 20 430
+const_str: UI 20 450
+const_str: GPU_frame_time 5 470 
+const_str: CPU_frame_time 5 490
+const_str: pos_x: 5 510
+const_str: pos_y: 5 530
+const_str: pos_z: 5 550
+const_str: dir_x: 5 570
+const_str: dir_y: 5 590
+const_str: dir_z: 5 610
+const_str: ***Rnd_counts 5 630
+const_str: rnd_verts: 20 650
+const_str: rnd_tris: 20 670
+const_str: rnd_trn_patch: 20 690
+const_str: cull_trn_patch: 20 710
+const_str: rnd_entt_inst: 20 730
+const_str: inst_draw_calls 20 750
+const_str: vis_pointL 20 770
+const_str: vis_spotL 20 790
 
 dynamic_str: fps 50 50 16
 dynamic_str: frame_time 120 70 16
-dynamic_str: update_time 120 90 16
-dynamic_str: update_time_avg 210 90 16
-dynamic_str: rnd_time 120 110 16
-dynamic_str: rnd_time_scene_grass 150 140 16
-dynamic_str: rnd_time_scene_masked 150 160 16
-dynamic_str: rnd_time_scene_opaque 150 180 16
-dynamic_str: rnd_time_scene_skinned 150 200 16
-dynamic_str: rnd_time_scene_terrain 150 220 16
-dynamic_str: rnd_time_scene_sky 150 240 16
-dynamic_str: rnd_time_scene_sky_plane 150 260
-dynamic_str: rnd_time_scene_blended 150 280 16
-dynamic_str: rnd_time_scene_transparent 150 300 16
-dynamic_str: rnd_time_scene_particles 150 320 16
-dynamic_str: rnd_time_scene_weapon 150 340 16
-dynamic_str: rnd_time_scene_dbg_shapes 150 360 16
-dynamic_str: rnd_time_post_fx 150 380 16
-dynamic_str: rnd_scene_time 150 400 16
-dynamic_str: rnd_render_ui 150 420 16
-dynamic_str: rnd_time_GPU 160 450 16
-dynamic_str: rnd_time_CPU 160 470 16
-dynamic_str: pos_x 80 490 16
-dynamic_str: pos_y 80 510 16
-dynamic_str: pos_z 80 530 16
-dynamic_str: dir_x 80 550 16
-dynamic_str: dir_y 80 570 16
-dynamic_str: dir_z 80 590 16
-dynamic_str: rnd_verts 160 620 16
-dynamic_str: rnd_tris 160 640 16
-dynamic_str: rnd_trn_patch 160 660 16
-dynamic_str: cull_trn_patch 160 680 16
-dynamic_str: rnd_inst 160 700 16
-dynamic_str: inst_draw_calls 160 720 16
-dynamic_str: num_vis_pointL 160 740 16
-dynamic_str: num_vis_spotL 160 760 16
+dynamic_str: upd_time 120 90 16
+dynamic_str: upd_time_avg 210 90 16
+dynamic_str: upd_time_game 120 110 16
+dynamic_str: upd_time_engine 120 130 16
+dynamic_str: rnd_time 120 150 16
+dynamic_str: rnd_time_scene_grass 150 170 16
+dynamic_str: rnd_time_scene_masked 150 190 16
+dynamic_str: rnd_time_scene_opaque 150 210 16
+dynamic_str: rnd_time_scene_skinned 150 230 16
+dynamic_str: rnd_time_scene_terrain 150 250 16
+dynamic_str: rnd_time_scene_sky 150 270 16
+dynamic_str: rnd_time_scene_sky_plane 150 290
+dynamic_str: rnd_time_scene_blended 150 310 16
+dynamic_str: rnd_time_scene_transparent 150 330 16
+dynamic_str: rnd_time_scene_particles 150 350 16
+dynamic_str: rnd_time_scene_weapon 150 370 16
+dynamic_str: rnd_time_scene_dbg_shapes 150 390 16
+dynamic_str: rnd_time_post_fx 150 410 16
+dynamic_str: rnd_time_full_scene 150 430 16
+dynamic_str: rnd_time_ui 150 450 16
+dynamic_str: rnd_time_GPU 160 470 16
+dynamic_str: rnd_time_CPU 160 490 16
+dynamic_str: pos_x 80 510 16
+dynamic_str: pos_y 80 530 16
+dynamic_str: pos_z 80 550 16
+dynamic_str: dir_x 80 570 16
+dynamic_str: dir_y 80 590 16
+dynamic_str: dir_z 80 610 16
+dynamic_str: rnd_verts 160 650 16
+dynamic_str: rnd_tris 160 670 16
+dynamic_str: rnd_trn_patch 160 690 16
+dynamic_str: cull_trn_patch 160 710 16
+dynamic_str: rnd_inst 160 730 16
+dynamic_str: inst_draw_calls 160 750 16
+dynamic_str: num_vis_pointL 160 770 16
+dynamic_str: num_vis_spotL 160 790 16

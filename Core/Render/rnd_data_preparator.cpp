@@ -61,6 +61,7 @@ static cvector<EntityID>          s_TempEnttsIds;
 static cvector<EntityDataAndPos>  s_TempData;
 static cvector<XMFLOAT3>          s_Positions;
 
+static cvector<EntityID>          s_VisEntts;
 static cvector<EntityID>          s_EnttsIdPerInstance;
 
 static cvector<float>             s_SqrDistances;
@@ -436,29 +437,47 @@ void PrepareBuffers(cvector<Render::InstanceBatch>& instanceBatches)
 // Desc:   prepare instances data and instances buffer for rendering
 //         entities by input IDs
 //
-// Args:   - enttsIds:         entities by these ids will be rendered onto the screen
-//         - numEntts:         how many entts we want to render
+// Args:   - visibleEntts:     currently visible entities
 //         - cameraPos:        camera's current position
 //         - pEnttMgr:         a ptr to ECS entity manager
 //         - instanceBufData:  data for the instances buffer
 //         - instances:        models data for rendering
 //----------------------------------------------------------------------------------
 void RenderDataPreparator::PrepareEnttsDataForRendering(
-    const EntityID* enttsIds,
-    const size numEntts,
+    cvector<EntityID>& visibleEntts,
     const XMFLOAT3& cameraPos,
     ECS::EntityMgr* pEnttMgr,
     Render::RenderDataStorage& storage)
 {
-    CAssert::True(enttsIds != nullptr, "input ptr to entities IDs arr == nullptr");
-    CAssert::True(numEntts > 0,        "input number of entities must be > 0");
-
     s_pEnttMgr = pEnttMgr;
 
     //------------------------------------------------
 
     // clear the render data storage before filling it with data
     storage.Clear();
+
+    s_VisEntts.resize(visibleEntts.size());
+    s_VisEntts.clear();
+
+
+    // separate visible entities with animation component from others
+    // since we will render such entities in a separate way
+    const cvector<EntityID>& animatedEntts = pEnttMgr->animationSystem_.GetEnttsIds();
+
+    size numNotAnimEntts = 0;
+
+    for (const EntityID enttId : visibleEntts)
+    {
+        s_VisEntts[numNotAnimEntts] = enttId;
+        numNotAnimEntts += (!animatedEntts.binary_search(enttId));
+    }
+    s_VisEntts.resize(numNotAnimEntts);
+
+    const EntityID* enttsIds = s_VisEntts.data();
+    const size      numEntts = s_VisEntts.size();
+
+    if (numEntts == 0)
+        return;
 
     // get materials ids for each subset of each input entity
     pEnttMgr->materialSystem_.GetDataByEnttsIds(enttsIds, numEntts, s_MaterialsDataPerEntt);

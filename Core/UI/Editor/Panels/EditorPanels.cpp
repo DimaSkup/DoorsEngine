@@ -27,7 +27,7 @@ void EditorPanels::Init(IFacadeEngineToUI* pFacade)
     CAssert::NotNullptr(pFacade, "ptr to the facade interface == nullptr");
     pFacade_ = pFacade;
 
-    enttEditorController_.Initialize(pFacade_);
+    enttEditorController_.Init(pFacade_);
     fogEditorController_.Initialize(pFacade_);
     skyEditorController_.Initialize(pFacade_);
 
@@ -182,33 +182,29 @@ void EditorPanels::RenderEntitiesListWnd(Core::SystemState& sysState)
 
     if (ImGui::Begin("Entities List", &showWndEnttsList))
     {
-        const uint32* pEnttsIDs = nullptr;
-        int numEntts = 0;
-
-        // get an ID of each entity on the scene
-        pFacade_->GetAllEnttsIDs(pEnttsIDs, numEntts);
+        const cvector<EntityID>& enttsIds    = *pFacade_->GetAllEnttsIDs();
+        const size               numAllEntts = enttsIds.size();
         
-
         // get a name of each entity on the scene
-        enttsNames_.resize(numEntts);
+        enttsNames_.resize(numAllEntts);
 
         for (int i = 0; std::string& name : enttsNames_)
         {
-            pFacade_->GetEnttNameById(pEnttsIDs[i++], name);
+            name = pFacade_->GetEnttNameById(enttsIds[i++]);
         }
 
         const EntityID currSelectedEnttId = enttEditorController_.GetSelectedEnttID();
         constexpr ImGuiSelectableFlags_ flags = ImGuiSelectableFlags_AllowDoubleClick;
 
         // render selectable menu with entts names
-        for (int i = 0; i < numEntts; ++i)
+        for (index i = 0; i < numAllEntts; ++i)
         {
             const char* name = enttsNames_[i].c_str();
-            bool isSelected  = (pEnttsIDs[i] == currSelectedEnttId);
+            bool isSelected  = (enttsIds[i] == currSelectedEnttId);
             
             if (ImGui::Selectable(name, isSelected, flags))
             {
-                const EntityID id = pEnttsIDs[i];
+                const EntityID id = enttsIds[i];
                 sysState.pickedEnttID_ = id;                 // set this ID into the system state
                 enttEditorController_.SetSelectedEntt(id);   // and update the editor to show data of this entt
 
@@ -234,7 +230,7 @@ void EditorPanels::RenderEntitiesListWnd(Core::SystemState& sysState)
 inline bool CheckboxDbgShape(
     IFacadeEngineToUI* pFacade,
     const char* msg,
-    const eRenderDebugShapes type,
+    const eRenderDbgShape type,
     bool& flag)
 {
     if (ImGui::Checkbox(msg, &flag))

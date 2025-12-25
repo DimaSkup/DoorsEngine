@@ -25,8 +25,8 @@ public:
 		Movement* pMoveComponent);
 	~MoveSystem() {}
 
-	void Serialize(std::ofstream& fout, u32& offset);
-	void Deserialize(std::ifstream& fin, const u32 offset);
+	void Serialize(std::ofstream& fout, uint32& offset);
+	void Deserialize(std::ifstream& fin, const uint32 offset);
 
 	void UpdateAllMoves(const float deltaTime, TransformSystem& transformSys);
 

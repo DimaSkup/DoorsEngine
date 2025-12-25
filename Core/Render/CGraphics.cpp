@@ -40,6 +40,9 @@ struct LightTempData
     cvector<ECS::PointLight>    activePointLights;
 } s_LightTmpData;
 
+// static arrays for internal purposes
+static cvector<DirectX::XMMATRIX> s_BoneTransforms;
+
 
 //---------------------------------------------------------
 // Desc:  default constructor and destructor
@@ -320,7 +323,7 @@ void CGraphics::UpdateHelper(const float deltaTime, const float totalGameTime)
     const EntityID gameCamId = nameSys.GetIdByName("game_camera");
 
     // visualize frustum
-    AddFrustumToRender(gameCamId, *pEnttMgr_);
+    AddFrustumToRender(gameCamId);
    
     //-------------------------------------------
 
@@ -353,8 +356,11 @@ void CGraphics::UpdateHelper(const float deltaTime, const float totalGameTime)
 
     //-------------------------------------------
 
+    AnimSkeleton& skeleton = g_AnimationMgr.GetSkeleton("ak_74_hud");
+    const char* animName = skeleton.GetAnimationName(currAnimIdx_);
+
     // update all the currently active model animations (skinning)
-    g_AnimationMgr.Update(deltaTime);
+    g_AnimationMgr.Update(deltaTime, "ak_74_hud", animName);
 
 
     //-------------------------------------------
@@ -437,20 +443,16 @@ void CGraphics::UpdateParticlesVB()
 // --------------------------------------------------------
 void CGraphics::PrepareRenderInstances(const DirectX::XMFLOAT3& cameraPos)
 {
-    const cvector<EntityID>& visibleEntts = pEnttMgr_->renderSystem_.GetAllVisibleEntts();
+    cvector<EntityID>& visibleEntts = pEnttMgr_->renderSystem_.GetAllVisibleEntts();
 
-    const EntityID* enttsIds = visibleEntts.data();
-    const size      numEntts = visibleEntts.size();
-
-    if (numEntts == 0)
+    if (visibleEntts.size() == 0)
         return;
 
     Render::RenderDataStorage& storage = pRender_->dataStorage_;
 
     // gather entts data for rendering
     prep_.PrepareEnttsDataForRendering(
-        enttsIds,
-        numEntts,
+        visibleEntts,
         cameraPos,
         pEnttMgr_,
         storage);
@@ -461,14 +463,16 @@ void CGraphics::PrepareRenderInstances(const DirectX::XMFLOAT3& cameraPos)
 //---------------------------------------------------------
 // Desc:   add a view frustum of camera by id to the debug shapes render list
 //---------------------------------------------------------
-void CGraphics::AddFrustumToRender(const EntityID camId, ECS::EntityMgr& mgr)
+void CGraphics::AddFrustumToRender(const EntityID camId)
 {
     float fov    = 0;
     float aspect = 0;
     float nearZ  = 0;
     float farZ   = 0;
 
-    if (!mgr.cameraSystem_.GetFrustumInitParams(camId, fov, aspect, nearZ, farZ))
+    const ECS::CameraSystem& camSys = pEnttMgr_->cameraSystem_;
+
+    if (!camSys.GetFrustumInitParams(camId, fov, aspect, nearZ, farZ))
     {
         LogErr(LOG, "there is no camera data by entt id: %" PRIu32, camId);
         return;
@@ -488,7 +492,7 @@ void CGraphics::AddFrustumToRender(const EntityID camId, ECS::EntityMgr& mgr)
                       farTopRight, farBottomRight);
 
     // transform frustum's points from view to world space
-    const XMMATRIX& invView = mgr.cameraSystem_.GetInverseView(camId);
+    const XMMATRIX& invView = camSys.GetInverseView(camId);
     const Matrix    invViewMat(invView.r[0].m128_f32);
 
     MatrixMulVec3(nearTopLeft,     invViewMat, nearTopLeft);
@@ -606,7 +610,7 @@ void CGraphics::FrustumCullingEntts(SystemState& sysState)
         visibleEntts[i] = enttsRenderable[tmpData.idxsToVisEntts[i]];
 
     // this number of entities (instances) will be rendered onto the screen
-    sysState.numDrawnEnttsInstances = (u32)numVisEntts;
+    sysState.numDrawnEnttsInstances = (uint32)numVisEntts;
 }
 
 //--------------------------------------------------------
@@ -639,8 +643,8 @@ void CGraphics::FrustumCullingPointLights(SystemState& sysState, const Frustum& 
 {
     assert(pEnttMgr_);
 
-    const ECS::LightSystem&    lightSys           = pEnttMgr_->lightSystem_;
-    const ECS::RenderSystem&   renderSys          = pEnttMgr_->renderSystem_;
+    const ECS::LightSystem&     lightSys          = pEnttMgr_->lightSystem_;
+    const ECS::RenderSystem&    renderSys         = pEnttMgr_->renderSystem_;
 
     const ECS::PointLights&     pointLights       = lightSys.GetPointLights();
     const size                  numAllPointLights = pointLights.data.size();
@@ -685,8 +689,8 @@ void CGraphics::UpdateShadersDataPerFrame(
 {
     Render::CRender* pRender   = pRender_;
     ECS::EntityMgr* pEnttMgr   = pEnttMgr_;
+    const SkyPlane& skyPlane   = g_ModelMgr.GetSkyPlane();
 
-    Render::PerFrameData& data = pRender_->perFrameData_;
     ECS::CameraSystem& camSys  = pEnttMgr->cameraSystem_;
     const EntityID currCamId   = currCameraID_;
     const XMMATRIX& invView    = camSys.GetInverseView(currCamId);
@@ -706,16 +710,11 @@ void CGraphics::UpdateShadersDataPerFrame(
         camSys.GetFarZ(currCamId));
 
 
-    SetupLightsForFrame(pEnttMgr, data);
+    SetupLightsForFrame(pRender_->perFrameData_);
 
     // update const buffers with new data
-    pRender->UpdatePerFrame(data);
+    pRender->UpdatePerFrame(pRender_->perFrameData_);
 
-    
-    //printf("delta time: %f\n", deltaTime);
-    //printf("game  time: %f\n", totalGameTime);
-
-    const SkyPlane& skyPlane = g_ModelMgr.GetSkyPlane();
 
     pRender->UpdateCbSky(
         skyPlane.GetTranslation(0),
@@ -1097,9 +1096,15 @@ void CGraphics::ColorLightPass()
     // render opaque geometry: solid objects
     RenderInstanceGroups(storage.opaque, GEOM_TYPE_OPAQUE, startInstanceLocation);
     g_GpuProfiler.Timestamp(GTS_RenderScene_Opaque);
-    
-    RenderSkinnedModel("boblampclean");
+
+
+    // render each animated entity separately
+    for (const EntityID id : pEnttMgr_->animationSystem_.GetEnttsIds())
+    {
+        RenderSkinnedModel(id);
+    }
     g_GpuProfiler.Timestamp(GTS_RenderScene_SkinnedModels);
+
 
     // render terrain
     RenderTerrainGeomip();
@@ -1168,7 +1173,7 @@ void CGraphics::PostFxPass()
         pContext->OMSetRenderTargets(1, &d3d.pSwapChainRTV_, nullptr);
         pContext->PSSetShaderResources(TEX_SLOT_POST_FX_SRC, 1, &d3d.postFxsPassSRV_[0]);
 
-        pRender_->shaderMgr_.BindShaderByName(pContext, "FXAA");
+        pRender_->BindShaderByName("FXAA");
         pContext->Draw(3, 0);
 
         // bind depth stencil view back
@@ -1334,7 +1339,7 @@ bool CGraphics::RenderBigMaterialIcon(
 
     // bind shader and prepare IA for rendering
     ID3D11DeviceContext* pContext = GetContext();
-    pRender->shaderMgr_.BindShaderByName(pContext, "MaterialIconShader");
+    pRender->BindShaderByName("MaterialIconShader");
     pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     pRender->BindVB(vb.GetAddrOf(), vb.GetStride(), offset);
     pRender->BindIB(ib.Get(), DXGI_FORMAT_R32_UINT);
@@ -1391,7 +1396,7 @@ bool CGraphics::RenderMaterialsIcons()
 
     // prepare IA for rendering, bind shaders, set matrices
     ID3D11DeviceContext* pContext = GetD3D().GetDeviceContext();
-    pRender->shaderMgr_.BindShaderByName(pContext, "MaterialIconShader");
+    pRender->BindShaderByName("MaterialIconShader");
     pRender->UpdateCbWorldAndViewProj(DirectX::XMMatrixIdentity(), DirectX::XMMatrixTranspose(view * proj));
 
     pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -1439,7 +1444,7 @@ void CGraphics::RenderGrass()
     // bind shader and material
 
     const Material& mat = g_MaterialMgr.GetMatByName("grass_0");
-    pRender->shaderMgr_.BindShaderById(pContext, mat.shaderId);
+    pRender->BindShaderById(mat.shaderId);
     BindMaterial(mat);
     pRender->UpdateCbMaterialColors(mat.ambient, mat.diffuse, mat.specular, mat.reflect);
 
@@ -1574,51 +1579,59 @@ inline XMVECTOR QuatMul(const XMVECTOR& q1, const XMVECTOR& q2)
 }
 
 //---------------------------------------------------------
+// Desc:  render animated entity by input ID (using vertex skinning)
 //---------------------------------------------------------
-void CGraphics::RenderSkinnedModel(const char* enttName)
+void CGraphics::RenderSkinnedModel(const EntityID enttId)
 {
-    if (StrHelper::IsEmpty(enttName))
+    if (enttId == 0)
+        return;
+
+    Render::CRender*      pRender       = pRender_;
+    ID3D11DeviceContext*  pContext      = pRender->GetContext();
+    ECS::EntityMgr&       enttMgr       = *pEnttMgr_;
+    ECS::TransformSystem& transformSys  = pEnttMgr_->transformSystem_;
+    const char*           enttName      = enttMgr.nameSystem_.GetNameById(enttId);
+
+    if (!enttMgr.animationSystem_.HasAnimation(enttId))
     {
-        LogErr(LOG, "input name is empty");
+        LogErr(LOG, "you try to render entity (id: %" PRIu32 ", name: %s) as skinned (animated) but there is no skeleton/animation for it", enttId, enttName);
         return;
     }
 
-    Render::CRender*     pRender  = pRender_;
-    ECS::EntityMgr&      enttMgr  = *pEnttMgr_;
-    ID3D11DeviceContext* pContext = pRender->GetContext();
-
     // prepare model's instance
-    const EntityID       enttId   = enttMgr.nameSystem_.GetIdByName(enttName);
-    const ModelID        modelId  = enttMgr.modelSystem_.GetModelIdRelatedToEntt(enttId);
-    const BasicModel&    model    = g_ModelMgr.GetModelById(modelId);
-    const MeshGeometry&  meshes   = model.meshes_;
+    const ModelID       modelId = enttMgr.modelSystem_.GetModelIdRelatedToEntt(enttId);
+    const BasicModel&   model   = g_ModelMgr.GetModelById(modelId);
+    const MeshGeometry& meshes  = model.meshes_;
 
-    // calc model world matrix
-    const XMFLOAT3 pos   = enttMgr.transformSystem_.GetPosition(enttId);
-    const XMFLOAT3 rot   = enttMgr.transformSystem_.GetDirection(enttId);
-    const float    scale = enttMgr.transformSystem_.GetScale(enttId);
-
-    const XMMATRIX S = XMMatrixScaling             (scale, scale, scale);
-    //const XMMATRIX R = XMMatrixRotationRollPitchYaw(0, 0, 0);
-
-    const XMVECTOR quatRotZ = QuatRotAxis({ 0,0,1 }, +PIDIV2);
+    const XMVECTOR quatRotZ = QuatRotAxis({ 0,0,1 }, +PIDIV2/2);
     const XMVECTOR quatRotY = QuatRotAxis({ 0,1,0 }, -PIDIV2);
     const XMVECTOR quat     = QuatMul(quatRotZ, quatRotY);
     const XMMATRIX R        = XMMatrixRotationQuaternion(quat);
+    const XMMATRIX W        = XMMatrixTranspose(transformSys.GetWorld(enttId));
 
-    const XMMATRIX T = XMMatrixTranslation         (pos.x-5, pos.y, pos.z);
-    const XMMATRIX W = DirectX::XMMatrixTranspose(S * R * T);
-    //const XMMATRIX W = g_AnimationMgr.world_;
-   
-    // save pos for later restoring
-    const XMFLOAT3 prevCamPos = pRender->GetCameraPos();
+    //---------------------------------
 
+    // get animation data for current entity
+    SkeletonID skeletonId = 0;
+    AnimationID animationId = 0;
+    float timePos = 0;
+    pEnttMgr_->animationSystem_.GetData(enttId, skeletonId, animationId, timePos);
+
+    // update bone transformations for this frame
+    s_BoneTransforms.resize(MAX_NUM_BONES_PER_CHARACTER, DirectX::XMMatrixIdentity());
+    AnimSkeleton& skeleton = g_AnimationMgr.GetSkeleton(skeletonId);
+    skeleton.GetFinalTransforms(animationId, timePos, s_BoneTransforms);
+
+    //---------------------------------
+
+    // update constant buffers
+    pRender->UpdateCbBoneTransforms(s_BoneTransforms);
     pRender->UpdateCbWorldInvTranspose(MathHelper::InverseTranspose(W));
     pRender->UpdateCbWorldAndViewProj(W, DirectX::XMMatrixTranspose(viewProj_));
 
     // bind a shader, prepare AI for rendering
     pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    pRender->shaderMgr_.BindShaderByName(pContext, "SkinnedMeshShader");
+    pRender->BindShaderByName("SkinnedMeshShader");
     pRender->BindIB(meshes.ib_.Get(), DXGI_FORMAT_R32_UINT);
 
     const UINT stride0 = sizeof(Vertex3D);
@@ -1627,18 +1640,14 @@ void CGraphics::RenderSkinnedModel(const char* enttName)
     const UINT sizeofUINT4 = 16;
     const UINT stride1 = sizeof(XMFLOAT4) + sizeofUINT4;
     const UINT offset1 = 0;
-
-    AnimSkeleton& skeleton = g_AnimationMgr.GetSkeleton("boblampclean");
+    
     ID3D11Buffer*   vbs[2] = { meshes.vb_.Get(), skeleton.GetBonesVB() };
     const UINT  strides[2] = { stride0, stride1 };
     const UINT  offsets[2] = { offset0, offset1 };
 
     pContext->IASetVertexBuffers(0, 2, vbs, strides, offsets);
 
-    // update bone transformations for this model for the current frame
-    cvector<XMMATRIX> boneTransforms(MAX_NUM_BONES_PER_CHARACTER, DirectX::XMMatrixIdentity());
-    skeleton.GetFinalTransforms("search", 0.0f, boneTransforms);
-    pRender->UpdateCbBoneTransforms(boneTransforms);
+    //---------------------------------
 
     // render each mesh of the model separately so we will receive a complete image
     for (int i = 0; i < model.GetNumSubsets(); ++i)
@@ -1671,7 +1680,7 @@ void CGraphics::RenderParticles()
     if (numParticles == 0)
         return;
 
-    render.shaderMgr_.BindShaderByName(pContext, "ParticleShader");
+    render.BindShaderByName("ParticleShader");
 
     // for particles we bind only vertex buffer
     const VertexBuffer<BillboardSprite>& vb = g_ModelMgr.GetBillboardsBuffer();
@@ -1756,7 +1765,7 @@ void CGraphics::RenderSkyClouds()
     pRender_->BindVB(vb.GetAddrOf(), vb.GetStride(), 0);
     pRender_->BindIB(ib.Get(), DXGI_FORMAT_R16_UINT);
     BindMaterialById(skyPlane.GetMaterialId());
-    pRender_->shaderMgr_.BindShaderByName(GetContext(), "SkyCloudShader");
+    pRender_->BindShaderByName("SkyCloudShader");
 
     // render
     GetContext()->DrawIndexed(skyPlane.GetNumIndices(), 0, 0);
@@ -1788,7 +1797,7 @@ void CGraphics::TerrainDepthPrepass()
     instance.pIB          = terrain.GetIndexBuffer();
 
     // prepare IA stage and shaders
-    pRender->shaderMgr_.BindShaderByName(pContext, "TerrainDepthPrepass");
+    pRender->BindShaderByName("TerrainDepthPrepass");
     pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     pRender->BindVB(&instance.pVB, instance.vertexStride, 0);
@@ -1900,13 +1909,13 @@ void CGraphics::RenderTerrainGeomip()
     const cvector<int>& lowDetailed  = terrain.GetLowDetailedPatches();
 
 
-    pRender->shaderMgr_.BindShaderByName(pContext, "TerrainShader");
+    pRender->BindShaderByName("TerrainShader");
     RenderTerrainPatches(terrain, pContext, numDrawnTris, highDetailed);
 
-    pRender->shaderMgr_.BindShaderByName(pContext, "TerrainMidLodShader");
+    pRender->BindShaderByName("TerrainMidLodShader");
     RenderTerrainPatches(terrain, pContext, numDrawnTris, midDetailed);
 
-    pRender->shaderMgr_.BindShaderByName(pContext, "TerrainLowLodShader");
+    pRender->BindShaderByName("TerrainLowLodShader");
     RenderTerrainPatches(terrain, pContext, numDrawnTris, lowDetailed);
 
 
@@ -1924,8 +1933,8 @@ void CGraphics::RenderTerrainGeomip()
     rndStat_.numDrawnInstances[GEOM_TYPE_TERRAIN] = (uint32)numDrawnPatches;
     rndStat_.numDrawCalls[GEOM_TYPE_TERRAIN]      = (uint32)numDrawCalls;
 
-    pSysState_->numDrawnTerrainPatches  = (uint32)numDrawnPatches;
-    pSysState_->numCulledTerrainPatches = (uint32)(terrain.GetNumAllPatches() - numDrawnPatches);
+    pSysState_->numDrawnTerrainPatches            = (uint32)numDrawnPatches;
+    pSysState_->numCulledTerrainPatches           = (uint32)(terrain.GetNumAllPatches() - numDrawnPatches);
 }
 
 //---------------------------------------------------------
@@ -2175,7 +2184,7 @@ void CGraphics::RenderDebugShapes()
     IndexBuffer<uint16>&          ib = g_ModelMgr.GetDebugLinesIB();
 
     pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-    pRender->shaderMgr_.BindShaderByName(pContext, "DebugLineShader");
+    pRender->BindShaderByName("DebugLineShader");
 
     // we always use the same VB/IB for rendering debug shaped, we just update them
     pRender->BindVB(vb.GetAddrOf(), vb.GetStride(), 0);
@@ -2215,9 +2224,9 @@ void BindPostFxShader(
     switch (fxType)
     {
         case POST_FX_VISUALIZE_DEPTH:
-            pRender->shaderMgr_.BindShaderByName(pContext, "DepthResolveShader");
+            pRender->BindShaderByName("DepthResolveShader");
             pContext->Draw(3, 0);
-            pRender->shaderMgr_.BindShaderByName(pContext, "VisualizeDepthShader");
+            pRender->BindShaderByName("VisualizeDepthShader");
             break;
 
         case POST_FX_GRAYSCALE:
@@ -2248,7 +2257,7 @@ void BindPostFxShader(
         case POST_FX_DITHERING_ORDERED:
         {
             const char* shaderName = g_PostFxShaderName[fxType];
-            pRender->shaderMgr_.BindShaderByName(pContext, shaderName);
+            pRender->BindShaderByName(shaderName);
             break;
         }
 
@@ -2256,7 +2265,7 @@ void BindPostFxShader(
         case POST_FX_GAUSSIAN_BLUR:
         {
             const char* shaderName = g_PostFxShaderName[fxType];
-            pRender->shaderMgr_.BindShaderByName(pContext, shaderName);
+            pRender->BindShaderByName(shaderName);
             break;
         }
 
@@ -2351,7 +2360,7 @@ void CGraphics::VisualizeDepthBuffer()
         ID3D11ShaderResourceView* pDepthMSAASRV = d3d.GetDepthSRV();
         pContext->PSSetShaderResources(TEX_SLOT_DEPTH_MSAA, 1, &pDepthMSAASRV);
 
-        pRender_->shaderMgr_.BindShaderByName(pContext, "DepthResolveShader");
+        pRender_->BindShaderByName("DepthResolveShader");
         pContext->Draw(3, 0);
     }
     else
@@ -2360,7 +2369,7 @@ void CGraphics::VisualizeDepthBuffer()
         ID3D11ShaderResourceView* pDepthSRV = d3d.GetDepthSRV();
         pContext->PSSetShaderResources(TEX_SLOT_DEPTH, 1, &pDepthSRV);
 
-        pRender_->shaderMgr_.BindShaderByName(pContext, "VisualizeDepthShader");
+        pRender_->BindShaderByName("VisualizeDepthShader");
         pContext->Draw(3, 0);
     }
 
@@ -2368,18 +2377,18 @@ void CGraphics::VisualizeDepthBuffer()
     d3d.BindDepthBuffer();
 }
 
-///////////////////////////////////////////////////////////
-
-void CGraphics::SetupLightsForFrame(
-    ECS::EntityMgr* pEnttMgr,
-    Render::PerFrameData& outData)
+//---------------------------------------------------------
+// Desc:  convert light source data from the ECS into Render format
+//        (they are the same so we simply need to copy data)
+//---------------------------------------------------------
+void CGraphics::SetupLightsForFrame(Render::PerFrameData& outData)
 {
-    // convert light source data from the ECS into Render format
-    // (they are the same so we simply need to copy data)
+    assert(pEnttMgr_);
+    ECS::EntityMgr& mgr = *pEnttMgr_;
 
-    const ECS::LightSystem& lightSys         = pEnttMgr->lightSystem_;
-    const ECS::RenderSystem& renderSys       = pEnttMgr->renderSystem_;
-    const ECS::TransformSystem& transformSys = pEnttMgr->transformSystem_;
+    ECS::LightSystem&     lightSys           = mgr.lightSystem_;
+    ECS::RenderSystem&    renderSys          = mgr.renderSystem_;
+    ECS::TransformSystem& transformSys       = mgr.transformSystem_;
 
     const ECS::DirLights&   dirLights        = lightSys.GetDirLights();
     const ECS::PointLights& pointLights      = lightSys.GetPointLights();
@@ -2389,8 +2398,8 @@ void CGraphics::SetupLightsForFrame(
     const size numAllPointLights             = pointLights.data.size();
     const size numAllSpotLights              = spotLights.data.size();
 
-    const cvector<EntityID>& visPointLights = renderSys.GetVisiblePointLights();
-    const size numVisPointLights = visPointLights.size();
+    const cvector<EntityID>& visPointLights  = renderSys.GetVisiblePointLights();
+    const size numVisPointLights             = visPointLights.size();
 
     //printf("num visible point lights: %d\n", (int)numVisPointLights);
 
@@ -2425,6 +2434,7 @@ void CGraphics::SetupLightsForFrame(
     // prepare enough memory for lights buffer
     outData.ResizeLightData((int)numAllDirLights, numActivePointLights, numActiveSpotLights);
 
+
     // ----------------------------------------------------
     // prepare point lights data
 
@@ -2458,7 +2468,7 @@ void CGraphics::SetupLightsForFrame(
         outData.dirLights[i].specular = dirLights.data[i].specular;
     }
 
-    pEnttMgr->transformSystem_.GetDirections(
+    transformSys.GetDirections(
         dirLights.ids.data(),
         numAllDirLights,
         dirLDirections);
@@ -2491,6 +2501,7 @@ void CGraphics::SetupLightsForFrame(
 
         for (int i = 0; XMFLOAT3& dir : s_LightTmpData.spotLightsDirections)
         {
+            // normalize its direction here so we don't need to do it in our HLSL
             XMFloat3Normalize(dir);
             outData.spotLights[i++].direction = dir;
         }
@@ -2916,7 +2927,7 @@ bool CGraphics::RenderModelIntoFrameBuf()
 
     // bind a shader, prepare IA for rendering
     pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    pRender->shaderMgr_.BindShaderByName(pContext, "DebugModelShader");
+    pRender->BindShaderByName("DebugModelShader");
     pRender->BindVB(meshes.vb_.GetAddrOf(), meshes.vb_.GetStride(), 0);
     pRender->BindIB(meshes.ib_.Get(), DXGI_FORMAT_R32_UINT);
 

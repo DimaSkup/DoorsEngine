@@ -13,7 +13,6 @@
 #include "../Common/ConstBufferTypes.h"
 #include "../Common/RenderTypes.h"
 
-#include "../Shaders/ShaderMgr.h"
 #include "../Shaders/SamplerState.h"        // for using the ID3D11SamplerState 
 #include "../Shaders/ConstantBuffer.h"
 
@@ -26,6 +25,9 @@
 
 namespace Render
 {
+// forward declaration
+class ShaderMgr;
+
 
 //---------------------------------------------------------
 // Desc:  this struct contains init params for the rendering
@@ -66,6 +68,7 @@ public:
 
     // initialize the rendering subsystem
     bool Init(HWND hwnd, const InitParams& params);
+    void Shutdown();
 
     bool ShadersHotReload();
 
@@ -101,6 +104,9 @@ public:
         GetContext()->IASetIndexBuffer(pIB, format, 0);
     }
 
+    void BindShaderById(const ShaderID id);
+    void BindShaderByName(const char* shaderName);
+   
     inline void SetPrimTopology(const D3D_PRIMITIVE_TOPOLOGY type)
     {
         if (currPrimTopology_ == type)
@@ -157,6 +163,10 @@ public:
     {
         return cbWeather_.data.skyColorApex;
     }
+
+    bool ShaderExist       (const ShaderID id) const;
+    void GetArrShadersIds  (cvector<ShaderID>& outIds) const;
+    void GetArrShadersNames(cvector<ShaderName>& outNames) const;
 
 
     // ================================================================================
@@ -264,7 +274,6 @@ private:
 
 public:
     Render::D3DClass                                d3d_;
-    ShaderMgr                                       shaderMgr_;
 
     ID3D11DeviceContext*                            pContext_         = nullptr;
     ID3D11Buffer*                                   pInstancedBuffer_ = nullptr;
@@ -296,19 +305,25 @@ public:
     ConstantBuffer<ConstBufType::Sky>                     cbpsSky_;
     ConstantBuffer<ConstBufType::PostFx>                  cbpsPostFx_;
 
-    RenderDataStorage dataStorage_;
-    PerFrameData      perFrameData_;                              // we need to keep this data because we use it multiple times during the frame
+    RenderDataStorage   dataStorage_;
+    PerFrameData        perFrameData_;                                 // we need to keep this data because we use it multiple times during the frame
 
     // samplers for texturing
-    SamplerState samplerAnisotrop_;
-    SamplerState samplerSky_;
-    SamplerState samplerLinearClamp_;
-    SamplerState samplerLinearWrap_;
+    SamplerState        samplerAnisotrop_;
+    SamplerState        samplerSky_;
+    SamplerState        samplerLinearClamp_;
+    SamplerState        samplerLinearWrap_;
 
-    bool isDebugMode_      = false;                  // do we use the debug shader?
-    bool isChangedPostFxs_ = false;                  // did we change any post effect parameter?
+    bool                isDebugMode_      = false;                     // do we use the debug shader?
+    bool                isChangedPostFxs_ = false;                     // did we change any post effect parameter?
+    
+    ShaderID            currShaderId_ = INVALID_SHADER_ID;             // id of the currently bounded shader
+    char                currShaderName_[MAX_LEN_SHADER_NAME]{'\0'};    // name of the currently bounded shader
 
     D3D11_PRIMITIVE_TOPOLOGY currPrimTopology_ = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+private:
+    ShaderMgr* pShaderMgr_ = nullptr;
 };
 
 }; // namespace Render

@@ -29,8 +29,7 @@ void UIMaterialsBrowser::Init(IFacadeEngineToUI* pFacade)
     }
     pFacade_ = pFacade;
 
-    size numMaterials = 0;
-    pFacade->GetNumMaterials(numMaterials);
+    const size numMaterials = pFacade->GetNumMaterials();
     numItems_ = (int)numMaterials + 1;
 
     // init frame buffers so we will be able to render material icons into it
@@ -38,6 +37,8 @@ void UIMaterialsBrowser::Init(IFacadeEngineToUI* pFacade)
 
     // and immediately render material icons so we won't re-render it each frame
     pFacade->RenderMaterialsIcons();
+
+    pFacade_->GetShadersIdsAndNames(shadersIds_, shadersNames_);
 }
 
 //---------------------------------------------------------
@@ -304,25 +305,33 @@ void UIMaterialsBrowser::GetMaterialDataByIdx(const int matIdx)
         return;
     }
 
-    if (pFacade_->GetMaterialIdByIdx(matIdx, selectedMatId_))
+    const MaterialID matId = pFacade_->GetMaterialIdByIdx(matIdx);
+
+    if (matId == INVALID_MATERIAL_ID)
     {
-        selectedItemIdx_ = matIdx;                        // update index so the icon of this material will be shown as selected
-        materialWasChanged_ = true;                       // material was changed since the prev frame
-
-        pFacade_->GetMaterialNameById(
-            selectedMatId_,
-            selectedMaterialName_,
-            MAX_LEN_MAT_NAME);
-
-        pFacade_->GetMaterialTexIds(
-            selectedMatId_,
-            matData_.textureIDs);
-
-        pFacade_->GetTexViewsByIds(
-            matData_.textureIDs,
-            matData_.textures,
-            NUM_TEXTURE_TYPES);
+        LogErr(LOG, "can't get material id by index: %d", matIdx);
+        return;
     }
+
+    selectedMatId_ = matId;
+
+    selectedItemIdx_ = matIdx;                        // update index so the icon of this material will be shown as selected
+    materialWasChanged_ = true;                       // material was changed since the prev frame
+
+    const char* matName = pFacade_->GetMaterialNameById(selectedMatId_);
+    if (matName)
+    {
+        strncpy(selectedMaterialName_, matName, MAX_LEN_MAT_NAME);
+    }
+
+    pFacade_->GetMaterialTexIds(
+        selectedMatId_,
+        matData_.textureIDs);
+
+    pFacade_->GetTexViewsByIds(
+        matData_.textureIDs,
+        matData_.textures,
+        NUM_TEXTURE_TYPES);
 }
 
 //---------------------------------------------------------
@@ -651,21 +660,16 @@ void UIMaterialsBrowser::DrawShadersSelectors()
 {
     if (ImGui::TreeNode("Select shader"))
     {
-        // TODO: maybe optimize somehow (to prevent dynamic alloc each time)
-        cvector<ShaderData> shaderData;
-        pFacade_->GetShadersIdAndName(shaderData);
-
         // currently selected shader of currently selected material
         ShaderID& selectedShaderId = matData_.shaderId;
 
-
-        for (index idx = 0; idx < shaderData.size(); ++idx)
+        for (index idx = 0; idx < shadersIds_.size(); ++idx)
         {
-            const char* name  = shaderData[idx].name;
-            const ShaderID id = shaderData[idx].id;
+            const ShaderID id = shadersIds_[idx];
+            const char* name  = shadersNames_[idx].name;
 
             char str[64]{'\0'};
-            snprintf(str, 64, "(id: %d) %s", (int)id, name);
+            snprintf(str, 64, "(id: %" PRIu32 ") %s", (int)id, name);
 
             if (ImGui::Selectable(str, selectedShaderId == id))
             {

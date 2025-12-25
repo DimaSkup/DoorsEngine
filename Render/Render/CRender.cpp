@@ -9,6 +9,7 @@
 #include "../Shaders/Shader.h"
 #include <math/dx_math_helpers.h>
 #include <post_fx_enum.h>
+#include "../Shaders/ShaderMgr.h"
 
 using XMFLOAT3 = DirectX::XMFLOAT3;
 using XMFLOAT4 = DirectX::XMFLOAT4;
@@ -24,7 +25,7 @@ CRender::CRender()
 
 CRender::~CRender()
 {
-    d3d_.Shutdown();
+    Shutdown();
 }
 
 // =================================================================================
@@ -59,17 +60,30 @@ bool CRender::Init(HWND hwnd, const InitParams& params)
         result = InitSamplers(pDevice, pContext);
         CAssert::True(result, "can't init samplers");
 
-        result = shaderMgr_.Init(pDevice, pContext, params.worldViewOrtho);
+        pShaderMgr_ = NEW ShaderMgr();
+        CAssert::NotNullptr(pShaderMgr_, "can't alloc memory from a shader manager");
+
+        result = pShaderMgr_->Init(pDevice, pContext, params.worldViewOrtho);
         CAssert::True(result, "can't init shaders manager");
     }
     catch (EngineException& e)
     {
         LogErr(e, true);
         LogErr(LOG, "can't initialize the CRender module");
+        Shutdown();
         return false;
     }
 
     return true;
+}
+
+//---------------------------------------------------------
+// Desc:  clean memory from stuff
+//---------------------------------------------------------
+void CRender::Shutdown()
+{
+    d3d_.Shutdown();
+    SafeDelete(pShaderMgr_);
 }
 
 //---------------------------------------------------------
@@ -516,7 +530,7 @@ bool CRender::InitSamplers(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 //---------------------------------------------------------
 bool CRender::ShadersHotReload()
 {
-    return shaderMgr_.HotReload(GetDevice());
+    return pShaderMgr_->HotReload(GetDevice());
 }
 
 
@@ -603,7 +617,6 @@ void CRender::UpdateInstancedBuffer(
         for (int i = 0; i < count; ++i)
         {
             dataView[i].world             = worlds[i];
-            //dataView[i].worldInvTranspose = MathHelper::InverseTranspose(worlds[i]);
             dataView[i].worldInvTranspose = worlds[i];
         }
 
@@ -647,9 +660,8 @@ void CRender::RenderInstances(
         pContext->IASetVertexBuffers(0, 2, vbs, strides, offsets);
         pContext->IASetIndexBuffer(instances.pIB, DXGI_FORMAT_R32_UINT, 0);
 
-        // bind shader
-        shaderMgr_.BindShaderById(pContext, instances.shaderId);
-        shaderMgr_.Render(pContext, instances, startInstanceLocation);
+        BindShaderById(instances.shaderId);
+        pShaderMgr_->Render(pContext, instances, startInstanceLocation);
     }
     catch (EngineException& e)
     {
@@ -682,8 +694,8 @@ void CRender::DepthPrepassInstances(
     pContext->IASetIndexBuffer(instances.pIB, DXGI_FORMAT_R32_UINT, 0);
 
     
-    shaderMgr_.DepthPrePassBindShaderById(pContext, instances.shaderId);
-    shaderMgr_.Render(pContext, instances, startInstanceLocation);
+    pShaderMgr_->DepthPrePassBindShaderById(pContext, instances.shaderId);
+    pShaderMgr_->Render(pContext, instances, startInstanceLocation);
 }
 
 //---------------------------------------------------------
@@ -699,9 +711,8 @@ void CRender::RenderSkyDome(
     UpdateCbWorldViewProj(worldViewProj);
 
     // bind shader and render sky
-    ID3D11DeviceContext* pContext = GetContext();
-    shaderMgr_.BindShaderByName(pContext, "SkyDomeShader");
-    shaderMgr_.Render(pContext, sky.indexCount);
+    BindShaderByName("SkyDomeShader");
+    pShaderMgr_->Render(GetContext(), sky.indexCount);
 }
 
 //---------------------------------------------------------
@@ -721,14 +732,14 @@ void CRender::RenderFont(
         CAssert::True(indexCounts,          "input ptr to index counts arr == nullptr");
         CAssert::True(numVertexBuffers > 0, "input number of vertex buffers must be > 0");
 
-        shaderMgr_.BindShaderByName(GetContext(), "FontShader");
+        BindShaderByName("FontShader");
         BindIB(pIndexBuf, DXGI_FORMAT_R32_UINT);
 
         // render each set of text
         for (index idx = 0; idx < numVertexBuffers; ++idx)
         {
             BindVB(&vertexBuffers[idx], fontVertexStride, 0);
-            shaderMgr_.Render(GetContext(), indexCounts[idx]);
+            pShaderMgr_->Render(GetContext(), indexCounts[idx]);
         }
     }
     catch (EngineException& e)
@@ -972,7 +983,6 @@ void CRender::UpdateCbBoneTransforms(const cvector<DirectX::XMMATRIX>& boneTrans
     for (index i = 0; i < boneTransforms.size(); ++i)
         cbvsSkinned_.data.boneTransforms[i] = DirectX::XMMatrixTranspose(boneTransforms[i]);
 
-    //memcpy(cbSkinned_.data.boneTransforms, boneTransforms.data(), sizeof(DirectX::XMMATRIX) * boneTransforms.size());
     cbvsSkinned_.ApplyChanges(GetContext());
 }
 
@@ -1243,6 +1253,69 @@ float CRender::GetPostFxParam(const uint16 fxParamIdx)
     }
 
     return cbpsPostFx_.data.data[paramType];
+}
+
+//---------------------------------------------------------
+// Desc:  check if there is such a shader by ID
+//---------------------------------------------------------
+bool CRender::ShaderExist(const ShaderID id) const
+{
+    return (pShaderMgr_->GetShaderById(id) != nullptr);
+}
+
+//---------------------------------------------------------
+// Desc:  fill in the input arr with ids of all the loaded shaders
+//---------------------------------------------------------
+void CRender::GetArrShadersIds(cvector<ShaderID>& outIds) const
+{
+    pShaderMgr_->GetArrShadersIds(outIds);
+}
+
+//---------------------------------------------------------
+// Desc:  fill in the input arr with names of all the loader shaders
+//---------------------------------------------------------
+void CRender::GetArrShadersNames(cvector<ShaderName>& outNames) const
+{
+    pShaderMgr_->GetArrShadersNames(outNames);
+}
+
+//---------------------------------------------------------
+// Desc:  bind a shader by input id
+//---------------------------------------------------------
+void CRender::BindShaderById(const ShaderID id)
+{
+    if (id == currShaderId_)
+        return;
+
+    Shader* pShader = pShaderMgr_->GetShaderById(id);
+    if (!pShader)
+        return;
+
+    pShaderMgr_->BindShader(GetContext(), pShader);
+
+    currShaderId_ = id;
+    strcpy(currShaderName_, pShader->GetName());
+}
+
+//---------------------------------------------------------
+// Desc:  bind a shader by input name
+//---------------------------------------------------------
+void CRender::BindShaderByName(const char* shaderName)
+{
+    if (StrHelper::IsEmpty(shaderName))
+        return;
+
+    if (strcmp(currShaderName_, shaderName) == 0)
+        return;
+
+    Shader* pShader = pShaderMgr_->GetShaderByName(shaderName);
+    if (!pShader)
+        return;
+
+    pShaderMgr_->BindShader(GetContext(), pShader);
+
+    currShaderId_ = pShader->GetId();
+    strcpy(currShaderName_, shaderName);
 }
 
 }; // namespace

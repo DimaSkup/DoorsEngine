@@ -377,7 +377,7 @@ void BasicModel::ComputeSubsetsAABB()
         XMVECTOR vMax{ -FLT_MIN, -FLT_MIN, -FLT_MIN };
         
         // go through each vertex of this subset (mesh)
-        for (u32 vIdx = 0; vIdx < subset.vertexCount; ++vIdx)
+        for (uint32 vIdx = 0; vIdx < subset.vertexCount; ++vIdx)
         {
             XMVECTOR P = XMLoadFloat3(&vertices[vIdx].position);
             vMin = XMVectorMin(vMin, P);

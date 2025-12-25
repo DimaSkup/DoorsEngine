@@ -20,7 +20,8 @@ using XMVECTOR      = DirectX::XMVECTOR;
 using XMMATRIX      = DirectX::XMMATRIX;
 
 
-// for detailed description of each component you need to look for responsible component header file
+// for detailed (I hope) description of each component
+// you need to look for responsible component's header file
 enum eComponentType
 {
     NameComponent,                 // REQUIRED: attach some name for the entity
@@ -38,7 +39,8 @@ enum eComponentType
 
     PlayerComponent,               // to hold First-Person-Shooter (FPS) player's data
     ParticlesComponent,
-    InventoryComponent,
+    InventoryComponent,            // inventory of entity
+    AnimationComponent,            // for model skinning
 
     // NOT IMPLEMENTED YET
     AIComponent,
@@ -55,6 +57,7 @@ enum eComponentType
     NUM_COMPONENTS
 };
 
+#if 0
 enum RenderShaderType
 {
     COLOR_SHADER,
@@ -62,5 +65,6 @@ enum RenderShaderType
     LIGHT_SHADER,
     SKYDOME_SHADER
 };
+#endif
 
 } // namespace ECS

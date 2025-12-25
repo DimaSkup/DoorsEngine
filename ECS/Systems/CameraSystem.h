@@ -25,61 +25,61 @@ public:
     void RemoveRecord(const EntityID id);
     bool HasEntity   (const EntityID id) const;
 
-    void Strafe (const EntityID id, const float d);
-    void Walk   (const EntityID id, const float d);
-    void MoveUp (const EntityID id, const float d);
+    void Strafe      (const EntityID id, const float dist);
+    void Walk        (const EntityID id, const float dist);
+    void MoveUp      (const EntityID id, const float dist);
 
-    void Pitch  (const EntityID id, const float angle);
-    void RotateY(const EntityID id, const float angle);
+    void Pitch       (const EntityID id, const float angle);
+    void RotateY     (const EntityID id, const float angle);
 
-    //
+
+    //----------------------------------------------------
     // getters
-    //
+    //----------------------------------------------------
     void GetAllCamerasIds(cvector<EntityID>& outIds) const;
 
-    inline const CameraData& GetCameraData(const EntityID id) const { return pCameraComponent_->data[id]; }
+    inline const CameraData& GetCameraData  (const EntityID id) const { return pCameraComponent_->data[id]; }
 
-    inline const XMMATRIX& GetBaseView   (const EntityID id) const { return (HasEntity(id)) ? GetData(id).baseView : GetCameraData(0).baseView; }
-    inline const XMMATRIX& GetView       (const EntityID id) const { return (HasEntity(id)) ? GetData(id).view     : GetCameraData(0).view; }
-    inline const XMMATRIX& GetInverseView(const EntityID id) const { return (HasEntity(id)) ? GetData(id).invView  : GetCameraData(0).invView; }
-    inline const XMMATRIX& GetProj       (const EntityID id) const { return (HasEntity(id)) ? GetData(id).proj     : GetCameraData(0).proj; }
-    inline const XMMATRIX& GetOrtho      (const EntityID id) const { return (HasEntity(id)) ? GetData(id).ortho    : GetCameraData(0).ortho; }
+    inline const XMMATRIX& GetBaseView      (const EntityID id) const { return (HasEntity(id)) ? GetData(id).baseView : GetCameraData(0).baseView; }
+    inline const XMMATRIX& GetView          (const EntityID id) const { return (HasEntity(id)) ? GetData(id).view     : GetCameraData(0).view; }
+    inline const XMMATRIX& GetInverseView   (const EntityID id) const { return (HasEntity(id)) ? GetData(id).invView  : GetCameraData(0).invView; }
+    inline const XMMATRIX& GetProj          (const EntityID id) const { return (HasEntity(id)) ? GetData(id).proj     : GetCameraData(0).proj; }
+    inline const XMMATRIX& GetOrtho         (const EntityID id) const { return (HasEntity(id)) ? GetData(id).ortho    : GetCameraData(0).ortho; }
 
-    inline const XMMATRIX  GetViewProj   (const EntityID id) const { return (HasEntity(id)) ? GetData(id).view * GetData(id).proj : DirectX::XMMatrixIdentity(); }
+    inline const XMMATRIX  GetViewProj      (const EntityID id) const { return (HasEntity(id)) ? GetData(id).view * GetData(id).proj : DirectX::XMMatrixIdentity(); }
 
     // get camera basis vectors
-    inline const XMVECTOR& GetPosVec     (const EntityID id) const { return pTransformSys_->GetPositionVec(id); }
-    inline const XMVECTOR& GetLookVec    (const EntityID id) const { return pTransformSys_->GetDirectionVec(id); }
-    inline const XMVECTOR& GetRightVec   (const EntityID id) const { return (HasEntity(id)) ? GetCameraData(id).right : GetCameraData(0).right; }
+    inline const XMVECTOR& GetPosVec        (const EntityID id) const { return pTransformSys_->GetPositionVec(id); }
+    inline const XMVECTOR& GetLookVec       (const EntityID id) const { return pTransformSys_->GetDirectionVec(id); }
+    inline const XMVECTOR& GetRightVec      (const EntityID id) const { return (HasEntity(id)) ? GetCameraData(id).right : GetCameraData(0).right; }
 
-    inline XMFLOAT3 GetPos (const EntityID id) const { return pTransformSys_->GetPosition(id); }
-    XMFLOAT3        GetLook(const EntityID id) const;
+    inline XMFLOAT3 GetPos                  (const EntityID id) const { return pTransformSys_->GetPosition(id); }
+    XMFLOAT3        GetLook                 (const EntityID id) const;
 
     // get frustum properties
-    inline float GetNearZ (const EntityID id) const { return (HasEntity(id)) ? GetCameraData(id).nearZ : -1.0f; }
-    inline float GetFarZ  (const EntityID id) const { return (HasEntity(id)) ? GetCameraData(id).farZ  : -1.0f; }
-    inline float GetAspect(const EntityID id) const { return (HasEntity(id)) ? GetCameraData(id).aspectRatio : -1.0f; }
-    inline float GetFovY  (const EntityID id) const { return (HasEntity(id)) ? GetCameraData(id).fovY  : -1.0f; }
-    inline float GetFovX  (const EntityID id) const { return 2.0f * atanf(0.5f * GetNearWndWidth(id) / GetNearZ(id)); }
+    inline float GetNearZ                   (const EntityID id) const { return (HasEntity(id)) ? GetCameraData(id).nearZ : -1.0f; }
+    inline float GetFarZ                    (const EntityID id) const { return (HasEntity(id)) ? GetCameraData(id).farZ  : -1.0f; }
+    inline float GetAspect                  (const EntityID id) const { return (HasEntity(id)) ? GetCameraData(id).aspectRatio : -1.0f; }
+    inline float GetFovY                    (const EntityID id) const { return (HasEntity(id)) ? GetCameraData(id).fovY  : -1.0f; }
+    inline float GetFovX                    (const EntityID id) const { return 2.0f * atanf(0.5f * GetNearWndWidth(id) / GetNearZ(id)); }
 
     bool GetFrustumInitParams(
         const EntityID camId,
         float& fov,
         float& aspect,
         float& nearZ,
-        float& farZ);
+        float& farZ) const;
 
     // get near and far plane dimensions in view space coordinates
-    inline float GetNearWndWidth (const EntityID id) const { return GetAspect(id) * GetNearWndHeight(id); }
-    inline float GetFarWndWidth  (const EntityID id) const { return GetAspect(id) * GetFarWndHeight(id); }
-    inline float GetNearWndHeight(const EntityID id) const { return (HasEntity(id)) ? GetCameraData(id).nearWndHeight : -1.0f; }
-    inline float GetFarWndHeight (const EntityID id) const { return (HasEntity(id)) ? GetCameraData(id).farWndHeight  : -1.0f; }
+    inline float GetNearWndWidth            (const EntityID id) const { return GetAspect(id) * GetNearWndHeight(id); }
+    inline float GetFarWndWidth             (const EntityID id) const { return GetAspect(id) * GetFarWndHeight(id); }
+    inline float GetNearWndHeight           (const EntityID id) const { return (HasEntity(id)) ? GetCameraData(id).nearWndHeight : -1.0f; }
+    inline float GetFarWndHeight            (const EntityID id) const { return (HasEntity(id)) ? GetCameraData(id).farWndHeight  : -1.0f; }
 
-    // ----------------------------------------------------
 
-    //
+    //----------------------------------------------------
     // setters
-    //
+    //----------------------------------------------------
     void SetAspectRatio   (const EntityID id, const float aspect);
     void SetBaseViewMatrix(const EntityID id, const XMMATRIX& baseView);
 

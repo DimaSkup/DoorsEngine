@@ -34,7 +34,7 @@ struct StaticTexTransInitParams : public TexTransformInitParams
     StaticTexTransInitParams() {};
 
     StaticTexTransInitParams(
-        const u32 transformsCount,
+        const uint32 transformsCount,
         const XMMATRIX& inInitTransform,
         const XMMATRIX& transformToUpdate = DirectX::XMMatrixIdentity())  // by default we have no changes of transformation during runtime
     {
@@ -117,7 +117,7 @@ struct AtlasAnimInitParams : public TexTransformInitParams
         animDurations.append_vector(inAnimDurations);
     }
 
-    void Push(const u32 rowsCount, const u32 columnsCount, const float animDuration)
+    void Push(const uint32 rowsCount, const uint32 columnsCount, const float animDuration)
     {
         assert((rowsCount & columnsCount) && (animDuration > 0));
 

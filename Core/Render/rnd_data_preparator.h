@@ -22,8 +22,7 @@ public:
     RenderDataPreparator();
 
     void PrepareEnttsDataForRendering(
-        const EntityID* enttsIds,
-        const size numEntts,
+        cvector<EntityID>& visibleEntts,
         const DirectX::XMFLOAT3& cameraPos,
         ECS::EntityMgr* pEnttMgr,
         Render::RenderDataStorage& storage);

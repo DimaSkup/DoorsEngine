@@ -1,10 +1,19 @@
-// **********************************************************************************
-// Filename:      BoundingSystem.h
-// Description:   ECS system for handling bounding data of entts
-// 
-// Created:       26.09.2024
-// Revisited:     30.11.2025 (God damn, I simplified this shit alot)
-// **********************************************************************************
+/**********************************************************************************\
+
+    ******     ******    ******   ******    ********
+    **    **  **    **  **    **  **    **  **    **
+    **    **  **    **  **    **  **    **  **
+    **    **  **    **  **    **  **    **  ********
+    **    **  **    **  **    **  ******          **
+    **    **  **    **  **    **  **  ***   **    **
+    ******     ******    ******   **    **  ********
+
+    Filename: BoundingSystem
+    Desc:     ECS system to handle bounding shapes of entities
+
+    Created:       26.09.2024
+    Revisited:     30.11.2025 (God damn, I simplified this shit alot)
+\**********************************************************************************/
 #pragma once
 
 #include "../Common/ECSTypes.h"
@@ -48,10 +57,10 @@ private:
     //-----------------------------------------------------
     inline index GetIdxByID(const EntityID id) const
     {
-        const Bounding& comp = *pBoundingComponent_;
-        const index     idx  = comp.ids.get_idx(id);
+        const cvector<EntityID>& ids = pBoundingComponent_->ids;
+        const index              idx = ids.get_idx(id);
 
-        if (idx > 0 || idx < comp.ids.size())
+        if (idx > 0 || idx < ids.size())
             return idx;
 
         return 0;

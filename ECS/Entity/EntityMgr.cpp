@@ -28,7 +28,8 @@ EntityMgr::EntityMgr() :
     hierarchySystem_    { &hierarchy_, &transformSystem_ },
     playerSystem_       { &transformSystem_, &cameraSystem_, &hierarchySystem_ },
     particleSystem_     { &transformSystem_, &boundingSystem_ },
-    inventorySystem_    { &inventory_ }
+    inventorySystem_    { &inventory_ },
+    animationSystem_    { &animations_ }
 {
     LogDbg(LOG, "start of entity mgr init");
 
@@ -210,11 +211,12 @@ void EntityMgr::DestroyEntities(const EntityID* ids, const size numEntts)
 
 void EntityMgr::Update(const float totalGameTime, const float deltaTime)
 {
-    //moveSystem_.UpdateAllMoves(deltaTime, transformSystem_);
     texTransformSystem_.UpdateAllTextrureAnimations(totalGameTime, deltaTime);
     lightSystem_.Update(deltaTime, totalGameTime);
+    animationSystem_.Update(deltaTime);
 
-    
+
+    // handle events
     for (const Event& e : events_)
     {
         switch (e.type)
@@ -248,7 +250,7 @@ void EntityMgr::Update(const float totalGameTime, const float deltaTime)
             }
             case EVENT_PLAYER_RUN:              // set the player is running or not
             {
-                playerSystem_.SetIsRunning(e.x);
+                playerSystem_.SetIsRunning(0);
                 break;
             }
             case EVENT_PLAYER_JUMP:
@@ -744,7 +746,7 @@ void EntityMgr::AddPlayerComponent(const EntityID id)
 //---------------------------------------------------------
 void EntityMgr::AddParticleEmitterComponent(const EntityID id)
 {
-    // add component only if such entity exists
+    // if such entity doesn't exist...
     if (!ids_.binary_search(id))
     {
         LogErr(LOG, GetErrMsgFailedAddComponent("particle emitter", id).c_str());
@@ -760,7 +762,7 @@ void EntityMgr::AddParticleEmitterComponent(const EntityID id)
 //---------------------------------------------------------
 void EntityMgr::AddInventoryComponent(const EntityID id)
 {
-    // add component only if such entity exists
+    // if such entity doesn't exist...
     if (!ids_.binary_search(id))
     {
         LogErr(LOG, GetErrMsgFailedAddComponent("inventory", id).c_str());
@@ -769,6 +771,31 @@ void EntityMgr::AddInventoryComponent(const EntityID id)
 
     inventorySystem_.AddInventory(id);
     SetEnttHasComponent(id, InventoryComponent);
+}
+
+//---------------------------------------------------------
+// Desc:  bind a skeleton to entity and set current animation (for model skinning)
+//---------------------------------------------------------
+void EntityMgr::AddAnimationComponent(
+    const EntityID enttId,
+    const SkeletonID skeletonId,
+    const AnimationID animId,
+    const float animEndTime)
+{
+    // if such entity doesn't exist...
+    if (!ids_.binary_search(enttId))
+    {
+        LogErr(LOG, GetErrMsgFailedAddComponent("animation", enttId).c_str());
+        return;
+    }
+
+    if (!animationSystem_.AddRecord(enttId, skeletonId, animId, animEndTime))
+    {
+        LogErr(LOG, "can't add a skeleton and animation for entt: %" PRIu32, enttId);
+        return;
+    }
+
+    SetEnttHasComponent(enttId, AnimationComponent);
 }
 
 

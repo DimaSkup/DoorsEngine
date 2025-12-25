@@ -45,7 +45,7 @@
     <ClInclude Include="SystemState.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Types.h">
+    <ClInclude Include="types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UtilsFilesystem.h">

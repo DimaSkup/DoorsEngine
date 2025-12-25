@@ -139,10 +139,7 @@ private:
     CGraphics           graphics_;              // rendering system
 
     ImGuiLayer          imGuiLayer_;
-
-    //KeyboardEvent      keyboardEvent_;       // the current keyboard event
     MouseEvent          mouseEvent_;          // the current mouse event
-    //SoundClass          sound_;
 
     ECS::EntityMgr*     pEnttMgr_       = nullptr;
     UI::UserInterface*  pUserInterface_ = nullptr;

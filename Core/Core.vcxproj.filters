@@ -195,10 +195,10 @@
     <ClCompile Include="UI\Editor\Fog\FogEditorController.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UI\Editor\Entity\Controller\EnttEditorController.cpp">
+    <ClCompile Include="UI\Editor\Entity\EnttEditorController.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UI\Editor\Entity\View\EnttTransformView.cpp">
+    <ClCompile Include="UI\Editor\Entity\View\ui_entt_transform_view.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="UI\Editor\Panels\EditorPanels.cpp">
@@ -213,34 +213,31 @@
     <ClCompile Include="ImGui\imgui_layer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UI\Editor\Entity\View\EnttLightView.cpp">
+    <ClCompile Include="UI\Editor\Entity\View\ui_entt_light_view.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="UI\UICommon\events_history.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UI\Editor\Entity\Controller\EnttTransformController.cpp">
+    <ClCompile Include="UI\Editor\Entity\Controller\ui_entt_transform_controller.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UI\Editor\Entity\Controller\EnttSpotLightController.cpp">
+    <ClCompile Include="UI\Editor\Entity\Controller\ui_entt_spotlight_controller.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UI\Editor\Entity\Controller\EnttPointLightController.cpp">
+    <ClCompile Include="UI\Editor\Entity\Controller\ui_entt_point_light_controller.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="UI\Editor\Terrain\Sky\SkyController.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UI\Editor\Entity\Controller\EnttDirLightController.cpp">
+    <ClCompile Include="UI\Editor\Entity\Controller\ui_entt_dir_light_controller.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="UI\Editor\EditorPanelElement\ui_models_browser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Mesh\material_mgr.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="UI\Editor\Entity\View\EnttComponentsEditor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="UI\Editor\EditorPanelElement\ui_textures_browser.cpp">
@@ -337,6 +334,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="UI\Editor\Terrain\Sky\SkyEditorView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Editor\Entity\Controller\ui_entt_animation_controller.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Editor\Entity\View\ui_entt_animation_view.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -536,13 +539,13 @@
     <ClInclude Include="UI\Editor\Debug\ui_debug_control.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UI\Editor\Entity\Controller\EnttEditorController.h">
+    <ClInclude Include="UI\Editor\Entity\EnttEditorController.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\Editor\Entity\Model\EnttTransformData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UI\Editor\Entity\View\EnttTransformView.h">
+    <ClInclude Include="UI\Editor\Entity\View\ui_entt_transform_view.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\Editor\Panels\EditorPanels.h">
@@ -608,7 +611,7 @@
     <ClInclude Include="ImGui\backends\imgui_impl_win32.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UI\Editor\Entity\View\EnttLightView.h">
+    <ClInclude Include="UI\Editor\Entity\View\ui_entt_light_view.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\Editor\Entity\Model\EnttLightData.h">
@@ -629,19 +632,19 @@
     <ClInclude Include="Engine\dump_generator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UI\Editor\Entity\Controller\EnttTransformController.h">
+    <ClInclude Include="UI\Editor\Entity\Controller\ui_entt_transform_controller.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UI\Editor\Entity\Controller\EnttPointLightController.h">
+    <ClInclude Include="UI\Editor\Entity\Controller\ui_entt_point_light_controller.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UI\Editor\Entity\Controller\EnttSpotLightController.h">
+    <ClInclude Include="UI\Editor\Entity\Controller\ui_entt_spotlight_controller.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\Editor\Terrain\Sky\SkyController.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UI\Editor\Entity\Controller\EnttDirLightController.h">
+    <ClInclude Include="UI\Editor\Entity\Controller\ui_entt_dir_light_controller.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\Editor\EditorPanelElement\ui_models_browser.h">
@@ -654,9 +657,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\Editor\Entity\Model\SelectedEnttData.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="UI\Editor\Entity\View\EnttComponentsEditor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\Editor\EditorPanelElement\ui_textures_browser.h">
@@ -753,6 +753,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\UICommon\mat_data_container.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Editor\Entity\Controller\ui_entt_animation_controller.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Editor\Entity\Model\EnttAnimationData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Editor\Entity\View\ui_entt_animation_view.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

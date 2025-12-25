@@ -51,11 +51,6 @@ public:
 
     constexpr inline uint64 GetFlagsMove() const { return (MOVE_FORWARD | MOVE_BACK | MOVE_RIGHT | MOVE_LEFT | MOVE_UP | MOVE_DOWN); }
 
-    inline bool IsMoving()           const { return data_.playerStates_ & GetFlagsMove(); }
-    inline bool IsFreeFlyMode()      const { return data_.playerStates_ & FREE_FLY; }
-    inline bool IsFlashLightActive() const { return data_.playerStates_ & TURNED_FLASHLIGHT; }
-    inline bool IsJump()             const { return data_.playerStates_ & JUMP; }
-    
 
     // set movement state
     void Move(ePlayerState movementState);
@@ -76,17 +71,41 @@ public:
     inline void SetOffsetOverTerrain(const float offset)    { data_.offsetOverTerrain = offset; }
     inline void SetJumpMaxHeight    (const float maxH)      { data_.jumpMaxHeight = maxH; }
 
+    inline uint64 GetPlayerStates() const { return data_.playerStates_; }
+
     inline void StopJump()
     {
         data_.playerStates_ &= ~(JUMP);
         data_.jumpOffset = 0;
     }
+
+    void ResetStates()
+    {
+        data_.playerStates_ &= ~(RUN | WALK | CRAWL | SHOOT | RELOADING);
+    }
+
+    void SetIsReloading(const float actionDurationMs);
+    void SetIsShooting (const float actionDurationMs);
+    void SetIsWalking  (const float actionDurationMs);
+    void SetIsRunning  (const float actionDurationMs);
+    void SetIsIdle     ();
+
+    inline bool IsReloading()        const { return data_.playerStates_ & RELOADING; }
+    inline bool IsShooting()         const { return data_.playerStates_ & SHOOT; }
+    inline bool IsMoving()           const { return data_.playerStates_ & GetFlagsMove(); }
+    inline bool IsWalking()          const { return data_.playerStates_ & WALK; }
+    inline bool IsRunning()          const { return data_.playerStates_ & RUN; }
+    inline bool IsIdle()             const { return data_.playerStates_ & IDLE; }
+
+    inline bool IsFreeFlyMode()      const { return data_.playerStates_ & FREE_FLY; }
+    inline bool IsFlashLightActive() const { return data_.playerStates_ & TURNED_FLASHLIGHT; }
+    inline bool IsJump()             const { return data_.playerStates_ & JUMP; }
+
     
-    void SetIsRunning    (const bool isRun);
     void SetFreeFlyMode  (const bool mode);
     void SwitchFlashLight(const bool state);
 
-    inline bool IsRunning() const { return data_.playerStates_ & RUN; }
+ 
 
 private:
     TransformSystem* pTransformSys_ = nullptr;
@@ -96,6 +115,8 @@ private:
     EntityID   playerID_ = INVALID_ENTITY_ID;
     PlayerData data_;
 
+    float currActTime_ = 0;
+    float endActTime_  = 0;
 };
 
 } // namespace ECS

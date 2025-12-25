@@ -306,26 +306,9 @@ void ShaderMgr::BindBuffers(
     assert(pIB != nullptr);
     assert(strides != nullptr);
     assert(offsets != nullptr);
-    assert(numVBs > 0);
 
-    pContext->IASetVertexBuffers(0, 2, vbs, strides, offsets);
+    pContext->IASetVertexBuffers(0, (UINT)numVBs, vbs, strides, offsets);
     pContext->IASetIndexBuffer(pIB, DXGI_FORMAT_R16_UINT, 0);
-}
-
-//---------------------------------------------------------
-// Desc:  find and bind a shader by input name
-//---------------------------------------------------------
-void ShaderMgr::BindShaderByName(ID3D11DeviceContext* pContext, const char* shaderName)
-{
-    BindShader(pContext, GetShaderByName(shaderName));
-}
-
-//---------------------------------------------------------
-// Desc:  bind a shader by input shader's ID
-//---------------------------------------------------------
-void ShaderMgr::BindShaderById(ID3D11DeviceContext* pContext, const ShaderID id)
-{
-    BindShader(pContext, GetShaderById(id));
 }
 
 //---------------------------------------------------------
@@ -430,13 +413,17 @@ void ShaderMgr::Render(
 // Desc:   return a ptr to shader by input ID
 //         or nullptr if there is no such a shader
 //---------------------------------------------------------
-Shader* ShaderMgr::GetShaderById(const ShaderID id)
+Shader* ShaderMgr::GetShaderById(const ShaderID id) const
 {
-    if (idToShader_.contains(id))
-        return idToShader_[id];
+    const auto it = idToShader_.find(id);
 
-    LogErr(LOG, "there is no shader by id: %" PRIu32, ", so return nullptr");
-    return nullptr;
+    if (it == idToShader_.end())
+    {
+        LogErr(LOG, "there is no shader by id: %" PRIu32, ", so return nullptr");
+        return nullptr;
+    }
+
+    return it->second;
 }
 
 //---------------------------------------------------------
@@ -500,6 +487,30 @@ const char* ShaderMgr::GetShaderNameById(const ShaderID id)
     return nullptr;
 }
 
+//---------------------------------------------------------
+// Desc:  fill in the input arr with ids of all the loaded shaders
+//---------------------------------------------------------
+void ShaderMgr::GetArrShadersIds(cvector<ShaderID>& outIds) const
+{
+    outIds.resize(idToShader_.size(), INVALID_SHADER_ID);
+
+    for (int i = 0; const auto& it : idToShader_)
+        outIds[i++] = it.first;
+}
+
+//---------------------------------------------------------
+// Desc:  fill in the input arr with names of all the loader shaders
+//---------------------------------------------------------
+void ShaderMgr::GetArrShadersNames(cvector<ShaderName>& outNames) const
+{
+    outNames.resize(idToShader_.size());
+
+    for (int i = 0; const auto & it : idToShader_)
+    {
+        strcpy(outNames[i].name, it.second->GetName());
+        ++i;
+    }
+}
 
 
 //==================================================================================

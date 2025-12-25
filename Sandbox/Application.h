@@ -35,6 +35,7 @@ public:
 
     void Init();
     void Run();
+    void Update(const float deltaTime, const float gameTime);
     void Close();
 
     bool InitWindow();

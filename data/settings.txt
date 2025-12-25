@@ -21,7 +21,9 @@ PLAYER_POS_Z_AFTER_INIT       240.0f
 MOUSE_SENSITIVITY             1.0f
 
 CAMERA_HEIGHT_OFFSET          10.0f
-FOV_IN_RAD                    1.30796f
+FOV_IN_RAD             1.30796f
+FOV_IN_RAD_75_DEG             1.30796f
+FOV_IN_RAD_90_DEG             1.5707f
 EDITOR_CAM_NEAR_Z             0.01f
 EDITOR_CAM_FAR_Z              1000.0f
 GAME_CAM_NEAR_Z               0.01f

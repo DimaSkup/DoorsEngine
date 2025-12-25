@@ -102,6 +102,9 @@ private:
 
     float   contextMenuPosX_ = 0;
     float   contextMenuPosY_ = 0;
+
+    cvector<ShaderID>   shadersIds_;
+    cvector<ShaderName> shadersNames_;
 };
 
 }; // namespace UI

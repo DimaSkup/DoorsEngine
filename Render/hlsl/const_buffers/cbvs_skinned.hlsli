@@ -6,6 +6,9 @@
 
 cbuffer cbSkinned : register(b4)
 {
+    // max support of 192 bones per character
+    matrix gBoneTransforms[192];
+
     // max support of 96 bones per character
-    matrix gBoneTransforms[96];
+    //matrix gBoneTransforms[96];
 }

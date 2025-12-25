@@ -14,7 +14,7 @@
 
 #include "../Tools/model_screenshot.h"
 #include "../Debug/ui_debug_control.h"
-#include "../Entity/Controller/EnttEditorController.h"
+#include "../Entity/EnttEditorController.h"
 #include "../Fog/FogEditorController.h"
 #include "../Terrain/Sky/SkyController.h"
 

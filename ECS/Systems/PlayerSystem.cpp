@@ -34,6 +34,22 @@ PlayerSystem::PlayerSystem(
 //---------------------------------------------------------
 void PlayerSystem::Update(const float deltaTime)
 {
+    if (!IsIdle())
+    {
+        currActTime_ += deltaTime;
+
+        if (currActTime_ >= endActTime_)
+        {
+            //if (!(data_.playerStates_ & (RUN | WALK | CRAWL | SHOOT | RELOADING)))
+            //{
+                ResetStates();
+                SetIsIdle();
+            //}
+        }
+    }
+    
+
+
     const uint64 states   = data_.playerStates_;
     const int speedMul    = 1 + 9 * IsFreeFlyMode();  // move faster if we are in free fly
     const float speed     = GetSpeed() * deltaTime * speedMul;
@@ -216,20 +232,50 @@ void PlayerSystem::SwitchFlashLight(const bool state)
 //---------------------------------------------------------
 // Desc:   turn on/off the player's running state
 //---------------------------------------------------------
-void PlayerSystem::SetIsRunning(const bool isRun)
+void PlayerSystem::SetIsRunning(const float actDurationMs)
 {
-    if (isRun)
+    data_.playerStates_ |= RUN;
+    data_.playerStates_ &= ~(WALK | CRAWL | IDLE);
+    SetCurrentSpeed(data_.speedRun);
+}
+
+//---------------------------------------------------------
+
+void PlayerSystem::SetIsWalking(const float actDurationMs)
+{
+    data_.playerStates_ |= WALK;
+    data_.playerStates_ &= ~(RUN | CRAWL | IDLE);
+    SetCurrentSpeed(data_.speedWalk);
+}
+
+//---------------------------------------------------------
+
+void PlayerSystem::SetIsReloading(const float actDurationMs)
+{
+    data_.playerStates_ |= RELOADING;
+    data_.playerStates_ &= ~(IDLE);
+    currActTime_ = 0;
+    endActTime_ = actDurationMs;
+}
+
+//---------------------------------------------------------
+
+void PlayerSystem::SetIsShooting(const float actDurationMs)
+{
+    if (!IsReloading())
     {
-        data_.playerStates_ |= RUN;
-        data_.playerStates_ &= ~(WALK | CRAWL);
-        SetCurrentSpeed(data_.speedRun);
+        data_.playerStates_ |= SHOOT;
+        data_.playerStates_ &= ~(IDLE);
+        currActTime_ = 0;
+        endActTime_ = actDurationMs;
     }
-    else
-    {
-        data_.playerStates_ &= ~(RUN | CRAWL);
-        data_.playerStates_ |= WALK;
-        SetCurrentSpeed(data_.speedWalk);
-    }
+}
+
+//---------------------------------------------------------
+
+void PlayerSystem::SetIsIdle()
+{
+    data_.playerStates_ |= IDLE;
 }
 
 // =================================================================================

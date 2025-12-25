@@ -139,7 +139,7 @@ void TextStore::RebuildConstVB(ID3D11Device* pDevice)
     }
 
     // compute actual number of indices (vOffset / vertices_per_sym * indices_per_sym)
-    numIndicesDbgConstText_ = (u32)(vOffset / 4 * 6);
+    numIndicesDbgConstText_ = (uint32)(vOffset / 4 * 6);
 
     // REinit a VB for const sentences
     vbDbgConstText_.Shutdown();
@@ -286,8 +286,8 @@ void TextStore::GetRenderingData(
     ID3D11Buffer** outConstVbPtr,    // a ptr to the const vertex buf of const debug text
     ID3D11Buffer** outDynamicVbPtr,  // a ptr to the dynamic vertex buf of dynamic debug text
     ID3D11Buffer** outIbPtr,
-    u32& outConstIndexCount,         // index count for debug const sentences
-    u32& outDynamicIndexCount)       // index count for debug dynamic sentences
+    uint32& outConstIndexCount,         // index count for debug const sentences
+    uint32& outDynamicIndexCount)       // index count for debug dynamic sentences
 {
     *outConstVbPtr       = vbDbgConstText_.Get();
     *outDynamicVbPtr     = vbDbgDynText_.Get();
@@ -408,11 +408,13 @@ void TextStore::UpdateDynDbgText(const Core::SystemState& sysState)
     //       inst - instance(s)
 
     // common frame info
-    UpdateStrByKey("fps",             "%d",         sysState.fps);
-    UpdateStrByKey("frame_time",      "%05.2fms",   sysState.frameTime);
-    UpdateStrByKey("update_time",     "%05.2fms",   sysState.updateTime);
-    UpdateStrByKey("update_time_avg", "(%05.2fms)", sysState.updateTimeAvg);
-    UpdateStrByKey("rnd_time",        "%05.2fms",   sysState.msRenderTimings[RND_TIME_FULL_FRAME]);
+    UpdateStrByKey("fps",               "%d",         sysState.fps);
+    UpdateStrByKey("frame_time",        "%05.2fms",   sysState.frameTime);
+    UpdateStrByKey("upd_time",          "%05.2fms",   sysState.updateTime);
+    UpdateStrByKey("upd_time_avg",      "(%05.2fms)", sysState.updateTimeAvg);
+    UpdateStrByKey("upd_time_game",     "(%05.2fms)", sysState.updateTimeGame);
+    UpdateStrByKey("upd_time_engine",   "(%05.2fms)", sysState.updateTimeEngine);
+    UpdateStrByKey("rnd_time",          "%05.2fms",   sysState.msRenderTimings[RND_TIME_FULL_FRAME]);
 
     // render timings
     UpdateDynTiming("rnd_time_scene_grass",       sysState.msRenderTimingsAvg[RND_TIME_GRASS]);
@@ -429,8 +431,8 @@ void TextStore::UpdateDynDbgText(const Core::SystemState& sysState)
     UpdateDynTiming("rnd_time_scene_dbg_shapes",  sysState.msRenderTimingsAvg[RND_TIME_DBG_SHAPES]);
     UpdateDynTiming("rnd_time_post_fx",           sysState.msRenderTimingsAvg[RND_TIME_POST_FX]);
 
-    UpdateDynTiming("rnd_scene_time",             sysState.msRenderTimingsAvg[RND_TIME_3D_SCENE]);
-    UpdateDynTiming("rnd_render_ui",              sysState.msRenderTimingsAvg[RND_TIME_UI]);
+    UpdateDynTiming("rnd_time_full_scene",        sysState.msRenderTimingsAvg[RND_TIME_3D_SCENE]);
+    UpdateDynTiming("rnd_time_ui",                sysState.msRenderTimingsAvg[RND_TIME_UI]);
 
 
     // pos info

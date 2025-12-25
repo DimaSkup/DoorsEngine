@@ -8,6 +8,7 @@
 #include <Engine/Engine.h>
 #include <Model/model_mgr.h>
 #include <Render/debug_draw_manager.h>
+#include <Model/animation_mgr.h>
 
 using namespace Core;
 
@@ -111,55 +112,27 @@ bool Game::Init(
     gameInit.InitPlayer(d3d.GetDevice(), pEnttMgr, &configs);
 
     InitSounds(*pEnttMgr);
-    StartFootstepSequence();
+    StartFootstepSequence();   // prevent lagging when we move player for the first time
 
 
-    // manually add animations
-    using namespace Core;
-    using namespace DirectX;
+    // get id of rain entity which is always over the player
+    rainEnttId_ = pEnttMgr_->nameSystem_.GetIdByName("rain_over_player");
+    assert(rainEnttId_ != INVALID_ENTITY_ID);
 
-    AnimSkeleton&  skeleton   = g_AnimationMgr.GetSkeleton("boblampclean");
-    const int      animTestId = skeleton.AddAnimation("test");
-    AnimationClip& anim       = skeleton.GetAnimation(animTestId);
 
-    skeleton.DumpBoneParents();
+    // get player animations ids
+    currHudId_      = pEnttMgr_->nameSystem_.GetIdByName("ak_74_hud");
+    currSkeletonId_ = Core::g_AnimationMgr.GetSkeletonId("ak_74_hud");
 
-    // add a couple keyframes to a single bone
-    anim.boneAnimations.resize(skeleton.GetNumBones());
-    cvector<Keyframe>& keyframes = anim.boneAnimations[0].keyframes;
-    keyframes.resize(5);
+    assert(currHudId_      != INVALID_ENTITY_ID);
+    assert(currSkeletonId_ != 0);
 
-    const XMVECTOR q0 = XMQuaternionRotationAxis({ 0,1,0,0 }, DEG_TO_RAD(+30));
-    const XMVECTOR q1 = XMQuaternionRotationAxis({ 1,1,2,0 }, DEG_TO_RAD(+45));
-    const XMVECTOR q2 = XMQuaternionRotationAxis({ 0,1,0,0 }, DEG_TO_RAD(-30));
-    const XMVECTOR q3 = XMQuaternionRotationAxis({ 1,0,0,0 }, DEG_TO_RAD(+70));
+    const AnimSkeleton& skeleton = Core::g_AnimationMgr.GetSkeleton(currSkeletonId_);
 
-    
-
-    keyframes[0].timePos     = 0.0f;
-    keyframes[0].translation = XMFLOAT3(-7, 0, 0);
-    keyframes[0].scale       = 0.25f;
-    XMStoreFloat4(&keyframes[0].rotQuat, q0);
-
-    keyframes[1].timePos = 2.0f;
-    keyframes[1].translation = XMFLOAT3(0, 2, 10);
-    keyframes[1].scale = 0.5f;
-    XMStoreFloat4(&keyframes[1].rotQuat, q1);
-
-    keyframes[2].timePos = 4.0f;
-    keyframes[2].translation = XMFLOAT3(7, 0, 0);
-    keyframes[2].scale = 0.25;
-    XMStoreFloat4(&keyframes[2].rotQuat, q2);
-
-    keyframes[3].timePos = 6.0f;
-    keyframes[3].translation = XMFLOAT3(0, 1, -10);
-    keyframes[3].scale = 0.5f;
-    XMStoreFloat4(&keyframes[3].rotQuat, q3);
-
-    keyframes[4].timePos = 8.0f;
-    keyframes[4].translation = XMFLOAT3(-7, 0, 0);
-    keyframes[4].scale = 0.25f;
-    XMStoreFloat4(&keyframes[4].rotQuat, q0);
+    animIdReload_ = skeleton.GetAnimationIdx("wpn_ak74_hud_ogf_reload");
+    animIdShoot_  = skeleton.GetAnimationIdx("wpn_ak74_hud_ogf_shoot");
+    animIdRun_    = skeleton.GetAnimationIdx("wpn_ak74_hud_ogf_idle_sprint_");
+    animIdIdle_   = skeleton.GetAnimationIdx("wpn_ak74_hud_ogf_idle");
 
     LogMsg(LOG, "is initialized");
     return true;
@@ -175,7 +148,11 @@ bool Game::Update(const float dt, const float gameTime)
     pEnttMgr_->particleSystem_.CreateParticles(dt);
 
     UpdateFootstepsSound(dt);
+    UpdateShootSound(dt);
     UpdateRainbowAnomaly();
+
+    //pEnttMgr_->playerSystem_.SetIsIdle();
+    //pEnttMgr_->playerSystem_.ResetStates();
 
     // handle events
     if (pEngine_->IsGameMode())
@@ -188,6 +165,8 @@ bool Game::Update(const float dt, const float gameTime)
             soundRain_.PlayTrack(DSBPLAY_LOOPING);
             rainSoundIsPlaying_ = true;
         }
+
+        SwitchPlayerHudAnimations();
     }
 
     return true;
@@ -199,11 +178,11 @@ bool Game::Update(const float dt, const float gameTime)
 //---------------------------------------------------------
 void Game::UpdateFootstepsSound(const float dt)
 {
-    stepTimer += dt;
+    stepTimer_ += dt;
 
     if (soundStepL_Playing && !soundStepR_Played)
     {
-        if (stepTimer < stepInterval)
+        if (stepTimer_ < stepInterval_)
             return;
 
         // check if stepL finished playing
@@ -216,7 +195,29 @@ void Game::UpdateFootstepsSound(const float dt)
             soundStepR_Played = true;
             soundStepL_Playing = false;
 
-            stepTimer = 0;
+            stepTimer_ = 0;
+        }
+    }
+}
+
+//---------------------------------------------------------
+//---------------------------------------------------------
+void Game::UpdateShootSound(const float dt)
+{
+    shootTimer_ += dt;
+
+    if (soundShootIsPlaying_)
+    {
+        if (shootTimer_ < shootInterval_)
+            return;
+
+        Mouse& mouse = pEngine_->GetMouse();
+
+        if (mouse.IsLeftDown())
+        {
+            shootTimer_ = 0;
+            soundShoot_.StopTrack();
+            soundShootIsPlaying_ = false;
         }
     }
 }
@@ -238,6 +239,14 @@ void Game::HandleGameEventKeyboard()
                 // if we pressed the ESC button we exit from the application
                 LogDbg(LOG, "Esc is pressed");
                 pEngine_->DoExit();
+                break;
+            }
+            case KEY_N:
+            {
+                if (!keyboard.WasPressedBefore(KEY_N))
+                {
+                    pEngine_->GetGraphicsClass().IncreaseCurrAnimIdx();
+                }
                 break;
             }
             case KEY_F1:
@@ -296,6 +305,7 @@ void Game::HandleGameEventKeyboard()
             case KEY_D:
             case KEY_L:
             case KEY_S:
+            case KEY_R:
             case KEY_W:
             case KEY_Z:
             case KEY_SPACE:
@@ -373,6 +383,8 @@ void Game::HandlePlayerActions(const eKeyCodes code)
             pEnttMgr_->AddEvent(EventPlayerMove(EVENT_PLAYER_MOVE_LEFT));
             StartFootstepSequence();
             UpdateRainPos();
+
+            //pEnttMgr_->playerSystem_.SetIsWalking();
             break;
         }
         case KEY_D:
@@ -380,6 +392,8 @@ void Game::HandlePlayerActions(const eKeyCodes code)
             pEnttMgr_->AddEvent(EventPlayerMove(EVENT_PLAYER_MOVE_RIGHT));
             StartFootstepSequence();
             UpdateRainPos();
+
+            //pEnttMgr_->playerSystem_.SetIsWalking();
             break;
         }
         case KEY_L:
@@ -394,18 +408,32 @@ void Game::HandlePlayerActions(const eKeyCodes code)
             pEnttMgr_->AddEvent(EventPlayerMove(EVENT_PLAYER_MOVE_BACK));
             StartFootstepSequence();
             UpdateRainPos();
+
+            //pEnttMgr_->playerSystem_.SetIsWalking();
+            break;
+        }
+        case KEY_R:
+        {
+            AnimSkeleton& skeleton = g_AnimationMgr.GetSkeleton("ak_74_hud");
+            const AnimationID    animId = skeleton.GetAnimationIdx("wpn_ak74_hud_ogf_reload");
+            const AnimationClip& anim = skeleton.GetAnimation(animId);
+            pEnttMgr_->playerSystem_.SetIsReloading(anim.GetEndTime());
+
             break;
         }
         case KEY_W:
         {
             pEnttMgr_->AddEvent(EventPlayerMove(EVENT_PLAYER_MOVE_FORWARD));
 
-            if (pEnttMgr_->playerSystem_.IsRunning())
-                stepInterval = 0.0f;
-            else
-                stepInterval = 0.5f;
+            AnimSkeleton& skeleton = g_AnimationMgr.GetSkeleton("ak_74_hud");
+            const AnimationID    animId = skeleton.GetAnimationIdx("wpn_ak74_hud_ogf_idle_sprint__");
+            const AnimationClip& anim = skeleton.GetAnimation(animId);
+            pEnttMgr_->playerSystem_.SetIsWalking(anim.GetEndTime());
 
-            UpdateMovementRelatedStuff();
+            if (pEnttMgr_->playerSystem_.IsRunning())
+                stepInterval_ = 0.0f;
+            else
+                stepInterval_ = 0.5f;
 
             break;
         }
@@ -425,6 +453,10 @@ void Game::HandlePlayerActions(const eKeyCodes code)
             break;
         }
     } // switch
+
+
+   
+    UpdateMovementRelatedStuff();
 }
 
 //---------------------------------------------------------
@@ -433,6 +465,18 @@ void Game::HandlePlayerActions(const eKeyCodes code)
 void Game::HandleGameEventMouse(const float deltaTime)
 {
     Mouse& mouse = pEngine_->GetMouse();
+
+    if (mouse.IsLeftDown())
+    {
+        //printf("shoot\n");
+        StartPlayShootSound();
+        AnimSkeleton& skeleton = g_AnimationMgr.GetSkeleton("ak_74_hud");
+        const AnimationID    animId = skeleton.GetAnimationIdx("wpn_ak74_hud_ogf_shoot");
+        const AnimationClip& anim = skeleton.GetAnimation(animId);
+
+        pEnttMgr_->playerSystem_.SetIsShooting(anim.GetEndTime());
+        //pEngine_->GetGraphicsClass().GetRayIntersectionPoint(mouseEvent.GetPosX(), mouseEvent.GetPosY());
+    }
 
     while (!mouse.EventBufferIsEmpty())
     {
@@ -465,7 +509,12 @@ void Game::HandleGameEventMouse(const float deltaTime)
             }
             case MouseEvent::EventType::LPress:
             {
-                pEngine_->GetGraphicsClass().GetRayIntersectionPoint(mouseEvent.GetPosX(), mouseEvent.GetPosY());
+               
+                break;
+            }
+            case MouseEvent::EventType::LRelease:
+            {
+                //pEnttMgr_->playerSystem_.SetIsShooting(false, 0);
                 break;
             }
         }
@@ -518,6 +567,17 @@ void Game::StartFootstepSequence()
 
         soundStepL_Playing = true;
         soundStepR_Played  = false;
+    }
+}
+
+//---------------------------------------------------------
+//---------------------------------------------------------
+void Game::StartPlayShootSound()
+{
+    if (!soundShootIsPlaying_)
+    {
+        soundShoot_.PlayTrack();
+        soundShootIsPlaying_ = true;
     }
 }
 
@@ -584,15 +644,12 @@ void Game::UpdateRainbowAnomaly()
 }
 
 //---------------------------------------------------------
-// Desc:  update position of the rain so it always over the player
+// Desc:  update position of the rain so it is always over the player
 //---------------------------------------------------------
 void Game::UpdateRainPos()
 {
-    const EntityID          rainEnttId = pEnttMgr_->nameSystem_.GetIdByName("rain_over_player");
-    const DirectX::XMFLOAT3 playerPos  = pEnttMgr_->playerSystem_.GetPosition();
-    const ECS::EventTranslate evnt(rainEnttId, playerPos.x, playerPos.y, playerPos.z);
-
-    pEnttMgr_->AddEvent(evnt);
+    const DirectX::XMFLOAT3 p = pEnttMgr_->playerSystem_.GetPosition();
+    pEnttMgr_->AddEvent(ECS::EventTranslate(rainEnttId_, p.x, p.y, p.z));
 }
 
 //---------------------------------------------------------
@@ -609,47 +666,95 @@ void Game::InitSounds(ECS::EntityMgr& mgr)
         return;
     }
 
-
     const char* rainFilename      = "data/sounds/rain.wav";
     const char* stepLFilename     = "data/sounds/stepL_44khz.wav";
     const char* stepRFilename     = "data/sounds/stepR_44khz.wav";
+    const char* ak74ShootFilename = "data/sounds/ak74_shoot.wav";
 
-    const long volume = 0;
-    const long rainVolume = -1500;
+    const long volume      = 0;
+    const long shootVolume = -2000;
+    const long rainVolume  = -1500;
     const long stepsVolume = -2000;   // -2000 hundredths of a dB is roughly -20db
 
     IDirectSound8* pDirectSound = directSound_.GetDirectSound();
 
-
+    //
+    // load sound files
+    //
     result = soundRain_.LoadTrack(pDirectSound, rainFilename, rainVolume);
     if (!result)
         LogErr(LOG, "can't load a rain sound from file: %s", rainFilename);
 
-    result = soundStepL_.LoadTrack(pDirectSound, stepLFilename, stepsVolume);
+    result = soundStepL_.LoadTrack(pDirectSound, stepLFilename, 0);
     if (!result)
         LogErr(LOG, "can't load a sound from file: %s", stepLFilename);
 
-    result = soundStepR_.LoadTrack(pDirectSound, stepRFilename, stepsVolume);
+    result = soundStepR_.LoadTrack(pDirectSound, stepRFilename, 0);
     if (!result)
         LogErr(LOG, "can't load a sound from file: %s", stepRFilename);
 
+    result = soundShoot_.LoadTrack(pDirectSound, ak74ShootFilename, shootVolume);
+    if (!result)
+        LogErr(LOG, "can't load a sound: %s", ak74ShootFilename);
 
-    // play the sound
+
+    //
+    // create event handler for some sounds so we will be able to know when
+    // sound is over, or it is currently playing
+    //
     IDirectSoundBuffer8* pSoundBufStepL = soundStepL_.GetBuffer();
+    IDirectSoundBuffer8* pSoundBufShoot = soundShoot_.GetBuffer();
 
     // create notification event
     eventStepLDone = CreateEvent(NULL, FALSE, FALSE, NULL);
+    eventShootDone = CreateEvent(NULL, FALSE, FALSE, NULL);
 
-    // attach notification to the END of stepL buffer
-    IDirectSoundNotify8* pNotify = nullptr;
-    pSoundBufStepL->QueryInterface(IID_IDirectSoundNotify8, (void**)&pNotify);
+    // attach notification to the END of buffer
+    IDirectSoundNotify8* pNotifyStep = nullptr;
+    IDirectSoundNotify8* pNotifyShoot = nullptr;
+    pSoundBufStepL->QueryInterface(IID_IDirectSoundNotify8, (void**)&pNotifyStep);
+    pSoundBufShoot->QueryInterface(IID_IDirectSoundNotify8, (void**)&pNotifyShoot);
 
     DSBPOSITIONNOTIFY notify = {};
-    notify.dwOffset = DSBPN_OFFSETSTOP; // end of buuffer
+    notify.dwOffset = DSBPN_OFFSETSTOP; // end of buffer
+    
     notify.hEventNotify = eventStepLDone;
+    pNotifyStep->SetNotificationPositions(1, &notify);
+    pNotifyStep->Release();
 
-    pNotify->SetNotificationPositions(1, &notify);
-    pNotify->Release();
+    notify.hEventNotify = eventShootDone;
+    pNotifyShoot->SetNotificationPositions(1, &notify);
+    pNotifyShoot->Release();
+}
+
+//---------------------------------------------------------
+// Desc:  switch animation of player's hands/weapon according to its state
+//---------------------------------------------------------
+void Game::SwitchPlayerHudAnimations()
+{
+    const ECS::PlayerSystem& player   = pEnttMgr_->playerSystem_;
+    const AnimSkeleton&      skeleton = Core::g_AnimationMgr.GetSkeleton(currSkeletonId_);
+
+    if (player.IsReloading())
+    {
+        const AnimationClip& anim = skeleton.GetAnimation(animIdReload_);
+        pEnttMgr_->animationSystem_.SetAnimation(currHudId_, animIdReload_, anim.GetEndTime());
+    }
+    else if (player.IsShooting())
+    {
+        const AnimationClip& anim = skeleton.GetAnimation(animIdShoot_);
+        pEnttMgr_->animationSystem_.SetAnimation(currHudId_, animIdShoot_, anim.GetEndTime());
+    }
+    else if (player.IsWalking())
+    {
+        const AnimationClip& anim = skeleton.GetAnimation(animIdRun_);
+        pEnttMgr_->animationSystem_.SetAnimation(currHudId_, animIdRun_, anim.GetEndTime());
+    }
+    else if (player.IsIdle())
+    {
+        const AnimationClip& anim = skeleton.GetAnimation(animIdIdle_);
+        pEnttMgr_->animationSystem_.SetAnimation(currHudId_, animIdIdle_, anim.GetEndTime());
+    }
 }
 
 } // namespace

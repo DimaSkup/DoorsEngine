@@ -62,6 +62,39 @@ void DumpXmMatrices(const cvector<DirectX::XMMATRIX>& matrices, const size numMa
 }
 
 //---------------------------------------------------------
+// Desc:  dump (print into console) info about animations
+//        which are related to this skeleton
+//---------------------------------------------------------
+void AnimSkeleton::DumpAnimations() const
+{
+    // check to prevent fuck up
+    assert(animNames_.size() == animations_.size());
+    const int numAnims = (int)animations_.size();
+
+    printf("Dump %d animations of skeleton '%s':\n", numAnims, name_);
+    printf(" - num bones %d\n", (int)GetNumBones());
+
+
+    // print: [idx] anim_name, max_num_keyframes, time [start, end]
+    for (int i = 0; i < numAnims; ++i)
+    {
+        const char* animName     = animNames_[i].name;
+        const int   maxKeyframes = animations_[i].GetMaxNumKeyframes();
+        const float startTime    = animations_[i].GetStartTime();
+        const float endTime      = animations_[i].GetEndTime();
+
+        printf("\t[%d] %-50s max_keyframes: %-10d    time [%f, %f]\n",
+            i,
+            animName,
+            maxKeyframes,
+            startTime,
+            endTime);
+
+    }
+}
+
+//---------------------------------------------------------
+//---------------------------------------------------------
 #if 0
 void AnimSkeleton::DumpBoneWeights()
 {
@@ -87,7 +120,7 @@ void AnimSkeleton::DumpBoneWeights()
 
 //---------------------------------------------------------
 
-void AnimSkeleton::DumpBoneOffsets()
+void AnimSkeleton::DumpBoneOffsets() const
 {
     printf("Dump bones (offset matrix) of skeleton '%s':\n", name_);
     printf(" - num bones %d\n", (int)GetNumBones());
@@ -103,7 +136,7 @@ void AnimSkeleton::DumpBoneOffsets()
 
 //---------------------------------------------------------
 
-void AnimSkeleton::DumpBoneParents()
+void AnimSkeleton::DumpBoneParents() const
 {
     printf("Dump bones (its parents) of skeleton '%s':\n", name_);
     printf(" - num bones %d\n", (int)GetNumBones());
@@ -119,14 +152,14 @@ void AnimSkeleton::DumpBoneParents()
 
         if (parentBoneIdx == ROOT_PARENT_IDX)
         {
-            printf("\tbone_%d: %-20s parent_idx: %d, parent_name: ''\n",
+            printf("\tbone_%d: %-40s parent_idx: %-5d parent_name: ''\n",
                 i, boneName, parentBoneIdx);
         }
         else
         {
             const char* parentBoneName = boneNameToId[parentBoneIdx].name;
 
-            printf("\tbone_%d: %-20s parent_idx: %d, parent_name: '%s'\n",
+            printf("\tbone_%d: %-40s parent_idx: %-5d parent_name: '%s'\n",
                 i, boneName, parentBoneIdx, parentBoneName);
         }
         
@@ -137,7 +170,7 @@ void AnimSkeleton::DumpBoneParents()
 //---------------------------------------------------------
 // Desc:  dump all the keyframes for animation (by name) and bone (by id)
 //---------------------------------------------------------
-void AnimSkeleton::DumpKeyframes(const char* animName, const int boneId)
+void AnimSkeleton::DumpKeyframes(const char* animName, const int boneId) const
 {
     assert(animName && animName[0] != '\0');
 
@@ -150,7 +183,7 @@ void AnimSkeleton::DumpKeyframes(const char* animName, const int boneId)
     }
 
 
-    AnimationClip& anim = animations_[animIdx];
+    const AnimationClip& anim = animations_[animIdx];
     assert(boneId < anim.boneAnimations.size());
 
     const cvector<Keyframe>& keyframes = anim.boneAnimations[boneId].keyframes;
@@ -305,6 +338,21 @@ float AnimationClip::GetEndTime() const
 }
 
 //---------------------------------------------------------
+// Desc:  get maximal number of keyframes (per bone) for this animation
+//---------------------------------------------------------
+int AnimationClip::GetMaxNumKeyframes() const
+{
+    size maximal = 0;
+
+    for (index i = 0; i < boneAnimations.size(); ++i)
+    {
+        maximal = max(boneAnimations[i].keyframes.size(), maximal);
+    }
+
+    return (int)maximal;
+}
+
+//---------------------------------------------------------
 // Desc:  interpolate animation for each bone of this animation clip
 //---------------------------------------------------------
 void AnimationClip::Interpolate(const float t, cvector<XMMATRIX>& outBoneTransforms) const
@@ -367,6 +415,22 @@ float AnimSkeleton::GetAnimationEndTime(const int animIdx) const
 }
 
 //---------------------------------------------------------
+// Desc:  return arr of animations related to this skeleton
+//---------------------------------------------------------
+const cvector<AnimationName>& AnimSkeleton::GetAnimNames() const
+{
+    return animNames_;
+}
+
+//---------------------------------------------------------
+// Desc:  return number of animations related to this skeleton
+//---------------------------------------------------------
+size AnimSkeleton::GetNumAnimations() const
+{
+    return animations_.size();
+}
+
+//---------------------------------------------------------
 // Desc:  get the number of bones for this skinned data
 //---------------------------------------------------------
 size AnimSkeleton::GetNumBones() const
@@ -420,6 +484,21 @@ int AnimSkeleton::AddAnimation(const char* animName)
     return animId;
 }
 
+
+//---------------------------------------------------------
+// Desc:  return a name of animation by input index
+//---------------------------------------------------------
+const char* AnimSkeleton::GetAnimationName(const int animIdx)
+{
+    if (animIdx < 0 || animIdx >= animations_.size())
+    {
+        LogErr("input animation idx is invalid (%d), so return nullptr", animIdx);
+        return nullptr;
+    }
+
+    return animNames_[animIdx].name;
+}
+
 //---------------------------------------------------------
 // Desc:  setup a name for animation clip by its index
 //---------------------------------------------------------
@@ -438,6 +517,12 @@ void AnimSkeleton::SetAnimationName(const int animIdx, const char* newName)
 // Desc:  return an animation clip by its id
 //---------------------------------------------------------
 AnimationClip& AnimSkeleton::GetAnimation(const int animIdx)
+{
+    assert(animIdx >= 0 && animIdx < animations_.size());
+    return animations_[animIdx];
+}
+
+const AnimationClip& AnimSkeleton::GetAnimation(const int animIdx) const
 {
     assert(animIdx >= 0 && animIdx < animations_.size());
     return animations_[animIdx];
@@ -465,10 +550,11 @@ void AnimSkeleton::Set(
 //        by input name at particular time position
 //---------------------------------------------------------
 void AnimSkeleton::GetFinalTransforms(
-    const char* animName,
+    const AnimationID animId,
     const float timePos,
     cvector<XMMATRIX>& outFinalTransforms)
 {
+#if 0
     if (StrHelper::IsEmpty(animName))
     {
         LogErr(LOG, "input name of animation is empty");
@@ -479,16 +565,22 @@ void AnimSkeleton::GetFinalTransforms(
     if (animIdx == -1)
     {
         LogErr(LOG, "there is no animation by name: %s", animName);
+        s_ToParentTransforms = boneTransformations_;
         return;
     }
+#endif
 
-
-    const AnimationClip& animation = animations_[animIdx];
+    if (animId >= animations_.size())
+    {
+        LogErr(LOG, "input animation id (%d) is invalid (must be lower than %d)", (int)animId, (int)animations_.size());
+        return;
+    }
+    const AnimationClip& animation = animations_[animId];
 
     // interpolate all the bones of this animation clip at the given time instance
     const size numBones = GetNumBones();
     s_ToParentTransforms = boneTransformations_;
-    animation.Interpolate(animation.animTimePos, s_ToParentTransforms);
+    animation.Interpolate(timePos, s_ToParentTransforms);
 
 
     //
@@ -562,6 +654,7 @@ void AnimSkeleton::SetBoneNameById(const int id, const char* name)
     assert(!StrHelper::IsEmpty(name));
 
     strncpy(boneNameToId[id].name, name, MAX_LEN_BONE_NAME);
+    boneNameToId[id].name[MAX_LEN_BONE_NAME - 1] = '\0';
 }
 
 

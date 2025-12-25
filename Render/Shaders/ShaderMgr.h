@@ -3,7 +3,8 @@
 #include "InputLayouts.h"
 #include "../Common/RenderTypes.h"
 
-#include <Types.h>
+#include <types.h>
+#include <cvector.h>
 #include <d3d11.h>
 #include <map>
 
@@ -46,9 +47,7 @@ public:
         int numVBs);
 
     // for main color-light rendering pass
-    void BindShaderById  (ID3D11DeviceContext* pContext, const ShaderID id);
-    void BindShaderByName(ID3D11DeviceContext* pContext, const char* shaderName);
-    void BindShader      (ID3D11DeviceContext* pContext, Shader* pShader);
+    void BindShader (ID3D11DeviceContext* pContext, Shader* pShader);
 
     // for depth pre-pass (we need only vertex shader)
     void DepthPrePassBindShaderById  (ID3D11DeviceContext* pContext, const ShaderID id);
@@ -65,15 +64,15 @@ public:
 
 
     // getters
-    Shader*     GetShaderById(const ShaderID id);
+    Shader*     GetShaderById    (const ShaderID id) const;
     Shader*     GetShaderByName  (const char* name) const;
     ShaderID    GetShaderIdByName(const char* name) const;
     const char* GetShaderNameById(const ShaderID id);
 
+    void GetArrShadersIds  (cvector<ShaderID>& outIds) const;
+    void GetArrShadersNames(cvector<ShaderName>& outNames) const;
 
-    inline const std::map<ShaderID, Shader*>& GetMapIdsToShaders() const { return idToShader_; }
-
-    inline const VertexInputLayoutMgr& GetInputLayoutsMgr() const { return inputLayoutsMgr_; }
+    const VertexInputLayoutMgr& GetInputLayoutsMgr() const;
 
 private:
     bool AddShader(ID3D11Device* pDevice, const ShaderInitParams* initParams);
@@ -84,6 +83,14 @@ private:
     std::map<ShaderID, Shader*>  idToShader_;
     ShaderID                     lastShaderId_ = 0;
 };
+
+//---------------------------------------------------------
+// Desc:  return a ref to the manager of vertex input layouts
+//---------------------------------------------------------
+inline const VertexInputLayoutMgr& ShaderMgr::GetInputLayoutsMgr() const
+{
+    return inputLayoutsMgr_;
+}
 
 } // namespace
 

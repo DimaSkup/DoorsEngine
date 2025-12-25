@@ -5,6 +5,7 @@
 #include <CoreCommon/pch.h>
 #include "model_mgr.h"
 
+#include "model_creator.h"
 #include "model_exporter.h"
 #include <Render/d3dclass.h>
 
@@ -50,9 +51,26 @@ ModelMgr::~ModelMgr()
 //---------------------------------------------------------
 bool ModelMgr::Init()
 {
+    // create and setup "invalid" model
+    ModelsCreator creator;
+    const ModelID cubeId = creator.CreateCube(Render::g_pDevice);
+
+    // currently we expect "invalid" model to be only one and have ID == 0
+    if ((cubeId != INVALID_MODEL_ID) || (ids_.size() != 1) || (models_.size() != 1))
+    {
+        LogErr(LOG, "something went wrong: there is already some other models");
+        return false;
+    }
+
+    BasicModel& invalid = g_ModelMgr.GetModelById(cubeId);
+    g_ModelMgr.SetModelName(invalid.id_, "invalid_model");
+    invalid.SetMaterialForSubset(0, INVALID_MATERIAL_ID);
+
+    //---------------------------------
+
     if (!InitBillboardBuffer())
     {
-        LogErr(LOG, "can't init billboard VB");
+        LogErr(LOG, "can't init billboard/particles VB");
         return false;
     }
 

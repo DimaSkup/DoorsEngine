@@ -92,14 +92,14 @@ bool ModelImporter::LoadFromFile(
     BasicModel* pModel,
     const char* filePath)
 {
-    if ((filePath == nullptr) || (filePath[0] == '\0'))
+    if (StrHelper::IsEmpty(filePath))
     {
         LogErr(LOG, "can't load file: input path is empty!");
         return false;
     }
 
+    LogMsg(LOG, "import model from file: %s", filePath);
 
-    assert(FileSys::Exists(filePath) == true);
 
     // compute duration of importing process
     auto importStart = std::chrono::steady_clock::now();
@@ -129,7 +129,7 @@ bool ModelImporter::LoadFromFile(
     bool ret = InitFromScene(pDevice, pScene, filePath, model);
 
     if (ret)
-        LogDbg(LOG, "Model is imported from file: %s", filePath);
+        LogMsg(LOG, "model '%s' is imported from file: %s", model.name_, filePath);
     else
         LogErr(LOG, "didn't manage to import model: %s", filePath);
 
@@ -448,7 +448,7 @@ void LoadMaterialTextures(
     uint          numTexTypesToLoad = 0;
 
     // define what texture types to load
-    for (u32 i = 1; i < NUM_TEXTURE_TYPES; ++i)
+    for (index i = 1; i < NUM_TEXTURE_TYPES; ++i)
     {
         const aiTextureType type = (aiTextureType)i;
 

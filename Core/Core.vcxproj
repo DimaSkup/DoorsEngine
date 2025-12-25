@@ -475,24 +475,23 @@ if not exist "$(SolutionDir)build\$(IntDir)data\shaders\input_layouts.json" xcop
     <ClCompile Include="UI\Editor\EditorPanelElement\ui_materials_browser.cpp" />
     <ClCompile Include="UI\Editor\EditorPanelElement\ui_models_browser.cpp" />
     <ClCompile Include="UI\Editor\EditorPanelElement\ui_textures_browser.cpp" />
-    <ClCompile Include="UI\Editor\Entity\Controller\EnttDirLightController.cpp" />
-    <ClCompile Include="UI\Editor\Entity\Controller\EnttEditorController.cpp" />
+    <ClCompile Include="UI\Editor\Entity\Controller\ui_entt_dir_light_controller.cpp" />
+    <ClCompile Include="UI\Editor\Entity\EnttEditorController.cpp" />
     <ClCompile Include="UI\Editor\Entity\Controller\EnttParticlesController.cpp" />
-    <ClCompile Include="UI\Editor\Entity\Controller\EnttTransformController.cpp" />
-    <ClCompile Include="UI\Editor\Entity\Controller\EnttPointLightController.cpp" />
+    <ClCompile Include="UI\Editor\Entity\Controller\ui_entt_transform_controller.cpp" />
+    <ClCompile Include="UI\Editor\Entity\Controller\ui_entt_point_light_controller.cpp" />
+    <ClCompile Include="UI\Editor\Entity\Controller\ui_entt_animation_controller.cpp" />
     <ClCompile Include="UI\Editor\Entity\View\EnttParticlesView.cpp" />
+    <ClCompile Include="UI\Editor\Entity\View\ui_entt_animation_view.cpp" />
     <ClCompile Include="UI\Editor\Fog\FogEditorView.cpp" />
     <ClCompile Include="UI\Editor\Panels\ui_post_fx_control.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="UI\Editor\Terrain\Sky\SkyController.cpp" />
-    <ClCompile Include="UI\Editor\Entity\Controller\EnttSpotLightController.cpp" />
-    <ClCompile Include="UI\Editor\Entity\View\EnttComponentsEditor.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="UI\Editor\Entity\View\EnttTransformView.cpp" />
-    <ClCompile Include="UI\Editor\Entity\View\EnttLightView.cpp">
+    <ClCompile Include="UI\Editor\Entity\Controller\ui_entt_spotlight_controller.cpp" />
+    <ClCompile Include="UI\Editor\Entity\View\ui_entt_transform_view.cpp" />
+    <ClCompile Include="UI\Editor\Entity\View\ui_entt_light_view.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="UI\Editor\Fog\FogEditorController.cpp" />
@@ -622,22 +621,24 @@ if not exist "$(SolutionDir)build\$(IntDir)data\shaders\input_layouts.json" xcop
     <ClInclude Include="UI\Editor\EditorPanelElement\ui_materials_browser.h" />
     <ClInclude Include="UI\Editor\EditorPanelElement\ui_models_browser.h" />
     <ClInclude Include="UI\Editor\EditorPanelElement\ui_textures_browser.h" />
-    <ClInclude Include="UI\Editor\Entity\Controller\EnttDirLightController.h" />
-    <ClInclude Include="UI\Editor\Entity\Controller\EnttEditorController.h" />
+    <ClInclude Include="UI\Editor\Entity\Controller\ui_entt_dir_light_controller.h" />
+    <ClInclude Include="UI\Editor\Entity\EnttEditorController.h" />
     <ClInclude Include="UI\Editor\Entity\Controller\EnttParticlesController.h" />
-    <ClInclude Include="UI\Editor\Entity\Controller\EnttTransformController.h" />
-    <ClInclude Include="UI\Editor\Entity\Controller\EnttPointLightController.h" />
+    <ClInclude Include="UI\Editor\Entity\Controller\ui_entt_transform_controller.h" />
+    <ClInclude Include="UI\Editor\Entity\Controller\ui_entt_point_light_controller.h" />
+    <ClInclude Include="UI\Editor\Entity\Controller\ui_entt_animation_controller.h" />
+    <ClInclude Include="UI\Editor\Entity\Model\EnttAnimationData.h" />
     <ClInclude Include="UI\Editor\Entity\Model\EnttParticlesModel.h" />
     <ClInclude Include="UI\Editor\Entity\View\EnttParticlesView.h" />
+    <ClInclude Include="UI\Editor\Entity\View\ui_entt_animation_view.h" />
     <ClInclude Include="UI\Editor\Panels\ui_post_fx_control.h" />
     <ClInclude Include="UI\Editor\Terrain\Sky\SkyController.h" />
-    <ClInclude Include="UI\Editor\Entity\Controller\EnttSpotLightController.h" />
+    <ClInclude Include="UI\Editor\Entity\Controller\ui_entt_spotlight_controller.h" />
     <ClInclude Include="UI\Editor\Entity\Model\EnttTransformData.h" />
     <ClInclude Include="UI\Editor\Entity\Model\SelectedEnttData.h" />
-    <ClInclude Include="UI\Editor\Entity\View\EnttComponentsEditor.h" />
-    <ClInclude Include="UI\Editor\Entity\View\EnttTransformView.h" />
+    <ClInclude Include="UI\Editor\Entity\View\ui_entt_transform_view.h" />
     <ClInclude Include="UI\Editor\Entity\Model\EnttLightData.h" />
-    <ClInclude Include="UI\Editor\Entity\View\EnttLightView.h" />
+    <ClInclude Include="UI\Editor\Entity\View\ui_entt_light_view.h" />
     <ClInclude Include="UI\Editor\Fog\FogEditorController.h" />
     <ClInclude Include="UI\Editor\Fog\FogEditorModel.h" />
     <ClInclude Include="UI\Editor\Fog\FogEditorView.h" />

@@ -539,7 +539,7 @@ void UserInterface::RenderDebugInfo(
     // prepare buffers for rendering
     ID3D11Buffer*  vertexBuffers[2]{ nullptr };
     ID3D11Buffer*  pIB = nullptr;         // IB is common for both vertex buffers
-    u32            indexCounts[2]{ 0 };
+    uint32         indexCounts[2]{ 0 };
     constexpr size numSentences = 2;      // we have only two text buffers for the whole debug text: one for const sentences, one for dynamic sentences
 
     textStorage_.GetRenderingData(

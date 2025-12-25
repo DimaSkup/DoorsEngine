@@ -36,13 +36,6 @@ MaterialMgr::MaterialMgr()
         constexpr size newCapacity = 128;
         ids_.reserve(newCapacity);
         materials_.reserve(newCapacity);
-
-        // create and setup an "invalid" material
-        ids_.push_back(INVALID_MATERIAL_ID);
-        materials_.push_back(Material("invalid"));
-
-        Material& invalidMat = materials_.back();
-        invalidMat.SetTexture(TEX_TYPE_DIFFUSE, INVALID_TEXTURE_ID);
     }
     else
     {
@@ -57,6 +50,32 @@ MaterialMgr::MaterialMgr()
 MaterialMgr::~MaterialMgr()
 {
     LogMsg(LOG, "is destroyed");
+}
+
+//---------------------------------------------------------
+// Desc:  add and setup a material which serve us as default/invalid
+//
+//        for instance: we try to get a material by wrong ID/name
+//                      so in this case we return the default/invalid material
+//---------------------------------------------------------
+bool MaterialMgr::Init()
+{
+    ids_.push_back(INVALID_MATERIAL_ID);
+    materials_.push_back(Material("invalid"));
+
+    // currently there must be only one material
+    if ((ids_.size() != 1) || (materials_.size() != 1))
+    {
+        LogErr(LOG, "something went wrong: there is more than one material");
+        return false;
+    }
+
+    Material& invalidMat = materials_.back();
+    invalidMat.shaderId = INVALID_SHADER_ID;
+    invalidMat.renderStates = MAT_PROP_DEFAULT;
+    invalidMat.SetTexture(TEX_TYPE_DIFFUSE, INVALID_TEXTURE_ID);
+
+    return true;
 }
 
 //---------------------------------------------------------

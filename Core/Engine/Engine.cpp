@@ -133,6 +133,12 @@ void Engine::Init(
         exit(0);
     }
 
+    if (!g_MaterialMgr.Init())
+    {
+        LogErr(LOG, "can't init a material manager");
+        exit(0);
+    }
+
     if (!g_ModelMgr.Init())
     {
         LogErr(LOG, "can't init a model manager");
@@ -237,11 +243,6 @@ bool Engine::BindBindlessTextures(const char* cfgPath)
 //---------------------------------------------------------
 void Engine::Update()
 {
-    static int   numFramesHalfSec = 0;
-    static float sumTime          = 0;
-    static float sumUpdateTime    = 0;
-    auto         updateStartTime  = std::chrono::steady_clock::now();
-
     timer_.Tick();
     
 #if 0
@@ -258,8 +259,6 @@ void Engine::Update()
 
     systemState_.deltaTime = deltaTime_;
     systemState_.frameTime = deltaTime_ * 1000.0f;
-    sumTime += systemState_.frameTime;
-
 
     // compute fps and frame time (ms)
     CalculateFrameStats();
@@ -289,23 +288,7 @@ void Engine::Update()
             TurnOnGameMode();
     }
 
-    // compute the duration of the engine's update process
-    auto updateEndTime = std::chrono::steady_clock::now();
-    std::chrono::duration<float, std::milli> updateDuration = updateEndTime - updateStartTime;
-    systemState_.updateTime = updateDuration.count();
-
-    sumUpdateTime += systemState_.updateTime;
-    numFramesHalfSec++;
-
-    // if time > 500 ms...
-    if (sumTime > 500.0f)
-    {
-        // ... compute averaged updating time for last 0.5 seconds
-        systemState_.updateTimeAvg = sumUpdateTime / numFramesHalfSec;
-        sumUpdateTime    = 0;
-        numFramesHalfSec = 0;
-        sumTime          = 0;
-    }
+  
 }
 
 //---------------------------------------------------------
@@ -1044,18 +1027,24 @@ void Engine::HandleEditorEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnt
                 {
                     // using mouse wheel we move forward or backward along 
                     // the camera direction vector (when hold shift - we move faster)
-                    constexpr int editorCameraSpeed = 10;
+                    const int camSpeed = 10;
                     const int sign     = (eventType == WheelUp) ? 1 : -1;
                     const int speedMul = (keyboard_.IsPressed(KEY_SHIFT)) ? 5 : 1;
-                    const float step   = deltaTime_ * (editorCameraSpeed * speedMul * sign);
+                    const float step   = deltaTime_ * (camSpeed * speedMul * sign);
 
                     const EntityID camID = pEnttMgr->nameSystem_.GetIdByName("editor_camera");
                     pEnttMgr->cameraSystem_.Walk(camID, step);
                 }
                 break;
             }
-            case MPress:             isMouseMiddlePressed = true;  break;
-            case MRelease:           isMouseMiddlePressed = false; break;
+            case MPress:
+                isMouseMiddlePressed = true;
+                break;
+
+            case MRelease:
+                isMouseMiddlePressed = false;
+                break;
+
             case LeftDoubleClick:
             {
                 return;
@@ -1075,29 +1064,28 @@ void Engine::HandleGameEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnttM
 
     switch (mouseEvent_.GetEventType())
     {
+        // update mouse position data because we need to print
+        // mouse position on the screen
         case MouseEvent::EventType::Move:
         {
-            // update mouse position data because we need to print mouse position on the screen
             systemState_.mouseX = mouseEvent_.GetPosX();
             systemState_.mouseY = mouseEvent_.GetPosY();
             SetCursorPos(800, 450);                           // to prevent the cursor to get out of the window
             break;
         }
+
+        // update the rotation data of the camera
+        // with the current state of the input devices. The movement function
+        // will update the position of the camera to the location for this frame
         case MouseEvent::EventType::RAW_MOVE:
         {
-            // update the rotation data of the camera
-            // with the current state of the input devices. The movement function will update
-            // the position of the camera to the location for this frame
-
-            ECS::PlayerSystem& player = pEnttMgr->playerSystem_;
-
             const float rotY  = mouseEvent_.GetPosX() * deltaTime_;
-const float pitch = mouseEvent_.GetPosY() * deltaTime_;
+            const float pitch = mouseEvent_.GetPosY() * deltaTime_;
 
-player.RotateY(rotY);
-player.Pitch(pitch);
+            pEnttMgr->playerSystem_.RotateY(rotY);
+            pEnttMgr->playerSystem_.Pitch(pitch);
 
-break;
+            break;
         }
     }
 }
@@ -1165,7 +1153,7 @@ void Engine::TurnOnGameMode()
 {
     const EntityID gameCamID = pEnttMgr_->nameSystem_.GetIdByName("game_camera");
 
-    GetD3D().ToggleFullscreen(hwnd_, false);
+    GetD3D().ToggleFullscreen(hwnd_, true);
     graphics_.SetCurrentCamera(gameCamID);
     systemState_.isGameMode = true;
     systemState_.isEditorMode = false;

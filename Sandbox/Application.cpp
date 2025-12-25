@@ -5,9 +5,9 @@
 // =================================================================================
 #include "pch.h"
 #include "Application.h"
-#include <QuadTree/quad_tree.h>
-#include <QuadTree/scene_object.h>
-#include <geometry/rect_3d.h>
+//#include <QuadTree/quad_tree.h>
+//#include <QuadTree/scene_object.h>
+//#include <geometry/rect_3d.h>
 
 
 
@@ -23,6 +23,17 @@ App::~App()
     SafeDelete(pFacadeEngineToUI_);
 }
 
+
+//---------------------------------------------------------
+// some typedefs and helpers to get timings
+//---------------------------------------------------------
+using TimeDurationMs = std::chrono::duration<float, std::milli>;
+
+inline std::chrono::steady_clock::time_point GetTimePoint()
+{
+    return std::chrono::steady_clock::now();
+}
+
 //---------------------------------------------------------
 // Desc:   do all the init stuff for the engine:
 //         init window, init engine's modules, load scene elements, etc.
@@ -30,10 +41,9 @@ App::~App()
 void App::Init()
 {
     // compute duration of importing process
-    auto initStartTime = std::chrono::steady_clock::now();
+    auto initStartTime = GetTimePoint();
 
     // explicitly init Windows Runtime and COM
-    //HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE);
     HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
     if (FAILED(hr))
     {
@@ -44,7 +54,6 @@ void App::Init()
     eventHandler_.AddEventListener(&engine_);        // set engine class as one of the window events listeners
     wndContainer_.SetEventHandler(&eventHandler_);   // set an event handler for the window container
 
-   
 
     engine_.BindRender(&render_);
     engine_.BindECS(&entityMgr_);
@@ -67,6 +76,7 @@ void App::Init()
 
     // create a facade btw the UI and the engine parts
     pFacadeEngineToUI_ = new UI::FacadeEngineToUI(
+        &engine_,
         pContext,
         &render_,
         &entityMgr_,
@@ -76,19 +86,17 @@ void App::Init()
     // initialize the main UserInterface class
     InitGUI(pDevice, d3d.GetWindowWidth(), d3d.GetWindowHeight());
  
-    auto initEndTime = std::chrono::steady_clock::now();
-    std::chrono::duration<float, std::milli> initDuration = initEndTime - initStartTime;
 
     // create a str with duration time about the engine initialization process
-    const POINT drawAt = { 10, 800 };
+    const TimeDurationMs initDurationMs = GetTimePoint() - initStartTime;
+    const POINT drawAt = { 10, 820 };
     char initTimeBuf[32]{'\0'};
-    snprintf(initTimeBuf, 32, "Init time: %d ms", (int)initDuration.count());
+    snprintf(initTimeBuf, 32, "Init time: %d ms", (int)initDurationMs.count());
     userInterface_.AddConstStr(pDevice, initTimeBuf, drawAt);
 
 
     // for some textures do its binding only once
     engine_.BindBindlessTextures("data/bindless_textures.cfg");
-   
 
     // print into console and log file info about duration of the initialization 
     SetConsoleColor(GREEN);
@@ -98,18 +106,19 @@ void App::Init()
     SetConsoleColor(RESET);
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:  initialize the main window
+//---------------------------------------------------------
 bool App::InitWindow()
 {
-     // get main params for the window initialization
+    // get main params for the window initialization
     const bool isFullScreen     = engineConfigs_.GetBool("FULL_SCREEN");
     const std::string wndTitle  = engineConfigs_.GetString("WINDOW_TITLE");
     const std::string wndClass  = "MyWindowClass";
     const int wndWidth          = engineConfigs_.GetInt("WINDOW_WIDTH");
     const int wndHeight         = engineConfigs_.GetInt("WINDOW_HEIGHT");
 
-    // init the main window
+   
     bool result = wndContainer_.renderWindow_.Initialize(
         hInstance_,
         mainHWND_,
@@ -130,7 +139,7 @@ bool App::InitWindow()
 //---------------------------------------------------------
 void App::InitEngine()
 {
-    const std::string wndTitle = engineConfigs_.GetString("WINDOW_TITLE");
+    const char* wndTitle = engineConfigs_.GetString("WINDOW_TITLE");
 
     engine_.Init(hInstance_, mainHWND_, engineConfigs_, wndTitle);
 }
@@ -189,15 +198,14 @@ bool App::InitRender(const Core::EngineConfigs& cfgs)
     return true;
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc: initialize the GUI of the game / engine (interface elements, text, etc.);
+//---------------------------------------------------------
 bool App::InitGUI(
     ID3D11Device* pDevice,
     const int wndWidth,
     const int wndHeight)
 {
-    // this function initializes the GUI of the game/engine (interface elements, text, etc.);
-
     SetConsoleColor(YELLOW);
     LogMsg("");
     LogMsg("----------------------------------------------------------");
@@ -250,8 +258,9 @@ bool App::InitGUI(
     }
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:  run application's infinite/game loop
+//---------------------------------------------------------
 void App::Run()
 {
     while (wndContainer_.renderWindow_.ProcessMessages(hInstance_, mainHWND_) == true)
@@ -261,8 +270,9 @@ void App::Run()
             const float deltaTime = engine_.GetTimer().GetDeltaTime();
             const float gameTime  = engine_.GetTimer().GetGameTime();
 
-            game_.Update(deltaTime, gameTime);
-            engine_.Update();
+            // update game and engine
+            Update(deltaTime, gameTime);
+
             engine_.RenderFrame();
         }
         else
@@ -272,6 +282,52 @@ void App::Run()
 
         if (engine_.IsExit())
             break;
+    }
+}
+
+
+//---------------------------------------------------------
+// Desc:  update the game and then update the engine;
+//        aslo calculate duration of updating process
+//---------------------------------------------------------
+void App::Update(const float deltaTime, const float gameTime)
+{
+    // calc duration of updating process
+    static int   numFramesHalfSec = 0;
+    static float sumTime          = 0;
+    static float sumUpdateTime    = 0;
+
+    const auto startTimestamp = GetTimePoint();
+
+    game_.Update(deltaTime, gameTime);
+    const auto gameUpdatedTimestamp = GetTimePoint();
+
+    engine_.Update();
+    auto endTimestamp = GetTimePoint();
+
+
+    // calc the duration of the whole update process and its stages
+    const TimeDurationMs durGameUpdate   = gameUpdatedTimestamp - startTimestamp;
+    const TimeDurationMs durEngineUpdate = endTimestamp - gameUpdatedTimestamp;
+    const TimeDurationMs updateDuration  = durGameUpdate + durEngineUpdate;
+
+    Core::SystemState& sysState = engine_.GetSystemState();
+    sysState.updateTime       = updateDuration.count();
+    sysState.updateTimeGame   = durGameUpdate.count();
+    sysState.updateTimeEngine = durEngineUpdate.count();
+
+    sumUpdateTime += sysState.updateTime;
+    numFramesHalfSec++;
+    sumTime += deltaTime;
+
+    // if time > 500 ms...
+    if (sumTime > 0.5f)
+    {
+        // ... compute averaged updating time for last 0.5 seconds
+        sysState.updateTimeAvg = sumUpdateTime / numFramesHalfSec;
+        sumUpdateTime    = 0;
+        numFramesHalfSec = 0;
+        sumTime          = 0;
     }
 }
 

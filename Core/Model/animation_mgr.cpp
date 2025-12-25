@@ -44,74 +44,33 @@ bool AnimationMgr::Init()
     // we want to get skeleton by wrong id, or something like it
     AddSkeleton("invalid");
 
-    
-#if 0
-    const XMVECTOR q0 = XMQuaternionRotationAxis({ 0,1,0 }, DEG_TO_RAD(30));
-    const XMVECTOR q1 = XMQuaternionRotationAxis({ 1,1,2 }, DEG_TO_RAD(45));
-    const XMVECTOR q2 = XMQuaternionRotationAxis({ 0,1,0 }, DEG_TO_RAD(-30));
-    const XMVECTOR q3 = XMQuaternionRotationAxis({ 1,0,0 }, DEG_TO_RAD(70));
-
-    cubeAnimation_.keyframes.resize(5);
-    cubeAnimation_.keyframes[0].timePos = 0.0f;
-    cubeAnimation_.keyframes[0].scale = 0.25f;
-    cubeAnimation_.keyframes[0].translation = { -7.0f, 0.0f, 0.0f };
-    XMStoreFloat4(&cubeAnimation_.keyframes[0].rotQuat, q0);
-
-    cubeAnimation_.keyframes[1].timePos = 2.0f;
-    cubeAnimation_.keyframes[1].scale = 0.5f;
-    cubeAnimation_.keyframes[1].translation = { 0.0f, 2.0f, 10.0f };
-    XMStoreFloat4(&cubeAnimation_.keyframes[1].rotQuat, q1);
-
-    cubeAnimation_.keyframes[2].timePos = 4.0f;
-    cubeAnimation_.keyframes[2].scale = 0.25f;
-    cubeAnimation_.keyframes[2].translation = { 7.0f, 0.0f, 0.0f };
-    XMStoreFloat4(&cubeAnimation_.keyframes[2].rotQuat, q2);
-
-    cubeAnimation_.keyframes[3].timePos = 6.0f;
-    cubeAnimation_.keyframes[3].scale = 0.5f;
-    cubeAnimation_.keyframes[3].translation = { 0.0f, 1.0f, -10.0f };
-    XMStoreFloat4(&cubeAnimation_.keyframes[3].rotQuat, q3);
-
-    cubeAnimation_.keyframes[4].timePos = 8.0f;
-    cubeAnimation_.keyframes[4].scale = 0.25f;
-    cubeAnimation_.keyframes[4].translation = { -7.0f, 0.0f, 0.0f };
-    XMStoreFloat4(&cubeAnimation_.keyframes[4].rotQuat, q0);
-#endif
     return true;
 }
 
 //---------------------------------------------------------
 //---------------------------------------------------------
-void AnimationMgr::Update(const float dt)
+void AnimationMgr::Update(const float dt, const char* skeletonName, const char* animName)
 {
     // get skeleton and its animation clip
-    AnimSkeleton&  skeleton     = GetSkeleton("boblampclean");
-    const int      animSearchId = skeleton.GetAnimationIdx("search");
-    const int      animTestId   = skeleton.GetAnimationIdx("test");
-    AnimationClip& animSearch   = skeleton.GetAnimation(animSearchId);
-    AnimationClip& animTest     = skeleton.GetAnimation(animTestId);
+    AnimSkeleton& skeleton = GetSkeleton(skeletonName);
+    const int animIdx      = skeleton.GetAnimationIdx(animName);
+    AnimationClip& anim    = skeleton.GetAnimation(animIdx);
 
     // increase the time position
-    animSearch.animTimePos += dt;
-    animTest.animTimePos += dt;
+    anim.animTimePos += dt;
 
-    if (animSearch.animTimePos >= animSearch.GetEndTime())
+    if (anim.animTimePos >= anim.GetEndTime())
     {
-        animSearch.animTimePos = 0.0f;   // loop animation back to beginning
-    }
-
-    if (animTest.animTimePos >= animTest.GetEndTime())
-    {
-        animTest.animTimePos = 0.0f;   // loop animation back to beginning
+        anim.animTimePos = 0.0f;   // loop animation back to beginning
     }
 }
 
 //---------------------------------------------------------
-// Desc:  
+// Desc:  add a new skeleton and set a name for it
 //---------------------------------------------------------
-uint AnimationMgr::AddSkeleton(const char* name)
+SkeletonID AnimationMgr::AddSkeleton(const char* name)
 {
-    const uint id = (uint)skeletons_.size();
+    const SkeletonID id = (uint)skeletons_.size();
 
     skeletons_.push_back(AnimSkeleton());
     skeletons_.back().id_ = id;
@@ -120,6 +79,27 @@ uint AnimationMgr::AddSkeleton(const char* name)
     SetSkeletonNameById(id, name);
 
     return id;
+}
+
+//---------------------------------------------------------
+// Desc:  return an ID (idx) of skeleton by input name
+//---------------------------------------------------------
+SkeletonID AnimationMgr::GetSkeletonId(const char* name)
+{
+    if (StrHelper::IsEmpty(name))
+    {
+        LogErr(LOG, "input name is empty");
+        return 0;
+    }
+
+    for (index i = 0; i < names_.size(); ++i)
+    {
+        if (strcmp(names_[i].name, name) == 0)
+            return skeletons_[i].id_;
+    }
+
+    LogErr(LOG, "there is no skeleton by name: %s", name);
+    return 0;
 }
 
 //---------------------------------------------------------
@@ -154,9 +134,8 @@ void AnimationMgr::SetSkeletonNameById(const uint id, const char* name)
     assert(id < names_.size());
     assert(name && name[0] != '\0' && "lig bollz");
 
-    strncpy(names_[id].name, name, MAX_LEN_SKELETON_NAME);
-    strncpy(skeletons_[id].name_, name, MAX_LEN_SKELETON_NAME);
+    snprintf(names_[id].name,      MAX_LEN_SKELETON_NAME, "%s", name);
+    snprintf(skeletons_[id].name_, MAX_LEN_SKELETON_NAME, "%s", name);
 }
-
 
 }

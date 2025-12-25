@@ -21,6 +21,7 @@
 #include "../Components/Player.h"
 #include "../Components/Hierarchy.h"
 #include "../Components/Inventory.h"
+#include "../Components/animation.h"
 
 // systems (ECS)
 #include "../Systems/TransformSystem.h"
@@ -37,6 +38,7 @@
 #include "../Systems/HierarchySystem.h"
 #include "../Systems/InventorySystem.h"
 #include "../Systems/ParticleSystem.h"
+#include "../Systems/AnimationSystem.h"
 
 // events (ECS)
 #include "../Events/IEvent.h"
@@ -173,6 +175,11 @@ public:
     void AddParticleEmitterComponent(const EntityID id);
     void AddInventoryComponent      (const EntityID id);
 
+    void AddAnimationComponent(
+        const EntityID enttId,
+        const SkeletonID skeletonId,
+        const AnimationID animId,
+        const float animEndTime);
 
 
     // =============================================================================
@@ -191,7 +198,8 @@ public:
     inline const std::map<eComponentType, std::string>& GetMapCompTypeToName() { return componentTypeToName_; }
 
     inline const size               GetNumAllEntts()            const { return ids_.size(); }
-    inline const EntityID*          GetAllEnttsIDs()            const { return ids_.data(); }
+    //inline const EntityID*          GetAllEnttsIDs()            const { return ids_.data(); }
+    inline const cvector<EntityID>& GetAllEnttsIDs()            const { return ids_; }
 
     bool                            GetComponentNamesByEntt(const EntityID id, cvector<std::string>& names) const;
     bool                            GetComponentTypesByEntt(const EntityID id, cvector<uint8_t>& types)     const;
@@ -220,7 +228,7 @@ private:
 
 
 public:
-    static const u32 ENTT_MGR_SERIALIZE_DATA_BLOCK_MARKER = 1000;
+    //static const uint32 ENTT_MGR_SERIALIZE_DATA_BLOCK_MARKER = 1000;
 
     // SYSTEMS
     LightSystem             lightSystem_;
@@ -237,6 +245,7 @@ public:
     HierarchySystem         hierarchySystem_;
     ParticleSystem          particleSystem_;
     InventorySystem         inventorySystem_;
+    AnimationSystem         animationSystem_;
     
 
     // "ID" of an entity is just a numeral index
@@ -265,6 +274,7 @@ private:
     Camera           camera_;
     Hierarchy        hierarchy_;
     Inventory        inventory_;
+    Animations       animations_;
 };
 
 };

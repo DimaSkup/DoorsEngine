@@ -14,6 +14,7 @@
 
 #include <imgui.h>
 #include <ImGuizmo.h>
+#include <stdexcept>
 
 #pragma warning (disable : 4996)
 
@@ -22,53 +23,67 @@ namespace UI
 {
 
 EnttEditorController::EnttEditorController() :
-    viewEnttTransform_(this),
-    viewEnttLight_(this),
     viewEnttParticles_(this)
 {
 }
 
+EnttEditorController::~EnttEditorController()
+{
+    SafeDelete(pAnimationController_);
+}
 
 // =================================================================================
 // public API
 // =================================================================================
 
-void EnttEditorController::Initialize(IFacadeEngineToUI* pFacade)
+void EnttEditorController::Init(IFacadeEngineToUI* pFacade)
 {
-    // the facade interface is used to contact with the rest of the engine
-    CAssert::NotNullptr(pFacade, "ptr to the IFacadeEngineToUI interface == nullptr");
-    pFacade_ = pFacade;
+    try
+    {
+        // the facade interface is used to contact with the rest of the engine
+        CAssert::NotNullptr(pFacade, "ptr to the IFacadeEngineToUI interface == nullptr");
+        pFacade_ = pFacade;
 
-    transformController_.Initialize(pFacade);
-    dirLightController_.Initialize(pFacade);
-    pointLightController_.Initialize(pFacade);
-    spotLightController_.Initialize(pFacade);
-    particlesController_.Initialize(pFacade);
+        particlesController_.Initialize(pFacade);
+
+        pAnimationController_ = NEW EnttAnimationController();
+        CAssert::NotNullptr(pAnimationController_, "can't alloc memory from entity animation controller");
+    }
+    catch (EngineException& e)
+    {
+        LogErr(e);
+        LogErr(LOG, "can't init entities editor controller");
+        exit(0);
+    }
+    
 }
 
-///////////////////////////////////////////////////////////
-
-void EnttEditorController::SetSelectedEntt(const EntityID enttID)
+//---------------------------------------------------------
+// Desc:  set that we have selected (or not) some entity and load its data
+//---------------------------------------------------------
+void EnttEditorController::SetSelectedEntt(const EntityID enttId)
 {
-    // set that we have selected some entity and load its data
-
     // if we deselected the chosen entt so we won't render any control panel
     // until we won't select any other
-    if (enttID == 0)
+    if (enttId == 0)
     {
         selectedEnttData_.id   = 0;
-        selectedEnttData_.name = "";
+        memset(selectedEnttData_.name, 0, MAX_LEN_ENTT_NAME);
         return;
     }
     // we have chosen some entt
     else
     {
         // get selected entity ID and name
-        selectedEnttData_.id = enttID;
-        pFacade_->GetEnttNameById(enttID, selectedEnttData_.name);
+        selectedEnttData_.id = enttId;
+        const char* enttName = pFacade_->GetEnttNameById(enttId);
+        if (enttName)
+        {
+            strncpy(selectedEnttData_.name, enttName, MAX_LEN_ENTT_NAME);
+        }
 
         // get names of added components
-        pFacade_->GetEntityAddedComponentsTypes(enttID, selectedEnttData_.componentsTypes);
+        pFacade_->GetEnttAddedComponentsTypes(enttId, selectedEnttData_.componentsTypes);
 
 
         // load data for each component which is added to the selected entity
@@ -82,7 +97,7 @@ void EnttEditorController::SetSelectedEntt(const EntityID enttID)
                 }
                 case TransformComponent:
                 {
-                    transformController_.LoadEnttData(enttID);
+                    transformController_.LoadEnttData(pFacade_, enttId);
                     break;
                 }
                 case MoveComponent:
@@ -111,28 +126,27 @@ void EnttEditorController::SetSelectedEntt(const EntityID enttID)
                 }
                 case ParticlesComponent:
                 {
-                    particlesController_.LoadEnttData(enttID);
+                    particlesController_.LoadEnttData(enttId);
                     break;
                 }
                 case LightComponent:
                 {
                     int lightType;
 
-                    if (pFacade_->GetEnttLightType(enttID, lightType))
+                    if (pFacade_->GetEnttLightType(enttId, lightType))
                     {
                         if (lightType == eEnttLightType::ENTT_LIGHT_TYPE_DIRECTED)
-                            dirLightController_.LoadEnttData(enttID);
+                            dirLightController_.LoadEnttData(pFacade_, enttId);
 
                         else if (lightType == eEnttLightType::ENTT_LIGHT_TYPE_POINT)
-                            pointLightController_.LoadEnttData(enttID);
+                            pointLightController_.LoadEnttData(pFacade_, enttId);
 
                         else if (lightType == eEnttLightType::ENTT_LIGHT_TYPE_SPOT)
-                            spotLightController_.LoadEnttData(enttID);
+                            spotLightController_.LoadEnttData(pFacade_, enttId);
 
                         else
                         {
-                            const char* enttName = selectedEnttData_.name.c_str();
-                            LogErr(LOG, "unknown light type (%d) for entity (id: %" PRIu32 ", name: % s)", lightType, enttID, enttName);
+                            LogErr(LOG, "unknown light type (%d) for entity (id: %" PRIu32 ", name: % s)", lightType, enttId, selectedEnttData_.name);
                             return;
                         }
 
@@ -142,12 +156,13 @@ void EnttEditorController::SetSelectedEntt(const EntityID enttID)
                     
                     break;
                 }
-                case RenderStatesComponent:
+                case BoundingComponent:
                 {
                     break;
                 }
-                case BoundingComponent:
+                case AnimationComponent:
                 {
+                    pAnimationController_->LoadEnttData(pFacade_, enttId);
                     break;
                 }
             } // switch
@@ -155,51 +170,45 @@ void EnttEditorController::SetSelectedEntt(const EntityID enttID)
     }
 }
 
-///////////////////////////////////////////////////////////
-
-void RenderEntityIdAndName(const EntityID id, const std::string& enttName)
-{
-    ImGui::Text("Entity ID:   %d", id);
-    ImGui::Text("Entity name: %s", enttName.c_str());
-}
-
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// Desc:  render a panel for controlling properties of the chosen entity
+//---------------------------------------------------------
 void EnttEditorController::Render()
 {
-    //  render a panel for controlling properties of the chosen entity
-
-    const EntityID enttID = selectedEnttData_.id;
-
-    // we have no entity as selected
-    if (enttID == 0)
+    // if we have no entity as selected...
+    if (selectedEnttData_.id == 0)
         return;
+
+    const EntityID enttId   = selectedEnttData_.id;
+    const char*    enttName = selectedEnttData_.name;
 
     // we want the next editor panel to be visible
     static bool isOpen = true;
     ImGui::SetNextItemOpen(isOpen);
 
-
     // render a list of components which are added to the entity (for editing these components)
     ImGui::Separator();
-    RenderEntityIdAndName(enttID, selectedEnttData_.name);
+    ImGui::Text("Entity ID:   %d", enttId);
+    ImGui::Text("Entity name: %s", enttName);
 
-
+    
     // render view (editor control fields) for each added component
+    const ImGuiTreeNodeFlags_ flags = ImGuiTreeNodeFlags_SpanFullWidth;
+
     for (const eEnttComponentType type : selectedEnttData_.componentsTypes)
     {
         switch (type)
         {
             case NameComponent:
             {
-                if (ImGui::CollapsingHeader("Name", ImGuiTreeNodeFlags_SpanFullWidth))
-                    ImGui::Text("Entity name: %s", selectedEnttData_.name.c_str());
+                if (ImGui::CollapsingHeader("Name", flags))
+                    ImGui::Text("Entity name: %s", enttName);
                 break;
             }
             case TransformComponent:
             {
-                if (ImGui::CollapsingHeader("Transformation", ImGuiTreeNodeFlags_SpanFullWidth))
-                    viewEnttTransform_.Render(transformController_.GetModel());
+                if (ImGui::CollapsingHeader("Transformation", flags))
+                    viewEnttTransform_.Render(this, transformController_.GetData());
                 break;
             }
             case MoveComponent:
@@ -228,7 +237,7 @@ void EnttEditorController::Render()
             }
             case ParticlesComponent:
             {
-                if (ImGui::CollapsingHeader("Particle Emitter", ImGuiTreeNodeFlags_SpanFullWidth))
+                if (ImGui::CollapsingHeader("Particle Emitter", flags))
                     viewEnttParticles_.Render(particlesController_.GetModel());
 
                 break;
@@ -238,27 +247,32 @@ void EnttEditorController::Render()
                 // according to the light type which is added to entity we render responsible view (set of editor fields)
                 if (selectedEnttData_.lightType == eEnttLightType::ENTT_LIGHT_TYPE_DIRECTED)
                 {
-                    if (ImGui::CollapsingHeader("Directed light properties", ImGuiTreeNodeFlags_SpanFullWidth))
-                        viewEnttLight_.Render(dirLightController_.GetModel());
+                    if (ImGui::CollapsingHeader("Directed light", flags))
+                        viewEnttLight_.Render(this, dirLightController_.GetData());
                 }
                 else if (selectedEnttData_.lightType == eEnttLightType::ENTT_LIGHT_TYPE_POINT)
                 {
-                    if (ImGui::CollapsingHeader("Point Light Properties", ImGuiTreeNodeFlags_SpanFullWidth))
-                        viewEnttLight_.Render(pointLightController_.GetModel());
+                    if (ImGui::CollapsingHeader("Point light", flags))
+                        viewEnttLight_.Render(this, pointLightController_.GetData());
                 }
                 else if (selectedEnttData_.lightType == eEnttLightType::ENTT_LIGHT_TYPE_SPOT)
                 {
-                    if (ImGui::CollapsingHeader("Spotlight Properties", ImGuiTreeNodeFlags_SpanFullWidth))
-                        viewEnttLight_.Render(spotLightController_.GetModel());
+                    if (ImGui::CollapsingHeader("Spotlight", flags))
+                        viewEnttLight_.Render(this, spotLightController_.GetData());
                 }
-                break;
-            }
-            case RenderStatesComponent:
-            {
                 break;
             }
             case BoundingComponent:
             {
+                break;
+            }
+            case AnimationComponent:
+            {
+                // for animations we have to actively update some info
+                pAnimationController_->LoadEnttData(pFacade_, enttId);
+
+                if (ImGui::CollapsingHeader("Animations", flags))
+                    viewEnttAnimation_.Render(this, pAnimationController_->GetData());
                 break;
             }
         } // switch
@@ -349,14 +363,14 @@ void EnttEditorController::ExecCmd(const ICommand* pCmd)
         case CHANGE_ENTITY_ROTATION:
         case CHANGE_ENTITY_SCALE:
         {
-            transformController_.ExecuteCommand(pCmd, enttId);
+            transformController_.ExecCmd(pFacade_, pCmd, enttId);
             break;
         }
         case CHANGE_DIR_LIGHT_AMBIENT:
         case CHANGE_DIR_LIGHT_DIFFUSE:
         case CHANGE_DIR_LIGHT_SPECULAR:
         {
-            dirLightController_.ExecuteCommand(pCmd, enttId);
+            dirLightController_.ExecCmd(pFacade_, pCmd, enttId);
             break;
         }
         case CHANGE_POINT_LIGHT_ACTIVATION:
@@ -366,7 +380,7 @@ void EnttEditorController::ExecCmd(const ICommand* pCmd)
         case CHANGE_POINT_LIGHT_RANGE:
         case CHANGE_POINT_LIGHT_ATTENUATION:
         {
-            pointLightController_.ExecuteCommand(pCmd, enttId);
+            pointLightController_.ExecCmd(pFacade_, pCmd, enttId);
             break;
         }
         case CHANGE_SPOT_LIGHT_AMBIENT:
@@ -376,7 +390,7 @@ void EnttEditorController::ExecCmd(const ICommand* pCmd)
         case CHANGE_SPOT_LIGHT_ATTENUATION:
         case CHANGE_SPOT_LIGHT_SPOT_EXPONENT:   // light intensity fallof (for control the spotlight cone)
         {
-            spotLightController_.ExecuteCommand(pCmd, enttId);
+            spotLightController_.ExecCmd(pFacade_, pCmd, enttId);
             break;
         }
         case CHANGE_PARTICLES_COLOR:
@@ -390,10 +404,16 @@ void EnttEditorController::ExecCmd(const ICommand* pCmd)
             particlesController_.ExecCmd(pCmd, enttId);
             break;
         }
+        case CHANGE_ENTITY_ANIMATION_SKELETON:
+        case CHANGE_ENTITY_ANIMATION_TYPE:
+        {
+            pAnimationController_->ExecCmd(pFacade_, pCmd, enttId);
+            break;
+        }
         default:
         {
-            sprintf(g_String, "unknown type of command: %d", pCmd->type_);
-            LogErr(g_String);
+            const char* enttName = pFacade_->GetEnttNameById(enttId);
+            LogErr(LOG, "unknown type of command (%d) for entt '%s' (%" PRIu32 ")", pCmd->type_, enttName, enttId);
             return;
         }
     }
@@ -402,20 +422,20 @@ void EnttEditorController::ExecCmd(const ICommand* pCmd)
 //---------------------------------------------------------
 // Desc:  undo/alt_undo an event from the events history for entity by ID
 //---------------------------------------------------------
-void EnttEditorController::UndoCmd(const ICommand* pCmd, const EntityID enttID)
+void EnttEditorController::UndoCmd(const ICommand* pCmd, const EntityID enttId)
 {
     // check input args
     if (!pFacade_)
     {
-        LogErr(LOG, "your ptr to facade interface == nullptr (init it first!)");
+        LogErr(LOG, "UI facade ptr == nullptr (init it first!)");
         return;
     }
     if (!pCmd)
     {
-        LogErr(LOG, "input ptr to command == nullptr");
+        LogErr(LOG, "command ptr == nullptr");
         return;
     }
-    if (enttID == INVALID_ENTITY_ID)
+    if (enttId == INVALID_ENTITY_ID)
     {
         LogErr(LOG, "you try to modify invalid entity (id: 0, cmd type: %d)", pCmd->type_);
         return;
@@ -428,14 +448,14 @@ void EnttEditorController::UndoCmd(const ICommand* pCmd, const EntityID enttID)
         case CHANGE_ENTITY_ROTATION:
         case CHANGE_ENTITY_SCALE:
         {
-            transformController_.UndoCommand(pCmd, enttID);
+            transformController_.UndoCmd(pFacade_, pCmd, enttId);
             break;
         }
         case CHANGE_DIR_LIGHT_AMBIENT:
         case CHANGE_DIR_LIGHT_DIFFUSE:
         case CHANGE_DIR_LIGHT_SPECULAR:
         {
-            dirLightController_.UndoCommand(pCmd, enttID);
+            dirLightController_.UndoCmd(pFacade_, pCmd, enttId);
             break;
         }
         //case CHANGE_POINT_LIGHT_ACTIVATION:
@@ -445,7 +465,7 @@ void EnttEditorController::UndoCmd(const ICommand* pCmd, const EntityID enttID)
         case CHANGE_POINT_LIGHT_RANGE:
         case CHANGE_POINT_LIGHT_ATTENUATION:
         {
-            pointLightController_.UndoCommand(pCmd, enttID);
+            pointLightController_.UndoCmd(pFacade_, pCmd, enttId);
             break;
         }
         case CHANGE_SPOT_LIGHT_AMBIENT:
@@ -455,12 +475,13 @@ void EnttEditorController::UndoCmd(const ICommand* pCmd, const EntityID enttID)
         case CHANGE_SPOT_LIGHT_ATTENUATION:
         case CHANGE_SPOT_LIGHT_SPOT_EXPONENT:   // light intensity fallof (for control the spotlight cone)
         {
-            spotLightController_.UndoCommand(pCmd, enttID);
+            spotLightController_.UndoCmd(pFacade_, pCmd, enttId);
             break;
         }
         default:
         {
-            LogErr(LOG, "unknown type of undo command (%d)", pCmd->type_);
+            const char* enttName = pFacade_->GetEnttNameById(enttId);
+            LogErr(LOG, "unknown type of undo command (%d) for entt '%s' (%" PRIu32 ")", pCmd->type_, enttName, enttId);
         }
     }
 }

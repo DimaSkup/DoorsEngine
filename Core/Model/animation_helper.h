@@ -26,32 +26,6 @@ namespace Core
 {
 
 //---------------------------------------------------------
-// helper defines/structures/enums for skinned data
-//---------------------------------------------------------
-#define MAX_NUM_BONES_PER_VERTEX 4
-#define MAX_LEN_ANIMATION_NAME   16
-#define MAX_LEN_BONE_NAME        16
-#define MAX_LEN_SKELETON_NAME    16
-
-//---------------------------------------------------------
-
-struct AnimationName
-{
-    char name[MAX_LEN_ANIMATION_NAME]{'\0'};
-};
-
-struct BoneName
-{
-    char name[MAX_LEN_BONE_NAME]{'\0'};
-};
-
-struct SkeletonName
-{
-    char name[MAX_LEN_SKELETON_NAME]{'\0'};
-};
-
-
-//---------------------------------------------------------
 // a keyframe defines the bone transformation at an instant in time
 //---------------------------------------------------------
 struct Keyframe
@@ -121,6 +95,8 @@ struct AnimationClip
     float GetStartTime() const;
     float GetEndTime() const;
 
+    int GetMaxNumKeyframes() const;
+
     void Interpolate(const float t, cvector<DirectX::XMMATRIX>& boneTransforms) const;
 
     uint                   id = 0;
@@ -145,21 +121,28 @@ class AnimSkeleton
 public:
     AnimSkeleton() {};
 
-    size           GetNumBones() const;
-    const char*    GetName()     const;
-    ID3D11Buffer*  GetBonesVB()  const;
+    const cvector<AnimationName>& GetAnimNames() const;
 
-    int            AddAnimation    (const char* animName);
-    int            GetAnimationIdx (const char* animName) const;
-    AnimationClip& GetAnimation    (const int animIdx);
-    void           SetAnimationName(const int animIdx, const char* newName);
+    size                 GetNumAnimations() const;
+    size                 GetNumBones()      const;
+    
 
-    float GetAnimationStartTime(const int animIdx) const;
-    float GetAnimationEndTime  (const int animIdx) const;
+    const char*          GetName()    const;
+    ID3D11Buffer*        GetBonesVB() const;
 
-    int   AddBone              (const char* name);
-    int   GetBoneIdByName      (const char* name);
-    void  SetBoneNameById      (const int id, const char* name);
+    int                  AddAnimation    (const char* animName);
+    int                  GetAnimationIdx (const char* animName) const;
+    AnimationClip&       GetAnimation    (const int animIdx);
+    const AnimationClip& GetAnimation    (const int animIdx) const;
+    const char*          GetAnimationName(const int animIdx);
+    void                 SetAnimationName(const int animIdx, const char* newName);
+
+    float                GetAnimationStartTime(const int animIdx) const;
+    float                GetAnimationEndTime  (const int animIdx) const;
+
+    int                  AddBone              (const char* name);
+    int                  GetBoneIdByName      (const char* name);
+    void                 SetBoneNameById      (const int id, const char* name);
     
 
 #if 0
@@ -171,20 +154,21 @@ public:
 #endif
 
     void GetFinalTransforms(
-        const char* animationName,
+        const AnimationID animId,
         const float timePos,
         cvector<DirectX::XMMATRIX>& outFinalTransforms);
 
 
-    void DumpBoneWeights();
-    void DumpBoneOffsets();
-    void DumpBoneParents();
-    void DumpKeyframes(const char* animName, const int boneId);
+    void DumpAnimations() const;
+    void DumpBoneWeights() const;
+    void DumpBoneOffsets() const;
+    void DumpBoneParents() const;
+    void DumpKeyframes(const char* animName, const int boneId) const;
 
 public:
     char name_[MAX_LEN_SKELETON_NAME]{'\0'};
 
-    uint id_ = 0;
+    SkeletonID id_ = 0;
 
     // gives parentIndex of ith bone
     cvector<int>                 boneHierarchy_;

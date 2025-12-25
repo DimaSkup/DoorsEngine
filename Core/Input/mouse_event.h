@@ -3,33 +3,33 @@
 
 struct MousePoint
 {
-	int x;
-	int y;
+    int x;
+    int y;
 };
 
 class MouseEvent
 {
 public:
-	enum EventType
-	{
-		LPress,
-		LRelease,
-		RPress,
-		RRelease,
-		MPress,
-		MRelease,
-		WheelUp,
-		WheelDown,
-		Move,
-		RAW_MOVE,
-		LeftDoubleClick,
-		Invalid
-	};
+    enum EventType
+    {
+        LPress,
+        LRelease,
+        RPress,
+        RRelease,
+        MPress,
+        MRelease,
+        WheelUp,
+        WheelDown,
+        Move,
+        RAW_MOVE,
+        LeftDoubleClick,
+        Invalid
+    };
 
 private:
-	EventType type;
-	int x;
-	int y;
+    EventType type;
+    int x;
+    int y;
 
 public:
     MouseEvent() :
@@ -40,10 +40,10 @@ public:
         type(type), x(x), y(y)
     {}
 
-	inline bool IsValid()           const { return type != EventType::Invalid; }
-	inline EventType GetEventType() const { return type; }
+    inline bool IsValid()           const { return type != EventType::Invalid; }
+    inline EventType GetEventType() const { return type; }
 
-	inline MousePoint GetPos()      const { return { x, y }; }
-	inline int GetPosX()            const { return x; }
-	inline int GetPosY()            const { return y; }
+    inline MousePoint GetPos()      const { return { x, y }; }
+    inline int GetPosX()            const { return x; }
+    inline int GetPosY()            const { return y; }
 };

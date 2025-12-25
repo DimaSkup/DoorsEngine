@@ -1,6 +1,9 @@
 // =================================================================================
 // Filename:       EnttEditorController.h
-// Description:    1. handle all the entity editor events
+// Desc:           main controller over all the entity related MVC
+//                 (model-view-controller)
+// 
+//                 1. handle all the entity editor events
 //                 2. execute changes of the entity properties 
 //                 3. store this change as a command into the events history stack
 // Created:        01.01.25
@@ -9,16 +12,22 @@
 
 #include <UICommon/ieditor_controller.h>
 
-#include "../View/EnttTransformView.h"
-#include "../View/EnttLightView.h"
-#include "../View/EnttParticlesView.h"
+// model (data)
+#include "Model/SelectedEnttData.h"
 
-#include "../Model/SelectedEnttData.h"
-#include "EnttTransformController.h"
-#include "EnttDirLightController.h"
-#include "EnttPointLightController.h"
-#include "EnttSpotLightController.h"
-#include "EnttParticlesController.h"
+// view
+#include "View/ui_entt_transform_view.h"
+#include "View/ui_entt_light_view.h"
+#include "View/EnttParticlesView.h"
+#include "View/ui_entt_animation_view.h"
+
+// controller
+#include "Controller/ui_entt_transform_controller.h"
+#include "Controller/ui_entt_dir_light_controller.h"
+#include "Controller/ui_entt_point_light_controller.h"
+#include "Controller/ui_entt_spotlight_controller.h"
+#include "Controller/EnttParticlesController.h"
+#include "Controller/ui_entt_animation_controller.h"
 
 
 namespace UI
@@ -39,10 +48,12 @@ private:
     EnttTransformView           viewEnttTransform_;
     EnttLightView               viewEnttLight_;
     EnttParticlesView           viewEnttParticles_;
+    EnttAnimationView           viewEnttAnimation_;
 
     // entities MVC controllers
     EnttTransformController     transformController_;
     EnttParticlesController     particlesController_;
+    EnttAnimationController*    pAnimationController_ = nullptr;
 
     EnttDirLightController      dirLightController_;
     EnttPointLightController    pointLightController_;
@@ -52,10 +63,11 @@ private:
 
 public:
     EnttEditorController();
+    ~EnttEditorController();
 
-    void Initialize(IFacadeEngineToUI* pFacade);
+    void Init(IFacadeEngineToUI* pFacade);
     void Render();
-    void SetSelectedEntt(const EntityID entityID);
+    void SetSelectedEntt(const EntityID entityId);
 
     inline EntityID GetSelectedEnttID() const { return selectedEnttData_.id; }
 

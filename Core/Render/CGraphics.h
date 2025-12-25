@@ -259,34 +259,46 @@ public:
         printf("current bone id: %u\n", boneId);
     }
 
+    int currAnimIdx_ = 0;
+
+    inline void IncreaseCurrAnimIdx()
+    {
+        currAnimIdx_++;
+        currAnimIdx_ %= 22;
+    }
+
+
 private:
 
     inline Render::D3DClass&    GetD3D()     const { return pRender_->GetD3D(); }
     inline ID3D11Device*        GetDevice()  const { return pRender_->GetDevice(); }
     inline ID3D11DeviceContext* GetContext() const { return pRender_->GetContext(); }
 
-    void UpdateHelper(const float deltaTime, const float gameTime);
-
-    void UpdateParticlesVB();
-    void UpdateShadersDataPerFrame(const float deltaTime, const float totalGameTime);
-
-    void AddFrustumToRender(const EntityID camId, ECS::EntityMgr& mgr);
-
+    // --- updating state
+    void UpdateHelper             (const float deltaTime, const float gameTime);
+    void UpdateParticlesVB        ();
+    void UpdateShadersDataPerFrame(const float deltaTime, const float gameTime);
+    void AddFrustumToRender       (const EntityID camId);
+    void PrepareRenderInstances   (const DirectX::XMFLOAT3& cameraPos);
+    void SetupLightsForFrame      (Render::PerFrameData& perFrameData);
+    
+    // --- rendering stages
     void ResetBeforeRendering();
-
-    void RenderSkinnedModel(const char* entityName);
-
+    void ResetRenderStatesToDefault();
     void DepthPrepass();
     void ColorLightPass();
     void PostFxPass();
-  
-    
-    // ------------------------------------------
-    // rendering data prepararion stage
-    void PrepareRenderInstances(const DirectX::XMFLOAT3& cameraPos);
 
-    // ------------------------------------------
+    // --- rendering stage: depth pre-pass
+    void TerrainDepthPrepass();
 
+    void DepthPrepassInstanceGroup(
+        const cvector<Render::InstanceBatch>& instanceBatches,
+        const eGeomType geomType,
+        UINT& startInstanceLocation);
+
+    // --- rendering stage: color pass
+    void RenderSkinnedModel(const EntityID enttId);
     void RenderGrass();
 
     void RenderInstanceGroups(
@@ -294,32 +306,17 @@ private:
         const eGeomType geomType,
         UINT& startInstanceLocation);
 
-    void DepthPrepassInstanceGroup(
-        const cvector<Render::InstanceBatch>& instanceBatches,
-        const eGeomType geomType,
-        UINT& startInstanceLocation);
-
-
     void RenderParticles();
     void RenderSkyClouds();
     void RenderSkyDome();
 
-    void TerrainDepthPrepass();
     void RenderTerrainGeomip();
-
     void RenderPlayerWeapon();
     void RenderDebugShapes();
-
     void VisualizeDepthBuffer();
-
     void RenderPostFxOnePass();
     void RenderPostFxMultiplePass();
 
-    // ------------------------------------------
-
-    void SetupLightsForFrame(ECS::EntityMgr* pEnttMgr, Render::PerFrameData& perFrameData);
-
-    void ResetRenderStatesToDefault();
 
 public:
     RenderStat rndStat_;
@@ -334,8 +331,6 @@ public:
     SystemState* pSysState_ = nullptr;                                
 
     cvector<DirectX::BoundingFrustum> frustums_;
-    //Frustum frustum_;
-
     
     RenderDataPreparator  prep_;
     FrameBuffer           frameBuffer_;                           // for rendering to some texture

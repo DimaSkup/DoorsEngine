@@ -25,13 +25,13 @@ MoveSystem::MoveSystem(Transform* pTransformComponent, Movement* pMoveComponent)
 // ================================================================================
 //                PUBLIC SERIALIZATION / DESERIALIZATION API
 // ================================================================================
-void MoveSystem::Serialize(std::ofstream& fout, u32& offset)
+void MoveSystem::Serialize(std::ofstream& fout, uint32& offset)
 {
 }
 
 ///////////////////////////////////////////////////////////
 
-void MoveSystem::Deserialize(std::ifstream& fin, const u32 offset)
+void MoveSystem::Deserialize(std::ifstream& fin, const uint32 offset)
 {
 }
 

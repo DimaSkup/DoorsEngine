@@ -26,12 +26,14 @@ public:
     AnimationMgr();
 
     bool Init();
-    void Update(const float dt);
+    void Update(const float dt, const char* skeletonName, const char* animName);
 
-    uint AddSkeleton(const char* name);
+    SkeletonID AddSkeleton  (const char* name);
+    SkeletonID GetSkeletonId(const char* name);
 
     AnimSkeleton& GetSkeleton(const uint id);
     AnimSkeleton& GetSkeleton(const char* name);
+
 
     void SetSkeletonNameById(const uint id, const char* name);
 

@@ -94,6 +94,12 @@ void UITexturesBrowser::Render(IFacadeEngineToUI* pFacade, bool* pOpen)
 // =================================================================================
 void UITexturesBrowser::RenderMenuBar(bool* pOpen)
 {
+    if (pOpen == nullptr)
+    {
+        LogErr(LOG, "input ptr == nullptr");
+        return;
+    }
+
     if (ImGui::BeginMenuBar())
     {
         if (ImGui::BeginMenu("File"))
@@ -239,9 +245,16 @@ void UITexturesBrowser::DrawTextureIcons(const float startPosX, const float star
                 if (chooseAnother)
                 {
                     // try to get a texture ID by index
-                    selectedItemIdx_ = itemIdx;
-                    textureWasChanged_ = pFacade_->GetTextureIdByIdx(itemIdx, selectedTexItemID_);
-                    pFacade_->GetTextureNameById(selectedTexItemID_, selectedTextureName_);
+                    const TexID texId = pFacade_->GetTextureIdByIdx(selectedItemIdx_);
+
+                    if (texId != INVALID_TEXTURE_ID)
+                    {
+                        const char* texName = pFacade_->GetTextureNameById(selectedTexItemID_);
+
+                        textureWasChanged_ = true;
+                        selectedTexItemID_ = texId;
+                        strcpy(selectedTextureName_.name, texName);
+                    }
                 }
 
                 // draw background (so we will have a border around icon)
@@ -430,7 +443,9 @@ void UITexturesBrowser::ShowEditorWnd()
                 }
 
                 // update UI info about the texture
-                pFacade_->GetTextureNameById(selectedTexItemID_, selectedTextureName_);
+                const char* texName = pFacade_->GetTextureNameById(selectedTexItemID_);
+                if (texName)
+                    strcpy(selectedTextureName_.name, texName);
 
                 // update material icons since we changed a texture
                 g_GuiStates.needUpdateMatBrowserIcons = true;

@@ -60,21 +60,24 @@ struct SystemState
     //-----------------------------------------------------
     // this frame render stats
     //-----------------------------------------------------
-    uint32 numDrawnTerrainPatches   = 0;     // how many terrain's patched did we render for this frame?
-    uint32 numCulledTerrainPatches  = 0;     // how many patches was culled during frustum test
+    uint32 numDrawnTerrainPatches   = 0;        // how many terrain's patched did we render for this frame?
+    uint32 numCulledTerrainPatches  = 0;        // how many patches was culled during frustum test
     uint32 numVisiblePointLights    = 0;
     uint32 numVisibleSpotlights     = 0;
 
-    uint32 numDrawnAllVerts = 0;             // the number of all rendered vertices
-    uint32 numDrawnAllTris = 0;              // the number of all rendered triangles
+    uint32 numDrawnAllVerts = 0;                // the number of all rendered vertices
+    uint32 numDrawnAllTris = 0;                 // the number of all rendered triangles
 
-    uint32 numDrawnEnttsInstances   = 0;     // the number of rendered entities instances
-    uint32 numDrawCallsEnttsInstances = 0;   // the number of draw calls for all entities
+    uint32 numDrawnEnttsInstances   = 0;        // the number of rendered entities instances
+    uint32 numDrawCallsEnttsInstances = 0;      // the number of draw calls for all entities
 
-    float deltaTime = 0.0f;                  // seconds per last frame
-    float frameTime = 0.0f;                  // ms per last frame
-    float updateTime = 0.0f;                 // duration time of the whole update process
-    float updateTimeAvg = 0.0f;              // (milliseconds) average time of update for last 0.5 sec
+    float deltaTime = 0.0f;                     // seconds per last frame
+    float frameTime = 0.0f;                     // ms per last frame
+
+    float updateTime        = 0;                // duration time of the whole update process
+    float updateTimeAvg     = 0;                // (ms) average time of update for last 0.5 sec
+    float updateTimeGame    = 0;                // duration (ms) of game updating
+    float updateTimeEngine  = 0;                // duration (ms) of engine updating
 
     float msRenderTimings   [MAX_RND_TIMINGS]{ 0.0f };
     float msRenderTimingsAvg[MAX_RND_TIMINGS]{ 0.0f };

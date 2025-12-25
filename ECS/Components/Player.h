@@ -24,6 +24,8 @@ enum ePlayerState
     MOVE_UP             = (1 << 10),
     MOVE_DOWN           = (1 << 11),
     TURNED_FLASHLIGHT   = (1 << 12),
+    RELOADING           = (1 << 13),
+    IDLE                = (1 << 14),
 };
 
 // ECS component

@@ -21,22 +21,29 @@
 #include <Model/model_exporter.h>
 #include <Model/grass_mgr.h>
 #include <Model/model_loader.h>
+#include <Model/animation_mgr.h>
 #include <Mesh/material_reader.h>
 
 #include <inttypes.h>                   // for using PRIu32, SCNu32, etc.
-
 
 using namespace Core;
 using namespace Render;
 using namespace DirectX;
 
-#define NUM_TREES_SPRUCE 100
-#define NUM_TREES_PINE   100
-
-
 
 namespace Game
 {
+
+//---------------------------------------------------------
+// some typedefs and helpers to get timings
+//---------------------------------------------------------
+using TimeDurationMs = std::chrono::duration<float, std::milli>;
+
+inline std::chrono::steady_clock::time_point GetTimePoint()
+{
+    return std::chrono::steady_clock::now();
+}
+
 
 //---------------------------------------------------------
 // declare some helper structures
@@ -58,45 +65,17 @@ struct NatureParams
 };
 
 //---------------------------------------------------------
-// Desc:   initialize "invalid" texture, material, and model
-//         which will be used in cases when we didn't get a valid resource
-//         (for instance: didn't find a model by name)
-//---------------------------------------------------------
-void InitInvalidMaterialAndModel(Render::CRender& render)
-{
-    // setup "invalid" material
-    const TexID noTexId = g_TextureMgr.GetTexIdByName("notexture");
-    Material& invalidMat = g_MaterialMgr.GetMatById(INVALID_MATERIAL_ID);
-    invalidMat.shaderId = render.shaderMgr_.GetShaderIdByName("TextureShader");
-    invalidMat.renderStates = MAT_PROP_DEFAULT;
-    invalidMat.SetTexture(TEX_TYPE_DIFFUSE, noTexId);
-
-    // create and setup "invalid" model
-    Core::ModelsCreator creator;
-    const ModelID cubeID = creator.CreateCube(Render::g_pDevice);
-    BasicModel& invalidModel = g_ModelMgr.GetModelById(cubeID);
-
-    g_ModelMgr.SetModelName(invalidModel.id_, "invalid_model");
-    invalidModel.SetMaterialForSubset(0, invalidMat.id);
-}
-
-
-
-//---------------------------------------------------------
-// Desc:   init multiple material so we will use them later
-//         during initialization of entities
+// Desc:   load and create materials from file
 //---------------------------------------------------------
 void InitMaterials()
 {
-    // compute the duration of the whole process of loading
-    auto start = std::chrono::steady_clock::now();
+    const auto start = GetTimePoint();
 
     MaterialReader matReader;
     matReader.Read("data/materials.demat");
 
-    // compute the duration of the whole process of importing
-    auto end = std::chrono::steady_clock::now();
-    std::chrono::duration<float, std::milli> elapsed = end - start;
+    // calc the duration of the whole process of materials loading
+    const TimeDurationMs elapsed = GetTimePoint() - start;
 
     SetConsoleColor(MAGENTA);
     LogMsg("Material loading duration: %f ms", elapsed.count());
@@ -534,6 +513,7 @@ void GameInitializer::InitPlayer(
     const EntityID ak74Stalker   = nameSys.GetIdByName("player_ak_74_stalker");
     const EntityID groza         = nameSys.GetIdByName("player_groza");
     const EntityID hpsa          = nameSys.GetIdByName("player_hpsa");
+    const EntityID ak74hudEnttId = nameSys.GetIdByName("ak_74_hud");
 
     // ------------------------------------------
 
@@ -551,6 +531,7 @@ void GameInitializer::InitPlayer(
     inventorySys.AddItem(playerId, ak74Stalker);
     inventorySys.AddItem(playerId, groza);
     inventorySys.AddItem(playerId, hpsa);
+    inventorySys.AddItem(playerId, ak74hudEnttId);
 
 #if 0
     const EntityID item0Id = inventorySys.GetItemByIdx(playerId, 0);
@@ -572,12 +553,12 @@ void GameInitializer::InitPlayer(
 #endif
 
     // we will render only selected weapon in a separate way
-    pEnttMgr->RemoveComponent(obrezId,      ECS::RenderedComponent);
-    pEnttMgr->RemoveComponent(aks74uEnttId, ECS::RenderedComponent);
-    pEnttMgr->RemoveComponent(swordId,      ECS::RenderedComponent);
-    pEnttMgr->RemoveComponent(ak74Stalker,  ECS::RenderedComponent);
-    pEnttMgr->RemoveComponent(groza,        ECS::RenderedComponent);
-    pEnttMgr->RemoveComponent(hpsa,         ECS::RenderedComponent);
+    pEnttMgr->RemoveComponent(obrezId,       ECS::RenderedComponent);
+    pEnttMgr->RemoveComponent(aks74uEnttId,  ECS::RenderedComponent);
+    pEnttMgr->RemoveComponent(swordId,       ECS::RenderedComponent);
+    pEnttMgr->RemoveComponent(ak74Stalker,   ECS::RenderedComponent);
+    pEnttMgr->RemoveComponent(groza,         ECS::RenderedComponent);
+    pEnttMgr->RemoveComponent(hpsa,          ECS::RenderedComponent);
 
     // BIND some entities to the player
     hierarchySys.AddChild(playerId, obrezId);
@@ -589,6 +570,7 @@ void GameInitializer::InitPlayer(
 
     hierarchySys.AddChild(playerId, gameCameraId);
     hierarchySys.AddChild(playerId, flashlightId);
+    hierarchySys.AddChild(playerId, ak74hudEnttId);
 
     pEnttMgr->AddPlayerComponent(playerId);
     pEnttMgr->AddBoundingComponent(playerId, sphere.GetModelAABB());
@@ -1538,8 +1520,8 @@ void LoadModelAssets(Render::CRender* pRender)
 {
     assert(pRender != nullptr);
 
-    // compute the duration of the whole process of loading
-    auto start = std::chrono::steady_clock::now();
+    // calc the duration of the whole process of loading
+    const auto start = GetTimePoint();
 
     // open file for models reading
     const char* filePath = "data/models.demdl";
@@ -1600,8 +1582,7 @@ void LoadModelAssets(Render::CRender* pRender)
 
     fclose(pFile);
 
-    auto end = std::chrono::steady_clock::now();
-    std::chrono::duration<float, std::milli> elapsed = end - start;
+    const TimeDurationMs elapsed = GetTimePoint() - start;
 
     SetConsoleColor(MAGENTA);
     LogMsg("Models loading duration: %f ms", elapsed.count());
@@ -1921,25 +1902,68 @@ void ImportExternalModels(
 
     LoadModelAssets(&render);
 
-    //ModelsCreator creator;
-    creator.ImportFromFile(pDevice, "data/models/animation/boblampclean.md5mesh");
-    creator.ImportFromFile(pDevice, "data/models/stalker_freedom_1/stalker_freedom_1.fbx");
-    const ModelID ak74hudId = creator.ImportFromFile(pDevice, "data/models/ak_74_hud/ak_74_hud.fbx");
-
     const TexID texIdBlankNorm = g_TextureMgr.GetTexIdByName("blank_NRM");
 
+    const ModelID boblampId = creator.ImportFromFile(pDevice, "data/models/animation/boblampclean.md5mesh");
+    const ModelID stalkerId = creator.ImportFromFile(pDevice, "data/models/stalker_freedom_1/stalker_freedom_1.fbx");
+    const ModelID ak74hudId = creator.ImportFromFile(pDevice, "data/models/ak_74_hud/ak_74_hud.fbx");
+
+#if 1
+    // setup normal map for each subset (mesh) of ak_74_hud model
     BasicModel& ak74hud = g_ModelMgr.GetModelById(ak74hudId);
     Core::Subset* subsets = ak74hud.meshes_.subsets_;
-
-    // setup normal map for each subset (mesh) of ak_74_hud model
+    
     for (int i = 0; i < ak74hud.GetNumSubsets(); ++i)
     {
         const MaterialID matId = subsets[i].materialId;
         g_MaterialMgr.SetMatTexture(matId, texIdBlankNorm, TEX_TYPE_NORMALS);
     }
-
+    
+#endif
 
     LoadEntities("data/entities.dentt", enttMgr);
+
+    const EntityID boblampEnttId     = enttMgr.nameSystem_.GetIdByName("boblampclean");
+    const EntityID ak74hudEnttId     = enttMgr.nameSystem_.GetIdByName("ak_74_hud");
+    const EntityID ak74hudTestEnttId = enttMgr.nameSystem_.GetIdByName("ak_74_hud_test");
+
+
+    // add animation component to ak74
+    AnimSkeleton&        ak74hudSkeleton = g_AnimationMgr.GetSkeleton("ak_74_hud");
+    const AnimationID    ak74AnimId      = ak74hudSkeleton.GetAnimationIdx("wpn_ak74_hud_ogf_idle");
+    const AnimationClip& ak74Anim        = ak74hudSkeleton.GetAnimation(ak74AnimId);
+
+    enttMgr.AddAnimationComponent(ak74hudEnttId,     ak74hudSkeleton.id_, ak74AnimId, ak74Anim.GetEndTime());
+    enttMgr.AddAnimationComponent(ak74hudTestEnttId, ak74hudSkeleton.id_, ak74AnimId, ak74Anim.GetEndTime());
+    ak74hudSkeleton.DumpAnimations();
+    //exit(0);
+   
+
+    // add animation component to boblampclean
+    AnimSkeleton&        bobSkeleton     = g_AnimationMgr.GetSkeleton("boblampclean");
+    const AnimationID    bobAnimId       = bobSkeleton.GetAnimationIdx("boblampclean_0");
+    const AnimationClip& bobAnim         = bobSkeleton.GetAnimation(bobAnimId);
+
+    enttMgr.AddAnimationComponent(boblampEnttId, bobSkeleton.id_, bobAnimId, bobAnim.GetEndTime());
+
+ 
+    LogMsg("%s ak74: skeleton %-5u anim %-5u end_time %-6.3f\n",
+        YELLOW,
+        ak74hudSkeleton.id_,
+        ak74AnimId,
+        ak74Anim.GetEndTime());
+
+    LogMsg("%s bob:  skeleton %-5u anim %-5u end_time %-6.3f\n",
+        YELLOW,
+        bobSkeleton.id_,
+        bobAnimId,
+        bobAnim.GetEndTime());
+    
+    SetConsoleColor(RESET);
+    //exit(0);
+
+    //enttMgr.RemoveComponent(boblampEnttId, ECS::RenderedComponent);
+    //enttMgr.RemoveComponent(ak74hudEnttId, ECS::RenderedComponent);
 
     BasicModel& stalkerHouse = g_ModelMgr.GetModelByName("stalker_house");
     BasicModel& tr13         = g_ModelMgr.GetModelByName("tr_13");
@@ -2215,7 +2239,6 @@ bool GameInitializer::InitModelEntities(
 
     try
     {
-        InitInvalidMaterialAndModel(render);
         InitMaterials();
         GenerateEntities(mgr, render);
 

@@ -1,6 +1,6 @@
 // =================================================================================
 // Filename:    EnttTransformData.h
-// Description: holds entity transformation data for the editor view 
+// Description: holds entity transformation data
 //              (a part of the MVC pattern)
 // 
 // Created:     01.01.25  by DimaSkup
