@@ -94,31 +94,6 @@ void AnimSkeleton::DumpAnimations() const
 }
 
 //---------------------------------------------------------
-//---------------------------------------------------------
-#if 0
-void AnimSkeleton::DumpBoneWeights()
-{
-    printf("Dump bones (weight, boneId) of skeleton '%s':\n", name_);
-    printf(" - num bones %d\n", (int)GetNumBones());
-
-    for (int i = 0; i < (int)GetNumBones(); ++i)
-    {
-        printf("\tbone_%d, name: %-20s weights: %.2f %.2f %.2f %.2f, bone ids %u %u %u %u\n",
-            i,
-            boneNameToId[i].name,
-            vertexToBones[i].weights[0],
-            vertexToBones[i].weights[1],
-            vertexToBones[i].weights[2],
-            vertexToBones[i].weights[3],
-            vertexToBones[i].boneIds[0],
-            vertexToBones[i].boneIds[1],
-            vertexToBones[i].boneIds[2],
-            vertexToBones[i].boneIds[3]);
-    }
-}
-#endif
-
-//---------------------------------------------------------
 
 void AnimSkeleton::DumpBoneOffsets() const
 {
@@ -209,8 +184,6 @@ void AnimSkeleton::DumpKeyframes(const char* animName, const int boneId) const
 }
 
 
-
-
 //**********************************************************************************
 // ANIMATIONS STUFF
 //**********************************************************************************
@@ -247,9 +220,6 @@ float BoneAnimation::GetEndTime() const
 //---------------------------------------------------------
 void BoneAnimation::Interpolate(const float t, XMMATRIX& M) const
 {
-    float t2 = keyframes.back().timePos;
-
-    //if (t <= keyframes[0].timePos)
     if (t <= keyframes[0].timePos)
     {
         const Keyframe& frame = keyframes[0];
@@ -261,8 +231,7 @@ void BoneAnimation::Interpolate(const float t, XMMATRIX& M) const
         const XMVECTOR zero = { 0,0,0,1 };
         M = XMMatrixAffineTransformation(S, zero, Q, P);
     }
-    //else if (t >= keyframes.back().timePos)
-    else if (t >= t2)
+    else if (t >= keyframes.back().timePos)
     {
         const Keyframe& frame = keyframes.back();
 
@@ -554,22 +523,6 @@ void AnimSkeleton::GetFinalTransforms(
     const float timePos,
     cvector<XMMATRIX>& outFinalTransforms)
 {
-#if 0
-    if (StrHelper::IsEmpty(animName))
-    {
-        LogErr(LOG, "input name of animation is empty");
-        return;
-    }
-
-    const int animIdx = GetAnimationIdx(animName);
-    if (animIdx == -1)
-    {
-        LogErr(LOG, "there is no animation by name: %s", animName);
-        s_ToParentTransforms = boneTransformations_;
-        return;
-    }
-#endif
-
     if (animId >= animations_.size())
     {
         LogErr(LOG, "input animation id (%d) is invalid (must be lower than %d)", (int)animId, (int)animations_.size());
@@ -594,7 +547,6 @@ void AnimSkeleton::GetFinalTransforms(
         const int parentIdx = boneHierarchy_[i];
         XMMATRIX& toRoot    = s_ToRootTransforms[i];
         XMMATRIX& toParent  = s_ToParentTransforms[i];
-
 
         if (parentIdx >= 0)
             toRoot = toParent * s_ToRootTransforms[parentIdx];

@@ -26,6 +26,7 @@ struct AnimData
     AnimationID currAnimId  = 0;        // id (idx) of current animation
     float       timePos     = 0;        // current animation time
     float       endTime     = 0;        // end time of animation after which we reset timePos to zero
+    bool        isRepeated  = true;
 };
 
 struct Animations

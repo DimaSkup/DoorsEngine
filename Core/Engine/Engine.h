@@ -65,7 +65,7 @@ public:
     bool BindBindlessTextures(const char* configPath);
 
     // update the state of the engine/game for the current frame
-    void Update();
+    void Update(const float deltaTime, const float gameTime);
 
     void UpdateRenderTimingStat(SystemState& sysState);
 

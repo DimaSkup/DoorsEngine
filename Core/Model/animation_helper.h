@@ -130,19 +130,19 @@ public:
     const char*          GetName()    const;
     ID3D11Buffer*        GetBonesVB() const;
 
-    int                  AddAnimation    (const char* animName);
-    int                  GetAnimationIdx (const char* animName) const;
-    AnimationClip&       GetAnimation    (const int animIdx);
-    const AnimationClip& GetAnimation    (const int animIdx) const;
-    const char*          GetAnimationName(const int animIdx);
-    void                 SetAnimationName(const int animIdx, const char* newName);
+    int                  AddAnimation           (const char* animName);
+    int                  GetAnimationIdx        (const char* animName) const;
+    AnimationClip&       GetAnimation           (const int animIdx);
+    const AnimationClip& GetAnimation           (const int animIdx) const;
+    const char*          GetAnimationName       (const int animIdx);
+    void                 SetAnimationName       (const int animIdx, const char* newName);
 
-    float                GetAnimationStartTime(const int animIdx) const;
-    float                GetAnimationEndTime  (const int animIdx) const;
+    float                GetAnimationStartTime  (const int animIdx) const;
+    float                GetAnimationEndTime    (const int animIdx) const;
 
-    int                  AddBone              (const char* name);
-    int                  GetBoneIdByName      (const char* name);
-    void                 SetBoneNameById      (const int id, const char* name);
+    int                  AddBone                (const char* name);
+    int                  GetBoneIdByName        (const char* name);
+    void                 SetBoneNameById        (const int id, const char* name);
     
 
 #if 0
@@ -159,8 +159,8 @@ public:
         cvector<DirectX::XMMATRIX>& outFinalTransforms);
 
 
-    void DumpAnimations() const;
-    void DumpBoneWeights() const;
+    // for debug
+    void DumpAnimations()  const;
     void DumpBoneOffsets() const;
     void DumpBoneParents() const;
     void DumpKeyframes(const char* animName, const int boneId) const;
@@ -187,8 +187,6 @@ public:
     cvector<int>                 meshBaseVertex;
 
     cvector<BoneName>            boneNameToId;
-
-    DirectX::XMMATRIX            globalInvTransform_ = DirectX::XMMatrixIdentity(); 
 };
 
 } // namespace

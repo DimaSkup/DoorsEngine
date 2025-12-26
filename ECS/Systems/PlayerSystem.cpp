@@ -34,22 +34,6 @@ PlayerSystem::PlayerSystem(
 //---------------------------------------------------------
 void PlayerSystem::Update(const float deltaTime)
 {
-    if (!IsIdle())
-    {
-        currActTime_ += deltaTime;
-
-        if (currActTime_ >= endActTime_)
-        {
-            //if (!(data_.playerStates_ & (RUN | WALK | CRAWL | SHOOT | RELOADING)))
-            //{
-                ResetStates();
-                SetIsIdle();
-            //}
-        }
-    }
-    
-
-
     const uint64 states   = data_.playerStates_;
     const int speedMul    = 1 + 9 * IsFreeFlyMode();  // move faster if we are in free fly
     const float speed     = GetSpeed() * deltaTime * speedMul;
@@ -232,16 +216,25 @@ void PlayerSystem::SwitchFlashLight(const bool state)
 //---------------------------------------------------------
 // Desc:   turn on/off the player's running state
 //---------------------------------------------------------
-void PlayerSystem::SetIsRunning(const float actDurationMs)
+void PlayerSystem::SetIsRunning(const bool running)
 {
-    data_.playerStates_ |= RUN;
-    data_.playerStates_ &= ~(WALK | CRAWL | IDLE);
-    SetCurrentSpeed(data_.speedRun);
+    if (running)
+    {
+        data_.playerStates_ |= RUN;
+        data_.playerStates_ &= ~(WALK | CRAWL | IDLE);
+        SetCurrentSpeed(data_.speedRun);
+    }
+    else
+    {
+        data_.playerStates_ |= WALK;
+        data_.playerStates_ &= ~(RUN | CRAWL | IDLE);
+        SetCurrentSpeed(data_.speedWalk);
+    }
 }
 
 //---------------------------------------------------------
 
-void PlayerSystem::SetIsWalking(const float actDurationMs)
+void PlayerSystem::SetIsWalking(void)
 {
     data_.playerStates_ |= WALK;
     data_.playerStates_ &= ~(RUN | CRAWL | IDLE);
@@ -250,30 +243,27 @@ void PlayerSystem::SetIsWalking(const float actDurationMs)
 
 //---------------------------------------------------------
 
-void PlayerSystem::SetIsReloading(const float actDurationMs)
+void PlayerSystem::SetIsReloading(const bool reloading)
 {
-    data_.playerStates_ |= RELOADING;
-    data_.playerStates_ &= ~(IDLE);
-    currActTime_ = 0;
-    endActTime_ = actDurationMs;
+    if (reloading)
+        data_.playerStates_ |= RELOADING;
+    else
+        data_.playerStates_ &= ~(RELOADING);
 }
 
 //---------------------------------------------------------
 
-void PlayerSystem::SetIsShooting(const float actDurationMs)
+void PlayerSystem::SetIsShooting(const bool shooting)
 {
-    if (!IsReloading())
-    {
+    if (shooting && !IsReloading())
         data_.playerStates_ |= SHOOT;
-        data_.playerStates_ &= ~(IDLE);
-        currActTime_ = 0;
-        endActTime_ = actDurationMs;
-    }
+    else
+        data_.playerStates_ &= ~(SHOOT);
 }
 
 //---------------------------------------------------------
 
-void PlayerSystem::SetIsIdle()
+void PlayerSystem::SetIsIdle(void)
 {
     data_.playerStates_ |= IDLE;
 }

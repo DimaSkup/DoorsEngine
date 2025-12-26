@@ -267,6 +267,8 @@ void App::Run()
     {
         if (!engine_.IsPaused())
         {
+            engine_.GetTimer().Tick();
+
             const float deltaTime = engine_.GetTimer().GetDeltaTime();
             const float gameTime  = engine_.GetTimer().GetGameTime();
 
@@ -302,7 +304,7 @@ void App::Update(const float deltaTime, const float gameTime)
     game_.Update(deltaTime, gameTime);
     const auto gameUpdatedTimestamp = GetTimePoint();
 
-    engine_.Update();
+    engine_.Update(deltaTime, gameTime);
     auto endTimestamp = GetTimePoint();
 
 

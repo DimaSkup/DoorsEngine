@@ -39,15 +39,17 @@ AnimationSystem::AnimationSystem(Animations* pAnimComponent) :
 //---------------------------------------------------------
 void AnimationSystem::Update(const float dt)
 {
-    cvector<AnimData>& data = pAnimComponent_->data;
+    cvector<AnimData>& animations = pAnimComponent_->data;
 
-    for (index i = 1; i < data.size(); ++i)
+    for (index i = 1; i < animations.size(); ++i)
     {
-        data[i].timePos += dt;
+        AnimData& anim = animations[i];
+
+        anim.timePos += dt;
 
         // loop animation back to beginning if necessary
-        if (data[i].timePos >= data[i].endTime)
-            data[i].timePos = 0;
+        if ((anim.timePos >= anim.endTime) && anim.isRepeated)
+            anim.timePos = 0;
     }
 }
 
@@ -108,8 +110,8 @@ bool AnimationSystem::AddRecord(
     animData.currAnimId  = animId;
     animData.timePos     = 0;
     animData.endTime     = animEndTime;
+    animData.isRepeated  = true;           // by default we repeat initial animation (it usually is an "idle" animation)
 
-    // sorted insertion
     comp.ids.insert_before(idx, enttId);
     comp.data.insert_before(idx, animData);
 
@@ -125,7 +127,8 @@ bool AnimationSystem::AddRecord(
 bool AnimationSystem::SetAnimation(
     const EntityID enttId,
     const AnimationID animId,
-    const float animEndTime)
+    const float animEndTime,
+    const bool isRepeated)
 {
     Animations& comp = *pAnimComponent_;
     const index idx  = GetIdx(enttId);
@@ -143,12 +146,22 @@ bool AnimationSystem::SetAnimation(
         return false;
     }
 
-    // switch animation only if differ
+    // switch animation completely only if differ...
     if (comp.data[idx].currAnimId != animId)
     {
         comp.data[idx].currAnimId = animId;
-        comp.data[idx].timePos     = 0;
-        comp.data[idx].endTime     = animEndTime;
+        comp.data[idx].timePos    = 0;
+        comp.data[idx].endTime    = animEndTime;
+        comp.data[idx].isRepeated = isRepeated;
+    }
+
+    // ... we want to set the same animation so just reset it if it already finished
+    else
+    {
+        AnimData& anim = comp.data[idx];
+
+        if (anim.timePos >= anim.endTime)
+            anim.timePos = 0;
     }
 
     return true;

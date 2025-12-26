@@ -250,7 +250,7 @@ void EntityMgr::Update(const float totalGameTime, const float deltaTime)
             }
             case EVENT_PLAYER_RUN:              // set the player is running or not
             {
-                playerSystem_.SetIsRunning(0);
+                playerSystem_.SetIsRunning(e.x);
                 break;
             }
             case EVENT_PLAYER_JUMP:

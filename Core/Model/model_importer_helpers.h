@@ -362,7 +362,7 @@ void ReadNodeHierarchyAndAnimation(
     AnimationClip& animation,
     const uint animIdx,
     const float ticksPerSecond,
-    const float animDurationInTicks,
+    const float animDurationInTicks,  // aka "keyframes number"
     const int parentBoneIdx)
 {
     DirectX::XMMATRIX nodeTransform;
@@ -371,6 +371,8 @@ void ReadNodeHierarchyAndAnimation(
     const char* nodeName = pNode->mName.C_Str();
     const int   boneId   = skeleton.GetBoneIdByName(nodeName);
 
+
+    // if we have a bone...
     if (boneId != -1)
     {
         const char* parentNodeName = pNode->mParent->mName.C_Str();
@@ -380,6 +382,7 @@ void ReadNodeHierarchyAndAnimation(
         skeleton.boneTransformations_[boneId] = DirectX::XMMatrixTranspose(nodeTransform);
     }
 
+
     const aiAnimation* pAnimation = pScene->mAnimations[animIdx];
     const aiNodeAnim*  pNodeAnim  = FindNodeAnim(pAnimation, nodeName);
 
@@ -388,14 +391,8 @@ void ReadNodeHierarchyAndAnimation(
     {
         // ... then we load all the keyframes for this particular bone and animation
 
-        // calc max number of keyframes
-        uint numKeyFrames = 0;
-        numKeyFrames = max(numKeyFrames, pNodeAnim->mNumPositionKeys);
-        numKeyFrames = max(numKeyFrames, pNodeAnim->mNumRotationKeys);
-        numKeyFrames = max(numKeyFrames, pNodeAnim->mNumScalingKeys);
-
         assert(boneId < animation.boneAnimations.size());
-        animation.boneAnimations[boneId].keyframes.resize(numKeyFrames);
+        animation.boneAnimations[boneId].keyframes.resize((size)animDurationInTicks);
 
         // calc timings (us - micro seconds)
         uint usInSec                = 1000 * 1000;
@@ -412,12 +409,12 @@ void ReadNodeHierarchyAndAnimation(
         animation.endTime           = animDurationSec;
 
         // for debug
-        //printf("   load %u keyframes for bone [%d] '%s'       time[%.5f, %.5f]\n", numKeyFrames, boneId, nodeName, animation.startTime, animation.endTime);
+        // printf("   load %u keyframes for bone [%d] '%s'       time[%.5f, %.5f]\n", (uint)animDurationInTicks, boneId, nodeName, animation.startTime, animation.endTime);
 
         // create data for each keyframe
-        for (uint i = 0; i < numKeyFrames; ++i)
+        for (uint i = 0; i < animDurationInTicks; ++i)
         {
-            assert(timePos <= animDurationSec);
+            //assert(timePos <= animDurationSec);
             assert(tick    <= animDurationInTicks);
 
             aiVector3D   pos;
@@ -435,13 +432,13 @@ void ReadNodeHierarchyAndAnimation(
             keyframe.rotQuat     = { rotQ.x, rotQ.y, rotQ.z, rotQ.w };
 
 #if 0
-            // debug
-            printf("    tick %.1f     timePos %.6f     pos(%.3f %.3f %.3f)    quat(%.3f %.3f %.3f %.3f)     scale %.3f\n",
-                tick,
-                timePos,
-                pos.x, pos.y, pos.z,
-                rotQ.x, rotQ.y, rotQ.z, rotQ.w,
-                scale.x);
+                // debug
+                printf("    tick %.1f     timePos %.6f     pos(%.3f %.3f %.3f)    quat(%.3f %.3f %.3f %.3f)     scale %.3f\n",
+                    tick,
+                    timePos,
+                    pos.x, pos.y, pos.z,
+                    rotQ.x, rotQ.y, rotQ.z, rotQ.w,
+                    scale.x);
 #endif
 
             usTimePos += usFrameDuration;
@@ -583,6 +580,7 @@ void ReadNodeHierarchy(
     const char* nodeName = pNode->mName.C_Str();
     const int   boneId   = skeleton.GetBoneIdByName(nodeName);
 
+    // if we have a bone...
     if (boneId != -1)
     {
         const char* parentNodeName = pNode->mParent->mName.C_Str();
@@ -592,14 +590,11 @@ void ReadNodeHierarchy(
         skeleton.boneTransformations_[boneId] = DirectX::XMMatrixTranspose(nodeTransform);
     }
 
+
     // recursively go down to the node's children
     for (uint i = 0; i < pNode->mNumChildren; ++i)
     {
-        ReadNodeHierarchy(
-            pScene,
-            pNode->mChildren[i],
-            parentBoneIdx + 1,
-            skeleton);
+        ReadNodeHierarchy(pScene, pNode->mChildren[i], parentBoneIdx + 1, skeleton);
     }
 }
 
@@ -625,8 +620,10 @@ void GatherBonesData(
     const int totalVertices,
     const int totalBones)
 {
+    assert(pScene->mNumMeshes > 0);
+
     skeleton.vertexToBones.resize(totalVertices);
-    skeleton.boneOffsets_.reserve(totalBones);
+    skeleton.boneOffsets_.reserve(totalBones / pScene->mNumMeshes);
 
     for (uint i = 0; i < pScene->mNumMeshes; ++i)
     {
@@ -669,12 +666,6 @@ void ParseMeshes(
 
     const uint skeletonId  = g_AnimationMgr.AddSkeleton(skeletonName);
     AnimSkeleton& skeleton = g_AnimationMgr.GetSkeleton(skeletonId);
-
-    // calc and store global inverse transformation for the root of this skeleton
-    DirectX::XMMATRIX rootTransform;
-    AiToXmMatrix(pScene->mRootNode->mTransformation, rootTransform);
-    skeleton.globalInvTransform_ = DirectX::XMMatrixInverse(nullptr, rootTransform);
-
 
     // calc mesh data
     printf("\n\n*****************************************************\n");
@@ -760,7 +751,7 @@ void ParseHierarchy(const aiScene* pScene)
     assert(pScene);
 
     printf("\n\n\n********************************************\n");
-    printf("Parsing (debug print) the node hierarchy for scene '%s'\n", pScene->mName);
+    printf("Parsing (debug print) the node hierarchy for scene '%s'\n", pScene->mName.C_Str());
 
     ParseNode(pScene->mRootNode);
     printf("\n");
@@ -780,10 +771,8 @@ void LoadSkeletonAndAnimations(
     printf("*** load skeleton '%s'\n", skeletonName);
     ParseMeshes(pDevice, pScene, skeletonName);
 
-
     // for debug
     //ParseHierarchy(pScene);
-    
 }
 
 } // namespace

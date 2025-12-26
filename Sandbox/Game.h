@@ -7,6 +7,8 @@
 #include <Engine/engine_configs.h>
 #include <Sound/direct_sound.h>
 #include <Sound/sound.h>
+#include <Model/animation_helper.h>
+
 
 namespace Game
 {
@@ -45,7 +47,7 @@ private:
     void UpdateRainbowAnomaly();
     void UpdateRainPos();
 
-    void SwitchPlayerHudAnimations();
+    void UpdatePlayerAnimHud();
 
     void UpdateShootSound(const float dt);
     void StartPlayShootSound();
@@ -74,20 +76,25 @@ private:
     float stepTimer_ = 0;
     float stepInterval_ = 0.5f;
     float shootTimer_ = 0;
-    float shootInterval_ = 0.374994f;
+    //float shootInterval_ = 0.374994f;
+    float shootInterval_ = 0.2f;
 
     // rain over player
     EntityID    rainEnttId_     = 0;
 
     // player animation stuff
-    EntityID    currHudId_      = 0;
-    SkeletonID  currSkeletonId_ = 0;
+    Core::AnimSkeleton* pSkeleton_ = nullptr;
+
+    EntityID    currWeaponId_   = 0;
+
+    AnimationID currAnimId_     = -1;
     AnimationID animIdReload_   = 0;
     AnimationID animIdShoot_    = 0;
     AnimationID animIdRun_      = 0;
     AnimationID animIdIdle_     = 0;
 
-    
+    float currActTime_ = 0;
+    float endActTime_ = 0;
 };
 
 } // namespace

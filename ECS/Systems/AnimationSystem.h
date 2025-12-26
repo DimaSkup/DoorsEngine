@@ -52,7 +52,8 @@ public:
     bool SetAnimation(
         const EntityID enttId,
         const AnimationID animId,
-        const float animEndTime);
+        const float animEndTime,
+        const bool isRepeated);
 
 private:
     // for debugging

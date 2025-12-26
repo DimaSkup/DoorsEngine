@@ -79,20 +79,23 @@ public:
         data_.jumpOffset = 0;
     }
 
+#if 0
     void ResetStates()
     {
         data_.playerStates_ &= ~(RUN | WALK | CRAWL | SHOOT | RELOADING);
     }
+#endif
 
-    void SetIsReloading(const float actionDurationMs);
-    void SetIsShooting (const float actionDurationMs);
-    void SetIsWalking  (const float actionDurationMs);
-    void SetIsRunning  (const float actionDurationMs);
-    void SetIsIdle     ();
+    void SetIsReloading(const bool reloading);
+    void SetIsShooting (const bool shoot);
+    void SetIsWalking  (void);
+    void SetIsRunning  (const bool running);
+    void SetIsMoving   (const bool moving) { isMoving = moving; }
+    void SetIsIdle     (void);
 
     inline bool IsReloading()        const { return data_.playerStates_ & RELOADING; }
     inline bool IsShooting()         const { return data_.playerStates_ & SHOOT; }
-    inline bool IsMoving()           const { return data_.playerStates_ & GetFlagsMove(); }
+    inline bool IsMoving()           const { return isMoving; }
     inline bool IsWalking()          const { return data_.playerStates_ & WALK; }
     inline bool IsRunning()          const { return data_.playerStates_ & RUN; }
     inline bool IsIdle()             const { return data_.playerStates_ & IDLE; }
@@ -115,8 +118,7 @@ private:
     EntityID   playerID_ = INVALID_ENTITY_ID;
     PlayerData data_;
 
-    float currActTime_ = 0;
-    float endActTime_  = 0;
+    bool isMoving = false;
 };
 
 } // namespace ECS
