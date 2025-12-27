@@ -396,6 +396,7 @@ if not exist "$(SolutionDir)build\$(IntDir)data\shaders\input_layouts.json" xcop
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Model\animation_importer.cpp" />
     <ClCompile Include="Model\animation_mgr.cpp" />
     <ClCompile Include="Model\geometry_generator.cpp" />
     <ClCompile Include="Model\grass_mgr.cpp" />
@@ -569,6 +570,7 @@ if not exist "$(SolutionDir)build\$(IntDir)data\shaders\input_layouts.json" xcop
     <ClInclude Include="Mesh\material_reader.h" />
     <ClInclude Include="Mesh\material_writer.h" />
     <ClInclude Include="Model\animation_helper.h" />
+    <ClInclude Include="Model\animation_importer.h" />
     <ClInclude Include="Model\animation_mgr.h" />
     <ClInclude Include="Model\grass_mgr.h" />
     <ClInclude Include="Model\model_loader.h" />

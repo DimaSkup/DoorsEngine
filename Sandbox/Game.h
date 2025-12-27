@@ -13,6 +13,47 @@
 namespace Game
 {
 
+constexpr int NUM_WEAPONS = 3;
+
+//---------------------------------------------------------
+
+enum eWeaponAnimType
+{
+    WPN_ANIM_TYPE_DRAW,
+    WPN_ANIM_TYPE_RELOAD,
+    WPN_ANIM_TYPE_SHOOT,
+    WPN_ANIM_TYPE_RUN,
+    WPN_ANIM_TYPE_IDLE,
+
+    NUM_WPN_ANIM_TYPES,
+};
+
+//---------------------------------------------------------
+
+enum eWeaponSoundType
+{
+    WPN_SOUND_TYPE_DRAW,     // sound when weapon appears
+    WPN_SOUND_TYPE_RELOAD,
+    WPN_SOUND_TYPE_SHOOT,
+
+    NUM_WPN_SOUND_TYPES,
+};
+
+//---------------------------------------------------------
+
+struct Weapon
+{
+    EntityID            enttId = 0;
+
+    Core::Sound         sounds[NUM_WPN_SOUND_TYPES];
+    HANDLE              eventShootDone = nullptr;
+
+    Core::AnimSkeleton* pSkeleton = nullptr;
+    AnimationID         animIds[NUM_WPN_ANIM_TYPES];
+};
+
+//---------------------------------------------------------
+
 class Game
 {
 public:
@@ -36,6 +77,8 @@ public:
     void SwitchFlashLight(ECS::EntityMgr& mgr, Render::CRender& render);
 
 private:
+    void InitWeapons();
+
     void InitParticles(ECS::EntityMgr& mgr);
     void InitSounds(ECS::EntityMgr& mgr);
 
@@ -52,19 +95,22 @@ private:
     void UpdateShootSound(const float dt);
     void StartPlayShootSound();
 
+    inline Weapon& GetCurrentWeapon() { return weapons_[currWeaponIdx_]; }
+
 private:
     Core::Engine*    pEngine_    = nullptr;
     ECS::EntityMgr*  pEnttMgr_   = nullptr;
     Render::CRender* pRender_    = nullptr;
 
+    Weapon weapons_[NUM_WEAPONS];
+
+
     Core::DirectSound directSound_;
     Core::Sound       soundRain_;
     Core::Sound       soundStepL_;
     Core::Sound       soundStepR_;
-    Core::Sound       soundShoot_;
 
     HANDLE eventStepLDone = nullptr;
-    HANDLE eventShootDone = nullptr;
 
     bool engineModeWasChanged_ = false;  // if we did switching from editor to game mode or vise versa
 
@@ -76,8 +122,8 @@ private:
     float stepTimer_ = 0;
     float stepInterval_ = 0.5f;
     float shootTimer_ = 0;
-    //float shootInterval_ = 0.374994f;
-    float shootInterval_ = 0.2f;
+    float shootInterval_ = 0.374994f;
+    //float shootInterval_ = 0.2f;
 
     // rain over player
     EntityID    rainEnttId_     = 0;
@@ -85,13 +131,9 @@ private:
     // player animation stuff
     Core::AnimSkeleton* pSkeleton_ = nullptr;
 
-    EntityID    currWeaponId_   = 0;
-
-    AnimationID currAnimId_     = -1;
-    AnimationID animIdReload_   = 0;
-    AnimationID animIdShoot_    = 0;
-    AnimationID animIdRun_      = 0;
-    AnimationID animIdIdle_     = 0;
+    int         currWeaponIdx_    = 0;
+    EntityID    currWeaponEnttId_ = 0;
+    AnimationID currAnimId_       = -1;
 
     float currActTime_ = 0;
     float endActTime_ = 0;

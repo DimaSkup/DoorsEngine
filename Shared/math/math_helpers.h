@@ -39,6 +39,14 @@ inline float SQR(const float num)   { return num*num; }
 inline int   CUBE(const int num)    { return num*num*num; }
 inline float CUBE(const float num)  { return num*num*num; }
 
+
+// ----------------------------------------------------
+
+inline static float clampf(const float x, const float low, const float high)
+{
+    return x < low ? low : (x > high ? high : x);
+}
+
 // ----------------------------------------------------
 template<typename T>
 inline static T Clamp(const T& x, const T& low, const T& high)

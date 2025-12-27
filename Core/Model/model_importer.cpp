@@ -17,6 +17,7 @@
 #include "model_math.h"
 #include "model_importer_helpers.h"
 #include "vertices_splitter.h"
+#include "animation_importer.h"
 
 using namespace DirectX;
 
@@ -28,8 +29,10 @@ namespace Core
 static cvector<Subset>  s_Subsets;
 static cvector<RawMesh> s_Meshes;
 
-//---------------------------------------------------------
 
+//---------------------------------------------------------
+// forward declarations of helper functions
+//---------------------------------------------------------
 bool InitFromScene(
     ID3D11Device* pDevice,
     const aiScene* pScene,
@@ -71,8 +74,10 @@ void GetVerticesIndicesOfMesh(
     const aiMesh* pMesh,
     const int subsetIdx);
 
-//---------------------------------------------------------
 
+//---------------------------------------------------------
+// flags to control ASSIMP's import process
+//---------------------------------------------------------
 #define ASSIMP_LOAD_FLAGS (            \
     aiProcess_OptimizeGraph |          \
     aiProcess_OptimizeMeshes |         \
@@ -151,7 +156,12 @@ bool InitFromScene(
     const char* filePath,
     BasicModel& model)
 {
-    LoadSkeletonAndAnimations(pDevice, pScene, model.name_);
+    if (pScene->HasAnimations())
+    {
+        AnimationImporter animImporter;
+        animImporter.LoadSkeletonAnimations(pScene, model.name_);
+        animImporter.PrintNodesHierarchy(pScene, false);
+    }
 
     int subsetIdx = 0;
     int numVertices = 0;

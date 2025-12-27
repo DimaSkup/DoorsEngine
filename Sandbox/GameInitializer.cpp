@@ -513,7 +513,9 @@ void GameInitializer::InitPlayer(
     const EntityID ak74Stalker   = nameSys.GetIdByName("player_ak_74_stalker");
     const EntityID groza         = nameSys.GetIdByName("player_groza");
     const EntityID hpsa          = nameSys.GetIdByName("player_hpsa");
+    const EntityID pmHudEnttId   = nameSys.GetIdByName("pm_hud");
     const EntityID ak74hudEnttId = nameSys.GetIdByName("ak_74_hud");
+    const EntityID bm16hudEnttId = nameSys.GetIdByName("bm_16_hud");
 
     // ------------------------------------------
 
@@ -525,13 +527,15 @@ void GameInitializer::InitPlayer(
     // add inventory for a player and push some stuff into it
     pEnttMgr->AddInventoryComponent(playerId);
 
-    inventorySys.AddItem(playerId, obrezId);
-    inventorySys.AddItem(playerId, aks74uEnttId);
-    inventorySys.AddItem(playerId, swordId);
-    inventorySys.AddItem(playerId, ak74Stalker);
-    inventorySys.AddItem(playerId, groza);
-    inventorySys.AddItem(playerId, hpsa);
+    //inventorySys.AddItem(playerId, obrezId);
+    //inventorySys.AddItem(playerId, aks74uEnttId);
+    //inventorySys.AddItem(playerId, swordId);
+    //inventorySys.AddItem(playerId, ak74Stalker);
+   // inventorySys.AddItem(playerId, groza);
+    //inventorySys.AddItem(playerId, hpsa);
+    inventorySys.AddItem(playerId, pmHudEnttId);
     inventorySys.AddItem(playerId, ak74hudEnttId);
+    inventorySys.AddItem(playerId, bm16hudEnttId);
 
 #if 0
     const EntityID item0Id = inventorySys.GetItemByIdx(playerId, 0);
@@ -561,16 +565,19 @@ void GameInitializer::InitPlayer(
     pEnttMgr->RemoveComponent(hpsa,          ECS::RenderedComponent);
 
     // BIND some entities to the player
+#if 0
     hierarchySys.AddChild(playerId, obrezId);
     hierarchySys.AddChild(playerId, aks74uEnttId);
     hierarchySys.AddChild(playerId, swordId);
     hierarchySys.AddChild(playerId, ak74Stalker);
     hierarchySys.AddChild(playerId, groza);
     hierarchySys.AddChild(playerId, hpsa);
-
+#endif
     hierarchySys.AddChild(playerId, gameCameraId);
     hierarchySys.AddChild(playerId, flashlightId);
+    hierarchySys.AddChild(playerId, pmHudEnttId);
     hierarchySys.AddChild(playerId, ak74hudEnttId);
+    hierarchySys.AddChild(playerId, bm16hudEnttId);
 
     pEnttMgr->AddPlayerComponent(playerId);
     pEnttMgr->AddBoundingComponent(playerId, sphere.GetModelAABB());
@@ -590,7 +597,7 @@ void GameInitializer::InitPlayer(
     player.SetJumpMaxHeight     (cfgs.GetFloat("PLAYER_JUMP_MAX_HEIGHT"));
 
     player.SetFreeFlyMode(cfgs.GetBool("PLAYER_START_IN_FREE_FLY"));
-    player.SetActiveWeapon(obrezId);
+    player.SetActiveWeapon(pmHudEnttId);
 
     // HACK setup (move the player at particular position)
     //pEnttMgr->AddEvent(ECS::EventTranslate(playerId, 0, 97, 0));
@@ -1906,7 +1913,9 @@ void ImportExternalModels(
 
     const ModelID boblampId = creator.ImportFromFile(pDevice, "data/models/animation/boblampclean.md5mesh");
     const ModelID stalkerId = creator.ImportFromFile(pDevice, "data/models/stalker_freedom_1/stalker_freedom_1.fbx");
+    const ModelID bm16hudId = creator.ImportFromFile(pDevice, "data/models/bm_hud/wpn_bm-16_hud.fbx");
     const ModelID ak74hudId = creator.ImportFromFile(pDevice, "data/models/ak_74_hud/ak_74_hud.fbx");
+    const ModelID pmHudId   = creator.ImportFromFile(pDevice, "data/models/pm/wpn_pm_hud.fbx");
 
 #if 1
     // setup normal map for each subset (mesh) of ak_74_hud model
@@ -1918,6 +1927,26 @@ void ImportExternalModels(
         const MaterialID matId = subsets[i].materialId;
         g_MaterialMgr.SetMatTexture(matId, texIdBlankNorm, TEX_TYPE_NORMALS);
     }
+
+    // setup normal map for each subset (mesh) of bm_16_hud model
+    BasicModel& bm16hud = g_ModelMgr.GetModelById(bm16hudId);
+    Core::Subset* bm16subsets = bm16hud.meshes_.subsets_;
+
+    for (int i = 0; i < bm16hud.GetNumSubsets(); ++i)
+    {
+        const MaterialID matId = bm16subsets[i].materialId;
+        g_MaterialMgr.SetMatTexture(matId, texIdBlankNorm, TEX_TYPE_NORMALS);
+    }
+
+    // setup normal map for each subset (mesh) of pm_hud model
+    BasicModel& pmHud = g_ModelMgr.GetModelById(pmHudId);
+    Core::Subset* pmMeshes = pmHud.meshes_.subsets_;
+
+    for (int i = 0; i < pmHud.GetNumSubsets(); ++i)
+    {
+        const MaterialID matId = pmMeshes[i].materialId;
+        g_MaterialMgr.SetMatTexture(matId, texIdBlankNorm, TEX_TYPE_NORMALS);
+    }
     
 #endif
 
@@ -1925,8 +1954,14 @@ void ImportExternalModels(
 
     const EntityID boblampEnttId     = enttMgr.nameSystem_.GetIdByName("boblampclean");
     const EntityID ak74hudEnttId     = enttMgr.nameSystem_.GetIdByName("ak_74_hud");
+    const EntityID bm16hudEnttId     = enttMgr.nameSystem_.GetIdByName("bm_16_hud");
+    const EntityID pmHudEnttId       = enttMgr.nameSystem_.GetIdByName("pm_hud");
+    const EntityID bm16hudTestEnttId = enttMgr.nameSystem_.GetIdByName("bm_16_hud_test");
     const EntityID ak74hudTestEnttId = enttMgr.nameSystem_.GetIdByName("ak_74_hud_test");
+    const EntityID pmHudTestEnttId   = enttMgr.nameSystem_.GetIdByName("pm_hud_test");
 
+
+    //g_AnimationMgr.DumpSkeletons();
 
     // add animation component to ak74
     AnimSkeleton&        ak74hudSkeleton = g_AnimationMgr.GetSkeleton("ak_74_hud");
@@ -1946,7 +1981,24 @@ void ImportExternalModels(
 
     enttMgr.AddAnimationComponent(boblampEnttId, bobSkeleton.id_, bobAnimId, bobAnim.GetEndTime());
 
- 
+
+    // add animation component to bm16
+    AnimSkeleton& bm16hudSkeleton        = g_AnimationMgr.GetSkeleton("wpn_bm-16_hud");
+    const AnimationID bm16AnimId         = bm16hudSkeleton.GetAnimationIdx("wpn_bm_16_hud_ogf_idle");
+    const AnimationClip& bm16Anim        = bm16hudSkeleton.GetAnimation(bm16AnimId);
+
+    enttMgr.AddAnimationComponent(bm16hudEnttId,     bm16hudSkeleton.id_, bm16AnimId, bm16Anim.GetEndTime());
+    enttMgr.AddAnimationComponent(bm16hudTestEnttId, bm16hudSkeleton.id_, bm16AnimId, bm16Anim.GetEndTime());
+
+    // add animation component to pm
+    AnimSkeleton& pmSkeleton    = g_AnimationMgr.GetSkeleton("wpn_pm_hud");
+    const AnimationID pmAnimId  = pmSkeleton.GetAnimationIdx("wpn_pm_hud_ogf_idle");
+    const AnimationClip& pmAnim = pmSkeleton.GetAnimation(pmAnimId);
+
+    enttMgr.AddAnimationComponent(pmHudEnttId,     pmSkeleton.id_, pmAnimId, pmAnim.GetEndTime());
+    enttMgr.AddAnimationComponent(pmHudTestEnttId, pmSkeleton.id_, pmAnimId, pmAnim.GetEndTime());
+
+
     LogMsg("%s ak74: skeleton %-5u anim %-5u end_time %-6.3f\n",
         YELLOW,
         ak74hudSkeleton.id_,

@@ -51,18 +51,6 @@ bool AnimationMgr::Init()
 //---------------------------------------------------------
 void AnimationMgr::Update(const float dt, const char* skeletonName, const char* animName)
 {
-    // get skeleton and its animation clip
-    AnimSkeleton& skeleton = GetSkeleton(skeletonName);
-    const int animIdx      = skeleton.GetAnimationIdx(animName);
-    AnimationClip& anim    = skeleton.GetAnimation(animIdx);
-
-    // increase the time position
-    anim.animTimePos += dt;
-
-    if (anim.animTimePos >= anim.GetEndTime())
-    {
-        anim.animTimePos = 0.0f;   // loop animation back to beginning
-    }
 }
 
 //---------------------------------------------------------
@@ -136,6 +124,21 @@ void AnimationMgr::SetSkeletonNameById(const uint id, const char* name)
 
     snprintf(names_[id].name,      MAX_LEN_SKELETON_NAME, "%s", name);
     snprintf(skeletons_[id].name_, MAX_LEN_SKELETON_NAME, "%s", name);
+}
+
+//---------------------------------------------------------
+// for debug
+//---------------------------------------------------------
+void AnimationMgr::DumpSkeletons()
+{
+    printf("\n\nDUMP all the skeletons in animation mgr:\n");
+    printf(" - num skeletons: %d\n", (int)skeletons_.size());
+
+    for (int i = 0; const AnimSkeleton& skeleton : skeletons_)
+    {
+        printf("\tskeleton_%d:  %-36s animations %d\n", i++, skeleton.name_, (int)skeleton.animations_.size());
+    }
+    printf("\n");
 }
 
 }

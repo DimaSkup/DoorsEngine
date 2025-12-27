@@ -218,7 +218,10 @@ float BoneAnimation::GetEndTime() const
 //---------------------------------------------------------
 // Desc:  interpolated bone animation between two keyframes nearest to input time
 //---------------------------------------------------------
-void BoneAnimation::Interpolate(const float t, XMMATRIX& M) const
+void BoneAnimation::Interpolate(
+    const float framerate,
+    const float t,
+    XMMATRIX& M) const
 {
     if (t <= keyframes[0].timePos)
     {
@@ -231,6 +234,7 @@ void BoneAnimation::Interpolate(const float t, XMMATRIX& M) const
         const XMVECTOR zero = { 0,0,0,1 };
         M = XMMatrixAffineTransformation(S, zero, Q, P);
     }
+
     else if (t >= keyframes.back().timePos)
     {
         const Keyframe& frame = keyframes.back();
@@ -242,40 +246,41 @@ void BoneAnimation::Interpolate(const float t, XMMATRIX& M) const
         const XMVECTOR zero = { 0,0,0,1 };
         M = XMMatrixAffineTransformation(S, zero, Q, P);
     }
+
     else
     {
-        for (index i = 0; i < keyframes.size() - 1; ++i)
-        {
-            const float tBeg = keyframes[i].timePos;
-            const float tEnd = keyframes[i+1].timePos;
+        // calculate 2 current frames and ...
+        const float animFrame = t * framerate;
+        const int   numFrames = (int)keyframes.size();
+        const int   frameIdxA = (int)floorf(animFrame);
+        const int   frameIdxB = (frameIdxA + 1) % numFrames;
 
-            if (t >= tBeg && t<= tEnd)
-            {
-                const float lerpPercent = (t - tBeg) / (tEnd - tBeg);
-                assert(lerpPercent >= 0.0f && lerpPercent <= 1.0f);
+        assert(frameIdxA < numFrames  &&  frameIdxB < numFrames);
 
-                const Keyframe& frame0 = keyframes[i];
-                const Keyframe& frame1 = keyframes[i+1];
+        const Keyframe& frame0 = keyframes[frameIdxA];
+        const Keyframe& frame1 = keyframes[frameIdxB];
 
-                const XMVECTOR s0 = { frame0.scale, frame0.scale, frame0.scale };
-                const XMVECTOR s1 = { frame1.scale, frame1.scale, frame1.scale };
 
-                const XMVECTOR p0 = XMLoadFloat3(&frame0.translation);
-                const XMVECTOR p1 = XMLoadFloat3(&frame1.translation);
+        // ... lerp time between them
+        float lerpPercent = (t - frame0.timePos) / (frame1.timePos - frame0.timePos);
+        lerpPercent       = clampf(lerpPercent, 0, 1);
 
-                const XMVECTOR q0 = XMLoadFloat4(&frame0.rotQuat);
-                const XMVECTOR q1 = XMLoadFloat4(&frame1.rotQuat);
 
-                const XMVECTOR S = XMVectorLerp(s0, s1, lerpPercent);
-                const XMVECTOR P = XMVectorLerp(p0, p1, lerpPercent);
-                const XMVECTOR Q = XMQuaternionSlerp(q0, q1, lerpPercent);
+        const XMVECTOR s0 = { frame0.scale, frame0.scale, frame0.scale };
+        const XMVECTOR s1 = { frame1.scale, frame1.scale, frame1.scale };
 
-                const XMVECTOR zero = { 0,0,0,1 };
-                M = XMMatrixAffineTransformation(S, zero, Q, P);
+        const XMVECTOR p0 = XMLoadFloat3(&frame0.translation);
+        const XMVECTOR p1 = XMLoadFloat3(&frame1.translation);
 
-                return;
-            }
-        }
+        const XMVECTOR q0 = XMLoadFloat4(&frame0.rotQuat);
+        const XMVECTOR q1 = XMLoadFloat4(&frame1.rotQuat);
+
+        const XMVECTOR S = XMVectorLerp(s0, s1, lerpPercent);
+        const XMVECTOR P = XMVectorLerp(p0, p1, lerpPercent);
+        const XMVECTOR Q = XMQuaternionSlerp(q0, q1, lerpPercent);
+
+        const XMVECTOR zero = { 0,0,0,1 };
+        M = XMMatrixAffineTransformation(S, zero, Q, P);
     }
 }
 
@@ -331,7 +336,7 @@ void AnimationClip::Interpolate(const float t, cvector<XMMATRIX>& outBoneTransfo
         if (boneAnimations[i].keyframes.size() == 0)
             continue;
 
-        boneAnimations[i].Interpolate(t, outBoneTransforms[i]);
+        boneAnimations[i].Interpolate(framerate, t, outBoneTransforms[i]);
     }
 }
 

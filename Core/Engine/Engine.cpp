@@ -363,7 +363,6 @@ void Engine::UpdateRenderTimingStat(SystemState& sysState)
 //---------------------------------------------------------
 void Engine::CalculateFrameStats()
 {
-
     static int frameCount = 0;
     static int timeElapsed = 0;
     
@@ -435,7 +434,7 @@ void Engine::RenderFrame()
         // before next frame
         graphics_.ClearRenderingDataBeforeFrame();
     }
-    catch (EngineException & e)
+    catch (EngineException& e)
     {
         LogErr(e, true);
         LogErr(LOG, "can't render a frame");

@@ -34,8 +34,10 @@ public:
     AnimSkeleton& GetSkeleton(const uint id);
     AnimSkeleton& GetSkeleton(const char* name);
 
-
     void SetSkeletonNameById(const uint id, const char* name);
+
+    // for debug
+    void DumpSkeletons();
 
 public:
     cvector<AnimSkeleton> skeletons_;

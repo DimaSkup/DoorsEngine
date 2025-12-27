@@ -1099,10 +1099,14 @@ void CGraphics::ColorLightPass()
 
 
     // render each animated entity separately
+#if 0
     for (const EntityID id : pEnttMgr_->animationSystem_.GetEnttsIds())
     {
         RenderSkinnedModel(id);
     }
+#endif
+    ECS::PlayerSystem& player = pEnttMgr_->playerSystem_;
+    RenderSkinnedModel(player.GetActiveWeapon());
     g_GpuProfiler.Timestamp(GTS_RenderScene_SkinnedModels);
 
 

@@ -7,25 +7,30 @@
 // Revising:     01.08.22
 // =================================================================================
 #pragma once
+#include <chrono>
 
 namespace Core
 {
+//---------------------------------------------------------
+// some typedefs to get timings
+//---------------------------------------------------------
+using TimeDurationMs = std::chrono::duration<float, std::milli>;
+using TimePoint      = std::chrono::steady_clock::time_point;
 
+
+//---------------------------------------------------------
+// class:  GameTimer
+//---------------------------------------------------------
 class GameTimer
 {
 public:
     GameTimer();
 
     // get time in seconds
-    float        GetGameTime()  const;
+    float GetGameTime()  const;
+    float GetDeltaTime() const;
 
-    inline float GetDeltaTime() const
-    {
-        //constexpr float maxDeltaTime = (1.0f / 60.0f);
-        //return (deltaTime_ > maxDeltaTime) ? maxDeltaTime : (float)deltaTime_;
-
-        return (float)deltaTime_;
-    }
+    TimePoint GetTimePoint() const;
 
     void Reset();  // is called before message loop
     void Start();  // is called when unpaused
@@ -44,5 +49,21 @@ private:
     double secondsPerCount_ = 0.0f;  // 1.0 / counts_per_sec
     double deltaTime_       = -1.0f;
 };
+
+//---------------------------------------------------------
+// Desc:  return a time passed since the last frame 
+//---------------------------------------------------------
+inline float GameTimer::GetDeltaTime() const
+{
+    return (float)deltaTime_;
+}
+
+//---------------------------------------------------------
+// Desc:  get current point of time (aka timestamp)
+//---------------------------------------------------------
+inline TimePoint GameTimer::GetTimePoint() const
+{
+    return std::chrono::steady_clock::now();
+}
 
 }

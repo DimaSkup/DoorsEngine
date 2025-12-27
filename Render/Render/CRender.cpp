@@ -483,8 +483,9 @@ bool CRender::InitSamplers(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
     linearWrapDesc.MaxAnisotropy    = 1;
     linearWrapDesc.MipLODBias       = 0.0f;
 
-
+    //
     // init samplers
+    //
     if (!samplerAnisotrop_.Initialize(pDevice))
     {
         LogErr(LOG, "can't init an anisotropic sampler state");
@@ -510,16 +511,26 @@ bool CRender::InitSamplers(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
     }
 
 
-    // --- bind samplers ---
+    //
+    // bind samplers
+    //
 
-    // set basic sampler (is used as default for shaders)
+    // bind to vertex shader stage
+    pContext->VSSetSamplers(1, 1, samplerSky_.GetAddressOf());
+    pContext->VSSetSamplers(2, 1, samplerLinearClamp_.GetAddressOf());
+    pContext->VSSetSamplers(3, 1, samplerLinearWrap_.GetAddressOf());
+    pContext->VSSetSamplers(4, 1, samplerAnisotrop_.GetAddressOf());
+
+
+    // set basic sampler (is used as default for pixel shaders)
     pContext->PSSetSamplers(0, 1, samplerAnisotrop_.GetAddressOf());
 
-    // set specific samplers
+    // bind to pixel shader stage
     pContext->PSSetSamplers(1, 1, samplerSky_.GetAddressOf());
     pContext->PSSetSamplers(2, 1, samplerLinearClamp_.GetAddressOf());
     pContext->PSSetSamplers(3, 1, samplerLinearWrap_.GetAddressOf());
-    pContext->PSSetSamplers(4, 1, samplerAnisotrop_.GetAddressOf());   // duplicate anisotrop at this slot
+    pContext->PSSetSamplers(4, 1, samplerAnisotrop_.GetAddressOf());   // duplicate anisotropic at this slot
+
 
     LogMsg(LOG, "all the sampler states are initialized");
     return true;
