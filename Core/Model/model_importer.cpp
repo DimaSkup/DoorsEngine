@@ -160,7 +160,7 @@ bool InitFromScene(
     {
         AnimationImporter animImporter;
         animImporter.LoadSkeletonAnimations(pScene, model.name_);
-        animImporter.PrintNodesHierarchy(pScene, false);
+        //animImporter.PrintNodesHierarchy(pScene, false);
     }
 
     int subsetIdx = 0;

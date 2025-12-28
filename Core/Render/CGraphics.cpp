@@ -1083,6 +1083,11 @@ void CGraphics::ColorLightPass()
         return;
 
 
+    // first of all we render player's weapon
+    pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    RenderPlayerWeapon();
+    g_GpuProfiler.Timestamp(GTS_RenderScene_Weapon);
+
     // render grass
     pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
     RenderGrass();
@@ -1099,14 +1104,11 @@ void CGraphics::ColorLightPass()
 
 
     // render each animated entity separately
-#if 0
     for (const EntityID id : pEnttMgr_->animationSystem_.GetEnttsIds())
     {
-        RenderSkinnedModel(id);
+        if (pEnttMgr_->renderSystem_.HasEntity(id))
+            RenderSkinnedModel(id);
     }
-#endif
-    ECS::PlayerSystem& player = pEnttMgr_->playerSystem_;
-    RenderSkinnedModel(player.GetActiveWeapon());
     g_GpuProfiler.Timestamp(GTS_RenderScene_SkinnedModels);
 
 
@@ -1134,11 +1136,6 @@ void CGraphics::ColorLightPass()
     pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
     RenderParticles();
     g_GpuProfiler.Timestamp(GTS_RenderScene_Particles);
-
-    // render player's weapon
-    pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    RenderPlayerWeapon();
-    g_GpuProfiler.Timestamp(GTS_RenderScene_Weapon);
 
     RenderDebugShapes();
     g_GpuProfiler.Timestamp(GTS_RenderScene_DbgShapes);
@@ -1566,8 +1563,9 @@ void CGraphics::DepthPrepassInstanceGroup(
 //---------------------------------------------------------
 void CGraphics::RenderPlayerWeapon()
 {
+    ECS::PlayerSystem& player = pEnttMgr_->playerSystem_;
+    RenderSkinnedModel(player.GetActiveWeapon());
 }
-
 
 //---------------------------------------------------------
 // Helper for work with quaternions

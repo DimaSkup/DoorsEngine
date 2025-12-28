@@ -366,7 +366,7 @@ void AddAnimationsToSkeleton(
         return;
 
     skeleton.boneHierarchy_.resize(skeleton.GetNumBones());
-    skeleton.boneTransformations_.resize(skeleton.GetNumBones());
+    skeleton.boneTransforms_.resize(skeleton.GetNumBones());
 
     for (uint animIdx = 0; animIdx < pScene->mNumAnimations; ++animIdx)
     {
@@ -495,7 +495,7 @@ void ReadNodeHierarchyAndAnimation(
         const int   parentBoneId   = skeleton.GetBoneIdByName(parentNodeName);
 
         skeleton.boneHierarchy_[boneId]       = parentBoneId;
-        skeleton.boneTransformations_[boneId] = DirectX::XMMatrixTranspose(nodeTransform);
+        skeleton.boneTransforms_[boneId] = DirectX::XMMatrixTranspose(nodeTransform);
     }
 
 
@@ -644,7 +644,7 @@ const aiNodeAnim* FindNodeAnim(
 void LoadBonesHierarchy(const aiScene* pScene, AnimSkeleton& skeleton)
 {
     skeleton.boneHierarchy_.resize(skeleton.GetNumBones());
-    skeleton.boneTransformations_.resize(skeleton.GetNumBones());
+    skeleton.boneTransforms_.resize(skeleton.GetNumBones());
 
     int parentBoneIdx = -1;
     ReadNodeHierarchy(pScene, pScene->mRootNode, parentBoneIdx, skeleton);
@@ -676,7 +676,7 @@ void ReadNodeHierarchy(
         const int   parentBoneId   = skeleton.GetBoneIdByName(parentNodeName);
 
         skeleton.boneHierarchy_[boneId]       = parentBoneId;
-        skeleton.boneTransformations_[boneId] = DirectX::XMMatrixTranspose(nodeTransform);
+        skeleton.boneTransforms_[boneId] = DirectX::XMMatrixTranspose(nodeTransform);
     }
 
     // recursively go down to the node's children

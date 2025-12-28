@@ -27,6 +27,7 @@ enum eGTS
 
     GTS_RenderScene_Reset,
     GTS_RenderScene_DepthPrepass,
+    GTS_RenderScene_Weapon,
     GTS_RenderScene_Grass,
     GTS_RenderScene_Masked,
     GTS_RenderScene_Opaque,
@@ -37,7 +38,6 @@ enum eGTS
     GTS_RenderScene_Blended,
     GTS_RenderScene_Transparent,
     GTS_RenderScene_Particles,
-    GTS_RenderScene_Weapon,
     GTS_RenderScene_DbgShapes,
     GTS_RenderScene_PostFX,
 

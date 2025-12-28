@@ -1,11 +1,3 @@
-newentt     player_aks74u
-model       aks_74u
-pos         0.70 -1.35 0.96
-dir         0 0 1
-rot_axis    1 0 0 1.570796327
-uni_scale   3.5
-archetype   weapon
-
 newentt     pm_hud
 model       wpn_pm_hud
 pos         -0.001 -0.026 -0.170
@@ -78,49 +70,9 @@ rot_axis    1 0 0 1.570796327
 uni_scale   3.5
 archetype   weapon
 
-newentt     sword
-model       sword
-pos         0.7 -0.4 1.1
-dir         0 0 1
-rot_axis    0 1 0 1.570796327
-uni_scale   0.015
-archetype   weapon
-
-newentt     obrez_1
-model       obrez
-pos         0.3 -0.4 0.5
-dir         0 0 1
-rot_axis    1 0 0 1.570796327
-uni_scale   2.0
-archetype   weapon
-
 newentt     obrez_2
 model       obrez
 pos         240.0 83.0 210.0
-dir         0 0 1
-rot_axis    1 0 0 1.570796327
-uni_scale   2.0
-archetype   weapon
-
-newentt     player_ak_74_stalker
-model       ak_74
-pos         0.50 -0.35 0.51
-dir         0 0 1
-rot_axis    1 0 0 1.570796327
-uni_scale   2.0
-archetype   weapon
-
-newentt     player_groza
-model       groza
-pos         0.50 -0.39 0.63
-dir         0 0 1
-rot_axis    1 0 0 1.570796327
-uni_scale   2.0
-archetype   weapon
-
-newentt     player_hpsa
-model       hpsa
-pos         0.63 -0.35 0.77
 dir         0 0 1
 rot_axis    1 0 0 1.570796327
 uni_scale   2.0

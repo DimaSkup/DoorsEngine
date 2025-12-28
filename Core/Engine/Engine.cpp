@@ -303,6 +303,7 @@ void Engine::UpdateRenderTimingStat(SystemState& sysState)
     // calc render timings for the last frame
     sysState.msRenderTimings[RND_TIME_RESET]          = g_GpuProfiler.GetDeltaTime(GTS_RenderScene_Reset);
     sysState.msRenderTimings[RND_TIME_DEPTH_PREPASS]  = g_GpuProfiler.GetDeltaTime(GTS_RenderScene_DepthPrepass);
+    sysState.msRenderTimings[RND_TIME_WEAPON]         = g_GpuProfiler.GetDeltaTime(GTS_RenderScene_Weapon);
     sysState.msRenderTimings[RND_TIME_GRASS]          = g_GpuProfiler.GetDeltaTime(GTS_RenderScene_Grass);
     sysState.msRenderTimings[RND_TIME_MASKED]         = g_GpuProfiler.GetDeltaTime(GTS_RenderScene_Masked);
     sysState.msRenderTimings[RND_TIME_OPAQUE]         = g_GpuProfiler.GetDeltaTime(GTS_RenderScene_Opaque);
@@ -313,7 +314,6 @@ void Engine::UpdateRenderTimingStat(SystemState& sysState)
     sysState.msRenderTimings[RND_TIME_BLENDED]        = g_GpuProfiler.GetDeltaTime(GTS_RenderScene_Blended);
     sysState.msRenderTimings[RND_TIME_TRANSPARENT]    = g_GpuProfiler.GetDeltaTime(GTS_RenderScene_Transparent);
     sysState.msRenderTimings[RND_TIME_PARTICLE]       = g_GpuProfiler.GetDeltaTime(GTS_RenderScene_Particles);
-    sysState.msRenderTimings[RND_TIME_WEAPON]         = g_GpuProfiler.GetDeltaTime(GTS_RenderScene_Weapon);
     sysState.msRenderTimings[RND_TIME_DBG_SHAPES]     = g_GpuProfiler.GetDeltaTime(GTS_RenderScene_DbgShapes);
     sysState.msRenderTimings[RND_TIME_POST_FX]        = g_GpuProfiler.GetDeltaTime(GTS_RenderScene_PostFX);
 
@@ -334,6 +334,7 @@ void Engine::UpdateRenderTimingStat(SystemState& sysState)
     {
         sysState.msRenderTimingsAvg[RND_TIME_RESET]          = g_GpuProfiler.GetDeltaTimeAvg(GTS_RenderScene_Reset);
         sysState.msRenderTimingsAvg[RND_TIME_DEPTH_PREPASS]  = g_GpuProfiler.GetDeltaTimeAvg(GTS_RenderScene_DepthPrepass);
+        sysState.msRenderTimingsAvg[RND_TIME_WEAPON]         = g_GpuProfiler.GetDeltaTimeAvg(GTS_RenderScene_Weapon);
         sysState.msRenderTimingsAvg[RND_TIME_GRASS]          = g_GpuProfiler.GetDeltaTimeAvg(GTS_RenderScene_Grass);
         sysState.msRenderTimingsAvg[RND_TIME_MASKED]         = g_GpuProfiler.GetDeltaTimeAvg(GTS_RenderScene_Masked);
         sysState.msRenderTimingsAvg[RND_TIME_OPAQUE]         = g_GpuProfiler.GetDeltaTimeAvg(GTS_RenderScene_Opaque);
@@ -344,7 +345,6 @@ void Engine::UpdateRenderTimingStat(SystemState& sysState)
         sysState.msRenderTimingsAvg[RND_TIME_BLENDED]        = g_GpuProfiler.GetDeltaTimeAvg(GTS_RenderScene_Blended);
         sysState.msRenderTimingsAvg[RND_TIME_TRANSPARENT]    = g_GpuProfiler.GetDeltaTimeAvg(GTS_RenderScene_Transparent);
         sysState.msRenderTimingsAvg[RND_TIME_PARTICLE]       = g_GpuProfiler.GetDeltaTimeAvg(GTS_RenderScene_Particles);
-        sysState.msRenderTimingsAvg[RND_TIME_WEAPON]         = g_GpuProfiler.GetDeltaTimeAvg(GTS_RenderScene_Weapon);
         sysState.msRenderTimingsAvg[RND_TIME_DBG_SHAPES]     = g_GpuProfiler.GetDeltaTimeAvg(GTS_RenderScene_DbgShapes);
         sysState.msRenderTimingsAvg[RND_TIME_POST_FX]        = g_GpuProfiler.GetDeltaTimeAvg(GTS_RenderScene_PostFX);
 
@@ -449,7 +449,6 @@ void Engine::RenderInEditorMode()
 {
     Render::D3DClass& d3d         = GetD3D();
     ID3D11DeviceContext* pContext = d3d.GetDeviceContext();
-    //const bool collectGpuMetrics  = systemState_.collectGpuMetrics;
 
     // Clear all the buffers before frame rendering and render our 3D scene
     d3d.ResetBackBufferRenderTarget();
@@ -474,8 +473,6 @@ void Engine::RenderInEditorMode()
 //---------------------------------------------------------
 void Engine::RenderInGameMode()
 {
-    //const bool collectGpuMetrics = systemState_.collectGpuMetrics;
-
     // Clear all the buffers before frame rendering and render our 3D scene
     GetD3D().BeginScene();
     g_GpuProfiler.Timestamp(GTS_ClearFrame);
@@ -593,10 +590,6 @@ void Engine::EventWindowResize(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
     systemState_.wndWidth_  = width;
     systemState_.wndHeight_ = height;
 
-    // Set new dimensions
-    //SetWindowPos(hwnd, NULL, 0, 0, width, height, SWP_NOMOVE | SWP_NOZORDER);
-
-
     // update all the cameras according to new dimensions
     if (pEnttMgr_)
     {
@@ -633,10 +626,6 @@ void Engine::EventWindowSizing(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 
             // Set new dimensions
             SetWindowPos(hwnd, NULL, posX, posY, width, height, SWP_NOMOVE | SWP_NOZORDER);
-
-            // try to resize the window
-            //if (!graphics_.GetD3DClass().ResizeSwapChain(hwnd, width, height))
-            //    PostQuitMessage(0);
 
             systemState_.wndWidth_  = width;
             systemState_.wndHeight_ = height;
@@ -746,8 +735,6 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
                     graphics_.IncreaseCurrentBoneId();
                 break;
             }
-
-
             case KEY_SHIFT:
             {
                 //player.SetIsRunning(true);
@@ -898,9 +885,6 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
             }
             case KEY_F5:
             {
-                //if (!keyboard_.WasPressedBefore(KEY_F5))
-                //    g_ModelMgr.GetTerrainGeomip().wantDebug_ = true;
-
                 break;
             }
             case VK_ESCAPE:
@@ -998,7 +982,6 @@ void Engine::HandleEditorEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnt
                     if (selectedEnttID)
                     {
                         pUI->SetSelectedEntt(selectedEnttID);
-                        //userInterface_.SetGizmoOperation(ImGuizmo::OPERATION::TRANSLATE);
                         pUI->SetGizmoOperation(ImGuizmo::OPERATION(-1));  // turn off the gizmo
                     }
                     else
@@ -1045,10 +1028,8 @@ void Engine::HandleEditorEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnt
 
             case LeftDoubleClick:
             {
-                return;
-                assert(0 && "FIXME: double click");
                 break;
-            } // case LeftDoubleClick:
+            }
         } // switch
     } // while
 }
@@ -1151,7 +1132,7 @@ void Engine::TurnOnGameMode()
 {
     const EntityID gameCamId = pEnttMgr_->nameSystem_.GetIdByName("game_camera");
 
-    GetD3D().ToggleFullscreen(hwnd_, false);
+    GetD3D().ToggleFullscreen(hwnd_, true);
     graphics_.SetCurrentCamera(gameCamId);
 
     systemState_.isGameMode   = true;

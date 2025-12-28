@@ -84,7 +84,7 @@ private:
 
     void UpdateMovementRelatedStuff();
 
-    void StartFootstepSequence();
+    void StartFootstepSequence(const float dt);
     void UpdateFootstepsSound(const float dt);
 
     void UpdateRainbowAnomaly();
@@ -112,6 +112,8 @@ private:
 
     HANDLE eventStepLDone = nullptr;
 
+    bool canSwitchAnimation_ = true;
+
     bool engineModeWasChanged_ = false;  // if we did switching from editor to game mode or vise versa
 
     bool rainSoundIsPlaying_ = false;
@@ -120,7 +122,10 @@ private:
     bool soundShootIsPlaying_ = false;
 
     float stepTimer_ = 0;
-    float stepInterval_ = 0.5f;
+    float currStepInterval_ = 0.5f;
+    float stepIntervalWalk_ = 0.5f;
+    float stepIntervalRun_ = 0.1f;
+
     float shootTimer_ = 0;
     float shootInterval_ = 0.374994f;
     //float shootInterval_ = 0.2f;
@@ -137,6 +142,14 @@ private:
 
     float currActTime_ = 0;
     float endActTime_ = 0;
+
+    float deltaTime_ = 0;
+    float gameTime_ = 0;
+
+    int thunderSoundIdx = 0;
+    Core::Sound thunderSounds[4];
+    float thunderTimer_ = 0;
+    int thunderInterval_ = 30;
 };
 
 } // namespace

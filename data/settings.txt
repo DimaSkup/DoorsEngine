@@ -66,7 +66,7 @@ CREATE_COPY_OF_DEFAULT_CUBE                 true
 
 
 FOG_ENABLED                                 false
-FOG_START                                   120.0f
+FOG_START                                   1.0f
 FOG_RANGE                                   200.0f
 FOG_RED                                     0.952f 
 FOG_GREEN                                   0.952f

@@ -126,7 +126,6 @@ public:
 
     size                 GetNumAnimations() const;
     size                 GetNumBones()      const;
-    
 
     const char*          GetName()    const;
     ID3D11Buffer*        GetBonesVB() const;
@@ -171,14 +170,16 @@ public:
 
     SkeletonID id_ = 0;
 
+    cvector<BoneName>            boneNames_;
+
     // gives parentIndex of ith bone
     cvector<int>                 boneHierarchy_;
 
+    // matrices to transform each bone into bind pose (T-pose)
+    cvector<DirectX::XMMATRIX>   boneTransforms_;
+
     // offset transform of the ith bone
     cvector<DirectX::XMMATRIX>   boneOffsets_;
-
-    // matrices to transform each bone into T-pose, bind pose
-    cvector<DirectX::XMMATRIX>   boneTransformations_;
 
     cvector<AnimationName>       animNames_;
     cvector<AnimationClip>       animations_;
@@ -186,8 +187,6 @@ public:
     VertexBuffer<VertexBoneData> bonesVB_;
     cvector<VertexBoneData>      vertexToBones;
     cvector<int>                 meshBaseVertex;
-
-    cvector<BoneName>            boneNameToId;
 };
 
 } // namespace

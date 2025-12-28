@@ -102,7 +102,7 @@ void AnimSkeleton::DumpBoneOffsets() const
 
     for (int i = 0; i < (int)GetNumBones(); ++i)
     {
-        printf("\tbone_%d, name: %s\n", i, boneNameToId[i].name);
+        printf("\tbone_%d, name: %s\n", i, boneNames_[i].name);
         PrintXmMatrix(boneOffsets_[i]);
         printf("\n");
     }
@@ -121,7 +121,7 @@ void AnimSkeleton::DumpBoneParents() const
 
     for (int i = 0; i < (int)GetNumBones(); ++i)
     {
-        const char* boneName       = boneNameToId[i].name;
+        const char* boneName       = boneNames_[i].name;
         const int   parentBoneIdx  = boneHierarchy_[i];
         
 
@@ -132,7 +132,7 @@ void AnimSkeleton::DumpBoneParents() const
         }
         else
         {
-            const char* parentBoneName = boneNameToId[parentBoneIdx].name;
+            const char* parentBoneName = boneNames_[parentBoneIdx].name;
 
             printf("\tbone_%d: %-40s parent_idx: %-5d parent_name: '%s'\n",
                 i, boneName, parentBoneIdx, parentBoneName);
@@ -537,7 +537,7 @@ void AnimSkeleton::GetFinalTransforms(
 
     // interpolate all the bones of this animation clip at the given time instance
     const size numBones = GetNumBones();
-    s_ToParentTransforms = boneTransformations_;
+    s_ToParentTransforms = boneTransforms_;
     animation.Interpolate(timePos, s_ToParentTransforms);
 
 
@@ -573,10 +573,10 @@ int AnimSkeleton::GetBoneIdByName(const char* name)
         return -1;
     }
 
-    for (int i = 0; i < (int)boneNameToId.size(); ++i)
+    for (index i = 0; i < boneNames_.size(); ++i)
     {
-        if (strcmp(boneNameToId[i].name, name) == 0)
-            return i;
+        if (strcmp(boneNames_[i].name, name) == 0)
+            return (int)i;
     }
 
     return -1;
@@ -594,8 +594,8 @@ int AnimSkeleton::AddBone(const char* boneName)
     if (boneId == -1)
     {
         // add a new bone
-        boneId = (int)boneNameToId.size();
-        boneNameToId.push_back(BoneName());
+        boneId = (int)boneNames_.size();
+        boneNames_.push_back(BoneName());
         SetBoneNameById(boneId, boneName);
     }
 
@@ -610,8 +610,8 @@ void AnimSkeleton::SetBoneNameById(const int id, const char* name)
     assert(id >= 0 && id <= (int)vertexToBones.size());
     assert(!StrHelper::IsEmpty(name));
 
-    strncpy(boneNameToId[id].name, name, MAX_LEN_BONE_NAME);
-    boneNameToId[id].name[MAX_LEN_BONE_NAME - 1] = '\0';
+    strncpy(boneNames_[id].name, name, MAX_LEN_BONE_NAME);
+    boneNames_[id].name[MAX_LEN_BONE_NAME - 1] = '\0';
 }
 
 

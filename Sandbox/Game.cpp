@@ -124,7 +124,7 @@ bool Game::Init(
     gameInit.InitPlayer(d3d.GetDevice(), pEnttMgr, &configs);
 
     InitSounds(*pEnttMgr);
-    StartFootstepSequence();   // prevent lagging when we move player for the first time
+    StartFootstepSequence(100);   // prevent lagging when we move player for the first time
 
 
     // get id of rain entity which is always over the player
@@ -188,7 +188,7 @@ void Game::InitWeapons()
             "wpn_pm_hud_ogf_idle",
         },
         {
-            "wpn_ak74_hud_ogf_draw",
+            "wpn_ak74_hud_ogf_draw_wo_gl",
             "wpn_ak74_hud_ogf_reload",
             "wpn_ak74_hud_ogf_shoot",
             "wpn_ak74_hud_ogf_idle_sprint_",
@@ -198,7 +198,7 @@ void Game::InitWeapons()
             "wpn_bm_16_hud_ogf_draw",
             "wpn_bm_16_hud_ogf_reload",
             "wpn_bm_16_hud_ogf_shoot",
-            "wpn_bm_16_hud_ogf_holster",
+            "wpn_bm_16_hud_ogf_idle",
             "wpn_bm_16_hud_ogf_idle",
         }
     };
@@ -255,6 +255,7 @@ void Game::InitWeapons()
         if (!result)
             LogErr(LOG, "can't load a sound: %s", shootPath);
 
+
         //
         // create event handler for some sounds so we will be able to know when
         // sound is over, or it is currently playing
@@ -297,28 +298,55 @@ bool Game::Update(const float dt, const float gameTime)
     // generate particles
     pEnttMgr_->particleSystem_.CreateParticles(dt);
 
-    UpdateFootstepsSound(dt);
-    UpdateShootSound(dt);
-    UpdateRainbowAnomaly();
+    deltaTime_ = dt;
+    gameTime_ = gameTime;
+    thunderTimer_ += dt;
 
+    UpdateRainbowAnomaly();
+    
+
+    // play thunder sound each "thunderInterval" seconds
+    if ((int)gameTime % thunderInterval_ == 0 &&
+        (thunderTimer_ > thunderInterval_-1))
+    {
+        thunderTimer_ = 0;
+        thunderSounds[thunderSoundIdx].PlayTrack();
+        thunderSoundIdx++;
+        thunderSoundIdx %= 4;
+    }
 
     // handle events
     if (pEngine_->IsGameMode())
     {
-        
         currActTime_ += dt;
 
         if (currActTime_ >= endActTime_)
         {
-            pEnttMgr_->playerSystem_.SetIsReloading(false);
-            pEnttMgr_->playerSystem_.SetIsShooting(false);
+            ECS::PlayerSystem& player = pEnttMgr_->playerSystem_;
+
+            canSwitchAnimation_ = true;
+
+            if (player.IsReloading())
+                player.SetIsReloading(false);
+
+            if (player.IsShooting())
+                player.SetIsShooting(false);
+
+            if (player.IsDrawWeapon())
+                player.SetIsDrawWeapon(false);
         }
 
         //printf("curr: %.3f    end: %.3f    dt: %.3f\n", currActTime_, endActTime_, dt);
 
+
+        UpdateFootstepsSound(dt);
+        UpdateShootSound(dt);
+
         HandleGameEventKeyboard();
         HandleGameEventMouse(dt);
         UpdatePlayerAnimHud();
+
+        UpdateRainPos();
 
         if (!rainSoundIsPlaying_)
         {
@@ -328,34 +356,6 @@ bool Game::Update(const float dt, const float gameTime)
     }
 
     return true;
-}
-
-//---------------------------------------------------------
-// Desc:  call it each frame
-//        update player's footsteps to step right goes properly after step left
-//---------------------------------------------------------
-void Game::UpdateFootstepsSound(const float dt)
-{
-    stepTimer_ += dt;
-
-    if (soundStepL_Playing && !soundStepR_Played)
-    {
-        if (stepTimer_ < stepInterval_)
-            return;
-
-        // check if stepL finished playing
-        if (WaitForSingleObject(eventStepLDone, 0) == WAIT_OBJECT_0)
-        {
-            // play second sound
-            soundStepR_.GetBuffer()->SetCurrentPosition(0);
-            soundStepR_.GetBuffer()->Play(0, 0, 0);
-
-            soundStepR_Played = true;
-            soundStepL_Playing = false;
-
-            stepTimer_ = 0;
-        }
-    }
 }
 
 //---------------------------------------------------------
@@ -521,41 +521,34 @@ void Game::HandlePlayerActions(const eKeyCodes code)
             if (currWeaponIdx_ == wpnIdx)
                 break;
 
-            const Weapon& wpn     = weapons_[wpnIdx];
-            const char*   wpnName = pEnttMgr_->nameSystem_.GetNameById(wpn.enttId);
+            // stop all sounds for the current weapon
+            for (int i = 0; i < (int)NUM_WPN_SOUND_TYPES; ++i)
+                weapons_[currWeaponIdx_].sounds[i].StopTrack();
+
+
+            // switch weapon
+            Weapon&     wpn     = weapons_[wpnIdx];
+            const char* wpnName = pEnttMgr_->nameSystem_.GetNameById(wpn.enttId);
 
             currWeaponIdx_           = wpnIdx;
             pSkeleton_               = wpn.pSkeleton;
-            currAnimId_              = wpn.animIds[WPN_ANIM_TYPE_SHOOT];
-            AnimationClip& animShoot = pSkeleton_->GetAnimation(currAnimId_);
+            currAnimId_              = wpn.animIds[WPN_ANIM_TYPE_DRAW];
+
+            AnimationID animIdShoot  = wpn.animIds[WPN_ANIM_TYPE_SHOOT];
+            AnimationClip& animDraw  = pSkeleton_->GetAnimation(currAnimId_);
+            AnimationClip& animShoot = pSkeleton_->GetAnimation(animIdShoot);
+
             shootInterval_           = animShoot.GetEndTime();
             currWeaponEnttId_        = wpn.enttId;
+            endActTime_              = animDraw.GetEndTime();
+            canSwitchAnimation_      = true;
 
             player.SetActiveWeapon(currWeaponEnttId_);
+            player.SetIsDrawWeapon(true);
+
+            wpn.sounds[WPN_SOUND_TYPE_DRAW].PlayTrack();
 
             printf("%s switch to weapon: %s%s\n", YELLOW, wpnName, RESET);
-            break;
-
-#if 0
-            if (!pEngine_->GetKeyboard().WasPressedBefore(code))
-            {
-                const int itemIdx = (int)code - (int)KEY_1;
-
-                ECS::InventorySystem& inventorySys = pEnttMgr_->inventorySystem_;
-
-                const EntityID playerId     = player.GetPlayerID();
-                const EntityID prevWeaponId = player.GetActiveWeapon();
-                const EntityID itemId       = inventorySys.GetItemByIdx(playerId, itemIdx);
-
-                player.SetActiveWeapon(itemId);
-
-                pEnttMgr_->RemoveComponent(prevWeaponId, ECS::RenderedComponent);
-                pEnttMgr_->AddRenderingComponent(itemId);
-
-                const char* itemName = pEnttMgr_->nameSystem_.GetNameById(itemId);
-                printf("%s switch to weapon: %s%s\n", YELLOW, itemName, RESET);
-            }
-#endif
             break;
         }
 
@@ -567,14 +560,14 @@ void Game::HandlePlayerActions(const eKeyCodes code)
         case KEY_A:
         {
             pEnttMgr_->AddEvent(EventPlayerMove(EVENT_PLAYER_MOVE_LEFT));
-            StartFootstepSequence();
+            StartFootstepSequence(0);
             UpdateRainPos();
             break;
         }
         case KEY_D:
         {
             pEnttMgr_->AddEvent(EventPlayerMove(EVENT_PLAYER_MOVE_RIGHT));
-            StartFootstepSequence();
+            StartFootstepSequence(0);
             UpdateRainPos();
             break;
         }
@@ -588,7 +581,7 @@ void Game::HandlePlayerActions(const eKeyCodes code)
         case KEY_S:
         {
             pEnttMgr_->AddEvent(EventPlayerMove(EVENT_PLAYER_MOVE_BACK));
-            StartFootstepSequence();
+            StartFootstepSequence(deltaTime_);
             UpdateRainPos();
             break;
         }
@@ -616,22 +609,28 @@ void Game::HandlePlayerActions(const eKeyCodes code)
         {
             pEnttMgr_->AddEvent(EventPlayerMove(EVENT_PLAYER_MOVE_FORWARD));
 
-            stepInterval_ = 0.5f;
-
-            // don't switch animation to "walking/running" if we already shooting or reloading
-            if (player.IsReloading() || player.IsShooting() || (currActTime_ < endActTime_))
-                break;
-
+            StartFootstepSequence(deltaTime_);
+            UpdateRainPos();
             player.SetIsMoving(true);
 
-            if (player.IsRunning())
+            //if (player.IsRunning())
+           //     currStepInterval_ = stepIntervalRun_;
+           // else
+                //currStepInterval_ = stepIntervalWalk_;
+
+
+            // don't switch animation to "walking/running" if we already shooting or reloading
+            if (player.IsReloading() || player.IsShooting())
+                break;
+
+            if (player.IsRunning() && canSwitchAnimation_)
             {
                 const Weapon&        wpn    = GetCurrentWeapon();
                 const AnimationID    animId = wpn.animIds[WPN_ANIM_TYPE_RUN];
                 const AnimationClip& anim   = pSkeleton_->GetAnimation(animId);
 
-                endActTime_ = anim.GetEndTime();
-                stepInterval_ = 0.0f;
+                endActTime_       = anim.GetEndTime();
+                
             }
             else
             {
@@ -670,7 +669,7 @@ void Game::HandleGameEventMouse(const float deltaTime)
 
 
     // shoot only when LMB is down and we aren't reloading
-    if (mouse.IsLeftDown() && !player.IsReloading())
+    if (mouse.IsLeftDown() && !player.IsReloading() && !player.IsDrawWeapon())
     {
         StartPlayShootSound();
 
@@ -679,7 +678,7 @@ void Game::HandleGameEventMouse(const float deltaTime)
         const AnimationClip& anim   = pSkeleton_->GetAnimation(animId);
 
         endActTime_ = anim.GetEndTime();
-        pEnttMgr_->playerSystem_.SetIsShooting(true);
+        player.SetIsShooting(true);
         //pEngine_->GetGraphicsClass().GetRayIntersectionPoint(mouseEvent.GetPosX(), mouseEvent.GetPosY());
     }
 
@@ -708,9 +707,9 @@ void Game::HandleGameEventMouse(const float deltaTime)
                 const float rotY  = mouseEvent.GetPosX() * deltaTime;
                 const float pitch = mouseEvent.GetPosY() * deltaTime;
 
-                ECS::PlayerSystem& player = pEnttMgr_->playerSystem_;
                 player.RotateY(rotY);
                 player.Pitch(pitch);
+
                 break;
             }
             case MouseEvent::EventType::LPress:
@@ -760,14 +759,47 @@ void Game::UpdateMovementRelatedStuff()
 // Desc:  call it when player's position is changed:
 //        start playing footsteps sound
 //---------------------------------------------------------
-void Game::StartFootstepSequence()
+void Game::StartFootstepSequence(const float dt)
 {
     if (!soundStepL_Playing)
     {
+        stepTimer_ += dt;
+
+        if (stepTimer_ <= currStepInterval_)
+            return;
+
         soundStepL_.PlayTrack();
 
         soundStepL_Playing = true;
         soundStepR_Played  = false;
+
+        stepTimer_ = 0;
+    }
+}
+
+//---------------------------------------------------------
+// Desc:  call it each frame
+//        update player's footsteps to step right goes properly after step left
+//---------------------------------------------------------
+void Game::UpdateFootstepsSound(const float dt)
+{
+    // which stepL sound is playing...
+    if (soundStepL_Playing && !soundStepR_Played)
+    {
+        stepTimer_ += dt;
+        
+        if (stepTimer_ <= currStepInterval_)
+            return;
+
+        // check if stepL finished playing
+        if (WaitForSingleObject(eventStepLDone, 0) == WAIT_OBJECT_0)
+        {
+            // play second sound
+            soundStepR_.PlayTrack();
+            soundStepR_Played  = true;
+            soundStepL_Playing = false;
+            stepTimer_         = 0;
+        }
     }
 }
 
@@ -871,13 +903,14 @@ void Game::InitSounds(ECS::EntityMgr& mgr)
         return;
     }
 
-    const char* rainFilename        = "data/sounds/ambient/rain.wav";
-    const char* stepLFilename       = "data/sounds/actor/stepL_44khz.wav";
-    const char* stepRFilename       = "data/sounds/actor/stepR_44khz.wav";
+    const char* rainFilename    = "data/sounds/ambient/rain.wav";
+    const char* stepLFilename   = "data/sounds/actor/stepL_44khz.wav";
+    const char* stepRFilename   = "data/sounds/actor/stepR_44khz.wav";
 
-    const long volume      = 0;
-    const long rainVolume  = -1500;
-    const long stepsVolume = -2000;   // -2000 hundredths of a dB is roughly -20db
+    const long volume           = 0;
+    const long thunderVolume    = -3000;
+    const long rainVolume       = -1000;
+    const long stepsVolume      = -1000;   // -2000 hundredths of a dB is roughly -20db
 
     IDirectSound8* pDirectSound = directSound_.GetDirectSound();
 
@@ -888,13 +921,26 @@ void Game::InitSounds(ECS::EntityMgr& mgr)
     if (!result)
         LogErr(LOG, "can't load a rain sound from file: %s", rainFilename);
 
-    result = soundStepL_.LoadTrack(pDirectSound, stepLFilename, 0);
+    result = soundStepL_.LoadTrack(pDirectSound, stepLFilename, stepsVolume);
     if (!result)
         LogErr(LOG, "can't load a sound from file: %s", stepLFilename);
 
-    result = soundStepR_.LoadTrack(pDirectSound, stepRFilename, 0);
+    result = soundStepR_.LoadTrack(pDirectSound, stepRFilename, stepsVolume);
     if (!result)
         LogErr(LOG, "can't load a sound from file: %s", stepRFilename);
+
+
+    // load thunder sounds
+    for (int i = 0; i < 4; ++i)
+    {
+        char path[64]{'\0'};
+        sprintf(path, "data/sounds/nature/thunder-%d.wav", i);
+
+        result = thunderSounds[i].LoadTrack(pDirectSound, path, thunderVolume);
+        if (!result)
+            LogErr(LOG, "can't load a sound from file: %s", path);
+    }
+
 
     //
     // create event handler for some sounds so we will be able to know when
@@ -925,66 +971,80 @@ void Game::UpdatePlayerAnimHud()
     ECS::PlayerSystem&    player  = pEnttMgr_->playerSystem_;
     ECS::AnimationSystem& animSys = pEnttMgr_->animationSystem_;
 
+    // play weapon "appearing" animation
+    if (player.IsDrawWeapon() && canSwitchAnimation_)
+    {
+        const Weapon&        wpn = weapons_[currWeaponIdx_];
+        const AnimationID animId = wpn.animIds[WPN_ANIM_TYPE_DRAW];
+        const float  animEndTime = pSkeleton_->GetAnimation(animId).GetEndTime();
+        const bool    isRepeated = false;
+            
+        canSwitchAnimation_      = false;
+        currActTime_             = 0;
+        currAnimId_              = animId;
+        endActTime_              = animEndTime;
+
+        animSys.SetAnimation(currWeaponEnttId_, animId, animEndTime, isRepeated);
+        return;
+    }
 
     // switch to "reloading" animation
-    if (player.IsReloading() && (currActTime_ >= endActTime_))
+    if (player.IsReloading() && canSwitchAnimation_)
     {
-        const Weapon&     wpn    = weapons_[currWeaponIdx_];
+        const Weapon&        wpn = weapons_[currWeaponIdx_];
         const AnimationID animId = wpn.animIds[WPN_ANIM_TYPE_RELOAD];
+        const float  animEndTime = pSkeleton_->GetAnimation(animId).GetEndTime();
+        const bool    isRepeated = false;
 
-        const float animEndTime  = pSkeleton_->GetAnimation(animId).GetEndTime();
-        const bool  isRepeated   = false;
-
-        currActTime_ = 0;
-        currAnimId_  = animId;
+        canSwitchAnimation_      = false;
+        currActTime_             = 0;
+        currAnimId_              = animId;
 
         animSys.SetAnimation(currWeaponEnttId_, animId, animEndTime, isRepeated);
         return;
     }
 
     // switch to "shooting" animation
-    if (player.IsShooting() && (currActTime_ >= endActTime_))
+    if (player.IsShooting() && canSwitchAnimation_)
     {
-        const Weapon&     wpn    = weapons_[currWeaponIdx_];
+        const Weapon&        wpn = weapons_[currWeaponIdx_];
         const AnimationID animId = wpn.animIds[WPN_ANIM_TYPE_SHOOT];
+        const float  animEndTime = pSkeleton_->GetAnimation(animId).GetEndTime();
+        const bool    isRepeated = true;
 
-        const float animEndTime  = pSkeleton_->GetAnimation(animId).GetEndTime();
-        const bool  isRepeated   = false;
-
-        currActTime_ = 0;
-        currAnimId_  = animId;
+        canSwitchAnimation_      = false;
+        currActTime_             = 0;
+        currAnimId_              = animId;
 
         animSys.SetAnimation(currWeaponEnttId_, animId, animEndTime, isRepeated);
         return;
     }
 
     // switch to "running" animation
-    if (player.IsRunning() && player.IsMoving() && (currActTime_ >= endActTime_))
+    if (player.IsRunning() && player.IsMoving() && canSwitchAnimation_)
     {
-        const Weapon&     wpn    = weapons_[currWeaponIdx_];
+        const Weapon&        wpn = weapons_[currWeaponIdx_];
         const AnimationID animId = wpn.animIds[WPN_ANIM_TYPE_RUN];
+        const float  animEndTime = pSkeleton_->GetAnimation(animId).GetEndTime();
+        const bool    isRepeated = false;
 
-        const float animEndTime  = pSkeleton_->GetAnimation(animId).GetEndTime();
-        const bool  isRepeated   = false;
+        currActTime_             = 0;
+        currAnimId_              = animId;
 
-        currActTime_ = 0;
-        currAnimId_  = animId;
-
-        player.SetIsMoving(false);
         animSys.SetAnimation(currWeaponEnttId_, animId, animEndTime, isRepeated);
         return;
     }
 
     // switch to "idle" animation
-    if (currActTime_ >= endActTime_)
+    if (canSwitchAnimation_)
     {
-        const Weapon&     wpn    = weapons_[currWeaponIdx_];
+        const Weapon&        wpn = weapons_[currWeaponIdx_];
         const AnimationID animId = wpn.animIds[WPN_ANIM_TYPE_IDLE];
+        const float  animEndTime = pSkeleton_->GetAnimation(animId).GetEndTime();
+        const bool    isRepeated = true;
 
-        const float animEndTime  = pSkeleton_->GetAnimation(animId).GetEndTime();
-        const bool  isRepeated   = true;
-
-        currAnimId_ = animId;
+        canSwitchAnimation_      = true;
+        currAnimId_              = animId;
 
         animSys.SetAnimation(currWeaponEnttId_, animId, animEndTime, isRepeated);
     }

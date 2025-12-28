@@ -92,6 +92,8 @@ public:
     void SetIsRunning  (const bool running);
     void SetIsMoving   (const bool moving) { isMoving = moving; }
     void SetIsIdle     (void);
+    void SetIsDrawWeapon(const bool drawing) { isDrawWeapon = drawing; }
+
 
     inline bool IsReloading()        const { return data_.playerStates_ & RELOADING; }
     inline bool IsShooting()         const { return data_.playerStates_ & SHOOT; }
@@ -99,6 +101,7 @@ public:
     inline bool IsWalking()          const { return data_.playerStates_ & WALK; }
     inline bool IsRunning()          const { return data_.playerStates_ & RUN; }
     inline bool IsIdle()             const { return data_.playerStates_ & IDLE; }
+    inline bool IsDrawWeapon()       const { return isDrawWeapon; }
 
     inline bool IsFreeFlyMode()      const { return data_.playerStates_ & FREE_FLY; }
     inline bool IsFlashLightActive() const { return data_.playerStates_ & TURNED_FLASHLIGHT; }
@@ -119,6 +122,7 @@ private:
     PlayerData data_;
 
     bool isMoving = false;
+    bool isDrawWeapon = false;
 };
 
 } // namespace ECS

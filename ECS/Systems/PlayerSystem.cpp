@@ -297,6 +297,13 @@ inline XMVECTOR RotateVecByQuat(const XMVECTOR& vec, const XMVECTOR& rotQuat, co
 }
 
 //---------------------------------------------------------
+
+inline XMVECTOR QuatRotAxis(const XMVECTOR& axis, const float angle)
+{
+    return DirectX::XMQuaternionRotationAxis(axis, angle);
+}
+
+//---------------------------------------------------------
 // Desc:  rotate the look vector about the view space right vector
 // Args:  - angle:   pitch angle in RADIANS
 //---------------------------------------------------------
@@ -312,15 +319,15 @@ void PlayerSystem::Pitch(float angle)
     pHierarchySys_->GetChildrenArr(playerId, s_Ids);
 
     // adjust position of each child relatively to the player
-    const XMVECTOR playerPosW   = pTransformSys_->GetPositionVec(playerID_);
-    const XMVECTOR rotationQuat = DirectX::XMQuaternionRotationAxis(data_.rightVec, angle);
-    const XMVECTOR invQuat      = XMQuaternionConjugate(rotationQuat);
+    const XMVECTOR playerPosW = pTransformSys_->GetPositionVec(playerID_);
+    const XMVECTOR rotQuat    = QuatRotAxis(data_.rightVec, angle);
+    const XMVECTOR invQuat    = XMQuaternionConjugate(rotQuat);
 
 
     for (int i = 0; const EntityID childID : s_Ids)
     {
         const XMFLOAT3 oldRelPos = pHierarchySys_->GetRelativePos(childID);
-        const XMVECTOR newRelPos = RotateVecByQuat({ oldRelPos.x, oldRelPos.y, oldRelPos.z, 0 }, rotationQuat, invQuat);
+        const XMVECTOR newRelPos = RotateVecByQuat({ oldRelPos.x, oldRelPos.y, oldRelPos.z, 0 }, rotQuat, invQuat);
 
         pTransformSys_->SetPositionVec(childID, playerPosW + newRelPos);
         pHierarchySys_->SetRelativePos(childID, newRelPos);
@@ -328,7 +335,7 @@ void PlayerSystem::Pitch(float angle)
 
     // adjust rotation of the player and its each child
     s_Ids.push_back(playerId);
-    pTransformSys_->RotateLocalSpacesByQuat(s_Ids.data(), s_Ids.size(), rotationQuat);
+    pTransformSys_->RotateLocalSpacesByQuat(s_Ids.data(), s_Ids.size(), rotQuat);
 }
 
 //---------------------------------------------------------
@@ -340,8 +347,10 @@ void PlayerSystem::RotateY(float angle)
     ClampYaw(data_.yaw);
 
     const EntityID playerId     = playerID_;
-    const XMVECTOR rotationQuat = DirectX::XMQuaternionRotationAxis({ 0,1,0 }, angle);
-    data_.rightVec              = RotateVecByQuat(data_.rightVec, rotationQuat);
+
+
+    const XMVECTOR rotQuat = QuatRotAxis({ 0,1,0 }, angle);
+    data_.rightVec         = RotateVecByQuat(data_.rightVec, rotQuat);
 
 
     // get arr of player's children entities
@@ -349,12 +358,12 @@ void PlayerSystem::RotateY(float angle)
 
     // adjust position of each child relatively to the player
     const XMVECTOR playerPosW   = pTransformSys_->GetPositionVec(playerId);
-    const XMVECTOR invQuat      = XMQuaternionConjugate(rotationQuat);
+    const XMVECTOR invQuat      = XMQuaternionConjugate(rotQuat);
 
     for (int i = 0; const EntityID childID : s_Ids)
     {
         const XMFLOAT3 oldRelPos    = pHierarchySys_->GetRelativePos(childID);
-        const XMVECTOR newRelPos    = RotateVecByQuat({ oldRelPos.x, oldRelPos.y, oldRelPos.z, 0 }, rotationQuat, invQuat);
+        const XMVECTOR newRelPos    = RotateVecByQuat({ oldRelPos.x, oldRelPos.y, oldRelPos.z, 0 }, rotQuat, invQuat);
 
         pTransformSys_->SetPositionVec(childID, playerPosW + newRelPos);
         pHierarchySys_->SetRelativePos(childID, newRelPos);
@@ -362,7 +371,7 @@ void PlayerSystem::RotateY(float angle)
 
     // adjust rotation of the player and its each child
     s_Ids.push_back(playerId);
-    pTransformSys_->RotateLocalSpacesByQuat(s_Ids.data(), s_Ids.size(), rotationQuat);
+    pTransformSys_->RotateLocalSpacesByQuat(s_Ids.data(), s_Ids.size(), rotQuat);
 }
 
 }; // namespace ECS

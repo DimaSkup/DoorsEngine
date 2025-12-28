@@ -22,6 +22,7 @@
 #include <Model/grass_mgr.h>
 #include <Model/model_loader.h>
 #include <Model/animation_mgr.h>
+#include <Model/animation_saver.h>
 #include <Mesh/material_reader.h>
 
 #include <inttypes.h>                   // for using PRIu32, SCNu32, etc.
@@ -522,62 +523,26 @@ void GameInitializer::InitPlayer(
     pEnttMgr->AddTransformComponent(playerId, { 0,0,0 }, { 0,0,1 });
     pEnttMgr->AddModelComponent(playerId, sphere.GetID());
     pEnttMgr->AddMaterialComponent(playerId, catMatID);
-    //pEnttMgr->AddRenderingComponent(playerId);
 
     // add inventory for a player and push some stuff into it
     pEnttMgr->AddInventoryComponent(playerId);
 
-    //inventorySys.AddItem(playerId, obrezId);
-    //inventorySys.AddItem(playerId, aks74uEnttId);
-    //inventorySys.AddItem(playerId, swordId);
-    //inventorySys.AddItem(playerId, ak74Stalker);
-   // inventorySys.AddItem(playerId, groza);
-    //inventorySys.AddItem(playerId, hpsa);
     inventorySys.AddItem(playerId, pmHudEnttId);
     inventorySys.AddItem(playerId, ak74hudEnttId);
     inventorySys.AddItem(playerId, bm16hudEnttId);
 
-#if 0
-    const EntityID item0Id = inventorySys.GetItemByIdx(playerId, 0);
-    const EntityID item1Id = inventorySys.GetItemByIdx(playerId, 1);
-    const EntityID item2Id = inventorySys.GetItemByIdx(playerId, 2);
-    const EntityID item3Id = inventorySys.GetItemByIdx(playerId, 3);
-
-    const char* item0name = nameSys.GetNameById(item0Id);
-    const char* item1name = nameSys.GetNameById(item1Id);
-    const char* item2name = nameSys.GetNameById(item2Id);
-    const char* item3name = nameSys.GetNameById(item3Id);
-
-    printf("\n\nplayers inventory:\n");
-    printf("item_0: %s\n", item0name);
-    printf("item_1: %s\n", item1name);
-    printf("item_2: %s\n", item2name);
-    printf("item_3: %s\n", item3name);
-    exit(0);
-#endif
-
     // we will render only selected weapon in a separate way
-    pEnttMgr->RemoveComponent(obrezId,       ECS::RenderedComponent);
-    pEnttMgr->RemoveComponent(aks74uEnttId,  ECS::RenderedComponent);
-    pEnttMgr->RemoveComponent(swordId,       ECS::RenderedComponent);
-    pEnttMgr->RemoveComponent(ak74Stalker,   ECS::RenderedComponent);
-    pEnttMgr->RemoveComponent(groza,         ECS::RenderedComponent);
-    pEnttMgr->RemoveComponent(hpsa,          ECS::RenderedComponent);
+    pEnttMgr->RemoveComponent(pmHudEnttId,   ECS::RenderedComponent);
+    pEnttMgr->RemoveComponent(ak74hudEnttId, ECS::RenderedComponent);
+    pEnttMgr->RemoveComponent(bm16hudEnttId, ECS::RenderedComponent);
 
     // BIND some entities to the player
-#if 0
-    hierarchySys.AddChild(playerId, obrezId);
-    hierarchySys.AddChild(playerId, aks74uEnttId);
-    hierarchySys.AddChild(playerId, swordId);
-    hierarchySys.AddChild(playerId, ak74Stalker);
-    hierarchySys.AddChild(playerId, groza);
-    hierarchySys.AddChild(playerId, hpsa);
-#endif
     hierarchySys.AddChild(playerId, gameCameraId);
     hierarchySys.AddChild(playerId, flashlightId);
     hierarchySys.AddChild(playerId, pmHudEnttId);
     hierarchySys.AddChild(playerId, ak74hudEnttId);
     hierarchySys.AddChild(playerId, bm16hudEnttId);
+
 
     pEnttMgr->AddPlayerComponent(playerId);
     pEnttMgr->AddBoundingComponent(playerId, sphere.GetModelAABB());
@@ -599,9 +564,7 @@ void GameInitializer::InitPlayer(
     player.SetFreeFlyMode(cfgs.GetBool("PLAYER_START_IN_FREE_FLY"));
     player.SetActiveWeapon(pmHudEnttId);
 
-    // HACK setup (move the player at particular position)
-    //pEnttMgr->AddEvent(ECS::EventTranslate(playerId, 0, 97, 0));
-    //pEnttMgr->AddEvent(ECS::EventTranslate(playerId, 245, 80, 190));
+    // HACK setup (move the player at its inital position)
     const float posX = cfgs.GetFloat("PLAYER_POS_X_AFTER_INIT");
     const float posY = cfgs.GetFloat("PLAYER_POS_Y_AFTER_INIT");
     const float posZ = cfgs.GetFloat("PLAYER_POS_Z_AFTER_INIT");
@@ -1911,13 +1874,20 @@ void ImportExternalModels(
 
     const TexID texIdBlankNorm = g_TextureMgr.GetTexIdByName("blank_NRM");
 
+    //AnimationSaver animSaver;
+
     const ModelID boblampId = creator.ImportFromFile(pDevice, "data/models/animation/boblampclean.md5mesh");
+    //AnimSkeleton& bobSkeleton = g_AnimationMgr.GetSkeleton("boblampclean");
+    //animSaver.SaveSkeleton(&bobSkeleton, "data/animations/boblampclean.anim");
+    //exit(0);
+
+#if 1
+
     const ModelID stalkerId = creator.ImportFromFile(pDevice, "data/models/stalker_freedom_1/stalker_freedom_1.fbx");
     const ModelID bm16hudId = creator.ImportFromFile(pDevice, "data/models/bm_hud/wpn_bm-16_hud.fbx");
     const ModelID ak74hudId = creator.ImportFromFile(pDevice, "data/models/ak_74_hud/ak_74_hud.fbx");
     const ModelID pmHudId   = creator.ImportFromFile(pDevice, "data/models/pm/wpn_pm_hud.fbx");
 
-#if 1
     // setup normal map for each subset (mesh) of ak_74_hud model
     BasicModel& ak74hud = g_ModelMgr.GetModelById(ak74hudId);
     Core::Subset* subsets = ak74hud.meshes_.subsets_;
@@ -1925,7 +1895,11 @@ void ImportExternalModels(
     for (int i = 0; i < ak74hud.GetNumSubsets(); ++i)
     {
         const MaterialID matId = subsets[i].materialId;
-        g_MaterialMgr.SetMatTexture(matId, texIdBlankNorm, TEX_TYPE_NORMALS);
+        Material& mat = g_MaterialMgr.GetMatById(matId);
+
+        mat.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
+        mat.SetAmbient(0.4f, 0.4f, 0.4f, 1.0f);
+        mat.SetSpecular(0.3f, 0.3f, 0.3f);
     }
 
     // setup normal map for each subset (mesh) of bm_16_hud model
@@ -1935,7 +1909,11 @@ void ImportExternalModels(
     for (int i = 0; i < bm16hud.GetNumSubsets(); ++i)
     {
         const MaterialID matId = bm16subsets[i].materialId;
-        g_MaterialMgr.SetMatTexture(matId, texIdBlankNorm, TEX_TYPE_NORMALS);
+        Material& mat = g_MaterialMgr.GetMatById(matId);
+
+        mat.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
+        mat.SetAmbient(0.4f, 0.4f, 0.4f, 1.0f);
+        mat.SetSpecular(0.3f, 0.3f, 0.3f);
     }
 
     // setup normal map for each subset (mesh) of pm_hud model
@@ -1945,10 +1923,13 @@ void ImportExternalModels(
     for (int i = 0; i < pmHud.GetNumSubsets(); ++i)
     {
         const MaterialID matId = pmMeshes[i].materialId;
-        g_MaterialMgr.SetMatTexture(matId, texIdBlankNorm, TEX_TYPE_NORMALS);
+        Material& mat = g_MaterialMgr.GetMatById(matId);
+
+        mat.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
+        mat.SetAmbient(0.4f, 0.4f, 0.4f, 1.0f);
+        mat.SetSpecular(0.3f, 0.3f, 0.3f);
     }
     
-#endif
 
     LoadEntities("data/entities.dentt", enttMgr);
 
@@ -1972,7 +1953,9 @@ void ImportExternalModels(
     enttMgr.AddAnimationComponent(ak74hudTestEnttId, ak74hudSkeleton.id_, ak74AnimId, ak74Anim.GetEndTime());
     ak74hudSkeleton.DumpAnimations();
     //exit(0);
-   
+
+    //animSaver.SaveSkeleton(&ak74hudSkeleton, "data/animations/ak_74_hud.anim");
+    //exit(0);
 
     // add animation component to boblampclean
     AnimSkeleton&        bobSkeleton     = g_AnimationMgr.GetSkeleton("boblampclean");
@@ -1981,6 +1964,7 @@ void ImportExternalModels(
 
     enttMgr.AddAnimationComponent(boblampEnttId, bobSkeleton.id_, bobAnimId, bobAnim.GetEndTime());
 
+   
 
     // add animation component to bm16
     AnimSkeleton& bm16hudSkeleton        = g_AnimationMgr.GetSkeleton("wpn_bm-16_hud");
@@ -2025,8 +2009,6 @@ void ImportExternalModels(
     BasicModel& treeSpruce   = g_ModelMgr.GetModelByName("tree_spruce");
     BasicModel& treePine     = g_ModelMgr.GetModelByName("tree_pine");
 
-
-#if 1
     const DirectX::BoundingBox& treePineAABB   = treePine.GetModelAABB();
     const DirectX::BoundingBox& treeSpruceAABB = treeSpruce.GetModelAABB();
 
@@ -2082,16 +2064,6 @@ void ImportExternalModels(
 
 #endif
     CreateNature(enttMgr, render);
-
-
-#if 0
-    // BIND some entities to the traktor
-    const EntityID enttIdTraktorTr13       = mgr.nameSystem_.GetIdByName("traktor_tr13");
-    const EntityID enttIdTraktorSpotlightL = mgr.nameSystem_.GetIdByName("traktor_spotlight_L");
-    const EntityID enttIdTraktorSpotlightR = mgr.nameSystem_.GetIdByName("traktor_spotlight_R");
-    mgr.hierarchySystem_.AddChild(enttIdTraktorTr13, enttIdTraktorSpotlightL);
-    mgr.hierarchySystem_.AddChild(enttIdTraktorTr13, enttIdTraktorSpotlightR);
-#endif
 }
 
 //---------------------------------------------------------

@@ -398,6 +398,7 @@ if not exist "$(SolutionDir)build\$(IntDir)data\shaders\input_layouts.json" xcop
     </ClCompile>
     <ClCompile Include="Model\animation_importer.cpp" />
     <ClCompile Include="Model\animation_mgr.cpp" />
+    <ClCompile Include="Model\animation_saver.cpp" />
     <ClCompile Include="Model\geometry_generator.cpp" />
     <ClCompile Include="Model\grass_mgr.cpp" />
     <ClCompile Include="Model\model_exporter.cpp" />
@@ -572,6 +573,7 @@ if not exist "$(SolutionDir)build\$(IntDir)data\shaders\input_layouts.json" xcop
     <ClInclude Include="Model\animation_helper.h" />
     <ClInclude Include="Model\animation_importer.h" />
     <ClInclude Include="Model\animation_mgr.h" />
+    <ClInclude Include="Model\animation_saver.h" />
     <ClInclude Include="Model\grass_mgr.h" />
     <ClInclude Include="Model\model_loader.h" />
     <ClInclude Include="Model\sky_plane.h" />

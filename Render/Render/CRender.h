@@ -144,25 +144,10 @@ public:
     // ================================================================================
     //                                   Getters
     // ================================================================================
+    void  GetFogData(DirectX::XMFLOAT3& color, float& start, float& range, bool& enabled);
 
-    inline void GetFogData(DirectX::XMFLOAT3& color, float& start, float& range, bool& enabled)
-    {
-        // cbps - const buffer for pixel shader
-        color   = cbWeather_.data.fogColor;
-        start   = cbWeather_.data.fogStart;
-        range   = cbWeather_.data.fogRange;
-        enabled = cbpsRareChanged_.data.fogEnabled;
-    }
-
-    inline const DirectX::XMFLOAT3& GetSkyCenterColor() const
-    {
-        return cbWeather_.data.skyColorCenter;
-    }
-
-    inline const DirectX::XMFLOAT3& GetSkyApexColor() const
-    {
-        return cbWeather_.data.skyColorApex;
-    }
+    const DirectX::XMFLOAT3& GetSkyCenterColor() const;
+    const DirectX::XMFLOAT3& GetSkyApexColor()   const;
 
     bool ShaderExist       (const ShaderID id) const;
     void GetArrShadersIds  (cvector<ShaderID>& outIds) const;

@@ -1,0 +1,163 @@
+/**********************************************************************************\
+
+    ******     ******    ******   ******    ********
+    **    **  **    **  **    **  **    **  **    **
+    **    **  **    **  **    **  **    **  **
+    **    **  **    **  **    **  **    **  ********
+    **    **  **    **  **    **  ******          **
+    **    **  **    **  **    **  **  ***   **    **
+    ******     ******    ******   **    **  ********
+
+    Filename: animation_saver.cpp
+
+    Desc:     implementation of functional for saving
+              a loaded skeleton, its bones, and animations
+              into file of internal format
+
+    Created:  27.12.2025  by DimaSkup
+\**********************************************************************************/
+#include <CoreCommon/pch.h>
+#include "animation_saver.h"
+#include "animation_helper.h"
+
+#pragma warning (disable : 4996)
+
+using namespace DirectX;
+
+
+namespace Core
+{
+
+//---------------------------------------------------------
+// forward declarations of helper functions
+//---------------------------------------------------------
+void StoreCommonInfo(FILE* pFile, const AnimSkeleton* pSkeleton);
+void StoreBones     (FILE* pFile, const AnimSkeleton* pSkeleton);
+void StoreOffsets   (FILE* pFile, const AnimSkeleton* pSkeleton);
+
+//---------------------------------------------------------
+// Desc:  save input skeleton, its bones, and animations into file by filename
+//---------------------------------------------------------
+bool AnimationSaver::SaveSkeleton(const AnimSkeleton* pSkeleton, const char* filename)
+{
+    if (!pSkeleton)
+    {
+        LogErr(LOG, "ptr to skeleton == nullptr");
+        return false;
+    }
+    if (StrHelper::IsEmpty(filename))
+    {
+        LogErr(LOG, "can't save skeleton '%s' into file: path is empty", pSkeleton->GetName());
+        return false;
+    }
+
+
+    FILE* pFile = fopen(filename, "w");
+    if (!pFile)
+    {
+        LogErr(LOG, "can't open file for writing: %s", filename);
+        return false;
+    }
+
+    StoreCommonInfo(pFile, pSkeleton);
+    StoreBones(pFile, pSkeleton);
+    StoreOffsets(pFile, pSkeleton);
+
+    fclose(pFile);
+    return true;
+}
+
+//---------------------------------------------------------
+//---------------------------------------------------------
+void StoreCommonInfo(FILE* pFile, const AnimSkeleton* pSkeleton)
+{
+    assert(pFile);
+    assert(pSkeleton);
+
+    fprintf(pFile, "numAnimations %d\n", (int)pSkeleton->GetNumAnimations());
+    fprintf(pFile, "numJoints %d\n", (int)pSkeleton->GetNumBones());
+    fprintf(pFile, "\n");
+}
+
+//---------------------------------------------------------
+// Desc:  a little helper to extract
+//        position (vec3) and rotation quaternion (vec4) from input matrix
+// Args:  m - matrix to decompose
+// Out:   p - position
+//        q - rotation quat
+//---------------------------------------------------------
+inline void GetPosRotQuat(const XMMATRIX& m, XMFLOAT3& p, XMFLOAT4& q)
+{
+    XMVECTOR S;
+    XMVECTOR Q;
+    XMVECTOR T;
+    XMMatrixDecompose(&S, &Q, &T, m);
+
+    XMStoreFloat4(&q, Q);
+    XMStoreFloat3(&p, T);
+}
+
+//---------------------------------------------------------
+// Desc:  store bones hierarchy and bone info:
+//        bone_name, bone_parent_idx, bone_pos, bone_rot_quat
+//---------------------------------------------------------
+void StoreBones(FILE* pFile, const AnimSkeleton* pSkeleton)
+{
+    assert(pFile);
+    assert(pSkeleton);
+
+    fprintf(pFile, "bones\n");
+
+    const int*      boneHierarchy = pSkeleton->boneHierarchy_.data();
+    const BoneName* bonesNames    = pSkeleton->boneNames_.data();
+
+    for (int i = 0; i < pSkeleton->GetNumBones(); ++i)
+    {
+        // get position and rotation quat from the bind pose matrix of this bone
+        XMFLOAT3 p;
+        XMFLOAT4 q;
+        GetPosRotQuat(pSkeleton->boneTransforms_[i], p, q);
+        
+        const int parentBoneIdx = boneHierarchy[i];
+
+        fprintf(pFile, "\t\"%s\"\t%d (%f %f %f) (%f %f %f %f)\t\t//",
+            bonesNames[i].name,                             // bone_name
+            parentBoneIdx, 
+            p.x, p.y, p.z,
+            q.x, q.y, q.z, q.w); 
+
+        // if current bone has a parent...
+        if (parentBoneIdx != -1)
+        {
+            // ... write a parent bone's name
+            fprintf(pFile, "%s", bonesNames[parentBoneIdx].name);
+        }
+
+        fprintf(pFile, "\n");
+    }
+    fprintf(pFile, "\n");
+}
+
+//---------------------------------------------------------
+// Desc:  store offset matrices of bones
+//---------------------------------------------------------
+void StoreOffsets(FILE* pFile, const AnimSkeleton* pSkeleton)
+{
+    assert(pFile);
+    assert(pSkeleton);
+
+    fprintf(pFile, "offsets\n");
+
+    for (index i = 0; i < pSkeleton->boneOffsets_.size(); ++i)
+    {
+        // get position and rotation quat from the offset matrix of this bone
+        XMFLOAT3 p;
+        XMFLOAT4 q;
+        GetPosRotQuat(pSkeleton->boneTransforms_[i], p, q);
+
+        fprintf(pFile, "\t(%f %f %f) (%f %f %f %f)\n", p.x, p.y, p.z, q.x, q.y, q.z, q.w);
+    }
+    fprintf(pFile, "\n");
+}
+
+} // namespace

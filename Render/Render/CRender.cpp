@@ -1267,6 +1267,32 @@ float CRender::GetPostFxParam(const uint16 fxParamIdx)
 }
 
 //---------------------------------------------------------
+// Desc:  get fog parameters
+//---------------------------------------------------------
+void CRender::GetFogData(DirectX::XMFLOAT3& color, float& start, float& range, bool& enabled)
+{
+    // cbps - const buffer for pixel shader
+    color   = cbWeather_.data.fogColor;
+    start   = cbWeather_.data.fogStart;
+    range   = cbWeather_.data.fogRange;
+    enabled = cbpsRareChanged_.data.fogEnabled;
+}
+
+//---------------------------------------------------------
+
+const DirectX::XMFLOAT3& CRender::GetSkyCenterColor() const
+{
+    return cbWeather_.data.skyColorCenter;
+}
+
+//---------------------------------------------------------
+
+const DirectX::XMFLOAT3& CRender::GetSkyApexColor() const
+{
+    return cbWeather_.data.skyColorApex;
+}
+
+//---------------------------------------------------------
 // Desc:  check if there is such a shader by ID
 //---------------------------------------------------------
 bool CRender::ShaderExist(const ShaderID id) const

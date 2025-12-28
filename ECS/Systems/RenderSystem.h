@@ -25,6 +25,7 @@ public:
     void RemoveRecords(const EntityID* ids, const size numEntts);
     void RemoveRecord(const EntityID id);
 
+    inline bool HasEntity(const EntityID id) const { return pRenderComponent_->ids.binary_search(id); }
 
     // clear an arr of entities that were visible in the previous frame;
     // so we will be able to use it again for the current frame;
