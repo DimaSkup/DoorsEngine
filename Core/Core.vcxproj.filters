@@ -348,6 +348,9 @@
     <ClCompile Include="Model\animation_saver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Model\animation_loader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Input\mouse.h">
@@ -774,6 +777,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Model\animation_saver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Model\animation_loader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

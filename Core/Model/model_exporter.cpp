@@ -25,6 +25,8 @@
 #include <Mesh/material_mgr.h>
 #include <Mesh/material_writer.h>
 
+#include <Render/d3dclass.h>
+
 
 namespace Core
 {
@@ -39,6 +41,15 @@ void WriteAABBs         (FILE* pFile, const BasicModel* pModel);
 void WriteVertices      (FILE* pFile, const Vertex3D* vertices, const int numVertices);
 void WriteIndices       (FILE* pFile, const UINT* indices, const int numIndices);
 void StoreTextures      (const BasicModel* pModel, ID3D11Device* pDevice, const char* targetDir);
+
+
+//---------------------------------------------------------
+// a little cringe helper to wrap getting of DX11 device
+//---------------------------------------------------------
+static ID3D11Device* GetDevice()
+{
+    return Render::g_pDevice;
+}
 
 //---------------------------------------------------------
 // Desc:   default constructor
@@ -58,7 +69,6 @@ ModelExporter::ModelExporter()
 //         - targetName:  a name for .de3d and .demat files
 //---------------------------------------------------------
 bool ModelExporter::ExportIntoDE3D(
-    ID3D11Device* pDevice,
     const BasicModel* pModel,
     const char* targetDir,
     const char* targetName)
@@ -114,12 +124,12 @@ bool ModelExporter::ExportIntoDE3D(
     LogMsg(LOG, "export model into .de3d: %s", pModel->name_);
 
     WriteHeader(pFile, pModel, targetName);
-    WriteMaterials(pDevice, pFile, pModel, materialFilePath);
+    WriteMaterials(GetDevice(), pFile, pModel, materialFilePath);
     WriteSubsetsData(pFile, pModel);
     WriteAABBs(pFile, pModel);
     WriteVertices(pFile, pModel->vertices_, pModel->numVertices_);
     WriteIndices(pFile, pModel->indices_, pModel->numIndices_);
-    StoreTextures(pModel, pDevice, relTargetDir);
+    StoreTextures(pModel, GetDevice(), relTargetDir);
 
     LogMsg(LOG, "model is converted into .de3d: %s", targetName);
     fclose(pFile);

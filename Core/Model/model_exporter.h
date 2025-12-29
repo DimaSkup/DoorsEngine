@@ -16,14 +16,10 @@
 \**********************************************************************************/
 #pragma once
 
-#include <d3d11.h>
-
-
 namespace Core
 {
 
 class BasicModel;
-struct Subset;
 
 //---------------------------------------------------------
 
@@ -33,7 +29,6 @@ public:
     ModelExporter();
 
     bool ExportIntoDE3D(
-        ID3D11Device* pDevice,
         const BasicModel* pModel,
         const char* targetDir,
         const char* targetName);

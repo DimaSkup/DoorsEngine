@@ -140,7 +140,7 @@ bool Game::Init(
     LogMsg(LOG, "game scene is initialized");
     SetConsoleColor(MAGENTA);
     LogMsg("-------------------------------");
-    LogMsg("it took:  %.2f sec", initDuration.count() * 0.001f);
+    LogMsg("game scene init took:  %.2f sec", initDuration.count() * 0.001f);
     LogMsg("-------------------------------\n\n");
     SetConsoleColor(RESET);
 

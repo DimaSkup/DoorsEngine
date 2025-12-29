@@ -28,6 +28,14 @@ ModelID ModelMgr::lastModelID_ = 0;
 
 
 //---------------------------------------------------------
+// a little cringe helper to wrap getting of DX11 device
+//---------------------------------------------------------
+static ID3D11Device* GetDevice()
+{
+    return Render::g_pDevice;
+}
+
+//---------------------------------------------------------
 // default constructor and destructor
 //---------------------------------------------------------
 ModelMgr::ModelMgr()
@@ -53,7 +61,7 @@ bool ModelMgr::Init()
 {
     // create and setup "invalid" model
     ModelsCreator creator;
-    const ModelID cubeId = creator.CreateCube(Render::g_pDevice);
+    const ModelID cubeId = creator.CreateCube();
 
     // currently we expect "invalid" model to be only one and have ID == 0
     if ((cubeId != INVALID_MODEL_ID) || (ids_.size() != 1) || (models_.size() != 1))
@@ -111,7 +119,7 @@ bool ModelMgr::InitBillboardBuffer()
     cvector<BillboardSprite> vertices(maxNumBillboards);
 
     if (!billboardsVB_.Initialize(
-        Render::g_pDevice,
+        GetDevice(),
         vertices.data(),
         maxNumBillboards,
         isDynamic))
@@ -137,7 +145,7 @@ bool ModelMgr::InitLineVertexBuffer()
     cvector<uint16>         indices(maxNumIndices, 0);
 
     if (!debugLinesVB_.Initialize(
-        Render::g_pDevice,
+        GetDevice(),
         vertices.data(),
         maxNumVertices,
         isDynamic))
@@ -147,7 +155,7 @@ bool ModelMgr::InitLineVertexBuffer()
     }
 
     if (!debugLinesIB_.Initialize(
-        Render::g_pDevice,
+        GetDevice(),
         indices.data(),
         maxNumIndices,
         isDynamic))

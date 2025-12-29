@@ -32,8 +32,6 @@ struct Keyframe
 {
     Keyframe();
 
-    float             timePos;
-    float             scale;          // uniform scale
     DirectX::XMFLOAT3 translation;
     DirectX::XMFLOAT4 rotQuat;        // rotation quaternion
 };
@@ -77,9 +75,6 @@ struct VertexBoneData
 //---------------------------------------------------------
 struct BoneAnimation
 {
-    float GetStartTime() const;
-    float GetEndTime() const;
-
     void Interpolate(const float framerate, const float t, DirectX::XMMATRIX& M) const;
 
     cvector<Keyframe> keyframes;
@@ -95,14 +90,14 @@ struct AnimationClip
     float GetStartTime() const;
     float GetEndTime() const;
 
-    int GetMaxNumKeyframes() const;
+    size GetNumKeyframes() const;
 
     void Interpolate(const float t, cvector<DirectX::XMMATRIX>& boneTransforms) const;
 
     uint                   id = 0;
 
-    float                  startTime = FLT_MAX;
-    float                  endTime = 0;
+    //float                  startTime = FLT_MAX;
+    //float                  endTime   = 0;
     float                  framerate = 0;         // num frames per second
 
     cvector<BoneAnimation> boneAnimations;   // set of keyframes per each bone
@@ -134,7 +129,7 @@ public:
     int                  GetAnimationIdx        (const char* animName) const;
     AnimationClip&       GetAnimation           (const int animIdx);
     const AnimationClip& GetAnimation           (const int animIdx) const;
-    const char*          GetAnimationName       (const int animIdx);
+    const char*          GetAnimationName       (const int animIdx) const;
     void                 SetAnimationName       (const int animIdx, const char* newName);
 
     float                GetAnimationStartTime  (const int animIdx) const;

@@ -24,11 +24,23 @@
 #include "../Model/model_mgr.h"
 #include "../Texture/texture_mgr.h"
 
+#include <Render/d3dclass.h>
+
+
 using namespace DirectX;
 
 
 namespace Core
 {
+//---------------------------------------------------------
+// a little cringe helper to wrap getting of DX11 device
+//---------------------------------------------------------
+static ID3D11Device* GetDevice()
+{
+    return Render::g_pDevice;
+}
+
+//---------------------------------------------------------
 
 ModelsCreator::ModelsCreator()
 {
@@ -37,7 +49,7 @@ ModelsCreator::ModelsCreator()
 //---------------------------------------------------------
 // Desc:   load model data from .de3d file and init this model
 //---------------------------------------------------------
-ModelID ModelsCreator::CreateFromDE3D(ID3D11Device* pDevice, const char* modelPath)
+ModelID ModelsCreator::CreateFromDE3D(const char* modelPath)
 {
     try
     {
@@ -53,7 +65,7 @@ ModelID ModelsCreator::CreateFromDE3D(ID3D11Device* pDevice, const char* modelPa
         }
 
         // init vertex/index buffers
-        model.InitializeBuffers(pDevice);
+        model.InitializeBuffers(GetDevice());
 
         // add model into the model manager
         ModelID id = id = model.id_;
@@ -77,7 +89,7 @@ ModelID ModelsCreator::CreateFromDE3D(ID3D11Device* pDevice, const char* modelPa
 // Args:    - pDevice:  a ptr to DX11 device
 //          - path:     a path to file with model
 //---------------------------------------------------------
-ModelID ModelsCreator::ImportFromFile(ID3D11Device* pDevice, const char* path)
+ModelID ModelsCreator::ImportFromFile(const char* path)
 {
     if (StrHelper::IsEmpty(path))
     {
@@ -85,16 +97,16 @@ ModelID ModelsCreator::ImportFromFile(ID3D11Device* pDevice, const char* path)
         return INVALID_MODEL_ID;
     }
 
-
+    char          modelName[MAX_LEN_MODEL_NAME]{ '\0' };
     ModelImporter importer;
-    BasicModel& model = g_ModelMgr.AddEmptyModel();
+    BasicModel&   model = g_ModelMgr.AddEmptyModel();
+    
+    FileSys::GetFileStem(path, modelName);
+    g_ModelMgr.SetModelName(model.id_, modelName);
 
-    // set a name and type for the model
-    FileSys::GetFileStem(path, g_String);
-    g_ModelMgr.SetModelName(model.id_, g_String);
     model.type_ = MODEL_TYPE_Imported;
 
-    if (!importer.LoadFromFile(pDevice, &model, path))
+    if (!importer.LoadFromFile(GetDevice(), &model, path))
     {
         LogErr(LOG, "can't import model from file: %s", path);
         return INVALID_MODEL_ID;
@@ -106,10 +118,7 @@ ModelID ModelsCreator::ImportFromFile(ID3D11Device* pDevice, const char* path)
 //---------------------------------------------------------
 // Desc:   create new plane model
 //---------------------------------------------------------
-ModelID ModelsCreator::CreatePlane(
-    ID3D11Device* pDevice,
-    const float width,
-    const float height)
+ModelID ModelsCreator::CreatePlane(const float width, const float height)
 {
     GeometryGenerator geoGen;
     BasicModel& model = g_ModelMgr.AddEmptyModel();
@@ -118,7 +127,7 @@ ModelID ModelsCreator::CreatePlane(
     geoGen.GeneratePlane(width, height, model);
 
     // initialize vb/ib
-    model.InitializeBuffers(pDevice);
+    model.InitializeBuffers(GetDevice());
 
     model.ComputeSubsetsAABB();
     model.ComputeModelAABB();
@@ -134,7 +143,6 @@ ModelID ModelsCreator::CreatePlane(
 // Desc:  generate a "tree LOD1" model and store it into the model manager
 //---------------------------------------------------------
 ModelID ModelsCreator::CreateTreeLod1(
-    ID3D11Device* pDevice,
     const float planeWidth,
     const float planeHeight,
     const bool originAtBottom,
@@ -148,13 +156,13 @@ ModelID ModelsCreator::CreateTreeLod1(
     geoGen.GenerateTreeLod1(model, planeWidth, planeHeight, originAtBottom, rotateAroundX);
 
     // initialize vb/ib
-    model.InitializeBuffers(pDevice);
+    model.InitializeBuffers(GetDevice());
 
     model.ComputeSubsetsAABB();
     model.ComputeModelAABB();
 
     // setup name and type
-    char name[MAX_LEN_MODEL_NAME];
+    char name[MAX_LEN_MODEL_NAME]{'\0'};
     snprintf(name, MAX_LEN_MODEL_NAME, "tree_lod1_%" PRIu32, id);
 
     g_ModelMgr.SetModelName(id, name);
@@ -166,23 +174,27 @@ ModelID ModelsCreator::CreateTreeLod1(
 //---------------------------------------------------------
 // Desc:   generate a cube model and store it into the model manager
 //---------------------------------------------------------
-ModelID ModelsCreator::CreateCube(ID3D11Device* pDevice)
+ModelID ModelsCreator::CreateCube()
 {
     GeometryGenerator geoGen;
     BasicModel& model = g_ModelMgr.AddEmptyModel();
-    
+
+    model.type_ = MODEL_TYPE_Cube;
+
     // generate mesh data for the model
     geoGen.GenerateCube(model);
 
     // initialize vb/ib
-    model.InitializeBuffers(pDevice);
+    model.InitializeBuffers(GetDevice());
 
     model.ComputeSubsetsAABB();
     model.ComputeModelAABB();
 
-    // setup name and type
-    sprintf(model.name_, "cube_%" PRIu32, model.GetID());
-    model.type_ = MODEL_TYPE_Cube;
+    // setup name
+    ModelID cubeId = model.GetID();
+    char modelName[MAX_LEN_MODEL_NAME]{'\0'};
+    sprintf(modelName, "cube_%d", (int)cubeId);
+    g_ModelMgr.SetModelName(cubeId, modelName);
 
     return model.id_;
 }
@@ -191,12 +203,12 @@ ModelID ModelsCreator::CreateCube(ID3D11Device* pDevice)
 // Desc:   generate a sky cube (box) model
 // Args:   - height:  length of cube's one side
 //---------------------------------------------------------
-void ModelsCreator::CreateSkyCube(ID3D11Device* pDevice, const float height)
+void ModelsCreator::CreateSkyCube(const float height)
 {
     GeometryGenerator geoGen;
     SkyModel& sky = g_ModelMgr.GetSky();
 
-    geoGen.GenerateSkyBoxForCubeMap(pDevice, sky, height);
+    geoGen.GenerateSkyBoxForCubeMap(GetDevice(), sky, height);
 
     sky.SetName("sky_cube");
 }
@@ -207,12 +219,12 @@ void ModelsCreator::CreateSkyCube(ID3D11Device* pDevice, const float height)
 //         - sliceCount:  number of sphere's vertical parts
 //         - stackCount:  number of spheres's horizontal parts
 //---------------------------------------------------------
-void ModelsCreator::CreateSkySphere(ID3D11Device* pDevice, const float radius, const int sliceCount, const int stackCount)
+void ModelsCreator::CreateSkySphere(const float radius, const int sliceCount, const int stackCount)
 {
     GeometryGenerator geoGen;
     SkyModel& sky = g_ModelMgr.GetSky();
 
-    geoGen.GenerateSkySphere(pDevice, sky, radius, sliceCount, stackCount);
+    geoGen.GenerateSkySphere(GetDevice(), sky, radius, sliceCount, stackCount);
 
     sky.SetName("sky_sphere");
 }
@@ -224,7 +236,6 @@ void ModelsCreator::CreateSkySphere(ID3D11Device* pDevice, const float radius, c
 // return: created model ID
 //---------------------------------------------------------
 ModelID ModelsCreator::CreateSkyDome(
-    ID3D11Device* pDevice,
     const float radius,
     const int sliceCount,
     const int stackCount)
@@ -233,7 +244,7 @@ ModelID ModelsCreator::CreateSkyDome(
     BasicModel& model = g_ModelMgr.AddEmptyModel();
 
     geoGen.GenerateSkyDome(radius, sliceCount, stackCount, model);
-    model.InitializeBuffers(pDevice);
+    model.InitializeBuffers(GetDevice());
 
     sprintf(model.name_, "sky_dome_%" PRIu32, model.GetID());
     model.type_ = MODEL_TYPE_Sky;
@@ -246,15 +257,13 @@ ModelID ModelsCreator::CreateSkyDome(
 // Args:   -params: sphere's geometry params
 // Ret:    created model ID
 //---------------------------------------------------------
-ModelID ModelsCreator::CreateSphere(
-    ID3D11Device* pDevice,
-    const MeshSphereParams& params)
+ModelID ModelsCreator::CreateSphere(const MeshSphereParams& params)
 {
     GeometryGenerator geoGen;
     BasicModel& model = g_ModelMgr.AddEmptyModel();
 
     geoGen.GenerateSphere(params, model);
-    model.InitializeBuffers(pDevice);
+    model.InitializeBuffers(GetDevice());
 
     // setup the bounding box of the model
     const float r = params.radius_;
@@ -275,15 +284,13 @@ ModelID ModelsCreator::CreateSphere(
 // input:  geometry params for a mesh generation;
 // return: created model ID
 //---------------------------------------------------------
-ModelID ModelsCreator::CreateGeoSphere(
-    ID3D11Device* pDevice,
-    const MeshGeosphereParams& params)
+ModelID ModelsCreator::CreateGeoSphere(const MeshGeosphereParams& params)
 {
     GeometryGenerator geoGen;
     BasicModel& model = g_ModelMgr.AddEmptyModel();
 
     geoGen.GenerateGeosphere(params.radius_, params.numSubdivisions_, model);
-    model.InitializeBuffers(pDevice);
+    model.InitializeBuffers(GetDevice());
 
     // setup the bounding box of the model
     const float r = params.radius_;
@@ -299,131 +306,18 @@ ModelID ModelsCreator::CreateGeoSphere(
 }
 
 //---------------------------------------------------------
-//---------------------------------------------------------
-ModelID ModelsCreator::CreateSkull(ID3D11Device* pDevice)
-{
-
-    BasicModel& model = g_ModelMgr.AddEmptyModel();
-    const char* filepath = "models/skull/skull.txt";
-    ReadSkullMeshFromFile(model, filepath);
-
-    model.InitializeBuffers(pDevice);
-
-    // setup the bounding box of the model
-    model.ComputeSubsetsAABB();
-    model.ComputeModelAABB();
-
-    sprintf(model.name_, "skull_%" PRIu32, model.GetID());
-    model.type_ = MODEL_TYPE_Skull;
-
-    return model.id_;
-}
-
-///////////////////////////////////////////////////////////
-
-void ModelsCreator::ReadSkullMeshFromFile(BasicModel& model, const char* filepath)
-{
-    try
-    {
-        FILE* pFile = nullptr;
-
-        if ((pFile = fopen(filepath, "r+")) == NULL)
-        {
-            sprintf(g_String, "can't load a skull model data file: %s", filepath);
-            LogErr(g_String);
-            return;
-        }
-
-        char buf[64]{ '\0' };
-
-        // ---------------------------------
-
-        int numVertices = 0;
-        int numTriangles = 0;
-        constexpr int numSubsets = 1;      // the model has only one mesh (subset)
-
-        // read in number of vertices and triangles
-        fscanf(pFile, "%s %d", buf, &numVertices);
-        fscanf(pFile, "%s %d", buf, &numTriangles);
-        fscanf(pFile, "%s %s %s %s", buf, buf, buf, buf);
-
-        // allocate memory for the vertices and indices data
-        model.AllocateMemory(numVertices, numTriangles * 3, numSubsets);
-
-        for (int i = 0; i < (int)model.numVertices_; ++i)
-        {
-            XMFLOAT3& pos  = model.vertices_[i].position;
-            XMFLOAT3& norm = model.vertices_[i].normal;
-
-            fscanf(pFile, "%f %f %f", &pos.x, &pos.y, &pos.z);
-            fscanf(pFile, "%f %f %f", &norm.x, &norm.y, &norm.z);
-        }
-
-        // skip separators
-        fscanf(pFile, "%s%s%s", &buf, &buf, &buf);
-
-        // read in indices
-        for (int i = 0; i < (int)model.numIndices_; ++i)
-        {
-            fscanf(pFile, "%ud", &model.indices_[i]);
-        }
-      
-        fclose(pFile);
-    }
-    catch (const std::bad_alloc& e)
-    {
-        LogErr(e.what());
-        LogErr("can't allocate memory for mesh skull data");
-        model.~BasicModel();
-    }
-}
-
-///////////////////////////////////////////////////////////
-
-#if 0
-ModelID ModelsCreator::CreatePyramid(
-    ID3D11Device* pDevice,
-    const Mesh::MeshPyramidParams& meshParams)
-{
-    // generate a new pyramid mesh and store it into the mesh storage;
-    // 
-    // input:  (if passed NULL then default) geometry params for a mesh generation;
-    // return: ID of created mesh
-
-    GeometryGenerator geoGen;
-    Mesh::MeshData mesh;
-
-    mesh.name = "pyramid";
-    mesh.path = "data/models/default/pyramid.txt";
-
-    // generate pyramid's vertices and indices by input params
-    geoGen.GeneratePyramidMesh(
-        meshParams.height,         // height of the pyramid
-        meshParams.baseWidth,      // width (length by X) of one of the base side
-        meshParams.baseDepth,      // depth (length by Z) of one of the base side
-        mesh);
-
-    // store the mesh into the mesh storage and return ID of this mesh
-    return MeshStorage::Get()->CreateMeshWithRawData(pDevice, mesh);
-
-}
-#endif
-
-//---------------------------------------------------------
 // generate new cylinder model by input params
 // 
-// input:  (if passed NULL then default) geometry params for a mesh generation;
+// input:  geometry params for a mesh generation;
 // return: created model ID
 //---------------------------------------------------------
-ModelID ModelsCreator::CreateCylinder(
-    ID3D11Device* pDevice,
-    const MeshCylinderParams& params)
+ModelID ModelsCreator::CreateCylinder(const MeshCylinderParams& params)
 {
     GeometryGenerator geoGen;
     BasicModel& model = g_ModelMgr.AddEmptyModel();
 
     geoGen.GenerateCylinder(params, model);
-    model.InitializeBuffers(pDevice);
+    model.InitializeBuffers(GetDevice());
 
     // setup the bounding box of the model
     const float r = max(params.topRadius_, params.bottomRadius_);

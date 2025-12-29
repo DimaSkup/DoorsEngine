@@ -34,11 +34,14 @@ namespace Core
 void StoreCommonInfo(FILE* pFile, const AnimSkeleton* pSkeleton);
 void StoreBones     (FILE* pFile, const AnimSkeleton* pSkeleton);
 void StoreOffsets   (FILE* pFile, const AnimSkeleton* pSkeleton);
+void StoreWeights   (FILE* pFile, const AnimSkeleton* pSkeleton);
+void StoreAnimations(FILE* pFile, const AnimSkeleton* pSkeleton);
+
 
 //---------------------------------------------------------
 // Desc:  save input skeleton, its bones, and animations into file by filename
 //---------------------------------------------------------
-bool AnimationSaver::SaveSkeleton(const AnimSkeleton* pSkeleton, const char* filename)
+bool AnimationSaver::Save(const AnimSkeleton* pSkeleton, const char* filename)
 {
     if (!pSkeleton)
     {
@@ -59,11 +62,15 @@ bool AnimationSaver::SaveSkeleton(const AnimSkeleton* pSkeleton, const char* fil
         return false;
     }
 
-    StoreCommonInfo(pFile, pSkeleton);
-    StoreBones(pFile, pSkeleton);
-    StoreOffsets(pFile, pSkeleton);
+    StoreCommonInfo (pFile, pSkeleton);
+    StoreBones      (pFile, pSkeleton);
+    StoreOffsets    (pFile, pSkeleton);
+    StoreWeights    (pFile, pSkeleton);
+    StoreAnimations (pFile, pSkeleton);
 
     fclose(pFile);
+
+    LogMsg(LOG, "skeleton '%s' is saved into file: %s", pSkeleton->GetName(), filename);
     return true;
 }
 
@@ -159,5 +166,104 @@ void StoreOffsets(FILE* pFile, const AnimSkeleton* pSkeleton)
     }
     fprintf(pFile, "\n");
 }
+
+//---------------------------------------------------------
+// Desc:  write into a file bones weights 
+//---------------------------------------------------------
+void StoreWeights(FILE* pFile, const AnimSkeleton* pSkeleton)
+{
+    assert(pFile);
+    assert(pSkeleton);
+
+    int numWeights = 0;
+
+    // calc the number of non-zero weights
+    for (const VertexBoneData& data : pSkeleton->vertexToBones)
+    {
+        numWeights += (data.weights[0] != 0.0f);
+        numWeights += (data.weights[1] != 0.0f);
+        numWeights += (data.weights[2] != 0.0f);
+        numWeights += (data.weights[3] != 0.0f);
+    }
+
+    fprintf(pFile, "numweights %d\n", numWeights);
+
+    int weightIdx = 0;
+
+    for (const VertexBoneData& data : pSkeleton->vertexToBones)
+    {
+        const float* weights = data.weights;
+        const uint*  boneIds = data.boneIds;
+
+        if (weights[0] != 0.0f)
+            fprintf(pFile, "\tweight %d %u %f\n", weightIdx++, boneIds[0], weights[0]);
+
+        if (weights[1] != 0.0f)
+            fprintf(pFile, "\tweight %d %u %f\n", weightIdx++, boneIds[1], weights[1]);
+
+        if (weights[2] != 0.0f)
+            fprintf(pFile, "\tweight %d %u %f\n", weightIdx++, boneIds[2], weights[2]);
+
+        if (weights[3] != 0.0f)
+            fprintf(pFile, "\tweight %d %u %f\n", weightIdx++, boneIds[3], weights[3]);
+    }
+    fprintf(pFile, "\n");
+}
+
+//---------------------------------------------------------
+// Desc:  write input keyframes into the file
+//---------------------------------------------------------
+void WriteKeyframes(FILE* pFile, const cvector<Keyframe>& keyframes)
+{
+    assert(pFile);
+
+    for (index frameIdx = 0; frameIdx < keyframes.size(); ++frameIdx)
+    {
+        const XMFLOAT3& p = keyframes[frameIdx].translation;
+        const XMFLOAT4& q = keyframes[frameIdx].rotQuat;
+
+        // (position) (rotation_quat)
+        fprintf(pFile, "\t\t(%f %f %f) (%f %f %f %f)\n", p.x, p.y, p.z, q.x, q.y, q.z, q.w);
+    }
+    fprintf(pFile, "\n");
+}
+
+//---------------------------------------------------------
+// Desc:  write all the keyframes data of input animation into the file
+//---------------------------------------------------------
+void WriteAnimation(FILE* pFile, const AnimationClip& anim)
+{
+    assert(pFile);
+
+    // save keyframes for each bone
+    for (index boneIdx = 0; boneIdx < anim.boneAnimations.size(); ++boneIdx)
+    {
+        fprintf(pFile, "\tframes for bone %d\n", (int)boneIdx);
+
+        WriteKeyframes(pFile, anim.boneAnimations[boneIdx].keyframes);
+    }
+}
+
+//---------------------------------------------------------
+// Desc:  write all the animations data of this skeleton into the file
+//---------------------------------------------------------
+void StoreAnimations(FILE* pFile, const AnimSkeleton* pSkeleton)
+{
+    assert(pFile);
+    assert(pSkeleton);
+
+    for (int i = 0; i < (int)pSkeleton->GetNumAnimations(); ++i)
+    {
+        // for current animation each bone has the same number of keyframes
+        const AnimationClip& anim = pSkeleton->animations_[i];
+
+        fprintf(pFile, "animation \"%s\"\n", pSkeleton->GetAnimationName(i));
+        fprintf(pFile, "numFrames %d\n",    (int)anim.boneAnimations[0].keyframes.size());
+        fprintf(pFile, "frameRate %d\n",    (int)anim.framerate);
+        
+        WriteAnimation(pFile, anim);
+    }
+}
+
 
 } // namespace

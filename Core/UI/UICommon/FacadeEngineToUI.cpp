@@ -904,7 +904,7 @@ bool FacadeEngineToUI::ImportModelFromFile(const char* filepath, const char* mod
 
     ModelsCreator creator;
     ModelExporter exporter;
-    const ModelID modelId = creator.ImportFromFile(Render::g_pDevice, filepath);
+    const ModelID modelId = creator.ImportFromFile(filepath);
 
     if (modelId == INVALID_MODEL_ID)
     {
@@ -913,10 +913,10 @@ bool FacadeEngineToUI::ImportModelFromFile(const char* filepath, const char* mod
     }
 
     const BasicModel& model = g_ModelMgr.GetModelById(modelId);
-    char dirPath[128]{'\0'};
-    snprintf(dirPath, 128, "%s/", modelName);
+    char dirPath[256]{'\0'};
+    snprintf(dirPath, 256, "%s/", modelName);
 
-    return exporter.ExportIntoDE3D(Render::g_pDevice, &model, dirPath, modelName);
+    return exporter.ExportIntoDE3D(&model, dirPath, modelName);
 }
 
 //---------------------------------------------------------

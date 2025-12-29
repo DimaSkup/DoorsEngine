@@ -7,9 +7,8 @@
 ////////////////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
-#include "../Model/basic_model.h"
-#include "../Mesh/mesh_gen_helper_types.h"
 #include <Types.h>
+#include "../Mesh/mesh_gen_helper_types.h"
 
 
 namespace Core
@@ -20,50 +19,34 @@ class ModelsCreator
 public:
     ModelsCreator();
 
-    ModelID CreateFromDE3D(ID3D11Device* pDevice, const char* modelPath);
-    ModelID ImportFromM3D (ID3D11Device* pDevice, const char* modelPath);
-    ModelID ImportFromFile(ID3D11Device* pDevice, const char* modelPath);
-    
+    ModelID CreateFromDE3D  (const char* modelPath);
+    ModelID ImportFromM3D   (const char* modelPath);
+    ModelID ImportFromFile  (const char* modelPath);
 
-    // create a model according to its type and with default params
-    ModelID Create(ID3D11Device* pDevice, const eModelType type);
-
-    ModelID CreateSkyDome(ID3D11Device* pDevice, const float radius, const int sliceCount, const int stackCount);
-    ModelID CreatePlane(ID3D11Device* pDevice, const float width = 1.0f, const float height = 1.0f);
+    ModelID CreateSkyDome   (const float radius, const int sliceCount, const int stackCount);
+    ModelID CreatePlane     (const float width = 1.0f, const float height = 1.0f);
 
     ModelID CreateTreeLod1(
-        ID3D11Device* pDevice,
         const float planeWidth,
         const float planeHeight,
         const bool originAtBottom,
         const float rotateAroundX);
 
-    ModelID CreateCube(ID3D11Device* pDevice);
-    
-    ModelID CreateSphere(ID3D11Device* pDevice, const MeshSphereParams& params);
-    ModelID CreateGeoSphere(ID3D11Device* pDevice, const MeshGeosphereParams& params);
+    ModelID CreateCube      (void);
+    ModelID CreateSphere    (const MeshSphereParams& params);
+    ModelID CreateGeoSphere (const MeshGeosphereParams& params);
 
-    ModelID CreateCylinder(ID3D11Device* pDevice, const MeshCylinderParams& params);
-    ModelID CreateSkull(ID3D11Device* pDevice);
-    ModelID CreatePyramid(ID3D11Device* pDevice, const MeshPyramidParams& params = NULL);
+    ModelID CreateCylinder  (const MeshCylinderParams& params);
+    ModelID CreateSkull     (void);
+    ModelID CreatePyramid   (const MeshPyramidParams& params = NULL);
 
     // creators for the specific types of models
-    void CreateSkyCube            (ID3D11Device* pDevice, const float height);
-    void CreateSkySphere          (ID3D11Device* pDevice, const float radius, const int sliceCount, const int stackCount);
-    bool CreateTerrain            (const char* configFilename);
+    void    CreateSkyCube   (const float height);
+    void    CreateSkySphere (const float radius, const int sliceCount, const int stackCount);
+    bool    CreateTerrain   (const char* configFilename);
 
 private:
-    void ReadSkullMeshFromFile(BasicModel& model, const char* filepath);
-
-#if 0
-    
-
-    void PaintGridWithRainbow(Mesh::MeshData & grid,
-        const UINT verticesCountByX,
-        const UINT verticesCountByZ);
-
-    void PaintGridAccordingToHeights(Mesh::MeshData & grid);
-#endif
+    //void    ReadSkullMeshFromFile(BasicModel& model, const char* filepath);
 };
 
 } // namespace Core

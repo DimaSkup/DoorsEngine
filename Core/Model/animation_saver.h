@@ -22,10 +22,11 @@ namespace Core
 // forward declaration (pointer use only)
 class AnimSkeleton;
 
+
 class AnimationSaver
 {
 public:
-    bool SaveSkeleton(const AnimSkeleton* pSkeleton, const char* filename);
+    bool Save(const AnimSkeleton* pSkeleton, const char* filename);
 };
 
 } // namespace

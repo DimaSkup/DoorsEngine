@@ -1,0 +1,24 @@
+newmtl act_act_arm_perchatka
+mat_id 104
+shader_id 3
+states 66186
+Ka 0.00 0.00 0.00 1.00
+Kd 0.80 0.80 0.80 1.00
+Ks 0.80 0.80 0.80
+Kg 25.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff act_arm_perchatka.dds
+tex_opac act_arm_perchatka.dds
+
+newmtl wpn_wpn_PM
+mat_id 105
+shader_id 3
+states 66186
+Ka 0.00 0.00 0.00 1.00
+Kd 0.80 0.80 0.80 1.00
+Ks 0.80 0.80 0.80
+Kg 25.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff wpn_pm.dds
+tex_opac wpn_pm.dds
+

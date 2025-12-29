@@ -448,8 +448,6 @@ void LoadAnimation(
     printf("\n");
 
     animation.framerate = ticksPerSecond;
-    animation.endTime   = animDurationMs * 0.001f;
-
 
     // recursively go down to the node's children if we have any and load its data
     int parentBoneIdx = -1;
@@ -549,44 +547,39 @@ void LoadBoneAnimationKeyframes(
 
     const uint numKeyframes      = (uint)animDurationInTicks;
     cvector<Keyframe>& keyframes = animation.boneAnimations[boneId].keyframes;
-
     keyframes.resize(numKeyframes);
 
-
+#if 0
     // calc timings (us - micro seconds)
     uint usInSec                = 1000 * 1000;
     uint usFrameDuration        = usInSec / (uint)ticksPerSecond;
     uint usTimePos              = 0;
     uint usAnimDuration         = usFrameDuration * numKeyframes;
 
-    float timePos               = 0;
-    float tick                  = 0;
-    float keyframeDurationSec   = (1000.0f / ticksPerSecond) * 0.001f;
-    float animDurationSec       = keyframeDurationSec * numKeyframes;
-
-    animation.startTime         = 0;
-    animation.endTime           = animDurationSec;
+    float keyframeDurationSec = (1000.0f / ticksPerSecond) * 0.001f;
+    float animDurationSec = keyframeDurationSec * numKeyframes;
+#endif
 
     // for debug
     // printf("   load %u keyframes for bone [%d] '%s'       time[%.5f, %.5f]\n", (uint)animDurationInTicks, boneId, nodeName, animation.startTime, animation.endTime);
 
+    float tick = 0;
+
     // create data for each keyframe
     for (uint i = 0; i < numKeyframes; ++i)
     {
-        //assert(timePos <= animDurationSec);
         assert(tick <= animDurationInTicks);
 
         aiVector3D   pos;
         aiQuaternion rotQ;
-        aiVector3D   scale;
+        //aiVector3D   scale;
 
         CalcInterpolatedTranslation(tick, pNodeAnim, pos);
         CalcInterpolatedRotation   (tick, pNodeAnim, rotQ);
-        CalcInterpolatedScaling    (tick, pNodeAnim, scale);
+        //CalcInterpolatedScaling    (tick, pNodeAnim, scale);
 
         Keyframe& keyframe   = animation.boneAnimations[boneId].keyframes[i];
-        keyframe.timePos     = timePos;
-        keyframe.scale       = scale.x;                     // uniform scale
+        //keyframe.scale       = scale.x;                     // uniform scale
         keyframe.translation = { pos.x, pos.y, pos.z };
         keyframe.rotQuat     = { rotQ.x, rotQ.y, rotQ.z, rotQ.w };
 
@@ -600,10 +593,10 @@ void LoadBoneAnimationKeyframes(
             scale.x);
 #endif
 
-        usTimePos += usFrameDuration;
-
+        //usTimePos += usFrameDuration;
         //timePos += keyframeDurationSec;
-        timePos = (((float)(usTimePos) * 0.001f) * 0.001f);
+        //timePos = (((float)(usTimePos) * 0.001f) * 0.001f);
+
         tick += 1.0f;
 
         // clamp tick

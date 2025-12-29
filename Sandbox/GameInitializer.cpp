@@ -23,6 +23,7 @@
 #include <Model/model_loader.h>
 #include <Model/animation_mgr.h>
 #include <Model/animation_saver.h>
+#include <Model/animation_loader.h>
 #include <Mesh/material_reader.h>
 
 #include <inttypes.h>                   // for using PRIu32, SCNu32, etc.
@@ -39,8 +40,9 @@ namespace Game
 // some typedefs and helpers to get timings
 //---------------------------------------------------------
 using TimeDurationMs = std::chrono::duration<float, std::milli>;
+using TimePoint      = std::chrono::steady_clock::time_point;
 
-inline std::chrono::steady_clock::time_point GetTimePoint()
+inline TimePoint GetTimePoint()
 {
     return std::chrono::steady_clock::now();
 }
@@ -494,8 +496,8 @@ void GameInitializer::InitPlayer(
     // create and set a model for the player entity
     const MeshSphereParams sphereParams(1, 20, 20);
     ModelsCreator creator;
-    const ModelID sphereID = creator.CreateSphere(pDevice, sphereParams);
-    BasicModel& sphere     = g_ModelMgr.GetModelById(sphereID);
+    const ModelID sphereId = creator.CreateSphere(sphereParams);
+    BasicModel&   sphere   = g_ModelMgr.GetModelById(sphereId);
 
    
     // setup material (light properties + textures) for the player entity
@@ -506,23 +508,17 @@ void GameInitializer::InitPlayer(
     ECS::HierarchySystem& hierarchySys = pEnttMgr->hierarchySystem_;
     ECS::InventorySystem& inventorySys = pEnttMgr->inventorySystem_;
 
-    const EntityID aks74uEnttId  = nameSys.GetIdByName("player_aks74u");
     const EntityID gameCameraId  = nameSys.GetIdByName("game_camera");
     const EntityID flashlightId  = nameSys.GetIdByName("player_flashlight");
-    const EntityID swordId       = nameSys.GetIdByName("sword");
-    const EntityID obrezId       = nameSys.GetIdByName("obrez_1");
-    const EntityID ak74Stalker   = nameSys.GetIdByName("player_ak_74_stalker");
-    const EntityID groza         = nameSys.GetIdByName("player_groza");
-    const EntityID hpsa          = nameSys.GetIdByName("player_hpsa");
     const EntityID pmHudEnttId   = nameSys.GetIdByName("pm_hud");
     const EntityID ak74hudEnttId = nameSys.GetIdByName("ak_74_hud");
     const EntityID bm16hudEnttId = nameSys.GetIdByName("bm_16_hud");
 
     // ------------------------------------------
 
-    pEnttMgr->AddTransformComponent(playerId, { 0,0,0 }, { 0,0,1 });
-    pEnttMgr->AddModelComponent(playerId, sphere.GetID());
-    pEnttMgr->AddMaterialComponent(playerId, catMatID);
+    pEnttMgr->AddTransformComponent (playerId, { 0,0,0 }, { 0,0,1 });
+    pEnttMgr->AddModelComponent     (playerId, sphere.GetID());
+    pEnttMgr->AddMaterialComponent  (playerId, catMatID);
 
     // add inventory for a player and push some stuff into it
     pEnttMgr->AddInventoryComponent(playerId);
@@ -815,7 +811,7 @@ void CreateSkyBox(ECS::EntityMgr& mgr)
 
     // create a sky model
     Core::ModelsCreator creator;
-    creator.CreateSkyCube(g_pDevice, (float)skyBoxSize);
+    creator.CreateSkyCube((float)skyBoxSize);
     //creator.CreateSkySphere(pDevice, 2000, 30, 30);
     //MeshSphereParams skyDomeSphereParams(2000, 30, 30);
     //const ModelID skyBoxID = creator.CreateSphere(pDevice, skyDomeSphereParams);
@@ -1847,13 +1843,201 @@ void CreateNature(ECS::EntityMgr& enttMgr, Render::CRender& render)
        
     }
 
+    // generate positions of glass instances 
     CreateGrass((float)params.grassDistVisible, params.grassCount);
-    //CreateTreePine(enttMgr, render);
+
 
     if (pFile)
         fclose(pFile);
 
     LogDbg(LOG, "nature initialization is finished");
+}
+
+//---------------------------------------------------------
+
+void SaveImportedModels()
+{
+    ModelExporter exporter;
+
+    BasicModel& ak74 = g_ModelMgr.GetModelByName("ak_74_hud");
+    BasicModel& bm16 = g_ModelMgr.GetModelByName("wpn_bm-16_hud");
+    BasicModel& pm   = g_ModelMgr.GetModelByName("wpn_pm_hud");
+
+    char dirPath[256];
+
+    memset(dirPath, 0, 256);
+    snprintf(dirPath, 256, "%s/", ak74.GetName());
+    exporter.ExportIntoDE3D(&ak74, dirPath, ak74.GetName());
+
+    memset(dirPath, 0, 256);
+    snprintf(dirPath, 256, "%s/", bm16.GetName());
+    exporter.ExportIntoDE3D(&bm16, dirPath, bm16.GetName());
+
+    memset(dirPath, 0, 256);
+    snprintf(dirPath, 256, "%s/", pm.GetName());
+    exporter.ExportIntoDE3D(&pm, dirPath, pm.GetName());
+}
+
+//---------------------------------------------------------
+
+void ImportModels()
+{
+    TimePoint start = GetTimePoint();
+
+    ModelsCreator creator;
+
+    creator.ImportFromFile("data/models/animation/boblampclean.md5mesh");
+    creator.ImportFromFile("data/models/stalker_freedom_1/stalker_freedom_1.fbx");
+    creator.ImportFromFile("data/models/bm_hud/wpn_bm-16_hud.fbx");
+    creator.ImportFromFile("data/models/ak_74_hud/ak_74_hud.fbx");
+    creator.ImportFromFile("data/models/pm/wpn_pm_hud.fbx");
+
+    const TimePoint      end = GetTimePoint();
+    const TimeDurationMs dur = end - start;
+
+    SetConsoleColor(MAGENTA);
+    LogMsg("------------------------------------------------");
+    LogMsg("import of models with animations took:  %f ms", dur.count());
+    LogMsg("------------------------------------------------\n");
+}
+
+//---------------------------------------------------------
+
+void SaveAnimations()
+{
+    const TimePoint start = GetTimePoint();
+
+    ModelsCreator  creator;
+    AnimationSaver animSaver;
+
+    AnimSkeleton& bobSkeleton   = g_AnimationMgr.GetSkeleton("boblampclean");
+    AnimSkeleton& bm16Skeleton  = g_AnimationMgr.GetSkeleton("wpn_bm-16_hud");
+    AnimSkeleton& ak74Skeleton  = g_AnimationMgr.GetSkeleton("ak_74_hud");
+
+    animSaver.Save(&bobSkeleton,  "data/animations/boblampclean.anim");
+    animSaver.Save(&bm16Skeleton, "data/animations/bm16.anim");
+    animSaver.Save(&ak74Skeleton, "data/animations/ak74.anim");
+
+    const TimePoint      end = GetTimePoint();
+    const TimeDurationMs dur = end - start;
+
+    SetConsoleColor(MAGENTA);
+    LogMsg("------------------------------------------------");
+    LogMsg("saving of animations took:  %f sec", dur.count() * 0.001f);
+    LogMsg("------------------------------------------------\n");
+}
+
+//---------------------------------------------------------
+
+void LoadAnimations()
+{
+    AnimationLoader animLoader;
+
+    AnimSkeleton skeleton;
+
+    animLoader.Load(&skeleton, "data/animations/ak74.anim");
+}
+
+//---------------------------------------------------------
+
+void SetupImporterModelsMaterials()
+{
+    const TexID texIdBlankNorm = g_TextureMgr.GetTexIdByName("blank_NRM");
+
+    BasicModel& ak74 = g_ModelMgr.GetModelByName("ak_74_hud");
+    BasicModel& bm16 = g_ModelMgr.GetModelByName("wpn_bm-16_hud");
+    BasicModel& pm   = g_ModelMgr.GetModelByName("wpn_pm_hud");
+
+    Core::Subset* subsets = nullptr;
+
+
+    // setup normal map for each subset (mesh) of ak_74_hud model
+    subsets = ak74.meshes_.subsets_;
+    
+    for (int i = 0; i < ak74.GetNumSubsets(); ++i)
+    {
+        const MaterialID matId = subsets[i].materialId;
+        Material& mat = g_MaterialMgr.GetMatById(matId);
+
+        mat.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
+        mat.SetAmbient(0.4f, 0.4f, 0.4f, 1.0f);
+        mat.SetSpecular(0.3f, 0.3f, 0.3f);
+    }
+
+    // setup normal map for each subset (mesh) of bm_16_hud model
+    subsets = bm16.meshes_.subsets_;
+
+    for (int i = 0; i < bm16.GetNumSubsets(); ++i)
+    {
+        const MaterialID matId = subsets[i].materialId;
+        Material& mat = g_MaterialMgr.GetMatById(matId);
+
+        mat.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
+        mat.SetAmbient(0.4f, 0.4f, 0.4f, 1.0f);
+        mat.SetSpecular(0.3f, 0.3f, 0.3f);
+    }
+
+    // setup normal map for each subset (mesh) of pm_hud model
+    subsets = pm.meshes_.subsets_;
+
+    for (int i = 0; i < pm.GetNumSubsets(); ++i)
+    {
+        const MaterialID matId = subsets[i].materialId;
+        Material& mat = g_MaterialMgr.GetMatById(matId);
+
+        mat.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
+        mat.SetAmbient(0.4f, 0.4f, 0.4f, 1.0f);
+        mat.SetSpecular(0.3f, 0.3f, 0.3f);
+    }
+}
+
+//---------------------------------------------------------
+
+void BindAnimationsToEntts(ECS::EntityMgr& enttMgr)
+{
+    const EntityID boblampEnttId     = enttMgr.nameSystem_.GetIdByName("boblampclean");
+    const EntityID ak74hudEnttId     = enttMgr.nameSystem_.GetIdByName("ak_74_hud");
+    const EntityID bm16hudEnttId     = enttMgr.nameSystem_.GetIdByName("bm_16_hud");
+    const EntityID pmHudEnttId       = enttMgr.nameSystem_.GetIdByName("pm_hud");
+    const EntityID bm16hudTestEnttId = enttMgr.nameSystem_.GetIdByName("bm_16_hud_test");
+    const EntityID ak74hudTestEnttId = enttMgr.nameSystem_.GetIdByName("ak_74_hud_test");
+    const EntityID pmHudTestEnttId   = enttMgr.nameSystem_.GetIdByName("pm_hud_test");
+
+
+    // add animation component to ak74
+    AnimSkeleton&        ak74hudSkeleton = g_AnimationMgr.GetSkeleton("ak_74_hud");
+    const AnimationID    ak74AnimId      = ak74hudSkeleton.GetAnimationIdx("wpn_ak74_hud_ogf_idle");
+    const AnimationClip& ak74Anim        = ak74hudSkeleton.GetAnimation(ak74AnimId);
+
+    enttMgr.AddAnimationComponent(ak74hudEnttId,     ak74hudSkeleton.id_, ak74AnimId, ak74Anim.GetEndTime());
+    enttMgr.AddAnimationComponent(ak74hudTestEnttId, ak74hudSkeleton.id_, ak74AnimId, ak74Anim.GetEndTime());
+    ak74hudSkeleton.DumpAnimations();
+
+
+    // add animation component to boblampclean
+    AnimSkeleton&        bobSkeleton     = g_AnimationMgr.GetSkeleton("boblampclean");
+    const AnimationID    bobAnimId       = bobSkeleton.GetAnimationIdx("boblampclean_0");
+    const AnimationClip& bobAnim         = bobSkeleton.GetAnimation(bobAnimId);
+
+    enttMgr.AddAnimationComponent(boblampEnttId, bobSkeleton.id_, bobAnimId, bobAnim.GetEndTime());
+
+
+    // add animation component to bm16
+    AnimSkeleton& bm16hudSkeleton        = g_AnimationMgr.GetSkeleton("wpn_bm-16_hud");
+    const AnimationID bm16AnimId         = bm16hudSkeleton.GetAnimationIdx("wpn_bm_16_hud_ogf_idle");
+    const AnimationClip& bm16Anim        = bm16hudSkeleton.GetAnimation(bm16AnimId);
+
+    enttMgr.AddAnimationComponent(bm16hudEnttId,     bm16hudSkeleton.id_, bm16AnimId, bm16Anim.GetEndTime());
+    enttMgr.AddAnimationComponent(bm16hudTestEnttId, bm16hudSkeleton.id_, bm16AnimId, bm16Anim.GetEndTime());
+
+
+    // add animation component to pm
+    AnimSkeleton& pmSkeleton    = g_AnimationMgr.GetSkeleton("wpn_pm_hud");
+    const AnimationID pmAnimId  = pmSkeleton.GetAnimationIdx("wpn_pm_hud_ogf_idle");
+    const AnimationClip& pmAnim = pmSkeleton.GetAnimation(pmAnimId);
+
+    enttMgr.AddAnimationComponent(pmHudEnttId,     pmSkeleton.id_, pmAnimId, pmAnim.GetEndTime());
+    enttMgr.AddAnimationComponent(pmHudTestEnttId, pmSkeleton.id_, pmAnimId, pmAnim.GetEndTime());
 }
 
 //---------------------------------------------------------
@@ -1872,175 +2056,58 @@ void ImportExternalModels(
 
     LoadModelAssets(&render);
 
-    const TexID texIdBlankNorm = g_TextureMgr.GetTexIdByName("blank_NRM");
-
-    //AnimationSaver animSaver;
-
-    const ModelID boblampId = creator.ImportFromFile(pDevice, "data/models/animation/boblampclean.md5mesh");
-    //AnimSkeleton& bobSkeleton = g_AnimationMgr.GetSkeleton("boblampclean");
-    //animSaver.SaveSkeleton(&bobSkeleton, "data/animations/boblampclean.anim");
+    ImportModels();
+    //SaveImportedModels();
     //exit(0);
+    SaveAnimations();
+    LoadAnimations();
 
-#if 1
-
-    const ModelID stalkerId = creator.ImportFromFile(pDevice, "data/models/stalker_freedom_1/stalker_freedom_1.fbx");
-    const ModelID bm16hudId = creator.ImportFromFile(pDevice, "data/models/bm_hud/wpn_bm-16_hud.fbx");
-    const ModelID ak74hudId = creator.ImportFromFile(pDevice, "data/models/ak_74_hud/ak_74_hud.fbx");
-    const ModelID pmHudId   = creator.ImportFromFile(pDevice, "data/models/pm/wpn_pm_hud.fbx");
-
-    // setup normal map for each subset (mesh) of ak_74_hud model
-    BasicModel& ak74hud = g_ModelMgr.GetModelById(ak74hudId);
-    Core::Subset* subsets = ak74hud.meshes_.subsets_;
-    
-    for (int i = 0; i < ak74hud.GetNumSubsets(); ++i)
-    {
-        const MaterialID matId = subsets[i].materialId;
-        Material& mat = g_MaterialMgr.GetMatById(matId);
-
-        mat.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
-        mat.SetAmbient(0.4f, 0.4f, 0.4f, 1.0f);
-        mat.SetSpecular(0.3f, 0.3f, 0.3f);
-    }
-
-    // setup normal map for each subset (mesh) of bm_16_hud model
-    BasicModel& bm16hud = g_ModelMgr.GetModelById(bm16hudId);
-    Core::Subset* bm16subsets = bm16hud.meshes_.subsets_;
-
-    for (int i = 0; i < bm16hud.GetNumSubsets(); ++i)
-    {
-        const MaterialID matId = bm16subsets[i].materialId;
-        Material& mat = g_MaterialMgr.GetMatById(matId);
-
-        mat.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
-        mat.SetAmbient(0.4f, 0.4f, 0.4f, 1.0f);
-        mat.SetSpecular(0.3f, 0.3f, 0.3f);
-    }
-
-    // setup normal map for each subset (mesh) of pm_hud model
-    BasicModel& pmHud = g_ModelMgr.GetModelById(pmHudId);
-    Core::Subset* pmMeshes = pmHud.meshes_.subsets_;
-
-    for (int i = 0; i < pmHud.GetNumSubsets(); ++i)
-    {
-        const MaterialID matId = pmMeshes[i].materialId;
-        Material& mat = g_MaterialMgr.GetMatById(matId);
-
-        mat.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
-        mat.SetAmbient(0.4f, 0.4f, 0.4f, 1.0f);
-        mat.SetSpecular(0.3f, 0.3f, 0.3f);
-    }
-    
-
+    SetupImporterModelsMaterials();
     LoadEntities("data/entities.dentt", enttMgr);
-
-    const EntityID boblampEnttId     = enttMgr.nameSystem_.GetIdByName("boblampclean");
-    const EntityID ak74hudEnttId     = enttMgr.nameSystem_.GetIdByName("ak_74_hud");
-    const EntityID bm16hudEnttId     = enttMgr.nameSystem_.GetIdByName("bm_16_hud");
-    const EntityID pmHudEnttId       = enttMgr.nameSystem_.GetIdByName("pm_hud");
-    const EntityID bm16hudTestEnttId = enttMgr.nameSystem_.GetIdByName("bm_16_hud_test");
-    const EntityID ak74hudTestEnttId = enttMgr.nameSystem_.GetIdByName("ak_74_hud_test");
-    const EntityID pmHudTestEnttId   = enttMgr.nameSystem_.GetIdByName("pm_hud_test");
+    BindAnimationsToEntts(enttMgr);
 
 
-    //g_AnimationMgr.DumpSkeletons();
+    //---------------------------------
 
-    // add animation component to ak74
-    AnimSkeleton&        ak74hudSkeleton = g_AnimationMgr.GetSkeleton("ak_74_hud");
-    const AnimationID    ak74AnimId      = ak74hudSkeleton.GetAnimationIdx("wpn_ak74_hud_ogf_idle");
-    const AnimationClip& ak74Anim        = ak74hudSkeleton.GetAnimation(ak74AnimId);
-
-    enttMgr.AddAnimationComponent(ak74hudEnttId,     ak74hudSkeleton.id_, ak74AnimId, ak74Anim.GetEndTime());
-    enttMgr.AddAnimationComponent(ak74hudTestEnttId, ak74hudSkeleton.id_, ak74AnimId, ak74Anim.GetEndTime());
-    ak74hudSkeleton.DumpAnimations();
-    //exit(0);
-
-    //animSaver.SaveSkeleton(&ak74hudSkeleton, "data/animations/ak_74_hud.anim");
-    //exit(0);
-
-    // add animation component to boblampclean
-    AnimSkeleton&        bobSkeleton     = g_AnimationMgr.GetSkeleton("boblampclean");
-    const AnimationID    bobAnimId       = bobSkeleton.GetAnimationIdx("boblampclean_0");
-    const AnimationClip& bobAnim         = bobSkeleton.GetAnimation(bobAnimId);
-
-    enttMgr.AddAnimationComponent(boblampEnttId, bobSkeleton.id_, bobAnimId, bobAnim.GetEndTime());
-
-   
-
-    // add animation component to bm16
-    AnimSkeleton& bm16hudSkeleton        = g_AnimationMgr.GetSkeleton("wpn_bm-16_hud");
-    const AnimationID bm16AnimId         = bm16hudSkeleton.GetAnimationIdx("wpn_bm_16_hud_ogf_idle");
-    const AnimationClip& bm16Anim        = bm16hudSkeleton.GetAnimation(bm16AnimId);
-
-    enttMgr.AddAnimationComponent(bm16hudEnttId,     bm16hudSkeleton.id_, bm16AnimId, bm16Anim.GetEndTime());
-    enttMgr.AddAnimationComponent(bm16hudTestEnttId, bm16hudSkeleton.id_, bm16AnimId, bm16Anim.GetEndTime());
-
-    // add animation component to pm
-    AnimSkeleton& pmSkeleton    = g_AnimationMgr.GetSkeleton("wpn_pm_hud");
-    const AnimationID pmAnimId  = pmSkeleton.GetAnimationIdx("wpn_pm_hud_ogf_idle");
-    const AnimationClip& pmAnim = pmSkeleton.GetAnimation(pmAnimId);
-
-    enttMgr.AddAnimationComponent(pmHudEnttId,     pmSkeleton.id_, pmAnimId, pmAnim.GetEndTime());
-    enttMgr.AddAnimationComponent(pmHudTestEnttId, pmSkeleton.id_, pmAnimId, pmAnim.GetEndTime());
-
-
-    LogMsg("%s ak74: skeleton %-5u anim %-5u end_time %-6.3f\n",
-        YELLOW,
-        ak74hudSkeleton.id_,
-        ak74AnimId,
-        ak74Anim.GetEndTime());
-
-    LogMsg("%s bob:  skeleton %-5u anim %-5u end_time %-6.3f\n",
-        YELLOW,
-        bobSkeleton.id_,
-        bobAnimId,
-        bobAnim.GetEndTime());
-    
-    SetConsoleColor(RESET);
-    //exit(0);
-
-    //enttMgr.RemoveComponent(boblampEnttId, ECS::RenderedComponent);
-    //enttMgr.RemoveComponent(ak74hudEnttId, ECS::RenderedComponent);
-
-    BasicModel& stalkerHouse = g_ModelMgr.GetModelByName("stalker_house");
-    BasicModel& tr13         = g_ModelMgr.GetModelByName("tr_13");
     BasicModel& cube         = g_ModelMgr.GetModelByName("basic_cube");
     BasicModel& sphere       = g_ModelMgr.GetModelByName("basic_sphere");
     BasicModel& cylinder     = g_ModelMgr.GetModelByName("basic_cylinder");
     BasicModel& treeSpruce   = g_ModelMgr.GetModelByName("tree_spruce");
     BasicModel& treePine     = g_ModelMgr.GetModelByName("tree_pine");
 
+
     const DirectX::BoundingBox& treePineAABB   = treePine.GetModelAABB();
     const DirectX::BoundingBox& treeSpruceAABB = treeSpruce.GetModelAABB();
 
-    float treePineWidth  = treePineAABB.Extents.x * 3;
-    float treePineHeight = treePineAABB.Extents.y * 5.5f;
 
-    float treeSpruceWidth = treeSpruceAABB.Extents.x * 2;
-    float treeSpruceHeight = treeSpruceAABB.Extents.y * 2;
+    const float treePineWidth       = treePineAABB.Extents.x * 3;
+    const float treePineHeight      = treePineAABB.Extents.y * 5.5f;
 
+    const float treeSpruceWidth     = treeSpruceAABB.Extents.x * 2;
+    const float treeSpruceHeight    = treeSpruceAABB.Extents.y * 2;
 
-
-    bool originAtBottom = true;
-    const float rotatePineAroundX = -90.0f;
+    const bool originAtBottom       = true;
+    const float rotatePineAroundX   = -90.0f;
     const float rotateSpruceAroundX = 0.0f;
 
-    const ModelID    idTreePineLod1     = creator.CreateTreeLod1(pDevice, treePineWidth, treePineHeight, originAtBottom, rotatePineAroundX);
-    const ModelID    idTreeSpruceLod1   = creator.CreateTreeLod1(pDevice, treeSpruceWidth, treeSpruceHeight, originAtBottom, rotateSpruceAroundX);
 
-    const ModelID    idTreePineLod2   = creator.CreateTreeLod1(pDevice, treePineWidth, treePineHeight, originAtBottom, rotatePineAroundX);
-    const ModelID    idTreeSpruceLod2 = creator.CreateTreeLod1(pDevice, treeSpruceWidth, treeSpruceHeight, originAtBottom, rotateSpruceAroundX);
+    const ModelID    idTreePineLod1         = creator.CreateTreeLod1(treePineWidth, treePineHeight, originAtBottom, rotatePineAroundX);
+    const ModelID    idTreeSpruceLod1       = creator.CreateTreeLod1(treeSpruceWidth, treeSpruceHeight, originAtBottom, rotateSpruceAroundX);
 
-    BasicModel& treePineLod1            = g_ModelMgr.GetModelById(idTreePineLod1);
-    BasicModel& treeSpruceLod1          = g_ModelMgr.GetModelById(idTreeSpruceLod1);
+    const ModelID    idTreePineLod2         = creator.CreateTreeLod1(treePineWidth, treePineHeight, originAtBottom, rotatePineAroundX);
+    const ModelID    idTreeSpruceLod2       = creator.CreateTreeLod1(treeSpruceWidth, treeSpruceHeight, originAtBottom, rotateSpruceAroundX);
 
-    BasicModel& treePineLod2            = g_ModelMgr.GetModelById(idTreePineLod2);
-    BasicModel& treeSpruceLod2          = g_ModelMgr.GetModelById(idTreeSpruceLod2);
+    BasicModel&      treePineLod1           = g_ModelMgr.GetModelById(idTreePineLod1);
+    BasicModel&      treeSpruceLod1         = g_ModelMgr.GetModelById(idTreeSpruceLod1);
 
-    const MaterialID treePineLod1MatId   = g_MaterialMgr.GetMatIdByName("tree_pine_lod_1");
-    const MaterialID treeSpruceLod1MatId = g_MaterialMgr.GetMatIdByName("tree_spruce_lod_1");
+    BasicModel&      treePineLod2           = g_ModelMgr.GetModelById(idTreePineLod2);
+    BasicModel&      treeSpruceLod2         = g_ModelMgr.GetModelById(idTreeSpruceLod2);
 
-    const MaterialID treePineLod2MatId   = g_MaterialMgr.GetMatIdByName("tree_pine_lod_2");
-    const MaterialID treeSpruceLod2MatId = g_MaterialMgr.GetMatIdByName("tree_spruce_lod_2");
+    const MaterialID treePineLod1MatId      = g_MaterialMgr.GetMatIdByName("tree_pine_lod_1");
+    const MaterialID treeSpruceLod1MatId    = g_MaterialMgr.GetMatIdByName("tree_spruce_lod_1");
+
+    const MaterialID treePineLod2MatId      = g_MaterialMgr.GetMatIdByName("tree_pine_lod_2");
+    const MaterialID treeSpruceLod2MatId    = g_MaterialMgr.GetMatIdByName("tree_spruce_lod_2");
 
 
     treePineLod1.SetMaterialForSubset(0, treePineLod1MatId);
@@ -2062,7 +2129,7 @@ void ImportExternalModels(
     treePine.SetLod(LOD_2, idTreePineLod2);
     treePine.SetLodDistance(LOD_2, 150);
 
-#endif
+
     CreateNature(enttMgr, render);
 }
 
@@ -2186,10 +2253,10 @@ void GenerateEntities(
     const MeshSphereParams    sphereParams(0.5f, 20, 20);
     const MeshCylinderParams  cylParams(1, 0.8f, 5, 15, 1);
 
-    const ModelID cubeID        = creator.CreateCube(pDevice);
+    const ModelID cubeID        = creator.CreateCube();
     //const ModelID boundSphereID = creator.CreateGeoSphere(pDevice, boundGeoSphereParams);
-    const ModelID sphereID      = creator.CreateSphere(pDevice, sphereParams);
-    const ModelID cylinderID    = creator.CreateCylinder(pDevice, cylParams);
+    const ModelID sphereID      = creator.CreateSphere(sphereParams);
+    const ModelID cylinderID    = creator.CreateCylinder(cylParams);
 
     // get actual model by its ID
     BasicModel& cube        = g_ModelMgr.GetModelById(cubeID);

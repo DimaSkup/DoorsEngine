@@ -79,17 +79,16 @@ void AnimSkeleton::DumpAnimations() const
     for (int i = 0; i < numAnims; ++i)
     {
         const char* animName     = animNames_[i].name;
-        const int   maxKeyframes = animations_[i].GetMaxNumKeyframes();
+        const size  numKeyframes = animations_[i].GetNumKeyframes();
         const float startTime    = animations_[i].GetStartTime();
         const float endTime      = animations_[i].GetEndTime();
 
-        printf("\t[%d] %-50s max_keyframes: %-10d    time [%f, %f]\n",
+        printf("\t[%d] %-50s  max_keyframes: %-10d  time [%f, %f]\n",
             i,
             animName,
-            maxKeyframes,
+            (int)numKeyframes,
             startTime,
             endTime);
-
     }
 }
 
@@ -117,7 +116,6 @@ void AnimSkeleton::DumpBoneParents() const
     printf(" - num bones %d\n", (int)GetNumBones());
 
     constexpr int ROOT_PARENT_IDX = -1;
-
 
     for (int i = 0; i < (int)GetNumBones(); ++i)
     {
@@ -161,6 +159,7 @@ void AnimSkeleton::DumpKeyframes(const char* animName, const int boneId) const
     const AnimationClip& anim = animations_[animIdx];
     assert(boneId < anim.boneAnimations.size());
 
+    const float frameTime = 1.0f / anim.framerate;
     const cvector<Keyframe>& keyframes = anim.boneAnimations[boneId].keyframes;
 
     printf("\nDump keyframes (skeleton '%s', animation '%s', bone_id %d:\n", name_, animName, boneId);
@@ -169,16 +168,17 @@ void AnimSkeleton::DumpKeyframes(const char* animName, const int boneId) const
     // print data of each keyframe
     for (index i = 0; i < keyframes.size(); ++i)
     {
-        printf("timePos %.2f, pos(%.2f %.2f %.2f), quat(%.2f %.2f %.2f %.2f), scale %.2f\n",
-            keyframes[i].timePos,
+        const float frameTimePos = (float)i * frameTime;
+
+        printf("timePos %.2f, pos(%.2f %.2f %.2f), quat(%.2f %.2f %.2f %.2f)\n",
+            frameTimePos,
             keyframes[i].translation.x,
             keyframes[i].translation.y,
             keyframes[i].translation.z,
             keyframes[i].rotQuat.x,
             keyframes[i].rotQuat.y,
             keyframes[i].rotQuat.z,
-            keyframes[i].rotQuat.w,
-            keyframes[i].scale);
+            keyframes[i].rotQuat.w);
     }
     printf("\n\n");
 }
@@ -192,27 +192,9 @@ void AnimSkeleton::DumpKeyframes(const char* animName, const int boneId) const
 // constructor for a single keyframe
 //---------------------------------------------------------
 Keyframe::Keyframe() :
-    timePos(0),
-    scale(1),
     translation(0,0,0),
     rotQuat(0,0,0,1)
 {
-}
-
-//---------------------------------------------------------
-// Desc:  keyframes are sorted by time, so first keyframe gives start time
-//---------------------------------------------------------
-float BoneAnimation::GetStartTime() const
-{
-    return keyframes[0].timePos;
-}
-
-//---------------------------------------------------------
-// Desc:  keyframes are sorted by time, so last keyframe gives end time
-//---------------------------------------------------------
-float BoneAnimation::GetEndTime() const
-{
-    return keyframes.back().timePos;
 }
 
 //---------------------------------------------------------
@@ -223,23 +205,28 @@ void BoneAnimation::Interpolate(
     const float t,
     XMMATRIX& M) const
 {
-    if (t <= keyframes[0].timePos)
+    if (t <= 0)
     {
         const Keyframe& frame = keyframes[0];
        
-        const XMVECTOR S = { frame.scale, frame.scale, frame.scale };
+        const XMVECTOR S = { 1,1,1 };
         const XMVECTOR P = XMLoadFloat3(&frame.translation);
         const XMVECTOR Q = XMLoadFloat4(&frame.rotQuat);
 
         const XMVECTOR zero = { 0,0,0,1 };
         M = XMMatrixAffineTransformation(S, zero, Q, P);
+        return;
     }
 
-    else if (t >= keyframes.back().timePos)
+
+    const float frametime = 1.0f / framerate;
+    const float endTime   = (float)keyframes.size() * frametime;
+
+    if (t >= endTime)
     {
         const Keyframe& frame = keyframes.back();
 
-        const XMVECTOR S = { frame.scale, frame.scale, frame.scale };
+        const XMVECTOR S = { 1,1,1 };
         const XMVECTOR P = XMLoadFloat3(&frame.translation);
         const XMVECTOR Q = XMLoadFloat4(&frame.rotQuat);
 
@@ -249,7 +236,7 @@ void BoneAnimation::Interpolate(
 
     else
     {
-        // calculate 2 current frames and ...
+        // calc 2 current frames and ...
         const float animFrame = t * framerate;
         const int   numFrames = (int)keyframes.size();
         const int   frameIdxA = (int)floorf(animFrame);
@@ -260,22 +247,24 @@ void BoneAnimation::Interpolate(
         const Keyframe& frame0 = keyframes[frameIdxA];
         const Keyframe& frame1 = keyframes[frameIdxB];
 
+        float t0 = frameIdxA * frametime;
+        float t1 = frameIdxB * frametime;
+
 
         // ... lerp time between them
-        float lerpPercent = (t - frame0.timePos) / (frame1.timePos - frame0.timePos);
+        //float lerpPercent = (t - frame0.timePos) / (frame1.timePos - frame0.timePos);
+        float lerpPercent = (t - t0) / (t1 - t0);
         lerpPercent       = clampf(lerpPercent, 0, 1);
 
 
-        const XMVECTOR s0 = { frame0.scale, frame0.scale, frame0.scale };
-        const XMVECTOR s1 = { frame1.scale, frame1.scale, frame1.scale };
-
+        // calc interpolated values
         const XMVECTOR p0 = XMLoadFloat3(&frame0.translation);
         const XMVECTOR p1 = XMLoadFloat3(&frame1.translation);
 
         const XMVECTOR q0 = XMLoadFloat4(&frame0.rotQuat);
         const XMVECTOR q1 = XMLoadFloat4(&frame1.rotQuat);
 
-        const XMVECTOR S = XMVectorLerp(s0, s1, lerpPercent);
+        const XMVECTOR S = { 1,1,1 };
         const XMVECTOR P = XMVectorLerp(p0, p1, lerpPercent);
         const XMVECTOR Q = XMQuaternionSlerp(q0, q1, lerpPercent);
 
@@ -289,7 +278,7 @@ void BoneAnimation::Interpolate(
 //---------------------------------------------------------
 float AnimationClip::GetStartTime() const
 {
-    return startTime;
+    return 0.0f;
 }
 
 //---------------------------------------------------------
@@ -297,33 +286,19 @@ float AnimationClip::GetStartTime() const
 //---------------------------------------------------------
 float AnimationClip::GetEndTime() const
 {
-    float tm = 0;
+    const float numKeyframes = (float)GetNumKeyframes();
+    const float frameTime    = 1.0f / framerate;
 
-    for (index boneIdx = 0; boneIdx < boneAnimations.size(); ++boneIdx)
-    {
-        for (const Keyframe& frame : boneAnimations[boneIdx].keyframes)
-        {
-            tm = max(tm, frame.timePos);
-        }
-    }
-
-    return tm;
-    return endTime;
+    return numKeyframes * frameTime;
 }
 
 //---------------------------------------------------------
 // Desc:  get maximal number of keyframes (per bone) for this animation
 //---------------------------------------------------------
-int AnimationClip::GetMaxNumKeyframes() const
+size AnimationClip::GetNumKeyframes() const
 {
-    size maximal = 0;
-
-    for (index i = 0; i < boneAnimations.size(); ++i)
-    {
-        maximal = max(boneAnimations[i].keyframes.size(), maximal);
-    }
-
-    return (int)maximal;
+    assert(boneAnimations[0].keyframes.size() > 0);
+    return boneAnimations[0].keyframes.size();
 }
 
 //---------------------------------------------------------
@@ -462,7 +437,7 @@ int AnimSkeleton::AddAnimation(const char* animName)
 //---------------------------------------------------------
 // Desc:  return a name of animation by input index
 //---------------------------------------------------------
-const char* AnimSkeleton::GetAnimationName(const int animIdx)
+const char* AnimSkeleton::GetAnimationName(const int animIdx) const
 {
     if (animIdx < 0 || animIdx >= animations_.size())
     {
