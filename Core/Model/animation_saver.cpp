@@ -31,11 +31,12 @@ namespace Core
 //---------------------------------------------------------
 // forward declarations of helper functions
 //---------------------------------------------------------
-void StoreCommonInfo(FILE* pFile, const AnimSkeleton* pSkeleton);
-void StoreBones     (FILE* pFile, const AnimSkeleton* pSkeleton);
-void StoreOffsets   (FILE* pFile, const AnimSkeleton* pSkeleton);
-void StoreWeights   (FILE* pFile, const AnimSkeleton* pSkeleton);
-void StoreAnimations(FILE* pFile, const AnimSkeleton* pSkeleton);
+void WriteCommonInfo    (FILE* pFile, const AnimSkeleton* pSkeleton);
+void WriteBonesHierarchy(FILE* pFile, const AnimSkeleton* pSkeleton);
+void WriteBaseframe     (FILE* pFile, const AnimSkeleton* pSkeleton);
+void WriteOffsets       (FILE* pFile, const AnimSkeleton* pSkeleton);
+void WriteWeights       (FILE* pFile, const AnimSkeleton* pSkeleton);
+void WriteAnimations    (FILE* pFile, const AnimSkeleton* pSkeleton);
 
 
 //---------------------------------------------------------
@@ -62,11 +63,12 @@ bool AnimationSaver::Save(const AnimSkeleton* pSkeleton, const char* filename)
         return false;
     }
 
-    StoreCommonInfo (pFile, pSkeleton);
-    StoreBones      (pFile, pSkeleton);
-    StoreOffsets    (pFile, pSkeleton);
-    StoreWeights    (pFile, pSkeleton);
-    StoreAnimations (pFile, pSkeleton);
+    WriteCommonInfo     (pFile, pSkeleton);
+    WriteBonesHierarchy (pFile, pSkeleton);
+    WriteBaseframe      (pFile, pSkeleton);
+    WriteOffsets        (pFile, pSkeleton);
+    WriteWeights        (pFile, pSkeleton);
+    WriteAnimations     (pFile, pSkeleton);
 
     fclose(pFile);
 
@@ -76,13 +78,14 @@ bool AnimationSaver::Save(const AnimSkeleton* pSkeleton, const char* filename)
 
 //---------------------------------------------------------
 //---------------------------------------------------------
-void StoreCommonInfo(FILE* pFile, const AnimSkeleton* pSkeleton)
+void WriteCommonInfo(FILE* pFile, const AnimSkeleton* pSkeleton)
 {
     assert(pFile);
     assert(pSkeleton);
 
     fprintf(pFile, "numAnimations %d\n", (int)pSkeleton->GetNumAnimations());
-    fprintf(pFile, "numJoints %d\n", (int)pSkeleton->GetNumBones());
+    fprintf(pFile, "numJoints %d\n",     (int)pSkeleton->GetNumBones());
+    fprintf(pFile, "numVertices %d\n",   (int)pSkeleton->vertexToBones.size());
     fprintf(pFile, "\n");
 }
 
@@ -93,52 +96,50 @@ void StoreCommonInfo(FILE* pFile, const AnimSkeleton* pSkeleton)
 // Out:   p - position
 //        q - rotation quat
 //---------------------------------------------------------
-inline void GetPosRotQuat(const XMMATRIX& m, XMFLOAT3& p, XMFLOAT4& q)
+inline void GetPosRotQuat(const XMMATRIX& m, XMFLOAT4& p, XMFLOAT4& q)
 {
     XMVECTOR S;
     XMVECTOR Q;
     XMVECTOR T;
     XMMatrixDecompose(&S, &Q, &T, m);
 
+    XMStoreFloat4(&p, T);
     XMStoreFloat4(&q, Q);
-    XMStoreFloat3(&p, T);
 }
 
 //---------------------------------------------------------
 // Desc:  store bones hierarchy and bone info:
-//        bone_name, bone_parent_idx, bone_pos, bone_rot_quat
+//        bone_name, bone_parent_idx
 //---------------------------------------------------------
-void StoreBones(FILE* pFile, const AnimSkeleton* pSkeleton)
+void WriteBonesHierarchy(FILE* pFile, const AnimSkeleton* pSkeleton)
 {
     assert(pFile);
     assert(pSkeleton);
 
-    fprintf(pFile, "bones\n");
+    // print block header
+    fprintf(pFile, "hierarchy\n");
 
-    const int*      boneHierarchy = pSkeleton->boneHierarchy_.data();
-    const BoneName* bonesNames    = pSkeleton->boneNames_.data();
+    const int*      boneHierarchy   = pSkeleton->boneHierarchy_.data();
+    const BoneName* bonesNames      = pSkeleton->boneNames_.data();
 
-    for (int i = 0; i < pSkeleton->GetNumBones(); ++i)
+    for (index i = 0; i < pSkeleton->GetNumBones(); ++i)
     {
-        // get position and rotation quat from the bind pose matrix of this bone
-        XMFLOAT3 p;
-        XMFLOAT4 q;
-        GetPosRotQuat(pSkeleton->boneTransforms_[i], p, q);
-        
-        const int parentBoneIdx = boneHierarchy[i];
+        fputc('\t', pFile);
+        fputc('"',  pFile);
+        fprintf(pFile, "%s", bonesNames[i].name);   // write name of bone
 
-        fprintf(pFile, "\t\"%s\"\t%d (%f %f %f) (%f %f %f %f)\t\t//",
-            bonesNames[i].name,                             // bone_name
-            parentBoneIdx, 
-            p.x, p.y, p.z,
-            q.x, q.y, q.z, q.w); 
+        fputc('"', pFile);
+        fputc('\t', pFile);
+        fprintf(pFile, "%d", boneHierarchy[i]);     // write parent bone idx
 
-        // if current bone has a parent...
-        if (parentBoneIdx != -1)
-        {
-            // ... write a parent bone's name
-            fprintf(pFile, "%s", bonesNames[parentBoneIdx].name);
-        }
+        fputc('\t', pFile);
+        fputc('\t', pFile);
+        fputc('/', pFile);
+        fputc('/', pFile);
+
+        // if current bone has a parent we write a parent bone's name
+        if (boneHierarchy[i] != -1)
+            fprintf(pFile, "%s", bonesNames[boneHierarchy[i]].name);
 
         fprintf(pFile, "\n");
     }
@@ -146,23 +147,48 @@ void StoreBones(FILE* pFile, const AnimSkeleton* pSkeleton)
 }
 
 //---------------------------------------------------------
-// Desc:  store offset matrices of bones
+// Desc:  write base frame joints (bind-pose / T-pose tranformations)
 //---------------------------------------------------------
-void StoreOffsets(FILE* pFile, const AnimSkeleton* pSkeleton)
+void WriteBaseframe(FILE* pFile, const AnimSkeleton* pSkeleton)
 {
     assert(pFile);
     assert(pSkeleton);
 
+    fprintf(pFile, "baseframe\n");
+
+    const XMMATRIX* transforms = pSkeleton->boneTransforms_.data();
+
+    for (index i = 0; i < pSkeleton->GetNumBones(); ++i)
+    {
+        XMFLOAT4 p, q;
+        GetPosRotQuat(transforms[i], p, q);
+
+        // (position) (rotation_quat)
+        fprintf(pFile, "\t(%f %f %f)\t(%f %f %f %f)\n", p.x, p.y, p.z, q.x, q.y, q.z, q.w);
+    }
+    fprintf(pFile, "\n");
+}
+
+//---------------------------------------------------------
+// Desc:  store offset matrices of bones
+//---------------------------------------------------------
+void WriteOffsets(FILE* pFile, const AnimSkeleton* pSkeleton)
+{
+    assert(pFile);
+    assert(pSkeleton);
+
+    const cvector<XMMATRIX>& offsets = pSkeleton->boneOffsets_;
+
     fprintf(pFile, "offsets\n");
 
-    for (index i = 0; i < pSkeleton->boneOffsets_.size(); ++i)
+    for (index i = 0; i < offsets.size(); ++i)
     {
-        // get position and rotation quat from the offset matrix of this bone
-        XMFLOAT3 p;
-        XMFLOAT4 q;
-        GetPosRotQuat(pSkeleton->boneTransforms_[i], p, q);
+        XMFLOAT4 p, q;
+        GetPosRotQuat(offsets[i], p, q);
 
-        fprintf(pFile, "\t(%f %f %f) (%f %f %f %f)\n", p.x, p.y, p.z, q.x, q.y, q.z, q.w);
+        // (position) (rotation_quat)
+        fprintf(pFile, "\t(%f %f %f)\t(%f %f %f %f)\n", p.x, p.y, p.z, q.x, q.y, q.z, q.w);
+
     }
     fprintf(pFile, "\n");
 }
@@ -170,7 +196,7 @@ void StoreOffsets(FILE* pFile, const AnimSkeleton* pSkeleton)
 //---------------------------------------------------------
 // Desc:  write into a file bones weights 
 //---------------------------------------------------------
-void StoreWeights(FILE* pFile, const AnimSkeleton* pSkeleton)
+void WriteWeights(FILE* pFile, const AnimSkeleton* pSkeleton)
 {
     assert(pFile);
     assert(pSkeleton);
@@ -186,26 +212,29 @@ void StoreWeights(FILE* pFile, const AnimSkeleton* pSkeleton)
         numWeights += (data.weights[3] != 0.0f);
     }
 
+    const VertexBoneData* data      = pSkeleton->vertexToBones.data();
+    const size            numBlocks = pSkeleton->vertexToBones.size();
+
+
     fprintf(pFile, "numweights %d\n", numWeights);
 
-    int weightIdx = 0;
-
-    for (const VertexBoneData& data : pSkeleton->vertexToBones)
+    for (int i = 0, weightIdx = 0; i < (int)numBlocks; ++i)
     {
-        const float* weights = data.weights;
-        const uint*  boneIds = data.boneIds;
+        const float* weights = data[i].weights;
+        const uint*  boneIds = data[i].boneIds;
 
+        // write: w weight_idx vertex_idx offset_in_block bone_id weight
         if (weights[0] != 0.0f)
-            fprintf(pFile, "\tweight %d %u %f\n", weightIdx++, boneIds[0], weights[0]);
+            fprintf(pFile, "\tw %d %d %d %u %f\n", weightIdx++, i, 0, boneIds[0], weights[0]);
 
         if (weights[1] != 0.0f)
-            fprintf(pFile, "\tweight %d %u %f\n", weightIdx++, boneIds[1], weights[1]);
+            fprintf(pFile, "\tw %d %d %d %u %f\n", weightIdx++, i, 1, boneIds[1], weights[1]);
 
         if (weights[2] != 0.0f)
-            fprintf(pFile, "\tweight %d %u %f\n", weightIdx++, boneIds[2], weights[2]);
+            fprintf(pFile, "\tw %d %d %d %u %f\n", weightIdx++, i, 2, boneIds[2], weights[2]);
 
         if (weights[3] != 0.0f)
-            fprintf(pFile, "\tweight %d %u %f\n", weightIdx++, boneIds[3], weights[3]);
+            fprintf(pFile, "\tw %d %d %d %u %f\n", weightIdx++, i, 3, boneIds[3], weights[3]);
     }
     fprintf(pFile, "\n");
 }
@@ -223,7 +252,7 @@ void WriteKeyframes(FILE* pFile, const cvector<Keyframe>& keyframes)
         const XMFLOAT4& q = keyframes[frameIdx].rotQuat;
 
         // (position) (rotation_quat)
-        fprintf(pFile, "\t\t(%f %f %f) (%f %f %f %f)\n", p.x, p.y, p.z, q.x, q.y, q.z, q.w);
+        fprintf(pFile, "\t\t(%f %f %f)\t(%f %f %f %f)\n", p.x, p.y, p.z, q.x, q.y, q.z, q.w);
     }
     fprintf(pFile, "\n");
 }
@@ -247,7 +276,7 @@ void WriteAnimation(FILE* pFile, const AnimationClip& anim)
 //---------------------------------------------------------
 // Desc:  write all the animations data of this skeleton into the file
 //---------------------------------------------------------
-void StoreAnimations(FILE* pFile, const AnimSkeleton* pSkeleton)
+void WriteAnimations(FILE* pFile, const AnimSkeleton* pSkeleton)
 {
     assert(pFile);
     assert(pSkeleton);

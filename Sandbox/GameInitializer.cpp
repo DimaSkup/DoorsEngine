@@ -1551,7 +1551,9 @@ void LoadModelAssets(Render::CRender* pRender)
     const TimeDurationMs elapsed = GetTimePoint() - start;
 
     SetConsoleColor(MAGENTA);
-    LogMsg("Models loading duration: %f ms", elapsed.count());
+    LogMsg("-------------------------------------");
+    LogMsg("Models loading duration: %f sec", elapsed.count() * 0.001f);
+    LogMsg("-------------------------------------\n");
     SetConsoleColor(RESET);
 }
 
@@ -1889,7 +1891,18 @@ void ImportModels()
     creator.ImportFromFile("data/models/animation/boblampclean.md5mesh");
     creator.ImportFromFile("data/models/stalker_freedom_1/stalker_freedom_1.fbx");
     creator.ImportFromFile("data/models/bm_hud/wpn_bm-16_hud.fbx");
+
+    const TimePoint startAk = GetTimePoint();
+
     creator.ImportFromFile("data/models/ak_74_hud/ak_74_hud.fbx");
+
+    const TimePoint      endAk = GetTimePoint();
+    const TimeDurationMs durAk = endAk - startAk;
+
+    LogMsg("------------------------------------------------");
+    LogMsg("loading of AK took:  %f sec", durAk.count() * 0.001f);
+    LogMsg("------------------------------------------------\n");
+
     creator.ImportFromFile("data/models/pm/wpn_pm_hud.fbx");
 
     const TimePoint      end = GetTimePoint();
@@ -1914,8 +1927,8 @@ void SaveAnimations()
     AnimSkeleton& bm16Skeleton  = g_AnimationMgr.GetSkeleton("wpn_bm-16_hud");
     AnimSkeleton& ak74Skeleton  = g_AnimationMgr.GetSkeleton("ak_74_hud");
 
-    animSaver.Save(&bobSkeleton,  "data/animations/boblampclean.anim");
-    animSaver.Save(&bm16Skeleton, "data/animations/bm16.anim");
+    //animSaver.Save(&bobSkeleton,  "data/animations/boblampclean.anim");
+    //animSaver.Save(&bm16Skeleton, "data/animations/bm16.anim");
     animSaver.Save(&ak74Skeleton, "data/animations/ak74.anim");
 
     const TimePoint      end = GetTimePoint();
@@ -1933,9 +1946,18 @@ void LoadAnimations()
 {
     AnimationLoader animLoader;
 
-    AnimSkeleton skeleton;
+    const TimePoint start = GetTimePoint();
 
-    animLoader.Load(&skeleton, "data/animations/ak74.anim");
+    animLoader.Load("data/animations/ak74.anim");
+
+    const TimePoint      end = GetTimePoint();
+    const TimeDurationMs dur = end - start;
+
+    LogMsg("------------------------------------------------");
+    LogMsg("loading of animations took:  %f sec", dur.count() * 0.001f);
+    LogMsg("------------------------------------------------\n");
+
+    exit(0);
 }
 
 //---------------------------------------------------------
@@ -2059,8 +2081,8 @@ void ImportExternalModels(
     ImportModels();
     //SaveImportedModels();
     //exit(0);
-    SaveAnimations();
-    LoadAnimations();
+    //SaveAnimations();
+   //LoadAnimations();
 
     SetupImporterModelsMaterials();
     LoadEntities("data/entities.dentt", enttMgr);
