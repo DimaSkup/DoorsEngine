@@ -22,6 +22,7 @@
 #include "../Components/Hierarchy.h"
 #include "../Components/Inventory.h"
 #include "../Components/animation.h"
+#include "../Components/Sprite.h"
 
 // systems (ECS)
 #include "../Systems/TransformSystem.h"
@@ -39,6 +40,7 @@
 #include "../Systems/InventorySystem.h"
 #include "../Systems/ParticleSystem.h"
 #include "../Systems/AnimationSystem.h"
+#include "../Systems/SpriteSystem.h"
 
 // events (ECS)
 #include "../Events/IEvent.h"
@@ -181,6 +183,14 @@ public:
         const AnimationID animId,
         const float animEndTime);
 
+    void AddSpriteComponent(
+        const EntityID enttId,
+        const TexID spriteTexId,
+        const uint16 leftPos,
+        const uint16 topPos,
+        const uint16 width,
+        const uint16 height);
+
 
     // =============================================================================
     // public API: QUERY
@@ -246,6 +256,7 @@ public:
     ParticleSystem          particleSystem_;
     InventorySystem         inventorySystem_;
     AnimationSystem         animationSystem_;
+    SpriteSystem            spriteSystem_;
     
 
     // "ID" of an entity is just a numeral index
@@ -275,6 +286,7 @@ private:
     Hierarchy        hierarchy_;
     Inventory        inventory_;
     Animations       animations_;
+    Sprite           sprites_;
 };
 
 };

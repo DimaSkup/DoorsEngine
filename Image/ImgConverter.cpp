@@ -323,6 +323,53 @@ void ImgConverter::Compress(
 }
 
 //---------------------------------------------------------
+// Desc:  return true if input values is some power of two
+//---------------------------------------------------------
+constexpr bool ispow2(const size_t x) noexcept
+{
+    return ((x != 0) && !(x & (x - 1)));
+}
+
+//---------------------------------------------------------
+// Desc:  calculate number of possible mip maps by input width and height
+//---------------------------------------------------------
+size_t CountMips(size_t width, size_t height)
+{
+    size_t mipLevels = 1;
+
+    while (height > 1 || width > 1)
+    {
+        if (height > 1)
+            height >>= 1;
+
+        if (width > 1)
+            width >>= 1;
+
+        ++mipLevels;
+    }
+
+    return mipLevels;
+}
+
+//---------------------------------------------------------
+// Desc:  calc possible number of mipmaps for input image
+// Out:   - mipLevels:  number of mipmaps
+// Ret:   true if able to make mip maps at all for the input image 
+//---------------------------------------------------------
+bool ImgConverter::CalcNumMipLevels(const ScratchImage& img, size_t& mipLevels)
+{
+    const size_t w = img.GetMetadata().width;
+    const size_t h = img.GetMetadata().height;
+
+    if (!ispow2(w) || !ispow2(h))
+        return false;
+
+    mipLevels = CountMips(w, h);
+    return true;
+}
+
+
+//---------------------------------------------------------
 // generate a full mipmaps chain for 2D textures
 // 
 // return: mipChain

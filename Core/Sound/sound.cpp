@@ -115,7 +115,16 @@ bool Sound::PlayTrack(const ULONG flags)
 //---------------------------------------------------------
 bool Sound::StopTrack()
 {
-    HRESULT hr = pSecondaryBuffer_->Stop();
+    HRESULT hr = S_OK;
+
+    hr = pSecondaryBuffer_->SetCurrentPosition(0);
+    if (FAILED(hr))
+    {
+        LogErr(LOG, "can't setup a position at the beginning of the sound buffer");
+        return false;
+    }
+
+    hr = pSecondaryBuffer_->Stop();
     if (FAILED(hr))
     {
         LogErr(LOG, "can't stop playing sound");
@@ -387,7 +396,12 @@ bool Sound::LoadStereoWaveFile(
 //---------------------------------------------------------
 void Sound::ReleaseWaveFile()
 {
-    SafeRelease(&pSecondaryBuffer_);
+    if (pSecondaryBuffer_)
+    {
+        pSecondaryBuffer_->Stop();
+        pSecondaryBuffer_->Release();
+        pSecondaryBuffer_ = nullptr;
+    }
 }
 
 } // namespace 

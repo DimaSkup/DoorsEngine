@@ -296,6 +296,27 @@ void WriteIndices(FILE* pFile, const UINT* indices, const int numIndices)
 }
 
 //---------------------------------------------------------
+// Desc:  check if there is a need to rewrite existed texture
+//---------------------------------------------------------
+bool IsNeedRewriteTexture(const fs::path& texFullpath, const DXGI_FORMAT targetFormat)
+{
+    DirectX::TexMetadata metadata;
+
+    HRESULT hr = DirectX::GetMetadataFromDDSFile(
+        texFullpath.wstring().c_str(),
+        DirectX::DDS_FLAGS_NONE,
+        metadata);
+
+    if (FAILED(hr))
+    {
+        LogErr(LOG, "can't get metadata from texture file: %s", texFullpath.string().c_str());
+        return false;
+    }
+
+    return (metadata.format != targetFormat) || (metadata.mipLevels == 1);
+}
+
+//---------------------------------------------------------
 // store texture (if necessary) as .dds texture by texFullPath
 // 
 // 1. define if a texture by path exist (if not exist we go to step 3)
@@ -309,72 +330,61 @@ void WriteTextureIntoFile(
     ID3D11DeviceContext* pContext,
     ID3D11Resource* pTexResource)
 {
+    using namespace DirectX;
+
     // target image params
-    //DXGI_FORMAT targetFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
-    const DXGI_FORMAT targetFormat = DXGI_FORMAT_BC3_UNORM;
-    const DirectX::TEX_FILTER_FLAGS filter = DirectX::TEX_FILTER_DEFAULT;
+    const DXGI_FORMAT      targetFormat = DXGI_FORMAT_BC3_UNORM;
+    const TEX_FILTER_FLAGS filter       = TEX_FILTER_DEFAULT;
 
-    // defines if we need to rewrite a .dds texture by input path
-    bool needToRewrite = false;
 
-    // if such .dds texture already exists
     if (fs::exists(texFullPath))
     {
-        DirectX::TexMetadata metadata;
-
-        HRESULT hr = DirectX::GetMetadataFromDDSFile(
-            texFullPath.wstring().c_str(),
-            DirectX::DDS_FLAGS_NONE,
-            metadata);
-
-        if (FAILED(hr))
-        {
-            LogErr(LOG, "can't get metadata from texture file: %s", texFullPath.string().c_str());
-            return;
-        }
-
-        // check if it has proper params
-        needToRewrite |= (metadata.format != targetFormat);
-        needToRewrite |= (metadata.mipLevels == 1);
-
-        // if there is no need to rewrite a texture file we just go out
-        if (!needToRewrite)
+        // if there is no need to rewrite this texture file we just go out
+        if (!IsNeedRewriteTexture(texFullPath, targetFormat))
             return;
     }
 
     // ---------------------------------------------
 
     // load a texture data from memory and store it as .dds file
-    DirectX::ScratchImage srcImage;
-    DirectX::ScratchImage dstImage;
+    ScratchImage srcImage;
+    ScratchImage dstImage;
     Img::ImgConverter converter;
+    const std::string pathStr(texFullPath.string());
+    const char* path = pathStr.c_str();
+    size_t mipLevels = 0;
 
     converter.LoadFromMemory(pDevice, pContext, pTexResource, srcImage);
 
-    // if we need to execute any processing
+    if (srcImage.GetMetadata().width == 1 || srcImage.GetMetadata().height == 1)
+    {
+        LogErr(LOG, "can't create a mipmap for 1x1 texture so skip storing into .dds: %s", path);
+        return;
+    }
+
+    const bool canGenerateMips  = converter.CalcNumMipLevels(srcImage, mipLevels);
+    const bool needGenerateMips = srcImage.GetMetadata().mipLevels != mipLevels;
+
+    if (needGenerateMips && canGenerateMips)
+    {
+        // generate mip maps, compress/decompress, save into .dds file
+        const ScratchImage mipChain(converter.GenMipMaps(srcImage, filter));
+        converter.ProcessImage(mipChain, targetFormat, dstImage);
+
+        if (converter.SaveToFile(dstImage, DDS_FLAGS_NONE, texFullPath))
+            LogMsg(LOG, "texture is saved: %s", path);
+        return;
+    }
+
+
+    // if we need to execute any processing (but don't generate any mipmaps)
     if (srcImage.GetMetadata().format != targetFormat)
     {
+        // compress/decompress, save into .dds file
+        converter.ProcessImage(srcImage, targetFormat, dstImage);
 
-        if (srcImage.GetMetadata().width == 1 || srcImage.GetMetadata().height == 1)
-        {
-            LogErr(LOG, "it isn't possible to create a mipmap for 1x1 texture so skip storing texture into .dds: %s", texFullPath);
-            return;
-        }
-
-        DirectX::ScratchImage mipChain(converter.GenMipMaps(srcImage, filter));
-
-        // do compression if necessary (according to targetFormat)
-        converter.ProcessImage(mipChain, targetFormat, dstImage);
-        LogMsg(LOG, "texture is compressed: %s", texFullPath.string().c_str());
-
-        // save into .dds
-        converter.SaveToFile(dstImage, DirectX::DDS_FLAGS_NONE, texFullPath);
-    }
-    // src texture is already has the proper format
-    else
-    {
-        dstImage = std::move(converter.GenMipMaps(srcImage, filter));
-        converter.SaveToFile(dstImage, DirectX::DDS_FLAGS_NONE, texFullPath);
+        if (converter.SaveToFile(dstImage, DDS_FLAGS_NONE, texFullPath))
+            LogMsg(LOG, "texture is saved: %s", path);
     }
 }
 

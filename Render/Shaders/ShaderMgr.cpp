@@ -145,8 +145,7 @@ bool ShaderMgr::Init(
         SafeDeleteArr(json);
 
 
-        LogDbg(LOG, "shaders initialization: finished successfully");
-        LogMsg("%s---------------------------------------------------------%s\n", YELLOW, RESET);
+        LogMsg(LOG, "shaders initialization: finished successfully");
     }
     catch (EngineException& e) 
     {

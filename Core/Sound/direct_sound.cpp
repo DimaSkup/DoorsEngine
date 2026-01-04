@@ -26,6 +26,7 @@ DirectSound::DirectSound()
 
 DirectSound::~DirectSound()
 {
+    LogMsg("%srelease direct sound%s\n", CYAN, RESET);
     Shutdown();
 }
 
@@ -102,6 +103,9 @@ bool DirectSound::Init(HWND hwnd)
 
     // set the initial position of the 3D listener
     pListener_->SetPosition(0, 0, 0, DS3D_IMMEDIATE);
+
+    pPrimaryBuffer_->Release();
+    pPrimaryBuffer_ = nullptr;
 
     return true;
 }

@@ -71,24 +71,18 @@ void AnimSkeleton::DumpAnimations() const
     assert(animNames_.size() == animations_.size());
     const int numAnims = (int)animations_.size();
 
-    printf("Dump %d animations of skeleton '%s':\n", numAnims, name_);
-    printf(" - num bones %d\n", (int)GetNumBones());
-
+    printf("\nDump %d animations of skeleton '%s':\n", numAnims, name_);
+    printf(" - num bones %ti\n", GetNumBones());
 
     // print: [idx] anim_name, max_num_keyframes, time [start, end]
     for (int i = 0; i < numAnims; ++i)
     {
-        const char* animName     = animNames_[i].name;
-        const size  numKeyframes = animations_[i].GetNumKeyframes();
-        const float startTime    = animations_[i].GetStartTime();
-        const float endTime      = animations_[i].GetEndTime();
-
-        printf("\t[%d] %-50s  max_keyframes: %-10d  time [%f, %f]\n",
+        printf("\t[%d] %-50s  max_keyframes: %-10ti  time [%f, %f]\n",
             i,
-            animName,
-            (int)numKeyframes,
-            startTime,
-            endTime);
+            animNames_[i].name,
+            animations_[i].GetNumKeyframes(),
+            animations_[i].GetStartTime(),
+            animations_[i].GetEndTime());
     }
 }
 
@@ -117,25 +111,26 @@ void AnimSkeleton::DumpBoneParents() const
 
     constexpr int ROOT_PARENT_IDX = -1;
 
-    for (int i = 0; i < (int)GetNumBones(); ++i)
+    for (int boneIdx = 0; boneIdx < (int)GetNumBones(); ++boneIdx)
     {
-        const char* boneName       = boneNames_[i].name;
-        const int   parentBoneIdx  = boneHierarchy_[i];
+        const char* boneName       = boneNames_[boneIdx].name;
+        const int   parentBoneIdx  = boneHierarchy_[boneIdx];
         
-
         if (parentBoneIdx == ROOT_PARENT_IDX)
         {
             printf("\tbone_%d: %-40s parent_idx: %-5d parent_name: ''\n",
-                i, boneName, parentBoneIdx);
+                boneIdx,
+                boneName,
+                parentBoneIdx);
         }
         else
         {
-            const char* parentBoneName = boneNames_[parentBoneIdx].name;
-
             printf("\tbone_%d: %-40s parent_idx: %-5d parent_name: '%s'\n",
-                i, boneName, parentBoneIdx, parentBoneName);
+                boneIdx,
+                boneName,
+                parentBoneIdx,
+                boneNames_[parentBoneIdx].name);   // parent bone name
         }
-        
     }
     printf("\n");
 }
@@ -146,7 +141,6 @@ void AnimSkeleton::DumpBoneParents() const
 void AnimSkeleton::DumpKeyframes(const char* animName, const int boneId) const
 {
     assert(animName && animName[0] != '\0');
-
 
     const int animIdx = GetAnimationIdx(animName);
     if (animIdx == -1)
@@ -159,18 +153,22 @@ void AnimSkeleton::DumpKeyframes(const char* animName, const int boneId) const
     const AnimationClip& anim = animations_[animIdx];
     assert(boneId < anim.boneAnimations.size());
 
-    const float frameTime = 1.0f / anim.framerate;
-    const cvector<Keyframe>& keyframes = anim.boneAnimations[boneId].keyframes;
+    const cvector<Keyframe>& keyframes    = anim.boneAnimations[boneId].keyframes;
+    const int                numKeyframes = (int)keyframes.size();
+    const float              frameTime    = 1.0f / anim.framerate;
 
-    printf("\nDump keyframes (skeleton '%s', animation '%s', bone_id %d:\n", name_, animName, boneId);
-    printf(" - num keyframes %d\n", (int)keyframes.size());
+    SetConsoleColor(CYAN);
+    printf("\nDump keyframes (skeleton '%s', animation '%s', bone_id %d):\n", name_, animName, boneId);
+    printf(" - num keyframes %d\n", numKeyframes);
+    SetConsoleColor(RESET);
 
     // print data of each keyframe
-    for (index i = 0; i < keyframes.size(); ++i)
+    for (int i = 0; i < numKeyframes; ++i)
     {
         const float frameTimePos = (float)i * frameTime;
 
-        printf("timePos %.2f, pos(%.2f %.2f %.2f), quat(%.2f %.2f %.2f %.2f)\n",
+        printf("\t[%d] timePos %.2f, pos(%.2f %.2f %.2f), quat(%.2f %.2f %.2f %.2f)\n",
+            i,
             frameTimePos,
             keyframes[i].translation.x,
             keyframes[i].translation.y,
@@ -208,7 +206,7 @@ void BoneAnimation::Interpolate(
     if (t <= 0)
     {
         const Keyframe& frame = keyframes[0];
-       
+
         const XMVECTOR S = { 1,1,1 };
         const XMVECTOR P = XMLoadFloat3(&frame.translation);
         const XMVECTOR Q = XMLoadFloat4(&frame.rotQuat);
@@ -220,7 +218,7 @@ void BoneAnimation::Interpolate(
 
 
     const float frametime = 1.0f / framerate;
-    const float endTime   = (float)keyframes.size() * frametime;
+    const float endTime = (float)keyframes.size() * frametime;
 
     if (t >= endTime)
     {
@@ -242,19 +240,24 @@ void BoneAnimation::Interpolate(
         const int   frameIdxA = (int)floorf(animFrame);
         const int   frameIdxB = (frameIdxA + 1) % numFrames;
 
-        assert(frameIdxA < numFrames  &&  frameIdxB < numFrames);
+        assert(frameIdxA < numFrames&& frameIdxB < numFrames);
 
         const Keyframe& frame0 = keyframes[frameIdxA];
         const Keyframe& frame1 = keyframes[frameIdxB];
 
+#if 1
         float t0 = frameIdxA * frametime;
         float t1 = frameIdxB * frametime;
+#else
+        float t0 = frame0.timePos;
+        float t1 = frame1.timePos;
+#endif
 
 
         // ... lerp time between them
         //float lerpPercent = (t - frame0.timePos) / (frame1.timePos - frame0.timePos);
         float lerpPercent = (t - t0) / (t1 - t0);
-        lerpPercent       = clampf(lerpPercent, 0, 1);
+        lerpPercent = clampf(lerpPercent, 0, 1);
 
 
         // calc interpolated values
@@ -297,8 +300,15 @@ float AnimationClip::GetEndTime() const
 //---------------------------------------------------------
 size AnimationClip::GetNumKeyframes() const
 {
-    assert(boneAnimations[0].keyframes.size() > 0);
-    return boneAnimations[0].keyframes.size();
+    size maxKeys = 0;
+
+    for (index i = 0; i < boneAnimations.size(); ++i)
+        maxKeys = max(maxKeys, boneAnimations[i].keyframes.size());
+
+    return maxKeys;
+
+    //assert(boneAnimations[0].keyframes.size() > 0);
+    //return boneAnimations[0].keyframes.size();
 }
 
 //---------------------------------------------------------

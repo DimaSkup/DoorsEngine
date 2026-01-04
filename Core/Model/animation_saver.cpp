@@ -31,12 +31,13 @@ namespace Core
 //---------------------------------------------------------
 // forward declarations of helper functions
 //---------------------------------------------------------
-void WriteCommonInfo    (FILE* pFile, const AnimSkeleton* pSkeleton);
-void WriteBonesHierarchy(FILE* pFile, const AnimSkeleton* pSkeleton);
-void WriteBaseframe     (FILE* pFile, const AnimSkeleton* pSkeleton);
-void WriteOffsets       (FILE* pFile, const AnimSkeleton* pSkeleton);
-void WriteWeights       (FILE* pFile, const AnimSkeleton* pSkeleton);
-void WriteAnimations    (FILE* pFile, const AnimSkeleton* pSkeleton);
+void WriteCommonInfo     (FILE* pFile, const AnimSkeleton* pSkeleton);
+void WriteAnimationsNames(FILE* pFile, const AnimSkeleton* pSkeleton);
+void WriteBonesHierarchy (FILE* pFile, const AnimSkeleton* pSkeleton);
+void WriteBaseframe      (FILE* pFile, const AnimSkeleton* pSkeleton);
+void WriteOffsets        (FILE* pFile, const AnimSkeleton* pSkeleton);
+void WriteWeights        (FILE* pFile, const AnimSkeleton* pSkeleton);
+void WriteAnimations     (FILE* pFile, const AnimSkeleton* pSkeleton);
 
 
 //---------------------------------------------------------
@@ -64,6 +65,7 @@ bool AnimationSaver::Save(const AnimSkeleton* pSkeleton, const char* filename)
     }
 
     WriteCommonInfo     (pFile, pSkeleton);
+    WriteAnimationsNames(pFile, pSkeleton);
     WriteBonesHierarchy (pFile, pSkeleton);
     WriteBaseframe      (pFile, pSkeleton);
     WriteOffsets        (pFile, pSkeleton);
@@ -90,6 +92,27 @@ void WriteCommonInfo(FILE* pFile, const AnimSkeleton* pSkeleton)
 }
 
 //---------------------------------------------------------
+// Desc:  write a list of [animation_idx => animation name]
+//---------------------------------------------------------
+void WriteAnimationsNames(FILE* pFile, const AnimSkeleton* pSkeleton)
+{
+    assert(pFile);
+    assert(pSkeleton);
+
+    fprintf(pFile, "animations\n");
+
+    const AnimationName* names = pSkeleton->animNames_.data();
+    const size        numAnims = pSkeleton->animNames_.size();
+
+    for (index i = 0; i < numAnims; ++i)
+    {
+        // animation_idx "animation_name"
+        fprintf(pFile, "\t%d\t\"%s\"\n", (int)i, names[i].name);
+    }
+    fprintf(pFile, "\n");
+}
+
+//---------------------------------------------------------
 // Desc:  a little helper to extract
 //        position (vec3) and rotation quaternion (vec4) from input matrix
 // Args:  m - matrix to decompose
@@ -102,6 +125,8 @@ inline void GetPosRotQuat(const XMMATRIX& m, XMFLOAT4& p, XMFLOAT4& q)
     XMVECTOR Q;
     XMVECTOR T;
     XMMatrixDecompose(&S, &Q, &T, m);
+
+    Q = XMQuaternionNormalize(Q);
 
     XMStoreFloat4(&p, T);
     XMStoreFloat4(&q, Q);
@@ -132,10 +157,7 @@ void WriteBonesHierarchy(FILE* pFile, const AnimSkeleton* pSkeleton)
         fputc('\t', pFile);
         fprintf(pFile, "%d", boneHierarchy[i]);     // write parent bone idx
 
-        fputc('\t', pFile);
-        fputc('\t', pFile);
-        fputc('/', pFile);
-        fputc('/', pFile);
+        fprintf(pFile, "\t\t//");
 
         // if current bone has a parent we write a parent bone's name
         if (boneHierarchy[i] != -1)
@@ -188,7 +210,6 @@ void WriteOffsets(FILE* pFile, const AnimSkeleton* pSkeleton)
 
         // (position) (rotation_quat)
         fprintf(pFile, "\t(%f %f %f)\t(%f %f %f %f)\n", p.x, p.y, p.z, q.x, q.y, q.z, q.w);
-
     }
     fprintf(pFile, "\n");
 }
@@ -246,10 +267,10 @@ void WriteKeyframes(FILE* pFile, const cvector<Keyframe>& keyframes)
 {
     assert(pFile);
 
-    for (index frameIdx = 0; frameIdx < keyframes.size(); ++frameIdx)
+    for (const Keyframe& frame : keyframes)
     {
-        const XMFLOAT3& p = keyframes[frameIdx].translation;
-        const XMFLOAT4& q = keyframes[frameIdx].rotQuat;
+        const XMFLOAT3& p = frame.translation;
+        const XMFLOAT4& q = frame.rotQuat;
 
         // (position) (rotation_quat)
         fprintf(pFile, "\t\t(%f %f %f)\t(%f %f %f %f)\n", p.x, p.y, p.z, q.x, q.y, q.z, q.w);
@@ -286,9 +307,9 @@ void WriteAnimations(FILE* pFile, const AnimSkeleton* pSkeleton)
         // for current animation each bone has the same number of keyframes
         const AnimationClip& anim = pSkeleton->animations_[i];
 
-        fprintf(pFile, "animation \"%s\"\n", pSkeleton->GetAnimationName(i));
-        fprintf(pFile, "numFrames %d\n",    (int)anim.boneAnimations[0].keyframes.size());
-        fprintf(pFile, "frameRate %d\n",    (int)anim.framerate);
+        fprintf(pFile, "animation %d\n", i);
+        fprintf(pFile, "numFrames %d\n", (int)anim.boneAnimations[0].keyframes.size());
+        fprintf(pFile, "frameRate %d\n", (int)anim.framerate);
         
         WriteAnimation(pFile, anim);
     }

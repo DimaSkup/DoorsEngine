@@ -53,7 +53,9 @@ public:
         const EntityID enttId,
         const AnimationID animId,
         const float animEndTime,
-        const bool isRepeated);
+        const eAnimationPlayback playback);
+
+    bool RestartAnimation(const EntityID enttId);
 
 private:
     // for debugging

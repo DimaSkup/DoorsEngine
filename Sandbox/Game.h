@@ -17,6 +17,16 @@ constexpr int NUM_WEAPONS = 3;
 
 //---------------------------------------------------------
 
+enum eWeaponType
+{
+    WPN_TYPE_KNIFE,
+    WPN_TYPE_PISTOL,        // PM, TT, revolvers, etc. (shoot only by single LMB click)
+    WPN_TYPE_SHOTGUN,
+    WPN_TYPE_MACHINE_GUN,   // AK-47/74, etc.          (shoot by pressing/holding LMB)
+};
+
+//---------------------------------------------------------
+
 enum eWeaponAnimType
 {
     WPN_ANIM_TYPE_DRAW,
@@ -45,11 +55,56 @@ struct Weapon
 {
     EntityID            enttId = 0;
 
-    Core::Sound         sounds[NUM_WPN_SOUND_TYPES];
+    eWeaponType         type = WPN_TYPE_MACHINE_GUN;
+
+    SoundID             soundIds[NUM_WPN_SOUND_TYPES]{0};
     HANDLE              eventShootDone = nullptr;
 
     Core::AnimSkeleton* pSkeleton = nullptr;
     AnimationID         animIds[NUM_WPN_ANIM_TYPES];
+
+    IDirectSoundNotify8* pNotifyShootDone = nullptr;
+};
+
+//---------------------------------------------------------
+
+enum eGameEventType
+{
+    NONE,
+    PLAYER_SWITCH_WEAPON,
+    PLAYER_RELOAD_WEAPON,
+    PLAYER_SINGLE_SHOT,
+    PLAYER_MULTIPLE_SHOTS,
+    PLAYER_RUN,
+    PLAYER_SWITCH_FLASHLIGHT,
+};
+
+// =================================================================================
+// Basic event
+// =================================================================================
+struct GameEvent
+{
+    eGameEventType type;
+    float x;
+};
+
+//---------------------------------------------------------
+
+struct GameEventsList
+{
+    void Reset()
+    {
+        numEvents = 0;
+    }
+
+    void PushEvent(const GameEvent e)
+    {
+        events[numEvents] = e;
+        ++numEvents;
+    }
+
+    GameEvent events[16];
+    int numEvents = 0;     // for the current frame
 };
 
 //---------------------------------------------------------
@@ -58,7 +113,7 @@ class Game
 {
 public:
     Game() {}
-    ~Game() {}
+    ~Game();
 
     bool Init(
         Core::Engine* pEngine,
@@ -77,10 +132,12 @@ public:
     void SwitchFlashLight(ECS::EntityMgr& mgr, Render::CRender& render);
 
 private:
-    void InitWeapons();
+    void HandleGameEvents();
 
+    void InitWeapons();
+    void InitWeapon(FILE* pFile, const char* line, Weapon& wpn);
+    void InitSoundsStuff();
     void InitParticles(ECS::EntityMgr& mgr);
-    void InitSounds(ECS::EntityMgr& mgr);
 
     void UpdateMovementRelatedStuff();
 
@@ -90,25 +147,36 @@ private:
     void UpdateRainbowAnomaly();
     void UpdateRainPos();
 
-    void UpdatePlayerAnimHud();
-
     void UpdateShootSound(const float dt);
     void StartPlayShootSound();
 
     inline Weapon& GetCurrentWeapon() { return weapons_[currWeaponIdx_]; }
+
+    // events handlers
+    void HandleEventWeaponSwitch(const int newWeaponIdx);
+    void HandleEventWeaponReload();
+    void HandleEventWeaponSingleShot();
+    void HandleEventWeaponMultipleShots();
+
+    // weapon/hands animations switching
+    void StartAnimWeaponDraw();
+    void StartAnimWeaponReload();
+    void StartAnimWeaponShoot();
+    void StartAnimWeaponRun();
+    void StartAnimWeaponIdle();
+
+
 
 private:
     Core::Engine*    pEngine_    = nullptr;
     ECS::EntityMgr*  pEnttMgr_   = nullptr;
     Render::CRender* pRender_    = nullptr;
 
-    Weapon weapons_[NUM_WEAPONS];
+    cvector<Weapon> weapons_;
 
 
-    Core::DirectSound directSound_;
-    Core::Sound       soundRain_;
-    Core::Sound       soundStepL_;
-    Core::Sound       soundStepR_;
+    GameEventsList gameEventsList_;
+
 
     HANDLE eventStepLDone = nullptr;
 
@@ -147,9 +215,20 @@ private:
     float gameTime_ = 0;
 
     int thunderSoundIdx = 0;
-    Core::Sound thunderSounds[4];
     float thunderTimer_ = 0;
     int thunderInterval_ = 30;
+
+    bool isShooting_ = false;
+    bool execDrawing_ = false;
+    bool execShot_ = false;
+    bool execShotSequence_ = false;
+
+    float shotTime_ = 0;
+
+    SoundID thunderSoundIds_[4] = {0};
+    SoundID rainSoundId_ = 0;
+    SoundID actorStepL_ = 0;
+    SoundID actorStepR_ = 0;
 };
 
 } // namespace

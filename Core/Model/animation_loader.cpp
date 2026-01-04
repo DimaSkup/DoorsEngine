@@ -6,6 +6,7 @@
 #pragma warning (disable : 4996)
 #include <parse_helpers.h>      // helpers for parsing string buffers, or reading data from file
 
+#include <Render/d3dclass.h>
 #include <DirectXMath.h>
 
 
@@ -19,12 +20,15 @@ using MATRIX = DirectX::XMMATRIX;
 //---------------------------------------------------------
 // forward declarations of helper functions
 //---------------------------------------------------------
-bool LoadCommonInfo     (FILE* pFile, AnimSkeleton* pSkeleton);
+bool LoadAnimationsNames(FILE* pFile, AnimSkeleton* pSkeleton);
 bool LoadBonesHierarchy (FILE* pFile, AnimSkeleton* pSkeleton);
 void LoadBonesBaseframe (FILE* pFile, AnimSkeleton* pSkeleton);
 void LoadBonesOffsets   (FILE* pFile, AnimSkeleton* pSkeleton);
 void LoadBonesWeights   (FILE* pFile, AnimSkeleton* pSkeleton, const char* buf);
 void LoadAnimation      (FILE* pFile, AnimSkeleton* pSkeleton, const char* buf, const index animIdx);
+void LoadKeyframes      (FILE* pFile, Keyframe* keyframes, const int numFrames);
+void InitSkeletonBonesVB(AnimSkeleton* pSkeleton);
+
 
 //---------------------------------------------------------
 // Desc:  load a skeleton, its bones data, weights, and animations from file
@@ -48,7 +52,7 @@ SkeletonID AnimationLoader::Load(const char* filename)
     }
 
 
-    LogMsg(LOG, "load skeleton and animations from file: %s", filename);
+    LogMsg(LOG, "\n\n\nload skeleton and animations from file: %s", filename);
 
     char skeletonName[MAX_LEN_SKELETON_NAME]{'\0'};
     FileSys::GetFileStem(filename, skeletonName);
@@ -62,6 +66,7 @@ SkeletonID AnimationLoader::Load(const char* filename)
     int numBones = 0;
     int numVertices = 0;
     index animationIdx = 0;
+
 
     while (!feof(pFile))
     {
@@ -86,9 +91,13 @@ SkeletonID AnimationLoader::Load(const char* filename)
         }
         else if (sscanf(buf, "numVertices %d", &numVertices) == 1)
         {
-            // alloc memory for bones weights
+            // alloc memory for bones weights and ids (per each vertex)
             assert(numVertices > 0);
             skeleton.vertexToBones.resize(numVertices);
+        }
+        else if (strncmp(buf, "animations", 10) == 0)
+        {
+            LoadAnimationsNames(pFile, &skeleton);
         }
         else if (strncmp(buf, "hierarchy", 9) == 0)
         {
@@ -109,8 +118,12 @@ SkeletonID AnimationLoader::Load(const char* filename)
         else if (strncmp(buf, "animation", 9) == 0)
         {
             LoadAnimation(pFile, &skeleton, buf, animationIdx);
+            animationIdx++;
         }
     }
+
+    // init vertex buffer which contains bones weights and ids
+    InitSkeletonBonesVB(&skeleton);
 
     LogMsg("%sis loaded%s", YELLOW, RESET);
     fclose(pFile);
@@ -118,6 +131,36 @@ SkeletonID AnimationLoader::Load(const char* filename)
 }
 
 //---------------------------------------------------------
+// Desc:  load a name for each animation
+//---------------------------------------------------------
+bool LoadAnimationsNames(FILE* pFile, AnimSkeleton* pSkeleton)
+{
+    assert(pFile);
+    assert(pSkeleton);
+
+    AnimationName* animNames = pSkeleton->animNames_.data();
+    const int      numAnims  = (int)pSkeleton->animations_.size();
+    int            animIdx   = 0;
+    int            count     = 0;
+
+    for (int i = 0; i < numAnims; ++i)
+    {
+        char* animName = animNames[i].name;
+
+        count = fscanf(pFile, " %d \"%s", &animIdx, animName);
+        assert(count == 2);
+        assert(animIdx == i);
+
+        // skip the last quote (") symbol in the name
+        animName[strlen(animName) - 1] = '\0';
+    }
+    fscanf(pFile, "\n");
+
+    return true;
+}
+
+//---------------------------------------------------------
+// Desc:  calculate a transformation matrix based on position and rotation quaternion
 //---------------------------------------------------------
 inline void CalcTransform(const Vec4& pos, const Vec4& quat, MATRIX& m)
 {
@@ -130,6 +173,7 @@ inline void CalcTransform(const Vec4& pos, const Vec4& quat, MATRIX& m)
 }
 
 //---------------------------------------------------------
+// Desc:  read in bones names and its parent bone's idxs
 //---------------------------------------------------------
 bool LoadBonesHierarchy(FILE* pFile, AnimSkeleton* pSkeleton)
 {
@@ -149,7 +193,8 @@ bool LoadBonesHierarchy(FILE* pFile, AnimSkeleton* pSkeleton)
 
         char* boneName = names[i].name;
 
-        count = sscanf(buf, "%s  %d", boneName, &hierarchy[i]);
+        // +2 because we skip tabulation ('\t') and quote symbol (")
+        count = sscanf(buf+2, "%s %d", boneName, &hierarchy[i]);
         assert(count == 2);
 
         // remove last quote (") symbol from the name
@@ -163,7 +208,7 @@ bool LoadBonesHierarchy(FILE* pFile, AnimSkeleton* pSkeleton)
 }
 
 //---------------------------------------------------------
-// Desc:  read base frame joints (bind-pose / T-pose tranformations)
+// Desc:  read base frame joints matrices (bind-pose / T-pose tranformations)
 //---------------------------------------------------------
 void LoadBonesBaseframe(FILE* pFile, AnimSkeleton* pSkeleton)
 {
@@ -274,6 +319,7 @@ void LoadBonesWeights(FILE* pFile, AnimSkeleton* pSkeleton, const char* buf)
 }
 
 //---------------------------------------------------------
+// Desc:  load in data for animation by animationIdx
 //---------------------------------------------------------
 void LoadAnimation(
     FILE* pFile,
@@ -287,13 +333,17 @@ void LoadAnimation(
     cvector<AnimationClip>& anims = pSkeleton->animations_;
     assert(animationIdx >= 0  &&  animationIdx < anims.size());
 
-    int count = 0;
+    int boneIdx   = 0;
+    int count     = 0;
     int numFrames = 0;
     int frameRate = 0;
-    char* animName = pSkeleton->animNames_[animationIdx].name;
+    int animIdx   = 0;
+
+    const int  numBones = (int)pSkeleton->GetNumBones();
     AnimationClip& anim = anims[animationIdx];
 
-    count = sscanf(buf, "animation %s", animName);
+
+    count = sscanf(buf, "animation %d", &animIdx);
     assert(count == 1);
 
     count = fscanf(pFile, "numFrames %d\n", &numFrames);
@@ -302,7 +352,70 @@ void LoadAnimation(
     count = fscanf(pFile, "frameRate %d\n", &frameRate);
     assert(count == 1);
 
-    printf("animation %-48s frames %-10d framerate %d\n", animName, numFrames, frameRate);
+    assert(frameRate > 0);
+    assert(animIdx >= 0);
+    assert(animIdx == animationIdx);
+
+    anim.framerate = (float)frameRate;
+    anim.id = animIdx;
+
+
+    // alloc memory for each bone and each keyframe for this bone
+    pSkeleton->animations_[animIdx].boneAnimations.resize(numBones);
+
+    for (int i = 0; i < numBones; ++i)
+        anim.boneAnimations[i].keyframes.resize(numFrames);
+
+
+    // read each keyframe for each bone
+    for (int i = 0; i < numBones; ++i)
+    {
+        count = fscanf(pFile, " frames for bone %d\n", &boneIdx);
+        assert(count == 1);
+        assert(boneIdx == i);
+
+        LoadKeyframes(pFile, anim.boneAnimations[boneIdx].keyframes.data(), numFrames);
+    }
+}
+
+//---------------------------------------------------------
+// Desc:  read in a set of keyframes for bone
+//---------------------------------------------------------
+void LoadKeyframes(FILE* pFile, Keyframe* keyframes, const int numFrames)
+{
+    assert(pFile);
+    assert(keyframes);
+    assert(numFrames > 0);
+
+    // read in each keyframe
+    for (int i = 0; i < numFrames; ++i)
+    {
+        DirectX::XMFLOAT3& p = keyframes[i].translation;
+        DirectX::XMFLOAT4& q = keyframes[i].rotQuat;
+
+        int count = fscanf(pFile, "(%f %f %f) (%f %f %f %f)\n", &p.x, &p.y, &p.z, &q.x, &q.y, &q.z, &q.w);
+        assert(count == 7);
+    }
+    fscanf(pFile, "\n");
+}
+
+//---------------------------------------------------------
+// Desc:  init a vertex buffer (which contains bones weights and indices)
+//        related to the input skeleton
+//---------------------------------------------------------
+void InitSkeletonBonesVB(AnimSkeleton* pSkeleton)
+{
+    assert(pSkeleton);
+
+    ID3D11Device*         pDevice         = Render::g_pDevice;
+    const VertexBoneData* bonesWeights    = pSkeleton->vertexToBones.data();
+    const int             numBonesWeights = (int)pSkeleton->vertexToBones.size();
+    const bool            isDynamicVB     = false;
+
+    if (!pSkeleton->bonesVB_.Initialize(pDevice, bonesWeights, numBonesWeights, isDynamicVB))
+    {
+        LogErr(LOG, "can't init bones VB for skeleton: %s", pSkeleton->GetName());
+    }
 }
 
 } // namespace

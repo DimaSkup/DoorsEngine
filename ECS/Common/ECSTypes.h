@@ -41,6 +41,7 @@ enum eComponentType
     ParticlesComponent,
     InventoryComponent,            // inventory of entity
     AnimationComponent,            // for model skinning
+    SpriteComponent,               // 2D sprite
 
     // NOT IMPLEMENTED YET
     AIComponent,

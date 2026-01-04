@@ -35,6 +35,18 @@ constexpr int MAX_LEN_MESH_NAME = 32;
 // =================================================================================
 
 //---------------------------------------------------------
+// just 2D sprite
+//---------------------------------------------------------
+struct Sprite2D
+{
+    SRV* pSRV = nullptr;
+    float left = 0;
+    float top = 0;
+    float width = 0;
+    float height = 0;
+};
+
+//---------------------------------------------------------
 // Desc:   a container for entities materials (its part: textures + render states)
 //---------------------------------------------------------
 struct MaterialDataForBinding

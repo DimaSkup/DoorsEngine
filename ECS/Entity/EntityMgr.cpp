@@ -29,7 +29,8 @@ EntityMgr::EntityMgr() :
     playerSystem_       { &transformSystem_, &cameraSystem_, &hierarchySystem_ },
     particleSystem_     { &transformSystem_, &boundingSystem_ },
     inventorySystem_    { &inventory_ },
-    animationSystem_    { &animations_ }
+    animationSystem_    { &animations_ },
+    spriteSystem_       { &sprites_ }
 {
     LogDbg(LOG, "start of entity mgr init");
 
@@ -796,6 +797,40 @@ void EntityMgr::AddAnimationComponent(
     }
 
     SetEnttHasComponent(enttId, AnimationComponent);
+}
+
+//---------------------------------------------------------
+// Desc:  bind a sprite component to entity by id
+// Args:  - enttId:  entity identifier
+//        - texId:   identifier of a texture which will be used as a 2D sprite
+//        - leftPos: position of left edge of sprite
+//                   in screen pixels coords (starting from upper left <0,0>)
+//        - topPos:  position of top edge of sprite
+//        - width:   width of the sprite in pixels
+//        - height:  height of the sprite in pixels
+//---------------------------------------------------------
+void EntityMgr::AddSpriteComponent(
+    const EntityID enttId,
+    const TexID texId,
+    const uint16 leftPos,
+    const uint16 topPos,
+    const uint16 width,
+    const uint16 height)
+{
+    // if such entity doesn't exist...
+    if (!ids_.binary_search(enttId))
+    {
+        LogErr(LOG, GetErrMsgFailedAddComponent("sprite", enttId).c_str());
+        return;
+    }
+
+    if (!spriteSystem_.AddRecord(enttId, texId, leftPos, topPos, width, height))
+    {
+        LogErr(LOG, "can't add a 2D sprite component for entt: %" PRIu32, enttId);
+        return;
+    }
+
+    SetEnttHasComponent(enttId, SpriteComponent);
 }
 
 

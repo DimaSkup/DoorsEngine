@@ -41,6 +41,7 @@ void AnimationSystem::Update(const float dt)
 {
     cvector<AnimData>& animations = pAnimComponent_->data;
 
+    // start from 1 since 0 is our "invalid" (dummy) animation so don't update it
     for (index i = 1; i < animations.size(); ++i)
     {
         AnimData& anim = animations[i];
@@ -48,7 +49,7 @@ void AnimationSystem::Update(const float dt)
         anim.timePos += dt;
 
         // loop animation back to beginning if necessary
-        if ((anim.timePos >= anim.endTime) && anim.isRepeated)
+        if ((anim.timePos >= anim.endTime) && (anim.playback == ANIM_PLAY_LOOP))
             anim.timePos = 0;
     }
 }
@@ -110,7 +111,7 @@ bool AnimationSystem::AddRecord(
     animData.currAnimId  = animId;
     animData.timePos     = 0;
     animData.endTime     = animEndTime;
-    animData.isRepeated  = true;           // by default we repeat initial animation (it usually is an "idle" animation)
+    animData.playback    = ANIM_PLAY_LOOP;    // by default we repeat initial animation (it usually is an "idle" animation)
 
     comp.ids.insert_before(idx, enttId);
     comp.data.insert_before(idx, animData);
@@ -119,16 +120,35 @@ bool AnimationSystem::AddRecord(
 }
 
 //---------------------------------------------------------
+// Desc:  force restart of the current animation for entity by id
+//---------------------------------------------------------
+bool AnimationSystem::RestartAnimation(const EntityID enttId)
+{
+    const index idx = GetIdx(enttId);
+
+    // check to prevent fuck up
+    if (idx == 0)
+    {
+        DumpSystem();
+        return false;
+    }
+
+    pAnimComponent_->data[idx].timePos = 0;
+    return true;
+}
+
+//---------------------------------------------------------
 // Desc:  set another animation for entity
 // Args:  enttId      - entity identifier
 //        animId      - id of current animation
 //        animEndTime - duration of current animation
+//        playback    - defines what to do when animation is finished
 //---------------------------------------------------------
 bool AnimationSystem::SetAnimation(
     const EntityID enttId,
     const AnimationID animId,
     const float animEndTime,
-    const bool isRepeated)
+    const eAnimationPlayback playback)
 {
     Animations& comp = *pAnimComponent_;
     const index idx  = GetIdx(enttId);
@@ -152,16 +172,7 @@ bool AnimationSystem::SetAnimation(
         comp.data[idx].currAnimId = animId;
         comp.data[idx].timePos    = 0;
         comp.data[idx].endTime    = animEndTime;
-        comp.data[idx].isRepeated = isRepeated;
-    }
-
-    // ... we want to set the same animation so just reset it if it already finished
-    else
-    {
-        AnimData& anim = comp.data[idx];
-
-        if (anim.timePos >= anim.endTime)
-            anim.timePos = 0;
+        comp.data[idx].playback   = playback;
     }
 
     return true;

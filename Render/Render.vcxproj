@@ -637,6 +637,42 @@
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)build\$(IntDir)data\shaders\cso\%(Filename).cso</ObjectFileOutput>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)build\$(IntDir)data\shaders\cso\%(Filename).cso</ObjectFileOutput>
     </FxCompile>
+    <FxCompile Include="hlsl\spriteGS.hlsl">
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)build\$(IntDir)data\shaders\cso\%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)build\$(IntDir)data\shaders\cso\%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='ASAN|x64'">$(SolutionDir)build\$(IntDir)data\shaders\cso\%(Filename).cso</ObjectFileOutput>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">GS</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">GS</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='ASAN|x64'">GS</EntryPointName>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Geometry</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Geometry</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='ASAN|x64'">Geometry</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='ASAN|x64'">5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="hlsl\spritePS.hlsl">
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)build\$(IntDir)data\shaders\cso\%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)build\$(IntDir)data\shaders\cso\%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='ASAN|x64'">$(SolutionDir)build\$(IntDir)data\shaders\cso\%(Filename).cso</ObjectFileOutput>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PS</EntryPointName>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PS</EntryPointName>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='ASAN|x64'">PS</EntryPointName>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='ASAN|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='ASAN|x64'">5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="hlsl\spriteVS.hlsl">
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)build\$(IntDir)data\shaders\cso\%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)build\$(IntDir)data\shaders\cso\%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='ASAN|x64'">$(SolutionDir)build\$(IntDir)data\shaders\cso\%(Filename).cso</ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='ASAN|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='ASAN|x64'">5.0</ShaderModel>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">VS</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">VS</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='ASAN|x64'">VS</EntryPointName>
+    </FxCompile>
     <FxCompile Include="hlsl\terrain_low_lod_PS.hlsl">
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)build\$(IntDir)data\shaders\cso\%(Filename).cso</ObjectFileOutput>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)build\$(IntDir)data\shaders\cso\%(Filename).cso</ObjectFileOutput>
@@ -1026,6 +1062,7 @@
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">VS</EntryPointName>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='ASAN|x64'">$(SolutionDir)build\$(IntDir)data\shaders\cso\%(Filename).cso</ObjectFileOutput>
     </FxCompile>
     <FxCompile Include="hlsl\terrain_high_lod_PS.hlsl">
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)build\$(IntDir)data\shaders\cso\%(Filename).cso</ObjectFileOutput>
@@ -1098,6 +1135,7 @@
   <ItemGroup>
     <None Include="hlsl\color.hlsli" />
     <None Include="hlsl\const_buffers\cbps_material_colors.hlsli" />
+    <None Include="hlsl\const_buffers\cbvs_sprite.hlsli" />
     <None Include="hlsl\const_buffers\cbvs_world_and_view_proj.hlsli" />
     <None Include="hlsl\const_buffers\cbvs_world_inverse_transpose.hlsli" />
     <None Include="hlsl\const_buffers\cbvs_world_view_ortho.hlsli" />

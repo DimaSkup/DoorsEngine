@@ -35,23 +35,26 @@ using MaterialID        = uint32_t;
 using TexID             = uint32_t;
 using SkeletonID        = uint32_t;         // for model skinning
 using AnimationID       = uint32_t;         // for model skinning
-using ShaderID          = uint32_t;         
+using ShaderID          = uint32_t;
+using SoundID           = uint32_t;
 
 // common constants
-constexpr EntityID   INVALID_ENTITY_ID   = 0;
-constexpr ModelID    INVALID_MODEL_ID    = 0;
-constexpr MaterialID INVALID_MATERIAL_ID = 0;
-constexpr TexID      INVALID_TEXTURE_ID  = 0;
-constexpr ShaderID   INVALID_SHADER_ID   = 0;
-constexpr size       NUM_TEXTURE_TYPES   = 21;    // limit of textures per mesh
+constexpr EntityID   INVALID_ENTITY_ID      = 0;
+constexpr ModelID    INVALID_MODEL_ID       = 0;
+constexpr MaterialID INVALID_MATERIAL_ID    = 0;
+constexpr TexID      INVALID_TEXTURE_ID     = 0;
+constexpr ShaderID   INVALID_SHADER_ID      = 0;
+constexpr SoundID    INVALID_SOUND_ID       = 0;
+constexpr size       NUM_TEXTURE_TYPES      = 21;    // limit of textures per mesh
 
-constexpr int        MAX_LEN_MESH_NAME   = 32;    // max length for a model subset's (mesh) name
-constexpr int        MAX_LEN_ENTT_NAME   = 32;
-constexpr int        MAX_LEN_MODEL_NAME  = 32;    // limit for the model's name length
-constexpr int        MAX_LEN_TEX_NAME    = 32;    // limit for the texture's name length
-constexpr int        MAX_LEN_MAT_NAME    = 32;    // limit for the material's name length
-constexpr int        MAX_LEN_SHADER_NAME = 32;
+constexpr int        MAX_LEN_MESH_NAME      = 32;    // max length for a model subset's (mesh) name
+constexpr int        MAX_LEN_ENTT_NAME      = 32;
+constexpr int        MAX_LEN_MODEL_NAME     = 32;    // limit for the model's name length
+constexpr int        MAX_LEN_TEX_NAME       = 32;    // limit for the texture's name length
+constexpr int        MAX_LEN_MAT_NAME       = 32;    // limit for the material's name length
+constexpr int        MAX_LEN_SHADER_NAME    = 32;
 constexpr int        MAX_LEN_SKY_MODEL_NAME = 16;
+constexpr int        MAX_LEN_SOUND_NAME     = 32;
 
 constexpr int        MAX_NUM_POST_EFFECTS = 8;
 
@@ -73,6 +76,11 @@ struct TexName
 struct ShaderName
 {
     char name[MAX_LEN_SHADER_NAME]{ '\0' };
+};
+
+struct SoundName
+{
+    char name[MAX_LEN_SOUND_NAME]{ '\0' };
 };
 
 

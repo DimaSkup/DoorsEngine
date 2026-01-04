@@ -1,0 +1,50 @@
+newmtl act_act_arm_perchatka
+mat_id 89
+shader_id 3
+states 66186
+Ka 0.40 0.40 0.40 1.00
+Kd 0.80 0.80 0.80 1.00
+Ks 0.20 0.20 0.20
+Kg 25.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff act_arm_1.dds
+tex_opac act_arm_1.dds
+
+newmtl wpn_wpn_ak74
+mat_id 34
+shader_id 3
+states 66186
+Ka 0.50 0.50 0.50 1.00
+Kd 0.80 0.80 0.80 1.00
+Ks 0.20 0.20 0.20
+Kg 25.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff wpn_ak74.dds
+tex_norm blank_NRM.dds
+tex_opac wpn_ak74.dds
+
+newmtl wpn_wpn_upgrade
+mat_id 91
+shader_id 3
+states 66186
+Ka 0.40 0.40 0.40 1.00
+Kd 0.80 0.80 0.80 1.00
+Ks 0.20 0.20 0.20
+Kg 25.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff wpn_ak74.dds
+tex_opac wpn_ak74.dds
+
+newmtl wpn_wpn_vog
+mat_id 36
+shader_id 3
+states 66186
+Ka 0.50 0.50 0.50 1.00
+Kd 0.80 0.80 0.80 1.00
+Ks 0.20 0.20 0.20
+Kg 25.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff wpn_vog.dds
+tex_norm blank_NRM.dds
+tex_opac wpn_vog.dds
+

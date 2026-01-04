@@ -53,10 +53,7 @@ public:
 	void UndoEditorLastEvent();
 
 	// Public rendering API
-	void RenderGameUI(
-		ID3D11DeviceContext* pContext,
-		Render::CRender& render,
-		Core::SystemState& systemState);
+	void RenderGameUI(Render::CRender& render, Core::SystemState& systemState);
 
 	void RenderEditor(Core::SystemState& systemState);
 	void RenderSceneWnd(Core::SystemState& systemState);

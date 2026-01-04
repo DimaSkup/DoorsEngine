@@ -86,12 +86,20 @@ void InitMaterials()
 }
 
 //---------------------------------------------------------
-// Desc:    load data for file and create a new particle emitters using this data
+// Desc:    load data from a file and create particle emitters using this data
 // Args:    - pFile:   particles config file descriptor
 //---------------------------------------------------------
-void ReadAndCreateEmitter(ECS::EntityMgr& enttMgr, FILE* pFile, const int index)
+void ReadAndCreateEmitter(
+    ECS::EntityMgr& enttMgr,
+    FILE* pFile,
+    const char* emitterName,
+    const int emitterIdx)
 {
-    char emitterName[64]{'\0'};
+    assert(pFile);
+    assert(emitterName && emitterName[0] != '\0');
+    assert(emitterIdx >= 0);
+
+    char buf[16];
     char materialName[64]{'\0'};
     char srcTypeStr[16]{'\0'};
     char velInitTypeStr[16]{'\0'};
@@ -106,47 +114,47 @@ void ReadAndCreateEmitter(ECS::EntityMgr& enttMgr, FILE* pFile, const int index)
     XMFLOAT3 aabbCenter                = { 0,0,0 };
     XMFLOAT3 aabbExtents               = { 1,1,1 };
 
-    ECS::eEmitterSrcType      srcType  = ECS::EMITTER_SRC_TYPE_POINT;
-    ECS::eEventParticleHitBox hitEvent = ECS::EVENT_PARTICLE_HIT_BOX_DIE;
 
     // read in common params
-    ReadFileStr(pFile, "name", emitterName);
-    LogMsg(LOG, "[%d] create particle emitter: %s", index, emitterName);
+    LogMsg("\t[%d] create particle emitter: %s", emitterIdx, emitterName);
 
-    ReadFileStr   (pFile, "material", materialName);
-    ReadFileStr   (pFile, "src_type", srcTypeStr);
+    ReadFileStr   (pFile, "material",               materialName);
+    ReadFileStr   (pFile, "src_type",               srcTypeStr);
 
     ReadFileFloat3(pFile, "pos",                     &pos.x);
     ReadFileFloat (pFile, "src_plane_height_offset", &emitter.srcPlaneHeight);
 
-    ReadFileStr   (pFile, "vel_init_type",      velInitTypeStr);
-    ReadFileFloat3(pFile, "vel_init_dir",       &emitter.velInitDir.x);
-    ReadFileFloat (pFile, "vel_init_mag",       &emitter.velInitMag);
-    ReadFileInt   (pFile, "spawn_rate",         &emitter.spawnRate);
-    ReadFileFloat (pFile, "lifetime_sec",       &emitter.life);
+    ReadFileStr   (pFile, "vel_init_type",          velInitTypeStr);
+    ReadFileFloat3(pFile, "vel_init_dir",           &emitter.velInitDir.x);
+    ReadFileFloat (pFile, "vel_init_mag",           &emitter.velInitMag);
+    ReadFileInt   (pFile, "spawn_rate",             &emitter.spawnRate);
+    ReadFileFloat (pFile, "lifetime_sec",           &emitter.life);
 
-    ReadFileFloat3(pFile, "start_color",         &emitter.startColor.x);
-    ReadFileFloat3(pFile, "end_color",           &emitter.endColor.x);
-    ReadFileFloat3(pFile, "color_after_reflect", &emitter.colorAfterReflect.x);
+    ReadFileFloat3(pFile, "start_color",            &emitter.startColor.x);
+    ReadFileFloat3(pFile, "end_color",              &emitter.endColor.x);
+    ReadFileFloat3(pFile, "color_after_reflect",    &emitter.colorAfterReflect.x);
 
-    ReadFileFloat2(pFile, "start_size",      &emitter.startSize.x);
-    ReadFileFloat2(pFile, "end_size",        &emitter.endSize.x);
+    ReadFileFloat2(pFile, "start_size",             &emitter.startSize.x);
+    ReadFileFloat2(pFile, "end_size",               &emitter.endSize.x);
 
-    ReadFileFloat (pFile, "start_alpha",     &emitter.startAlpha);
-    ReadFileFloat (pFile, "end_alpha",       &emitter.endAlpha);
+    ReadFileFloat (pFile, "start_alpha",            &emitter.startAlpha);
+    ReadFileFloat (pFile, "end_alpha",              &emitter.endAlpha);
 
     // read in physics properties
-    ReadFileFloat (pFile, "mass",            &emitter.mass);
-    ReadFileFloat (pFile, "friction",        &emitter.friction);    // air resistance
-    ReadFileFloat3(pFile, "external_forces", &forces.x);
+    ReadFileFloat (pFile, "mass",                   &emitter.mass);
+    ReadFileFloat (pFile, "friction",               &emitter.friction); // air resistance
+    ReadFileFloat3(pFile, "external_forces",        &forces.x);
 
     // read in Bounding Box params
-    ReadFileFloat3(pFile, "aabb_center",     &aabbCenter.x);
-    ReadFileFloat3(pFile, "aabb_extents",    &aabbExtents.x);
+    ReadFileFloat3(pFile, "aabb_center",            &aabbCenter.x);
+    ReadFileFloat3(pFile, "aabb_extents",           &aabbExtents.x);
 
-    ReadFileStr   (pFile, "hit_aabb",        hitEventStr);
+    ReadFileStr   (pFile, "hit_aabb",               hitEventStr);
 
-    fscanf(pFile, "\n");
+
+    // assert that we have reached the end of the definition block
+    fscanf(pFile, "%s", buf);
+    assert(buf[0] == '}');
 
 
     // setup the entity
@@ -196,15 +204,14 @@ void ReadAndCreateEmitter(ECS::EntityMgr& enttMgr, FILE* pFile, const int index)
     // define what to do with particle when it hit its emitter's bounding box
     // (or do nothing: "none" by default)
     if (strcmp(hitEventStr, "die") == 0)
-        hitEvent = ECS::EVENT_PARTICLE_HIT_BOX_DIE;
+        emitter.hitEvent = ECS::EVENT_PARTICLE_HIT_BOX_DIE;
 
     else if (strcmp(hitEventStr, "reflect") == 0)
-        hitEvent = ECS::EVENT_PARTICLE_HIT_BOX_REFLECT;
+        emitter.hitEvent = ECS::EVENT_PARTICLE_HIT_BOX_REFLECT;
 
     emitter.position   = XMVECTOR{ pos.x, pos.y, pos.z };
     emitter.forces     = XMVECTOR{ forces.x, forces.y, forces.z };
     emitter.materialId = Core::g_MaterialMgr.GetMatIdByName(materialName);
-    emitter.hitEvent   = hitEvent;
 }
 
 //---------------------------------------------------------
@@ -230,19 +237,37 @@ bool LoadParticlesFromFile(const char* configPath, ECS::EntityMgr& mgr)
         return false;
     }
 
-    int  numParticleSys = 0;
-    
+    char buf[256];
+    char emitterName[64];
+    int  emitterIdx = 0;
+    int  count = 0;
 
-    // read in configs
-    int count = fscanf(pFile, "num_particle_systems %d\n", &numParticleSys);
-    assert(count == 1);
+    // skip comments section
+    do
+    {
+        fgets(buf, sizeof(buf), pFile);
+    } while (buf[0] == ';');
 
-    fscanf(pFile, "\n");
 
-    // read data for a particle emitter creation and create it
-    for (int i = 0; i < numParticleSys; ++i)
-        ReadAndCreateEmitter(mgr, pFile, i);
+    while (!feof(pFile))
+    {
+        fgets(buf, sizeof(buf), pFile);
 
+        if (strncmp(buf, "emitter", 7) != 0)
+            continue;
+
+        count = sscanf(buf, "emitter \"%s", emitterName);
+        assert(count == 1);
+
+        // skip the last quote (") symbol in the name
+        emitterName[strlen(emitterName) - 1] = '\0';
+
+        ReadAndCreateEmitter(mgr, pFile, emitterName, emitterIdx);
+        emitterIdx++;
+    }
+
+   
+    fclose(pFile);
     return true;
 }
 
@@ -251,14 +276,31 @@ bool LoadParticlesFromFile(const char* configPath, ECS::EntityMgr& mgr)
 //---------------------------------------------------------
 void GameInitializer::InitParticles(ECS::EntityMgr& enttMgr)
 {
-    ECS::ParticleSystem& particleSys = enttMgr.particleSystem_;
+    const TimePoint start = GetTimePoint();
+
     const char* filePath = "data/particles/particles.cfg";
+
+    SetConsoleColor(YELLOW);
+    LogMsg("---------------------------------------------------------");
+    LogMsg("            INITIALIZATION: PARTICLE EMITTERS            ");
+    LogMsg("---------------------------------------------------------");
+    LogMsg(LOG, "initialize emitters from file: %s", filePath);
 
     if (!LoadParticlesFromFile(filePath, enttMgr))
     {
         LogErr(LOG, "can't load paticles from file: %s", filePath);
         return;
     }
+
+    const TimePoint      end = GetTimePoint();
+    const TimeDurationMs dur = end - start;
+
+    LogMsg(LOG, "PARTICLE emitters are initialized");
+    SetConsoleColor(MAGENTA);
+    LogMsg("--------------------------------------");
+    LogMsg("Init of particles took: %.3f ms", dur.count());
+    LogMsg("--------------------------------------\n");
+    SetConsoleColor(RESET);
 }
 
 //---------------------------------------------------------
@@ -510,9 +552,9 @@ void GameInitializer::InitPlayer(
 
     const EntityID gameCameraId  = nameSys.GetIdByName("game_camera");
     const EntityID flashlightId  = nameSys.GetIdByName("player_flashlight");
-    const EntityID pmHudEnttId   = nameSys.GetIdByName("pm_hud");
-    const EntityID ak74hudEnttId = nameSys.GetIdByName("ak_74_hud");
-    const EntityID bm16hudEnttId = nameSys.GetIdByName("bm_16_hud");
+    const EntityID pmHudEnttId   = nameSys.GetIdByName("wpn_pm_hud");
+    const EntityID ak74hudEnttId = nameSys.GetIdByName("wpn_ak74_hud");
+    const EntityID bm16hudEnttId = nameSys.GetIdByName("wpn_bm16_hud");
 
     // ------------------------------------------
 
@@ -1857,27 +1899,19 @@ void CreateNature(ECS::EntityMgr& enttMgr, Render::CRender& render)
 
 //---------------------------------------------------------
 
-void SaveImportedModels()
+void SaveImportedModel(const char* modelName)
 {
-    ModelExporter exporter;
+    assert(modelName && modelName[0] != '\0');
 
-    BasicModel& ak74 = g_ModelMgr.GetModelByName("ak_74_hud");
-    BasicModel& bm16 = g_ModelMgr.GetModelByName("wpn_bm-16_hud");
-    BasicModel& pm   = g_ModelMgr.GetModelByName("wpn_pm_hud");
+    BasicModel& model = g_ModelMgr.GetModelByName(modelName);
+    assert(model.id_ != INVALID_MODEL_ID);
 
     char dirPath[256];
-
     memset(dirPath, 0, 256);
-    snprintf(dirPath, 256, "%s/", ak74.GetName());
-    exporter.ExportIntoDE3D(&ak74, dirPath, ak74.GetName());
+    snprintf(dirPath, 256, "%s/", model.GetName());
 
-    memset(dirPath, 0, 256);
-    snprintf(dirPath, 256, "%s/", bm16.GetName());
-    exporter.ExportIntoDE3D(&bm16, dirPath, bm16.GetName());
-
-    memset(dirPath, 0, 256);
-    snprintf(dirPath, 256, "%s/", pm.GetName());
-    exporter.ExportIntoDE3D(&pm, dirPath, pm.GetName());
+    ModelExporter exporter;
+    exporter.ExportIntoDE3D(&model, dirPath, model.GetName());
 }
 
 //---------------------------------------------------------
@@ -1888,22 +1922,11 @@ void ImportModels()
 
     ModelsCreator creator;
 
-    creator.ImportFromFile("data/models/animation/boblampclean.md5mesh");
-    creator.ImportFromFile("data/models/stalker_freedom_1/stalker_freedom_1.fbx");
-    creator.ImportFromFile("data/models/bm_hud/wpn_bm-16_hud.fbx");
-
-    const TimePoint startAk = GetTimePoint();
-
-    creator.ImportFromFile("data/models/ak_74_hud/ak_74_hud.fbx");
-
-    const TimePoint      endAk = GetTimePoint();
-    const TimeDurationMs durAk = endAk - startAk;
-
-    LogMsg("------------------------------------------------");
-    LogMsg("loading of AK took:  %f sec", durAk.count() * 0.001f);
-    LogMsg("------------------------------------------------\n");
-
-    creator.ImportFromFile("data/models/pm/wpn_pm_hud.fbx");
+    creator.ImportFromFile("data/models/ext/boblampclean/boblampclean.md5mesh");
+    //creator.ImportFromFile("data/models/stalker_freedom_1/stalker_freedom_1.fbx");
+    creator.ImportFromFile("data/models/ext/bm_hud/wpn_bm-16_hud.fbx");
+    creator.ImportFromFile("data/models/ext/pm/wpn_pm_hud.fbx");
+    creator.ImportFromFile("data/models/ext/ak_74_hud/ak_74_hud.fbx");
 
     const TimePoint      end = GetTimePoint();
     const TimeDurationMs dur = end - start;
@@ -1916,39 +1939,51 @@ void ImportModels()
 
 //---------------------------------------------------------
 
-void SaveAnimations()
+void SaveSkeletonAnimations(const char* skeletonName, const char* filename)
 {
-    const TimePoint start = GetTimePoint();
+    assert(skeletonName && skeletonName[0] != '\0');
+    assert(filename     && filename[0] != '\0');
 
-    ModelsCreator  creator;
+    const AnimSkeleton& skeleton = g_AnimationMgr.GetSkeleton(skeletonName);
+    assert(skeleton.id_ != 0);
+
     AnimationSaver animSaver;
-
-    AnimSkeleton& bobSkeleton   = g_AnimationMgr.GetSkeleton("boblampclean");
-    AnimSkeleton& bm16Skeleton  = g_AnimationMgr.GetSkeleton("wpn_bm-16_hud");
-    AnimSkeleton& ak74Skeleton  = g_AnimationMgr.GetSkeleton("ak_74_hud");
-
-    //animSaver.Save(&bobSkeleton,  "data/animations/boblampclean.anim");
-    //animSaver.Save(&bm16Skeleton, "data/animations/bm16.anim");
-    animSaver.Save(&ak74Skeleton, "data/animations/ak74.anim");
-
-    const TimePoint      end = GetTimePoint();
-    const TimeDurationMs dur = end - start;
-
-    SetConsoleColor(MAGENTA);
-    LogMsg("------------------------------------------------");
-    LogMsg("saving of animations took:  %f sec", dur.count() * 0.001f);
-    LogMsg("------------------------------------------------\n");
+    animSaver.Save(&skeleton, filename);
 }
 
 //---------------------------------------------------------
 
 void LoadAnimations()
 {
-    AnimationLoader animLoader;
-
     const TimePoint start = GetTimePoint();
 
-    animLoader.Load("data/animations/ak74.anim");
+    AnimationLoader animLoader;
+    char buf[512];
+    const char* animCfgFile = "data/animations.cfg";
+
+    FILE* pFile = fopen(animCfgFile, "r");
+    if (!pFile)
+    {
+        LogErr(LOG, "can't open a file: %s", animCfgFile);
+        exit(0);
+    }
+
+    // check if we opened a valid file
+    fgets(buf, sizeof(buf), pFile);
+
+    if (strncmp(buf, "animations", 10) != 0)
+    {
+        LogErr(LOG, "invalid file for animations: %s", animCfgFile);
+        exit(0);
+    }
+
+    // read in each path to animation and load this animation
+    while (!feof(pFile))
+    {
+        fscanf(pFile, "%s\n", buf);
+        animLoader.Load(buf);
+    }
+
 
     const TimePoint      end = GetTimePoint();
     const TimeDurationMs dur = end - start;
@@ -1956,83 +1991,28 @@ void LoadAnimations()
     LogMsg("------------------------------------------------");
     LogMsg("loading of animations took:  %f sec", dur.count() * 0.001f);
     LogMsg("------------------------------------------------\n");
-
-    exit(0);
-}
-
-//---------------------------------------------------------
-
-void SetupImporterModelsMaterials()
-{
-    const TexID texIdBlankNorm = g_TextureMgr.GetTexIdByName("blank_NRM");
-
-    BasicModel& ak74 = g_ModelMgr.GetModelByName("ak_74_hud");
-    BasicModel& bm16 = g_ModelMgr.GetModelByName("wpn_bm-16_hud");
-    BasicModel& pm   = g_ModelMgr.GetModelByName("wpn_pm_hud");
-
-    Core::Subset* subsets = nullptr;
-
-
-    // setup normal map for each subset (mesh) of ak_74_hud model
-    subsets = ak74.meshes_.subsets_;
-    
-    for (int i = 0; i < ak74.GetNumSubsets(); ++i)
-    {
-        const MaterialID matId = subsets[i].materialId;
-        Material& mat = g_MaterialMgr.GetMatById(matId);
-
-        mat.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
-        mat.SetAmbient(0.4f, 0.4f, 0.4f, 1.0f);
-        mat.SetSpecular(0.3f, 0.3f, 0.3f);
-    }
-
-    // setup normal map for each subset (mesh) of bm_16_hud model
-    subsets = bm16.meshes_.subsets_;
-
-    for (int i = 0; i < bm16.GetNumSubsets(); ++i)
-    {
-        const MaterialID matId = subsets[i].materialId;
-        Material& mat = g_MaterialMgr.GetMatById(matId);
-
-        mat.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
-        mat.SetAmbient(0.4f, 0.4f, 0.4f, 1.0f);
-        mat.SetSpecular(0.3f, 0.3f, 0.3f);
-    }
-
-    // setup normal map for each subset (mesh) of pm_hud model
-    subsets = pm.meshes_.subsets_;
-
-    for (int i = 0; i < pm.GetNumSubsets(); ++i)
-    {
-        const MaterialID matId = subsets[i].materialId;
-        Material& mat = g_MaterialMgr.GetMatById(matId);
-
-        mat.SetTexture(TEX_TYPE_NORMALS, texIdBlankNorm);
-        mat.SetAmbient(0.4f, 0.4f, 0.4f, 1.0f);
-        mat.SetSpecular(0.3f, 0.3f, 0.3f);
-    }
 }
 
 //---------------------------------------------------------
 
 void BindAnimationsToEntts(ECS::EntityMgr& enttMgr)
 {
-    const EntityID boblampEnttId     = enttMgr.nameSystem_.GetIdByName("boblampclean");
-    const EntityID ak74hudEnttId     = enttMgr.nameSystem_.GetIdByName("ak_74_hud");
-    const EntityID bm16hudEnttId     = enttMgr.nameSystem_.GetIdByName("bm_16_hud");
-    const EntityID pmHudEnttId       = enttMgr.nameSystem_.GetIdByName("pm_hud");
-    const EntityID bm16hudTestEnttId = enttMgr.nameSystem_.GetIdByName("bm_16_hud_test");
-    const EntityID ak74hudTestEnttId = enttMgr.nameSystem_.GetIdByName("ak_74_hud_test");
-    const EntityID pmHudTestEnttId   = enttMgr.nameSystem_.GetIdByName("pm_hud_test");
-
+    const EntityID boblampId             = enttMgr.nameSystem_.GetIdByName("boblampclean");
+    const EntityID ak74hudId             = enttMgr.nameSystem_.GetIdByName("wpn_ak74_hud");
+    const EntityID bm16hudId             = enttMgr.nameSystem_.GetIdByName("wpn_bm16_hud");
+    const EntityID pmHudId               = enttMgr.nameSystem_.GetIdByName("wpn_pm_hud");
+    const EntityID bm16hudTestId         = enttMgr.nameSystem_.GetIdByName("bm_16_hud_test");
+    const EntityID ak74hudTestId         = enttMgr.nameSystem_.GetIdByName("ak_74_hud_test");
+    const EntityID pmHudTestId           = enttMgr.nameSystem_.GetIdByName("pm_hud_test");
+    const EntityID ak74TestId            = enttMgr.nameSystem_.GetIdByName("ak_74_hud_test_static");
 
     // add animation component to ak74
-    AnimSkeleton&        ak74hudSkeleton = g_AnimationMgr.GetSkeleton("ak_74_hud");
+    AnimSkeleton&        ak74hudSkeleton = g_AnimationMgr.GetSkeleton("wpn_ak74_hud");
     const AnimationID    ak74AnimId      = ak74hudSkeleton.GetAnimationIdx("wpn_ak74_hud_ogf_idle");
     const AnimationClip& ak74Anim        = ak74hudSkeleton.GetAnimation(ak74AnimId);
 
-    enttMgr.AddAnimationComponent(ak74hudEnttId,     ak74hudSkeleton.id_, ak74AnimId, ak74Anim.GetEndTime());
-    enttMgr.AddAnimationComponent(ak74hudTestEnttId, ak74hudSkeleton.id_, ak74AnimId, ak74Anim.GetEndTime());
+    enttMgr.AddAnimationComponent(ak74hudId,     ak74hudSkeleton.id_, ak74AnimId, ak74Anim.GetEndTime());
+    enttMgr.AddAnimationComponent(ak74hudTestId, ak74hudSkeleton.id_, ak74AnimId, ak74Anim.GetEndTime());
     ak74hudSkeleton.DumpAnimations();
 
 
@@ -2041,7 +2021,7 @@ void BindAnimationsToEntts(ECS::EntityMgr& enttMgr)
     const AnimationID    bobAnimId       = bobSkeleton.GetAnimationIdx("boblampclean_0");
     const AnimationClip& bobAnim         = bobSkeleton.GetAnimation(bobAnimId);
 
-    enttMgr.AddAnimationComponent(boblampEnttId, bobSkeleton.id_, bobAnimId, bobAnim.GetEndTime());
+    enttMgr.AddAnimationComponent(boblampId, bobSkeleton.id_, bobAnimId, bobAnim.GetEndTime());
 
 
     // add animation component to bm16
@@ -2049,8 +2029,8 @@ void BindAnimationsToEntts(ECS::EntityMgr& enttMgr)
     const AnimationID bm16AnimId         = bm16hudSkeleton.GetAnimationIdx("wpn_bm_16_hud_ogf_idle");
     const AnimationClip& bm16Anim        = bm16hudSkeleton.GetAnimation(bm16AnimId);
 
-    enttMgr.AddAnimationComponent(bm16hudEnttId,     bm16hudSkeleton.id_, bm16AnimId, bm16Anim.GetEndTime());
-    enttMgr.AddAnimationComponent(bm16hudTestEnttId, bm16hudSkeleton.id_, bm16AnimId, bm16Anim.GetEndTime());
+    enttMgr.AddAnimationComponent(bm16hudId,     bm16hudSkeleton.id_, bm16AnimId, bm16Anim.GetEndTime());
+    enttMgr.AddAnimationComponent(bm16hudTestId, bm16hudSkeleton.id_, bm16AnimId, bm16Anim.GetEndTime());
 
 
     // add animation component to pm
@@ -2058,8 +2038,8 @@ void BindAnimationsToEntts(ECS::EntityMgr& enttMgr)
     const AnimationID pmAnimId  = pmSkeleton.GetAnimationIdx("wpn_pm_hud_ogf_idle");
     const AnimationClip& pmAnim = pmSkeleton.GetAnimation(pmAnimId);
 
-    enttMgr.AddAnimationComponent(pmHudEnttId,     pmSkeleton.id_, pmAnimId, pmAnim.GetEndTime());
-    enttMgr.AddAnimationComponent(pmHudTestEnttId, pmSkeleton.id_, pmAnimId, pmAnim.GetEndTime());
+    enttMgr.AddAnimationComponent(pmHudId,     pmSkeleton.id_, pmAnimId, pmAnim.GetEndTime());
+    enttMgr.AddAnimationComponent(pmHudTestId, pmSkeleton.id_, pmAnimId, pmAnim.GetEndTime());
 }
 
 //---------------------------------------------------------
@@ -2071,20 +2051,45 @@ void ImportExternalModels(
     Render::CRender& render,
     const EngineConfigs& cfgs)
 {
-    ID3D11Device* pDevice = render.GetDevice();
-
-    const TerrainGeomip& terrain = g_ModelMgr.GetTerrainGeomip();
-    ModelsCreator creator;
 
     LoadModelAssets(&render);
 
-    ImportModels();
-    //SaveImportedModels();
-    //exit(0);
-    //SaveAnimations();
-   //LoadAnimations();
+#if 0
+    TimePoint       start;
+    TimePoint       end;
+    TimeDurationMs  dur;
 
-    SetupImporterModelsMaterials();
+    ImportModels();
+
+    //SaveImportedModel("ak_74_hud");
+    SaveImportedModel("wpn_bm-16_hud");
+    SaveImportedModel("wpn_pm_hud");
+    SaveImportedModel("boblampclean");
+
+    //--------------------------------
+
+    start = GetTimePoint();
+
+    SaveSkeletonAnimations("ak_74_hud",     "data/animations/wpn_ak74_hud.anim");
+    SaveSkeletonAnimations("wpn_bm-16_hud", "data/animations/wpn_bm-16_hud.anim");
+    SaveSkeletonAnimations("wpn_pm_hud",    "data/animations/wpn_pm_hud.anim");
+    SaveSkeletonAnimations("boblampclean",  "data/animations/boblampclean.anim");
+
+    end = GetTimePoint();
+    dur = end - start;
+
+    SetConsoleColor(MAGENTA);
+    LogMsg("------------------------------------------------");
+    LogMsg("saving of animations took:  %f sec", dur.count() * 0.001f);
+    LogMsg("------------------------------------------------\n");
+
+    exit(0);
+#endif
+
+    //--------------------------------
+    
+    LoadAnimations();
+
     LoadEntities("data/entities.dentt", enttMgr);
     BindAnimationsToEntts(enttMgr);
 
@@ -2101,6 +2106,7 @@ void ImportExternalModels(
     const DirectX::BoundingBox& treePineAABB   = treePine.GetModelAABB();
     const DirectX::BoundingBox& treeSpruceAABB = treeSpruce.GetModelAABB();
 
+    //---------------------------------
 
     const float treePineWidth       = treePineAABB.Extents.x * 3;
     const float treePineHeight      = treePineAABB.Extents.y * 5.5f;
@@ -2112,6 +2118,9 @@ void ImportExternalModels(
     const float rotatePineAroundX   = -90.0f;
     const float rotateSpruceAroundX = 0.0f;
 
+    //---------------------------------
+
+    ModelsCreator creator;
 
     const ModelID    idTreePineLod1         = creator.CreateTreeLod1(treePineWidth, treePineHeight, originAtBottom, rotatePineAroundX);
     const ModelID    idTreeSpruceLod1       = creator.CreateTreeLod1(treeSpruceWidth, treeSpruceHeight, originAtBottom, rotateSpruceAroundX);
@@ -2216,7 +2225,7 @@ void CreateTerrainGeomip(
 
 
     // bind maps to texture types
-    // (so later we bind them particular to texture slots in shader)
+    // (so later we bind them to texture slots in shader)
     mat.SetTexture(eTexType(1), terrain.texture_.GetID());
     mat.SetTexture(eTexType(2), texIdMap1);
     mat.SetTexture(eTexType(3), texIdMap2);
@@ -2243,18 +2252,15 @@ void CreateTerrainGeomip(
     render.UpdateCbTerrainMaterial(mat.ambient, mat.diffuse, mat.specular, mat.reflect);
 
     // create and setup a terrain entity
-    const EntityID enttID = mgr.CreateEntity();
+    const EntityID enttId = mgr.CreateEntity();
 
     // setup bounding params
     const DirectX::BoundingBox aabb = { terrain.center_, terrain.extents_ };
 
-    // setup material params
-    const MaterialID terrainMatID = terrain.materialID_;
-
-    mgr.AddTransformComponent(enttID);
-    mgr.AddNameComponent(enttID, "terrain_geomipmap");
-    mgr.AddBoundingComponent(enttID, aabb);
-    mgr.AddMaterialComponent(enttID, terrain.materialID_);
+    mgr.AddTransformComponent(enttId);
+    mgr.AddNameComponent     (enttId, "terrain_geomipmap");
+    mgr.AddBoundingComponent (enttId, aabb);
+    mgr.AddMaterialComponent (enttId, terrain.materialID_);
 }
 
 //---------------------------------------------------------
@@ -2297,28 +2303,6 @@ void GenerateEntities(
     sphere.SetLodDistance(LOD_1, 10);
     sphere.SetLodDistance(LOD_2, 20);
 
-#if 0
-    printf("\n\n");
-    printf("sphere's LODs:\n");
-
-    ModelID lod1 = sphere.GetLod(LOD_1);
-    ModelID lod2 = sphere.GetLod(LOD_2);
-
-    uint16 lod1Dist = sphere.GetLodDistance(LOD_1);
-    uint16 lod2Dist = sphere.GetLodDistance(LOD_2);
-
-    const BasicModel& lod1_model = g_ModelMgr.GetModelById(lod1);
-    const BasicModel& lod2_model = g_ModelMgr.GetModelById(lod2);
-
-    const char* lod1_name = lod1_model.name_;
-    const char* lod2_name = lod2_model.name_;
-
-    printf("LOD_1: (id: %d), (name: %s), (dist: %d)\n", (int)lod1, lod1_name, (int)lod1Dist);
-    printf("LOD_2: (id: %d), (name: %s), (dist: %d)\n", (int)lod2, lod2_name, (int)lod2Dist);
-
-    exit(0);
-#endif
-
     // manual setup of some models
     cube.SetMaterialForSubset(0, g_MaterialMgr.GetMatIdByName("box01"));
     sphere.SetMaterialForSubset(0, g_MaterialMgr.GetMatIdByName("gigachad"));
@@ -2329,6 +2313,63 @@ void GenerateEntities(
     
     CreateSpheres(mgr, sphere);
     //CreateCylinders(mgr, cylinder);
+
+
+    // create a cross entity (2D sprite)
+    const TexID    crossTexId       = g_TextureMgr.LoadFromFile("data/textures/crosshair.png");
+    const TexID    radiationTexId   = g_TextureMgr.LoadFromFile("data/textures/ui_mn_radiations_hard.dds");
+    const TexID    starvTexId       = g_TextureMgr.LoadFromFile("data/textures/ui_mn_starvation_hard.dds");
+    const TexID    woundTexId       = g_TextureMgr.LoadFromFile("data/textures/ui_mn_wounds_hard.dds");
+
+    const EntityID crossId          = mgr.CreateEntity();
+    const EntityID radiationIconId  = mgr.CreateEntity();
+    const EntityID starvationIconId = mgr.CreateEntity();
+    const EntityID woundsIconId     = mgr.CreateEntity();
+
+
+    const uint16 screenW = (uint16)render.GetD3D().GetWindowWidth();
+    const uint16 screenH = (uint16)render.GetD3D().GetWindowHeight();
+
+    const uint16 screenCX = screenW / 2;
+    const uint16 screenCY = screenH / 2;
+
+    const uint16 crossW = 48;
+    const uint16 crossH = 48;
+
+    const uint16 iconW = 64;
+    const uint16 iconH = 64;
+
+    const uint16 paddingW = 0;
+    const uint16 paddingH = 10;
+
+    uint16 left = 0; 
+    uint16 top  = 0; 
+
+
+    // init a "cross" sprite
+    left = screenCX - crossW / 2;
+    top  = screenCY - crossH / 2;
+
+    mgr.AddNameComponent(crossId, "cross_sprite");
+    mgr.AddSpriteComponent(crossId, crossTexId, left, top, crossW, crossH);
+
+
+    // init a "radiation icon" sprite
+    left = screenW - paddingW - iconW;
+    top  = screenH - paddingH - iconH - 30;
+
+    mgr.AddNameComponent(radiationIconId, "radiation_sprite");
+    mgr.AddSpriteComponent(radiationIconId, radiationTexId, left, top, iconW, iconH);
+
+    // init a "starvation icon" sprite
+    top -= (paddingH + iconH);
+    mgr.AddNameComponent(starvationIconId, "starvation_sprite");
+    mgr.AddSpriteComponent(starvationIconId, starvTexId, left, top, iconW, iconH);
+
+    // init a "wounds icon" sprite
+    top -= (paddingH + iconH);
+    mgr.AddNameComponent(woundsIconId, "wounds_sprite");
+    mgr.AddSpriteComponent(woundsIconId, woundTexId, left + 7, top, iconW, iconH);
 }
 
 //---------------------------------------------------------
@@ -2360,23 +2401,6 @@ bool GameInitializer::InitModelEntities(
         CreateTerrainGeomip(mgr, render, terrainConfigPath);
 
         ImportExternalModels(mgr, render, *pConfigs);
-
-#if 0
-        ModelsCreator creator;
-
-        creator.ImportFromFile(render.GetDevice(), "data/models/ext/nanosuit/nanosuit.obj");
-        const ModelID modelId = creator.ImportFromFile(render.GetDevice(), "data/models/ext/stalker_freedum_1/stalker_freedum_1.fbx");
-        const TexID blankNormId = g_TextureMgr.GetTexIdByName("blank_NRM");
-        BasicModel& model = g_ModelMgr.GetModelById(modelId);
-        Core::Subset* subsets = model.GetSubsets();
-
-        Material& mat0 = g_MaterialMgr.GetMatById(subsets[0].materialId);
-        Material& mat1 = g_MaterialMgr.GetMatById(subsets[1].materialId);
-
-        mat0.SetTexture(TEX_TYPE_NORMALS, blankNormId);
-        mat1.SetTexture(TEX_TYPE_NORMALS, blankNormId);
-#endif
-
 
         g_ModelMgr.GetSkyPlane().Init("data/sky_plane.cfg");
     }

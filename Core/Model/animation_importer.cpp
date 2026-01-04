@@ -141,11 +141,11 @@ void AnimationImporter::LoadSkeletonAnimations(
     int totalIndices = 0;
     int totalBones = 0;
 
-    const uint skeletonId  = g_AnimationMgr.AddSkeleton(skeletonName);
+    const uint skeletonId = g_AnimationMgr.AddSkeleton(skeletonName);
     AnimSkeleton& skeleton = g_AnimationMgr.GetSkeleton(skeletonId);
 
-    CalculateMeshData  (pScene,  skeleton, totalVertices, totalIndices, totalBones);
-    GatherBonesData    (pScene,  skeleton, totalVertices, totalBones);
+    CalculateMeshData(pScene, skeleton, totalVertices, totalIndices, totalBones);
+    GatherBonesData(pScene, skeleton, totalVertices, totalBones);
     InitSkeletonBonesVB(skeleton);
 
     // if we have any animations...
@@ -162,7 +162,7 @@ void AnimationImporter::LoadSkeletonAnimations(
         LoadBonesHierarchy(pScene, skeleton);
     }
 
-    skeleton.DumpBoneParents();
+    //skeleton.DumpBoneParents();
 }
 
 //---------------------------------------------------------
@@ -218,7 +218,7 @@ void CalculateMeshData(
 {
     // reset output agrs
     outTotalVerts = 0;
-    outTotalIdxs  = 0;
+    outTotalIdxs = 0;
     outTotalBones = 0;
 
     printf("Parsing %d meshes\n\n", pScene->mNumMeshes);
@@ -227,24 +227,24 @@ void CalculateMeshData(
 
     for (uint i = 0; i < pScene->mNumMeshes; ++i)
     {
-        const aiMesh* pMesh         = pScene->mMeshes[i];
-        const int numVertices       = pMesh->mNumVertices;
-        const int numIndices        = pMesh->mNumFaces * 3;
-        const int numBones          = pMesh->mNumBones;
-        skeleton.meshBaseVertex[i]  = outTotalVerts;
+        const aiMesh* pMesh = pScene->mMeshes[i];
+        const int numVertices = pMesh->mNumVertices;
+        const int numIndices = pMesh->mNumFaces * 3;
+        const int numBones = pMesh->mNumBones;
+        skeleton.meshBaseVertex[i] = outTotalVerts;
 
         printf("  Mesh_%d: %-32s vertices %d, indices %d, bones %d\n",
             i, pMesh->mName.C_Str(), numVertices, numIndices, numBones);
 
         outTotalVerts += numVertices;
-        outTotalIdxs  += numIndices;
+        outTotalIdxs += numIndices;
         outTotalBones += numBones;
     }
 
     printf("\nTotal vertices %d, indices %d, bones %d\n\n",
-            outTotalVerts,
-            outTotalIdxs,
-            outTotalBones);
+        outTotalVerts,
+        outTotalIdxs,
+        outTotalBones);
 }
 
 //---------------------------------------------------------
@@ -317,7 +317,7 @@ void LoadSingleBone(
     // store weights + bone ids
     for (uint i = 0; i < pBone->mNumWeights; ++i)
     {
-        const aiVertexWeight&  vw = pBone->mWeights[i];
+        const aiVertexWeight& vw = pBone->mWeights[i];
         const uint globalVertexId = skeleton.meshBaseVertex[meshIdx] + vw.mVertexId;
 
         // debug info
@@ -334,16 +334,14 @@ void LoadSingleBone(
 //---------------------------------------------------------
 void InitSkeletonBonesVB(AnimSkeleton& skeleton)
 {
-    const VertexBoneData* bonesWeights = skeleton.vertexToBones.data();
+    ID3D11Device*         pDevice         = Render::g_pDevice;
+    const VertexBoneData* bonesWeights    = skeleton.vertexToBones.data();
     const int             numBonesWeights = (int)skeleton.vertexToBones.size();
-    const bool            isDynamicVB = false;
-
-    ID3D11Device* pDevice = Render::g_pDevice;
+    const bool            isDynamicVB     = false;
 
     if (!skeleton.bonesVB_.Initialize(pDevice, bonesWeights, numBonesWeights, isDynamicVB))
     {
         LogErr(LOG, "can't init bones VB for skeleton: %s", skeleton.GetName());
-        return;
     }
 }
 
@@ -372,6 +370,9 @@ void AddAnimationsToSkeleton(
     {
         LoadAnimation(pScene, pScene->mAnimations[animIdx], animIdx, skeleton);
     }
+
+    //if (strcmp(skeleton.name_, "ak_74_hud") == 0)
+    //    skeleton.DumpAnimations();
 }
 
 //---------------------------------------------------------
@@ -386,7 +387,7 @@ void HandleAnimationName(
     assert(pAiAnim);
     assert(outName);
 
-    char animName[MAX_LEN_ANIMATION_NAME]{'\0'};
+    char animName[MAX_LEN_ANIMATION_NAME]{ '\0' };
     const char* aiAnimName = pAiAnim->mName.C_Str();
 
     // if for some reason original name of animation is empty...
@@ -422,23 +423,24 @@ void LoadAnimation(
 {
     assert(pScene);
     assert(pAiAnim);
-   
+
     char animName[MAX_LEN_ANIMATION_NAME]{ '\0' };
     HandleAnimationName(pAiAnim, skeleton, animIdx, (char*)&animName);
 
     const uint        animId = skeleton.AddAnimation(animName);
     AnimationClip& animation = skeleton.GetAnimation(animId);
     animation.boneAnimations.resize(skeleton.GetNumBones());
-    
+
     // animation common stats
     float ticksPerSecond = 25.0f;
     if (pAiAnim->mTicksPerSecond != 0)
         ticksPerSecond = (float)pAiAnim->mTicksPerSecond;
 
     float animDurationInTicks = (float)pAiAnim->mDuration;
-    float timeMsPerTick       = 1000.0f / ticksPerSecond;
-    float animDurationMs      = timeMsPerTick * animDurationInTicks;
+    float timeMsPerTick = 1000.0f / ticksPerSecond;
+    float animDurationMs = timeMsPerTick * animDurationInTicks;
 
+#if 0
     printf("\n\n");
     printf("*** load animation:     %s\n", animName);
     printf("    ticks per sec:      %f\n", ticksPerSecond);
@@ -446,6 +448,7 @@ void LoadAnimation(
     printf("    duration (ticks):   %f\n", animDurationInTicks);
     printf("    duration (sec):     %f\n", animDurationMs * 0.001f);
     printf("\n");
+#endif
 
     animation.framerate = ticksPerSecond;
 
@@ -484,21 +487,21 @@ void ReadNodeHierarchyAndAnimation(
 
     // bone has the same name as the related node
     const char* nodeName = pNode->mName.C_Str();
-    const int   boneId   = skeleton.GetBoneIdByName(nodeName);
+    const int   boneId = skeleton.GetBoneIdByName(nodeName);
 
     // if we have a bone...
     if (boneId != -1)
     {
         const char* parentNodeName = pNode->mParent->mName.C_Str();
-        const int   parentBoneId   = skeleton.GetBoneIdByName(parentNodeName);
+        const int   parentBoneId = skeleton.GetBoneIdByName(parentNodeName);
 
-        skeleton.boneHierarchy_[boneId]       = parentBoneId;
+        skeleton.boneHierarchy_[boneId] = parentBoneId;
         skeleton.boneTransforms_[boneId] = DirectX::XMMatrixTranspose(nodeTransform);
     }
 
 
     const aiAnimation* pAnimation = pScene->mAnimations[animIdx];
-    const aiNodeAnim*  pNodeAnim  = FindNodeAnim(pAnimation, nodeName);
+    const aiNodeAnim* pNodeAnim = FindNodeAnim(pAnimation, nodeName);
 
     // if we have a bone and animation for it we load its keyframes
     if (boneId != -1 && pNodeAnim)
@@ -509,6 +512,9 @@ void ReadNodeHierarchyAndAnimation(
             ticksPerSecond,
             pNodeAnim,
             animation);
+
+        //if (strcmp(skeleton.name_, "ak_74_hud") == 0 && (animIdx == 2))
+        //ô    skeleton.DumpKeyframes(skeleton.animNames_[animIdx].name, boneId);
     }
 
     // recursively go down to the node's children
@@ -545,16 +551,23 @@ void LoadBoneAnimationKeyframes(
     assert(animDurationInTicks > 0);
 
 
-    const uint numKeyframes      = (uint)animDurationInTicks;
+#if 1
+    const uint numKeyframes = (uint)animDurationInTicks;
+#else
+    uint numKeyframes = 0;
+    numKeyframes = max(numKeyframes, pNodeAnim->mNumPositionKeys);
+    numKeyframes = max(numKeyframes, pNodeAnim->mNumRotationKeys);
+#endif
+
     cvector<Keyframe>& keyframes = animation.boneAnimations[boneId].keyframes;
     keyframes.resize(numKeyframes);
 
-#if 0
+#if 1
     // calc timings (us - micro seconds)
-    uint usInSec                = 1000 * 1000;
-    uint usFrameDuration        = usInSec / (uint)ticksPerSecond;
-    uint usTimePos              = 0;
-    uint usAnimDuration         = usFrameDuration * numKeyframes;
+    uint usInSec = 1000 * 1000;
+    uint usFrameDuration = usInSec / (uint)ticksPerSecond;
+    uint usTimePos = 0;
+    uint usAnimDuration = usFrameDuration * numKeyframes;
 
     float keyframeDurationSec = (1000.0f / ticksPerSecond) * 0.001f;
     float animDurationSec = keyframeDurationSec * numKeyframes;
@@ -563,6 +576,7 @@ void LoadBoneAnimationKeyframes(
     // for debug
     // printf("   load %u keyframes for bone [%d] '%s'       time[%.5f, %.5f]\n", (uint)animDurationInTicks, boneId, nodeName, animation.startTime, animation.endTime);
 
+    float timePos = 0;
     float tick = 0;
 
     // create data for each keyframe
@@ -572,16 +586,13 @@ void LoadBoneAnimationKeyframes(
 
         aiVector3D   pos;
         aiQuaternion rotQ;
-        //aiVector3D   scale;
 
         CalcInterpolatedTranslation(tick, pNodeAnim, pos);
         CalcInterpolatedRotation   (tick, pNodeAnim, rotQ);
-        //CalcInterpolatedScaling    (tick, pNodeAnim, scale);
 
-        Keyframe& keyframe   = animation.boneAnimations[boneId].keyframes[i];
-        //keyframe.scale       = scale.x;                     // uniform scale
-        keyframe.translation = { pos.x, pos.y, pos.z };
-        keyframe.rotQuat     = { rotQ.x, rotQ.y, rotQ.z, rotQ.w };
+        keyframes[i].timePos     = timePos;
+        keyframes[i].translation = { pos.x, pos.y, pos.z };
+        keyframes[i].rotQuat     = { rotQ.x, rotQ.y, rotQ.z, rotQ.w };
 
 #if 0
         // debug
@@ -593,9 +604,9 @@ void LoadBoneAnimationKeyframes(
             scale.x);
 #endif
 
-        //usTimePos += usFrameDuration;
-        //timePos += keyframeDurationSec;
-        //timePos = (((float)(usTimePos) * 0.001f) * 0.001f);
+        usTimePos += usFrameDuration;
+        timePos += keyframeDurationSec;
+        timePos = (((float)(usTimePos) * 0.001f) * 0.001f);
 
         tick += 1.0f;
 
@@ -660,15 +671,15 @@ void ReadNodeHierarchy(
     AiToXmMatrix(pNode->mTransformation, nodeTransform);
 
     const char* nodeName = pNode->mName.C_Str();
-    const int   boneId   = skeleton.GetBoneIdByName(nodeName);
+    const int   boneId = skeleton.GetBoneIdByName(nodeName);
 
     // if we have a bone...
     if (boneId != -1)
     {
         const char* parentNodeName = pNode->mParent->mName.C_Str();
-        const int   parentBoneId   = skeleton.GetBoneIdByName(parentNodeName);
+        const int   parentBoneId = skeleton.GetBoneIdByName(parentNodeName);
 
-        skeleton.boneHierarchy_[boneId]       = parentBoneId;
+        skeleton.boneHierarchy_[boneId] = parentBoneId;
         skeleton.boneTransforms_[boneId] = DirectX::XMMatrixTranspose(nodeTransform);
     }
 
@@ -759,14 +770,14 @@ void CalcInterpolatedTranslation(
     const uint idxNext = idxCurr + 1;
     assert(idxNext < pNodeAnim->mNumPositionKeys);
 
-    const float t1     = (float)pNodeAnim->mPositionKeys[idxCurr].mTime;
-    const float t2     = (float)pNodeAnim->mPositionKeys[idxNext].mTime;
-    const float dt     = t2 - t1;
+    const float t1 = (float)pNodeAnim->mPositionKeys[idxCurr].mTime;
+    const float t2 = (float)pNodeAnim->mPositionKeys[idxNext].mTime;
+    const float dt = t2 - t1;
     const float factor = (animTimeTicks - t1) / dt;
     assert(factor >= 0.0f && factor <= 1.0f);
 
     const aiVector3D& start = pNodeAnim->mPositionKeys[idxCurr].mValue;
-    const aiVector3D& end   = pNodeAnim->mPositionKeys[idxNext].mValue;
+    const aiVector3D& end = pNodeAnim->mPositionKeys[idxNext].mValue;
 
     aiVector3D delta = end - start;
     out = start + factor * delta;
@@ -793,14 +804,14 @@ void CalcInterpolatedRotation(
     const uint idxNext = idxCurr + 1;
     assert(idxNext < pNodeAnim->mNumRotationKeys);
 
-    const float t1     = (float)pNodeAnim->mRotationKeys[idxCurr].mTime;
-    const float t2     = (float)pNodeAnim->mRotationKeys[idxNext].mTime;
-    const float dt     = t2 - t1;
+    const float t1 = (float)pNodeAnim->mRotationKeys[idxCurr].mTime;
+    const float t2 = (float)pNodeAnim->mRotationKeys[idxNext].mTime;
+    const float dt = t2 - t1;
     const float factor = (animTimeTicks - t1) / dt;
     assert(factor >= 0.0f && factor <= 1.0f);
 
     const aiQuaternion& startRotQ = pNodeAnim->mRotationKeys[idxCurr].mValue;
-    const aiQuaternion& endRotQ   = pNodeAnim->mRotationKeys[idxNext].mValue;
+    const aiQuaternion& endRotQ = pNodeAnim->mRotationKeys[idxNext].mValue;
     aiQuaternion::Interpolate(out, startRotQ, endRotQ, factor);
     out.Normalize();
 }
@@ -826,14 +837,14 @@ void CalcInterpolatedScaling(
     const uint idxNext = idxCurr + 1;
     assert(idxNext < pNodeAnim->mNumScalingKeys);
 
-    const float t1     = (float)pNodeAnim->mScalingKeys[idxCurr].mTime;
-    const float t2     = (float)pNodeAnim->mScalingKeys[idxNext].mTime;
-    const float dt     = t2 - t1;
+    const float t1 = (float)pNodeAnim->mScalingKeys[idxCurr].mTime;
+    const float t2 = (float)pNodeAnim->mScalingKeys[idxNext].mTime;
+    const float dt = t2 - t1;
     const float factor = (animTimeTicks - t1) / dt;
     assert(factor >= 0.0f && factor <= 1.0f);
 
     const aiVector3D& start = pNodeAnim->mScalingKeys[idxCurr].mValue;
-    const aiVector3D& end   = pNodeAnim->mScalingKeys[idxNext].mValue;
+    const aiVector3D& end = pNodeAnim->mScalingKeys[idxNext].mValue;
 
     aiVector3D delta = end - start;
     out = start + factor * delta;

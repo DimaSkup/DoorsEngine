@@ -71,6 +71,17 @@ namespace ConstBufType
 
     // ----------------------------------------------------
 
+    // 2D sprite
+    struct Sprite
+    {
+        float left   = 0;
+        float top    = 0;
+        float width  = 100;
+        float height = 100;
+    };
+
+    // ----------------------------------------------------
+
     struct Sky
     {
         float cloud1TranslationX = 0;

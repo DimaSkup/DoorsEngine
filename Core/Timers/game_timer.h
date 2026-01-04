@@ -30,7 +30,7 @@ public:
     float GetGameTime()  const;
     float GetDeltaTime() const;
 
-    TimePoint GetTimePoint() const;
+    static TimePoint GetTimePoint();
 
     void Reset();  // is called before message loop
     void Start();  // is called when unpaused
@@ -61,7 +61,7 @@ inline float GameTimer::GetDeltaTime() const
 //---------------------------------------------------------
 // Desc:  get current point of time (aka timestamp)
 //---------------------------------------------------------
-inline TimePoint GameTimer::GetTimePoint() const
+inline TimePoint GameTimer::GetTimePoint()
 {
     return std::chrono::steady_clock::now();
 }

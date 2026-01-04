@@ -20,15 +20,27 @@
 namespace ECS
 {
 
-struct AnimData
+enum eAnimationPlayback : uint8
 {
-    SkeletonID  skeletonId  = 0;        // id of a skeleton bounded to the entity
-    AnimationID currAnimId  = 0;        // id (idx) of current animation
-    float       timePos     = 0;        // current animation time
-    float       endTime     = 0;        // end time of animation after which we reset timePos to zero
-    bool        isRepeated  = true;
+    ANIM_PLAY_LOOP,
+    ANIM_PLAY_ONCE,
+    ANIM_PLAY_PINGPONG,   // will play the animation forward, then backward, and then start over
 };
 
+//---------------------------------------------------------
+//---------------------------------------------------------
+
+struct AnimData
+{
+    SkeletonID         skeletonId  = 0;                // id of a skeleton bounded to the entity
+    AnimationID        currAnimId  = 0;                // id (idx) of current animation
+    float              timePos     = 0;                // current animation time
+    float              endTime     = 0;                // end time of animation after which we reset timePos to zero
+    eAnimationPlayback playback    = ANIM_PLAY_LOOP;
+};
+
+//---------------------------------------------------------
+//---------------------------------------------------------
 struct Animations
 {
     Animations()

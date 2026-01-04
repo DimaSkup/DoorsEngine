@@ -76,6 +76,8 @@ public:
         const DirectX::ScratchImage& image,
         const DirectX::DDS_FLAGS flags,
         const fs::path& dstPath);
+
+    bool CalcNumMipLevels(const DirectX::ScratchImage& img, size_t& mipLevels);
 };
 
 }

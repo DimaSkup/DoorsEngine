@@ -306,14 +306,11 @@ void UserInterface::LoadDebugInfoStringFromFile(
 // ====================================================================================
 // Rendering API
 // ====================================================================================
-void UserInterface::RenderGameUI(
-    ID3D11DeviceContext* pContext,
-    Render::CRender& render,
-    Core::SystemState& systemState)
+void UserInterface::RenderGameUI(Render::CRender& render, Core::SystemState& sysState)
 {
     // print onto the screen some debug info
-    if (systemState.isShowDbgInfo)
-        RenderDebugInfo(render, systemState);
+    if (sysState.isShowDbgInfo)
+        RenderDebugInfo(render, sysState);
 }
 
 //---------------------------------------------------------

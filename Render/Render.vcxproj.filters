@@ -192,6 +192,9 @@
     <FxCompile Include="hlsl\terrain_mid_lod_VS.hlsl" />
     <FxCompile Include="hlsl\terrain_low_lod_VS.hlsl" />
     <FxCompile Include="hlsl\terrain_low_lod_PS.hlsl" />
+    <FxCompile Include="hlsl\spriteVS.hlsl" />
+    <FxCompile Include="hlsl\spriteGS.hlsl" />
+    <FxCompile Include="hlsl\spritePS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="hlsl\LightHelper.hlsli" />
@@ -220,5 +223,6 @@
     <None Include="hlsl\const_buffers\post_fx_params_enum.hlsli" />
     <None Include="hlsl\color.hlsli" />
     <None Include="hlsl\const_buffers\cbvs_skinned.hlsli" />
+    <None Include="hlsl\const_buffers\cbvs_sprite.hlsli" />
   </ItemGroup>
 </Project>

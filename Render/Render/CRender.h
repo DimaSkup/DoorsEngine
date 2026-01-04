@@ -121,6 +121,9 @@ public:
     //                                  Rendering
     // ================================================================================
 
+    void PushSpriteToRender(const Render::Sprite2D& sprite);
+    void Render2dSprites();
+
     void RenderInstances(
         const InstanceBatch& instances,
         const UINT startInstanceLocation);
@@ -277,6 +280,7 @@ public:
     ConstantBuffer<ConstBufType::WorldViewOrtho>    cbvsWorldViewOrtho_;
     ConstantBuffer<ConstBufType::WorldInvTranspose> cbvsWorldInvTranspose_;
     ConstantBuffer<ConstBufType::Skinned>           cbvsSkinned_;
+    ConstantBuffer<ConstBufType::Sprite>            cbvsSprite_;
 
     // const buffers for geometry shaders
     ConstantBuffer<ConstBufType::GrassParams>       cbgsGrassParams_;
@@ -309,6 +313,9 @@ public:
 
 private:
     ShaderMgr* pShaderMgr_ = nullptr;
+
+    Sprite2D spritesRenderList_[32];
+    int      numSpritesToRender_ = 0;
 };
 
 }; // namespace Render

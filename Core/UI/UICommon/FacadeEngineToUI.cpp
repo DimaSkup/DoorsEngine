@@ -344,9 +344,8 @@ bool FacadeEngineToUI::SetEnttSkeletonAnimation(const EntityID enttId, const Ani
     const SkeletonID      skeletonId     = animSys.GetSkeletonId(enttId);
     const AnimSkeleton&   skeleton       = g_AnimationMgr.GetSkeleton(skeletonId);
     const AnimationClip&  anim           = skeleton.GetAnimation(animId);
-    const bool            isAnimRepeated = true;
 
-    return animSys.SetAnimation(enttId, animId, anim.GetEndTime(), isAnimRepeated);
+    return animSys.SetAnimation(enttId, animId, anim.GetEndTime(), ECS::ANIM_PLAY_LOOP);
 }
 
 //---------------------------------------------------------

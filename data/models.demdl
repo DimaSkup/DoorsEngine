@@ -22,4 +22,7 @@
 27 vehicle/mi28/mi28.de3d
 28 furniture/tumba_village/tumba_village_1.de3d
 29 furniture/tumba_village/tumba_village_2.de3d
-30 ak_74_hud/ak_74_hud_static.de3d
+30 weapon/ak_74_hud/ak_74_hud.de3d
+31 weapon/wpn_pm_hud/wpn_pm_hud.de3d
+32 weapon/wpn_bm-16_hud/wpn_bm-16_hud.de3d
+33 boblampclean/boblampclean.de3d

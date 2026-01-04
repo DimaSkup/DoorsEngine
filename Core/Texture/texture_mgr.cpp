@@ -631,7 +631,7 @@ ID3D11ShaderResourceView* TextureMgr::GetTexViewsById(const TexID texId)
     const index idx = ids_.get_idx(texId);
 
     if (IsIdxValid(idx))
-        shaderResourceViews_[idx];
+        return shaderResourceViews_[idx];
 
     return shaderResourceViews_[INVALID_TEXTURE_ID];
 }

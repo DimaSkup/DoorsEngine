@@ -26,22 +26,28 @@ public:
     AnimationMgr();
 
     bool Init();
-    void Update(const float dt, const char* skeletonName, const char* animName);
 
-    SkeletonID AddSkeleton  (const char* name);
-    SkeletonID GetSkeletonId(const char* name);
+    SkeletonID      AddSkeleton         (const char* name);
+    SkeletonID      GetSkeletonId       (const char* name);
 
-    AnimSkeleton& GetSkeleton(const uint id);
-    AnimSkeleton& GetSkeleton(const char* name);
+    AnimSkeleton&   GetSkeleton         (const SkeletonID id);
+    AnimSkeleton&   GetSkeleton         (const char* name);
 
-    void SetSkeletonNameById(const uint id, const char* name);
+    bool            RemoveSkeleton      (const SkeletonID id);
+    void            SetSkeletonNameById (const SkeletonID id, const char* name);
+
+    uint            GetNumSkeletons     (void) const;
 
     // for debug
-    void DumpSkeletons();
+    void            DumpSkeletons();
+
+private:
+    index           GetIdx(const SkeletonID id) const;
 
 public:
-    cvector<AnimSkeleton> skeletons_;
-    cvector<SkeletonName> names_;
+    cvector<SkeletonID>    ids_;
+    cvector<SkeletonName>  names_;
+    cvector<AnimSkeleton*> skeletons_;
 };
 
 //---------------------------------------------------------

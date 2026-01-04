@@ -32,6 +32,7 @@ struct Keyframe
 {
     Keyframe();
 
+    float timePos;
     DirectX::XMFLOAT3 translation;
     DirectX::XMFLOAT4 rotQuat;        // rotation quaternion
 };

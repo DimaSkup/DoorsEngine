@@ -143,6 +143,9 @@ bool CRender::InitConstBuffers(
         hr = cbvsSkinned_.Init(pDevice);
         CAssert::NotFailed(hr, "can't init a const buffer (model skinning/animation)");
 
+        hr = cbvsSprite_.Init(pDevice);
+        CAssert::NotFailed(hr, "can't init a const buffer (2D sprites)");
+
 
         // INIT CONST BUFFERS FOR GEOMETRY SHADERS ------------------
 
@@ -290,6 +293,7 @@ bool CRender::InitConstBuffers(
         cbvsWorldViewOrtho_.ApplyChanges(pContext);
         cbvsWorldInvTranspose_.ApplyChanges(pContext);
         cbvsSkinned_.ApplyChanges(pContext);
+        cbvsSprite_.ApplyChanges(pContext);
 
         cbgsGrassParams_.ApplyChanges(pContext);
 
@@ -314,7 +318,7 @@ bool CRender::InitConstBuffers(
             cbvsWorldViewOrtho_.Get(),              // slot_2: (for 2D rendering) world * basicView * ortho matrix 
             cbvsWorldInvTranspose_.Get(),           // slot_3: world inverse transpose
             cbvsSkinned_.Get(),                     // slot_4: bones transformations (model skinning)
-            nullptr,                                // slot_5:
+            cbvsSprite_.Get(),                      // slot_5: 2D sprites
             nullptr,                                // slot_6:
             nullptr,                                // slot_7:
             cbDebug_.Get(),                         // slot_8: different stuff for debugging
@@ -559,6 +563,9 @@ void CRender::Update()
         cbpsPostFx_.ApplyChanges(Render::g_pContext);
         isChangedPostFxs_ = false;
     }
+
+    // each frame we reset sprites render list
+    numSpritesToRender_ = 0;
 }
 
 //---------------------------------------------------------
@@ -724,6 +731,41 @@ void CRender::RenderSkyDome(
     // bind shader and render sky
     BindShaderByName("SkyDomeShader");
     pShaderMgr_->Render(GetContext(), sky.indexCount);
+}
+
+//---------------------------------------------------------
+// Desc:  push a new sprite into the sprites render list
+//---------------------------------------------------------
+void CRender::PushSpriteToRender(const Render::Sprite2D& sprite)
+{
+    if (sprite.pSRV == nullptr)
+        return;
+
+    spritesRenderList_[numSpritesToRender_++] = sprite;
+}
+
+//---------------------------------------------------------
+// Desc:  render 2D sprites onto the screen
+//---------------------------------------------------------
+void CRender::Render2dSprites()
+{
+    BindShaderByName("SpriteShader");
+    ID3D11DeviceContext* pContext = GetContext();
+
+    for (int i = 0; i < numSpritesToRender_; ++i)
+    {
+        const Sprite2D& sprite = spritesRenderList_[i];
+
+        // update params which we will use to generate a 2D sprite (in geometry shader)
+        cbvsSprite_.data.left   = sprite.left;
+        cbvsSprite_.data.top    = sprite.top;
+        cbvsSprite_.data.width  = sprite.width;
+        cbvsSprite_.data.height = sprite.height;
+        cbvsSprite_.ApplyChanges(pContext);
+
+        pContext->PSSetShaderResources(101U, 1, &sprite.pSRV);  // bind texture
+        pContext->Draw(1, 0);                                   // render
+    }
 }
 
 //---------------------------------------------------------

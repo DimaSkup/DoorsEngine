@@ -389,6 +389,14 @@
 			"vs":             "terrain_low_lod_VS",
 			"ps":             "terrain_low_lod_PS",
 			"input_layout":   "TerrainPos"
+		},
+		{
+			"id":             54,
+			"name":           "SpriteShader",
+			"vs":             "spriteVS",
+			"gs":             "spriteGS",
+			"ps":             "spritePS",
+			"input_layout":   "None"
 		}
 	]
 }

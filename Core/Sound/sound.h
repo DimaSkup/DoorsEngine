@@ -16,9 +16,7 @@
 #pragma once
 #include "direct_sound.h"
 
-//---------------------------
-// Class name:  Sound
-//---------------------------
+
 namespace Core
 {
 
@@ -62,8 +60,6 @@ public:
     bool StopTrack();
 
     inline IDirectSoundBuffer8* GetBuffer() const { return pSecondaryBuffer_; }
-
-    
 
 private:
     bool LoadStereoWaveFile(IDirectSound8* pDirectSound, const char* filename, const long volume);

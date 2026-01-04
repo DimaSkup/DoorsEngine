@@ -11,7 +11,9 @@
 
 #include "../Texture/texture_mgr.h"
 #include "../Model/model_mgr.h"
+#include "../Sound/sound_mgr.h"
 
+#include <psapi.h>
 
 #pragma warning (disable : 4996)
 
@@ -145,6 +147,12 @@ void Engine::Init(
         exit(0);
     }
 
+    if (!g_SoundMgr.Init("data/sounds/sounds.cfg", GetHWND()))
+    {
+        LogErr(LOG, "can't init a sounds manager");
+        exit(0);
+    }
+
     LogMsg(LOG, "is initialized!");
 }
 
@@ -263,10 +271,9 @@ void Engine::Update(const float deltaTime, const float gameTime)
     CalculateFrameStats();
 
     // handle keyboard imput
-    if (keyboard_.IsAnyPressed() || keyboard_.HasReleasedEvents())
+    if (systemState_.isEditorMode && (keyboard_.IsAnyPressed() || keyboard_.HasReleasedEvents()))
     {
-        if (systemState_.isEditorMode)
-            HandleEditorEventKeyboard(pUserInterface_, pEnttMgr_);
+        HandleEditorEventKeyboard();
     }
 
     // update the entities and related data
@@ -286,8 +293,6 @@ void Engine::Update(const float deltaTime, const float gameTime)
         else
             TurnOnGameMode();
     }
-
-  
 }
 
 //---------------------------------------------------------
@@ -378,8 +383,8 @@ void Engine::CalculateFrameStats()
         frameCount = 0;
         ++timeElapsed;
 
-        // print FPS/frame_time as the window caption
-#if 0
+        // print FPS, frame_time, used RAM as the window caption
+#if 1
         PROCESS_MEMORY_COUNTERS pmc;
         DWORD processID;
         GetWindowThreadProcessId(hwnd_, &processID);
@@ -389,13 +394,17 @@ void Engine::CalculateFrameStats()
         
         GetProcessMemoryInfo(hProcess, &pmc, sizeof(pmc));
 
-        std::wostringstream outs;
-        outs.precision(6);
-        outs << windowTitle_ << L" "
-             << L"FPS: " << systemState_.fps << L" "
-             << L"Frame Time: " << systemState_.frameTime << L" (ms); "
-             << L"RAM Usage: " << pmc.WorkingSetSize / 1024 / 1024 << L" (mb)";
-        SetWindowText(hwnd_, outs.str().c_str());		
+        // in MB
+        const size_t usageRAM = pmc.WorkingSetSize / 1024 / 1024;
+
+        char buf[256]; 
+        sprintf(buf, "%s  FPS: %d  Frame time: %f (ms)   RAM Usage:  %zu (mb)",
+            windowTitle_.c_str(),
+            systemState_.fps,
+            systemState_.frameTime,
+            usageRAM);
+
+        SetWindowTextA(hwnd_, buf);		
 #endif
     }
 }
@@ -499,7 +508,6 @@ void Engine::RenderUI(UI::UserInterface* pUI, Render::CRender* pRender)
     ID3D11DeviceContext* pContext = d3d.GetDeviceContext();
 
     // preparation before 2D rendering
-    pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     d3d.GetRenderStates().ResetDSS(pContext);
     d3d.TurnZBufferOff();
     d3d.TurnOnBlending(Render::R_ALPHA_ENABLE);
@@ -508,6 +516,8 @@ void Engine::RenderUI(UI::UserInterface* pUI, Render::CRender* pRender)
 
     if (systemState_.isEditorMode)
     {
+        pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
         // all render the scene view space and gizmos (if any entt is selected)
         pUI->RenderSceneWnd(systemState_);
 
@@ -518,7 +528,6 @@ void Engine::RenderUI(UI::UserInterface* pUI, Render::CRender* pRender)
         ImVec4* colors = ImGui::GetStyle().Colors;
         colors[ImGuiCol_WindowBg] = imGuiLayer_.GetBackgroundColor();
 
-        
         pUI->RenderEditor(systemState_);
 
         // reset: ImGui window bg color to fully invisible since we
@@ -529,7 +538,11 @@ void Engine::RenderUI(UI::UserInterface* pUI, Render::CRender* pRender)
     // we're in the game mode
     else
     {
-        pUI->RenderGameUI(pContext, *pRender, systemState_);
+        pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+        pRender_->Render2dSprites();
+
+        pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        pUI->RenderGameUI(*pRender, systemState_);
     }
 
     // reset after 2D rendering
@@ -722,7 +735,7 @@ void HandleEditorCameraMovement(
 //---------------------------------------------------------
 // Desc:   a handler for keyboard events when we're in the editor mode
 //---------------------------------------------------------
-void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr)
+void Engine::HandleEditorEventKeyboard(void)
 {
     // go through each currently pressed key and handle related events
     for (const eKeyCodes code : keyboard_.GetPressedKeysList())
@@ -738,7 +751,7 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
             case KEY_SHIFT:
             {
                 //player.SetIsRunning(true);
-                pUI->UseSnapping(true);
+                pUserInterface_->UseSnapping(true);
                 break;
             }
             // case (keys 0-3): switch the number of directional lights
@@ -760,15 +773,15 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
             }
             case KEY_S:
             {
-                if (keyboard_.IsPressed(KEY_CONTROL) && pUI->GetSelectedEntt())
+                if (keyboard_.IsPressed(KEY_CONTROL) && pUserInterface_->GetSelectedEntt())
                 {
                     // handle Ctrl+S: turn on scaling with gizmo if any entt is selected
-                    pUI->SetGizmoOperation(ImGuizmo::OPERATION::SCALE);
+                    pUserInterface_->SetGizmoOperation(ImGuizmo::OPERATION::SCALE);
                 }
                 else
                 {
                     // move backward
-                    HandleEditorCameraMovement(code, deltaTime_, pEnttMgr, keyboard_);
+                    HandleEditorCameraMovement(code, deltaTime_, pEnttMgr_, keyboard_);
                 }
                 break;
             }
@@ -777,7 +790,7 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
             case KEY_W:
             case KEY_SPACE:
             {
-                HandleEditorCameraMovement(code, deltaTime_, pEnttMgr, keyboard_);
+                HandleEditorCameraMovement(code, deltaTime_, pEnttMgr_, keyboard_);
             }
             case KEY_Z:
             {
@@ -785,12 +798,12 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
                 if (keyboard_.IsPressed(KEY_CONTROL))
                 {
                     if (!keyboard_.WasPressedBefore(KEY_Z))
-                        pUI->UndoEditorLastEvent();
+                        pUserInterface_->UndoEditorLastEvent();
                 }
                 else
                 {
                     // move down
-                    HandleEditorCameraMovement(code, deltaTime_, pEnttMgr, keyboard_);
+                    HandleEditorCameraMovement(code, deltaTime_, pEnttMgr_, keyboard_);
                 }
                 break;
             }
@@ -798,19 +811,19 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
             {
                 // guizmo: turn OFF any operation
                 if (keyboard_.IsPressed(KEY_CONTROL))
-                    pUI->SetGizmoOperation(ImGuizmo::OPERATION(-1));
+                    pUserInterface_->SetGizmoOperation(ImGuizmo::OPERATION(-1));
                 break;
             }
             case KEY_T:
             {
                 if (keyboard_.IsPressed(KEY_CONTROL))
-                    pUI->SetGizmoOperation(ImGuizmo::OPERATION::TRANSLATE);
+                    pUserInterface_->SetGizmoOperation(ImGuizmo::OPERATION::TRANSLATE);
                 break;
             }
             case KEY_R:
             {
                 if (keyboard_.IsPressed(KEY_CONTROL))
-                    pUI->SetGizmoOperation(ImGuizmo::OPERATION::ROTATE);
+                    pUserInterface_->SetGizmoOperation(ImGuizmo::OPERATION::ROTATE);
                 break;
             }
             case KEY_F1:
@@ -825,7 +838,7 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
                 // switch btw cameras modes (free / game)
                 if (!keyboard_.WasPressedBefore(KEY_F2))
                 {
-                    ECS::PlayerSystem& player = pEnttMgr->playerSystem_;
+                    ECS::PlayerSystem& player = pEnttMgr_->playerSystem_;
                     player.SetFreeFlyMode(!player.IsFreeFlyMode());
                 }
                 break;
@@ -905,7 +918,7 @@ void Engine::HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* p
             case KEY_SHIFT:
             {
                 //player.SetIsRunning(false);
-                pUI->UseSnapping(false);
+                pUserInterface_->UseSnapping(false);
                 break;
             }
         }
@@ -923,7 +936,7 @@ void Engine::EventKeyboard(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 //---------------------------------------------------------
 // Desc:   handle mouse events when we're in the editor mode
 //---------------------------------------------------------
-void Engine::HandleEditorEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr)
+void Engine::HandleEditorEventMouse(void)
 {
     using enum MouseEvent::EventType;
     static bool isMouseMiddlePressed = false;
@@ -949,8 +962,8 @@ void Engine::HandleEditorEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnt
                 // if we want to rotate a camera
                 if (isMouseMiddlePressed)
                 {
-                    const EntityID camId      = pEnttMgr->nameSystem_.GetIdByName("editor_camera");
-                    ECS::CameraSystem& camSys = pEnttMgr->cameraSystem_;
+                    const EntityID camId      = pEnttMgr_->nameSystem_.GetIdByName("editor_camera");
+                    ECS::CameraSystem& camSys = pEnttMgr_->cameraSystem_;
 
                     // rotate around some particular point
                     if (camSys.IsFixedLook(camId))
@@ -970,6 +983,7 @@ void Engine::HandleEditorEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnt
             }
             case LPress:
             {
+                UI::UserInterface* pUI = pUserInterface_;
 
                 // if we currenly hovering the scene window with our mouse
                 // and we don't hover any gizmo we execute entity picking (selection) test
@@ -1004,7 +1018,7 @@ void Engine::HandleEditorEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnt
             case WheelUp:
             case WheelDown:
             {
-                if (pUI->IsSceneWndHovered())
+                if (pUserInterface_->IsSceneWndHovered())
                 {
                     // using mouse wheel we move forward or backward along 
                     // the camera direction vector (when hold shift - we move faster)
@@ -1013,8 +1027,8 @@ void Engine::HandleEditorEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnt
                     const int speedMul = (keyboard_.IsPressed(KEY_SHIFT)) ? 5 : 1;
                     const float step   = deltaTime_ * (camSpeed * speedMul * sign);
 
-                    const EntityID camID = pEnttMgr->nameSystem_.GetIdByName("editor_camera");
-                    pEnttMgr->cameraSystem_.Walk(camID, step);
+                    const EntityID camID = pEnttMgr_->nameSystem_.GetIdByName("editor_camera");
+                    pEnttMgr_->cameraSystem_.Walk(camID, step);
                 }
                 break;
             }
@@ -1035,41 +1049,6 @@ void Engine::HandleEditorEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnt
 }
 
 //---------------------------------------------------------
-// Desc:   handle mouse events when we're in the game mode
-//---------------------------------------------------------
-void Engine::HandleGameEventMouse(UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr)
-{
-    mouseEvent_ = mouse_.ReadEvent();
-
-    switch (mouseEvent_.GetEventType())
-    {
-        // update mouse position data because we need to print
-        // mouse position on the screen
-        case MouseEvent::EventType::Move:
-        {
-            systemState_.mouseX = mouseEvent_.GetPosX();
-            systemState_.mouseY = mouseEvent_.GetPosY();
-            SetCursorPos(800, 450);                           // to prevent the cursor to get out of the window
-            break;
-        }
-
-        // update the rotation data of the camera
-        // with the current state of the input devices. The movement function
-        // will update the position of the camera to the location for this frame
-        case MouseEvent::EventType::RAW_MOVE:
-        {
-            const float rotY  = mouseEvent_.GetPosX() * deltaTime_;
-            const float pitch = mouseEvent_.GetPosY() * deltaTime_;
-
-            pEnttMgr->playerSystem_.RotateY(rotY);
-            pEnttMgr->playerSystem_.Pitch(pitch);
-
-            break;
-        }
-    }
-}
-
-//---------------------------------------------------------
 // Desc:   handler for all the mouse events
 //---------------------------------------------------------
 void Engine::EventMouse(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -1077,7 +1056,7 @@ void Engine::EventMouse(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     inputMgr_.HandleMouseMessage(mouse_, uMsg, wParam, lParam);
 
     if (systemState_.isEditorMode)
-        HandleEditorEventMouse(pUserInterface_, pEnttMgr_);
+        HandleEditorEventMouse();
 }
 
 //---------------------------------------------------------
@@ -1087,8 +1066,10 @@ void Engine::TurnOnEditorMode()
 {
     const EntityID editorCamId = pEnttMgr_->nameSystem_.GetIdByName("editor_camera");
 
-    GetD3D().ToggleFullscreen(hwnd_, false);
+    isFullscreen_ = false;
+    GetD3D().ToggleFullscreen(hwnd_, isFullscreen_);
     graphics_.SetCurrentCamera(editorCamId);
+
     systemState_.isGameMode   = false;
     systemState_.isEditorMode = true;
 
@@ -1132,11 +1113,9 @@ void Engine::TurnOnGameMode()
 {
     const EntityID gameCamId = pEnttMgr_->nameSystem_.GetIdByName("game_camera");
 
-    GetD3D().ToggleFullscreen(hwnd_, true);
+    isFullscreen_ = false;
+    GetD3D().ToggleFullscreen(hwnd_, isFullscreen_);
     graphics_.SetCurrentCamera(gameCamId);
-
-    systemState_.isGameMode   = true;
-    systemState_.isEditorMode = false;
 
     ShowCursor(FALSE);
     TurnOnClipCursorMode(hwnd_);
@@ -1145,6 +1124,9 @@ void Engine::TurnOnGameMode()
     const DirectX::XMMATRIX& ortho    = pEnttMgr_->cameraSystem_.GetOrtho(gameCamId);
 
     pRender_->UpdateCbWorldViewOrtho(baseView * ortho);
+
+    systemState_.isGameMode = true;
+    systemState_.isEditorMode = false;
 }
 
 } // namespace Core

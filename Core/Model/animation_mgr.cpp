@@ -21,8 +21,6 @@
 namespace Core
 {
 
-using namespace DirectX;
-
 //---------------------------------------------------------
 // GLOBAL instance of the AnimationMgr
 //---------------------------------------------------------
@@ -37,6 +35,7 @@ AnimationMgr::AnimationMgr()
 }
 
 //---------------------------------------------------------
+// Desc:  do some initialization stuff here
 //---------------------------------------------------------
 bool AnimationMgr::Init()
 {
@@ -48,23 +47,34 @@ bool AnimationMgr::Init()
 }
 
 //---------------------------------------------------------
-//---------------------------------------------------------
-void AnimationMgr::Update(const float dt, const char* skeletonName, const char* animName)
-{
-}
-
-//---------------------------------------------------------
 // Desc:  add a new skeleton and set a name for it
 //---------------------------------------------------------
 SkeletonID AnimationMgr::AddSkeleton(const char* name)
 {
-    const SkeletonID id = (uint)skeletons_.size();
+    if (StrHelper::IsEmpty(name))
+    {
+        LogErr(LOG, "empty name");
+        return 0;
+    }
 
-    skeletons_.push_back(AnimSkeleton());
-    skeletons_.back().id_ = id;
+    // alloc new skeleton
+    AnimSkeleton* pSkeleton = NEW AnimSkeleton();
+    if (!pSkeleton)
+    {
+        LogErr(LOG, "can't alloc memory for skeleton: %s", name);
+        return 0;
+    }
+
+    // init
+    SkeletonID id = (SkeletonID)skeletons_.size();
+
+    ids_.push_back(id);
+    skeletons_.push_back(pSkeleton);
 
     names_.push_back(SkeletonName());
     SetSkeletonNameById(id, name);
+
+    pSkeleton->id_ = id;
 
     return id;
 }
@@ -83,21 +93,28 @@ SkeletonID AnimationMgr::GetSkeletonId(const char* name)
     for (index i = 0; i < names_.size(); ++i)
     {
         if (strcmp(names_[i].name, name) == 0)
-            return skeletons_[i].id_;
+            return skeletons_[i]->id_;
     }
 
     LogErr(LOG, "there is no skeleton by name: %s", name);
+    DumpSkeletons();
     return 0;
 }
 
 //---------------------------------------------------------
 // Desc:  return a ref to skeleton by its id or name
 //---------------------------------------------------------
-AnimSkeleton& AnimationMgr::GetSkeleton(const uint id)
+AnimSkeleton& AnimationMgr::GetSkeleton(const SkeletonID id)
 {
-    assert(id < skeletons_.size());
-    return skeletons_[id];
+    const index idx = GetIdx(id);
+
+    if (idx == 0)
+        return *skeletons_[0];
+
+    return *skeletons_[idx];
 }
+
+//---------------------------------------------------------
 
 AnimSkeleton& AnimationMgr::GetSkeleton(const char* name)
 {
@@ -106,24 +123,81 @@ AnimSkeleton& AnimationMgr::GetSkeleton(const char* name)
     for (index i = 0; i < names_.size(); ++i)
     {
         if (strcmp(names_[i].name, name) == 0)
-            return skeletons_[i];
+            return *skeletons_[i];
     }
 
     LogErr(LOG, "there is no skeleton by name: %s", name);
-    return skeletons_[0];
+    DumpSkeletons();
+    return *skeletons_[0];
+}
+
+//---------------------------------------------------------
+// Desc:  remove a skeleton by input id
+//---------------------------------------------------------
+bool AnimationMgr::RemoveSkeleton(const SkeletonID id)
+{
+    if (!ids_.binary_search(id))
+    {
+        LogErr(LOG, "there is no skeletons by id: %d", (int)id);
+        return false;
+    }
+
+    const index idx = GetIdx(id);
+    if (idx == 0)
+        return false;
+
+    ids_.erase(idx);
+    names_.erase(idx);
+
+    SafeDelete(skeletons_[idx]);
+    skeletons_.erase(idx);
+
+    LogErr(LOG, "skeleton was removed: %d", id);
+    return true;
 }
 
 //---------------------------------------------------------
 // Desc:  the only way supposed to rename a skeleton by id
 //        (because we also need to update names arr in the animation manager)
 //---------------------------------------------------------
-void AnimationMgr::SetSkeletonNameById(const uint id, const char* name)
+void AnimationMgr::SetSkeletonNameById(const SkeletonID id, const char* name)
 {
-    assert(id < names_.size());
-    assert(name && name[0] != '\0' && "lig bollz");
+    if (StrHelper::IsEmpty(name))
+    {
+        LogErr(LOG, "empty name: lig bollz");
+        return;
+    }
 
-    snprintf(names_[id].name,      MAX_LEN_SKELETON_NAME, "%s", name);
-    snprintf(skeletons_[id].name_, MAX_LEN_SKELETON_NAME, "%s", name);
+    const index idx = GetIdx(id);
+    if (idx == 0)
+        return;
+
+    snprintf(names_[idx].name,       MAX_LEN_SKELETON_NAME, "%s", name);
+    snprintf(skeletons_[idx]->name_, MAX_LEN_SKELETON_NAME, "%s", name);
+}
+
+//---------------------------------------------------------
+// Desc:  return a number of all the currently loaded skeletons
+//---------------------------------------------------------
+uint AnimationMgr::GetNumSkeletons() const
+{
+    return (uint)skeletons_.size();
+}
+
+//---------------------------------------------------------
+// Desc:  get index of skeleton by its id
+//---------------------------------------------------------
+index AnimationMgr::GetIdx(const SkeletonID id) const
+{
+    const index idx = ids_.get_idx(id);
+
+    if (idx < 0 || idx >= ids_.size())
+    {
+        LogErr(LOG, "there is no skeleton by id: %d", (int)id);
+        return 0;
+    }
+
+    return idx;
 }
 
 //---------------------------------------------------------
@@ -134,9 +208,12 @@ void AnimationMgr::DumpSkeletons()
     printf("\n\nDUMP all the skeletons in animation mgr:\n");
     printf(" - num skeletons: %d\n", (int)skeletons_.size());
 
-    for (int i = 0; const AnimSkeleton& skeleton : skeletons_)
+    for (int i = 0; AnimSkeleton* pSkeleton : skeletons_)
     {
-        printf("\tskeleton_%d:  %-36s animations %d\n", i++, skeleton.name_, (int)skeleton.animations_.size());
+        const char* skeletonName = names_[i].name;
+        const int   numAnims     = (int)pSkeleton->animations_.size();
+
+        printf("\tskeleton_%u:  %-36s animations %d\n", i++, skeletonName, numAnims);
     }
     printf("\n");
 }

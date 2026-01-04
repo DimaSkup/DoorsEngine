@@ -98,39 +98,40 @@ public:
 
 
     // event listener methods implementation
-    virtual void EventActivate    (const APP_STATE state) override;
-    virtual void EventWindowMove  (HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
-    virtual void EventWindowResize(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
-    virtual void EventWindowSizing(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
-    virtual void EventKeyboard    (HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
-    virtual void EventMouse       (HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
+    virtual void EventActivate            (const APP_STATE state) override;
+    virtual void EventWindowMove          (HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
+    virtual void EventWindowResize        (HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
+    virtual void EventWindowSizing        (HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
+    virtual void EventKeyboard            (HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
+    virtual void EventMouse               (HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 
-    void HandleEditorEventKeyboard(UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr);
-    void HandleEditorEventMouse   (UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr);
-    void HandleGameEventMouse     (UI::UserInterface* pUI, ECS::EntityMgr* pEnttMgr);
+    
 
 private:
-    void TurnOnEditorMode();
-    void TurnOnGameMode();
+    void HandleEditorEventKeyboard(void);
+    void HandleEditorEventMouse(void);
 
-    void CollectTimestamps(ID3D11DeviceContext* pContext);
+    void TurnOnEditorMode(void);
+    void TurnOnGameMode(void);
 
 private:
     HWND      hwnd_         = NULL;             // main window handle
     HINSTANCE hInstance_    = NULL;             // application instance handle
 
-    bool      isPaused_     = false;            // defines if the engine/game is currently paused
-    bool      isExit_       = false;            // are we going to exit?
-    bool      isMinimized_  = false;            // is the window minimized?
-    bool      isMaximized_  = true;             // is the window maximized?
-    bool      isResizing_   = false;            // are we resizing the window?
+    bool      isFullscreen_     = false;
+    bool      isPaused_         = false;        // defines if the engine/game is currently paused
+    bool      isExit_           = false;        // are we going to exit?
+    bool      isMinimized_      = false;        // is the window minimized?
+    bool      isMaximized_      = true;         // is the window maximized?
+    bool      isResizing_       = false;        // are we resizing the window?
     bool      switchEngineMode_ = false;        // a flag to define if we want to switch btw game/editor mode
-    float     deltaTime_    = 0.0f;             // the time since the previous frame
+
+    float     deltaTime_        = 0.0f;         // the time since the previous frame
 
     std::string windowTitle_{ "" };             // window title/caption
 
     SystemState         systemState_;           // contains different info about the state of the engine
-    //CpuClass            cpu_;                   // cpu usage counter
+    //CpuClass            cpu_;                 // cpu usage counter
     GameTimer           timer_;                 // used to keep track of the "delta-time" and game time
 
     InputManager        inputMgr_;
@@ -139,7 +140,7 @@ private:
     CGraphics           graphics_;              // rendering system
 
     ImGuiLayer          imGuiLayer_;
-    MouseEvent          mouseEvent_;          // the current mouse event
+    MouseEvent          mouseEvent_;            // the current mouse event
 
     ECS::EntityMgr*     pEnttMgr_       = nullptr;
     UI::UserInterface*  pUserInterface_ = nullptr;

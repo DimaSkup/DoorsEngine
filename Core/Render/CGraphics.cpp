@@ -354,14 +354,6 @@ void CGraphics::UpdateHelper(const float deltaTime, const float totalGameTime)
     g_QuadTree.CalcVisibleEntities(cameraRect, frustum);
 #endif
 
-    //-------------------------------------------
-
-    AnimSkeleton& skeleton = g_AnimationMgr.GetSkeleton("ak_74_hud");
-    const char* animName = skeleton.GetAnimationName(currAnimIdx_);
-
-    // update all the currently active model animations (skinning)
-    g_AnimationMgr.Update(deltaTime, "ak_74_hud", animName);
-
 
     //-------------------------------------------
 
@@ -410,6 +402,23 @@ void CGraphics::UpdateHelper(const float deltaTime, const float totalGameTime)
 
     // Update shaders common data for this frame
     UpdateShadersDataPerFrame(deltaTime, totalGameTime);
+
+
+    // push each 2D sprite into render list
+    ECS::SpriteSystem& spriteSys = pEnttMgr_->spriteSystem_;
+    const EntityID* sprites = spriteSys.GetAllSpritesIds();
+    const size numSprites   = spriteSys.GetNumAllSprites();
+
+    for (index i = 0; i < numSprites; ++i)
+    {
+        TexID texId = 0;
+        uint16 left, top, width, height;
+
+        spriteSys.GetData(sprites[i], texId, left, top, width, height);
+        SRV* pSRV = g_TextureMgr.GetTexViewsById(texId);
+
+        pRender_->PushSpriteToRender(Render::Sprite2D(pSRV, left, top, width, height));
+    }
 }
 
 //---------------------------------------------------------
@@ -1025,7 +1034,7 @@ void CGraphics::DepthPrepass()
 
 
     // render masked geometry: tree branches, bushes, etc.
-    pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     DepthPrepassInstanceGroup(storage.masked, GEOM_TYPE_MASKED, startInstanceLocation);
 
     // render opaque geometry: solid objects
@@ -1084,7 +1093,7 @@ void CGraphics::ColorLightPass()
 
 
     // first of all we render player's weapon
-    pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     RenderPlayerWeapon();
     g_GpuProfiler.Timestamp(GTS_RenderScene_Weapon);
 
@@ -1133,7 +1142,7 @@ void CGraphics::ColorLightPass()
     g_GpuProfiler.Timestamp(GTS_RenderScene_Transparent);
 
     // render billboards and particles
-    pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+    pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
     RenderParticles();
     g_GpuProfiler.Timestamp(GTS_RenderScene_Particles);
 
@@ -1622,6 +1631,13 @@ void CGraphics::RenderSkinnedModel(const EntityID enttId)
     // update bone transformations for this frame
     s_BoneTransforms.resize(MAX_NUM_BONES_PER_CHARACTER, DirectX::XMMatrixIdentity());
     AnimSkeleton& skeleton = g_AnimationMgr.GetSkeleton(skeletonId);
+
+    if (strcmp(skeleton.name_, "ak_74_hud") == 0 && timePos > 0.1f)
+    {
+        int k = 0;
+        k++;
+    }
+
     skeleton.GetFinalTransforms(animationId, timePos, s_BoneTransforms);
 
     //---------------------------------
