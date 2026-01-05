@@ -56,6 +56,8 @@ public:
     bool LoadTrack(IDirectSound8* pDirectSound, const char* filename, const long volume);
     void ReleaseTrack();
 
+    void CreateDoneEvent();
+
     bool PlayTrack(ULONG flags = 0);
     bool StopTrack();
 
@@ -67,6 +69,8 @@ private:
 
 private:
     IDirectSoundBuffer8* pSecondaryBuffer_ = nullptr;
+    IDirectSoundNotify8* pNotifyDone_      = nullptr;
+    HANDLE               eventDone_        = nullptr;
 };
 
 } // namespace

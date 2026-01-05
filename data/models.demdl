@@ -1,28 +1,28 @@
-6 weapon/aks_74u/aks_74u.de3d
-7 weapon/sword/sword.de3d
-8 weapon/obrez/obrez.de3d
-9 weapon/ak_74/ak_74.de3d
-10 weapon/groza/groza.de3d
-11 weapon/hpsa/hpsa.de3d
-12 vehicle/paz_3201/paz_3201.de3d
-13 vehicle/zaz_968/zaz_968.de3d
-14 vehicle/zil_131/zil_131.de3d
-15 vehicle/btr/btr.de3d
-16 vehicle/tr_13/tr_13.de3d
-17 building/stalker_house/stalker_house.de3d
-18 building/military_house/military_house.de3d
-19 trees/tree_spruce/tree_spruce.de3d
-20 trees/tree_pine/tree_pine.de3d
-21 vehicle/rust_cars/gaz_2101.de3d
-//22 trees/tree_0/tree_0.de3d
-23 vehicle/LAZ_965/LAZ_1.de3d
-24 vehicle/LAZ_965/LAZ_2.de3d
-25 vehicle/LAZ_965/LAZ_3.de3d
-26 vehicle/mi24/mi24.de3d
-27 vehicle/mi28/mi28.de3d
-28 furniture/tumba_village/tumba_village_1.de3d
-29 furniture/tumba_village/tumba_village_2.de3d
-30 weapon/ak_74_hud/ak_74_hud.de3d
-31 weapon/wpn_pm_hud/wpn_pm_hud.de3d
-32 weapon/wpn_bm-16_hud/wpn_bm-16_hud.de3d
-33 boblampclean/boblampclean.de3d
+weapon/aks_74u/aks_74u.de3d
+weapon/sword/sword.de3d
+weapon/obrez/obrez.de3d
+weapon/ak_74/ak_74.de3d
+weapon/groza/groza.de3d
+weapon/hpsa/hpsa.de3d
+vehicle/paz_3201/paz_3201.de3d
+vehicle/zaz_968/zaz_968.de3d
+vehicle/zil_131/zil_131.de3d
+vehicle/btr/btr.de3d
+vehicle/tr_13/tr_13.de3d
+building/stalker_house/stalker_house.de3d
+building/military_house/military_house.de3d
+trees/tree_spruce/tree_spruce.de3d
+trees/tree_pine/tree_pine.de3d
+vehicle/rust_cars/gaz_2101.de3d
+//trees/tree_0/tree_0.de3d
+vehicle/LAZ_965/LAZ_1.de3d
+vehicle/LAZ_965/LAZ_2.de3d
+vehicle/LAZ_965/LAZ_3.de3d
+vehicle/mi24/mi24.de3d
+vehicle/mi28/mi28.de3d
+furniture/tumba_village/tumba_village_1.de3d
+furniture/tumba_village/tumba_village_2.de3d
+weapon/ak_74_hud/ak_74_hud.de3d
+weapon/wpn_pm_hud/wpn_pm_hud.de3d
+weapon/wpn_bm-16_hud/wpn_bm-16_hud.de3d
+boblampclean/boblampclean.de3d

@@ -218,6 +218,7 @@ BasicModel& ModelMgr::AddEmptyModel()
     ModelName& name = names_.back();
 
     strcpy(name.name, "invalid");
+    strcpy(model.name_, "invalid");
     model.id_ = id;
 
     return model;

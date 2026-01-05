@@ -18,33 +18,42 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="GameInitializer.cpp">
+    <ClCompile Include="Initializers\GameInitializer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="pch.cpp">
+    <ClCompile Include="Common\pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Application.cpp">
+    <ClCompile Include="Game\Application.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Game.cpp">
+    <ClCompile Include="Game\Game.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Initializers\weapons_initializer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Application.h">
+    <ClInclude Include="Game\Application.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="GameInitializer.h">
+    <ClInclude Include="Initializers\GameInitializer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Common\ConsoleColorMacro.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="pch.h">
+    <ClInclude Include="Common\pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Game.h">
+    <ClInclude Include="Game\Game.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Types\weapon_types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Initializers\weapons_initializer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

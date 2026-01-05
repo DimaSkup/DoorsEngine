@@ -70,6 +70,26 @@ void Sound::ReleaseTrack()
 }
 
 //---------------------------------------------------------
+// Desc:  create a notification event about finishing of playing this sound
+//---------------------------------------------------------
+void Sound::CreateDoneEvent()
+{
+    IDirectSoundBuffer8* pSoundBufShoot = GetBuffer();
+    
+    eventDone_ = CreateEvent(NULL, FALSE, FALSE, NULL);
+
+    // attach notification to the END of buffer
+    pSecondaryBuffer_->QueryInterface(IID_IDirectSoundNotify8, (void**)&pNotifyDone_);
+
+    DSBPOSITIONNOTIFY notify = {};
+    notify.dwOffset = DSBPN_OFFSETSTOP; // end of buffer
+    notify.hEventNotify = eventDone_;
+
+    pNotifyDone_->SetNotificationPositions(1, &notify);
+    pNotifyDone_->Release();
+}
+
+//---------------------------------------------------------
 // Desc:  start the .wav file playing
 //---------------------------------------------------------
 bool Sound::PlayTrack(const ULONG flags)
@@ -396,6 +416,14 @@ bool Sound::LoadStereoWaveFile(
 //---------------------------------------------------------
 void Sound::ReleaseWaveFile()
 {
+    if (pNotifyDone_)
+    {
+        pNotifyDone_->SetNotificationPositions(0, nullptr);
+        pNotifyDone_->Release();
+        pNotifyDone_ = nullptr;
+        CloseHandle(eventDone_);
+    }
+
     if (pSecondaryBuffer_)
     {
         pSecondaryBuffer_->Stop();
