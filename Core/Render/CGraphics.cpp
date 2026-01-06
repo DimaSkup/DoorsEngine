@@ -1330,45 +1330,43 @@ bool CGraphics::RenderBigMaterialIcon(
     Render::CRender* pRender = pRender_;
 
     // get a sphere model
-    const ModelID basicSphereID      = g_ModelMgr.GetModelIdByName("basic_sphere");
-    const BasicModel& sphere         = g_ModelMgr.GetModelById(basicSphereID);
-    const MeshGeometry& sphereMesh   = sphere.meshes_;
+    const ModelID      basicSphereId = g_ModelMgr.GetModelIdByName("basic_sphere");
+    const BasicModel&         sphere = g_ModelMgr.GetModelById(basicSphereId);
+    const MeshGeometry&   sphereMesh = sphere.meshes_;
 
     const VertexBuffer<Vertex3D>& vb = sphereMesh.vb_;
     const IndexBuffer<UINT>&      ib = sphereMesh.ib_;
     const UINT                offset = 0;
 
     // change view*proj matrix so we will be able to render material icons properly
-    const XMMATRIX world = XMMatrixRotationY(yRotationAngle);
-    const XMMATRIX view  = XMMatrixTranslation(0, 0, 1.1f);
-    const XMMATRIX proj  = XMMatrixPerspectiveFovLH(1.0f, 1.0f, 0.1f, 100.0f);
+    const XMMATRIX W = XMMatrixRotationY(yRotationAngle);
+    const XMMATRIX V = XMMatrixTranslation(0, 0, 1.1f);
+    const XMMATRIX P = XMMatrixPerspectiveFovLH(1.0f, 1.0f, 0.1f, 100.0f);
 
-    pRender->UpdateCbWorldAndViewProj(
-        DirectX::XMMatrixTranspose(world),
-        DirectX::XMMatrixTranspose(view * proj));
+
+    pRender->UpdateCbWorldAndViewProj(XMMatrixTranspose(W), XMMatrixTranspose(V * P));
 
     // bind shader and prepare IA for rendering
-    ID3D11DeviceContext* pContext = GetContext();
     pRender->BindShaderByName("MaterialIconShader");
-    pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    pRender->BindVB(vb.GetAddrOf(), vb.GetStride(), offset);
-    pRender->BindIB(ib.Get(), DXGI_FORMAT_R32_UINT);
+    pRender->SetPrimTopology (D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    pRender->BindVB          (vb.GetAddrOf(), vb.GetStride(), offset);
+    pRender->BindIB          (ib.Get(), DXGI_FORMAT_R32_UINT);
 
     // prepare responsible frame buffer for rendering
-    materialBigIconFrameBuf_.ClearBuffers(pContext, { 0,0,0,0 });
-    materialBigIconFrameBuf_.Bind(pContext);
+    materialBigIconFrameBuf_.ClearBuffers(GetContext(), { 0,0,0,0 });
+    materialBigIconFrameBuf_.Bind(GetContext());
 
-    // prepare material data and its textures
+    // bind material data and its textures
     const Material& mat = g_MaterialMgr.GetMatById(matID);
     BindMaterial(mat.renderStates, mat.texIds);
     pRender->UpdateCbMaterialColors(mat.ambient, mat.diffuse, mat.specular, mat.reflect);
 
-    // render geometry with material into frame buffer
-    pContext->DrawIndexed(ib.GetIndexCount(), 0U, 0U);
+
+    pRender->DrawIndexed(ib.GetIndexCount(), 0U, 0U);
 
 
     // reset camera's viewProj to the previous one (it can be game or editor camera)
-    pRender->UpdateCbViewProj(DirectX::XMMatrixTranspose(viewProj_));
+    pRender->UpdateCbViewProj(XMMatrixTranspose(viewProj_));
 
     // copy frame buffer texture into the input SRV
     *outMaterialImg = materialBigIconFrameBuf_.GetSRV();
@@ -1407,7 +1405,7 @@ bool CGraphics::RenderMaterialsIcons()
     // prepare IA for rendering, bind shaders, set matrices
     ID3D11DeviceContext* pContext = GetD3D().GetDeviceContext();
     pRender->BindShaderByName("MaterialIconShader");
-    pRender->UpdateCbWorldAndViewProj(DirectX::XMMatrixIdentity(), DirectX::XMMatrixTranspose(view * proj));
+    pRender->UpdateCbWorldAndViewProj(XMMatrixIdentity(), XMMatrixTranspose(view * proj));
 
     pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     pRender->BindVB(&vb, vertexSize, offset);
@@ -1415,27 +1413,27 @@ bool CGraphics::RenderMaterialsIcons()
 
 
     // clear all the previous content of frame buffers
-    for (FrameBuffer & buf : materialsFrameBuffers_)
+    for (FrameBuffer& buf : materialsFrameBuffers_)
         buf.ClearBuffers(pContext, { 0,0,0,0 });
 
 
     // render material by idx into responsible frame buffer
-    for (int matIdx = 0; FrameBuffer& buf : materialsFrameBuffers_)
+    for (MaterialID matId = 0; FrameBuffer& buf : materialsFrameBuffers_)
     {
         // bind material data and its textures
-        const Material& mat = g_MaterialMgr.GetMatById(matIdx);
+        const Material& mat = g_MaterialMgr.GetMatById(matId);
         BindMaterial(mat.renderStates, mat.texIds);
         pRender->UpdateCbMaterialColors(mat.ambient, mat.diffuse, mat.specular, mat.reflect);
 
         // render geometry
         buf.Bind(pContext);
-        pContext->DrawIndexed(indexCount, 0U, 0U);
+        pRender->DrawIndexed(indexCount, 0U, 0U);
 
-        ++matIdx;
+        ++matId;
     }
 
     // reset camera's viewProj to the previous one (it can be game or editor camera)
-    pRender->UpdateCbViewProj(DirectX::XMMatrixTranspose(viewProj_));
+    pRender->UpdateCbViewProj(XMMatrixTranspose(viewProj_));
 
     GetD3D().ResetBackBufferRenderTarget();
     GetD3D().ResetViewport();
@@ -1448,33 +1446,36 @@ bool CGraphics::RenderMaterialsIcons()
 //---------------------------------------------------------
 void CGraphics::RenderGrass()
 {
-    Render::CRender*     pRender  = pRender_;
-    ID3D11DeviceContext* pContext = pRender->GetContext();
+    assert(pRender_);
+    Render::CRender* pRender  = pRender_;
+
 
     // bind shader and material
-
     const Material& mat = g_MaterialMgr.GetMatByName("grass_0");
-    pRender->BindShaderById(mat.shaderId);
-    BindMaterial(mat);
-    pRender->UpdateCbMaterialColors(mat.ambient, mat.diffuse, mat.specular, mat.reflect);
 
+    pRender->BindShaderById(mat.shaderId);
+    pRender->UpdateCbMaterialColors(mat.ambient, mat.diffuse, mat.specular, mat.reflect);
+    BindMaterial(mat);
+
+
+    // render each visible grass patch
     int numGrassVertices = 0;
     int numDrawCalls = 0;
 
     for (const uint32 idx : g_GrassMgr.GetVisPatchesIdxs())
     {
         const VertexBuffer<VertexGrass>& vb = g_GrassMgr.GetVertexBufByIdx(idx);
-        const int numVerts                  = vb.GetVertexCount();
+        const int                  numVerts = vb.GetVertexCount();
 
-        // if we have any grass instances in this vertex buffer
-        if (numVerts > 0)
-        {
-            pRender->BindVB(vb.GetAddrOf(), vb.GetStride(), 0);
-            pContext->Draw(numVerts, 0);
+        // if no grass instances in this vb...
+        if (numVerts <= 0)
+            continue;
+     
+        pRender->BindVB(vb.GetAddrOf(), vb.GetStride(), 0);
+        pRender->Draw(numVerts, 0U);
 
-            numGrassVertices += numVerts;
-            numDrawCalls++;
-        }
+        numGrassVertices += numVerts * 12;
+        numDrawCalls++;
     }
 
     // calc render stats
@@ -2178,6 +2179,51 @@ void RenderDebugLinesFrustum(Render::CRender* pRender)
 
 //---------------------------------------------------------
 
+void RenderInstancesDebugWireframe(
+    const cvector<Render::InstanceBatch>& instancesGroup,
+    Render::CRender* pRender,
+    UINT& startInstanceLocation)
+{
+    const UINT offset = 0;
+
+    // bind the instanced buffer
+    const UINT startSlot = 1;
+    const UINT instancesBufElemSize = (UINT)(sizeof(ConstBufType::InstancedData));
+    pRender->BindVB(startSlot, &pRender->pInstancedBuffer_, instancesBufElemSize, offset);
+
+
+    // bind and render each instances batch
+    for (const Render::InstanceBatch& batch : instancesGroup)
+    {
+        pRender->BindVB(&batch.pVB, batch.vertexStride, offset);
+        pRender->BindIB(batch.pIB, DXGI_FORMAT_R32_UINT);
+
+        pRender->DrawIndexedInstanced(batch, startInstanceLocation);
+    }
+}
+
+//---------------------------------------------------------
+
+void RenderDebugWireframes(Render::CRender* pRender)
+{
+    assert(pRender);
+
+    UINT startInstanceLocation = 0;
+    const Render::RenderDataStorage& storage = pRender->dataStorage_;
+
+    pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    pRender->BindShaderByName("WireframeShader");
+   
+    RenderInstancesDebugWireframe(storage.masked, pRender, startInstanceLocation);
+    RenderInstancesDebugWireframe(storage.opaque, pRender, startInstanceLocation);
+
+    pRender->GetRenderStates().ResetRS(pRender->GetContext());
+    pRender->GetRenderStates().ResetBS(pRender->GetContext());
+    pRender->GetRenderStates().ResetDSS(pRender->GetContext());
+}
+
+//---------------------------------------------------------
+
 void CGraphics::RenderDebugShapes()
 {
     if (!g_DebugDrawMgr.doRendering_)
@@ -2191,7 +2237,6 @@ void CGraphics::RenderDebugShapes()
     VertexBuffer<VertexPosColor>& vb = g_ModelMgr.GetDebugLinesVB();
     IndexBuffer<uint16>&          ib = g_ModelMgr.GetDebugLinesIB();
     Render::CRender*         pRender = pRender_;
-    ID3D11DeviceContext*    pContext = pRender->GetContext();
 
     pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
     pRender->BindShaderByName("DebugLineShader");
@@ -2203,6 +2248,9 @@ void CGraphics::RenderDebugShapes()
 
     // common arr of vertices for rendering
     cvector<VertexPosColor> vertices(1024);
+
+    printf("size: %zu\n", sizeof(VertexPosColor) * 1024);
+    exit(0);
 
     if (g_DebugDrawMgr.renderDbgLines_)
         RenderDebugLines(pRender, vertices);
@@ -2219,70 +2267,8 @@ void CGraphics::RenderDebugShapes()
     if (g_DebugDrawMgr.renderDbgTerrainAABB_)
         RenderDebugLinesTerrainAABB(pRender, vertices);
 
-
-
-    pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    uint32 startInstanceLocation = 0;
-
-    pRender->BindShaderByName("WireframeShader");
-
-    for (const Render::InstanceBatch& batch : pRender->dataStorage_.masked)
-    {
-        const UINT instancesBuffElemSize = (UINT)(sizeof(ConstBufType::InstancedData));
-
-        // bind vertex/index buffers for these instances
-        ID3D11Buffer* const vbs[2] = { batch.pVB, pRender->pInstancedBuffer_ };
-        const UINT strides[2] = { batch.vertexStride, instancesBuffElemSize };
-        const UINT offsets[2] = { 0,0 };
-
-        pContext->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-        pContext->IASetIndexBuffer(batch.pIB, DXGI_FORMAT_R32_UINT, 0);
-
-
-        const Render::Subset& subset = batch.subset;
-
-        pContext->DrawIndexedInstanced(
-            subset.indexCount,
-            batch.numInstances,
-            subset.indexStart,
-            subset.vertexStart,
-            startInstanceLocation);
-
-        // stride idx in the instances buffer and accumulate render statistic
-        startInstanceLocation += (UINT)batch.numInstances;
-    }
-
-
-
-    for (const Render::InstanceBatch& batch : pRender->dataStorage_.opaque)
-    {
-        const UINT instancesBuffElemSize = (UINT)(sizeof(ConstBufType::InstancedData));
-
-        // bind vertex/index buffers for these instances
-        ID3D11Buffer* const vbs[2] = { batch.pVB, pRender->pInstancedBuffer_ };
-        const UINT strides[2] = { batch.vertexStride, instancesBuffElemSize };
-        const UINT offsets[2] = { 0,0 };
-
-        pContext->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-        pContext->IASetIndexBuffer(batch.pIB, DXGI_FORMAT_R32_UINT, 0);
-
-
-        const Render::Subset& subset = batch.subset;
-
-        pContext->DrawIndexedInstanced(
-            subset.indexCount,
-            batch.numInstances,
-            subset.indexStart,
-            subset.vertexStart,
-            startInstanceLocation);
-
-        // stride idx in the instances buffer and accumulate render statistic
-        startInstanceLocation += (UINT)batch.numInstances;
-    }
-
-    pRender->GetRenderStates().ResetRS(pContext);
-    pRender->GetRenderStates().ResetBS(pContext);
-    pRender->GetRenderStates().ResetDSS(pContext);
+    if (g_DebugDrawMgr.renderDbgWireframe_)
+        RenderDebugWireframes(pRender);
 }
 
 //---------------------------------------------------------

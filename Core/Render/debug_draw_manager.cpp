@@ -48,10 +48,6 @@ inline uint32 GetU32Color(const Vec3& color)
 //---------------------------------------------------------
 DebugDrawMgr::DebugDrawMgr()
 {
-    //printf("dbg line sizeof:        %d\n", (int)sizeof(DebugLine));
-    //printf("dbg line vertex sizeof: %d\n", (int)sizeof(DebugLineVertex));
-    //exit(0);
-
     // reserve ahead some memory for vertices
     aabbsVertices_.reserve(256);
     sphereVertices_.reserve(1024);

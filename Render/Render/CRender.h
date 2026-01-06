@@ -94,9 +94,33 @@ public:
     // ================================================================================
     //                                  Binders
     // ================================================================================
+
+    
+
+    //-----------------------------------------------------
+    // bind input vertex buffer at startSlot == 0 by default
+    //-----------------------------------------------------
     inline void BindVB(ID3D11Buffer* const* ppVB, const UINT stride, const UINT offset)
     {
-        GetContext()->IASetVertexBuffers(0, 1, ppVB, &stride, &offset);
+        GetContext()->IASetVertexBuffers(0U, 1U, ppVB, &stride, &offset);
+    }
+
+    //-----------------------------------------------------
+    // bind input vertex buffer at particular start slot
+    //-----------------------------------------------------
+    inline void BindVB(const UINT startSlot, ID3D11Buffer* const* ppVB, const UINT stride, const UINT offset)
+    {
+        GetContext()->IASetVertexBuffers(startSlot, 1, ppVB, &stride, &offset);
+    }
+
+    inline void BindVBs(
+        const UINT startSlot,
+        const UINT numBuffers,
+        ID3D11Buffer* const* ppVBs,
+        const UINT stride,
+        const UINT offset)
+    {
+        GetContext()->IASetVertexBuffers(startSlot, numBuffers, ppVBs, &stride, &offset);
     }
 
     inline void BindIB(ID3D11Buffer* pIB, const DXGI_FORMAT format)
@@ -120,6 +144,37 @@ public:
     // ================================================================================
     //                                  Rendering
     // ================================================================================
+
+    //-----------------------------------------------------
+    // draw vertexCount vertices starting from startVertexLocation
+    //-----------------------------------------------------
+    inline void Draw(const UINT vertexCount, const UINT startVertexLocation)
+    {
+        GetContext()->Draw(vertexCount, startVertexLocation);
+    }
+
+    inline void DrawIndexed(
+        const UINT indexCount,
+        const UINT startIndexLocation,
+        const UINT baseVertexLocation)
+    {
+        GetContext()->DrawIndexed(indexCount, startIndexLocation, baseVertexLocation);
+    }
+
+    void DrawIndexedInstanced(const InstanceBatch& batch, UINT& instanceLocation)
+    {
+        const Render::Subset& subset = batch.subset;
+
+        GetContext()->DrawIndexedInstanced(
+            subset.indexCount,
+            batch.numInstances,
+            subset.indexStart,
+            subset.vertexStart,
+            instanceLocation);
+
+        // stride idx in the instances buffer
+        instanceLocation += (UINT)batch.numInstances;
+    }
 
     void PushSpriteToRender(const Render::Sprite2D& sprite);
     void Render2dSprites();

@@ -2,12 +2,18 @@
 // Desc:   a vertex shader for fullscreen rendering of a quad
 //==================================================================================
 
+//---------------------------
+// TYPEDEFS
+//---------------------------
 struct VS_OUT
 {
     float4 posH : SV_POSITION;
     float2 tex  : TEXCOORD;
 };
 
+//---------------------------
+// VERTEX SHADER
+//---------------------------
 VS_OUT VS(uint id : SV_VertexID)
 {
     // generate fullscreen triangle in clip space

@@ -199,6 +199,7 @@ public:
     uint16 renderDbgString_      : 1 = true;
     uint16 renderDbgFrustum_     : 1 = true;
     uint16 renderDbgTerrainAABB_ : 1 = true;
+    uint16 renderDbgWireframe_   : 1 = true;
 };
 
 //---------------------------------------------------------

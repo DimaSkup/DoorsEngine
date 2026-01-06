@@ -564,7 +564,7 @@ void CRender::Update()
         isChangedPostFxs_ = false;
     }
 
-    // each frame we reset sprites render list
+    // reset the sprites render list before the next frame
     numSpritesToRender_ = 0;
 }
 
@@ -738,6 +738,7 @@ void CRender::RenderSkyDome(
 //---------------------------------------------------------
 void CRender::PushSpriteToRender(const Render::Sprite2D& sprite)
 {
+    // check a texture
     if (sprite.pSRV == nullptr)
         return;
 

@@ -6,7 +6,7 @@
 // GLOBALS
 //---------------------------
 Texture2D    fontTexture    : register(t20);
-SamplerState gBasicSampler  : register(s3);
+SamplerState gSamLinearWrap : register(s3);
 
 //---------------------------
 // CONST BUFFERS
@@ -30,5 +30,5 @@ struct PixelInputType
 //---------------------------
 float4 PS(PixelInputType input) : SV_TARGET
 {
-    return gPixelColor * fontTexture.Sample(gBasicSampler, input.tex);
+    return gPixelColor * fontTexture.Sample(gSamLinearWrap, input.tex);
 }
