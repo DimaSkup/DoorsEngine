@@ -269,4 +269,9 @@ tex_diff particles/spark/spark_06.png
 bs add
 dss mark_mirror
 
-
+newmtl fragments
+mat_id 26
+shader_id 5
+states 0
+tex_diff textures/ston_walls2.dds
+dss mark_mirror

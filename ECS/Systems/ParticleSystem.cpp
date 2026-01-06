@@ -167,6 +167,14 @@ void ParticleSystem::InitParticles(
             };
         }
     }
+
+    // generate multiple particles at once and then stop generation
+    else if (emitter.srcType == EMITTER_SRC_TYPE_SPLASH)
+    {
+        for (uint i = 0; i < numParticles; ++i)
+            particles[i].pos = emitter.position;
+    }
+
     else
     {
         LogErr(LOG, "can't generate positions: unknown source type: %d", (int)emitter.srcType);
@@ -194,6 +202,32 @@ void ParticleSystem::CreateParticles(const float dt)
     for (const index i : visibleEmittersIdxs_)
     {
         ParticleEmitter& emitter = emitters_[i];
+
+        if (!emitter.isActive)
+            continue;
+
+        if (emitter.srcType == EMITTER_SRC_TYPE_SPLASH)
+        {
+            bool ableEmit = (emitter.numSpawned < emitter.spawnRate);
+
+            if (!ableEmit)
+                continue;
+
+            // emit particles for the splash
+            emitter.particles.resize(emitter.spawnRate);
+
+            InitParticles(
+                emitter,
+                emitter.particles.data(),
+                emitter.spawnRate);
+
+            emitter.numSpawned = emitter.spawnRate;
+
+            //emitter.isActive = false;
+            continue;
+        }
+
+
         emitter.time += dt;
         const uint numNewParticles = (uint)(emitter.time * emitter.spawnRate);
 
@@ -385,7 +419,7 @@ ParticlesRenderData& ParticleSystem::GetParticlesToRender()
     {
         const ParticleEmitter& emitter = emitters_[idx];
 
-        if (!emitter.isEmitting)
+        if (!emitter.isActive)
             continue;
 
 
@@ -578,6 +612,13 @@ void ParticleSystem::SetFriction(const EntityID id, const float friction)
 void ParticleSystem::SetExternForces(const EntityID id, const float x, const float y, const float z)
 {
     GetEmitterByEnttId(id).forces = DirectX::XMVECTOR{ x,y,z };
+}
+
+//-----------------------------------------------------
+//-----------------------------------------------------
+void ParticleSystem::ResetNumSpawnedParticles(const EntityID id)
+{
+    GetEmitterByEnttId(id).numSpawned = 0;
 }
 
 } // namespace

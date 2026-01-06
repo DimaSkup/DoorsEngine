@@ -19,6 +19,7 @@ enum eEmitterSrcType : uint8
     EMITTER_SRC_TYPE_POINT,    // particles generates at a single point
     EMITTER_SRC_TYPE_PLANE,    // generate in random point on plane (plane is defined by upper side of the emitter's bounding box)
     EMITTER_SRC_TYPE_VOLUME,   // generate in random point within emitter's bounding box
+    EMITTER_SRC_TYPE_SPLASH,   // generate multiple particles at once and then stop generation
 };
 
 //---------------------------------------------------------
@@ -113,7 +114,9 @@ struct ParticleEmitter
     float             srcPlaneHeight    = 0.0f;             // local space height of generation plane (if srcType is PLANE)
 
     int               spawnRate  = 0;                       // number of particles generated per 1 second
-    bool              isEmitting = true;
+    int               numSpawned = 0;
+    bool              isActive = true;
+
 
 
     eEmitterSrcType      srcType        = EMITTER_SRC_TYPE_POINT;

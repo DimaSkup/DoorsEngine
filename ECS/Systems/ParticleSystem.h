@@ -62,6 +62,9 @@ public:
     void SetFriction    (const EntityID id, const float friction);
     void SetExternForces(const EntityID id, const float x, const float y, const float z);
 
+    void ResetNumSpawnedParticles(const EntityID id);
+
+
     //-----------------------------------------------------
     // check if we have any particle emitters
     //-----------------------------------------------------

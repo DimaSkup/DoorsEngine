@@ -989,8 +989,9 @@ void Engine::HandleEditorEventMouse(void)
                 // and we don't hover any gizmo we execute entity picking (selection) test
                 if (pUI->IsSceneWndHovered() && !pUI->IsGizmoHovered())
                 {
-                    EntityID selectedEnttID = 0;
-                    selectedEnttID = graphics_.TestEnttSelection(mouseEvent_.GetPosX(), mouseEvent_.GetPosY());
+                    EntityID selectedEnttID = graphics_.TestEnttSelection(
+                        mouseEvent_.GetPosX(),
+                        mouseEvent_.GetPosY());
 
                     // update the UI about selection of the entity
                     if (selectedEnttID)

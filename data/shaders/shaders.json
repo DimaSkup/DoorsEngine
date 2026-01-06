@@ -397,6 +397,14 @@
 			"gs":             "spriteGS",
 			"ps":             "spritePS",
 			"input_layout":   "None"
+		},
+		{
+			"id":             55,
+			"name":           "WireframeShader",
+			"vs":             "wireframeVS",
+			"gs":             "wireframeGS",
+			"ps":             "wireframePS",
+			"input_layout":   "Pos"
 		}
 	]
 }

@@ -188,6 +188,9 @@ void ReadAndCreateEmitter(
     else if (strcmp(srcTypeStr, "volume") == 0)
         emitter.srcType = ECS::EMITTER_SRC_TYPE_VOLUME;
 
+    else if (strcmp(srcTypeStr, "splash") == 0)
+        emitter.srcType = ECS::EMITTER_SRC_TYPE_SPLASH;
+
     else
         LogErr(LOG, "unknown emitter source type: %s", srcTypeStr);
 

@@ -505,7 +505,9 @@ void Game::HandleGameEventMouse(const float deltaTime)
     ECS::PlayerSystem& player = pEnttMgr_->playerSystem_;
     Weapon& wpn = weapons_[currWeaponIdx_];
 
+  
 
+  
     while (!mouse.EventBufferIsEmpty())
     {
         MouseEvent mouseEvent = mouse.ReadEvent();
@@ -559,6 +561,11 @@ void Game::HandleGameEventMouse(const float deltaTime)
     {
         // execute multiple shots (possible only for machine guns)
         gameEventsList_.PushEvent(GameEvent(PLAYER_MULTIPLE_SHOTS));
+
+        int mousePosX = mouse.GetPosX();
+        int mousePosY = mouse.GetPosY();
+        pEngine_->GetGraphicsClass().GetRayIntersectionPoint(mousePosX, mousePosY);
+        //pEngine_->GetGraphicsClass().TestEnttSelection(mousePosX, mousePosY);
     }
 
     last = current;

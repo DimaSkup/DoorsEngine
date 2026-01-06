@@ -1961,19 +1961,13 @@ void RenderDebugLines(Render::CRender* pRender, cvector<VertexPosColor>& vertice
 {
     assert(pRender != nullptr);
 
-    const int numDbgLines = g_DebugDrawMgr.currNumLines_;
-
-    if (numDbgLines == 0)
-        return;
-
-
     // fill arr with lines vertices data and update the vertex buffer with it
     const int vertsPerLine    = 2;
-    const int numDbgLineVerts = numDbgLines * vertsPerLine;
+    const int numDbgLineVerts = MAX_NUM_DBG_LINES * vertsPerLine;
     vertices.resize(numDbgLineVerts);
 
 
-    for (int lineIdx = 0, vertIdx = 0; lineIdx < numDbgLines; ++lineIdx)
+    for (int lineIdx = 0, vertIdx = 0; lineIdx < MAX_NUM_DBG_LINES; ++lineIdx)
     {
         const DebugLine& line = g_DebugDrawMgr.lines_[lineIdx];
 
@@ -2189,10 +2183,6 @@ void CGraphics::RenderDebugShapes()
     if (!g_DebugDrawMgr.doRendering_)
         return;
 
-    assert(pRender_ != nullptr);
-
-    Render::CRender*     pRender  = pRender_;
-    ID3D11DeviceContext* pContext = pRender->GetContext();
 
     // reset all the render states to default before lines rendering
     ResetRenderStatesToDefault();
@@ -2200,6 +2190,8 @@ void CGraphics::RenderDebugShapes()
     // setup rendering pipeline
     VertexBuffer<VertexPosColor>& vb = g_ModelMgr.GetDebugLinesVB();
     IndexBuffer<uint16>&          ib = g_ModelMgr.GetDebugLinesIB();
+    Render::CRender*         pRender = pRender_;
+    ID3D11DeviceContext*    pContext = pRender->GetContext();
 
     pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
     pRender->BindShaderByName("DebugLineShader");
@@ -2226,6 +2218,71 @@ void CGraphics::RenderDebugShapes()
 
     if (g_DebugDrawMgr.renderDbgTerrainAABB_)
         RenderDebugLinesTerrainAABB(pRender, vertices);
+
+
+
+    pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    uint32 startInstanceLocation = 0;
+
+    pRender->BindShaderByName("WireframeShader");
+
+    for (const Render::InstanceBatch& batch : pRender->dataStorage_.masked)
+    {
+        const UINT instancesBuffElemSize = (UINT)(sizeof(ConstBufType::InstancedData));
+
+        // bind vertex/index buffers for these instances
+        ID3D11Buffer* const vbs[2] = { batch.pVB, pRender->pInstancedBuffer_ };
+        const UINT strides[2] = { batch.vertexStride, instancesBuffElemSize };
+        const UINT offsets[2] = { 0,0 };
+
+        pContext->IASetVertexBuffers(0, 2, vbs, strides, offsets);
+        pContext->IASetIndexBuffer(batch.pIB, DXGI_FORMAT_R32_UINT, 0);
+
+
+        const Render::Subset& subset = batch.subset;
+
+        pContext->DrawIndexedInstanced(
+            subset.indexCount,
+            batch.numInstances,
+            subset.indexStart,
+            subset.vertexStart,
+            startInstanceLocation);
+
+        // stride idx in the instances buffer and accumulate render statistic
+        startInstanceLocation += (UINT)batch.numInstances;
+    }
+
+
+
+    for (const Render::InstanceBatch& batch : pRender->dataStorage_.opaque)
+    {
+        const UINT instancesBuffElemSize = (UINT)(sizeof(ConstBufType::InstancedData));
+
+        // bind vertex/index buffers for these instances
+        ID3D11Buffer* const vbs[2] = { batch.pVB, pRender->pInstancedBuffer_ };
+        const UINT strides[2] = { batch.vertexStride, instancesBuffElemSize };
+        const UINT offsets[2] = { 0,0 };
+
+        pContext->IASetVertexBuffers(0, 2, vbs, strides, offsets);
+        pContext->IASetIndexBuffer(batch.pIB, DXGI_FORMAT_R32_UINT, 0);
+
+
+        const Render::Subset& subset = batch.subset;
+
+        pContext->DrawIndexedInstanced(
+            subset.indexCount,
+            batch.numInstances,
+            subset.indexStart,
+            subset.vertexStart,
+            startInstanceLocation);
+
+        // stride idx in the instances buffer and accumulate render statistic
+        startInstanceLocation += (UINT)batch.numInstances;
+    }
+
+    pRender->GetRenderStates().ResetRS(pContext);
+    pRender->GetRenderStates().ResetBS(pContext);
+    pRender->GetRenderStates().ResetDSS(pContext);
 }
 
 //---------------------------------------------------------
@@ -2552,7 +2609,7 @@ void CGraphics::GetRayIntersectionPoint(const int sx, const int sy)
     const XMMATRIX& invView = camSys.GetInverseView(currCamId);
 
     // TODO: optimize it!
-    const float xndc = (+2.0f * sx / GetD3D().GetWindowWidth() - 1.0f);
+    const float xndc = (+2.0f * sx / GetD3D().GetWindowWidth()  - 1.0f);
     const float yndc = (-2.0f * sy / GetD3D().GetWindowHeight() + 1.0f);
 
     // compute picking ray in view space
@@ -2563,7 +2620,8 @@ void CGraphics::GetRayIntersectionPoint(const int sx, const int sy)
     XMVECTOR rayOriginW = { camPos.x, camPos.y, camPos.z, 1 };
     XMVECTOR rayDirW    = XMVector3Normalize(XMVector3TransformNormal({ vx, vy, 1, 0 }, invView));     // supposed to take a vec (w == 0)
 
- 
+    // normal vector of intersected triangle (if we have such)
+    XMFLOAT3 normalVec = { 0,0,0 };
 
     // assume we have not picked anything yet, 
     // so init the ID to 0 and triangle idx to -1
@@ -2628,6 +2686,7 @@ void CGraphics::GetRayIntersectionPoint(const int sx, const int sy)
                         tmin = t;
                         selectedTriangleIdx = i;
                         selectedEnttID = enttId;
+                        normalVec = model.vertices_[i0].normal;
 
                         XMVECTOR currIntersection = rayOriginW + rayDirW * t;
                         XMStoreFloat3(&intersectionP, currIntersection);
@@ -2652,12 +2711,36 @@ void CGraphics::GetRayIntersectionPoint(const int sx, const int sy)
 
         g_DebugDrawMgr.AddLine(fromPos, toPos, color);
 
-#if 0
+#if 1
         SetConsoleColor(YELLOW);
-        const char* name = pEnttMgr->nameSystem_.GetNameById(selectedEnttID);
-        LogMsg("picked entt (id: %" PRIu32 "; name: % s)", selectedEnttID, name);
-        printf("ray origin: %f %f %f\n", rayOrig.x, rayOrig.y, rayOrig.z);
-        printf("point:      %f %f %f\n", intersectionP.x, intersectionP.y, intersectionP.z);
+
+        const char* enttName = pEnttMgr_->nameSystem_.GetNameById(selectedEnttID);
+        
+
+        printf("hitEntt (id: %" PRIu32 "  '%s'   orig: %.2f %.2f %.2f   i: %.2f %.2f %.2f   d: %.2f   n: %.2f %.2f %.2f)\n",
+            selectedEnttID,
+            enttName,
+            rayOrig.x, rayOrig.y, rayOrig.z,
+            intersectionP.x, intersectionP.y, intersectionP.z,
+            tmin,
+            normalVec.x, normalVec.y, normalVec.z);
+
+        const EntityID splashEmitterId = pEnttMgr_->nameSystem_.GetIdByName("shot_splash");
+        pEnttMgr_->AddEvent(ECS::EventTranslate(splashEmitterId, intersectionP.x, intersectionP.y, intersectionP.z));
+
+        XMFLOAT3 rayDir;
+        XMStoreFloat3(&rayDir, -rayDirW);
+
+        Vec3 ray  = { rayDir.x, rayDir.y, rayDir.z };
+        Vec3 norm = { normalVec.x, normalVec.y, normalVec.z };
+
+        float dot = Vec3Dot(ray, norm);
+        if (dot < 0)
+            norm = -norm;
+
+        pEnttMgr_->particleSystem_.SetExternForces(splashEmitterId, norm.x*0.001f, -0.006f, norm.z*0.001f);
+        pEnttMgr_->particleSystem_.ResetNumSpawnedParticles(splashEmitterId);
+
         SetConsoleColor(RESET);
 #endif
     }

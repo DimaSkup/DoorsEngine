@@ -195,6 +195,9 @@
     <FxCompile Include="hlsl\spriteVS.hlsl" />
     <FxCompile Include="hlsl\spriteGS.hlsl" />
     <FxCompile Include="hlsl\spritePS.hlsl" />
+    <FxCompile Include="hlsl\wireframeVS.hlsl" />
+    <FxCompile Include="hlsl\wireframeGS.hlsl" />
+    <FxCompile Include="hlsl\wireframePS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="hlsl\LightHelper.hlsli" />

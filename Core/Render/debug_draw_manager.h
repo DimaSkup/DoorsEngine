@@ -26,6 +26,8 @@ namespace Core
 //---------------------------------------------------------
 // constants
 //---------------------------------------------------------
+constexpr int MAX_NUM_DBG_LINES = 10;
+
 constexpr int DEBUG_LINE_BUF_LIMIT = 512;
 constexpr int DEBUG_LINE_VERTEX_BUF_LIMIT = 512;
 
@@ -168,7 +170,7 @@ public:
 
 public:
     // vertices arrays by debug shape types
-    cvector<DebugLine> lines_;
+    DebugLine lines_[MAX_NUM_DBG_LINES];
 
     DebugLine       frustumLines_[12];
     cvector<DebugLineVertex> aabbsVertices_;
@@ -178,7 +180,7 @@ public:
     cvector<uint16> aabbIndices_;
     cvector<uint16> sphereIndices_;
 
-    static int      currNumLines_;
+    //static int      currNumLines_;
     static int      currNumAABBs_;
     static int      currNumTerrainAABBs_;
     static int      currNumSpheres_;

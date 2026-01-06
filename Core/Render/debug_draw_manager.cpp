@@ -27,7 +27,6 @@ DebugDrawMgr g_DebugDrawMgr2D;
 //---------------------------------------------------------
 // static data fields
 //---------------------------------------------------------
-int DebugDrawMgr::currNumLines_         = 0;
 int DebugDrawMgr::currNumAABBs_         = 0;
 int DebugDrawMgr::currNumTerrainAABBs_  = 0;
 int DebugDrawMgr::currNumSpheres_       = 0;
@@ -113,14 +112,18 @@ void DebugDrawMgr::AddLine(
     const int durationMs,
     const bool depthEnabled)
 {
-    ++currNumLines_;
-    lines_.push_back(DebugLine{
+    static int lineIdx = 0;
+
+    lines_[lineIdx] = DebugLine{
         fromPos,
         toPos,
         GetU32Color(colorRGB),
         (uint8)lineWidth,
         (uint16)durationMs,
-        (uint8)depthEnabled });
+        (uint8)depthEnabled };
+
+    lineIdx++;
+    lineIdx %= MAX_NUM_DBG_LINES;
 
 #if 0
     printf("\nline is added:\n");
