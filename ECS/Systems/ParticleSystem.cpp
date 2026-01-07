@@ -207,26 +207,7 @@ void ParticleSystem::CreateParticles(const float dt)
             continue;
 
         if (emitter.srcType == EMITTER_SRC_TYPE_SPLASH)
-        {
-            bool ableEmit = (emitter.numSpawned < emitter.spawnRate);
-
-            if (!ableEmit)
-                continue;
-
-            // emit particles for the splash
-            emitter.particles.resize(emitter.spawnRate);
-
-            InitParticles(
-                emitter,
-                emitter.particles.data(),
-                emitter.spawnRate);
-
-            emitter.numSpawned = emitter.spawnRate;
-
-            //emitter.isActive = false;
             continue;
-        }
-
 
         emitter.time += dt;
         const uint numNewParticles = (uint)(emitter.time * emitter.spawnRate);
@@ -460,11 +441,25 @@ ParticlesRenderData& ParticleSystem::GetParticlesToRender()
 }
 
 //-----------------------------------------------------
-// find a particle emitter which is bound to entity by ID
+// Desc:  find a particle emitter by its id
 //-----------------------------------------------------
-ParticleEmitter& ParticleSystem::GetEmitterByEnttId(const EntityID id)
+ParticleEmitter& ParticleSystem::GetEmitter(const EntityID id)
 {
     for (ParticleEmitter& emitter : emitters_)
+    {
+        if (emitter.id == id)
+            return emitter;
+    }
+
+    LogErr(LOG, "can't find a particles emitter by entity ID: %" PRIu32, id);
+    return emitters_[0];
+}
+
+//-----------------------------------------------------
+
+const ParticleEmitter& ParticleSystem::GetEmitter(const EntityID id) const
+{
+    for (const ParticleEmitter& emitter : emitters_)
     {
         if (emitter.id == id)
             return emitter;
@@ -518,10 +513,30 @@ Rect3d ParticleSystem::GetEmitterLocalAABB(const EntityID id)
 //-----------------------------------------------------
 const XMFLOAT3 ParticleSystem::GetEmitterPos(const EntityID id)
 {
-    const ParticleEmitter& emitter = GetEmitterByEnttId(id);
+    const ParticleEmitter& emitter = GetEmitter(id);
     XMFLOAT3 pos;
     XMStoreFloat3(&pos, emitter.position);
     return pos;
+}
+
+//-----------------------------------------------------
+// Desc:  generate a new portion of particles from the emitter by id
+//-----------------------------------------------------
+void ParticleSystem::PushNewParticles(const EntityID id, const uint numNewParticles)
+{
+    ParticleEmitter& emitter = GetEmitter(id);
+
+    // force update emitter's position
+    emitter.position = pTransformSys_->GetPositionVec(emitter.id);
+
+    // alloc memory for new particles and generate them
+    size currNumParticles = emitter.particles.size();
+    emitter.particles.resize(currNumParticles + numNewParticles);
+
+    InitParticles(
+        emitter,
+        &emitter.particles[currNumParticles],   // setup starting from...
+        numNewParticles);                       // setup this number of new particles
 }
 
 //-----------------------------------------------------
@@ -529,7 +544,7 @@ const XMFLOAT3 ParticleSystem::GetEmitterPos(const EntityID id)
 //-----------------------------------------------------
 void ParticleSystem::SetSpawnRate(const EntityID id, const uint spawnRate)
 {
-    GetEmitterByEnttId(id).spawnRate = spawnRate;
+    GetEmitter(id).spawnRate = spawnRate;
 }
 
 //-----------------------------------------------------
@@ -537,7 +552,7 @@ void ParticleSystem::SetSpawnRate(const EntityID id, const uint spawnRate)
 //-----------------------------------------------------
 void ParticleSystem::SetMaterialId(const EntityID id, const MaterialID matId)
 {
-    GetEmitterByEnttId(id).materialId = matId;
+    GetEmitter(id).materialId = matId;
 }
 
 //-----------------------------------------------------
@@ -551,7 +566,7 @@ void ParticleSystem::SetLife(const EntityID id, const float lifeMs)
         return;
     }
 
-    GetEmitterByEnttId(id).life = lifeMs * 0.001f;
+    GetEmitter(id).life = lifeMs * 0.001f;
 }
 
 //-----------------------------------------------------
@@ -565,7 +580,7 @@ void ParticleSystem::SetMass(const EntityID id, const float mass)
         return;
     }
 
-    GetEmitterByEnttId(id).mass = mass;
+    GetEmitter(id).mass = mass;
 }
 
 //-----------------------------------------------------
@@ -581,7 +596,7 @@ void ParticleSystem::SetSize(const EntityID id, const float sz)
         return;
     }
 
-    GetEmitterByEnttId(id).size = sz;
+    GetEmitter(id).size = sz;
 }
 
 //-----------------------------------------------------
@@ -589,7 +604,7 @@ void ParticleSystem::SetSize(const EntityID id, const float sz)
 //-----------------------------------------------------
 void ParticleSystem::SetColor(const EntityID id, const float r, const float g, const float b)
 {
-    GetEmitterByEnttId(id).startColor = DirectX::XMFLOAT3{ r,g,b };
+    GetEmitter(id).startColor = DirectX::XMFLOAT3{ r,g,b };
 }
 
 //-----------------------------------------------------
@@ -603,7 +618,7 @@ void ParticleSystem::SetFriction(const EntityID id, const float friction)
         return;
     }
 
-    GetEmitterByEnttId(id).friction = friction;
+    GetEmitter(id).friction = friction;
 }
 
 //-----------------------------------------------------
@@ -611,14 +626,14 @@ void ParticleSystem::SetFriction(const EntityID id, const float friction)
 //-----------------------------------------------------
 void ParticleSystem::SetExternForces(const EntityID id, const float x, const float y, const float z)
 {
-    GetEmitterByEnttId(id).forces = DirectX::XMVECTOR{ x,y,z };
+    GetEmitter(id).forces = DirectX::XMVECTOR{ x,y,z };
 }
 
 //-----------------------------------------------------
 //-----------------------------------------------------
 void ParticleSystem::ResetNumSpawnedParticles(const EntityID id)
 {
-    GetEmitterByEnttId(id).numSpawned = 0;
+    GetEmitter(id).numSpawned = 0;
 }
 
 } // namespace

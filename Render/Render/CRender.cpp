@@ -634,8 +634,7 @@ void CRender::UpdateInstancedBuffer(
         // write data into the subresource
         for (int i = 0; i < count; ++i)
         {
-            dataView[i].world             = worlds[i];
-            dataView[i].worldInvTranspose = worlds[i];
+            dataView[i].world = worlds[i];
         }
 
         for (int i = 0; i < count; ++i)
@@ -738,6 +737,9 @@ void CRender::RenderSkyDome(
 //---------------------------------------------------------
 void CRender::PushSpriteToRender(const Render::Sprite2D& sprite)
 {
+    if (numSpritesToRender_ >= MAX_NUM_2D_SPRITES)
+        return;
+
     // check a texture
     if (sprite.pSRV == nullptr)
         return;

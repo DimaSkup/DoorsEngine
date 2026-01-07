@@ -1,7 +1,23 @@
+/**********************************************************************************\
+
+    ******     ******    ******   ******    ********
+    **    **  **    **  **    **  **    **  **    **
+    **    **  **    **  **    **  **    **  **
+    **    **  **    **  **    **  **    **  ********
+    **    **  **    **  **    **  ******          **
+    **    **  **    **  **    **  **  ***   **    **
+    ******     ******    ******   **    **  ********
+
+    Filename: EntityMgr.cpp
+
+    Desc:     Entity-Component-System (ECS) main manager
+
+\**********************************************************************************/
 #include "../Common/pch.h"
 #include "EntityMgr.h"
 
 #pragma warning (disable : 4996)
+
 
 namespace ECS
 {
@@ -15,22 +31,22 @@ static cvector<index>    s_Idxs;
 
 EntityMgr::EntityMgr() :
     hierarchy_{},
-    nameSystem_         { &names_ },
-    transformSystem_    { &transform_ },
-    moveSystem_         { &transform_, &movement_ },
-    modelSystem_        { &modelComponent_ },
-    renderSystem_       { &renderComponent_ },
-    materialSystem_     { &materialComponent_, &nameSystem_ },
-    texTransformSystem_ { &texTransform_ },
-    lightSystem_        { &light_, &transformSystem_ },
-    boundingSystem_     { &bounding_ },
-    cameraSystem_       { &camera_, &transformSystem_ },
-    hierarchySystem_    { &hierarchy_, &transformSystem_ },
-    playerSystem_       { &transformSystem_, &cameraSystem_, &hierarchySystem_ },
-    particleSystem_     { &transformSystem_, &boundingSystem_ },
-    inventorySystem_    { &inventory_ },
-    animationSystem_    { &animations_ },
-    spriteSystem_       { &sprites_ }
+    nameSys_         { &names_ },
+    transformSys_    { &transform_ },
+    moveSys_         { &transform_, &movement_ },
+    modelSys_        { &modelComp_ },
+    renderSys_       { &renderComp_ },
+    materialSys_     { &materials_, &nameSys_ },
+    texTransformSys_ { &texTransform_ },
+    lightSys_        { &light_, &transformSys_ },
+    boundingSys_     { &bounding_ },
+    cameraSys_       { &camera_, &transformSys_ },
+    hierarchySys_    { &hierarchy_, &transformSys_ },
+    playerSys_       { &transformSys_, &cameraSys_, &hierarchySys_ },
+    particleSys_     { &transformSys_, &boundingSys_ },
+    inventorySys_    { &inventory_ },
+    animationSys_    { &animations_ },
+    spriteSys_       { &sprites_ }
 {
     LogDbg(LOG, "start of entity mgr init");
 
@@ -212,32 +228,35 @@ void EntityMgr::DestroyEntities(const EntityID* ids, const size numEntts)
 
 void EntityMgr::Update(const float totalGameTime, const float deltaTime)
 {
-    texTransformSystem_.UpdateAllTextrureAnimations(totalGameTime, deltaTime);
-    lightSystem_.Update(deltaTime, totalGameTime);
-    animationSystem_.Update(deltaTime);
+    // update systems
+    texTransformSys_.UpdateAllTextrureAnimations(totalGameTime, deltaTime);
+    lightSys_.Update(deltaTime, totalGameTime);
+    animationSys_.Update(deltaTime);
 
 
     // handle events
-    for (const Event& e : events_)
+    for (int i = 0; i < currNumEvents_; ++i)
     {
+        Event& e = eventsList_[i];
+
         switch (e.type)
         {
             case EVENT_TRANSLATE:
             {
                 // make an arr of entt and all its children's ids
-                hierarchySystem_.GetChildrenArr(e.enttID, s_Ids);
+                hierarchySys_.GetChildrenArr(e.enttID, s_Ids);
                 s_Ids.push_back(e.enttID);
 
-                XMFLOAT3 prevPos = transformSystem_.GetPosition(e.enttID);
+                XMFLOAT3 prevPos = transformSys_.GetPosition(e.enttID);
 
                 // adjust position for entt and all its children
-                transformSystem_.AdjustPositions(
+                transformSys_.AdjustPositions(
                     s_Ids.data(),
                     s_Ids.size(),
                     { e.x-prevPos.x, e.y-prevPos.y, e.z-prevPos.z });  
 
                 // update relative position (relatively to parent if we have any)
-                hierarchySystem_.UpdateRelativePos(e.enttID);
+                hierarchySys_.UpdateRelativePos(e.enttID);
 
                 break;
             }
@@ -251,62 +270,71 @@ void EntityMgr::Update(const float totalGameTime, const float deltaTime)
             }
             case EVENT_PLAYER_RUN:              // set the player is running or not
             {
-                playerSystem_.SetIsRunning(e.x);
+                playerSys_.SetIsRunning(e.x);
                 break;
             }
             case EVENT_PLAYER_JUMP:
             {
-                playerSystem_.Move(ePlayerState::JUMP);
+                playerSys_.Move(ePlayerState::JUMP);
                 break;
             }
             case EVENT_PLAYER_MOVE_FORWARD:
             {
-                playerSystem_.Move(ePlayerState::MOVE_FORWARD);
+                playerSys_.Move(ePlayerState::MOVE_FORWARD);
                 break;
             }
             case EVENT_PLAYER_MOVE_BACK:
             {
-                playerSystem_.Move(ePlayerState::MOVE_BACK);
+                playerSys_.Move(ePlayerState::MOVE_BACK);
                 break;
             }
             case EVENT_PLAYER_MOVE_RIGHT:
             {
-                playerSystem_.Move(ePlayerState::MOVE_RIGHT);
+                playerSys_.Move(ePlayerState::MOVE_RIGHT);
                 break;
             }
             case EVENT_PLAYER_MOVE_LEFT:
             {
-                playerSystem_.Move(ePlayerState::MOVE_LEFT);
+                playerSys_.Move(ePlayerState::MOVE_LEFT);
                 break;
             }
             case EVENT_PLAYER_MOVE_UP:
             {
-                playerSystem_.Move(ePlayerState::MOVE_UP);
+                playerSys_.Move(ePlayerState::MOVE_UP);
                 break;
             }
             case EVENT_PLAYER_MOVE_DOWN:
             {
-                playerSystem_.Move(ePlayerState::MOVE_DOWN);
+                playerSys_.Move(ePlayerState::MOVE_DOWN);
                 break;
             }
         }
     }
 
-    playerSystem_.Update(deltaTime);
-    particleSystem_.Update(deltaTime);
+    playerSys_.Update(deltaTime);
+    particleSys_.Update(deltaTime);
 
-    // we handled all the events so clear the list of events
-    events_.clear();
+    // we handled all the events so reset the events list
+    currNumEvents_ = 0;
 }
 
 //---------------------------------------------------------
 // Desc:   add a new event into the events list
 //---------------------------------------------------------
-void EntityMgr::AddEvent(const Event& e)
+void EntityMgr::PushEvent(const Event& e)
 {
-    events_.push_back(e);
+    if (currNumEvents_ >= MAX_NUM_EVENTS)
+    {
+        LogErr(LOG, "can't push a new event (because of limit of %d events)", MAX_NUM_EVENTS);
+        return;
+    }
+
+    eventsList_[currNumEvents_++] = e;
 }
 
+//---------------------------------------------------------
+// Desc:  unbind a component from entity
+//---------------------------------------------------------
 void EntityMgr::RemoveComponent(const EntityID id, eComponentType component)
 {
     if (!CheckEnttExist(id))
@@ -321,7 +349,7 @@ void EntityMgr::RemoveComponent(const EntityID id, eComponentType component)
     switch (component)
     {
         case RenderedComponent:
-            renderSystem_.RemoveRecord(id);
+            renderSys_.RemoveRecord(id);
             updateBitfield = true;
             break;
 
@@ -346,11 +374,13 @@ void EntityMgr::RemoveComponent(const EntityID id, eComponentType component)
 // 
 // *********************************************************************************
 
+//---------------------------------------------------------
+// Desc:  set that an entity by ID has a component by type
+//---------------------------------------------------------
 void EntityMgr::SetEnttHasComponent(
     const EntityID id,
     const eComponentType compType)
 {
-    // set that an entity by ID has such a component 
     const index idx = ids_.get_idx(id);
     componentHashes_[idx] |= (1 << compType);
 }
@@ -366,7 +396,7 @@ void EntityMgr::SetEnttsHaveComponent(
     ids_.get_idxs(ids, numEntts, s_Idxs);
 
     // generate hash mask by input component type
-    ComponentBitfield bitMask = 1 << compType;
+    const ComponentBitfield bitMask = 1 << compType;
 
     for (const index idx : s_Idxs)
         componentHashes_[idx] |= bitMask;
@@ -382,6 +412,7 @@ void EntityMgr::SetEnttsHaveComponents(
 {
     // generate a bitmask by input components types
     ComponentBitfield bitmask = 0;
+
     for (const eComponentType type : compTypes)
         bitmask |= (1 << type);
 
@@ -396,7 +427,7 @@ void EntityMgr::SetEnttsHaveComponents(
 //---------------------------------------------------------
 bool EntityMgr::AddNameComponent(const EntityID& id, const char* name)
 {
-    if (!nameSystem_.AddRecord(id, name))
+    if (!nameSys_.AddRecord(id, name))
     {
         LogErr(LOG, "can't add a name component to entt: %" PRIu32, id);
         return false;
@@ -415,7 +446,7 @@ void EntityMgr::AddNameComponent(
     const std::string* names,
     const size numEntts)
 {
-    if (!nameSystem_.AddRecords(ids, names, numEntts))
+    if (!nameSys_.AddRecords(ids, names, numEntts))
     {
         LogErr(GetErrMsg("can't add a name component to entts: ", ids, numEntts).c_str());
     }
@@ -453,7 +484,7 @@ void EntityMgr::AddTransformComponent(
 {
     try
     {
-        transformSystem_.AddRecords(ids, positions, directions, scales, numEntts);
+        transformSys_.AddRecords(ids, positions, directions, scales, numEntts);
         SetEnttsHaveComponents(ids, { TransformComponent }, numEntts);
     }
     catch (EngineException& e)
@@ -488,7 +519,7 @@ void EntityMgr::AddMoveComponent(
 {
     try
     {
-        moveSystem_.AddRecords(ids, translations, rotationQuats, uniformScaleFactors, numEntts);
+        moveSys_.AddRecords(ids, translations, rotationQuats, uniformScaleFactors, numEntts);
         SetEnttsHaveComponent(ids, numEntts, MoveComponent);
     }
     catch (EngineException& e)
@@ -519,13 +550,13 @@ void EntityMgr::AddModelComponent(
 {
     try
     {
-        modelSystem_.AddRecords(enttsIDs, modelID, numEntts);
+        modelSys_.AddRecords(enttsIDs, modelID, numEntts);
         SetEnttsHaveComponent(enttsIDs, numEntts, ModelComponent);
     }
     catch (EngineException& e)
     {
         LogErr(e);
-        LogErr(LOG, "can't add model component to entts: %s; \nmodel ID: %ud", GetEnttsIDsAsString(enttsIDs, numEntts).c_str(), modelID);
+        LogErr(LOG, "can't add model component to entts: %s; \nmodel ID: %" PRIu32, GetEnttsIDsAsString(enttsIDs, numEntts).c_str(), modelID);
     }
 }
 
@@ -545,7 +576,7 @@ void EntityMgr::AddRenderingComponent(const EntityID* ids, const size numEntts)
 {
     try
     {
-        renderSystem_.AddRecords(ids, numEntts);
+        renderSys_.AddRecords(ids, numEntts);
 
         using enum eComponentType;
         SetEnttsHaveComponents(ids, { RenderedComponent, RenderStatesComponent }, numEntts);
@@ -589,12 +620,12 @@ void EntityMgr::AddMaterialComponent(
             return;
         }
         
-        materialSystem_.AddRecord(enttId, materialsIds, numSubmeshes);
+        materialSys_.AddRecord(enttId, materialsIds, numSubmeshes);
         SetEnttHasComponent(enttId, MaterialComponent);
     }
     catch (EngineException& e)
     {
-        const char* name = nameSystem_.GetNameById(enttId);
+        const char* name = nameSys_.GetNameById(enttId);
 
         LogErr(e);
         LogErr(LOG, "can't add Material component to entt (id: %ld; name: %s)", enttId, name);
@@ -625,7 +656,7 @@ void EntityMgr::AddTextureTransformComponent(
 {
     try
     {
-        texTransformSystem_.AddTexTransformation(ids, numEntts, type, params);
+        texTransformSys_.AddTexTransformation(ids, numEntts, type, params);
         SetEnttsHaveComponent(ids, numEntts, TextureTransformComponent);
     }
     catch (EngineException& e)
@@ -640,19 +671,19 @@ void EntityMgr::AddTextureTransformComponent(
 //---------------------------------------------------------
 void EntityMgr::AddLightComponent(const EntityID id, const DirLight& initData)
 {
-    lightSystem_.AddDirLight(id, initData);
+    lightSys_.AddDirLight(id, initData);
     SetEnttHasComponent(id, LightComponent);
 }
 
 void EntityMgr::AddLightComponent(const EntityID id, const PointLight& initData)
 {
-    lightSystem_.AddPointLight(id, initData);
+    lightSys_.AddPointLight(id, initData);
     SetEnttHasComponent(id, LightComponent);
 }
 
 void EntityMgr::AddLightComponent(const EntityID id, const SpotLight& initData)
 {
-    lightSystem_.AddSpotLight(id, initData);
+    lightSys_.AddSpotLight(id, initData);
     SetEnttHasComponent(id, LightComponent);
 }
 
@@ -664,7 +695,7 @@ void EntityMgr::AddBoundingComponent(
     const EntityID id,
     const DirectX::BoundingSphere& sphere)
 {
-    if (!boundingSystem_.Add(id, sphere))
+    if (!boundingSys_.Add(id, sphere))
     {
         LogErr(LOG, "can't add bounding component to entts: %" PRIu32, id);
         return;
@@ -680,7 +711,7 @@ void EntityMgr::AddBoundingComponent(
     const EntityID id,
     const DirectX::BoundingBox& aabb)
 {
-    if (!boundingSystem_.Add(id, aabb))
+    if (!boundingSys_.Add(id, aabb))
     {
         LogErr(LOG, "can't add bounding component to entts: %" PRIu32, id);
         return;
@@ -698,7 +729,7 @@ void EntityMgr::AddBoundingComponent(
     const size numEntts,
     const DirectX::BoundingBox& aabb)
 {
-    if (!boundingSystem_.Add(ids, numEntts, aabb))
+    if (!boundingSys_.Add(ids, numEntts, aabb))
     {
         LogErr(LOG, "can't add bounding component to entts: %s", GetEnttsIDsAsString(ids, numEntts).c_str());
         return;
@@ -714,7 +745,7 @@ void EntityMgr::AddCameraComponent(const EntityID id, const CameraData& data)
 {
     try
     {
-        cameraSystem_.AddRecord(id, data);
+        cameraSys_.AddRecord(id, data);
         SetEnttHasComponent(id, CameraComponent);
     }
     catch (EngineException& e)
@@ -729,9 +760,15 @@ void EntityMgr::AddCameraComponent(const EntityID id, const CameraData& data)
 //---------------------------------------------------------
 void EntityMgr::AddPlayerComponent(const EntityID id)
 {
+    if (!CheckEnttExist(id))
+    {
+        LogErr(LOG, GetErrMsgFailedAddComponent("player", id).c_str());
+        return;
+    }
+
     try
     {
-        playerSystem_.SetPlayer(id);
+        playerSys_.SetPlayer(id);
         SetEnttHasComponent(id, PlayerComponent);
     }
     catch (EngineException& e)
@@ -747,14 +784,13 @@ void EntityMgr::AddPlayerComponent(const EntityID id)
 //---------------------------------------------------------
 void EntityMgr::AddParticleEmitterComponent(const EntityID id)
 {
-    // if such entity doesn't exist...
-    if (!ids_.binary_search(id))
+    if (!CheckEnttExist(id))
     {
         LogErr(LOG, GetErrMsgFailedAddComponent("particle emitter", id).c_str());
         return;
     }
 
-    particleSystem_.AddEmitter(id);
+    particleSys_.AddEmitter(id);
     SetEnttHasComponent(id, ParticlesComponent);
 }
 
@@ -763,14 +799,13 @@ void EntityMgr::AddParticleEmitterComponent(const EntityID id)
 //---------------------------------------------------------
 void EntityMgr::AddInventoryComponent(const EntityID id)
 {
-    // if such entity doesn't exist...
-    if (!ids_.binary_search(id))
+    if (!CheckEnttExist(id))
     {
         LogErr(LOG, GetErrMsgFailedAddComponent("inventory", id).c_str());
         return;
     }
 
-    inventorySystem_.AddInventory(id);
+    inventorySys_.AddInventory(id);
     SetEnttHasComponent(id, InventoryComponent);
 }
 
@@ -783,14 +818,13 @@ void EntityMgr::AddAnimationComponent(
     const AnimationID animId,
     const float animEndTime)
 {
-    // if such entity doesn't exist...
-    if (!ids_.binary_search(enttId))
+    if (!CheckEnttExist(enttId))
     {
         LogErr(LOG, GetErrMsgFailedAddComponent("animation", enttId).c_str());
         return;
     }
 
-    if (!animationSystem_.AddRecord(enttId, skeletonId, animId, animEndTime))
+    if (!animationSys_.AddRecord(enttId, skeletonId, animId, animEndTime))
     {
         LogErr(LOG, "can't add a skeleton and animation for entt: %" PRIu32, enttId);
         return;
@@ -817,14 +851,13 @@ void EntityMgr::AddSpriteComponent(
     const uint16 width,
     const uint16 height)
 {
-    // if such entity doesn't exist...
-    if (!ids_.binary_search(enttId))
+    if (!CheckEnttExist(enttId))
     {
         LogErr(LOG, GetErrMsgFailedAddComponent("sprite", enttId).c_str());
         return;
     }
 
-    if (!spriteSystem_.AddRecord(enttId, texId, leftPos, topPos, width, height))
+    if (!spriteSys_.AddRecord(enttId, texId, leftPos, topPos, width, height))
     {
         LogErr(LOG, "can't add a 2D sprite component for entt: %" PRIu32, enttId);
         return;
@@ -832,6 +865,7 @@ void EntityMgr::AddSpriteComponent(
 
     SetEnttHasComponent(enttId, SpriteComponent);
 }
+
 
 
 // ************************************************************************************
@@ -850,16 +884,15 @@ ComponentBitfield EntityMgr::GetHashByComponent(const eComponentType component)
 //---------------------------------------------------------
 bool EntityMgr::GetComponentNamesByEntt(const EntityID id, cvector<std::string>& names) const
 {
-    const index idx = ids_.get_idx(id);
-    const bool exist = (ids_[idx] == id);
-
-    if (!exist)
+    if (!CheckEnttExist(id))
     {
-        LogErr(GetErrMsgNoEntt(id).c_str());
+        LogErr(LOG, "there is no entt by id: %" PRIu32, id);
         return false;
     }
 
-    // get a bitfield where each bit is define if such component is added to entity or not
+
+    // get a bitfield where each bit is define if component is added to entt or not
+    const index idx = ids_.get_idx(id);
     const ComponentBitfield hash = componentHashes_[idx];
 
     for (int i = 0; i < eComponentType::NUM_COMPONENTS; ++i)
@@ -877,16 +910,15 @@ bool EntityMgr::GetComponentNamesByEntt(const EntityID id, cvector<std::string>&
 //---------------------------------------------------------
 bool EntityMgr::GetComponentTypesByEntt(const EntityID id, cvector<uint8_t>& types) const
 {
-    const index idx = ids_.get_idx(id);
-    const bool exist = (ids_[idx] == id);
-
-    if (!exist)
+    if (!CheckEnttExist(id))
     {
-        LogErr(GetErrMsgNoEntt(id).c_str());
+        LogErr(LOG, "there is no entt by id: %" PRIu32, id);
         return false;
     }
 
-    // get a bitfield where each bit is define if such component is added to entity or not
+
+    // get a bitfield where each bit is define if component is added to entity or not
+    const index idx = ids_.get_idx(id);
     const ComponentBitfield hash = componentHashes_[idx];
     types.reserve(4);
 

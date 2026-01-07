@@ -34,37 +34,31 @@ struct PS_IN
 //---------------------------
 float4 PS(PS_IN pin) : SV_TARGET
 {
-	float4 finalColor = gTextures[1].Sample(gBasicSampler, pin.tex);
+    float4 finalColor     = gTextures[1].Sample(gBasicSampler, pin.tex);
+    float4 skyBottomColor = gCubeMap.Sample(gSkySampler, float3(0, -490, 0));
+    
+    if (gAlphaClipping)
+        clip(finalColor.a - 0.1f);
+    
 
-	
-	if (gAlphaClipping)
-		clip(finalColor.a - 0.1f);
-	
-
-	if (gFogEnabled)
-	{
-		// the toEye vector is used to define a distance from camera to pixel
-		float3 toEyeW = gCamPosW - pin.posW.xyz;
-		float distToEye = length(toEyeW);
+    if (gFogEnabled)
+    {
+        // the toEye vector is used to define a distance from camera to pixel
+        float3 toEyeW = gCamPosW - pin.posW.xyz;
+        float distToEye = length(toEyeW);
 
         // normalize
         toEyeW /= distToEye;
 
-        // TEMP: hacky fix for the vector to sample the proper pixel of sky
-        float3 vec = -toEyeW;
-        vec.y -= 490;
-
-
-		float fogLerp = saturate((distToEye - gFogStart) / gFogRange);
+        float fogLerp = saturate((distToEye - gFogStart) / gFogRange);
 
         // blend sky pixel color with fixed fog color
-        float4 skyBottomColor = gCubeMap.Sample(gSkySampler, vec);
-        float4 fogColor = skyBottomColor * float4(gFixedFogColor, 1.0f);
+        float4 fogColor = skyBottomColor * float4(gFixedFogColor, 1.0);
 
-		// blend the fog color and the texture color
-		finalColor = lerp(finalColor, fogColor, fogLerp);
-	}
+        // blend the fog color and the texture color
+        finalColor = lerp(finalColor, fogColor, fogLerp);
+    }
 
 
-	return finalColor;
+    return finalColor;
 }

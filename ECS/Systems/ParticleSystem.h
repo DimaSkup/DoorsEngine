@@ -43,15 +43,30 @@ public:
 
     inline const cvector<Particle>& GetParticlesOfEmitter(const EntityID id)
     {
-        const ParticleEmitter& emitter = GetEmitterByEnttId(id);
+        const ParticleEmitter& emitter = GetEmitter(id);
         return emitter.particles;
     }
 
-    ParticleEmitter& GetEmitterByEnttId(const EntityID id);
+    ParticleEmitter& GetEmitter(const EntityID id);
+    const ParticleEmitter& GetEmitter(const EntityID id) const;
+
     Rect3d GetEmitterAABB(const EntityID id);
     Rect3d GetEmitterLocalAABB(const EntityID id);
 
     const XMFLOAT3 GetEmitterPos(const EntityID id);
+
+    void PushNewParticles(const EntityID id, const uint numNewParticles);
+
+#if 0
+    uint        GetSpawnRate    (const EntityID id) const;
+    MaterialID  GetMaterialId   (const EntityID id) const;
+    float       GetLifeDuration (const EntityID id) const;
+    float       GetMass         (const EntityID id) const;
+    float       GetSize         (const EntityID id) const;
+    Vec3        GetColor        (const EntityID id) const;
+    float       GetFriction     (const EntityID id) const;
+    Vec3        GetExternForces (const EntityID id) const;
+#endif
 
     void SetSpawnRate   (const EntityID id, const uint spawnRate);
     void SetMaterialId  (const EntityID id, const MaterialID matId);

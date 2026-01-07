@@ -47,6 +47,17 @@ struct Sprite2D
 };
 
 //---------------------------------------------------------
+// 3D decal
+//---------------------------------------------------------
+struct Decal
+{
+    float px, py, pz;    // decal center position
+    float nx, ny, nz;    // decal normal vector
+    float size;
+    SRV* pSRV = nullptr;
+};
+
+//---------------------------------------------------------
 // Desc:   a container for entities materials (its part: textures + render states)
 //---------------------------------------------------------
 struct MaterialDataForBinding

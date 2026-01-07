@@ -148,10 +148,10 @@ bool App::InitRender(const Core::EngineConfigs& cfgs)
     // prepare WVO (world * base_view * ortho) matrix for 2D rendering
     const bool startInGameMode  = cfgs.GetBool("START_IN_GAME_MODE");
     const char* cameraEnttName  = (startInGameMode) ? "game_camera" : "editor_camera";
-    const EntityID cameraId     = entityMgr_.nameSystem_.GetIdByName(cameraEnttName);
+    const EntityID cameraId     = entityMgr_.nameSys_.GetIdByName(cameraEnttName);
  
-    const DirectX::XMMATRIX& baseView = entityMgr_.cameraSystem_.GetBaseView(cameraId);
-    const DirectX::XMMATRIX& ortho    = entityMgr_.cameraSystem_.GetOrtho(cameraId);
+    const DirectX::XMMATRIX& baseView = entityMgr_.cameraSys_.GetBaseView(cameraId);
+    const DirectX::XMMATRIX& ortho    = entityMgr_.cameraSys_.GetOrtho(cameraId);
     const DirectX::XMMATRIX  WVO      = baseView * ortho;
 
     // setup initial params for the "Render" module

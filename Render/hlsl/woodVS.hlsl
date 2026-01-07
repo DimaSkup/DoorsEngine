@@ -38,7 +38,7 @@ VS_OUT VS(VS_IN vin)
     vout.posH = mul(float4(vout.posW, 1.0f), gViewProj);
 
     // interpolating normal can unnormalize it, so normalize it
-    vout.normalW = mul(vin.normalL, (float3x3)vin.worldInvTranspose);
+    vout.normalW = mul(vin.normalL, (float3x3)vin.world);
 
     // calculate the tangent and normalize it
     vout.tangentW = mul(vin.tangentL, vin.world);

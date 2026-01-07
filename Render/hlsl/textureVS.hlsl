@@ -1,5 +1,5 @@
 //==================================================================================
-// Filename:  texturePS.hlsl
+// Filename:  textureVS.hlsl
 // Desc:      vertex shader for texturing
 //==================================================================================
 #include "const_buffers/cb_view_proj.hlsli"
@@ -12,7 +12,6 @@ struct VS_IN
 {
     // data per instance
     row_major matrix   world             : WORLD;
-    row_major matrix   worldInvTranspose : WORLD_INV_TRANSPOSE;
     row_major float4x4 material          : MATERIAL;
     uint               instanceID        : SV_InstanceID;
 

@@ -608,11 +608,11 @@ void Engine::EventWindowResize(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
     {
         const float aspectRatio = (float)width / (float)height;
         cvector<EntityID> ids;
-        pEnttMgr_->cameraSystem_.GetAllCamerasIds(ids);
+        pEnttMgr_->cameraSys_.GetAllCamerasIds(ids);
 
         // update each camera
         for (const EntityID id : ids)
-            pEnttMgr_->cameraSystem_.SetAspectRatio(id, aspectRatio);
+            pEnttMgr_->cameraSys_.SetAspectRatio(id, aspectRatio);
     }
 }
 
@@ -657,8 +657,8 @@ void HandleEditorCameraMovement(
     ECS::EntityMgr* pEnttMgr,
     const Keyboard& keyboard)
 {
-    ECS::CameraSystem& camSys = pEnttMgr->cameraSystem_;
-    const EntityID     camID = pEnttMgr->nameSystem_.GetIdByName("editor_camera");
+    ECS::CameraSystem& camSys = pEnttMgr->cameraSys_;
+    const EntityID     camID = pEnttMgr->nameSys_.GetIdByName("editor_camera");
     constexpr int      editorCameraSpeed = 3;
     
     // if camera look isn't fixed at some particular point
@@ -744,8 +744,6 @@ void Engine::HandleEditorEventKeyboard(void)
         {
             case KEY_B:
             {
-                if (!keyboard_.WasPressedBefore(KEY_B))
-                    graphics_.IncreaseCurrentBoneId();
                 break;
             }
             case KEY_SHIFT:
@@ -838,7 +836,7 @@ void Engine::HandleEditorEventKeyboard(void)
                 // switch btw cameras modes (free / game)
                 if (!keyboard_.WasPressedBefore(KEY_F2))
                 {
-                    ECS::PlayerSystem& player = pEnttMgr_->playerSystem_;
+                    ECS::PlayerSystem& player = pEnttMgr_->playerSys_;
                     player.SetFreeFlyMode(!player.IsFreeFlyMode());
                 }
                 break;
@@ -962,8 +960,8 @@ void Engine::HandleEditorEventMouse(void)
                 // if we want to rotate a camera
                 if (isMouseMiddlePressed)
                 {
-                    const EntityID camId      = pEnttMgr_->nameSystem_.GetIdByName("editor_camera");
-                    ECS::CameraSystem& camSys = pEnttMgr_->cameraSystem_;
+                    const EntityID camId      = pEnttMgr_->nameSys_.GetIdByName("editor_camera");
+                    ECS::CameraSystem& camSys = pEnttMgr_->cameraSys_;
 
                     // rotate around some particular point
                     if (camSys.IsFixedLook(camId))
@@ -1028,8 +1026,8 @@ void Engine::HandleEditorEventMouse(void)
                     const int speedMul = (keyboard_.IsPressed(KEY_SHIFT)) ? 5 : 1;
                     const float step   = deltaTime_ * (camSpeed * speedMul * sign);
 
-                    const EntityID camID = pEnttMgr_->nameSystem_.GetIdByName("editor_camera");
-                    pEnttMgr_->cameraSystem_.Walk(camID, step);
+                    const EntityID camID = pEnttMgr_->nameSys_.GetIdByName("editor_camera");
+                    pEnttMgr_->cameraSys_.Walk(camID, step);
                 }
                 break;
             }
@@ -1065,7 +1063,7 @@ void Engine::EventMouse(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 //---------------------------------------------------------
 void Engine::TurnOnEditorMode()
 {
-    const EntityID editorCamId = pEnttMgr_->nameSystem_.GetIdByName("editor_camera");
+    const EntityID editorCamId = pEnttMgr_->nameSys_.GetIdByName("editor_camera");
 
     isFullscreen_ = false;
     GetD3D().ToggleFullscreen(hwnd_, isFullscreen_);
@@ -1080,8 +1078,8 @@ void Engine::TurnOnEditorMode()
     ClipCursor(nullptr);
     ShowCursor(TRUE);
 
-    const DirectX::XMMATRIX& baseView = pEnttMgr_->cameraSystem_.GetBaseView(editorCamId);
-    const DirectX::XMMATRIX& ortho    = pEnttMgr_->cameraSystem_.GetOrtho(editorCamId);
+    const DirectX::XMMATRIX& baseView = pEnttMgr_->cameraSys_.GetBaseView(editorCamId);
+    const DirectX::XMMATRIX& ortho    = pEnttMgr_->cameraSys_.GetOrtho(editorCamId);
 
     pRender_->UpdateCbWorldViewOrtho(baseView * ortho);
 }
@@ -1112,17 +1110,17 @@ void TurnOnClipCursorMode(HWND hwnd)
 //---------------------------------------------------------
 void Engine::TurnOnGameMode()
 {
-    const EntityID gameCamId = pEnttMgr_->nameSystem_.GetIdByName("game_camera");
+    const EntityID gameCamId = pEnttMgr_->nameSys_.GetIdByName("game_camera");
 
-    isFullscreen_ = false;
+    isFullscreen_ = true;
     GetD3D().ToggleFullscreen(hwnd_, isFullscreen_);
     graphics_.SetCurrentCamera(gameCamId);
 
     ShowCursor(FALSE);
     TurnOnClipCursorMode(hwnd_);
 
-    const DirectX::XMMATRIX& baseView = pEnttMgr_->cameraSystem_.GetBaseView(gameCamId);
-    const DirectX::XMMATRIX& ortho    = pEnttMgr_->cameraSystem_.GetOrtho(gameCamId);
+    const DirectX::XMMATRIX& baseView = pEnttMgr_->cameraSys_.GetBaseView(gameCamId);
+    const DirectX::XMMATRIX& ortho    = pEnttMgr_->cameraSys_.GetOrtho(gameCamId);
 
     pRender_->UpdateCbWorldViewOrtho(baseView * ortho);
 

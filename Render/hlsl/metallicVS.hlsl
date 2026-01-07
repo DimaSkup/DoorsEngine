@@ -16,16 +16,16 @@ VS_OUT VS(VS_IN vin)
     vout.material = vin.material;
 
     // transform pos from local to world space
-    vout.posW = mul(float4(vin.posL, 1.0f), vin.world).xyz;
+    vout.posW = mul(float4(vin.posL, 1.0), vin.world).xyz;
 
     // transform to homogeneous clip space
-    vout.posH = mul(float4(vout.posW, 1.0f), gViewProj);
+    vout.posH = mul(float4(vout.posW, 1.0), gViewProj);
 
     // interpolating normal can unnormalize it, so normalize it
-    vout.normalW = mul(vin.normalL, (float3x3)vin.worldInvTranspose);
+    vout.normalW = mul(vin.normalL, (float3x3)vin.world);
 
     // calculate the tangent and normalize it
-    vout.tangentW = mul(vin.tangentL, vin.worldInvTranspose);
+    vout.tangentW = mul(vin.tangentL, vin.world);
 
     vout.texU = vin.tex.x;
     vout.texV = vin.tex.y;

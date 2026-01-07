@@ -588,7 +588,7 @@ const DirectX::XMMATRIX& TransformSystem::GetWorld(const EntityID id) const
 // Desc:  return an inverse world matrix of entt by ID or
 //        return a matrix of NANs if there is no such entt by ID
 //---------------------------------------------------------
-const DirectX::XMMATRIX& TransformSystem::GetInverseWorld(const EntityID id) const
+const DirectX::XMMATRIX& TransformSystem::GetInvWorld(const EntityID id) const
 {
     return pTransform_->invWorlds[GetIdx(id)];
 }

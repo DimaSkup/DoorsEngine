@@ -233,9 +233,9 @@ void CGraphics::UpdateHelper(const float deltaTime, const float totalGameTime)
     }
 
 
-    ECS::TransformSystem& transformSys = pEnttMgr_->transformSystem_;
-    ECS::CameraSystem&    camSys       = pEnttMgr_->cameraSystem_;
-    ECS::NameSystem&      nameSys      = pEnttMgr_->nameSystem_;
+    ECS::TransformSystem& transformSys = pEnttMgr_->transformSys_;
+    ECS::CameraSystem&    camSys       = pEnttMgr_->cameraSys_;
+    ECS::NameSystem&      nameSys      = pEnttMgr_->nameSys_;
 
     TerrainGeomip& terrain   = g_ModelMgr.GetTerrainGeomip();
     const EntityID currCamId = currCameraID_;
@@ -245,7 +245,7 @@ void CGraphics::UpdateHelper(const float deltaTime, const float totalGameTime)
 
     if (sysState.isGameMode)
     {
-        ECS::PlayerSystem& player = pEnttMgr_->playerSystem_;
+        ECS::PlayerSystem& player = pEnttMgr_->playerSys_;
         XMFLOAT3 playerPos = player.GetPosition();
 
         const float terrainSize = (float)terrain.heightMap_.GetWidth();
@@ -405,7 +405,7 @@ void CGraphics::UpdateHelper(const float deltaTime, const float totalGameTime)
 
 
     // push each 2D sprite into render list
-    ECS::SpriteSystem& spriteSys = pEnttMgr_->spriteSystem_;
+    ECS::SpriteSystem& spriteSys = pEnttMgr_->spriteSys_;
     const EntityID* sprites = spriteSys.GetAllSpritesIds();
     const size numSprites   = spriteSys.GetNumAllSprites();
 
@@ -426,7 +426,7 @@ void CGraphics::UpdateHelper(const float deltaTime, const float totalGameTime)
 //---------------------------------------------------------
 void CGraphics::UpdateParticlesVB()
 {
-    ECS::ParticleSystem& particleSys = pEnttMgr_->particleSystem_;
+    ECS::ParticleSystem& particleSys = pEnttMgr_->particleSys_;
     const ECS::ParticlesRenderData& particlesData = particleSys.GetParticlesToRender();
 
     // prepare updated particles data for rendering
@@ -452,7 +452,7 @@ void CGraphics::UpdateParticlesVB()
 // --------------------------------------------------------
 void CGraphics::PrepareRenderInstances(const DirectX::XMFLOAT3& cameraPos)
 {
-    cvector<EntityID>& visibleEntts = pEnttMgr_->renderSystem_.GetAllVisibleEntts();
+    cvector<EntityID>& visibleEntts = pEnttMgr_->renderSys_.GetAllVisibleEntts();
 
     if (visibleEntts.size() == 0)
         return;
@@ -479,7 +479,7 @@ void CGraphics::AddFrustumToRender(const EntityID camId)
     float nearZ  = 0;
     float farZ   = 0;
 
-    const ECS::CameraSystem& camSys = pEnttMgr_->cameraSystem_;
+    const ECS::CameraSystem& camSys = pEnttMgr_->cameraSys_;
 
     if (!camSys.GetFrustumInitParams(camId, fov, aspect, nearZ, farZ))
     {
@@ -552,8 +552,8 @@ void CGraphics::FrustumCullingEntts(SystemState& sysState)
     assert(pEnttMgr_);
 
     ECS::EntityMgr&    mgr       = *pEnttMgr_;
-    ECS::RenderSystem& renderSys = mgr.renderSystem_;
-    ECS::CameraSystem& camSys    = mgr.cameraSystem_;
+    ECS::RenderSystem& renderSys = mgr.renderSys_;
+    ECS::CameraSystem& camSys    = mgr.cameraSys_;
 
     const cvector<EntityID>& enttsRenderable = renderSys.GetAllEnttsIDs();
     const size numRenderableEntts            = enttsRenderable.size();
@@ -566,12 +566,12 @@ void CGraphics::FrustumCullingEntts(SystemState& sysState)
     tmpData.Resize(numRenderableEntts);
 
     // get arr of bounding spheres for each renderable entt
-    mgr.boundingSystem_.GetBoundSpheres(
+    mgr.boundingSys_.GetBoundSpheres(
         enttsRenderable.data(),
         numRenderableEntts,
         tmpData.boundSpheres);
 
-    mgr.transformSystem_.GetWorlds(
+    mgr.transformSys_.GetWorlds(
         enttsRenderable.data(),
         numRenderableEntts,
         tmpData.enttsWorlds);
@@ -629,7 +629,7 @@ void CGraphics::FrustumCullingParticles(SystemState& sysState, const Frustum& wo
     assert(pEnttMgr_);
 
     ECS::EntityMgr&      mgr         = *pEnttMgr_;
-    ECS::ParticleSystem& particleSys = mgr.particleSystem_;
+    ECS::ParticleSystem& particleSys = mgr.particleSys_;
 
     particleSys.visibleEmittersIdxs_.clear();
 
@@ -652,8 +652,8 @@ void CGraphics::FrustumCullingPointLights(SystemState& sysState, const Frustum& 
 {
     assert(pEnttMgr_);
 
-    const ECS::LightSystem&     lightSys          = pEnttMgr_->lightSystem_;
-    const ECS::RenderSystem&    renderSys         = pEnttMgr_->renderSystem_;
+    const ECS::LightSystem&     lightSys          = pEnttMgr_->lightSys_;
+    const ECS::RenderSystem&    renderSys         = pEnttMgr_->renderSys_;
 
     const ECS::PointLights&     pointLights       = lightSys.GetPointLights();
     const size                  numAllPointLights = pointLights.data.size();
@@ -663,7 +663,7 @@ void CGraphics::FrustumCullingPointLights(SystemState& sysState, const Frustum& 
     size                        numVisiblePointL  = 0;
 
 
-    pEnttMgr_->transformSystem_.GetPositions(
+    pEnttMgr_->transformSys_.GetPositions(
         pointLights.ids.data(),
         pointLights.ids.size(),
         positions);
@@ -700,7 +700,7 @@ void CGraphics::UpdateShadersDataPerFrame(
     ECS::EntityMgr* pEnttMgr   = pEnttMgr_;
     const SkyPlane& skyPlane   = g_ModelMgr.GetSkyPlane();
 
-    ECS::CameraSystem& camSys  = pEnttMgr->cameraSystem_;
+    ECS::CameraSystem& camSys  = pEnttMgr->cameraSys_;
     const EntityID currCamId   = currCameraID_;
     const XMMATRIX& invView    = camSys.GetInverseView(currCamId);
     const XMMATRIX  invProj    = DirectX::XMMatrixInverse(nullptr, camSys.GetProj(currCamId));
@@ -1113,9 +1113,9 @@ void CGraphics::ColorLightPass()
 
 
     // render each animated entity separately
-    for (const EntityID id : pEnttMgr_->animationSystem_.GetEnttsIds())
+    for (const EntityID id : pEnttMgr_->animationSys_.GetEnttsIds())
     {
-        if (pEnttMgr_->renderSystem_.HasEntity(id))
+        if (pEnttMgr_->renderSys_.HasEntity(id))
             RenderSkinnedModel(id);
     }
     g_GpuProfiler.Timestamp(GTS_RenderScene_SkinnedModels);
@@ -1124,6 +1124,9 @@ void CGraphics::ColorLightPass()
     // render terrain
     RenderTerrainGeomip();
     g_GpuProfiler.Timestamp(GTS_RenderScene_Terrain);
+
+    // render 3d decals
+    RenderDecals();
 
     // render sky and clouds
     RenderSkyDome();
@@ -1442,12 +1445,40 @@ bool CGraphics::RenderMaterialsIcons()
 }
 
 //---------------------------------------------------------
+// Desc:  render all the 3d decals from the decals rendering list
+//---------------------------------------------------------
+void CGraphics::RenderDecals()
+{
+    assert(pRender_);
+    Render::CRender* pRender = pRender_;
+
+    //printf("render decals\n");
+
+    pRender->BindShaderByName("DecalShader");
+    BindMaterialById(0);
+
+    ID3D11DeviceContext* pContext = GetContext();
+
+    // update params which we will use to generate a 2D sprite (in geometry shader)
+    const VertexBuffer<VertexPosTex>& vb = g_ModelMgr.GetDecalsVB();
+
+    const Material& mat = g_MaterialMgr.GetMatByName("wallmark");
+    BindMaterial(mat);
+    //const TexID texId = g_TextureMgr.GetTexIdByName("wallmark_default");
+    //ID3D11ShaderResourceView* pSRV = g_TextureMgr.GetTexViewsById(texId);
+    //pContext->PSSetShaderResources(101U, 1, &pSRV);  // bind texture
+
+    pRender->BindVB(vb.GetAddrOf(), vb.GetStride(), 0);
+    pRender->Draw(vb.GetVertexCount(), 0); 
+}
+
+//---------------------------------------------------------
 // Desc:  just render grass planes
 //---------------------------------------------------------
 void CGraphics::RenderGrass()
 {
     assert(pRender_);
-    Render::CRender* pRender  = pRender_;
+    Render::CRender* pRender = pRender_;
 
 
     // bind shader and material
@@ -1573,7 +1604,7 @@ void CGraphics::DepthPrepassInstanceGroup(
 //---------------------------------------------------------
 void CGraphics::RenderPlayerWeapon()
 {
-    ECS::PlayerSystem& player = pEnttMgr_->playerSystem_;
+    ECS::PlayerSystem& player = pEnttMgr_->playerSys_;
     RenderSkinnedModel(player.GetActiveWeapon());
 }
 
@@ -1601,17 +1632,17 @@ void CGraphics::RenderSkinnedModel(const EntityID enttId)
     Render::CRender*      pRender       = pRender_;
     ID3D11DeviceContext*  pContext      = pRender->GetContext();
     ECS::EntityMgr&       enttMgr       = *pEnttMgr_;
-    ECS::TransformSystem& transformSys  = pEnttMgr_->transformSystem_;
-    const char*           enttName      = enttMgr.nameSystem_.GetNameById(enttId);
+    ECS::TransformSystem& transformSys  = pEnttMgr_->transformSys_;
+    const char*           enttName      = enttMgr.nameSys_.GetNameById(enttId);
 
-    if (!enttMgr.animationSystem_.HasAnimation(enttId))
+    if (!enttMgr.animationSys_.HasAnimation(enttId))
     {
         LogErr(LOG, "you try to render entity (id: %" PRIu32 ", name: %s) as skinned (animated) but there is no skeleton/animation for it", enttId, enttName);
         return;
     }
 
     // prepare model's instance
-    const ModelID       modelId = enttMgr.modelSystem_.GetModelIdRelatedToEntt(enttId);
+    const ModelID       modelId = enttMgr.modelSys_.GetModelIdRelatedToEntt(enttId);
     const BasicModel&   model   = g_ModelMgr.GetModelById(modelId);
     const MeshGeometry& meshes  = model.meshes_;
 
@@ -1627,7 +1658,7 @@ void CGraphics::RenderSkinnedModel(const EntityID enttId)
     SkeletonID skeletonId = 0;
     AnimationID animationId = 0;
     float timePos = 0;
-    pEnttMgr_->animationSystem_.GetData(enttId, skeletonId, animationId, timePos);
+    pEnttMgr_->animationSys_.GetData(enttId, skeletonId, animationId, timePos);
 
     // update bone transformations for this frame
     s_BoneTransforms.resize(MAX_NUM_BONES_PER_CHARACTER, DirectX::XMMatrixIdentity());
@@ -1692,7 +1723,7 @@ void CGraphics::RenderParticles()
 
     Render::CRender&     render                   = *pRender_;
     ID3D11DeviceContext* pContext                 = GetContext();
-    ECS::ParticleSystem& particleSys              = pEnttMgr_->particleSystem_;
+    ECS::ParticleSystem& particleSys              = pEnttMgr_->particleSys_;
     const ECS::ParticlesRenderData& particlesData = particleSys.GetParticlesToRender();
     const int numParticles                        = (int)particlesData.particles.size();
 
@@ -1733,7 +1764,7 @@ void CGraphics::RenderParticles()
 void CGraphics::RenderSkyDome()
 {
     // check if we at least have a sky entity
-    const EntityID skyEnttId = pEnttMgr_->nameSystem_.GetIdByName("sky");
+    const EntityID skyEnttId = pEnttMgr_->nameSys_.GetIdByName("sky");
 
     // if we haven't any sky entity
     if (skyEnttId == INVALID_ENTITY_ID)
@@ -1753,8 +1784,8 @@ void CGraphics::RenderSkyDome()
     BindMaterialById(sky.GetMaterialId());
 
     // compute a worldViewProj matrix for the sky instance
-    const XMFLOAT3 skyOffset     = pEnttMgr_->transformSystem_.GetPosition(skyEnttId);
-    const XMFLOAT3 eyePos        = pEnttMgr_->cameraSystem_.GetPos(currCameraID_);
+    const XMFLOAT3 skyOffset     = pEnttMgr_->transformSys_.GetPosition(skyEnttId);
+    const XMFLOAT3 eyePos        = pEnttMgr_->cameraSys_.GetPos(currCameraID_);
     const XMFLOAT3 translation   = skyOffset + eyePos;
     const XMMATRIX world         = DirectX::XMMatrixTranslation(translation.x, translation.y, translation.z);
     const XMMATRIX worldViewProj = DirectX::XMMatrixTranspose(world * viewProj_);
@@ -2249,9 +2280,6 @@ void CGraphics::RenderDebugShapes()
     // common arr of vertices for rendering
     cvector<VertexPosColor> vertices(1024);
 
-    printf("size: %zu\n", sizeof(VertexPosColor) * 1024);
-    exit(0);
-
     if (g_DebugDrawMgr.renderDbgLines_)
         RenderDebugLines(pRender, vertices);
 
@@ -2447,9 +2475,9 @@ void CGraphics::SetupLightsForFrame(Render::PerFrameData& outData)
     assert(pEnttMgr_);
     ECS::EntityMgr& mgr = *pEnttMgr_;
 
-    ECS::LightSystem&     lightSys           = mgr.lightSystem_;
-    ECS::RenderSystem&    renderSys          = mgr.renderSystem_;
-    ECS::TransformSystem& transformSys       = mgr.transformSystem_;
+    ECS::LightSystem&     lightSys           = mgr.lightSys_;
+    ECS::RenderSystem&    renderSys          = mgr.renderSys_;
+    ECS::TransformSystem& transformSys       = mgr.transformSys_;
 
     const ECS::DirLights&   dirLights        = lightSys.GetDirLights();
     const ECS::PointLights& pointLights      = lightSys.GetPointLights();
@@ -2567,287 +2595,6 @@ void CGraphics::SetupLightsForFrame(Render::PerFrameData& outData)
             outData.spotLights[i++].direction = dir;
         }
     }
-}
-
-//---------------------------------------------------------
-// Desc:  in game mode cast a ray from player to world
-//        and compute an intersection point with any stuff on the scene
-// 
-//---------------------------------------------------------
-void CGraphics::GetRayIntersectionPoint(const int sx, const int sy)
-{
-    // check if we have any entity by input screen coords;
-// 
-// in:   screen pixel coords
-// out:  0  - there is no entity, we didn't select any
-//       ID - we selected some entity so return its ID
-
-    XMFLOAT3 intersectionP(0,0,0);
-
-    using namespace DirectX;
-
-    ECS::EntityMgr& enttMgr = *pEnttMgr_;
-    const EntityID currCamId = currCameraID_;
-    const ECS::CameraSystem& camSys = enttMgr.cameraSystem_;
-
-    const XMFLOAT3  camPos  = camSys.GetPos(currCamId);
-    const XMMATRIX& P       = camSys.GetProj(currCamId);
-    const XMMATRIX& invView = camSys.GetInverseView(currCamId);
-
-    // TODO: optimize it!
-    const float xndc = (+2.0f * sx / GetD3D().GetWindowWidth()  - 1.0f);
-    const float yndc = (-2.0f * sy / GetD3D().GetWindowHeight() + 1.0f);
-
-    // compute picking ray in view space
-    const float vx = xndc / P.r[0].m128_f32[0];
-    const float vy = yndc / P.r[1].m128_f32[1];
-
-    // ray definition in world space
-    XMVECTOR rayOriginW = { camPos.x, camPos.y, camPos.z, 1 };
-    XMVECTOR rayDirW    = XMVector3Normalize(XMVector3TransformNormal({ vx, vy, 1, 0 }, invView));     // supposed to take a vec (w == 0)
-
-    // normal vector of intersected triangle (if we have such)
-    XMFLOAT3 normalVec = { 0,0,0 };
-
-    // assume we have not picked anything yet, 
-    // so init the ID to 0 and triangle idx to -1
-    uint32_t selectedEnttID = 0;
-    int selectedTriangleIdx = -1;
-    float tmin = MathHelper::Infinity;  // the distance along the ray where the intersection occurs
-    float dist = 0;                     // the length of the ray from origin to the intersection point with the AABB
-
-
-    // go through each visible entt and check if we have an intersection with it
-    for (const EntityID enttId : enttMgr.renderSystem_.GetAllVisibleEntts())
-    {
-        const char* enttName = enttMgr.nameSystem_.GetNameById(enttId);
-
-        if (strcmp(enttName, "player") == 0)
-            continue;
-
-        const ModelID modelID   = enttMgr.modelSystem_.GetModelIdRelatedToEntt(enttId);
-        
-        const BasicModel& model = g_ModelMgr.GetModelById(modelID);
-
-        // get an inverse world matrix of the current entt
-
-        // transform model's AABB from local space to world space
-        const XMMATRIX world = enttMgr.transformSystem_.GetWorld(enttId);
-        BoundingBox aabb;
-        model.GetModelAABB().Transform(aabb, world);
-
-        // if we hit the bounding box of the model, then we might have picked
-        // a model triangle, so do the ray/triangle tests;
-        //
-        // if we didn't hit the bounding box, then it is impossible that we
-        // hit the model, so do not waste effort doing ray/triangle tests
-        if (aabb.Intersects(rayOriginW, rayDirW, dist))
-        {
-            // execute ray/triangle tests
-            for (int i = 0; i < model.GetNumIndices() / 3; ++i)
-            {
-                // indices for this triangle
-                UINT i0 = model.indices_[i * 3 + 0];
-                UINT i1 = model.indices_[i * 3 + 1];
-                UINT i2 = model.indices_[i * 3 + 2];
-
-                // vertices for this triangle
-                XMVECTOR v0 = XMLoadFloat3(&model.vertices_[i0].position);
-                XMVECTOR v1 = XMLoadFloat3(&model.vertices_[i1].position);
-                XMVECTOR v2 = XMLoadFloat3(&model.vertices_[i2].position);
-
-                v0 = XMVector3TransformCoord(v0, world);
-                v1 = XMVector3TransformCoord(v1, world);
-                v2 = XMVector3TransformCoord(v2, world);
-
-                // we have to iterate over all the triangle in order 
-                // to find the nearest intersection
-                float t = 0.0f;
-
-                if (DirectX::TriangleTests::Intersects(rayOriginW, rayDirW, v0, v1, v2, t))
-                {
-                    if (t <= tmin)
-                    {
-                        // this is the new nearest picked entt and its triangle
-                        tmin = t;
-                        selectedTriangleIdx = i;
-                        selectedEnttID = enttId;
-                        normalVec = model.vertices_[i0].normal;
-
-                        XMVECTOR currIntersection = rayOriginW + rayDirW * t;
-                        XMStoreFloat3(&intersectionP, currIntersection);
-                    }
-                }
-            }
-        }
-    }
-
-    // print a msg about selection of the entity
-    if (selectedEnttID)
-    {
-        const EntityID currWeaponId = enttMgr.playerSystem_.GetActiveWeapon();
-        DirectX::XMFLOAT3 relPos = enttMgr.hierarchySystem_.GetRelativePos(currWeaponId);
-
-        XMFLOAT3 rayOrig;
-        XMStoreFloat3(&rayOrig, rayOriginW);
-       
-        const Vec3 fromPos(rayOrig.x + relPos.x, rayOrig.y + relPos.y, rayOrig.z + relPos.z);
-        const Vec3 toPos(intersectionP.x, intersectionP.y, intersectionP.z);
-        const Vec3 color(1, 0, 0);
-
-        g_DebugDrawMgr.AddLine(fromPos, toPos, color);
-
-#if 1
-        SetConsoleColor(YELLOW);
-
-        const char* enttName = pEnttMgr_->nameSystem_.GetNameById(selectedEnttID);
-        
-
-        printf("hitEntt (id: %" PRIu32 "  '%s'   orig: %.2f %.2f %.2f   i: %.2f %.2f %.2f   d: %.2f   n: %.2f %.2f %.2f)\n",
-            selectedEnttID,
-            enttName,
-            rayOrig.x, rayOrig.y, rayOrig.z,
-            intersectionP.x, intersectionP.y, intersectionP.z,
-            tmin,
-            normalVec.x, normalVec.y, normalVec.z);
-
-        const EntityID splashEmitterId = pEnttMgr_->nameSystem_.GetIdByName("shot_splash");
-        pEnttMgr_->AddEvent(ECS::EventTranslate(splashEmitterId, intersectionP.x, intersectionP.y, intersectionP.z));
-
-        XMFLOAT3 rayDir;
-        XMStoreFloat3(&rayDir, -rayDirW);
-
-        Vec3 ray  = { rayDir.x, rayDir.y, rayDir.z };
-        Vec3 norm = { normalVec.x, normalVec.y, normalVec.z };
-
-        float dot = Vec3Dot(ray, norm);
-        if (dot < 0)
-            norm = -norm;
-
-        pEnttMgr_->particleSystem_.SetExternForces(splashEmitterId, norm.x*0.001f, -0.006f, norm.z*0.001f);
-        pEnttMgr_->particleSystem_.ResetNumSpawnedParticles(splashEmitterId);
-
-        SetConsoleColor(RESET);
-#endif
-    }
-}
-
-
-
-//---------------------------------------------------------
-// check if we have any entity by input screen coords;
-// 
-// in:   screen pixel coords
-// out:  0  - there is no entity, we didn't select any
-//       ID - we selected some entity so return its ID
-//---------------------------------------------------------
-int CGraphics::TestEnttSelection(const int sx, const int sy)
-{
-    // check if we have any entity by input screen coords;
-    // 
-    // in:   screen pixel coords
-    // out:  0  - there is no entity, we didn't select any
-    //       ID - we selected some entity so return its ID
-
-    using namespace DirectX;
-
-    ECS::EntityMgr* pEnttMgr = pEnttMgr_;
-    const XMMATRIX& P        = pEnttMgr->cameraSystem_.GetProj(currCameraID_);
-    const XMMATRIX& invView  = pEnttMgr->cameraSystem_.GetInverseView(currCameraID_);
-
-    // TODO: optimize it!
-    const float xndc = (+2.0f * sx / GetD3D().GetWindowWidth() - 1.0f);
-    const float yndc = (-2.0f * sy / GetD3D().GetWindowHeight() + 1.0f);
-
-    // compute picking ray in view space
-    const float vx = xndc / P.r[0].m128_f32[0];
-    const float vy = yndc / P.r[1].m128_f32[1];
-
-    // ray definition in view space
-    XMVECTOR rayOrigin_ = { 0,0,0,1 };
-    XMVECTOR rayDir_    = { vx, vy, 1, 0 };
-
-    // assume we have not picked anything yet, 
-    // so init the ID to 0 and triangle idx to -1
-    uint32_t selectedEnttID = 0;
-    int selectedTriangleIdx = -1;
-    float tmin = MathHelper::Infinity;  // the distance along the ray where the intersection occurs
-    float dist = 0;                     // the length of the ray from origin to the intersection point with the AABB
-
-
-    // go through each visible entt and check if we have an intersection with it
-    for (const EntityID enttID : pEnttMgr->renderSystem_.GetAllVisibleEntts())
-    {
-        //const EntityID enttID = visEntts[i];
-        const ModelID modelID = pEnttMgr->modelSystem_.GetModelIdRelatedToEntt(enttID);
-        const BasicModel& model = g_ModelMgr.GetModelById(modelID);
-
-        if (model.type_ == MODEL_TYPE_Terrain)
-        {
-            continue;
-        }
-    
-        // get an inverse world matrix of the current entt
-        const XMMATRIX invWorld = pEnttMgr->transformSystem_.GetInverseWorld(enttID);
-        const XMMATRIX toLocal = DirectX::XMMatrixMultiply(invView, invWorld);
-
-        XMVECTOR rayOrigin = XMVector3TransformCoord(rayOrigin_, toLocal);   // supposed to take a point (w == 1)
-        XMVECTOR rayDir    = XMVector3TransformNormal(rayDir_, toLocal);  // supposed to take a vec (w == 0)
-
-        // make the ray direction unit length for the intersection tests
-        rayDir = XMVector3Normalize(rayDir);
-
-
-        // if we hit the bounding box of the model, then we might have picked
-        // a model triangle, so do the ray/triangle tests;
-        //
-        // if we didn't hit the bounding box, then it is impossible that we
-        // hit the model, so do not waste efford doing ray/triangle tests
-        if (model.GetModelAABB().Intersects(rayOrigin, rayDir, dist))
-        {
-            // execute ray/triangle tests
-            for (int i = 0; i < model.GetNumIndices() / 3; ++i)
-            {
-                // indices for this triangle
-                UINT i0 = model.indices_[i * 3 + 0];
-                UINT i1 = model.indices_[i * 3 + 1];
-                UINT i2 = model.indices_[i * 3 + 2];
-
-                // vertices for this triangle
-                XMVECTOR v0 = XMLoadFloat3(&model.vertices_[i0].position);
-                XMVECTOR v1 = XMLoadFloat3(&model.vertices_[i1].position);
-                XMVECTOR v2 = XMLoadFloat3(&model.vertices_[i2].position);
-
-                // we have to iterate over all the triangle in order 
-                // to find the nearest intersection
-                float t = 0.0f;
-
-                if (DirectX::TriangleTests::Intersects(rayOrigin, rayDir, v0, v1, v2, t))
-                {
-                    if (t <= tmin)
-                    {
-                        // this is the new nearest picked entt and its triangle
-                        tmin = t;
-                        selectedTriangleIdx = i;
-                        selectedEnttID = enttID;
-                    }
-                }
-            }
-        }
-    }
-
-    // print a msg about selection of the entity
-    if (selectedEnttID)
-    {
-        const char* name = pEnttMgr->nameSystem_.GetNameById(selectedEnttID);
-
-        SetConsoleColor(YELLOW);
-        LogMsg("picked entt (id: %" PRIu32 "; name: % s)", selectedEnttID, name);
-        SetConsoleColor(RESET);
-    }
-
-    // return ID of the selected entt, or 0 if we didn't pick any
-    return selectedEnttID;
 }
 
 
@@ -3149,6 +2896,592 @@ float CGraphics::GetModelPreviewParam(const uint8 param) const
     }
 
     return FLT_MIN;
+}
+
+
+
+//==================================================================================
+//                               COLLISIONS
+//==================================================================================
+
+//---------------------------------------------------------
+// Desc:  in game mode cast a ray from player to world
+//        and compute an intersection point with any stuff on the scene
+// 
+// Args:  - sx, xy:   screen coords
+// Out:   - outData:  data about intersection (if we have any)
+// Ret:   true if we have any intersection
+//---------------------------------------------------------
+#if 0
+bool CGraphics::GetRayIntersectionData(
+    const int sx,
+    const int sy,
+    IntersectionData& outData)
+{
+    using namespace DirectX;
+
+    ECS::EntityMgr& enttMgr = *pEnttMgr_;
+    const EntityID currCamId = currCameraID_;
+
+    const ECS::CameraSystem& camSys = enttMgr.cameraSys_;
+    const ECS::NameSystem& nameSys = enttMgr.nameSys_;
+
+    const XMFLOAT3  camPos  = camSys.GetPos(currCamId);
+    const XMMATRIX& proj    = camSys.GetProj(currCamId);
+    const XMMATRIX& invView = camSys.GetInverseView(currCamId);
+
+    // TODO: optimize it!
+    const float xndc = (+2.0f * sx / GetD3D().GetWindowWidth()  - 1.0f);
+    const float yndc = (-2.0f * sy / GetD3D().GetWindowHeight() + 1.0f);
+
+    // compute picking ray in view space
+    const float vx = xndc / proj.r[0].m128_f32[0];
+    const float vy = yndc / proj.r[1].m128_f32[1];
+
+    // ray definition in world space
+    XMVECTOR rayOriginW = { camPos.x, camPos.y, camPos.z, 1 };
+    XMVECTOR rayDirW    = XMVector3TransformNormal({ vx, vy, 1, 0 }, invView);     // supposed to take a vec (w == 0)
+    rayDirW             = XMVector3Normalize(rayDirW);
+
+    float tmin = MathHelper::Infinity;  // the distance along the ray where the intersection occurs
+    float dist = 0;                     // the length of the ray from origin to the intersection point with the AABB
+
+    // reset output data
+    memset(&outData, 0, sizeof(outData));
+
+    const EntityID playerId = nameSys.GetIdByName("player");
+
+
+    // go through each visible entt and check if we have an intersection with it
+    for (const EntityID enttId : enttMgr.renderSys_.GetAllVisibleEntts())
+    {
+        if (enttId == playerId)
+            continue;
+
+
+        const ModelID   modelId = enttMgr.modelSys_.GetModelIdRelatedToEntt(enttId);
+        const BasicModel& model = g_ModelMgr.GetModelById(modelId);
+
+        // transform model's AABB from local space to world space
+        const XMMATRIX world = enttMgr.transformSys_.GetWorld(enttId);
+        BoundingBox aabb;
+        model.GetModelAABB().Transform(aabb, world);
+
+        // if we hit the bounding box of the model, then we might have picked
+        // a model triangle, so do the ray/mesh test;
+        //
+        // if we didn't hit the bounding box, then it is impossible that we
+        // hit the model, so do not waste effort doing ray/mesh tests
+        if (!aabb.Intersects(rayOriginW, rayDirW, dist))
+            continue;
+
+
+        // execute ray/model test
+        for (int i = 0; i < model.GetNumIndices() / 3; ++i)
+        {
+            // indices for this triangle
+            UINT i0 = model.indices_[i * 3 + 0];
+            UINT i1 = model.indices_[i * 3 + 1];
+            UINT i2 = model.indices_[i * 3 + 2];
+
+            // vertices for this triangle
+            XMVECTOR v0 = XMLoadFloat3(&model.vertices_[i0].position);
+            XMVECTOR v1 = XMLoadFloat3(&model.vertices_[i1].position);
+            XMVECTOR v2 = XMLoadFloat3(&model.vertices_[i2].position);
+
+            v0 = XMVector3TransformCoord(v0, world);
+            v1 = XMVector3TransformCoord(v1, world);
+            v2 = XMVector3TransformCoord(v2, world);
+
+            // we have to iterate over all the triangle in order 
+            // to find the nearest intersection
+            float t = 0.0f;
+
+            if (!DirectX::TriangleTests::Intersects(rayOriginW, rayDirW, v0, v1, v2, t))
+                continue;
+
+            if (t > tmin)
+                continue;
+
+
+            // this is a new nearest picked entt and its triangle
+            tmin = t;
+
+            outData.enttId = enttId;
+            outData.modelId = modelId;
+            outData.triangleIdx = i;
+        }
+    }
+
+    // if we didn't intersect any entity...
+    if (outData.enttId == 0)
+        return false;
+
+
+    BasicModel& model = g_ModelMgr.GetModelById(outData.modelId);
+    uint           i0 = model.indices_[outData.triangleIdx * 3 + 0];
+    uint           i1 = model.indices_[outData.triangleIdx * 3 + 1];
+    uint           i2 = model.indices_[outData.triangleIdx * 3 + 2];
+    Vertex3D&      v0 = model.vertices_[i0];
+    Vertex3D&      v1 = model.vertices_[i1];
+    Vertex3D&      v2 = model.vertices_[i2];
+
+    printf("p0 %.2f %.2f %.2f     p1 %.2f %.2f %.2f    p2 %.2f %.2f %.2f\n",
+        v0.position.x, v0.position.y, v0.position.z,
+        v1.position.x, v1.position.y, v1.position.z,
+        v2.position.x, v2.position.y, v2.position.z);
+
+    printf("n0 %.2f %.2f %.2f     n1 %.2f %.2f %.2f    n2 %.2f %.2f %.2f\n",
+        v0.normal.x, v0.normal.y, v0.normal.z,
+        v1.normal.x, v1.normal.y, v1.normal.z,
+        v2.normal.x, v2.normal.y, v2.normal.z);
+
+    // store endpoints of the intersected triangle
+    outData.vx0 = v0.position.x;
+    outData.vy0 = v0.position.y;
+    outData.vz0 = v0.position.z;
+
+    outData.vx1 = v1.position.x;
+    outData.vy1 = v1.position.y;
+    outData.vz1 = v1.position.z;
+
+    outData.vx2 = v2.position.x;
+    outData.vy2 = v2.position.y;
+    outData.vz2 = v2.position.z;
+
+
+    // calc intersection point
+    XMVECTOR intersectP = rayOriginW + rayDirW * tmin;
+    XMFLOAT3 intersect;
+    XMStoreFloat3(&intersect, intersectP);
+
+    XMFLOAT3 rayOrig;
+    XMStoreFloat3(&rayOrig, rayOriginW);
+
+
+    // store ray origin...
+    outData.rayOrigX = rayOrig.x;
+    outData.rayOrigY = rayOrig.y;
+    outData.rayOrigZ = rayOrig.z;
+
+    // ...intersection point, 
+    outData.px = intersect.x;
+    outData.py = intersect.y;
+    outData.pz = intersect.z;
+
+    // ...and normal vec of intersected triangle
+    outData.nx = v0.normal.x;
+    outData.ny = v0.normal.y;
+    outData.nz = v0.normal.z;
+
+    return true;
+}
+#else
+
+
+//---------------------------------------------------------
+// Desc:  calculate intersection between a ray and some entity or terrain;
+//        the ray goes from camera pos to coordinate calculated
+//        by input screen sx, sy pixel coordinate;
+//
+// Out:   - outData:  output container for calculated intersection data
+//---------------------------------------------------------
+bool CGraphics::GetRayIntersectionData(
+    const int sx,
+    const int sy,
+    IntersectionData& outData)
+{
+    using namespace DirectX;
+
+    ECS::EntityMgr& enttMgr = *pEnttMgr_;
+    const EntityID currCamId = currCameraID_;
+
+    const ECS::CameraSystem& camSys = enttMgr.cameraSys_;
+
+    const XMFLOAT3  camPos  = camSys.GetPos(currCamId);
+    const XMMATRIX& proj    = camSys.GetProj(currCamId);
+    const XMMATRIX& invView = camSys.GetInverseView(currCamId);
+
+    const float xndc = (+2.0f * sx / GetD3D().GetWindowWidth()  - 1.0f);
+    const float yndc = (-2.0f * sy / GetD3D().GetWindowHeight() + 1.0f);
+
+    // compute picking ray in view space
+    const float vx = xndc / proj.r[0].m128_f32[0];
+    const float vy = yndc / proj.r[1].m128_f32[1];
+    const XMVECTOR rayDirV = { vx, vy, 1, 0 };
+
+    // ray definition (origin, direction) in world space...
+    XMVECTOR rayOrigW = { camPos.x, camPos.y, camPos.z, 1 };
+    XMVECTOR rayDirW  = XMVector3Normalize(XMVector3TransformNormal(rayDirV, invView));     // supposed to take a vec (w == 0)
+
+    // ...and in local space
+    XMVECTOR rayOrigL = {0,0,0};
+    XMVECTOR rayDirL  = {0,0,1};
+
+
+    // the distance along the ray where the intersection occurs
+    float tmin = MathHelper::Infinity;  
+
+    // reset output data
+    memset(&outData, 0, sizeof(outData));
+
+    const EntityID playerId = enttMgr.nameSys_.GetIdByName("player");
+
+
+    // go through each visible entt and check if we have an intersection with it
+    for (const EntityID enttId : enttMgr.renderSys_.GetAllVisibleEntts())
+    {
+        if (enttId == playerId)
+            continue;
+
+        RayEnttTest(enttMgr, enttId, rayOrigW, rayDirW, tmin, outData, rayOrigL, rayDirL);
+    }
+
+    // if we didn't intersect any entity...
+    if (outData.enttId == 0)
+        return false;
+
+
+    GatherIntersectionData(rayOrigL, rayDirL, rayOrigW, rayDirW, tmin, outData);
+    return true;
+}
+
+#endif
+
+//---------------------------------------------------------
+// convertation helpers
+//---------------------------------------------------------
+inline Vec3 ToVec3(const XMVECTOR& v)
+{
+    return Vec3(v.m128_f32);
+}
+
+//---------------------------------------------------------
+// Desc:  calculate a normal vector by 3 input positions
+//---------------------------------------------------------
+Vec3 CalcNormalVec(const XMFLOAT3& p0, const XMFLOAT3& p1, const XMFLOAT3& p2)
+{
+    XMVECTOR pos0 = XMLoadFloat3(&p0);
+    XMVECTOR pos1 = XMLoadFloat3(&p1);
+    XMVECTOR pos2 = XMLoadFloat3(&p2);
+
+    XMVECTOR e0 = pos1 - pos0;
+    XMVECTOR e1 = pos2 - pos0;
+
+    XMVECTOR n = XMVector3Normalize(XMVector3Cross(e1, e0));
+
+    return ToVec3(n);
+}
+
+//---------------------------------------------------------
+// Desc:  ray/entity test (test ray agains each mesh of entity's model)
+//---------------------------------------------------------
+void CGraphics::RayEnttTest(
+    ECS::EntityMgr& enttMgr,
+    const EntityID enttId,
+    const XMVECTOR& rayOrigW,
+    const XMVECTOR& rayDirW,
+    float& tmin,
+    IntersectionData& outData,
+    XMVECTOR& outRayOrigL,
+    XMVECTOR& outRayDirL)
+{
+    const ModelID    modelId = enttMgr.modelSys_.GetModelIdRelatedToEntt(enttId);
+    const BasicModel&  model = g_ModelMgr.GetModelById(modelId);
+
+    // transform ray to model's local space
+    const XMMATRIX& invWorld = enttMgr.transformSys_.GetInvWorld(enttId);
+    const XMVECTOR  rayOrigL = XMVector3Transform(rayOrigW, invWorld);
+    const XMVECTOR  rayDirL  = XMVector3Normalize(XMVector3TransformNormal(rayDirW, invWorld));
+
+    // the length of the ray from origin to the intersection point with the AABB
+    float dist = 0;
+
+    // ray/AABB test
+    if (!model.GetModelAABB().Intersects(rayOrigL, rayDirL, dist))
+        return;
+
+    // ray/model test (test ray agains each mesh of the model)
+    if (!RayModelTest(&model, rayOrigL, rayDirL, tmin, outData.triangleIdx))
+        return;
+
+
+    outData.enttId = enttId;
+    outData.modelId = modelId;
+
+    outRayOrigL = rayOrigL;
+    outRayDirL = rayDirL;
+}
+ 
+//---------------------------------------------------------
+// Desc:  execute ray/model test
+//---------------------------------------------------------
+bool CGraphics::RayModelTest(
+    const BasicModel* pModel,
+    const XMVECTOR& rayOrigin,
+    const XMVECTOR& rayDir,
+    float& tmin,
+    uint& intersectedTriangleIdx)
+{
+    assert(pModel);
+
+    const BasicModel& model = *pModel;
+    bool intersect = false;
+
+    // ray/triangle tests
+    for (int i = 0; i < model.GetNumIndices() / 3; ++i)
+    {
+        // indices for this triangle
+        const UINT i0 = model.indices_[i * 3 + 0];
+        const UINT i1 = model.indices_[i * 3 + 1];
+        const UINT i2 = model.indices_[i * 3 + 2];
+
+        // vertices for this triangle
+        const XMVECTOR v0 = XMLoadFloat3(&model.vertices_[i0].position);
+        const XMVECTOR v1 = XMLoadFloat3(&model.vertices_[i1].position);
+        const XMVECTOR v2 = XMLoadFloat3(&model.vertices_[i2].position);
+
+        // we have to iterate over all the triangle in order 
+        // to find the nearest intersection
+        float t = 0.0f;
+
+        if (!DirectX::TriangleTests::Intersects(rayOrigin, rayDir, v0, v1, v2, t))
+            continue;
+
+        if (t > tmin)
+            continue;
+
+
+        // this is a new nearest picked entt and its triangle
+        intersectedTriangleIdx = i;
+        tmin = t;
+        intersect = true;
+    }
+
+    return intersect;
+}
+
+//---------------------------------------------------------
+// Desc:  gather and calculate data about intersection of a ray and some entity
+// 
+// Args:  - rayOrigL, rayDirL:  ray's origin and direction in local space
+//        - rayOrigW, rayDirW:  ... in world space
+//        - t:                  the distance along the ray where the intersection occurs
+// Out:   - outData:            output container for calculated intersection data
+//---------------------------------------------------------
+void CGraphics::GatherIntersectionData(
+    const XMVECTOR rayOrigL,
+    const XMVECTOR rayDirL,
+    const XMVECTOR rayOrigW,
+    const XMVECTOR rayDirW,
+    const float t,
+    IntersectionData& outData)
+{
+    const BasicModel& model = g_ModelMgr.GetModelById(outData.modelId);
+    const uint           i0 = model.indices_[outData.triangleIdx * 3 + 0];
+    const uint           i1 = model.indices_[outData.triangleIdx * 3 + 1];
+    const uint           i2 = model.indices_[outData.triangleIdx * 3 + 2];
+    const Vertex3D&      v0 = model.vertices_[i0];
+    const Vertex3D&      v1 = model.vertices_[i1];
+    const Vertex3D&      v2 = model.vertices_[i2];
+
+    
+    // transform triangle's points from local to world space
+    const XMMATRIX& world = pEnttMgr_->transformSys_.GetWorld(outData.enttId);
+
+    // vertices positions in local space
+    const XMVECTOR posL[3] = {
+        XMLoadFloat3(&v0.position),
+        XMLoadFloat3(&v1.position),
+        XMLoadFloat3(&v2.position)
+    };
+
+    // vertices positions in world space
+    const XMVECTOR posW[3] = {
+        XMVector3TransformCoord(posL[0], world),
+        XMVector3TransformCoord(posL[1], world),
+        XMVector3TransformCoord(posL[2], world)
+    };
+
+    // store endpoints of the intersected triangle
+    XMFLOAT3 pos0, pos1, pos2;
+
+    XMStoreFloat3(&pos0, posW[0]);
+    XMStoreFloat3(&pos1, posW[1]);
+    XMStoreFloat3(&pos2, posW[2]);
+
+    outData.vx0 = pos0.x;
+    outData.vy0 = pos0.y;
+    outData.vz0 = pos0.z;
+
+    outData.vx1 = pos1.x;
+    outData.vy1 = pos1.y;
+    outData.vz1 = pos1.z;
+
+    outData.vx2 = pos2.x;
+    outData.vy2 = pos2.y;
+    outData.vz2 = pos2.z;
+
+    // calc intersection point in local space and transform it to world space
+    const XMVECTOR intersectPL = rayOrigL + rayDirL * t;
+    const XMVECTOR intersectPW = XMVector3TransformCoord(intersectPL, world);
+    XMFLOAT3 intersect;
+    XMStoreFloat3(&intersect, intersectPW);
+
+    // store ray origin...
+    XMFLOAT3 rayOrig;
+    XMStoreFloat3(&rayOrig, rayOrigW);
+
+    outData.rayOrigX = rayOrig.x;
+    outData.rayOrigY = rayOrig.y;
+    outData.rayOrigZ = rayOrig.z;
+
+    // ...intersection point 
+    outData.px = intersect.x;
+    outData.py = intersect.y;
+    outData.pz = intersect.z;
+
+    // ...and normal vec of intersected triangle (in world space)
+    Vec3 normal = CalcNormalVec(pos0, pos1, pos2);
+    Vec3 rayDir = ToVec3(rayDirW);
+
+    if (Vec3Dot(normal, rayDir) > 0)
+        normal = -normal;
+
+    outData.nx = normal.x;
+    outData.ny = normal.y;
+    outData.nz = normal.z;
+
+
+    // PRINT STATS
+    printf("\nlocal:\n");
+    printf("p0 %.2f %.2f %.2f     p1 %.2f %.2f %.2f    p2 %.2f %.2f %.2f\n",
+        v0.position.x, v0.position.y, v0.position.z,
+        v1.position.x, v1.position.y, v1.position.z,
+        v2.position.x, v2.position.y, v2.position.z);
+
+    printf("n0 %.2f %.2f %.2f     n1 %.2f %.2f %.2f    n2 %.2f %.2f %.2f\n",
+        v0.normal.x, v0.normal.y, v0.normal.z,
+        v1.normal.x, v1.normal.y, v1.normal.z,
+        v2.normal.x, v2.normal.y, v2.normal.z);
+
+    printf("world:\n");
+    printf("p0 %.2f %.2f %.2f     p1 %.2f %.2f %.2f    p2 %.2f %.2f %.2f\n",
+        pos0.x, pos0.y, pos0.z,
+        pos1.x, pos1.y, pos1.z,
+        pos1.x, pos1.y, pos1.z);
+
+    printf("n0 %.2f %.2f %.2f\n", normal.x, normal.y, normal.z);
+}
+
+//---------------------------------------------------------
+// check if we have any entity by input screen coords;
+// 
+// in:   screen pixel coords
+// out:  0  - there is no entity, we didn't select any
+//       ID - we selected some entity so return its ID
+//---------------------------------------------------------
+int CGraphics::TestEnttSelection(const int sx, const int sy)
+{
+    using namespace DirectX;
+
+    ECS::EntityMgr* pEnttMgr = pEnttMgr_;
+    const XMMATRIX& P        = pEnttMgr->cameraSys_.GetProj(currCameraID_);
+    const XMMATRIX& invView  = pEnttMgr->cameraSys_.GetInverseView(currCameraID_);
+
+    // TODO: optimize it!
+    const float xndc = (+2.0f * sx / GetD3D().GetWindowWidth() - 1.0f);
+    const float yndc = (-2.0f * sy / GetD3D().GetWindowHeight() + 1.0f);
+
+    // compute picking ray in view space
+    const float vx = xndc / P.r[0].m128_f32[0];
+    const float vy = yndc / P.r[1].m128_f32[1];
+
+    // ray definition in view space
+    XMVECTOR rayOrigin_ = { 0,0,0,1 };
+    XMVECTOR rayDir_    = { vx, vy, 1, 0 };
+
+    // assume we have not picked anything yet, 
+    // so init the ID to 0 and triangle idx to -1
+    uint32_t selectedEnttID = 0;
+    int selectedTriangleIdx = -1;
+    float tmin = MathHelper::Infinity;  // the distance along the ray where the intersection occurs
+    float dist = 0;                     // the length of the ray from origin to the intersection point with the AABB
+
+
+    // go through each visible entt and check if we have an intersection with it
+    for (const EntityID enttID : pEnttMgr->renderSys_.GetAllVisibleEntts())
+    {
+        //const EntityID enttID = visEntts[i];
+        const ModelID modelID = pEnttMgr->modelSys_.GetModelIdRelatedToEntt(enttID);
+        const BasicModel& model = g_ModelMgr.GetModelById(modelID);
+
+        if (model.type_ == MODEL_TYPE_Terrain)
+        {
+            continue;
+        }
+    
+        // get an inverse world matrix of the current entt
+        const XMMATRIX invWorld = pEnttMgr->transformSys_.GetInvWorld(enttID);
+        const XMMATRIX toLocal = DirectX::XMMatrixMultiply(invView, invWorld);
+
+        XMVECTOR rayOrigin = XMVector3TransformCoord(rayOrigin_, toLocal);   // supposed to take a point (w == 1)
+        XMVECTOR rayDir    = XMVector3TransformNormal(rayDir_, toLocal);  // supposed to take a vec (w == 0)
+
+        // make the ray direction unit length for the intersection tests
+        rayDir = XMVector3Normalize(rayDir);
+
+
+        // if we hit the bounding box of the model, then we might have picked
+        // a model triangle, so do the ray/triangle tests;
+        //
+        // if we didn't hit the bounding box, then it is impossible that we
+        // hit the model, so do not waste efford doing ray/triangle tests
+        if (model.GetModelAABB().Intersects(rayOrigin, rayDir, dist))
+        {
+            // execute ray/triangle tests
+            for (int i = 0; i < model.GetNumIndices() / 3; ++i)
+            {
+                // indices for this triangle
+                UINT i0 = model.indices_[i * 3 + 0];
+                UINT i1 = model.indices_[i * 3 + 1];
+                UINT i2 = model.indices_[i * 3 + 2];
+
+                // vertices for this triangle
+                XMVECTOR v0 = XMLoadFloat3(&model.vertices_[i0].position);
+                XMVECTOR v1 = XMLoadFloat3(&model.vertices_[i1].position);
+                XMVECTOR v2 = XMLoadFloat3(&model.vertices_[i2].position);
+
+                // we have to iterate over all the triangle in order 
+                // to find the nearest intersection
+                float t = 0.0f;
+
+                if (DirectX::TriangleTests::Intersects(rayOrigin, rayDir, v0, v1, v2, t))
+                {
+                    if (t <= tmin)
+                    {
+                        // this is the new nearest picked entt and its triangle
+                        tmin = t;
+                        selectedTriangleIdx = i;
+                        selectedEnttID = enttID;
+                    }
+                }
+            }
+        }
+    }
+
+    // print a msg about selection of the entity
+    if (selectedEnttID)
+    {
+        const char* name = pEnttMgr->nameSys_.GetNameById(selectedEnttID);
+
+        SetConsoleColor(YELLOW);
+        LogMsg("picked entt (id: %" PRIu32 "; name: % s)", selectedEnttID, name);
+        SetConsoleColor(RESET);
+    }
+
+    // return ID of the selected entt, or 0 if we didn't pick any
+    return selectedEnttID;
 }
 
 

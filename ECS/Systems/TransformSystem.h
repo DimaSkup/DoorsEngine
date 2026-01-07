@@ -74,7 +74,7 @@ public:
     void TransformWorld(const EntityID id, const XMMATRIX& transformation);
 
     const DirectX::XMMATRIX& GetWorld       (const EntityID id) const;
-    const DirectX::XMMATRIX& GetInverseWorld(const EntityID id) const;
+    const DirectX::XMMATRIX& GetInvWorld(const EntityID id) const;
 
     void GetWorlds(
         const EntityID* ids,

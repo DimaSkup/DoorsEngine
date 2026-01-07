@@ -25,9 +25,15 @@
 
 namespace Render
 {
-// forward declaration
+//---------------------------------------------------------
+// forward declaration (pointer use only)
+//---------------------------------------------------------
 class ShaderMgr;
 
+//---------------------------------------------------------
+// constants
+//---------------------------------------------------------
+constexpr int MAX_NUM_2D_SPRITES = 32;
 
 //---------------------------------------------------------
 // Desc:  this struct contains init params for the rendering
@@ -369,7 +375,7 @@ public:
 private:
     ShaderMgr* pShaderMgr_ = nullptr;
 
-    Sprite2D spritesRenderList_[32];
+    Sprite2D spritesRenderList_[MAX_NUM_2D_SPRITES];
     int      numSpritesToRender_ = 0;
 };
 

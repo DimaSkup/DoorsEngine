@@ -16,7 +16,6 @@ namespace ConstBufType
     struct InstancedData
     {
         DirectX::XMMATRIX  world;
-        DirectX::XMMATRIX  worldInvTranspose;
         MaterialColors     matColors;
     };
 

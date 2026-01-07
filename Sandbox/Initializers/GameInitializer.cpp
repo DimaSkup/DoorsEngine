@@ -109,7 +109,7 @@ void ReadAndCreateEmitter(
 
     const EntityID         enttId = enttMgr.CreateEntity();
     enttMgr.AddParticleEmitterComponent(enttId);
-    ECS::ParticleEmitter& emitter = enttMgr.particleSystem_.GetEmitterByEnttId(enttId);
+    ECS::ParticleEmitter& emitter = enttMgr.particleSys_.GetEmitter(enttId);
 
     XMFLOAT3 pos                       = { 0,0,0 };
     XMFLOAT3 forces                    = { 0,0,0 };
@@ -376,7 +376,7 @@ void InitDirectedLightEntt(ECS::EntityMgr& mgr, FILE* pFile, LightSrcInitParams&
 
     mgr.AddTransformComponent(enttId, params.pos, dirQuat);
     mgr.AddLightComponent(enttId, light);
-    mgr.lightSystem_.SetLightIsActive(enttId, params.isActive);
+    mgr.lightSys_.SetLightIsActive(enttId, params.isActive);
 }
 
 //---------------------------------------------------------
@@ -413,14 +413,14 @@ void InitPointLightEntt(ECS::EntityMgr& mgr, FILE* pFile, LightSrcInitParams& pa
     mgr.AddTransformComponent(enttId, params.pos);
     mgr.AddBoundingComponent(enttId, boundSphereLocal);
     mgr.AddLightComponent(enttId, light);
-    mgr.lightSystem_.SetLightIsActive(enttId, params.isActive);
+    mgr.lightSys_.SetLightIsActive(enttId, params.isActive);
 
     // set parent for this point light if we have any
     // (so it will move together with its parent)
     if (params.parentEnttName[0] != '0')
     {
-        const EntityID parentId = mgr.nameSystem_.GetIdByName(params.parentEnttName);
-        mgr.hierarchySystem_.AddChild(parentId, enttId);
+        const EntityID parentId = mgr.nameSys_.GetIdByName(params.parentEnttName);
+        mgr.hierarchySys_.AddChild(parentId, enttId);
     }
 }
 
@@ -458,14 +458,14 @@ void InitSpotlightEntt(ECS::EntityMgr& mgr, FILE* pFile, LightSrcInitParams& par
 
     mgr.AddTransformComponent(enttId, params.pos, XMLoadFloat4(&params.dirQuat), 1.0f);
     mgr.AddLightComponent(enttId, light);
-    mgr.lightSystem_.SetLightIsActive(enttId, params.isActive);
+    mgr.lightSys_.SetLightIsActive(enttId, params.isActive);
 
     // set parent for this point light if we have any
     // (so it will move together with its parent)
     if (params.parentEnttName[0] != '0')
     {
-        const EntityID parentId = mgr.nameSystem_.GetIdByName(params.parentEnttName);
-        mgr.hierarchySystem_.AddChild(parentId, enttId);
+        const EntityID parentId = mgr.nameSys_.GetIdByName(params.parentEnttName);
+        mgr.hierarchySys_.AddChild(parentId, enttId);
     }
 }
 
@@ -559,9 +559,9 @@ void GameInitializer::InitPlayer(
     MaterialID catMatID = g_MaterialMgr.GetMatIdByName("cat");
 
     // setup child entities of the player
-    ECS::NameSystem&      nameSys      = pEnttMgr->nameSystem_;
-    ECS::HierarchySystem& hierarchySys = pEnttMgr->hierarchySystem_;
-    ECS::InventorySystem& inventorySys = pEnttMgr->inventorySystem_;
+    ECS::NameSystem&      nameSys      = pEnttMgr->nameSys_;
+    ECS::HierarchySystem& hierarchySys = pEnttMgr->hierarchySys_;
+    ECS::InventorySystem& inventorySys = pEnttMgr->inventorySys_;
 
     const EntityID gameCameraId  = nameSys.GetIdByName("game_camera");
     const EntityID flashlightId  = nameSys.GetIdByName("player_flashlight");
@@ -600,7 +600,7 @@ void GameInitializer::InitPlayer(
 
 
     // setup player's params
-    ECS::PlayerSystem& player = pEnttMgr->playerSystem_;
+    ECS::PlayerSystem& player = pEnttMgr->playerSys_;
     const Core::EngineConfigs& cfgs = *pConfigs;
 
     player.SetSpeedWalk         (cfgs.GetFloat("PLAYER_SPEED_WALK"));
@@ -620,7 +620,7 @@ void GameInitializer::InitPlayer(
     const float posY = cfgs.GetFloat("PLAYER_POS_Y_AFTER_INIT");
     const float posZ = cfgs.GetFloat("PLAYER_POS_Z_AFTER_INIT");
 
-    pEnttMgr->AddEvent(ECS::EventTranslate(playerId, posX, posY, posZ));
+    pEnttMgr->PushEvent(ECS::EventTranslate(playerId, posX, posY, posZ));
 }
 
 //---------------------------------------------------------
@@ -677,10 +677,10 @@ bool GameInitializer::InitCamera(
     // initialize view/projection matrices of the editor/game camera
     // 
     // TODO?: move initial UpdateView and SetBaseViewMatrix into the CameraSystem::AddRecord()
-    const DirectX::XMMATRIX& editorCamView = mgr.cameraSystem_.UpdateView(camId);
+    const DirectX::XMMATRIX& editorCamView = mgr.cameraSys_.UpdateView(camId);
 
-    mgr.cameraSystem_.SetBaseViewMatrix(camId, editorCamView);
-    mgr.cameraSystem_.SetupOrthographicMatrix(
+    mgr.cameraSys_.SetBaseViewMatrix(camId, editorCamView);
+    mgr.cameraSys_.SetupOrthographicMatrix(
         camId,
         initParams.wndWidth,
         initParams.wndHeight,
@@ -1105,12 +1105,12 @@ void CreateTreesEntities(
     const XMVECTOR noRotQuat{ 0,0,0,1 };
 
     if (quatRotAxis != noRotQuat)
-        mgr.transformSystem_.RotateLocalSpacesByQuat(enttsIds, numEntts, quatRotAxis);
+        mgr.transformSys_.RotateLocalSpacesByQuat(enttsIds, numEntts, quatRotAxis);
 
     // rotate each tree around Y-axis by random angle
     for (uint i = 0; i < numEntts; ++i)
     {
-        mgr.transformSystem_.RotateLocalSpaceByQuat(enttsIds[i], yRotationQuats[i]);
+        mgr.transformSys_.RotateLocalSpaceByQuat(enttsIds[i], yRotationQuats[i]);
     }
 
     // add AABB of each tree to the debug shapes render list
@@ -1119,7 +1119,7 @@ void CreateTreesEntities(
     for (uint i = 0; i < numEntts; ++i)
     {
         BoundingBox tmpAABB = aabb;
-        const XMMATRIX& M = mgr.transformSystem_.GetWorld(enttsIds[i]);
+        const XMMATRIX& M = mgr.transformSys_.GetWorld(enttsIds[i]);
         aabb.Transform(tmpAABB, M);
         AddAabbToRender(tmpAABB);
     }
@@ -1143,7 +1143,7 @@ void HandleName(
     }
     else
     {
-        if (mgr.nameSystem_.IsUnique(inName))
+        if (mgr.nameSys_.IsUnique(inName))
             strncpy(outName, inName, MAX_LEN_ENTT_NAME);
 
         else
@@ -1231,7 +1231,7 @@ EntityID CreateBuildingEntt(
 
     // add components to the entity
     mgr.AddTransformComponent(enttId, position, direction, uniformScale);
-    mgr.transformSystem_.RotateLocalSpaceByQuat(enttId, rotQuat);
+    mgr.transformSys_.RotateLocalSpaceByQuat(enttId, rotQuat);
 
     mgr.AddNameComponent(enttId, enttName);
     mgr.AddModelComponent(enttId, model.GetID());
@@ -1257,7 +1257,7 @@ EntityID CreateBuildingEntt(
 
     // add this AABB to the debug shapes render list
     BoundingBox aabb = model.GetModelAABB();
-    XMMATRIX M = mgr.transformSystem_.GetWorld(enttId);
+    XMMATRIX M = mgr.transformSys_.GetWorld(enttId);
     aabb.Transform(aabb, M);
 
     const Vec3 color(0, 1, 1);
@@ -1303,7 +1303,7 @@ EntityID CreateVehicleEntt(
 
     // add components to the entity
     mgr.AddTransformComponent(enttId, position, direction, uniformScale);
-    mgr.transformSystem_.RotateLocalSpaceByQuat(enttId, rotQuat);
+    mgr.transformSys_.RotateLocalSpaceByQuat(enttId, rotQuat);
 
     mgr.AddNameComponent(enttId, name);
     mgr.AddModelComponent(enttId, model.GetID());
@@ -1334,7 +1334,7 @@ EntityID CreateVehicleEntt(
    
     // add this AABB to the debug shapes render list
     BoundingBox aabb = model.GetModelAABB();
-    const XMMATRIX M = mgr.transformSystem_.GetWorld(enttId);
+    const XMMATRIX M = mgr.transformSys_.GetWorld(enttId);
     aabb.Transform(aabb, M);
 
     const Vec3 color(0, 1, 1);
@@ -1382,7 +1382,7 @@ EntityID CreateWeaponEntt(
     mgr.AddTransformComponent(enttId, position, direction, uniformScale);
 
     // rotate entity around itself
-    mgr.transformSystem_.RotateLocalSpaceByQuat(enttId, rotQuat);
+    mgr.transformSys_.RotateLocalSpaceByQuat(enttId, rotQuat);
 
     mgr.AddNameComponent(enttId, name);
     mgr.AddModelComponent(enttId, model.GetID());
@@ -1414,7 +1414,7 @@ EntityID CreateWeaponEntt(
  
     // add this AABB to the debug shapes render list
     BoundingBox aabb = model.GetModelAABB();
-    XMMATRIX M = mgr.transformSystem_.GetWorld(enttId);
+    XMMATRIX M = mgr.transformSys_.GetWorld(enttId);
     aabb.Transform(aabb, M);
 
     const Vec3 color(0, 1, 1);
@@ -1463,7 +1463,7 @@ EntityID CreateCubeEntt(
     mgr.AddTransformComponent(enttId, position, direction, uniformScale);
 
     // rotate entity around itself
-    mgr.transformSystem_.RotateLocalSpaceByQuat(enttId, rotQuat);
+    mgr.transformSys_.RotateLocalSpaceByQuat(enttId, rotQuat);
 
     mgr.AddNameComponent(enttId, name);
     mgr.AddModelComponent(enttId, model.GetID());
@@ -1474,7 +1474,7 @@ EntityID CreateCubeEntt(
 
     // add this AABB to the debug shapes render list
     BoundingBox aabb = model.GetModelAABB();
-    const XMMATRIX& M = mgr.transformSystem_.GetWorld(enttId);
+    const XMMATRIX& M = mgr.transformSys_.GetWorld(enttId);
     aabb.Transform(aabb, M);
     AddAabbToRender(aabb);
 
@@ -1787,7 +1787,7 @@ void LoadEntities(const char* filePath, ECS::EntityMgr& enttMgr)
             // setup material for subset 0
             for (index i = 0; i < materialIds.size(); ++i)
             {
-                enttMgr.materialSystem_.SetMaterial(enttId, subsetIds[i], materialIds[i]);
+                enttMgr.materialSys_.SetMaterial(enttId, subsetIds[i], materialIds[i]);
             }
         }
     }
@@ -2027,14 +2027,14 @@ void LoadAnimations(const char* filepath)
 //---------------------------------------------------------
 void BindAnimationsToEntts(ECS::EntityMgr& enttMgr)
 {
-    const EntityID boblampId             = enttMgr.nameSystem_.GetIdByName("boblampclean");
-    const EntityID ak74hudId             = enttMgr.nameSystem_.GetIdByName("wpn_ak74_hud");
-    const EntityID bm16hudId             = enttMgr.nameSystem_.GetIdByName("wpn_bm16_hud");
-    const EntityID pmHudId               = enttMgr.nameSystem_.GetIdByName("wpn_pm_hud");
-    const EntityID bm16hudTestId         = enttMgr.nameSystem_.GetIdByName("bm_16_hud_test");
-    const EntityID ak74hudTestId         = enttMgr.nameSystem_.GetIdByName("ak_74_hud_test");
-    const EntityID pmHudTestId           = enttMgr.nameSystem_.GetIdByName("pm_hud_test");
-    const EntityID ak74TestId            = enttMgr.nameSystem_.GetIdByName("ak_74_hud_test_static");
+    const EntityID boblampId             = enttMgr.nameSys_.GetIdByName("boblampclean");
+    const EntityID ak74hudId             = enttMgr.nameSys_.GetIdByName("wpn_ak74_hud");
+    const EntityID bm16hudId             = enttMgr.nameSys_.GetIdByName("wpn_bm16_hud");
+    const EntityID pmHudId               = enttMgr.nameSys_.GetIdByName("wpn_pm_hud");
+    const EntityID bm16hudTestId         = enttMgr.nameSys_.GetIdByName("bm_16_hud_test");
+    const EntityID ak74hudTestId         = enttMgr.nameSys_.GetIdByName("ak_74_hud_test");
+    const EntityID pmHudTestId           = enttMgr.nameSys_.GetIdByName("pm_hud_test");
+    const EntityID ak74TestId            = enttMgr.nameSys_.GetIdByName("ak_74_hud_test_static");
 
     // add animation component to ak74
     AnimSkeleton&        ak74hudSkeleton = g_AnimationMgr.GetSkeleton("wpn_ak74_hud");

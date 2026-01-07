@@ -102,6 +102,8 @@ private:
     void HandleEventWeaponSingleShot();
     void HandleEventWeaponMultipleShots();
 
+    void HandleBulletHit(const IntersectionData& data);
+
     // weapon/hands animations switching
     void StartAnimWeaponDraw();
     void StartAnimWeaponReload();

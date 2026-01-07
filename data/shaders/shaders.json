@@ -405,6 +405,13 @@
 			"gs":             "wireframeGS",
 			"ps":             "wireframePS",
 			"input_layout":   "Pos"
+		},
+		{
+			"id":             56,
+			"name":           "DecalShader",
+			"vs":             "decalVS",
+			"ps":             "decalPS",
+			"input_layout":   "VertexPosTex"
 		}
 	]
 }

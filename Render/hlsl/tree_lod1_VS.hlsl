@@ -19,7 +19,6 @@ struct VS_IN
 {
     // data per instance
     row_major matrix   world             : WORLD;
-    row_major matrix   worldInvTranspose : WORLD_INV_TRANSPOSE;
     row_major float4x4 material          : MATERIAL;
     uint               instanceID        : SV_InstanceID;
 
@@ -47,7 +46,7 @@ VS_OUT VS(VS_IN vin)
     VS_OUT vout;
 
     vout.material          = vin.material;
-    vout.worldInvTranspose = vin.worldInvTranspose;
+    vout.worldInvTranspose = vin.world;
 
     // transform pos from local to world space
     vout.posW = mul(float4(vin.posL, 1.0), vin.world).xyz;

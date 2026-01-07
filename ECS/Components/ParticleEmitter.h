@@ -104,7 +104,7 @@ struct ParticleEmitter
     DirectX::XMFLOAT3 velInitDir        = { 0,0,0 };        // velocity initial direction
 
     float             velInitMag        = 0.15f;            // velocity initial magnitude
-    float             life              = 1000;             // ms lifespan of particle
+    float             life              = 1;                // lifespan of particle in seconds
     float             friction          = 0.1f;             // air resistance
     float             mass              = 1.0f;             // mass of particle
     float             size              = 0.1f;             // size of particle in world

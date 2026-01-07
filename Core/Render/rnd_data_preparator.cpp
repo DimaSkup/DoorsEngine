@@ -122,7 +122,7 @@ void SortByLods(
 
 
     // gather entities positions
-    mgr.transformSystem_.GetPositions(enttsIds, numEntts, s_Positions);
+    mgr.transformSys_.GetPositions(enttsIds, numEntts, s_Positions);
 
     for (index i = 0; i < numEntts; ++i)
     {
@@ -184,7 +184,7 @@ void SortByDistance(
         s_TempEnttsIds[i] = data[i].enttId;
 
     // gather entities positions
-    mgr.transformSystem_.GetPositions(s_TempEnttsIds.data(), numElems, s_Positions);
+    mgr.transformSys_.GetPositions(s_TempEnttsIds.data(), numElems, s_Positions);
 
     // convert to transient data
     for (index i = 0; i < numElems; ++i)
@@ -462,7 +462,7 @@ void RenderDataPreparator::PrepareEnttsDataForRendering(
 
     // separate visible entities with animation component from others
     // since we will render such entities in a separate way
-    const cvector<EntityID>& animatedEntts = pEnttMgr->animationSystem_.GetEnttsIds();
+    const cvector<EntityID>& animatedEntts = pEnttMgr->animationSys_.GetEnttsIds();
 
     size numNotAnimEntts = 0;
 
@@ -480,7 +480,7 @@ void RenderDataPreparator::PrepareEnttsDataForRendering(
         return;
 
     // get materials ids for each subset of each input entity
-    pEnttMgr->materialSystem_.GetDataByEnttsIds(enttsIds, numEntts, s_MaterialsDataPerEntt);
+    pEnttMgr->materialSys_.GetDataByEnttsIds(enttsIds, numEntts, s_MaterialsDataPerEntt);
 
 
     // compute the number of instances
@@ -508,7 +508,7 @@ void RenderDataPreparator::PrepareEnttsDataForRendering(
 
     //------------------------------------------------
 
-    pEnttMgr->modelSystem_.GetModelsIdsPerEntts(enttsIds, numEntts, s_ModelsIds);
+    pEnttMgr->modelSys_.GetModelsIdsPerEntts(enttsIds, numEntts, s_ModelsIds);
 
     // flags to define if we need to render
     // entity using model with lower detail level (higher LOD)
@@ -708,7 +708,7 @@ void RenderDataPreparator::PrepareInstancesWorldMatrices(
     s_Worlds.clear();
 
     // get world matrices
-    s_pEnttMgr->transformSystem_.GetWorlds(
+    s_pEnttMgr->transformSys_.GetWorlds(
         enttIdPerInstance.data(),
         enttIdPerInstance.size(),
         s_Worlds);

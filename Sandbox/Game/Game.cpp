@@ -64,7 +64,7 @@ bool Game::Init(
 
     GameInitializer gameInit;
     Core::CGraphics& graphics   = pEngine->GetGraphicsClass();
-    ECS::NameSystem& nameSys    = pEnttMgr->nameSystem_;
+    ECS::NameSystem& nameSys    = pEnttMgr->nameSys_;
     const Render::D3DClass& d3d = pRender->GetD3D();
     bool result = false;
 
@@ -183,7 +183,7 @@ void Game::InitWeapons()
     pSkeleton_  = currWeapon.pSkeleton;
     currAnimId_ = currWeapon.animIds[WPN_ANIM_TYPE_IDLE];
 
-    pEnttMgr_->playerSystem_.SetActiveWeapon(currWeaponEnttId_);
+    pEnttMgr_->playerSys_.SetActiveWeapon(currWeaponEnttId_);
 }
 
 //---------------------------------------------------------
@@ -193,7 +193,7 @@ void Game::InitWeapons()
 bool Game::Update(const float dt, const float gameTime)
 {
     // generate particles
-    pEnttMgr_->particleSystem_.CreateParticles(dt);
+    pEnttMgr_->particleSys_.CreateParticles(dt);
 
     deltaTime_ = dt;
     gameTime_ = gameTime;
@@ -223,7 +223,7 @@ bool Game::Update(const float dt, const float gameTime)
 
         if (currActTime_ >= endActTime_)
         {
-            ECS::PlayerSystem& player = pEnttMgr_->playerSystem_;
+            ECS::PlayerSystem& player = pEnttMgr_->playerSys_;
 
             currActTime_ = 0;
 
@@ -291,7 +291,7 @@ void Game::HandleGameEventKeyboard()
             {
                 if (!keyboard.WasPressedBefore(KEY_N))
                 {
-                    pEngine_->GetGraphicsClass().IncreaseCurrAnimIdx();
+                    //pEngine_->GetGraphicsClass().IncreaseCurrAnimIdx();
                 }
                 break;
             }
@@ -312,7 +312,7 @@ void Game::HandleGameEventKeyboard()
                 // switch btw cameras modes (free / game)
                 if (!keyboard.WasPressedBefore(KEY_F2))
                 {
-                    ECS::PlayerSystem& player = pEnttMgr_->playerSystem_;
+                    ECS::PlayerSystem& player = pEnttMgr_->playerSys_;
                     player.SetFreeFlyMode(!player.IsFreeFlyMode());
                 }
                 break;
@@ -369,7 +369,7 @@ void Game::HandleGameEventKeyboard()
         {
             case KEY_SHIFT:
             {
-                pEnttMgr_->AddEvent(ECS::EventPlayerRun(false));
+                pEnttMgr_->PushEvent(ECS::EventPlayerRun(false));
                 break;
             }
         }
@@ -384,7 +384,7 @@ void Game::HandlePlayerActions(const eKeyCodes code)
 {
     using namespace ECS;
 
-    ECS::PlayerSystem& player = pEnttMgr_->playerSystem_;
+    ECS::PlayerSystem& player = pEnttMgr_->playerSys_;
     Keyboard& keyboard = pEngine_->GetKeyboard();
     
     switch (code)
@@ -412,19 +412,19 @@ void Game::HandlePlayerActions(const eKeyCodes code)
 
         case KEY_SHIFT:
         {
-            pEnttMgr_->AddEvent(EventPlayerRun(true));
+            pEnttMgr_->PushEvent(EventPlayerRun(true));
             break;
         }
         case KEY_A:
         {
-            pEnttMgr_->AddEvent(EventPlayerMove(EVENT_PLAYER_MOVE_LEFT));
+            pEnttMgr_->PushEvent(EventPlayerMove(EVENT_PLAYER_MOVE_LEFT));
             StartFootstepSequence(0);
             UpdateRainPos();
             break;
         }
         case KEY_D:
         {
-            pEnttMgr_->AddEvent(EventPlayerMove(EVENT_PLAYER_MOVE_RIGHT));
+            pEnttMgr_->PushEvent(EventPlayerMove(EVENT_PLAYER_MOVE_RIGHT));
             StartFootstepSequence(0);
             UpdateRainPos();
             break;
@@ -438,7 +438,7 @@ void Game::HandlePlayerActions(const eKeyCodes code)
         }
         case KEY_S:
         {
-            pEnttMgr_->AddEvent(EventPlayerMove(EVENT_PLAYER_MOVE_BACK));
+            pEnttMgr_->PushEvent(EventPlayerMove(EVENT_PLAYER_MOVE_BACK));
             StartFootstepSequence(deltaTime_);
             UpdateRainPos();
             break;
@@ -450,7 +450,7 @@ void Game::HandlePlayerActions(const eKeyCodes code)
         }
         case KEY_W:
         {
-            pEnttMgr_->AddEvent(EventPlayerMove(EVENT_PLAYER_MOVE_FORWARD));
+            pEnttMgr_->PushEvent(EventPlayerMove(EVENT_PLAYER_MOVE_FORWARD));
 
             StartFootstepSequence(deltaTime_);
             UpdateRainPos();
@@ -478,16 +478,16 @@ void Game::HandlePlayerActions(const eKeyCodes code)
         }
         case KEY_Z:
         {
-            if (pEnttMgr_->playerSystem_.IsFreeFlyMode())
-                pEnttMgr_->AddEvent(EventPlayerMove(EVENT_PLAYER_MOVE_DOWN));
+            if (pEnttMgr_->playerSys_.IsFreeFlyMode())
+                pEnttMgr_->PushEvent(EventPlayerMove(EVENT_PLAYER_MOVE_DOWN));
             break;
         }
         case KEY_SPACE:
         {
-            if (pEnttMgr_->playerSystem_.IsFreeFlyMode())
-                pEnttMgr_->AddEvent(EventPlayerMove(EVENT_PLAYER_MOVE_UP));
+            if (pEnttMgr_->playerSys_.IsFreeFlyMode())
+                pEnttMgr_->PushEvent(EventPlayerMove(EVENT_PLAYER_MOVE_UP));
             else
-                pEnttMgr_->AddEvent(EventPlayerMove(EVENT_PLAYER_JUMP));
+                pEnttMgr_->PushEvent(EventPlayerMove(EVENT_PLAYER_JUMP));
 
             break;
         }
@@ -502,7 +502,7 @@ void Game::HandlePlayerActions(const eKeyCodes code)
 void Game::HandleGameEventMouse(const float deltaTime)
 {
     Mouse& mouse = pEngine_->GetMouse();
-    ECS::PlayerSystem& player = pEnttMgr_->playerSystem_;
+    ECS::PlayerSystem& player = pEnttMgr_->playerSys_;
     Weapon& wpn = weapons_[currWeaponIdx_];
 
   
@@ -561,11 +561,6 @@ void Game::HandleGameEventMouse(const float deltaTime)
     {
         // execute multiple shots (possible only for machine guns)
         gameEventsList_.PushEvent(GameEvent(PLAYER_MULTIPLE_SHOTS));
-
-        int mousePosX = mouse.GetPosX();
-        int mousePosY = mouse.GetPosY();
-        pEngine_->GetGraphicsClass().GetRayIntersectionPoint(mousePosX, mousePosY);
-        //pEngine_->GetGraphicsClass().TestEnttSelection(mousePosX, mousePosY);
     }
 
     last = current;
@@ -666,9 +661,9 @@ void Game::UpdateRainbowAnomaly()
 {
     ECS::EntityMgr& mgr = *pEnttMgr_;
 
-    ECS::NameSystem&      nameSys      = mgr.nameSystem_;
-    ECS::ParticleSystem&  particleSys  = mgr.particleSystem_;
-    ECS::LightSystem&     lightSys     = mgr.lightSystem_;
+    ECS::NameSystem&      nameSys      = mgr.nameSys_;
+    ECS::ParticleSystem&  particleSys  = mgr.particleSys_;
+    ECS::LightSystem&     lightSys     = mgr.lightSys_;
 
     const EntityID anomaly0 = nameSys.GetIdByName("anomaly_rainbow_0");
     const EntityID anomaly1 = nameSys.GetIdByName("anomaly_rainbow_1");
@@ -718,7 +713,7 @@ void Game::UpdateRainbowAnomaly()
         XMStoreFloat3(&newPositions[posIdx], particles1[i].pos);
 
     // place point light in exact position of related rainbow particle
-    mgr.transformSystem_.SetPositions(pointLightIds, numRainbows, newPositions);
+    mgr.transformSys_.SetPositions(pointLightIds, numRainbows, newPositions);
 }
 
 //---------------------------------------------------------
@@ -726,8 +721,8 @@ void Game::UpdateRainbowAnomaly()
 //---------------------------------------------------------
 void Game::UpdateRainPos()
 {
-    const DirectX::XMFLOAT3 p = pEnttMgr_->playerSystem_.GetPosition();
-    pEnttMgr_->AddEvent(ECS::EventTranslate(rainEnttId_, p.x, p.y, p.z));
+    const DirectX::XMFLOAT3 p = pEnttMgr_->playerSys_.GetPosition();
+    pEnttMgr_->PushEvent(ECS::EventTranslate(rainEnttId_, p.x, p.y, p.z));
 }
 
 //---------------------------------------------------------
@@ -859,8 +854,8 @@ void Game::HandleEventWeaponSwitch(const int newWeaponIdx)
     currActTime_                  = 0;
     endActTime_                   = animDrawEndTime;
 
-    pEnttMgr_->playerSystem_.SetActiveWeapon(currWeaponEnttId_);
-    pEnttMgr_->playerSystem_.SetIsDrawWeapon(true);
+    pEnttMgr_->playerSys_.SetActiveWeapon(currWeaponEnttId_);
+    pEnttMgr_->playerSys_.SetIsDrawWeapon(true);
 
     g_SoundMgr.GetSound(wpn.soundIds[WPN_SOUND_TYPE_DRAW])->PlayTrack();
     StartAnimWeaponDraw();
@@ -879,7 +874,7 @@ void Game::HandleEventWeaponReload()
         return;
 
     const AnimationClip& anim = pSkeleton_->GetAnimation(animIdReload);
-    pEnttMgr_->playerSystem_.SetIsReloading(true);
+    pEnttMgr_->playerSys_.SetIsReloading(true);
 
     // start animation immediately
     currActTime_ = anim.GetEndTime();
@@ -887,6 +882,73 @@ void Game::HandleEventWeaponReload()
 
     g_SoundMgr.GetSound(wpn.soundIds[WPN_SOUND_TYPE_RELOAD])->PlayTrack();
     StartAnimWeaponReload();
+}
+
+//---------------------------------------------------------
+//---------------------------------------------------------
+void Game::HandleBulletHit(const IntersectionData& data)
+{
+    const EntityID           wpnId = pEnttMgr_->playerSys_.GetActiveWeapon();
+    const DirectX::XMFLOAT3 relPos = pEnttMgr_->hierarchySys_.GetRelativePos(wpnId);
+
+    const Vec3 rayOrig = { data.rayOrigX, data.rayOrigY, data.rayOrigZ };
+    const Vec3 fromPos = { rayOrig.x + relPos.x, rayOrig.y + relPos.y, rayOrig.z + relPos.z };
+    const Vec3 intersect = { data.px, data.py, data.pz };
+    const Vec3 red = { 1, 0, 0 };
+
+    g_DebugDrawMgr.AddLine(fromPos, intersect, red);
+
+    SetConsoleColor(YELLOW);
+
+    const char* enttName = pEnttMgr_->nameSys_.GetNameById(data.enttId);
+
+
+    printf("hitEntt (id: %d  '%s'   rayO: %.2f %.2f %.2f   rayI: %.2f %.2f %.2f   N: %.2f %.2f %.2f)\n",
+        (int)data.enttId,
+        enttName,
+        rayOrig.x, rayOrig.y, rayOrig.z,
+        intersect.x, intersect.y, intersect.z,
+        data.nx, data.ny, data.nz);
+
+    const EntityID emitter0Id = pEnttMgr_->nameSys_.GetIdByName("shot_splash_0");
+    const EntityID emitter1Id = pEnttMgr_->nameSys_.GetIdByName("shot_splash_1");
+    const EntityID emitter2Id = pEnttMgr_->nameSys_.GetIdByName("shot_splash_2");
+
+
+
+    using namespace DirectX;
+    
+    const XMFLOAT3 emitterNewPos = { intersect.x, intersect.y, intersect.z };
+
+    pEnttMgr_->transformSys_.SetPosition(emitter0Id, emitterNewPos);
+    pEnttMgr_->transformSys_.SetPosition(emitter1Id, emitterNewPos);
+    pEnttMgr_->transformSys_.SetPosition(emitter2Id, emitterNewPos);
+
+
+
+    Vec3 norm = { data.nx, data.ny, data.nz };
+
+
+    ECS::ParticleSystem& sys = pEnttMgr_->particleSys_;
+    const ECS::ParticleEmitter& emitter0 = sys.GetEmitter(emitter0Id);
+    const ECS::ParticleEmitter& emitter1 = sys.GetEmitter(emitter1Id);
+    const ECS::ParticleEmitter& emitter2 = sys.GetEmitter(emitter2Id);
+    
+    //sys.SetExternForces(splashEmitterId, newForces.x, newForces.y, newForces.z);
+    sys.PushNewParticles(emitter0Id, emitter0.spawnRate);
+    sys.PushNewParticles(emitter1Id, emitter1.spawnRate);
+    sys.PushNewParticles(emitter2Id, emitter2.spawnRate);
+
+
+    // calc decal direction
+    Vec3 v0 = { data.vx1, data.vy1, data.vz1 };
+    Vec3 decalDir = v0 - intersect;
+
+    printf("decal dir: %.2f %.2f %.2f\n", decalDir.x, decalDir.y, decalDir.z);
+
+    g_ModelMgr.PushDecalToRender(intersect, decalDir, norm, 0.1f, 0.1f);
+
+    SetConsoleColor(RESET);
 }
 
 //---------------------------------------------------------
@@ -904,6 +966,51 @@ void Game::HandleEventWeaponSingleShot()
 
     StartPlayShootSound();
     StartAnimWeaponShoot();
+
+    Mouse& mouse = pEngine_->GetMouse();
+
+    // shotgun throws multiple bullets at once so handle it in a separate way...
+    if (wpn.type == WPN_TYPE_SHOTGUN)
+    {
+        int mouseX = mouse.GetPosX();
+        int mouseY = mouse.GetPosY();
+        int numBullets = 10;
+
+        // m
+        for (int i = 0; i < numBullets; ++i)
+        {
+            IntersectionData data;
+
+            int offsetX = (rand() % 100 - 50);
+            int offsetY = (rand() % 100 - 50);
+
+            bool hasIntersection = pEngine_->GetGraphicsClass().GetRayIntersectionData(
+                mouseX + offsetX,
+                mouseY + offsetY,
+                data);
+
+            if (!hasIntersection)
+                return;
+
+            HandleBulletHit(data);
+        }
+
+        return;
+    }
+
+
+    
+    IntersectionData data;
+
+    bool hasIntersection = pEngine_->GetGraphicsClass().GetRayIntersectionData(
+        mouse.GetPosX(),
+        mouse.GetPosY(),
+        data);
+
+    if (!hasIntersection)
+        return;
+
+    HandleBulletHit(data);
 }
 
 //---------------------------------------------------------
@@ -932,6 +1039,19 @@ void Game::HandleEventWeaponMultipleShots()
     // restart shooting sound, animation, etc.
     StartPlayShootSound();
     StartAnimWeaponShoot();
+
+    IntersectionData data;
+    Mouse& mouse = pEngine_->GetMouse();
+
+    bool hasIntersection = pEngine_->GetGraphicsClass().GetRayIntersectionData(
+        mouse.GetPosX(),
+        mouse.GetPosY(),
+        data);
+
+    if (!hasIntersection)
+        return;
+
+    HandleBulletHit(data);
 }
 
 //---------------------------------------------------------
@@ -939,21 +1059,21 @@ void Game::HandleEventWeaponMultipleShots()
 //---------------------------------------------------------
 void Game::SwitchFlashLight(ECS::EntityMgr& mgr, Render::CRender& render)
 {
-    ECS::PlayerSystem& player = mgr.playerSystem_;
+    ECS::PlayerSystem& player = mgr.playerSys_;
     const bool isActive = !player.IsFlashLightActive();;
     player.SwitchFlashLight(isActive);
 
     // update the state of the flashlight entity
-    const EntityID flashlightId = mgr.nameSystem_.GetIdByName("player_flashlight");
+    const EntityID flashlightId = mgr.nameSys_.GetIdByName("player_flashlight");
 
-    mgr.lightSystem_.SetLightIsActive(flashlightId, isActive);
+    mgr.lightSys_.SetLightIsActive(flashlightId, isActive);
     render.SwitchFlashLight(isActive);
 
     // if we just turned on the flashlight we update its position and direction
     if (isActive)
     {
-        mgr.transformSystem_.SetPosition(flashlightId, player.GetPosition());
-        mgr.transformSystem_.SetDirection(flashlightId, player.GetDirVec());
+        mgr.transformSys_.SetPosition(flashlightId, player.GetPosition());
+        mgr.transformSys_.SetDirection(flashlightId, player.GetDirVec());
     }
 }
 
@@ -975,13 +1095,13 @@ void Game::StartAnimWeaponDraw()
     currAnimId_             = animId;
     endActTime_             = animEndTime;
 
-    pEnttMgr_->animationSystem_.SetAnimation(
+    pEnttMgr_->animationSys_.SetAnimation(
         currWeaponEnttId_,
         animId,
         animEndTime,
         ECS::ANIM_PLAY_ONCE);
 
-    pEnttMgr_->animationSystem_.RestartAnimation(currWeaponEnttId_);
+    pEnttMgr_->animationSys_.RestartAnimation(currWeaponEnttId_);
 }
 
 //---------------------------------------------------------
@@ -996,7 +1116,7 @@ void Game::StartAnimWeaponReload()
     currActTime_ = 0;
     currAnimId_ = animId;
 
-    pEnttMgr_->animationSystem_.SetAnimation(
+    pEnttMgr_->animationSys_.SetAnimation(
         currWeaponEnttId_,
         animId,
         animEndTime,
@@ -1016,13 +1136,13 @@ void Game::StartAnimWeaponShoot()
     endActTime_ = animEndTime;
     currAnimId_ = animId;
 
-    pEnttMgr_->animationSystem_.SetAnimation(
+    pEnttMgr_->animationSys_.SetAnimation(
         currWeaponEnttId_,
         animId,
         animEndTime,
         ECS::ANIM_PLAY_ONCE);
 
-    pEnttMgr_->animationSystem_.RestartAnimation(currWeaponEnttId_);
+    pEnttMgr_->animationSys_.RestartAnimation(currWeaponEnttId_);
 }
 
 //---------------------------------------------------------
@@ -1038,7 +1158,7 @@ void Game::StartAnimWeaponRun()
     endActTime_ = animEndTime;
     currAnimId_ = animId;
 
-    pEnttMgr_->animationSystem_.SetAnimation(
+    pEnttMgr_->animationSys_.SetAnimation(
         currWeaponEnttId_,
         animId,
         animEndTime,
@@ -1056,7 +1176,7 @@ void Game::StartAnimWeaponIdle()
 
     currAnimId_ = animId;
 
-    pEnttMgr_->animationSystem_.SetAnimation(
+    pEnttMgr_->animationSys_.SetAnimation(
         currWeaponEnttId_,
         animId,
         animEndTime,

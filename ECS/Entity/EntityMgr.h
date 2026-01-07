@@ -1,10 +1,18 @@
-// **********************************************************************************
-// Filename:     EntityMgr.h
-// Description:  an entity manager for component-centric ECS (entity-component-system)
-// 
-// Created:
-// **********************************************************************************
+/**********************************************************************************\
 
+    ******     ******    ******   ******    ********
+    **    **  **    **  **    **  **    **  **    **
+    **    **  **    **  **    **  **    **  **
+    **    **  **    **  **    **  **    **  ********
+    **    **  **    **  **    **  ******          **
+    **    **  **    **  **    **  **  ***   **    **
+    ******     ******    ******   **    **  ********
+
+    Filename: EntityMgr.cpp
+
+    Desc:     Entity-Component-System (ECS) main manager
+
+\**********************************************************************************/
 #pragma once
 
 // components (ECS)
@@ -45,12 +53,19 @@
 // events (ECS)
 #include "../Events/IEvent.h"
 
-#include <deque>
-
 
 namespace ECS
 {
 
+//---------------------------------------------------------
+// some internal constants
+//---------------------------------------------------------
+constexpr int MAX_NUM_EVENTS = 64;
+
+
+//---------------------------------------------------------
+// Class name:  EntityMgr
+//---------------------------------------------------------
 class EntityMgr
 {
 public:
@@ -76,7 +91,7 @@ public:
     //void DestroyEntity(const EntityName& enttName);
 
     void                Update(const float totalGameTime, const float deltaTime);
-    void                AddEvent(const Event& e);
+    void                PushEvent(const Event& e);
 
     void                RemoveComponent(const EntityID id, eComponentType component);
 
@@ -197,10 +212,10 @@ public:
     // =============================================================================
     inline const Transform&         GetComponentTransform()     const { return transform_; }
     inline const Movement&          GetComponentMovement()      const { return movement_; }
-    inline const Model&             GetComponentModel()         const { return modelComponent_; }
+    inline const Model&             GetComponentModel()         const { return modelComp_; }
     inline const Name&              GetComponentName()          const { return names_; }
-    inline const Rendered&          GetComponentRendered()      const { return renderComponent_; }
-    inline const Material&          GetComponentMaterial()      const { return materialComponent_;; }
+    inline const Rendered&          GetComponentRendered()      const { return renderComp_; }
+    inline const Material&          GetComponentMaterial()      const { return materials_;; }
     inline const TextureTransform&  GetComponentTexTransform()  const { return texTransform_; }
     inline const Light&             GetComponentLight()         const { return light_; }
     inline const Bounding&          GetComponentBounding()      const { return bounding_; }
@@ -208,7 +223,6 @@ public:
     inline const std::map<eComponentType, std::string>& GetMapCompTypeToName() { return componentTypeToName_; }
 
     inline const size               GetNumAllEntts()            const { return ids_.size(); }
-    //inline const EntityID*          GetAllEnttsIDs()            const { return ids_.data(); }
     inline const cvector<EntityID>& GetAllEnttsIDs()            const { return ids_; }
 
     bool                            GetComponentNamesByEntt(const EntityID id, cvector<std::string>& names) const;
@@ -236,29 +250,26 @@ private:
         const size numEntts);
 
 
-
 public:
-    //static const uint32 ENTT_MGR_SERIALIZE_DATA_BLOCK_MARKER = 1000;
 
     // SYSTEMS
-    LightSystem             lightSystem_;
-    NameSystem              nameSystem_;
-    TransformSystem         transformSystem_;
-    MoveSystem              moveSystem_;
-    ModelSystem             modelSystem_;
-    RenderSystem            renderSystem_;
-    MaterialSystem          materialSystem_;
-    TextureTransformSystem  texTransformSystem_;
-    BoundingSystem          boundingSystem_;
-    CameraSystem            cameraSystem_;
-    PlayerSystem            playerSystem_;
-    HierarchySystem         hierarchySystem_;
-    ParticleSystem          particleSystem_;
-    InventorySystem         inventorySystem_;
-    AnimationSystem         animationSystem_;
-    SpriteSystem            spriteSystem_;
+    LightSystem             lightSys_;
+    NameSystem              nameSys_;
+    TransformSystem         transformSys_;
+    MoveSystem              moveSys_;
+    ModelSystem             modelSys_;
+    RenderSystem            renderSys_;
+    MaterialSystem          materialSys_;
+    TextureTransformSystem  texTransformSys_;
+    BoundingSystem          boundingSys_;
+    CameraSystem            cameraSys_;
+    PlayerSystem            playerSys_;
+    HierarchySystem         hierarchySys_;
+    ParticleSystem          particleSys_;
+    InventorySystem         inventorySys_;
+    AnimationSystem         animationSys_;
+    SpriteSystem            spriteSys_;
     
-
     // "ID" of an entity is just a numeral index
     cvector<EntityID> ids_;
 
@@ -268,16 +279,17 @@ public:
     std::map<eComponentType, std::string> componentTypeToName_;  
 
 private:
-    std::deque<Event> events_;
+    Event eventsList_[MAX_NUM_EVENTS];
+    int currNumEvents_ = 0;
 
     static int       lastEntityID_;
 
     // COMPONENTS
     Transform        transform_;
     Movement         movement_;
-    Model            modelComponent_;
-    Rendered         renderComponent_;
-    Material         materialComponent_;
+    Model            modelComp_;
+    Rendered         renderComp_;
+    Material         materials_;
     Name             names_;
     TextureTransform texTransform_;
     Light            light_;

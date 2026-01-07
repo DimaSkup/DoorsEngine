@@ -28,11 +28,16 @@ ModelID ModelMgr::lastModelID_ = 0;
 
 
 //---------------------------------------------------------
-// a little cringe helper to wrap getting of DX11 device
+// a little cringe helper to wrap getting of DX11 device and context
 //---------------------------------------------------------
-static ID3D11Device* GetDevice()
+inline ID3D11Device* GetDevice()
 {
     return Render::g_pDevice;
+}
+
+inline ID3D11DeviceContext* GetContext()
+{
+    return Render::g_pContext;
 }
 
 //---------------------------------------------------------
@@ -87,6 +92,23 @@ bool ModelMgr::Init()
         LogErr(LOG, "can't init debug lines VB");
         return false;
     }
+
+    //---------------------------------------------
+
+    // init DECALS buffers
+    const bool isDynamicVB = true;
+    constexpr int numDecalsVertices = MAX_NUM_DECALS * NUM_VERTS_PER_DECAL;
+    VertexPosTex decalsVertices[numDecalsVertices];
+
+    memset(decalsVertices, 0, sizeof(decalsVertices));
+    memset(decalsRenderList_, 0, sizeof(decalsRenderList_));
+
+    if (!decalsVB_.Initialize(GetDevice(), decalsVertices, numDecalsVertices, isDynamicVB))
+    {
+        LogErr(LOG, "can't init decals VB");
+        return false;
+    }
+    
 
     return true;
 }
@@ -322,27 +344,6 @@ void ModelMgr::GetModelsNamesList(cvector<ModelName>& names)
 }
 
 //---------------------------------------------------------
-// Desc:   print a dump of all the models (BasicModel) in the model manager
-//---------------------------------------------------------
-void ModelMgr::PrintDump() const
-{
-    printf("\nALL MODELS DUMP: \n");
-
-    for (int i = 0; i < (int)models_.size(); ++i)
-    {
-        // [idx]: (id: model_id) Name: model_name   lod1: model_id_lod_1;   lod2: model_id_lod_2
-        printf("[%d]: (id: %4" PRIu32 ") Name:%-32s  lod1: %" PRIu32 ";  lod2: %" PRIu32 "\n",
-            i,
-            models_[i].id_,
-            names_[i].name,
-            models_[i].lods_[LOD_1],
-            models_[i].lods_[LOD_2]);
-    }
-
-    printf("\n");
-}
-
-//---------------------------------------------------------
 // Desc:  we can change model's name properly only using this function
 //        because we have also update the array of names with new value
 //---------------------------------------------------------
@@ -375,6 +376,126 @@ void ModelMgr::SetModelName(const ModelID id, const char* name)
     // update arr of names
     strncpy(names_[idx].name, name, len);
     names_[idx].name[len] = '\0';
+}
+
+//---------------------------------------------------------
+// Desc:  generate and push a new decal into the decals rendering list
+// 
+// Args:  - center:     the collision point, or the center of the decal
+//        - direction:  direction for the decal
+//        - normal:     normal vector of decal surface
+//        - width:      width of the decal
+//        - height:     height of the decal
+//---------------------------------------------------------
+void ModelMgr::PushDecalToRender(
+    const Vec3& center,
+    const Vec3& direction,
+    const Vec3& normal,
+    const float width,
+    const float height)
+{
+    if (width <= 0 || height <= 0)
+    {
+        LogErr(LOG, "invalid decal dimensions: %.3f x %.3f", width, height);
+        return;
+    }
+
+    Vec3 u = direction;
+    Vec3Normalize(u);
+
+    Vec3 n = normal;
+    Vec3Normalize(n);
+
+    // v (we don't have to normalize the v vector because n and u is already normalized)
+    Vec3 v = Vec3Cross(u, n);
+    Vec3Normalize(v);
+
+
+    u = u * height * 0.5f;
+    v = v * width  * 0.5f;
+
+    /*
+      1 *---------------* 0
+        |             / |
+        |           /   |
+        |         /     |
+        |       /       |
+        |     /         |
+        |   /           |
+        | /             |
+      2 *---------------* 3
+   */
+
+    // a little offset for decal along the normal vector
+    Vec3 offset = n * 0.01f;
+
+    Vec3 v0 = center + u + v + offset;  // UR
+    Vec3 v1 = center + u - v + offset;  // UL
+    Vec3 v2 = center - u - v + offset;  // BL
+    Vec3 v3 = center - u + v + offset;  // BR
+
+    Vec2 t0 = { 1, 0 };
+    Vec2 t1 = { 0, 0 };
+    Vec2 t2 = { 0, 1 };
+    Vec2 t3 = { 1, 1 };
+
+
+    // generate endpoints of the decal
+    Decal d;
+
+    // first triangle
+    d.vertices[0].pos = { v0.x, v0.y, v0.z };
+    d.vertices[1].pos = { v1.x, v1.y, v1.z };
+    d.vertices[2].pos = { v2.x, v2.y, v2.z };
+
+    d.vertices[0].tex = { t0.u, t0.v };
+    d.vertices[1].tex = { t1.u, t1.v };
+    d.vertices[2].tex = { t2.u, t2.v };
+
+    // second triangle
+    d.vertices[3].pos = { v0.x, v0.y, v0.z };
+    d.vertices[4].pos = { v2.x, v2.y, v2.z };
+    d.vertices[5].pos = { v3.x, v3.y, v3.z };
+
+    d.vertices[3].tex = { t0.u, t0.v };
+    d.vertices[4].tex = { t2.u, t2.v };
+    d.vertices[5].tex = { t3.u, t3.v };
+    
+
+    // push decal into the render list (our render list is a ring buffer)
+    decalsRenderList_[decalIdx_++] = d;
+    decalIdx_ %= MAX_NUM_DECALS;
+
+
+    // update decals vertex buffer
+    VertexPosTex* vertices = (VertexPosTex*)decalsRenderList_;
+    uint          numVerts = MAX_NUM_DECALS * NUM_VERTS_PER_DECAL;
+
+    if (!decalsVB_.UpdateDynamic(GetContext(), vertices, numVerts))
+    {
+        LogErr(LOG, "can't update decals vertex buffer");
+    }
+}
+
+//---------------------------------------------------------
+// Desc:   print a dump of all the models (BasicModel) in the model manager
+//---------------------------------------------------------
+void ModelMgr::PrintDump() const
+{
+    printf("\nALL MODELS DUMP: \n");
+
+    for (int i = 0; i < (int)models_.size(); ++i)
+    {
+        // [idx]: (id: model_id) Name: model_name   lod1: model_id_lod_1;   lod2: model_id_lod_2
+        printf("[%d]: (id: %4" PRIu32 ") Name:%-32s  lod1: %" PRIu32 ";  lod2: %" PRIu32 "\n",
+            i,
+            models_[i].id_,
+            names_[i].name,
+            models_[i].lods_[LOD_1],
+            models_[i].lods_[LOD_2]);
+    }
+
+    printf("\n");
 }
 
 

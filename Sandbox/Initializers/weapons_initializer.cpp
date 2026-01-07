@@ -1,3 +1,19 @@
+/**********************************************************************************\
+
+    ******     ******    ******   ******    ********
+    **    **  **    **  **    **  **    **  **    **
+    **    **  **    **  **    **  **    **  **
+    **    **  **    **  **    **  **    **  ********
+    **    **  **    **  **    **  ******          **
+    **    **  **    **  **    **  **  ***   **    **
+    ******     ******    ******   **    **  ********
+
+    Filename: weapons_initializer.cpp
+    Desc:     implementation functional for weapons initialization
+              and binding some to the player
+
+    Created:  05.01.2025  by DimaSkup
+\**********************************************************************************/
 #include "../Common/pch.h"
 #include "weapons_initializer.h"
 #include "../Types/weapon_types.h"
@@ -183,7 +199,7 @@ void SetWeaponEntity(const char* buf, Weapon& wpn, ECS::EntityMgr* pEnttMgr)
         return;
     }
 
-    wpn.enttId = pEnttMgr->nameSystem_.GetIdByName(enttName);
+    wpn.enttId = pEnttMgr->nameSys_.GetIdByName(enttName);
 }
 
 

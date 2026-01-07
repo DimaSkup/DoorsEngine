@@ -131,4 +131,21 @@ struct EntityModelMesh
     SubmeshID  subsetId = 0;
 };
 
+//---------------------------------------------------------
+// data about intersection of a ray and some geometry
+//---------------------------------------------------------
+struct IntersectionData
+{
+    EntityID enttId = 0;                    // intersected entity
+    ModelID modelId = 0;                    // intersected model
+    uint triangleIdx = 0;                   // intersected triangle (its index)
 
+    float rayOrigX, rayOrigY, rayOrigZ;     // ray origin
+    
+    float vx0, vy0, vz0;                    // intersected triangle endpoints positions (in world space)
+    float vx1, vy1, vz1;
+    float vx2, vy2, vz2;
+
+    float px, py, pz;                       // intersection point
+    float nx, ny, nz;                       // normal vector of intersected triangle
+};

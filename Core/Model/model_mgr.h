@@ -16,6 +16,16 @@
 
 namespace Core
 {
+constexpr uint NUM_VERTS_PER_DECAL = 6;
+constexpr uint MAX_NUM_DECALS = 128;
+
+// 3D decal
+struct Decal
+{
+    VertexPosTex vertices[NUM_VERTS_PER_DECAL];    // endpoints of the decal surface
+};
+
+//---------------------------------------------------------
 
 class ModelMgr
 {
@@ -48,12 +58,21 @@ public:
 
     inline VertexBuffer<BillboardSprite>& GetBillboardsBuffer() { return billboardsVB_; }
 
+    inline VertexBuffer<VertexPosTex>&    GetDecalsVB()         { return decalsVB_; }
+
     inline VertexBuffer<VertexPosColor>&  GetDebugLinesVB()     { return debugLinesVB_;}
     inline IndexBuffer<uint16>&           GetDebugLinesIB()     { return debugLinesIB_;}
 
     inline int                            GetNumAssets() const  { return (int)std::ssize(ids_); }
 
     void SetModelName(const ModelID id, const char* newName);
+
+    void PushDecalToRender(
+        const Vec3& center,
+        const Vec3& direction,
+        const Vec3& normal,
+        const float width,
+        const float height);
 
 private:
     bool InitBillboardBuffer();
@@ -64,8 +83,11 @@ private:
 private:
     // specific buffers
     VertexBuffer<BillboardSprite> billboardsVB_;      // billboards/sprites/particles
+    VertexBuffer<VertexPosTex>    decalsVB_;
     VertexBuffer<VertexPosColor>  debugLinesVB_;
     IndexBuffer<uint16>           debugLinesIB_;
+
+    
 
     // models related stuff
     cvector<ModelID>    ids_;
@@ -76,8 +98,10 @@ private:
     SkyPlane            skyPlane_;
     TerrainGeomip       terrainGeomip_;
 
-    static ModelID      lastModelID_;
+    Decal               decalsRenderList_[MAX_NUM_DECALS];
+    uint                decalIdx_ = 0;
 
+    static ModelID      lastModelID_;
 };
 
 

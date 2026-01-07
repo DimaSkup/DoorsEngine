@@ -29,7 +29,11 @@
 namespace Core
 {
 
+//-----------------------------------------------------
+// forward declaration (pointer use only)
+//-----------------------------------------------------
 struct Material;
+class BasicModel;
 
 //-----------------------------------------------------
 
@@ -157,9 +161,9 @@ public:
     void BindRender(Render::CRender* pRender);
     void BindECS   (ECS::EntityMgr* pEnttMgr);
 
-    // check if we have any entity by these coords of the screen
-    void GetRayIntersectionPoint(const int sx, const int sy);
-    int TestEnttSelection       (const int sx, const int sy);
+    // collision:  ray/entities tests
+    bool GetRayIntersectionData(const int sx, const int sy, IntersectionData& outData);
+    int  TestEnttSelection     (const int sx, const int sy);
 
 
     // ------------------------------------
@@ -193,14 +197,14 @@ public:
         const uint32 height,
         cvector<ID3D11ShaderResourceView*>& outShaderResourceViews);
 
-   
-
     bool RenderBigMaterialIcon(
         const MaterialID matID,
         const float yRotationAngle,
         ID3D11ShaderResourceView** outMaterialImg);
 
     bool RenderMaterialsIcons();
+
+    void RenderDecals();
 
 
     // ---------------------------------------
@@ -247,24 +251,6 @@ public:
             return pModelFrameBuf_->GetSRV();
 
         return nullptr;
-    }
-
-    inline void IncreaseCurrentBoneId()
-    {
-        static uint boneId = 0;
-
-        boneId++;
-        boneId %= 35;
-        pRender_->UpdateCbDebug(boneId);
-        printf("current bone id: %u\n", boneId);
-    }
-
-    int currAnimIdx_ = 0;
-
-    inline void IncreaseCurrAnimIdx()
-    {
-        currAnimIdx_++;
-        currAnimIdx_ %= 22;
     }
 
 
@@ -317,6 +303,32 @@ private:
     void RenderPostFxOnePass();
     void RenderPostFxMultiplePass();
 
+
+    // collision helpers:  ray/entities tests
+    void RayEnttTest(
+        ECS::EntityMgr& enttMgr,
+        const EntityID enttId,
+        const DirectX::XMVECTOR& rayOrigW,
+        const DirectX::XMVECTOR& rayDirW,
+        float& tmin,
+        IntersectionData& outData,
+        DirectX::XMVECTOR& outRayOrigL,
+        DirectX::XMVECTOR& outRayDirL);
+
+    bool RayModelTest(
+        const BasicModel* pModel,
+        const DirectX::XMVECTOR& rayOrigin,
+        const DirectX::XMVECTOR& rayDir,
+        float& tmin,
+        uint& intersectedTriangleIdx);
+
+    void GatherIntersectionData(
+        const DirectX::XMVECTOR rayOrigL,
+        const DirectX::XMVECTOR rayDirL,
+        const DirectX::XMVECTOR rayOrigW,
+        const DirectX::XMVECTOR rayDirW,
+        const float t,
+        IntersectionData& outData);
 
 public:
     RenderStat rndStat_;

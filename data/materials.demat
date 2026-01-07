@@ -275,3 +275,10 @@ shader_id 5
 states 0
 tex_diff textures/ston_walls2.dds
 dss mark_mirror
+
+newmtl wallmark
+mat_id 17
+shader_id 56
+states 0
+tex_diff textures/wallmark_default.dds
+bs alpha_to_coverage

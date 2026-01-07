@@ -2,7 +2,6 @@ struct VS_IN
 {
     // data per instance
     row_major matrix   world             : WORLD;
-    row_major matrix   worldInvTranspose : WORLD_INV_TRANSPOSE;
     row_major float4x4 material          : MATERIAL;
     uint               instanceID        : SV_InstanceID;
 
