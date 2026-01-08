@@ -261,7 +261,7 @@ bool ShaderMgr::AddShader(ID3D11Device* pDevice, const ShaderInitParams* pInitPa
     Shader* pShader = NEW Shader(pDevice, *pInitParams);
     if (!pShader)
     {
-        LogErr(LOG, "can't add a new shader: %s", pInitParams->name);
+        LogErr(LOG, "can't alloc memory for a new shader: %s", pInitParams->name);
         return false;
     }
 

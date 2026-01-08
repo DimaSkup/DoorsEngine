@@ -634,25 +634,25 @@ bool GameInitializer::InitCamera(
     // check input args
     if (!cameraName || cameraName[0] == '\0')
     {
-        LogErr(LOG, "input name for a camera is empty");
+        LogErr(LOG, "camera name is empty");
         return false;
     }
 
     if ((initParams.wndWidth <= 0) || (initParams.wndHeight <= 0))
     {
-        LogErr(LOG, "input dimensions is wrong (width or height <= 0) for camera: %s", cameraName);
+        LogErr(LOG, "wrong dimensions (width or height <= 0) for camera: %s", cameraName);
         return false;
     }
 
     if (initParams.nearZ <= 0.001f)
     {
-        LogErr(LOG, "nearZ value is wrong for camera: %s", cameraName);
+        LogErr(LOG, "invalid nearZ for camera: %s", cameraName);
         return false;
     }
 
     if (initParams.fovInRad <= 0.001f)
     {
-        LogErr(LOG, "input field of view is wrong for camera: %s", cameraName);
+        LogErr(LOG, "input FOV for camera: %s", cameraName);
         return false;
     }
 
@@ -1135,25 +1135,23 @@ void HandleName(
     const BasicModel& model,
     ECS::EntityMgr& mgr)
 {
-    if (!inName || inName[0] == '\0')
+    if (StrHelper::IsEmpty(inName))
     {
         // model_name + entt_id
         LogErr(LOG, "input entt's name is empty, so we will generate a new one");
         snprintf(outName, MAX_LEN_ENTT_NAME, "%s_%" PRIu32, model.GetName(), id);
+        return;
     }
-    else
+
+    if (!mgr.nameSys_.IsUnique(inName))
     {
-        if (mgr.nameSys_.IsUnique(inName))
-            strncpy(outName, inName, MAX_LEN_ENTT_NAME);
-
-        else
-        {
-            LogErr(LOG, "input entt's name (%s) isn't unique, we will generate a new one", inName);
-
-            // in_name + entt_id
-            snprintf(outName, MAX_LEN_ENTT_NAME, "%s_%" PRIu32, inName, id);
-        }
+        // in_name + entt_id
+        LogErr(LOG, "input entt's name (%s) isn't unique, we will generate a new one", inName);
+        snprintf(outName, MAX_LEN_ENTT_NAME, "%s_%" PRIu32, inName, id);
+        return;
     }
+
+    strncpy(outName, inName, MAX_LEN_ENTT_NAME);
 }
 
 //---------------------------------------------------------
@@ -1297,7 +1295,7 @@ EntityID CreateVehicleEntt(
 
     if (uniformScale <= 0)
     {
-        LogErr(LOG, "because input value <= 0 we reset uniform scale to 1.0f (for entt: %s)", name);
+        LogErr(LOG, "scale is invalid (%f) reset it to 1.0f (for entt: %s)", uniformScale, name);
         uniformScale = 1.0f;
     }
 
@@ -1373,7 +1371,7 @@ EntityID CreateWeaponEntt(
 
     if (uniformScale <= 0)
     {
-        LogErr(LOG, "because input value <= 0 we reset uniform scale to 1.0f (for entt: %s)", name);
+        LogErr(LOG, "scale is invalid (%f) reset it to 1.0f (for entt: %s)", uniformScale, name);
         uniformScale = 1.0f;
     }
 
@@ -1454,7 +1452,7 @@ EntityID CreateCubeEntt(
 
     if (uniformScale <= 0)
     {
-        LogErr(LOG, "because input value <= 0 we reset uniform scale to 1.0f (for entt: %s)", name);
+        LogErr(LOG, "scale is invalid (%f) reset it to 1.0f (for entt: %s)", uniformScale, name);
         uniformScale = 1.0f;
     }
 
@@ -1568,7 +1566,7 @@ void LoadModelAssets(const char* filepath, Render::CRender& render)
     }
 
     // read and init each model
-    while (fgets(buf, 256, pFile))
+    while (fgets(buf, sizeof(buf), pFile))
     {
         // skip a comment line
         if (buf[0] == '/')
@@ -2208,7 +2206,7 @@ void CreateTerrainGeomip(
     Render::CRender& render,
     const char* configFilepath)
 {
-    if (!configFilepath || configFilepath[0] == '\0')
+    if (StrHelper::IsEmpty(configFilepath))
     {
         LogErr(LOG, "LOL, your terrain config's path is empty");
         exit(0);
@@ -2349,10 +2347,20 @@ void GenerateEntities(
 
 
     // create a cross entity (2D sprite)
-    const TexID    crossTexId       = g_TextureMgr.LoadFromFile("data/textures/crosshair.png");
-    const TexID    radiationTexId   = g_TextureMgr.LoadFromFile("data/textures/ui_mn_radiations_hard.dds");
-    const TexID    starvTexId       = g_TextureMgr.LoadFromFile("data/textures/ui_mn_starvation_hard.dds");
-    const TexID    woundTexId       = g_TextureMgr.LoadFromFile("data/textures/ui_mn_wounds_hard.dds");
+#if 0
+    const TexID    crossTexId       = g_TextureMgr.LoadFromFile("data/textures/ui/crosshair.png");
+    const TexID    radiationTexId   = g_TextureMgr.LoadFromFile("data/textures/ui/ui_mn_radiations_hard.dds");
+    const TexID    starvTexId       = g_TextureMgr.LoadFromFile("data/textures/ui/ui_mn_starvation_hard.dds");
+    const TexID    woundTexId       = g_TextureMgr.LoadFromFile("data/textures/ui/ui_mn_wounds_hard.dds");
+#else
+
+    
+    const TexID    crossTexId       = g_TextureMgr.GetTexIdByName("ui/crosshair");
+    const TexID    radiationTexId   = g_TextureMgr.GetTexIdByName("ui/mn_radiations_hard");
+    const TexID    starvTexId       = g_TextureMgr.GetTexIdByName("ui/mn_starvation_hard");
+    const TexID    woundTexId       = g_TextureMgr.GetTexIdByName("ui/mn_wounds_hard");
+
+#endif
 
     const EntityID crossId          = mgr.CreateEntity();
     const EntityID radiationIconId  = mgr.CreateEntity();

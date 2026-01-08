@@ -47,7 +47,7 @@ bool VertexShader::LoadPrecompiled(
 {
     if (StrHelper::IsEmpty(path))
     {
-        LogErr("input path to vertex shader file is empty!");
+        LogErr(LOG, "input path to vertex shader file is empty!");
         return false;
     }
 

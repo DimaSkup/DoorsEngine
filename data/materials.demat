@@ -143,7 +143,7 @@ cull none
 
 newmtl shodan
 mat_id 16
-shader_id 3
+shader_id 57
 states 0
 tex_diff textures/shodan.jpg
 tex_norm textures/blank_NRM.dds
@@ -179,8 +179,8 @@ Kd 0.65 0.65 0.65 1.00
 Ks 0.00 0.00 0.00
 Kg 1.00
 Kr 0.00 0.00 0.00 0.00
-tex_diff textures/tree_pine_lods/diff.dds
-tex_norm textures/tree_pine_lods/norm.dds
+tex_diff textures/lods/pine_diff.dds
+tex_norm textures/lods/pine_norm.dds
 
 newmtl tree_pine_lod_2
 mat_id 19
@@ -191,9 +191,9 @@ Kd 0.65 0.65 0.65 1.00
 Ks 0.00 0.00 0.00
 Kg 1.00
 Kr 0.00 0.00 0.00 0.00
-tex_diff  textures/tree_pine_lods/diff.dds
-tex_norm  textures/tree_pine_lods/norm.dds
-tex_light textures/tree_pine_lods/spritesheet.png
+tex_diff  textures/lods/pine_diff.dds
+tex_norm  textures/lods/pine_norm.dds
+tex_light textures/lods/lod2_shadow.png
 
 newmtl tree_spruce_lod_1
 mat_id 19
@@ -205,8 +205,8 @@ Kd 1.00 1.00 1.00 1.00
 Ks 0.00 0.00 0.00
 Kg 10.00
 Kr 0.00 0.00 0.00 0.00
-tex_diff  textures/tree_spruce_lods/spruce_lod1_diff.dds
-tex_norm  textures/tree_spruce_lods/spruce_lod1_norm.dds
+tex_diff  textures/lods/spruce_diff.dds
+tex_norm  textures/lods/spruce_norm.dds
 
 newmtl tree_spruce_lod_2
 mat_id 19
@@ -217,9 +217,9 @@ Kd 1.00 1.00 1.00 1.00
 Ks 0.00 0.00 0.00
 Kg 10.00
 Kr 0.00 0.00 0.00 0.00
-tex_diff textures/tree_spruce_lods/spruce_lod1_diff.dds
-tex_norm textures/tree_spruce_lods/spruce_lod1_norm.dds
-tex_light textures/tree_spruce_lods/spruce_lod2_lightmap.png
+tex_diff textures/lods/spruce_diff.dds
+tex_norm textures/lods/spruce_norm.dds
+tex_light textures/lods/lod2_shadow.png
 
 newmtl rainMat0
 mat_id 20

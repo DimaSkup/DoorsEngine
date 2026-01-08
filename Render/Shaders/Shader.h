@@ -60,8 +60,8 @@ public:
     inline const char*     GetName() const { return name_; }
     inline ShaderID        GetId()   const { return id_; }
 
-    inline VertexShader*   GetVS()   const { assert(pVS_ != nullptr); return pVS_; }
-    inline PixelShader*    GetPS()   const { assert(pPS_ != nullptr); return pPS_; }
+    inline VertexShader*   GetVS()   const { return pVS_; }
+    inline PixelShader*    GetPS()   const { return pPS_; }
     inline GeometryShader* GetGS()   const { return pGS_; }
 
 

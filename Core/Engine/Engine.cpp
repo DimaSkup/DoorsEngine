@@ -129,7 +129,7 @@ void Engine::Init(
     imGuiLayer_.Initialize(hwnd_, pDevice, pContext);
 
     // initialize some data/resource managers
-    if (!g_TextureMgr.Init())
+    if (!g_TextureMgr.Init("data/textures/textures.cfg"))
     {
         LogErr(LOG, "can't init a texture manager");
         exit(0);
@@ -596,6 +596,8 @@ void Engine::EventWindowResize(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
     const UINT height = (UINT)HIWORD(lParam);
 
     assert(pRender_ != nullptr);
+
+    //printf("RESIZE WINDOW: %u %u\n", width, height);
 
     if (!pRender_->GetD3D().ResizeSwapChain(hwnd, width, height))
         PostQuitMessage(0);

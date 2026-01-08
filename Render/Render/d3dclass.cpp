@@ -978,11 +978,11 @@ bool D3DClass::ToggleFullscreen(HWND hwnd, bool isFullscreen)
             CAssert::NotFailed(hr, "can't set full screen state");
 
             // another one for good luck
-            hr = pSwapChain_->ResizeTarget(&mode);
-            CAssert::NotFailed(hr, "can't resize a target during switching of the fullscreen mode");
+            //hr = pSwapChain_->ResizeTarget(&mode);
+            //CAssert::NotFailed(hr, "can't resize a target during switching of the fullscreen mode");
 
             // resize the swapchain and related parts to the chosen solution
-            ResizeSwapChain(hwnd, mode.Width, mode.Height);
+            //ResizeSwapChain(hwnd, mode.Width, mode.Height);
         }
         // switch to WINDOWED mode
         else
@@ -1001,7 +1001,7 @@ bool D3DClass::ToggleFullscreen(HWND hwnd, bool isFullscreen)
             CAssert::NotFailed(hr, "can't resize a target during switching of the fullscreen mode");
 
             // resize the swapchain and related parts to the chosen solution
-            ResizeSwapChain(hwnd, mode.Width, mode.Height);
+            //ResizeSwapChain(hwnd, mode.Width, mode.Height);
         }
 
         return true;

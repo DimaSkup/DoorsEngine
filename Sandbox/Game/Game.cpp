@@ -192,11 +192,15 @@ void Game::InitWeapons()
 //---------------------------------------------------------
 bool Game::Update(const float dt, const float gameTime)
 {
-    // generate particles
-    pEnttMgr_->particleSys_.CreateParticles(dt);
+    if (!pEngine_->IsGameMode())
+        return true;
 
+    // update timings
     deltaTime_ = dt;
     gameTime_ = gameTime;
+
+    // generate particles
+    pEnttMgr_->particleSys_.CreateParticles(dt);
 
     UpdateRainbowAnomaly();
 
@@ -216,53 +220,50 @@ bool Game::Update(const float dt, const float gameTime)
         thunderSoundIdx %= 4;
     }
 
-    // update timings
-    if (pEngine_->IsGameMode())
+
+    currActTime_ += dt;
+
+    if (currActTime_ >= endActTime_)
     {
-        currActTime_ += dt;
+        ECS::PlayerSystem& player = pEnttMgr_->playerSys_;
 
-        if (currActTime_ >= endActTime_)
+        currActTime_ = 0;
+
+        if (player.IsReloading())
+            player.SetIsReloading(false);
+
+        if (player.IsShooting())
         {
-            ECS::PlayerSystem& player = pEnttMgr_->playerSys_;
-
-            currActTime_ = 0;
-
-            if (player.IsReloading())
-                player.SetIsReloading(false);
-
-            if (player.IsShooting())
-            {
-                player.SetIsShooting(false);
-            }
-
-            if (player.IsDrawWeapon())
-            {
-                player.SetIsDrawWeapon(false);
-            }
-
-            currAnimId_ = weapons_[currWeaponIdx_].animIds[WPN_ANIM_TYPE_IDLE];
-            StartAnimWeaponIdle();
+            player.SetIsShooting(false);
         }
 
-        //printf("curr: %.3f    end: %.3f    dt: %.3f\n", currActTime_, endActTime_, dt);
-
-        gameEventsList_.Reset();
-
-        UpdateFootstepsSound(dt);
-        UpdateShootSound(dt);
-
-        HandleGameEventKeyboard();
-        HandleGameEventMouse(dt);
-
-        HandleGameEvents();
-
-        UpdateRainPos();
-
-        if (!rainSoundIsPlaying_)
+        if (player.IsDrawWeapon())
         {
-            g_SoundMgr.GetSound(rainSoundId_)->PlayTrack(DSBPLAY_LOOPING);
-            rainSoundIsPlaying_ = true;
+            player.SetIsDrawWeapon(false);
         }
+
+        currAnimId_ = weapons_[currWeaponIdx_].animIds[WPN_ANIM_TYPE_IDLE];
+        StartAnimWeaponIdle();
+    }
+
+    //printf("curr: %.3f    end: %.3f    dt: %.3f\n", currActTime_, endActTime_, dt);
+
+    gameEventsList_.Reset();
+
+    UpdateFootstepsSound(dt);
+    UpdateShootSound(dt);
+
+    HandleGameEventKeyboard();
+    HandleGameEventMouse(dt);
+
+    HandleGameEvents();
+
+    UpdateRainPos();
+
+    if (!rainSoundIsPlaying_)
+    {
+        g_SoundMgr.GetSound(rainSoundId_)->PlayTrack(DSBPLAY_LOOPING);
+        rainSoundIsPlaying_ = true;
     }
 
     return true;

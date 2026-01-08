@@ -124,6 +124,7 @@ size_t ShaderCompiler::LoadCSO(const char* shaderPath, uint8_t*& outBytes)
     outBytes = new (std::nothrow) uint8_t[len]{ 0 };
     if (!outBytes)
     {
+        fclose(pFile);
         LogErr(LOG, "can't alloc memory for shader bytecode from file: %s", shaderPath);
         return 0;
     }
@@ -134,6 +135,7 @@ size_t ShaderCompiler::LoadCSO(const char* shaderPath, uint8_t*& outBytes)
     size_t readCount = fread(outBytes, 1, len, pFile);
     if (readCount != len)
     {
+        fclose(pFile);
         SafeDeleteArr(outBytes);
         LogErr(LOG, "can't read data from a file with shader bytecode: %s", shaderPath);
         return 0;

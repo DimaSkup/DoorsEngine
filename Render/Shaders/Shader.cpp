@@ -61,7 +61,8 @@ Shader::Shader(ID3D11Device* pDevice, const ShaderInitParams& params)
         SafeDelete(pGS_);
         SafeDelete(pPS_);
         LogErr(e);
-        LogErr(LOG, "can't init shader: %s", params.name);
+        LogErr(LOG, "can't init shader '%s'", params.name);
+        exit(0);
     }
 }
 
@@ -99,7 +100,7 @@ bool Shader::HotReload(ID3D11Device* pDevice, const ShaderInitParams& params)
     {
         if (params.gsPath[0] == '\0')
         {
-            LogErr(LOG, "can't hot reload geometry shader (%s): input path to file is empty", name_);
+            LogErr(LOG, "can't hot reload geometry shader (%s): empty filepath", name_);
             return false;
         }
 
@@ -115,7 +116,7 @@ bool Shader::HotReload(ID3D11Device* pDevice, const ShaderInitParams& params)
     {
         if (params.psPath[0] == '\0')
         {
-            LogErr(LOG, "can't hot reload pixel shader (%s): input path to file is empty", name_);
+            LogErr(LOG, "can't hot reload pixel shader (%s): empty filepath", name_);
             return false;
         }
 
@@ -131,6 +132,8 @@ bool Shader::HotReload(ID3D11Device* pDevice, const ShaderInitParams& params)
 
 
 //---------------------------------------------------------
+// Desc:  initialize shader loading precompiled shader object (.cso)
+//        for each part (vs/ps/gs/etc.)
 //---------------------------------------------------------
 bool Shader::LoadPrecompiled(ID3D11Device* pDevice, const ShaderInitParams& params)
 {

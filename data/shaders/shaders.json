@@ -412,6 +412,13 @@
 			"vs":             "decalVS",
 			"ps":             "decalPS",
 			"input_layout":   "VertexPosTex"
+		},
+		{
+			"id":             57,
+			"name":           "ShaderArt",
+			"vs":             "shader_art_VS",
+			"ps":             "shader_art_PS",
+			"input_layout":   "Basic"
 		}
 	]
 }

@@ -200,6 +200,8 @@
     <FxCompile Include="hlsl\wireframePS.hlsl" />
     <FxCompile Include="hlsl\decalVS.hlsl" />
     <FxCompile Include="hlsl\decalPS.hlsl" />
+    <FxCompile Include="hlsl\shader_art_VS.hlsl" />
+    <FxCompile Include="hlsl\shader_art_PS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="hlsl\LightHelper.hlsli" />

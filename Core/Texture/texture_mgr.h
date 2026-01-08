@@ -39,7 +39,7 @@ public:
     void PrintDump() const;
 
     // public creation API
-    bool Init();
+    bool Init(const char* texturesCfg);
 
     TexID CreateTextureFromRawData(
         const char* name,
@@ -66,7 +66,8 @@ public:
 
     bool        ReloadFromFile(const TexID id, const char* path);
     TexID       Add          (const char* name, Texture&& tex);
-    TexID       LoadFromFile (const char* dirPath, const char* texturePath);
+    //TexID       LoadFromFile (const char* dirPath, const char* texturePath);
+    //TexID       LoadFromFile (const char* name, const char* path);
     TexID       LoadFromFile (const char* path);
     TexID       CreateCubeMap(const char* name, const CubeMapInitParams& params);
 
@@ -99,8 +100,9 @@ public:
     size                             GetNumShaderResourceViews() const;
 
 private:
-    int  GenID();
-    bool IsIdxValid(const index idx) const;
+    int  GenID          (void);
+    bool IsIdxValid     (const index idx) const;
+    bool IsTexNameUnique(const char* texName) const;
 
 private:
     static TexID         lastTexID_;

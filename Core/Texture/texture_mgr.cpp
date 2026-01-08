@@ -63,12 +63,101 @@ void TextureMgr::PrintDump() const
 // =================================================================================
 // Public API: initialization/adding/loading/creation
 // =================================================================================
-bool TextureMgr::Init()
+
+bool TextureMgr::Init(const char* texturesCfg)
 {
     // initialize a "default" texture which will serve for us as "invalid"
     // (we return it each time when don't find a valid texture by id/name/etc.)
-    LoadFromFile(g_RelPathTexDir, "notexture.dds");
+    //char noTexPath[64];
+    //sprintf(noTexPath, "%s%s", g_RelPathTexDir, "")
+
+    assert(texturesCfg && texturesCfg[0] != '\0');
+
+    FILE* pFile = nullptr;
+    char buf[256]{ '\0' };
+    char name[MAX_LEN_TEX_NAME];
+    char path[128];
+    int count = 0;
+
+
+    pFile = fopen(texturesCfg, "r");
+    if (!pFile)
+    {
+        LogErr(LOG, "can't open config for textures: %s", texturesCfg);
+        exit(0);
+    }
+
+    
+
+    // skip comments block
+    do
+    {
+        fgets(buf, sizeof(buf), pFile);
+    } while (buf[0] == ';');
+
+
+    // check that we will read proper data block
+    if (strncmp(buf, "textures", 8) != 0)
+    {
+        LogErr(LOG, "read wrong data block: %s", buf);
+        exit(0);
+    }
+
+
+    // load textures
+    while (!feof(pFile) && fgets(buf, sizeof(buf), pFile) && buf[0] != '}')
+    {
+        count = sscanf(buf, " %s %s", name, path);
+        if (count != 2)
+        {
+            LogErr(LOG, "can't read in a texture from: %s", texturesCfg);
+            PrintDump();
+            exit(0);
+        }
+
+        if (!IsTexNameUnique(name))
+        {
+            LogErr(LOG, "there is already a texture with name: %s", name);
+            PrintDump();
+            exit(0);
+        }
+
+        printf("name: %-32s  path: %s\n", name, path);
+
+        // create a full path to the texture (relatively to the project working directory)
+        memset(g_String, 0, LOG_BUF_SIZE);
+        strcat(g_String, g_RelPathTexDir);
+        strcat(g_String, path);
+
+        const TexID id = LoadFromFile(g_String);
+        SetTexName(id, name);
+    }
+
+    fclose(pFile);
     return true;
+}
+
+//-----------------------------------------------------
+// Desc:  check that input texture name is unique
+//        (so we currently don't have a texture with such name)
+//-----------------------------------------------------
+bool TextureMgr::IsTexNameUnique(const char* texName) const
+{
+    if (!texName || texName[0] == '\0')
+    {
+        LogErr(LOG, "empty name");
+        return false;
+    }
+
+    bool unique = true;
+
+    // check all the names
+    for (const std::string& name : names_)
+    {
+        unique &= (strcmp(name.c_str(), texName) != 0);
+    }
+
+    return unique;
 }
 
 // --------------------------------------------------------
@@ -334,6 +423,8 @@ TexID TextureMgr::Add(const char* name, Texture&& tex)
     return id;
 }
 
+
+#if 0
 //---------------------------------------------------------
 // Desc:  load a texture from file and create a texture resource with it
 // Args:  - dirPath:     a directory with textures relatively to the project working directory
@@ -361,12 +452,15 @@ TexID TextureMgr::LoadFromFile(const char* dirPath, const char* texturePath)
     strcat(g_String, texturePath);
     return LoadFromFile(g_String);
 }
+#endif
 
 //---------------------------------------------------------
 // Desc:  load a texture from file and create a texture resource with it
-// Args:  - path:  full path to the texture file
+// Args:  - name:  assing a name for this texture
+//        - path:  full path to the texture file
 // Ret:   an ID to the loaded texture
 //---------------------------------------------------------
+//TexID TextureMgr::LoadFromFile(const char* name, const char* path)
 TexID TextureMgr::LoadFromFile(const char* path)
 {
     if (StrHelper::IsEmpty(path))
