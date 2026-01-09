@@ -7,8 +7,8 @@ Kd 0.60 0.60 0.60 1.00
 Ks 0.10 0.10 0.10
 Kg 25.00
 Kr 0.00 0.00 0.00 0.00
-tex_diff veh_btr_br.dds
-tex_norm blank_NRM.dds
+tex_diff veh/btr
+tex_norm blankNRM
 
 newmtl veh_BTR_S4_001
 mat_id 31
@@ -19,8 +19,8 @@ Kd 0.60 0.60 0.60 1.00
 Ks 0.10 0.10 0.10
 Kg 25.00
 Kr 0.00 0.00 0.00 0.00
-tex_diff veh_btr_br.dds
-tex_norm blank_NRM.dds
+tex_diff veh/btr
+tex_norm blankNRM
 
 newmtl veh_BTR_S3_001
 mat_id 32
@@ -31,5 +31,5 @@ Kd 0.60 0.60 0.60 1.00
 Ks 0.10 0.10 0.10
 Kg 25.00
 Kr 0.00 0.00 0.00 0.00
-tex_diff veh_btr_br.dds
-tex_norm blank_NRM.dds
+tex_diff veh/btr
+tex_norm blankNRM

@@ -227,7 +227,7 @@ bool Engine::BindBindlessTextures(const char* cfgPath)
             // get a texture by its name (we expect a texture to be already loaded)
             TexID texId = g_TextureMgr.GetTexIdByName(semanticName);
 
-            if (texId == INVALID_TEXTURE_ID)
+            if (texId == INVALID_TEX_ID)
             {
                 LogErr(LOG, "can't find a texture to bind as bindless: %s", semanticName);
                 continue;

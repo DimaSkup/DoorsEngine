@@ -247,7 +247,7 @@ void UITexturesBrowser::DrawTextureIcons(const float startPosX, const float star
                     // try to get a texture ID by index
                     const TexID texId = pFacade_->GetTextureIdByIdx(selectedItemIdx_);
 
-                    if (texId != INVALID_TEXTURE_ID)
+                    if (texId != INVALID_TEX_ID)
                     {
                         const char* texName = pFacade_->GetTextureNameById(selectedTexItemID_);
 

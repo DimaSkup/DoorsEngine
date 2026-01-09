@@ -7,7 +7,7 @@ Kd 0.3 0.3 0.3 1.00
 Ks 0.0 0.0 0.0
 Kg 1.30
 Kr 0.00 0.00 0.00 0.00
-tex_diff cars_01.dds
-tex_norm cars_01_norm.dds
-tex_spec cars_01_spec.dds
+tex_diff veh/cars01_diff
+tex_norm veh/cars01_norm
+tex_spec veh/cars01_spec
 

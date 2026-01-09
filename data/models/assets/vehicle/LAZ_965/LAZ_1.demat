@@ -7,6 +7,6 @@ Kd 0.50 0.50 0.50 1.00
 Ks 0.10 0.10 0.10
 Kg 5.00
 Kr 0.00 0.00 0.00 1.00
-tex_diff laz695n_wheel.dds
-tex_norm laz695n_wheel_norm.dds
-tex_spec laz695n_wheel_spec.dds
+tex_diff veh/laz695_wheel_diff
+tex_norm veh/laz695_wheel_norm
+tex_spec veh/laz695_wheel_spec

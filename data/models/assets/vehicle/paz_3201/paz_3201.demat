@@ -7,7 +7,7 @@ Kd 0.50 0.50 0.50 1.00
 Ks 0.10 0.10 0.10
 Kg 5.00
 Kr 0.00 0.00 0.00 1.00
-tex_diff car_paz_3201.dds
-tex_spec car_paz_3201_mask.dds
-tex_norm car_paz_3201_norm.dds
+tex_diff veh/paz3201_diff
+tex_spec veh/paz3201_spec
+tex_norm veh/paz3201_norm
 

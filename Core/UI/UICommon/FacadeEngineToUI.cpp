@@ -923,7 +923,9 @@ bool FacadeEngineToUI::ImportModelFromFile(const char* filepath, const char* mod
 //---------------------------------------------------------
 TexID FacadeEngineToUI::LoadTextureFromFile(const char* path) const
 {
-    return g_TextureMgr.LoadFromFile(path);
+    assert(0 && "fixme");
+    return 0;
+    //return g_TextureMgr.LoadFromFile(path);
 }
 
 //---------------------------------------------------------
@@ -990,7 +992,7 @@ bool FacadeEngineToUI::GetMaterialTexIds(const MaterialID id, TexID* outTexIds) 
 
     Material& mat = g_MaterialMgr.GetMatById(id);
 
-    if (mat.id == INVALID_TEXTURE_ID)
+    if (mat.id == INVALID_TEX_ID)
     {
         LogErr(LOG, "can't get texture ids for material: there is no material by id: %" PRIu32, id);
         return false;

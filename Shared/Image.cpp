@@ -501,14 +501,15 @@ bool Image::LoadGrayscaleBMP(const char* filename)
     BMPInfoHeader infoHeader;
     uint8_t*      tmpImageBuf = nullptr;
 
+
+    if (!filename || filename[0] == '\0')
+    {
+        LogErr(LOG, "input filename str is empty");
+        return false;
+    }
+
     try
     {
-        if (!filename || filename[0] == '\0')
-        {
-            LogErr(LOG, "input filename str is empty");
-            return false;
-        }
-
         // open the bitmap map file in binary
         pFile = fopen(filename, "rb");
         if (!pFile)
@@ -632,26 +633,23 @@ bool Image::LoadTGA(const char* filename)
     uint8* pixelsData = nullptr;
     int    fileSize = 0;
 
-    // check input filename
+
     if (!filename || filename[0] == '\0')
     {
-        LogErr("input filename is empty");
+        LogErr("filename is empty");
         return false;
     }
 
-    // open the file for reading (in binary mode)
     pFile = fopen(filename, "rb");
     if (!pFile)
     {
-        LogErr(LOG, "can't open file: %s", filename);
+        LogErr(LOG, "can't open file for reading in binary mode: %s", filename);
         return false;
     }
 
 
     try
     {
-       
-
         // get file length
         fseek(pFile, 0, SEEK_END);
         fileSize = ftell(pFile);

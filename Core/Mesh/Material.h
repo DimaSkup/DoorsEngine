@@ -83,7 +83,7 @@ struct Material
     ShaderID   shaderId = INVALID_SHADER_ID;                          // default "Invalid" shader with id == 0
     char       name[MAX_LEN_MAT_NAME] = { "invalid" };
     
-    TexID      texIds[NUM_TEXTURE_TYPES]{ INVALID_TEXTURE_ID };
+    TexID      texIds[NUM_TEXTURE_TYPES]{ INVALID_TEX_ID };
     uint32     renderStates = 0;                                      // bitfield for materials properties
 
 

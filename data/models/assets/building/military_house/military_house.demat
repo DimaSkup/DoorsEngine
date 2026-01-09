@@ -7,9 +7,9 @@ Kd 0.80 0.80 0.80 1.00
 Ks 0.20 0.20 0.20
 Kg 1.30
 Kr 0.00 0.00 0.00 0.00
-tex_diff BigBuilding_Metal_BaseColor.dds
-tex_norm BigBuilding_Metal_Normal.dds
-tex_shin BigBuilding_Metal_AO.dds
+tex_diff milit_house/metal_diff
+tex_norm milit_house/metal_norm
+tex_shin milit_house/metal_AO
 
 newmtl BigBuilding_Concrete
 mat_id 61
@@ -20,10 +20,10 @@ Kd 0.80 0.80 0.80 1.00
 Ks 0.20 0.20 0.20
 Kg 1.30
 Kr 0.00 0.00 0.00 0.00
-tex_diff BigBuilding_Concrete_BaseColor.dds
-tex_norm BigBuilding_Concrete_Normal.dds
-tex_shin BigBuilding_Concrete_Roughness.dds
-tex_light BigBuilding_Concrete_AO.dds
+tex_diff milit_house/concrete_diff
+tex_norm milit_house/concrete_norm
+tex_shin milit_house/concrete_spec
+tex_light milit_house/concrete_AO
 
 newmtl BigBuilding_Wood
 mat_id 62
@@ -34,10 +34,10 @@ Kd 0.80 0.80 0.80 1.00
 Ks 0.20 0.20 0.20
 Kg 3.9
 Kr 0.00 0.00 0.00 0.00
-tex_diff BigBuilding_Wood_BaseColor.dds
-tex_norm BigBuilding_Wood_Normal.dds
-tex_shin BigBuilding_Wood_Roughness.dds
-tex_light BigBuilding_Wood_AO.dds
+tex_diff milit_house/wood_diff
+tex_norm milit_house/wood_norm
+tex_shin milit_house/wood_spec
+tex_light milit_house/wood_AO
 
 newmtl BigBuilding_Roof
 mat_id 63
@@ -48,7 +48,7 @@ Kd 0.80 0.80 0.80 1.00
 Ks 0.20 0.20 0.20
 Kg 30.0
 Kr 0.00 0.00 0.00 0.00
-tex_diff BigBuilding_Roof_BaseColor.dds
-tex_norm BigBuilding_Roof_Normal.dds
-tex_shin BigBuilding_Roof_Roughness.dds
-tex_light BigBuilding_Roof_AO.dds
+tex_diff milit_house/roof_diff
+tex_norm milit_house/roof_norm
+tex_shin milit_house/roof_spec
+tex_light milit_house/roof_AO

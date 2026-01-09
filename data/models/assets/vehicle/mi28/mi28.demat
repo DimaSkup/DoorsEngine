@@ -7,6 +7,6 @@ Kd 0.30 0.30 0.30 1.00
 Ks 0.10 0.10 0.10
 Kg 8.00
 Kr 1.00 0.00 0.00 0.00
-tex_diff helicopter_mi-28.dds
-tex_norm helicopter_mi-28_norm.dds
+tex_diff veh/mi28_diff
+tex_norm veh/mi28_norm
 

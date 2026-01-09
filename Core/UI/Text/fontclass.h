@@ -33,10 +33,7 @@ public:
     FontClass();
     ~FontClass();
 
-    void Initialize(
-        ID3D11Device* pDevice, 
-        const char* fontDataFilePath,
-        const char* textureFilename);
+    void Init(const char* fontDataFilePath, const char* fontTexName);
 
     // builds a vertices array by font texture data which is based on 
     // input sentence and upper-left position
@@ -58,15 +55,16 @@ public:
     inline const TexID GetFontTexID() const { return fontTexID_; }
     inline const UINT GetFontHeight() const { return fontHeight_; }
 
-    ID3D11ShaderResourceView* const GetTextureResourceView();
-    ID3D11ShaderResourceView* const* GetTextureResourceViewAddress();
+    ID3D11ShaderResourceView* const GetTexResourceView();
+    ID3D11ShaderResourceView* const* GetTexResourceViewAddress();
 
 
     // memory allocation
     void* operator new(size_t i);
     void operator delete(void* ptr);
 
-private:  // restrict a copying of this class instance
+private:
+    // restrict a copying of this class instance
     FontClass(const FontClass & obj);
     FontClass & operator=(const FontClass & obj);
 

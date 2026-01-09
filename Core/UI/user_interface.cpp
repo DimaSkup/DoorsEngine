@@ -45,9 +45,9 @@ void UserInterface::Initialize(
     ID3D11Device* pDevice,
     IFacadeEngineToUI* pFacadeEngineToUI,
     const char* dbgFontDataFilepath,      
-    const char* dbgFontTexFilepath,
+    const char* dbgFontTexName,
     const char* gameFontDataFilepath,
-    const char* gameFontTexFilepath,
+    const char* gameFontTexName,
     const int wndWidth,
     const int wndHeight,
     const UINT videoCardMemory,
@@ -61,9 +61,9 @@ void UserInterface::Initialize(
         CAssert::True((wndWidth > 0) && (wndHeight > 0),        "wrong window dimensions");
         CAssert::True(!videoCardName.empty(),                   "video card name is empty");
         CAssert::True(!StrHelper::IsEmpty(dbgFontDataFilepath), "path to debug font data file is empty");
-        CAssert::True(!StrHelper::IsEmpty(dbgFontTexFilepath),  "path to debug font texture file is empty");
+        CAssert::True(!StrHelper::IsEmpty(dbgFontTexName),      "dbg font tex name is empty");
         CAssert::True(!StrHelper::IsEmpty(dbgFontDataFilepath), "path to game font data file is empty");
-        CAssert::True(!StrHelper::IsEmpty(dbgFontTexFilepath),  "path to game font texture file is empty");
+        CAssert::True(!StrHelper::IsEmpty(gameFontTexName),     "game font tex name is empty");
 
         // initialize the window dimensions members for internal using
         windowWidth_ = wndWidth;
@@ -72,8 +72,8 @@ void UserInterface::Initialize(
         // --------------------------------------------
 
         // initialize the first font object
-        dbgFont01_.Initialize(pDevice, dbgFontDataFilepath, dbgFontTexFilepath);
-        gameFont01_.Initialize(pDevice, gameFontDataFilepath, gameFontTexFilepath);
+        dbgFont01_.Init(dbgFontDataFilepath, dbgFontTexName);
+        gameFont01_.Init(gameFontDataFilepath, gameFontTexName);
 
         // initialize the editor parts and interfaces
         pFacadeEngineToUI_ = pFacadeEngineToUI;

@@ -120,26 +120,26 @@ bool TerrainBase::LoadSetupFile(const char* filename, TerrainConfig& outConfigs)
     LogDbg(LOG, "Start: read in the terrain setup file");
 
     // read in terrain common data
-    ReadStr(pFile, "Path_tex_map_0:          %s\n", outConfigs.pathTextureMap0);
-    ReadStr(pFile, "Path_tex_map_1:          %s\n", outConfigs.pathTextureMap1);
-    ReadStr(pFile, "Path_tex_map_2:          %s\n", outConfigs.pathTextureMap2);
-    ReadStr(pFile, "Path_tex_map_3:          %s\n", outConfigs.pathTextureMap3);
-    ReadStr(pFile, "Path_alpha_map:          %s\n", outConfigs.pathTexAlphaMap);
+    ReadStr(pFile, "Name_tex_map_0:          %s\n", outConfigs.texDiffName0);
+    ReadStr(pFile, "Name_tex_map_1:          %s\n", outConfigs.texDiffName1);
+    ReadStr(pFile, "Name_tex_map_2:          %s\n", outConfigs.texDiffName2);
+    ReadStr(pFile, "Name_tex_map_3:          %s\n", outConfigs.texDiffName3);
+    ReadStr(pFile, "Name_alpha_map:          %s\n", outConfigs.texAlphaName);
 
     ReadStr(pFile, "Path_height_map:         %s\n", outConfigs.pathHeightMap);
-    ReadStr(pFile, "Path_detail_map:         %s\n", outConfigs.pathDetailMap);
-    ReadStr(pFile, "Path_light_map:          %s\n", outConfigs.pathLightMap);
+    ReadStr(pFile, "Name_detail_map:         %s\n", outConfigs.texNameDetailMap);
+    ReadStr(pFile, "Name_light_map:          %s\n", outConfigs.texNameLightmap);
     ReadStr(pFile, "Path_nature_density_map: %s\n", outConfigs.pathNatureDensityMap);
 
-    ReadStr(pFile, "Path_normal_map_0:       %s\n", outConfigs.pathNormalMap0);
-    ReadStr(pFile, "Path_normal_map_1:       %s\n", outConfigs.pathNormalMap1);
-    ReadStr(pFile, "Path_normal_map_2:       %s\n", outConfigs.pathNormalMap2);
-    ReadStr(pFile, "Path_normal_map_3:       %s\n", outConfigs.pathNormalMap3);
+    ReadStr(pFile, "Name_normal_map_0:       %s\n", outConfigs.texNormName0);
+    ReadStr(pFile, "Name_normal_map_1:       %s\n", outConfigs.texNormName1);
+    ReadStr(pFile, "Name_normal_map_2:       %s\n", outConfigs.texNormName2);
+    ReadStr(pFile, "Name_normal_map_3:       %s\n", outConfigs.texNormName3);
 
-    ReadStr(pFile, "Path_specular_map_0:     %s\n", outConfigs.pathSpecularMap0);
-    ReadStr(pFile, "Path_specular_map_1:     %s\n", outConfigs.pathSpecularMap1);
-    ReadStr(pFile, "Path_specular_map_2:     %s\n", outConfigs.pathSpecularMap2);
-    ReadStr(pFile, "Path_specular_map_3:     %s\n", outConfigs.pathSpecularMap3);
+    ReadStr(pFile, "Name_specular_map_0:     %s\n", outConfigs.texSpecName0);
+    ReadStr(pFile, "Name_specular_map_1:     %s\n", outConfigs.texSpecName1);
+    ReadStr(pFile, "Name_specular_map_2:     %s\n", outConfigs.texSpecName2);
+    ReadStr(pFile, "Name_specular_map_3:     %s\n", outConfigs.texSpecName3);
 
     // width==depth, height_scale
     ReadInt(pFile,   "Terrain_length: %d\n", &outConfigs.terrainLength);
@@ -155,42 +155,46 @@ bool TerrainBase::LoadSetupFile(const char* filename, TerrainConfig& outConfigs)
     fgets(buf, bufsize, pFile);
     count = sscanf(buf, "Generate_texture_map: %d", &tempBool);
     assert(count == 1);
-    outConfigs.generateTextureMap = (uint8)tempBool;
+    outConfigs.generateTextureMap = (uint16)tempBool;
 
     // do we want to generate terrain heights?
     fgets(buf, bufsize, pFile);
     sscanf(buf, "Generate_heights: %d", &tempBool);
-    outConfigs.generateHeights = (uint8)tempBool;
+    outConfigs.generateHeights = (uint16)tempBool;
 
     // do we want to generate lightmap for the terrain?
     fgets(buf, bufsize, pFile);
     sscanf(buf, "Generate_lightmap: %d", &tempBool);
-    outConfigs.generateLightMap = (uint8)tempBool;
+    outConfigs.generateLightMap = (uint16)tempBool;
 
     // --------------------------------
 
     // do we want to store generated texture_map/height_map/light_map into the files?
     fgets(buf, bufsize, pFile);
     sscanf(buf, "Save_texture_map: %d", &tempBool);
-    outConfigs.saveTextureMap = (uint8)tempBool;
+    outConfigs.saveTextureMap = (uint16)tempBool;
 
     fgets(buf, bufsize, pFile);
     sscanf(buf, "Save_height_map: %d", &tempBool);
-    outConfigs.saveHeightMap = (uint8)tempBool;
+    outConfigs.saveHeightMap = (uint16)tempBool;
 
     fgets(buf, bufsize, pFile);
     sscanf(buf, "Save_light_map: %d", &tempBool);
-    outConfigs.saveLightMap = (uint8)tempBool;
+    outConfigs.saveLightMap = (uint16)tempBool;
+
+    fgets(buf, bufsize, pFile);
+    sscanf(buf, "Use_lightmap: %d", &tempBool);
+    outConfigs.useLightmap = (uint16)tempBool;
 
     // --------------------------------
 
     fgets(buf, bufsize, pFile);
     sscanf(buf, "Use_gen_fault_formation: %d", &tempBool);
-    outConfigs.useGenFaultFormation = (uint8)tempBool;
+    outConfigs.useGenFaultFormation = (uint16)tempBool;
 
     fgets(buf, bufsize, pFile);
     sscanf(buf, "Use_gen_midpoint_displacement: %d", &tempBool);
-    outConfigs.useGenMidpointDisplacement = (uint8)tempBool;
+    outConfigs.useGenMidpointDisplacement = (uint16)tempBool;
 
     // --------------------------------
 
@@ -351,19 +355,39 @@ bool TerrainBase::LoadHeightMap(const char* filename, const int size)
 // --------------------------------------------------------
 // Desc:  load a texture (tile) map from the file 
 //        NOTE: 1. supported formats: BMP, DDS
-//              2. doesn't create texture resource
+//              2. doesn't create texture resource (!!!)
 // 
-// Args:  - filename:  path to the file
+// Args:  - texName:  a name of the loaded tilemap
 // --------------------------------------------------------
-bool TerrainBase::LoadTextureMap(const char* filename)
+bool TerrainBase::LoadTextureMap(const char* texName)
 {
-    if (!filename || filename[0] == '\0')
+    if (!texName || texName[0] == '\0')
     {
-        LogErr("input filename is empty!");
+        LogErr(LOG, "empty name");
         return false;
     }
 
-    char extension[8]{'\0'};
+
+    const TexID texId = g_TextureMgr.GetTexIdByName(texName);
+    if (texId == INVALID_TEX_ID)
+    {
+        LogErr(LOG, "no texture by name: %s", texName);
+        return false;
+    }
+
+    const Texture& tex = g_TextureMgr.GetTexByID(texId);
+
+    // set params of tile map
+    texture_.SetID(texId);
+    texture_.SetWidth(tex.GetWidth());
+    texture_.SetHeight(tex.GetHeight());
+    texture_.SetBPP(32);
+
+    return true;
+
+
+#if 0
+    char extension[8]{ '\0' };
     FileSys::GetFileExt(filename, extension);
 
     // load from BMP
@@ -392,36 +416,13 @@ bool TerrainBase::LoadTextureMap(const char* filename)
     }
 
     // load from DDS
-    else if (strcmp(extension, ".dds") == 0)
-    {
-        const TexID tileMapTexId = g_TextureMgr.LoadFromFile(filename);
-        const Texture& texObj = g_TextureMgr.GetTexByID(tileMapTexId);
-
-        if (tileMapTexId)
-        {
-            LogDbg(LOG, "terrain_tile_map texture is created");
-
-            // set params of tile map
-            texture_.SetID(tileMapTexId);
-            texture_.SetWidth(texObj.GetWidth());
-            texture_.SetHeight(texObj.GetHeight());
-            texture_.SetBPP(32);
-        }
-        else
-        {
-            LogErr(LOG, "can't load terrain's texture map from file: %s", filename);
-            return false;
-        }
-    }
-    // unknow format
-    else
+    if (strcmp(extension, ".dds") != 0)
     {
         LogErr(LOG, "can't load terrain texture map from file: %s\n"
-                    "REASON: unsupported format: %s", filename, extension);
+            "REASON: unsupported format: %s", filename, extension);
         return false;
     }
-
-    return true;
+#endif
 }
 
 // --------------------------------------------------------
@@ -930,7 +931,7 @@ bool TerrainBase::SaveTextureMap(const char* filename)
     // this texture object, but we loaded it from dds and we have the texture data on
     // GPU side (if we really have such data we must have a valid texture ID),
     // so we just get texture by its ID, get data from GPU and store it into a file
-    else if (texture_.GetID() != INVALID_TEXTURE_ID)
+    else if (texture_.GetID() != INVALID_TEX_ID)
     {
         LogErr(LOG, "I don't know how I got here :)");
         return false;
@@ -1165,10 +1166,13 @@ bool TerrainBase::LoadNatureDensityMap(const char* filename)
 
 // --------------------------------------------------------
 // Desc:   load a grayscale RAW/BMP light map
-// Args:   - filename: the file name of the light map
+// Args:   - texName:  a name of the lightmap texture
 // --------------------------------------------------------
-bool TerrainBase::LoadLightMap(const char* filename)
+bool TerrainBase::LoadLightMap(const char* texName)
 {
+    return true;
+#if 0
+
     try
     {
         // check input params
@@ -1268,6 +1272,7 @@ bool TerrainBase::LoadLightMap(const char* filename)
         LogErr(e);
         return false;
     }
+#endif
 }
 
 // --------------------------------------------------------

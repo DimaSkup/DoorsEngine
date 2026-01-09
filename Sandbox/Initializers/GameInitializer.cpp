@@ -825,20 +825,21 @@ void CreateSkyBox(const char* filepath, ECS::EntityMgr& mgr)
     }
 
     // read in sky params
-    char     skyTexPath[64]{'\0'};
-    char     skyMaterialName[64]{'\0'};
+    char     skyTexName[MAX_LEN_TEX_NAME]{'\0'};
+    char     skyMaterialName[MAX_LEN_MAT_NAME]{'\0'};
     int      skyBoxSize = 0;
+    int      loadCubeMapTexture = 0;
+    int      count = 0;
+    float    skyOffsetY = 0;
     XMFLOAT3 colorCenter;
     XMFLOAT3 colorApex;
     CubeMapInitParams cubeMapParams;
-    int loadCubeMapTexture = 0;
-    float skyOffsetY = 0;
-    int count = 0;
+    
 
     // do we want to load cubemap or we will create it manually?
     ReadFileInt   (pFile, "load_cubemap_texture:", &loadCubeMapTexture);
     ReadFileStr   (pFile, "material_name:",        skyMaterialName);
-    ReadFileStr   (pFile, "cubemap_texture:",      skyTexPath);
+    ReadFileStr   (pFile, "cubemap_texture:",      skyTexName);
     ReadFileStr   (pFile, "cubemap_dir",           cubeMapParams.directory);
 
     ReadFileStr   (pFile, "sky_pos_x",             cubeMapParams.texNames[0]);
@@ -855,10 +856,10 @@ void CreateSkyBox(const char* filepath, ECS::EntityMgr& mgr)
 
 
     // load a texture for the sky
-    TexID skyMapId = INVALID_TEXTURE_ID;
+    TexID skyMapId = INVALID_TEX_ID;
 
     if (loadCubeMapTexture)
-        skyMapId = g_TextureMgr.LoadFromFile(skyTexPath);
+        skyMapId = g_TextureMgr.GetTexIdByName(skyTexName);
 
     else
         skyMapId = g_TextureMgr.CreateCubeMap("sky_cube_map_0", cubeMapParams);
@@ -888,6 +889,8 @@ void CreateSkyBox(const char* filepath, ECS::EntityMgr& mgr)
     const EntityID enttId = mgr.CreateEntity("sky");
     mgr.AddTransformComponent(enttId, { 0, skyOffsetY,0 });
     mgr.AddMaterialComponent(enttId, mat.id);
+
+    fclose(pFile);
 }
 
 //---------------------------------------------------------
@@ -2229,20 +2232,20 @@ void CreateTerrainGeomip(
     // create and setup material for terrain (geomipmap)
     Material& mat   = g_MaterialMgr.AddMaterial("terrain_mat");
 
-    const TexID texIdMap1 = g_TextureMgr.LoadFromFile(terrainCfg.pathTextureMap1);
-    const TexID texIdMap2 = g_TextureMgr.LoadFromFile(terrainCfg.pathTextureMap2);
-    const TexID texIdMap3 = g_TextureMgr.LoadFromFile(terrainCfg.pathTextureMap3);
-    const TexID texIdAlphaMap = g_TextureMgr.LoadFromFile(terrainCfg.pathTexAlphaMap);
+    const TexID texIdMap1     = g_TextureMgr.GetTexIdByName(terrainCfg.texDiffName1);
+    const TexID texIdMap2     = g_TextureMgr.GetTexIdByName(terrainCfg.texDiffName2);
+    const TexID texIdMap3     = g_TextureMgr.GetTexIdByName(terrainCfg.texDiffName3);
+    const TexID texIdAlphaMap = g_TextureMgr.GetTexIdByName(terrainCfg.texAlphaName);
 
-    const TexID texIdNorm0 = g_TextureMgr.LoadFromFile(terrainCfg.pathNormalMap0);
-    const TexID texIdNorm1 = g_TextureMgr.LoadFromFile(terrainCfg.pathNormalMap1);
-    const TexID texIdNorm2 = g_TextureMgr.LoadFromFile(terrainCfg.pathNormalMap2);
-    const TexID texIdNorm3 = g_TextureMgr.LoadFromFile(terrainCfg.pathNormalMap3);
+    const TexID texIdNorm0    = g_TextureMgr.GetTexIdByName(terrainCfg.texNormName0);
+    const TexID texIdNorm1    = g_TextureMgr.GetTexIdByName(terrainCfg.texNormName1);
+    const TexID texIdNorm2    = g_TextureMgr.GetTexIdByName(terrainCfg.texNormName2);
+    const TexID texIdNorm3    = g_TextureMgr.GetTexIdByName(terrainCfg.texNormName3);
 
-    const TexID texIdSpec0 = g_TextureMgr.LoadFromFile(terrainCfg.pathSpecularMap0);
-    const TexID texIdSpec1 = g_TextureMgr.LoadFromFile(terrainCfg.pathSpecularMap1);
-    const TexID texIdSpec2 = g_TextureMgr.LoadFromFile(terrainCfg.pathSpecularMap2);
-    const TexID texIdSpec3 = g_TextureMgr.LoadFromFile(terrainCfg.pathSpecularMap3);
+    const TexID texIdSpec0    = g_TextureMgr.GetTexIdByName(terrainCfg.texSpecName0);
+    const TexID texIdSpec1    = g_TextureMgr.GetTexIdByName(terrainCfg.texSpecName1);
+    const TexID texIdSpec2    = g_TextureMgr.GetTexIdByName(terrainCfg.texSpecName2);
+    const TexID texIdSpec3    = g_TextureMgr.GetTexIdByName(terrainCfg.texSpecName3);
 
     const Vec4 amb(terrainCfg.ambient);
     const Vec4 diff(terrainCfg.diffuse);
@@ -2346,21 +2349,11 @@ void GenerateEntities(
     //CreateCylinders(mgr, cylinder);
 
 
-    // create a cross entity (2D sprite)
-#if 0
-    const TexID    crossTexId       = g_TextureMgr.LoadFromFile("data/textures/ui/crosshair.png");
-    const TexID    radiationTexId   = g_TextureMgr.LoadFromFile("data/textures/ui/ui_mn_radiations_hard.dds");
-    const TexID    starvTexId       = g_TextureMgr.LoadFromFile("data/textures/ui/ui_mn_starvation_hard.dds");
-    const TexID    woundTexId       = g_TextureMgr.LoadFromFile("data/textures/ui/ui_mn_wounds_hard.dds");
-#else
-
-    
-    const TexID    crossTexId       = g_TextureMgr.GetTexIdByName("ui/crosshair");
+    // create 2D sprites
+    const TexID    crossTexId       = g_TextureMgr.GetTexIdByName("wpn/crosshair");
     const TexID    radiationTexId   = g_TextureMgr.GetTexIdByName("ui/mn_radiations_hard");
     const TexID    starvTexId       = g_TextureMgr.GetTexIdByName("ui/mn_starvation_hard");
     const TexID    woundTexId       = g_TextureMgr.GetTexIdByName("ui/mn_wounds_hard");
-
-#endif
 
     const EntityID crossId          = mgr.CreateEntity();
     const EntityID radiationIconId  = mgr.CreateEntity();

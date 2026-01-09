@@ -7,6 +7,6 @@ Kd 0.50 0.50 0.50 1.00
 Ks 0.10 0.10 0.10
 Kg 5.00
 Kr 0.00 0.00 0.00 1.00
-tex_diff laz695n_salon.dds
-tex_norm laz695h_salon_norm.dds
-tex_spec laz695h_salon_spec.dds
+tex_diff veh/laz695_salon_diff
+tex_norm veh/laz695_salon_norm
+tex_spec veh/laz695_salon_spec

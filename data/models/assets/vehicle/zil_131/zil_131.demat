@@ -7,8 +7,8 @@ Kd 0.50 0.50 0.50 1.00
 Ks 0.10 0.10 0.10
 Kg 5.00
 Kr 0.00 0.00 0.00 1.00
-tex_diff zil_131.dds
-tex_spec zil_131_spec.dds
-tex_amb zil_131.dds
-tex_norm zil_131_norm.dds
+tex_diff veh/zil131_diff
+tex_spec veh/zil131_spec
+tex_amb veh/zil131_diff
+tex_norm veh/zil131_norm
 

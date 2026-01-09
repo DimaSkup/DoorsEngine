@@ -13,7 +13,7 @@
 
 #include <cvector.h>
 #include <d3d11.h>
-#include <d3dx11tex.h>
+//#include <d3dx11tex.h>
 #include <string>
 
 
@@ -66,9 +66,7 @@ public:
 
     bool        ReloadFromFile(const TexID id, const char* path);
     TexID       Add          (const char* name, Texture&& tex);
-    //TexID       LoadFromFile (const char* dirPath, const char* texturePath);
-    //TexID       LoadFromFile (const char* name, const char* path);
-    TexID       LoadFromFile (const char* path);
+    TexID       LoadFromFile (const char* name, const char* path);
     TexID       CreateCubeMap(const char* name, const CubeMapInitParams& params);
 
     TexID       CreateWithColor(const Color& textureColor);

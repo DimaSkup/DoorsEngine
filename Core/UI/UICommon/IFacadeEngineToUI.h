@@ -397,7 +397,7 @@ public:
     virtual bool        ReloadTextureFromFile   (const TexID id, const char* path)          const { NOTIFY;  return false; }
 
     virtual bool        GetModelsNamesList      (cvector<std::string>& names)               const { NOTIFY;  return false; }
-    virtual TexID       GetTextureIdByIdx       (const index idx)                           const { NOTIFY;  return INVALID_TEXTURE_ID; }
+    virtual TexID       GetTextureIdByIdx       (const index idx)                           const { NOTIFY;  return INVALID_TEX_ID; }
     virtual MaterialID  GetMaterialIdByIdx      (const index idx)                           const { NOTIFY;  return INVALID_MATERIAL_ID; }
     virtual const char* GetMaterialNameById     (const MaterialID id)                       const { NOTIFY;  return nullptr; }
     virtual bool        GetMaterialTexIds       (const MaterialID id, TexID* outTexIds)     const { NOTIFY;  return false; }

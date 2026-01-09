@@ -44,7 +44,7 @@ SkyPlane::~SkyPlane()
 //        - skyPlaneBottom:     4 bottom corner points of the plane
 //        - brightness:         cloud brightness, lower values give clouds more faded look.
 //        - translationSpeed:   arr of 4 values, how fast we translate the cloud textures over the sky plane
-//        - tex0Path,tex1Path:  a path to cloud texture
+//        - tex0Name,tex1Name:  a name to cloud texture
 //---------------------------------------------------------
 void ReadParams(
     FILE* pFile,
@@ -55,13 +55,13 @@ void ReadParams(
     float& skyPlaneBottom,
     float& brightness,
     float* translationSpeed,
-    char* tex0Path,
-    char* tex1Path)
+    char* tex0Name,
+    char* tex1Name)
 {
     assert(pFile != nullptr);
     assert(translationSpeed != nullptr);
-    assert(tex0Path != nullptr);
-    assert(tex1Path != nullptr);
+    assert(tex0Name != nullptr);
+    assert(tex1Name != nullptr);
 
 
     int count = 0;
@@ -100,10 +100,10 @@ void ReadParams(
     assert(count == 1);
 
 
-    count = fscanf(pFile, "tex0_path %s\n", tex0Path);
+    count = fscanf(pFile, "tex0_name %s\n", tex0Name);
     assert(count == 1);
 
-    count = fscanf(pFile, "tex1_path %s\n", tex1Path);
+    count = fscanf(pFile, "tex1_name %s\n", tex1Name);
     assert(count == 1);
 }
 
@@ -135,8 +135,8 @@ bool SkyPlane::Init(const char* cfgFilename)
     float skyPlaneWidth      = 0;
     float skyPlaneTop        = 0;
     float skyPlaneBottom     = 0;
-    char  tex0Path[128]{'\0'};
-    char  tex1Path[128]{'\0'};
+    char  tex0Name[MAX_LEN_TEX_NAME]{'\0'};
+    char  tex1Name[MAX_LEN_TEX_NAME]{'\0'};
 
     ReadParams(
         pFile,
@@ -147,8 +147,8 @@ bool SkyPlane::Init(const char* cfgFilename)
         skyPlaneBottom,
         brightness_,
         translationSpeed_,
-        tex0Path,
-        tex1Path);
+        tex0Name,
+        tex1Name);
    
 
     // setup the current translation for the two textures and pass it to shader when render
@@ -157,7 +157,7 @@ bool SkyPlane::Init(const char* cfgFilename)
     textureTranslation_[2] = 0.0f;
     textureTranslation_[3] = 0.0f;
 
-    // generate geometry
+    // generate sky plane's geometry
     GeometryGenerator geoGen;
 
     if (!geoGen.GenSkyPlane(
@@ -176,7 +176,7 @@ bool SkyPlane::Init(const char* cfgFilename)
         return false;
     }
 
-    // init vertex and index buffers
+
     if (!InitBuffers())
     {
         LogErr(LOG, "can't init vertex/index buffer for sky plane");
@@ -184,14 +184,23 @@ bool SkyPlane::Init(const char* cfgFilename)
         return false;
     }
 
-    // after initialization of buffers we release some memory
+    // after initialization of buffers we release transient arrays
     SafeDeleteArr(vertices_);
     SafeDeleteArr(indices_);
     
 
-    // load textures and create a material
-    const TexID tex0Id    = g_TextureMgr.LoadFromFile(tex0Path);
-    const TexID tex1Id    = g_TextureMgr.LoadFromFile(tex1Path);
+    // get textures and create a material
+    const TexID tex0Id = g_TextureMgr.GetTexIdByName(tex0Name);
+    const TexID tex1Id = g_TextureMgr.GetTexIdByName(tex1Name);
+
+    if (tex0Id == INVALID_TEX_ID)
+    {
+        LogErr(LOG, "no texture by name: %s", tex0Name);
+    }
+    if (tex1Id == INVALID_TEX_ID)
+    {
+        LogErr(LOG, "no texture by name: %s", tex1Name);
+    }
 
     Material& mat = g_MaterialMgr.AddMaterial("sky_plane_clouds");
     mat.texIds[1] = tex0Id;

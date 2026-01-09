@@ -279,16 +279,15 @@ void ReadTexture(const char* buf, Material& mat, const char* targetDir)
     assert(targetDir && (targetDir[0] != '\0'));
 
     char texType[16]{'\0'};
-    char texFileName[128]{'\0'};
-    char texFilePath[256]{'\0'};
+    char texName[MAX_LEN_TEX_NAME]{'\0'};
     
-    int count = sscanf(buf, "tex_%s %s\n", texType, texFileName);
+    int count = sscanf(buf, "tex_%s %s\n", texType, texName);
     assert(count == 2);
 
-    strcat(texFilePath, targetDir);
-    strcat(texFilePath, texFileName);
+    const TexID texId = g_TextureMgr.GetTexIdByName(texName);
 
-    const TexID texId = g_TextureMgr.LoadFromFile(texFilePath);
+    if (texId == INVALID_TEX_ID)
+        LogErr(LOG, "no texture by name: %s", texName);
 
     eTexType type = GetTexType(texType);
     mat.texIds[type] = texId;

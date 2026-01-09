@@ -8,6 +8,5 @@ Kd 1.00 1.00 1.00 1.00
 Ks 0.00 0.00 0.00
 Kg 10.00
 Kr 0.00 0.00 0.00 0.00
-tex_diff tree_spruce_diffuse.dds
-tex_norm tree_spruce_diffuse_NRM.dds
-
+tex_diff tree/spruce_diff
+tex_norm tree/spruce_norm

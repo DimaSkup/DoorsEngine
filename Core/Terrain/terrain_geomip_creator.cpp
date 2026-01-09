@@ -143,10 +143,10 @@ bool TerrainInitTileMap(TerrainGeomip& terrain, const TerrainConfig& terrainCfg)
     // load texture map from file
     else
     {
-        result = terrain.LoadTextureMap(terrainCfg.pathTextureMap0);
+        result = terrain.LoadTextureMap(terrainCfg.texDiffName0);
 
         if (!result)
-            return ErrMsgHelper(LOG, "can't load terrain's texture map: %s", terrainCfg.pathTextureMap0);
+            return ErrMsgHelper(LOG, "can't load terrain's texture map: %s", terrainCfg.texDiffName0);
     }
 
     // save the tile map if we want
@@ -165,6 +165,10 @@ bool TerrainInitTileMap(TerrainGeomip& terrain, const TerrainConfig& terrainCfg)
 bool TerrainInitLightMap(TerrainGeomip& terrain, const TerrainConfig& terrainCfg)
 {
     bool result = false;
+
+    // if we don't wan't to use any lightmaps
+    if (!terrainCfg.useLightmap)
+        return true;
 
     // if we want to generate a new light map
     if (terrainCfg.generateLightMap)
@@ -188,9 +192,9 @@ bool TerrainInitLightMap(TerrainGeomip& terrain, const TerrainConfig& terrainCfg
     // load a light map from the file
     else
     {
-        result = terrain.LoadLightMap(terrainCfg.pathLightMap);
+        result = terrain.LoadLightMap(terrainCfg.texNameLightmap);
         if (!result)
-            return ErrMsgHelper(LOG, "can't load terrain's light map from file: %s", terrainCfg.pathLightMap);
+            return ErrMsgHelper(LOG, "failed to init lightmap: %s", terrainCfg.texNameLightmap);
     }
 
     // save the light map into file if we want
@@ -207,55 +211,47 @@ bool TerrainInitLightMap(TerrainGeomip& terrain, const TerrainConfig& terrainCfg
         8,                       // bits per pixel
         false);                  // don't generate mipmaps
 
-    if (lightmapTexId)
-    {
-        LogDbg(LOG, "terrain_light_map texture is created");
-        terrain.lightmap_.id = lightmapTexId;
-    }
-    else
+    terrain.lightmap_.id = lightmapTexId;
+
+
+    if (lightmapTexId == INVALID_TEX_ID)
     {
         return ErrMsgHelper(LOG, "can't create a texture resource for terrain's lightmap");
     }
 
+    LogDbg(LOG, "terrain_light_map texture is created");
     return true;
 }
 
 //---------------------------------------------------------
 // Desc:   load a terrain's detail map from file
-// Args:   - terrain:    actual terrain's obj
-//         - filePath:   a path to texture
+// Args:   - terrain:   actual terrain's obj
+//         - texName:   a name of loaded detail texture
+// 
 // Ret:    true if we managed to successfully initialize a terrain's detail map
 //---------------------------------------------------------
-bool TerrainInitDetailMap(TerrainGeomip& terrain, const char* filePath)
+bool TerrainInitDetailMap(TerrainGeomip& terrain, const char* texName)
 {
-    if (StrHelper::IsEmpty(filePath))
-        return ErrMsgHelper(LOG, "input path to terrain's detail map is empty");
-
-    if (!terrain.LoadDetailMap(filePath))
-        return ErrMsgHelper(LOG, "can't load the terrain's detail map");
+    if (!texName || texName[0] == '\0')
+        return ErrMsgHelper(LOG, "empty texture name");
 
 
-    // create a DirectX11 texture resource for the terrain's detail map
-    constexpr bool mipMapped = true;
-
-    const TexID detailMapTexId = g_TextureMgr.CreateTextureFromRawData(
-        "terrain_detail_map",
-        terrain.detailMap_.GetData(),
-        terrain.detailMap_.GetWidth(),
-        terrain.detailMap_.GetHeight(),
-        terrain.detailMap_.GetBPP(),
-        mipMapped);
-
-    if (detailMapTexId != INVALID_TEXTURE_ID)
+    const TexID texId = g_TextureMgr.GetTexIdByName(texName);
+    if (texId == INVALID_TEX_ID)
     {
-        terrain.detailMap_.SetID(detailMapTexId);
-        LogDbg(LOG, "terrain_detail_map texture is created");
-    }
-    else
-    {
-        return ErrMsgHelper(LOG, "can't create a texture resource for terrain's detail map");
+        LogErr(LOG, "no texture by name: %s", texName);
+        return false;
     }
 
+    const Texture& tex = g_TextureMgr.GetTexByID(texId);
+
+    // set params of texture
+    terrain.detailMap_.SetID(texId);
+    terrain.detailMap_.SetWidth(tex.GetWidth());
+    terrain.detailMap_.SetHeight(tex.GetHeight());
+    terrain.detailMap_.SetBPP(32);
+
+    LogDbg(LOG, "terrain's detail map metadata is loaded");
     return true;
 }
 
@@ -263,21 +259,15 @@ bool TerrainInitDetailMap(TerrainGeomip& terrain, const char* filePath)
 // Desc:   MAIN FUNCTION:
 //         create a terrain which will be used together with
 //         geomipmapping CLOD algorithm
-// Args:   - pDevice:        ptr to DirectX11 device
-//         - configFilename: path to a file with params for terrain
+// 
+// Args:   - configFilepath: path to a file with params for terrain
 //---------------------------------------------------------
-bool TerrainGeomipCreator::Create(ID3D11Device* pDevice, const char* configFilename)
+bool TerrainGeomipCreator::Create(const char* configFilepath)
 {
     // check input args
-    if (!pDevice)
+    if (StrHelper::IsEmpty(configFilepath))
     {
-        LogErr(LOG, "input ptr to DirectX device == nullptr");
-        exit(-1);
-    }
-
-    if (StrHelper::IsEmpty(configFilename))
-    {
-        LogErr(LOG, "intput path to terrain config file is empty!");
+        LogErr(LOG, "terrain's config filepath is empty");
         exit(-1);
     }
 
@@ -285,54 +275,46 @@ bool TerrainGeomipCreator::Create(ID3D11Device* pDevice, const char* configFilen
     TerrainGeomip& terrain = g_ModelMgr.GetTerrainGeomip();
     TerrainConfig  terrainCfg;
 
-    // load terrain configs
-    if (!terrain.LoadSetupFile(configFilename, terrainCfg))
+
+    if (!terrain.LoadSetupFile(configFilepath, terrainCfg))
     {
         LogErr(LOG, "can't load terrain's configs");
         exit(-1);
     }
 
-    // ------------------------------------------
-
     if (!TerrainInitHeight(terrain, terrainCfg))
     {
-        LogErr(LOG, "can't initialize the terrain heights");
-        exit(-1);
+        LogErr(LOG, "can't init the terrain heights");
     }
 
     if (!TerrainInitTileMap(terrain, terrainCfg))
     {
-        LogErr(LOG, "can't initialize the terrain's tile map");
-        exit(-1);
+        LogErr(LOG, "can't init the terrain's tile map");
     }
 
     if (!TerrainInitLightMap(terrain, terrainCfg))
     {
-        LogErr(LOG, "can't initialize the terrain's light map");
-        exit(-1);
+        LogErr(LOG, "can't init the terrain's light map");
     }
 
-    if (!TerrainInitDetailMap(terrain, terrainCfg.pathDetailMap))
+    if (!TerrainInitDetailMap(terrain, terrainCfg.texNameDetailMap))
     {
-        LogErr(LOG, "can't initialize the terrain's detail map");
-        exit(-1);
+        LogErr(LOG, "can't init the terrain's detail map");
     }
 
     if (!terrain.LoadNatureDensityMap(terrainCfg.pathNatureDensityMap))
     {
         LogErr(LOG, "can't load nature density map for terrain");
-        exit(-1);
     }
    
-    // ------------------------------------------
-
     if (!terrain.InitGeomipmapping(terrainCfg.patchSize))
     {
-        LogErr(LOG, "can't initialize the geomip terrain");
+        LogErr(LOG, "can't init the geomip terrain");
         exit(-1);
     }
 
-    // manually setup distances to LODs (for instance: where we switch from LOD0 to LOD1)
+
+    // setup distances to LODs (for instance: where we switch from LOD0 to LOD1)
     terrain.GetLodMgr().SetDistanceToLOD(0, terrainCfg.distToLod0);
     terrain.GetLodMgr().SetDistanceToLOD(1, terrainCfg.distToLod1);
     terrain.GetLodMgr().SetDistanceToLOD(2, terrainCfg.distToLod2);
@@ -346,11 +328,8 @@ bool TerrainGeomipCreator::Create(ID3D11Device* pDevice, const char* configFilen
     // setup axis-aligned bounding box
     terrain.SetAABB(center, extents);
 
-    // release CPU copy of transient data since we're already loaded
-    // all the necessary stuff on GPU
-    //terrain.ClearMemoryFromMaps();
 
-    LogMsg(LOG, "terrain (geomipmap type) is created!");
+    LogMsg(LOG, "terrain is created!");
     return true;
 }
 

@@ -73,7 +73,7 @@ bool MaterialMgr::Init()
     Material& invalidMat = materials_.back();
     invalidMat.shaderId = INVALID_SHADER_ID;
     invalidMat.renderStates = MAT_PROP_DEFAULT;
-    invalidMat.SetTexture(TEX_TYPE_DIFFUSE, INVALID_TEXTURE_ID);
+    invalidMat.SetTexture(TEX_TYPE_DIFFUSE, INVALID_TEX_ID);
 
     return true;
 }
@@ -170,7 +170,7 @@ bool MaterialMgr::SetMatTexture(
     if (mat.id == INVALID_MATERIAL_ID)
         return false;
 
-    //if (texId == INVALID_TEXTURE_ID)
+    //if (texId == INVALID_TEX_ID)
     //    return false;
 
     if (texType >= NUM_TEXTURE_TYPES)

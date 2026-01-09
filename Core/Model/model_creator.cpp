@@ -336,11 +336,11 @@ ModelID ModelsCreator::CreateCylinder(const MeshCylinderParams& params)
 
 //---------------------------------------------------------
 // Desc:   create and setup a terrain
-// Args:   - configFilename: path to a file with params for terrain
+// Args:   - configFilepath:  path to a file with params for terrain
 //---------------------------------------------------------
-bool ModelsCreator::CreateTerrain(const char* configFilename)
+bool ModelsCreator::CreateTerrain(const char* configFilepath)
 {
-    return TerrainCreator::CreateTerrain(Render::g_pDevice, configFilename);
+    return TerrainCreator::CreateTerrain(configFilepath);
 }
 
 

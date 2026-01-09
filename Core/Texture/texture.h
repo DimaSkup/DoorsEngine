@@ -7,14 +7,9 @@
 // Revising:      09.04.22
 // *********************************************************************************
 #pragma once
-
-
 #include "enum_texture_types.h"
-#include "../Render/Color.h"
-
 #include <Types.h>
-#include <cvector.h>
-#include <assimp/material.h>
+#include "../Render/Color.h"
 #include <d3d11.h>
 
 
@@ -74,29 +69,26 @@ public:
     Texture& operator=(const Texture&) = delete;
 
     // a constructor for loading textures from the disk
-    Texture(ID3D11Device* pDevice, const char* fullFilePath, const char* name);
+    Texture(const char* fullFilePath, const char* name);
 
     // for multiple textures to create a Texture2DArray
     Texture(
-        ID3D11Device* pDevice,
-        const char* name,            // a name for this texture object
+        const char* name,
         const std::string* texturesNames,
         const size numTextures,
         const DXGI_FORMAT format);
 
     // make 1x1 texture with single color
-    Texture(ID3D11Device* pDevice, const Color& color);
+    Texture(const Color& color);
 
     // make width_x_height texture with color data
     Texture(
-        ID3D11Device* pDevice, 
         const Color* pColorData,
         const UINT width,
         const UINT height);
 
     // a constructor for loading embedded compressed textures 
     Texture(
-        ID3D11Device* pDevice,
         const char* name,
         const uint8_t* pData,
         const UINT width,
@@ -108,15 +100,13 @@ public:
     // --------------------------------------------------------------------------------
 
     bool Initialize(
-        ID3D11Device* pDevice,
         const char* name,
         const uint8* data,
         const uint width,
         const uint height,
         const bool mipMapped);
 
-    void LoadFromFile(ID3D11Device* pDevice, const char* filePath);
-
+    void LoadFromFile(const char* filePath);
 
     void Release();
 
@@ -137,17 +127,8 @@ public:
     void SetName(const char* name);
 
 private:
-  
-   
-    void Initialize1x1ColorTexture(
-        ID3D11Device* pDevice, 
-        const Color & colorData);
-
-    void InitializeColorTexture(
-        ID3D11Device* pDevice, 
-        const Color* pColorData, 
-        const UINT width, 
-        const UINT height);
+    void Initialize1x1ColorTexture(const Color& data);
+    void InitializeColorTexture   (const Color* pData, const UINT width, const UINT height);
 
 private:
     std::string               name_ {"no_tex_name"};

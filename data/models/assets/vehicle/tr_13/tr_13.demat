@@ -7,9 +7,9 @@ Kd 0.80 0.80 0.80 1.00
 Ks 0.00 0.00 0.00
 Kg 1.00
 Kr 0.00 0.00 0.00 0.00
-tex_diff veh_traktor.dds
-tex_norm blank_NRM.dds
-tex_opac veh_traktor.dds
+tex_diff veh/traktor
+tex_norm blankNRM
+tex_opac veh/traktor
 
 newmtl lights_lights_cone_handing_lamp
 mat_id 34
@@ -21,8 +21,8 @@ Kd 0.00 0.00 0.00 1.00
 Ks 0.00 0.00 0.00
 Kg 1.00
 Kr 0.00 0.00 0.00 0.00
-tex_diff lights_cone_handing_lamp.dds
-tex_opac lights_cone_handing_lamp.dds
+tex_diff light/cone_handing_lamp
+tex_opac light/cone_handing_lamp
 
 newmtl glow_glow_Orange
 mat_id 35
@@ -34,8 +34,8 @@ Kd 1.00 1.00 1.00 1.00
 Ks 0.00 0.00 0.00
 Kg 1.00
 Kr 0.00 0.00 0.00 0.00
-tex_diff glow_orange.dds
-tex_opac glow_orange.dds
+tex_diff glow/orange
+tex_opac glow/orange
 
 newmtl veh_veh_traktor_001
 mat_id 36
@@ -46,9 +46,9 @@ Kd 0.80 0.80 0.80 1.00
 Ks 0.00 0.00 0.00
 Kg 1.00
 Kr 0.00 0.00 0.00 0.00
-tex_diff veh_traktor.dds
-tex_norm blank_NRM.dds
-tex_opac veh_traktor.dds
+tex_diff veh/traktor
+tex_norm blankNRM
+tex_opac veh/traktor
 
 newmtl veh_veh_nivaglass1
 mat_id 37
@@ -59,7 +59,7 @@ Kd 0.80 0.80 0.80 1.00
 Ks 1.00 1.00 1.00
 Kg 64.00
 Kr 0.50 0.50 0.50 0.00
-tex_diff veh_nivaglass1.dds
-tex_norm blank_NRM.dds
-tex_opac veh_nivaglass1.dds
+tex_diff veh/nivaglass
+tex_norm blankNRM
+tex_opac veh/nivaglass
 

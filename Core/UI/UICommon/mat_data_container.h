@@ -16,7 +16,7 @@ struct MaterialData
 
     char name[MAX_LEN_MAT_NAME]{ '\0' };
 
-    TexID                     textureIDs[NUM_TEXTURE_TYPES]{ INVALID_TEXTURE_ID };
+    TexID                     textureIDs[NUM_TEXTURE_TYPES]{ INVALID_TEX_ID };
     ID3D11ShaderResourceView* textures[NUM_TEXTURE_TYPES]{ nullptr };
 
     index    selectedFillModeIdx          = -1;

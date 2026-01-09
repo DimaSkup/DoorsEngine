@@ -7,8 +7,8 @@ Kd 0.80 0.80 0.80 1.00
 Ks 0.20 0.20 0.20
 Kg 25.00
 Kr 0.00 0.00 0.00 0.00
-tex_diff act_arm_1.dds
-tex_opac act_arm_1.dds
+tex_diff act/arm_1
+tex_opac act/arm_1
 
 newmtl wpn_wpn_ak74
 mat_id 34
@@ -19,9 +19,9 @@ Kd 0.80 0.80 0.80 1.00
 Ks 0.20 0.20 0.20
 Kg 25.00
 Kr 0.00 0.00 0.00 0.00
-tex_diff wpn_ak74.dds
-tex_norm blank_NRM.dds
-tex_opac wpn_ak74.dds
+tex_diff wpn/ak74
+tex_norm blankNRM
+tex_opac wpn/ak74
 
 newmtl wpn_wpn_upgrade
 mat_id 91
@@ -32,8 +32,8 @@ Kd 0.80 0.80 0.80 1.00
 Ks 0.20 0.20 0.20
 Kg 25.00
 Kr 0.00 0.00 0.00 0.00
-tex_diff wpn_ak74.dds
-tex_opac wpn_ak74.dds
+tex_diff wpn/ak74
+tex_opac wpn/ak74
 
 newmtl wpn_wpn_vog
 mat_id 36
@@ -44,7 +44,7 @@ Kd 0.80 0.80 0.80 1.00
 Ks 0.20 0.20 0.20
 Kg 25.00
 Kr 0.00 0.00 0.00 0.00
-tex_diff wpn_vog.dds
-tex_norm blank_NRM.dds
-tex_opac wpn_vog.dds
+tex_diff wpn/vog
+tex_norm blankNRM
+tex_opac wpn/vog
 

@@ -498,8 +498,11 @@ void LoadMaterialTextures(
                 case TexStoreType::Disk:
                 {
                     // get a path to the texture file
-                    char texPath[256]{ '\0' };
+                    char texPath[256]{'\0'};
+                    char texName[MAX_LEN_TEX_NAME]{'\0'};
+
                     FileSys::GetParentPath(filePath, g_String);
+                    FileSys::GetFileStem(filePath, texName);
 
                     if (strcmp(modelExt, ".fbx") == 0)
                     {
@@ -517,8 +520,9 @@ void LoadMaterialTextures(
                     }
 
                     // load texture and check it
-                    TexID texId = g_TextureMgr.LoadFromFile(texPath);
-                    if (texId == INVALID_TEXTURE_ID)
+                    const TexID texId = g_TextureMgr.LoadFromFile(texName, texPath);
+
+                    if (texId == INVALID_TEX_ID)
                         LogErr(LOG, "can't load a texture from file: %s", texPath);
 
                     texIDs[type] = texId;
@@ -536,7 +540,6 @@ void LoadMaterialTextures(
                     FileSys::GetFileName(path.C_Str(), textureName);
 
                     Texture texture(
-                        pDevice,
                         textureName,
                         (uint8_t*)(pAiTexture->pcData),         // data of texture
                         pAiTexture->mWidth,                     
@@ -545,7 +548,6 @@ void LoadMaterialTextures(
 
                     // add a new texture into the texture manager
                     const TexID id = g_TextureMgr.Add(textureName, std::move(texture));
-
 
                     texIDs[type] = id;
                     break;
@@ -562,7 +564,6 @@ void LoadMaterialTextures(
                     aiTexture* pAiTex = pScene->mTextures[index];
 
                     Texture texture(
-                        pDevice,
                         textureName,
                         (uint8_t*)(pAiTex->pcData),
                         pAiTex->mWidth,

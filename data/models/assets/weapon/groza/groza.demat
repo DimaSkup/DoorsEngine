@@ -7,9 +7,9 @@ Kd 0.80 0.80 0.80 1.00
 Ks 0.20 0.20 0.20
 Kg 25.00
 Kr 0.00 0.00 0.00 0.00
-tex_diff wpn_groza.dds
-tex_norm blank_NRM.dds
-tex_opac wpn_groza.dds
+tex_diff wpn/groza
+tex_norm blankNRM
+tex_opac wpn/groza
 
 newmtl wpn_wpn_vog
 mat_id 25
@@ -20,7 +20,7 @@ Kd 0.80 0.80 0.80 1.00
 Ks 0.20 0.20 0.20
 Kg 25.00
 Kr 0.00 0.00 0.00 0.00
-tex_diff wpn_vog.dds
-tex_norm blank_NRM.dds
-tex_opac wpn_vog.dds
+tex_diff wpn/vog
+tex_norm blankNRM
+tex_opac wpn/vog
 

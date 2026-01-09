@@ -20,7 +20,6 @@ public:
     ModelsCreator();
 
     ModelID CreateFromDE3D  (const char* modelPath);
-    ModelID ImportFromM3D   (const char* modelPath);
     ModelID ImportFromFile  (const char* modelPath);
 
     ModelID CreateSkyDome   (const float radius, const int sliceCount, const int stackCount);
@@ -35,15 +34,12 @@ public:
     ModelID CreateCube      (void);
     ModelID CreateSphere    (const MeshSphereParams& params);
     ModelID CreateGeoSphere (const MeshGeosphereParams& params);
-
     ModelID CreateCylinder  (const MeshCylinderParams& params);
-    ModelID CreateSkull     (void);
-    ModelID CreatePyramid   (const MeshPyramidParams& params = NULL);
 
     // creators for the specific types of models
     void    CreateSkyCube   (const float height);
     void    CreateSkySphere (const float radius, const int sliceCount, const int stackCount);
-    bool    CreateTerrain   (const char* configFilename);
+    bool    CreateTerrain   (const char* configFilepath);
 
 private:
     //void    ReadSkullMeshFromFile(BasicModel& model, const char* filepath);

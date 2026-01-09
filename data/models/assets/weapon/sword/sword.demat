@@ -7,7 +7,7 @@ Kd 0.59 0.59 0.59 1.00
 Ks 0.50 0.50 0.50
 Kg 10.00
 Kr 0.00 0.00 0.00 0.00
-tex_diff 1H_Sword_01_D.dds
-tex_spec 1H_Sword_01_S.dds
-tex_norm 1H_Sword_01_N.dds
+tex_diff wpn/sword_01_diff
+tex_spec wpn/sword_01_spec
+tex_norm wpn/sword_01_norm
 

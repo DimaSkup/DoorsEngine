@@ -7,8 +7,8 @@ Kd 0.80 0.80 0.80 1.00
 Ks 0.10 0.10 0.10
 Kg 25.00
 Kr 0.00 0.00 0.00 0.00
-tex_diff wood_table_01.dds
-tex_norm blank_NRM.dds
+tex_diff prop/wood_table_01
+tex_norm blankNRM
 
 newmtl wood_table_02_S
 mat_id 87
@@ -19,6 +19,6 @@ Kd 0.80 0.80 0.80 1.00
 Ks 0.10 0.10 0.10
 Kg 25.00
 Kr 0.00 0.00 0.00 0.00
-tex_diff wood_table_02.dds
-tex_norm blank_NRM.dds
+tex_diff prop/wood_table_02
+tex_norm blankNRM
 

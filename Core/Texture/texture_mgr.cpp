@@ -7,6 +7,7 @@
 #include <CoreCommon/pch.h>
 #include "texture_mgr.h"
 
+#include <Timers/game_timer.h>
 #include <Render/d3dclass.h>    // for using global pointers to DX11 device and context
 #include "ImageReader.h"        // from Image module
 
@@ -66,18 +67,24 @@ void TextureMgr::PrintDump() const
 
 bool TextureMgr::Init(const char* texturesCfg)
 {
-    // initialize a "default" texture which will serve for us as "invalid"
-    // (we return it each time when don't find a valid texture by id/name/etc.)
-    //char noTexPath[64];
-    //sprintf(noTexPath, "%s%s", g_RelPathTexDir, "")
-
     assert(texturesCfg && texturesCfg[0] != '\0');
 
+    const TimePoint start = GameTimer::GetTimePoint();
     FILE* pFile = nullptr;
     char buf[256]{ '\0' };
     char name[MAX_LEN_TEX_NAME];
     char path[128];
     int count = 0;
+    int texCountInit = 0;
+    int texCountAll = 0;
+    
+
+    SetConsoleColor(YELLOW);
+    LogMsg("\n");
+    LogMsg("-----------------------------------------------------------");
+    LogMsg("                INITIALIZATION: TEXTURES                   ");
+    LogMsg("-----------------------------------------------------------");
+    SetConsoleColor(RESET);
 
 
     pFile = fopen(texturesCfg, "r");
@@ -122,16 +129,29 @@ bool TextureMgr::Init(const char* texturesCfg)
             exit(0);
         }
 
-        printf("name: %-32s  path: %s\n", name, path);
+        printf("\tname: %-32s  path: %s\n", name, path);
+
 
         // create a full path to the texture (relatively to the project working directory)
         memset(g_String, 0, LOG_BUF_SIZE);
         strcat(g_String, g_RelPathTexDir);
         strcat(g_String, path);
 
-        const TexID id = LoadFromFile(g_String);
-        SetTexName(id, name);
+        if (LoadFromFile(name, g_String))
+            texCountInit++;
+
+        texCountAll++;
     }
+
+    const TimePoint      end = GameTimer::GetTimePoint();
+    const TimeDurationMs dur = end - start;
+
+    SetConsoleColor(MAGENTA);
+    LogMsg("--------------------------------------");
+    LogMsg("Init: %d / %d textures", texCountInit, texCountAll);
+    LogMsg("Init of textures took: %.3f ms", dur.count());
+    LogMsg("--------------------------------------\n");
+    SetConsoleColor(RESET);
 
     fclose(pFile);
     return true;
@@ -267,7 +287,7 @@ TexID TextureMgr::CreateTextureFromRawData(
         }
 
         // create a DirectX texture
-        Texture texture(Render::g_pDevice, name, initData, width, height, mipMapped);
+        Texture texture(name, initData, width, height, mipMapped);
 
         // move texture into the textures manager and return an ID of the texture
         return Add(name, std::move(texture));
@@ -276,12 +296,12 @@ TexID TextureMgr::CreateTextureFromRawData(
     {
         LogErr(e.what());
         LogErr(LOG, "can't allocate memory for the texture: %s", name);
-        return INVALID_TEXTURE_ID;
+        return INVALID_TEX_ID;
     }
     catch (EngineException& e)
     {
         LogErr(e);
-        return INVALID_TEXTURE_ID;
+        return INVALID_TEX_ID;
     }
 }
 
@@ -317,6 +337,7 @@ void TextureMgr::RecreateTextureFromRawData(
         CAssert::True(IsPow2(height),                     "input height must be a power of 2");
         CAssert::True(bpp == 8 || bpp == 24 || bpp == 32, "input number of bits per pixel must be equal to 24 or 32");
 
+
         // we already have a 32 bits image
         if (bpp == 32)
         {
@@ -340,7 +361,7 @@ void TextureMgr::RecreateTextureFromRawData(
         }
 
         // init texture with raw data
-        if (!inOutTex.Initialize(Render::g_pDevice, name, initData, width, height, mipMapped))
+        if (!inOutTex.Initialize(name, initData, width, height, mipMapped))
         {
             sprintf(g_String, "can't initialize texture: %s", name);
             throw EngineException(g_String);
@@ -401,7 +422,7 @@ TexID TextureMgr::Add(const char* name, Texture&& tex)
     if (StrHelper::IsEmpty(name))
     {
         LogErr(LOG, "input texture name is empty");
-        return INVALID_TEXTURE_ID;
+        return INVALID_TEX_ID;
     }
 
 
@@ -437,13 +458,13 @@ TexID TextureMgr::LoadFromFile(const char* dirPath, const char* texturePath)
     if (StrHelper::IsEmpty(dirPath))
     {
         LogErr("input path to directory is empty!");
-        return INVALID_TEXTURE_ID;
+        return INVALID_TEX_ID;
     }
 
     if (StrHelper::IsEmpty(texturePath))
     {
         LogErr("input path to texture is empty!");
-        return INVALID_TEXTURE_ID;
+        return INVALID_TEX_ID;
     }
 
     // create a full path to the texture (relatively to the project working directory) and load this texture
@@ -460,20 +481,20 @@ TexID TextureMgr::LoadFromFile(const char* dirPath, const char* texturePath)
 //        - path:  full path to the texture file
 // Ret:   an ID to the loaded texture
 //---------------------------------------------------------
-//TexID TextureMgr::LoadFromFile(const char* name, const char* path)
-TexID TextureMgr::LoadFromFile(const char* path)
+TexID TextureMgr::LoadFromFile(const char* name, const char* path)
 {
+    if (StrHelper::IsEmpty(name))
+    {
+        LogErr(LOG, "name is empty");
+        return INVALID_TEX_ID;
+    }
     if (StrHelper::IsEmpty(path))
     {
-        LogErr(LOG, "input path to texture is empty!");
-        return INVALID_TEXTURE_ID;
+        LogErr(LOG, "path is empty");
+        return INVALID_TEX_ID;
     }
 
   
-    // generate a name for texture
-    char name[64]{ '\0' };
-    FileSys::GetFileStem(path, name);
-
     // if there is already a texture by such name...
     TexID id = GetTexIdByName(name);
     if (id != 0)
@@ -481,7 +502,7 @@ TexID TextureMgr::LoadFromFile(const char* path)
 
 
     // ... or create a new one
-    Texture tex(Render::g_pDevice, path, name);
+    Texture tex(path, name);
 
     id = GenID();
     ids_.push_back(id);
@@ -525,7 +546,7 @@ bool TextureMgr::ReloadFromFile(const TexID id, const char* path)
     FileSys::GetFileStem(path, name);
 
     // reinit
-    tex.LoadFromFile(Render::g_pDevice, path);
+    tex.LoadFromFile(path);
     tex.SetName(name);
 
     // update data
@@ -547,7 +568,7 @@ TexID TextureMgr::CreateCubeMap(const char* name, const CubeMapInitParams& param
     // if there is already such a texture we just return its ID
     TexID id = GetTexIdByName(name);
 
-    if (id != INVALID_TEXTURE_ID)
+    if (id != INVALID_TEX_ID)
         return id;
 
     // create a cubemap texture
@@ -555,7 +576,7 @@ TexID TextureMgr::CreateCubeMap(const char* name, const CubeMapInitParams& param
     if (!cubeMap.CreateCubeMap(name, params))
     {
         cubeMap.Release();
-        return INVALID_TEXTURE_ID;
+        return INVALID_TEX_ID;
     }
 
     id = GenID();
@@ -587,11 +608,11 @@ TexID TextureMgr::LoadTextureArray(
         for (index i = 0; i < numTextures; ++i)
         {
             if (!FileSys::Exists(texturePaths[0].c_str()))
-                return INVALID_TEXTURE_ID;
+                return INVALID_TEX_ID;
         }
 
         // create a texture array object
-        Texture texArr(Render::g_pDevice, name, texturePaths, (int)numTextures, format);
+        Texture texArr(name, texturePaths, (int)numTextures, format);
 
         const TexID id = GenID();
 
@@ -607,7 +628,7 @@ TexID TextureMgr::LoadTextureArray(
     {
         LogErr(e, true);
         LogErr("can't create texture 2D array");
-        return INVALID_TEXTURE_ID;
+        return INVALID_TEX_ID;
     }
 }
 
@@ -622,11 +643,11 @@ TexID TextureMgr::CreateWithColor(const Color& color)
     TexID id = GetTexIdByName(g_String);
 
     // if we already have a texture by such name...
-    if (id != INVALID_TEXTURE_ID)
+    if (id != INVALID_TEX_ID)
         return id;
 
     // ... or create a new one and ret its ID
-    return Add(g_String, Texture(Render::g_pDevice, color));
+    return Add(g_String, Texture(color));
 }
 
 //---------------------------------------------------------
@@ -640,7 +661,7 @@ Texture& TextureMgr::GetTexByID(const TexID id)
     if (IsIdxValid(idx))
         return textures_[idx];
 
-    return textures_[INVALID_TEXTURE_ID];
+    return textures_[INVALID_TEX_ID];
 }
 
 //---------------------------------------------------------
@@ -653,7 +674,7 @@ Texture* TextureMgr::GetTexPtrByID(const TexID id)
     if (IsIdxValid(idx))
         return &textures_[idx];
 
-    return &textures_[INVALID_TEXTURE_ID];
+    return &textures_[INVALID_TEX_ID];
 }
 
 //---------------------------------------------------------
@@ -682,7 +703,7 @@ Texture* TextureMgr::GetTexPtrByName(const char* name)
     if (IsIdxValid(idx))
         return &textures_[idx];
 
-    return &textures_[INVALID_TEXTURE_ID];
+    return &textures_[INVALID_TEX_ID];
 }
 
 //---------------------------------------------------------
@@ -694,7 +715,7 @@ TexID TextureMgr::GetTexIdByName(const char* name)
     if (StrHelper::IsEmpty(name))
     {
         LogErr(LOG, "input name is empty!");
-        return INVALID_TEXTURE_ID;
+        return INVALID_TEX_ID;
     }
 
     for (index i = 0; i < names_.size(); ++i)
@@ -703,7 +724,7 @@ TexID TextureMgr::GetTexIdByName(const char* name)
             return ids_[i];
     }
 
-    return INVALID_TEXTURE_ID;
+    return INVALID_TEX_ID;
 }
 
 //---------------------------------------------------------
@@ -714,7 +735,7 @@ TexID TextureMgr::GetTexIdByIdx(const index idx) const
     if (IsIdxValid(idx))
         return ids_[idx];
 
-    return INVALID_TEXTURE_ID;
+    return INVALID_TEX_ID;
 }
 
 //---------------------------------------------------------
@@ -727,7 +748,7 @@ ID3D11ShaderResourceView* TextureMgr::GetTexViewsById(const TexID texId)
     if (IsIdxValid(idx))
         return shaderResourceViews_[idx];
 
-    return shaderResourceViews_[INVALID_TEXTURE_ID];
+    return shaderResourceViews_[INVALID_TEX_ID];
 }
 
 //---------------------------------------------------------

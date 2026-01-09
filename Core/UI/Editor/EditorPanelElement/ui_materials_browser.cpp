@@ -851,7 +851,7 @@ void UIMaterialsBrowser::RenderTexturesTable()
             const TexID id = matData_.textureIDs[i];
             
             // skip since we don't have any texture by this slot
-            if (id == INVALID_TEXTURE_ID)
+            if (id == INVALID_TEX_ID)
                 continue;
 
 

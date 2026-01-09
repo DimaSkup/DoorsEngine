@@ -211,21 +211,18 @@ bool App::InitGUI(
     try
     {
         char dbgFontDataFilepath[64]{'\0'};
-        char dbgFontTexFilepath[64]{'\0'};
+        char dbgFontTexName[MAX_LEN_TEX_NAME]{'\0'};
         char gameFontDataFilepath[64]{'\0'};
-        char gameFontTexFilepath[64]{'\0'};
+        char gameFontTexName[MAX_LEN_TEX_NAME]{'\0'};
 
         strcat(dbgFontDataFilepath, g_RelPathUIDataDir);
         strcat(dbgFontDataFilepath, engineConfigs_.GetString("DBG_FONT_DATA_PATH"));
 
-        strcat(dbgFontTexFilepath, g_RelPathUIDataDir);
-        strcat(dbgFontTexFilepath, engineConfigs_.GetString("DBG_FONT_TEX_PATH"));
-
         strcat(gameFontDataFilepath, g_RelPathUIDataDir);
         strcat(gameFontDataFilepath, engineConfigs_.GetString("GAME_FONT_DATA_PATH"));
 
-        strcat(gameFontTexFilepath, g_RelPathUIDataDir);
-        strcat(gameFontTexFilepath, engineConfigs_.GetString("GAME_FONT_TEX_PATH"));
+        strcat(dbgFontTexName,  engineConfigs_.GetString("DBG_FONT_TEX_NAME"));
+        strcat(gameFontTexName, engineConfigs_.GetString("GAME_FONT_TEX_NAME"));
 
 
         char videoCardName[128]{ '\0' };
@@ -237,9 +234,9 @@ bool App::InitGUI(
             pDevice,
             pFacadeEngineToUI_,
             dbgFontDataFilepath,
-            dbgFontTexFilepath,
+            dbgFontTexName,
             gameFontDataFilepath,
-            gameFontTexFilepath,
+            gameFontTexName,
             wndWidth,
             wndHeight,
             videoCardMemory,

@@ -53,26 +53,26 @@ constexpr int TRN_NUM_TILES = 5;
 
 struct TerrainConfig
 {
-    char    pathTextureMap0[64]{'\0'};
-    char    pathTextureMap1[64]{'\0'};
-    char    pathTextureMap2[64]{'\0'};
-    char    pathTextureMap3[64]{'\0'};
-    char    pathTexAlphaMap[64]{'\0'};
+    char    texDiffName0[64]{'\0'};
+    char    texDiffName1[64]{'\0'};
+    char    texDiffName2[64]{'\0'};
+    char    texDiffName3[64]{'\0'};
+    char    texAlphaName[64]{'\0'};
 
     char    pathHeightMap[64]{'\0'};
-    char    pathDetailMap[64]{'\0'};
-    char    pathLightMap[64]{'\0'};
+    char    texNameDetailMap[64]{'\0'};
+    char    texNameLightmap[64]{'\0'};
     char    pathNatureDensityMap[64]{'\0'};
 
-    char    pathNormalMap0[64]{'\0'};
-    char    pathNormalMap1[64]{'\0'};
-    char    pathNormalMap2[64]{'\0'};
-    char    pathNormalMap3[64]{'\0'};
+    char    texNormName0[64]{'\0'};
+    char    texNormName1[64]{'\0'};
+    char    texNormName2[64]{'\0'};
+    char    texNormName3[64]{'\0'};
 
-    char    pathSpecularMap0[64]{'\0'};
-    char    pathSpecularMap1[64]{'\0'};
-    char    pathSpecularMap2[64]{'\0'};
-    char    pathSpecularMap3[64]{'\0'};
+    char    texSpecName0[64]{'\0'};
+    char    texSpecName1[64]{'\0'};
+    char    texSpecName2[64]{'\0'};
+    char    texSpecName3[64]{'\0'};
 
 
     char    pathLowestTile[64]{'\0'};
@@ -88,14 +88,15 @@ struct TerrainConfig
     float   heightScale   = 0.4f;                   // scale factor for terrain heights
 
 
-    uint8   generateTextureMap          :1 = 1;     // do we use any terrain texture map generation or load it from file?
-    uint8   generateHeights             :1 = 1;     // do we use any terrain heights generation algorithm or load it from file?
-    uint8   generateLightMap            :1 = 1;
-    uint8   useGenFaultFormation        :1 = 1;     // what kind of heights generator will we use?
-    uint8   useGenMidpointDisplacement  :1 = 0;
-    uint8   saveTextureMap              :1 = 1;
-    uint8   saveHeightMap               :1 = 1;
-    uint8   saveLightMap                :1 = 1;
+    uint16   generateTextureMap          :1 = 1;     // do we use any terrain texture map generation or load it from file?
+    uint16   generateHeights             :1 = 1;     // do we use any terrain heights generation algorithm or load it from file?
+    uint16   generateLightMap            :1 = 1;
+    uint16   useGenFaultFormation        :1 = 1;     // what kind of heights generator will we use?
+    uint16   useGenMidpointDisplacement  :1 = 0;
+    uint16   saveTextureMap              :1 = 1;
+    uint16   saveHeightMap               :1 = 1;
+    uint16   saveLightMap                :1 = 1;
+    uint16   useLightmap                 :1 = 1;
 
     // params related to the "Fault formation" algorithm of heights generation
     int     numIterations   = 64;      
@@ -140,7 +141,7 @@ struct LightmapData
 {
     uint8*   pData = nullptr;
     int      size  = 0;
-    TexID    id    = INVALID_TEXTURE_ID;
+    TexID    id    = INVALID_TEX_ID;
 };
 
 ///////////////////////////////////////////////////////////
@@ -305,8 +306,8 @@ public:
     //--------------------------------------------------------------
     // load/unload a detail map (which is used to add realism to the terrain)
     //--------------------------------------------------------------
-    inline bool LoadDetailMap(const char* filename)
-    {   return detailMap_.LoadData(filename);   }
+    //inline bool LoadDetailMap(const char* filename)
+    //{   return detailMap_.LoadData(filename);   }
 
     inline void UnloadDetailMap(void)
     {   detailMap_.Unload();   }

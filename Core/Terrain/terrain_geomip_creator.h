@@ -15,8 +15,6 @@
 \**********************************************************************************/
 #pragma once
 
-#include <d3d11.h>
-
 
 namespace Core
 {
@@ -26,7 +24,7 @@ class TerrainGeomipCreator
 public:
     TerrainGeomipCreator() {}
 
-    bool Create(ID3D11Device* pDevice, const char* configFilename);
+    bool Create(const char* configFilename);
 };
 
 } // namespace Core

@@ -119,7 +119,7 @@ void WriteTextures(FILE* pFile, const Material& mat)
 {
     for (int i = 0; i < NUM_TEXTURE_TYPES; ++i)
     {
-        if (mat.texIds[i] == INVALID_TEXTURE_ID)
+        if (mat.texIds[i] == INVALID_TEX_ID)
             continue;
 
         switch (eTexType(i))

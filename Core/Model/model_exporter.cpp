@@ -414,7 +414,7 @@ void StoreTextures(
         // go through each texture and store it as .dds file
         for (int texIdx = 0; texIdx < NUM_TEXTURE_TYPES; ++texIdx)
         {
-            if (texIds[texIdx] == INVALID_TEXTURE_ID)
+            if (texIds[texIdx] == INVALID_TEX_ID)
                 continue;
 
             Texture& tex = g_TextureMgr.GetTexByID(texIds[texIdx]);
