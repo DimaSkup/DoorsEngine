@@ -19,6 +19,14 @@ using XMMATRIX = DirectX::XMMATRIX;
 namespace Render
 {
 
+//---------------------------------------------------------
+// global instance of the Render
+//---------------------------------------------------------
+CRender g_Render;
+
+//---------------------------------------------------------
+// constructor/destructor
+//---------------------------------------------------------
 CRender::CRender()
 {
 }
@@ -1359,6 +1367,14 @@ void CRender::GetArrShadersIds(cvector<ShaderID>& outIds) const
 void CRender::GetArrShadersNames(cvector<ShaderName>& outNames) const
 {
     pShaderMgr_->GetArrShadersNames(outNames);
+}
+
+//---------------------------------------------------------
+// Desc:  return shader id by input name
+//---------------------------------------------------------
+ShaderID CRender::GetShaderIdByName(const char* shaderName) const
+{
+    return pShaderMgr_->GetShaderIdByName(shaderName);
 }
 
 //---------------------------------------------------------

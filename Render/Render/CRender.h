@@ -213,9 +213,10 @@ public:
     const DirectX::XMFLOAT3& GetSkyCenterColor() const;
     const DirectX::XMFLOAT3& GetSkyApexColor()   const;
 
-    bool ShaderExist       (const ShaderID id) const;
-    void GetArrShadersIds  (cvector<ShaderID>& outIds) const;
-    void GetArrShadersNames(cvector<ShaderName>& outNames) const;
+    bool     ShaderExist        (const ShaderID id) const;
+    void     GetArrShadersIds   (cvector<ShaderID>& outIds) const;
+    void     GetArrShadersNames (cvector<ShaderName>& outNames) const;
+    ShaderID GetShaderIdByName  (const char* shaderName) const;
 
 
     // ================================================================================
@@ -378,5 +379,10 @@ private:
     Sprite2D spritesRenderList_[MAX_NUM_2D_SPRITES];
     int      numSpritesToRender_ = 0;
 };
+
+//---------------------------------------------------------
+// global instance of the Render
+//---------------------------------------------------------
+extern CRender g_Render;
 
 }; // namespace Render

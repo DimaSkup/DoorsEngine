@@ -1,6 +1,5 @@
 newmtl pine_bark_001
-mat_id 66
-shader_id 13
+shader WoodShader
 states 66186
 Ka 0.40 0.40 0.40 1.00
 Kd 0.65 0.65 0.65 1.00
@@ -11,8 +10,7 @@ tex_diff tree/pine_bark_diff
 tex_norm tree/pine_bark_norm
 
 newmtl pine_cap_001
-mat_id 67
-shader_id 13
+shader WoodShader
 states 66186
 Ka 0.40 0.40 0.40 1.00
 Kd 0.65 0.65 0.65 1.00
@@ -23,8 +21,7 @@ tex_diff tree/pine_cap_diff
 tex_norm tree/pine_cap_norm
 
 newmtl pine_leaf_001
-mat_id 68
-shader_id 11
+shader FoliageShader
 states 66186
 alpha_clip 1
 cull none

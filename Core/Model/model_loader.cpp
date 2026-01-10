@@ -100,20 +100,29 @@ void ReadHeader(FILE* pFile, BasicModel& model)
 //---------------------------------------------------------
 // Desc:   load materials from file and bind them to this model
 //---------------------------------------------------------
-void ReadMaterials(FILE* pFile, BasicModel& model, const char* relFilePath)
+void ReadMaterials(
+    FILE* pFile,
+    BasicModel& model,
+    const char* relFilePath)
 {
     assert(pFile != nullptr);
     assert(relFilePath && (relFilePath[0] != '\0'));
 
+    char relMatFilePath[256]{ '\0' };
     char matFileName[128]{'\0'};
+    char matName[MAX_LEN_MAT_NAME]{ '\0' };
+    int meshIdx = 0;
     int numMats = 0;
+    int count = 0;
 
-    fscanf(pFile, "%s\n", g_String);               // skip chunk/block header
-    fscanf(pFile, "MatFile: %s\n", matFileName);
+    // skip chunk/block header
+    fgets(g_String, sizeof(g_String), pFile);
+
+    
+    count = fscanf(pFile, "MatFile: %s\n", matFileName);
+    assert(count == 1);
 
     // generate a relative path to the materials file
-    char relMatFilePath[512]{ '\0' };
-
     FileSys::GetParentPath(relFilePath, relMatFilePath);
     strcat(relMatFilePath, matFileName);
 
@@ -122,14 +131,15 @@ void ReadMaterials(FILE* pFile, BasicModel& model, const char* relFilePath)
     matReader.Read(relMatFilePath);
 
     // setup material ID for each subset (mesh)
-    fscanf(pFile, "NumMaterials: %d\n", &numMats);
+    count = fscanf(pFile, "NumMaterials: %d\n", &numMats);
+    assert(count == 1);
+
     Subset* subsets = model.GetSubsets();
 
     for (int i = 0; i < numMats; ++i)
     {
-        char matName[MAX_LEN_MAT_NAME]{'\0'};
-        int idx = 0;
-        fscanf(pFile, "Subset%d_MatName: %s\n", &idx, matName);
+        count = fscanf(pFile, "Subset%d_MatName: %s\n", &meshIdx, matName);
+        assert(count == 2);
 
         subsets[i].materialId = g_MaterialMgr.GetMatIdByName(matName);
     }

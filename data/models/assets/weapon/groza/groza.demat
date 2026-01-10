@@ -1,6 +1,5 @@
 newmtl wpn_wpn_groza
-mat_id 24
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.50 0.50 0.50 1.00
 Kd 0.80 0.80 0.80 1.00
@@ -12,8 +11,7 @@ tex_norm blankNRM
 tex_opac wpn/groza
 
 newmtl wpn_wpn_vog
-mat_id 25
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.50 0.50 0.50 1.00
 Kd 0.80 0.80 0.80 1.00

@@ -2035,7 +2035,6 @@ void BindAnimationsToEntts(ECS::EntityMgr& enttMgr)
     const EntityID bm16hudTestId         = enttMgr.nameSys_.GetIdByName("bm_16_hud_test");
     const EntityID ak74hudTestId         = enttMgr.nameSys_.GetIdByName("ak_74_hud_test");
     const EntityID pmHudTestId           = enttMgr.nameSys_.GetIdByName("pm_hud_test");
-    const EntityID ak74TestId            = enttMgr.nameSys_.GetIdByName("ak_74_hud_test_static");
 
     // add animation component to ak74
     AnimSkeleton&        ak74hudSkeleton = g_AnimationMgr.GetSkeleton("wpn_ak74_hud");
@@ -2043,7 +2042,6 @@ void BindAnimationsToEntts(ECS::EntityMgr& enttMgr)
     const AnimationClip& ak74Anim        = ak74hudSkeleton.GetAnimation(ak74AnimId);
 
     enttMgr.AddAnimationComponent(ak74hudId,     ak74hudSkeleton.id_, ak74AnimId, ak74Anim.GetEndTime());
-    enttMgr.AddAnimationComponent(ak74hudTestId, ak74hudSkeleton.id_, ak74AnimId, ak74Anim.GetEndTime());
     ak74hudSkeleton.DumpAnimations();
 
 

@@ -1,6 +1,5 @@
 newmtl act_act_arm_perchatka
-mat_id 102
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.40 0.40 0.40 1.00
 Kd 0.80 0.80 0.80 1.00
@@ -11,8 +10,7 @@ tex_diff act/arm_1
 tex_opac act/arm_1
 
 newmtl wpn_wpn_PM
-mat_id 103
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.40 0.40 0.40 1.00
 Kd 0.80 0.80 0.80 1.00

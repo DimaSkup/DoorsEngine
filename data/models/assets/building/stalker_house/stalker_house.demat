@@ -1,6 +1,5 @@
 newmtl Material__896
-mat_id 38
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
@@ -11,8 +10,7 @@ tex_diff wood/wood_board_01
 tex_norm blankNRM
 
 newmtl Material__1674
-mat_id 39
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
@@ -23,8 +21,7 @@ tex_diff wall/wall_red_01
 tex_norm blankNRM
 
 newmtl Material__955
-mat_id 40
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
@@ -35,8 +32,7 @@ tex_diff crete/crete_dirt_2
 tex_norm blankNRM
 
 newmtl Material__549
-mat_id 41
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
@@ -47,8 +43,7 @@ tex_diff wood/wood_plank6
 tex_norm blankNRM
 
 newmtl Material__796
-mat_id 42
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
@@ -59,8 +54,7 @@ tex_diff brick/bricks_02
 tex_norm blankNRM
 
 newmtl Material__1003
-mat_id 43
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
@@ -71,8 +65,7 @@ tex_diff wood/wood_old
 tex_norm blankNRM
 
 newmtl Material__551
-mat_id 44
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
@@ -83,8 +76,7 @@ tex_diff wood/wood_plank6
 tex_norm blankNRM
 
 newmtl Material__830
-mat_id 45
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
@@ -95,8 +87,7 @@ tex_diff mtl/rust_dark
 tex_norm blankNRM
 
 newmtl Material__1002
-mat_id 46
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
@@ -107,8 +98,7 @@ tex_diff wood/wood_old
 tex_norm blankNRM
 
 newmtl Material__1006
-mat_id 47
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
@@ -119,8 +109,7 @@ tex_diff wood/wood_old
 tex_norm blankNRM
 
 newmtl Material__1007
-mat_id 48
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
@@ -131,8 +120,7 @@ tex_diff wood/wood_old
 tex_norm blankNRM
 
 newmtl Material__954
-mat_id 49
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
@@ -143,8 +131,7 @@ tex_diff crete/crete_dirt_2
 tex_norm blankNRM
 
 newmtl Material__1673
-mat_id 50
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
@@ -155,8 +142,7 @@ tex_diff wall/wall_red_01
 tex_norm blankNRM
 
 newmtl Material__1466
-mat_id 51
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
@@ -167,8 +153,7 @@ tex_diff brick/bricks_dirt_01
 tex_norm blankNRM
 
 newmtl Material__1683
-mat_id 52
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
@@ -179,8 +164,7 @@ tex_diff wall/wall_wallpaper_02
 tex_norm blankNRM
 
 newmtl Material__1684
-mat_id 53
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
@@ -191,8 +175,7 @@ tex_diff wall/wall_tile_red_01
 tex_norm blankNRM
 
 newmtl Material__1659
-mat_id 54
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
@@ -203,8 +186,7 @@ tex_diff wall/wall_stucco_05
 tex_norm blankNRM
 
 newmtl Material__803
-mat_id 55
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
@@ -215,8 +197,7 @@ tex_diff brick/bricks_02
 tex_norm blankNRM
 
 newmtl Material__1005
-mat_id 56
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
@@ -227,8 +208,7 @@ tex_diff wood/wood_old
 tex_norm blankNRM
 
 newmtl Material__910
-mat_id 57
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
@@ -239,8 +219,7 @@ tex_diff wood/wood_board_01
 tex_norm blankNRM
 
 newmtl Material__1656
-mat_id 58
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
@@ -251,8 +230,7 @@ tex_diff wood/wood_wire
 tex_norm blankNRM
 
 newmtl Material__1657
-mat_id 59
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00

@@ -15,7 +15,6 @@
 \**********************************************************************************/
 #pragma once
 
-
 namespace Core
 {
 
@@ -24,8 +23,6 @@ class BasicModel;
 class ModelLoader
 {
 public:
-    ModelLoader() {}
-
     bool Load(const char* filePath, BasicModel* pModel);
 };
 

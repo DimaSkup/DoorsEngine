@@ -458,7 +458,7 @@ ShaderID ShaderMgr::GetShaderIdByName(const char* name) const
     if (StrHelper::IsEmpty(name))
     {
         LogErr(LOG, "input shader name is empty, so return id == 0");
-        return 0;
+        return INVALID_SHADER_ID;
     }
 
     for (auto& it : idToShader_)
@@ -471,7 +471,7 @@ ShaderID ShaderMgr::GetShaderIdByName(const char* name) const
     }
 
     LogErr(LOG, "there is no shader by name: %s\n so return id == 0", name);
-    return 0;
+    return INVALID_SHADER_ID;
 }
 
 //---------------------------------------------------------

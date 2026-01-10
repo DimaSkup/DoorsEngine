@@ -1,6 +1,5 @@
 newmtl Material_gaz_2101
-mat_id 69
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.7 0.7 0.7 1.00
 Kd 0.3 0.3 0.3 1.00

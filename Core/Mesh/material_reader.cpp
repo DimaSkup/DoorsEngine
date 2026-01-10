@@ -17,7 +17,7 @@
 #include "material_mgr.h"
 #include "material.h"
 #include <Texture/texture_mgr.h>
-
+#include <Render/CRender.h>          // include it here because we need to get ShaderID by name 
 
 namespace Core
 {
@@ -137,20 +137,19 @@ void ReadCommon(FILE* pFile, Material& mat)
 {
     assert(pFile != nullptr);
 
+    char shaderName[MAX_LEN_SHADER_NAME];
     MaterialID tempMatId = 0;
     int count = 0;
 
-    count = fscanf(pFile, "mat_id %" SCNu32, &tempMatId);
-    assert(count != EOF);
-
-    count = fscanf(pFile, "\nshader_id %" SCNu32, &mat.shaderId);
-    assert(count != EOF);
+    count = fscanf(pFile, "\nshader %s\n", shaderName);
+    assert(count == 1);
 
     count = fscanf(pFile, "\nstates %" SCNu32, &mat.renderStates);
-    assert(count != EOF);
+    assert(count == 1);
 
     fscanf(pFile, "\n");
 
+    mat.shaderId = Render::g_Render.GetShaderIdByName(shaderName);
 
     if (mat.renderStates == 0)
         mat.renderStates = MAT_PROP_DEFAULT;

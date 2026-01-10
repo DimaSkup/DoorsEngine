@@ -1,6 +1,5 @@
 newmtl boblampclean_md5mesh_mat_0
-mat_id 93
-shader_id 3
+shader LightShader
 states 66186
 Ka 1.00 1.00 1.00 1.00
 Kd 1.00 1.00 1.00 1.00
@@ -10,8 +9,7 @@ Kr 0.00 0.00 0.00 0.00
 tex_diff act/guard1_body
 
 newmtl boblampclean_md5mesh_mat_1
-mat_id 94
-shader_id 3
+shader LightShader
 states 66186
 Ka 1.00 1.00 1.00 1.00
 Kd 1.00 1.00 1.00 1.00
@@ -21,8 +19,7 @@ Kr 0.00 0.00 0.00 0.00
 tex_diff act/guard1_face
 
 newmtl boblampclean_md5mesh_mat_2
-mat_id 95
-shader_id 3
+shader LightShader
 states 66186
 Ka 1.00 1.00 1.00 1.00
 Kd 1.00 1.00 1.00 1.00
@@ -32,8 +29,7 @@ Kr 0.00 0.00 0.00 0.00
 tex_diff mtl/guard1_helmet
 
 newmtl boblampclean_md5mesh_mat_3
-mat_id 96
-shader_id 3
+shader LightShader
 states 66186
 Ka 1.00 1.00 1.00 1.00
 Kd 1.00 1.00 1.00 1.00
@@ -43,8 +39,7 @@ Kr 0.00 0.00 0.00 0.00
 tex_diff mtl/iron_grill
 
 newmtl boblampclean_md5mesh_mat_4
-mat_id 97
-shader_id 3
+shader LightShader
 states 66186
 Ka 1.00 1.00 1.00 1.00
 Kd 1.00 1.00 1.00 1.00
@@ -54,8 +49,7 @@ Kr 0.00 0.00 0.00 0.00
 tex_diff mtl/round_grill
 
 newmtl boblampclean_md5mesh_mat_5
-mat_id 98
-shader_id 3
+shader LightShader
 states 66186
 Ka 1.00 1.00 1.00 1.00
 Kd 1.00 1.00 1.00 1.00

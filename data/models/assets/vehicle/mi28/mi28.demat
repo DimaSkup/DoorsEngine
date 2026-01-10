@@ -1,6 +1,5 @@
 newmtl mi28_mat
-mat_id 83
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.70 0.70 0.70 1.00
 Kd 0.30 0.30 0.30 1.00

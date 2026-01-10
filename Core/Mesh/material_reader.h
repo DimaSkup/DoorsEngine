@@ -21,8 +21,6 @@ namespace Core
 class MaterialReader
 {
 public:
-    MaterialReader() {}
-
     bool Read(const char* filePath);
 };
 

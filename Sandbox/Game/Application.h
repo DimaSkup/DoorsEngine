@@ -41,7 +41,6 @@ public:
     bool InitWindow();
     void InitEngine();
     bool InitRender(const Core::EngineConfigs& cfg);
-    bool InitScene (ID3D11Device* pDevice, const Core::EngineConfigs& cfg);
     bool InitGUI   (ID3D11Device* pDevice, const int wndWidth, const int wndHeight);
 
 private:
@@ -49,9 +48,7 @@ private:
 
     Game                   game_;
     Core::Engine           engine_;
-
     ECS::EntityMgr         entityMgr_;
-    Render::CRender        render_;                                // rendering module
     UI::UserInterface      userInterface_;       // UI/GUI: for work with the graphics user interface (GUI)
 
     UI::IFacadeEngineToUI* pFacadeEngineToUI_ = nullptr;  // a facade interface which are used by UI to contact with some engine's parts

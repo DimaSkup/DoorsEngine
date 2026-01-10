@@ -1,6 +1,5 @@
 newmtl BigBuilding_Metal
-mat_id 60
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.50 0.50 0.50 1.00
 Kd 0.80 0.80 0.80 1.00
@@ -12,8 +11,7 @@ tex_norm milit_house/metal_norm
 tex_shin milit_house/metal_AO
 
 newmtl BigBuilding_Concrete
-mat_id 61
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.50 0.50 0.50 1.00
 Kd 0.80 0.80 0.80 1.00
@@ -26,8 +24,7 @@ tex_shin milit_house/concrete_spec
 tex_light milit_house/concrete_AO
 
 newmtl BigBuilding_Wood
-mat_id 62
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.50 0.50 0.50 1.00
 Kd 0.80 0.80 0.80 1.00
@@ -40,8 +37,7 @@ tex_shin milit_house/wood_spec
 tex_light milit_house/wood_AO
 
 newmtl BigBuilding_Roof
-mat_id 63
-shader_id 3
+shader LightShader
 states 66186
 Ka 0.50 0.50 0.50 1.00
 Kd 0.80 0.80 0.80 1.00

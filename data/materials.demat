@@ -1,6 +1,5 @@
 newmtl grass_0
-mat_id 1
-shader_id 4
+shader GrassShader
 states 0
 Kd 0.82 0.82 0.82 1.0
 Kd 0.82 0.82 0.82 1.0
@@ -11,8 +10,7 @@ cull none
 bs disabled
 
 newmtl grass_1
-mat_id 2
-shader_id 4
+shader GrassShader
 states 0
 tex_diff plants/grass02
 alpha_clip 1
@@ -20,8 +18,7 @@ cull none
 bs disabled
 
 newmtl brick_01
-mat_id 3
-shader_id 3
+shader LightShader
 states 0
 Ka 0.4 0.4 0.4 1.0
 Kd 0.8 0.8 0.8 1.0
@@ -31,8 +28,7 @@ tex_diff brick/brick01d
 tex_norm brick/brick01n
 
 newmtl brick_blend_add
-mat_id 4
-shader_id 3
+shader LightShader
 states 0
 Ka 0.4 0.4 0.4 1.0
 Kd 0.8 0.8 0.8 1.0
@@ -43,8 +39,7 @@ tex_norm brick/brick01n
 bs add
 
 newmtl brick_blend_sub
-mat_id 5
-shader_id 3
+shader LightShader
 states 0
 Ka 0.4 0.4 0.4 1.0
 Kd 0.8 0.8 0.8 1.0
@@ -55,8 +50,7 @@ tex_norm brick/brick01n
 bs sub
 
 newmtl brick_blend_mul
-mat_id 6
-shader_id 3
+shader LightShader
 states 0
 Ka 0.4 0.4 0.4 1.0
 Kd 0.8 0.8 0.8 1.0
@@ -67,8 +61,7 @@ tex_norm brick/brick01n
 bs mul
 
 newmtl brick_blend_transparent
-mat_id 7
-shader_id 3
+shader LightShader
 states 0
 Ka 0.4 0.4 0.4 1.0
 Kd 0.8 0.8 0.8 1.0
@@ -79,36 +72,31 @@ tex_norm brick/brick01n
 bs transparency
 
 newmtl mirror
-mat_id 8
-shader_id 12
+shader MetallicShader
 states 0
 Kr 1.0 1.0 1.0 1.0
 tex_diff random/gray
 
 newmtl cat
-mat_id 9
-shader_id 3
+shader LightShader
 states 0
 tex_diff random/cat
 tex_norm blankNRM
 
 newmtl wood_crate_1
-mat_id 10
-shader_id 3
+shader LightShader
 states 0
 tex_diff wood/crate01
 tex_norm blankNRM
 
 newmtl wood_crate_2
-mat_id 11
-shader_id 3
+shader LightShader
 states 0
 tex_diff wood/crate02
 tex_norm blankNRM
 
 newmtl box01
-mat_id 12
-shader_id 3
+shader LightShader
 states 0
 Ka 0.20 0.20 0.20 1.0
 Kd 0.90 0.90 0.90 1.0
@@ -119,39 +107,34 @@ tex_diff wood/box01d
 tex_norm wood/box01n
 
 newmtl flameMat
-mat_id 13
-shader_id 5
+shader LightShader
 states 0
 tex_diff fx/flame0
 bs add
 dss mark_mirror
 
 newmtl flareMat
-mat_id 14
-shader_id 5
+shader ParticleShader
 states 0
 tex_diff flare/flare01
 bs add
 dss mark_mirror
 
 newmtl wirefence
-mat_id 15
-shader_id 3
+shader LightShader
 states 0
 tex_diff mtl/wirefence
 alpha_clip 1
 cull none
 
 newmtl shodan
-mat_id 16
-shader_id 57
+shader ShaderArt
 states 0
 tex_diff random/shodan
 tex_norm blankNRM
 
 newmtl ground04
-mat_id 17
-shader_id 3
+shader LightShader
 states 0
 Ka 0.3 0.3 0.3 1.0
 Kd 0.5 0.5 0.5 1.0 
@@ -161,8 +144,7 @@ tex_diff grnd/ground04
 tex_norm blankNRM
 
 newmtl gigachad
-mat_id 18
-shader_id 3
+shader LightShader
 states 0
 Ka 0.3 0.3 0.3 1.0
 Kd 0.5 0.5 0.5 1.0 
@@ -171,8 +153,7 @@ Kr 0.0 0.0 0.0 1.0
 tex_diff random/gigachad
 
 newmtl tree_pine_lod_1
-mat_id 19
-shader_id 49
+shader TreeLod1Shader
 states 66187
 bs alpha_to_coverage
 Ka 0.40 0.40 0.40 1.00
@@ -184,8 +165,7 @@ tex_diff lods/pine_diff
 tex_norm lods/pine_norm
 
 newmtl tree_pine_lod_2
-mat_id 19
-shader_id 50
+shader TreeLod2Shader
 states 66187
 Ka 0.40 0.40 0.40 1.00
 Kd 0.65 0.65 0.65 1.00
@@ -197,8 +177,7 @@ tex_norm  lods/pine_norm
 tex_light lods/lod2_lightmap
 
 newmtl tree_spruce_lod_1
-mat_id 19
-shader_id 49
+shader TreeLod1Shader
 states 66187
 bs alpha_to_coverage
 Ka 1.00 1.00 1.00 1.00
@@ -210,8 +189,7 @@ tex_diff  lods/spruce_diff
 tex_norm  lods/spruce_norm
 
 newmtl tree_spruce_lod_2
-mat_id 19
-shader_id 50
+shader TreeLod2Shader
 states 66187
 Ka 1.00 1.00 1.00 1.00
 Kd 1.00 1.00 1.00 1.00
@@ -223,63 +201,62 @@ tex_norm lods/spruce_norm
 tex_light lods/lod2_lightmap
 
 newmtl rainMat0
-mat_id 20
-shader_id 5
+shader ParticleShader
 states 0
 tex_diff fx/rain
 bs add
 dss mark_mirror
 
 newmtl smokeMat0
-mat_id 21
-shader_id 5
+shader ParticleShader
 states 0
 tex_diff particle/smoke01
 bs add
 dss mark_mirror
 
 newmtl smokeMat1
-mat_id 22
-shader_id 5
+shader ParticleShader
 states 0
 tex_diff particle/smoke05
 bs add
 dss mark_mirror
 
 newmtl smokeMat2
-mat_id 23
-shader_id 5
+shader ParticleShader
 states 0
 tex_diff particle/smoke08
 bs add
 dss mark_mirror
 
 newmtl sparkMat0
-mat_id 24
-shader_id 5
+shader ParticleShader
 states 0
 tex_diff particle/spark05
 bs add
 dss mark_mirror
 
 newmtl sparkMat1
-mat_id 25
-shader_id 5
+shader ParticleShader
 states 0
 tex_diff particle/spark06
 bs add
 dss mark_mirror
 
 newmtl fragments
-mat_id 26
-shader_id 5
+shader ParticleShader
 states 0
 tex_diff ston/ston_walls2
 dss mark_mirror
 
+newmtl pfx_smokePuffs1
+shader ParticleShader
+states 0
+tex_diff pfx/pfx_smokePuffs1
+bs add
+dss mark_mirror
+
 newmtl wallmark
-mat_id 17
-shader_id 56
+shader DecalShader
 states 0
 tex_diff wallmark/default
 bs alpha_to_coverage

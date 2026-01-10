@@ -1,6 +1,5 @@
 newmtl sword_mat
-mat_id 21
-shader_id 3
+shader LightShader
 states 66186
 Ka 1.00 1.00 1.00 1.00
 Kd 0.59 0.59 0.59 1.00

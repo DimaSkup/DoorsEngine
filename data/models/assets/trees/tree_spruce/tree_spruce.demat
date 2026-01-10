@@ -1,6 +1,5 @@
 newmtl tree_spruce_mat
-mat_id 64
-shader_id 11
+shader FoliageShader
 states 66187
 cull none
 Ka 1.00 1.00 1.00 1.00

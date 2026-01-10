@@ -50,8 +50,9 @@ void App::Init()
     eventHandler_.AddEventListener(&engine_);        // set engine class as one of the window events listeners
     wndContainer_.SetEventHandler(&eventHandler_);   // set an event handler for the window container
 
+    Render::CRender* pRender = &Render::g_Render;
 
-    engine_.BindRender(&render_);
+    engine_.BindRender(pRender);
     engine_.BindECS(&entityMgr_);
     engine_.BindUI(&userInterface_);
 
@@ -60,13 +61,13 @@ void App::Init()
     InitEngine();
 
     Core::CGraphics&     graphics = engine_.GetGraphicsClass();
-    Render::D3DClass&    d3d      = render_.GetD3D();
+    Render::D3DClass&    d3d      = pRender->GetD3D();
     ID3D11Device*        pDevice  = d3d.GetDevice();
     ID3D11DeviceContext* pContext = d3d.GetDeviceContext();
 
     // after initialization of entine's modules we init the game related stuff
     // (model entities, light source, particle emitters, etc.)
-    game_.Init(&engine_, &entityMgr_, &render_, engineConfigs_);
+    game_.Init(&engine_, &entityMgr_, pRender, engineConfigs_);
 
     Core::TerrainGeomip& terrain = Core::g_ModelMgr.GetTerrainGeomip();
 
@@ -74,7 +75,7 @@ void App::Init()
     pFacadeEngineToUI_ = new UI::FacadeEngineToUI(
         &engine_,
         pContext,
-        &render_,
+        pRender,
         &entityMgr_,
         &graphics,
         &terrain);
@@ -145,6 +146,8 @@ void App::InitEngine()
 //---------------------------------------------------------
 bool App::InitRender(const Core::EngineConfigs& cfgs)
 {
+    Render::CRender* pRender = &Render::g_Render;
+
     // prepare WVO (world * base_view * ortho) matrix for 2D rendering
     const bool startInGameMode  = cfgs.GetBool("START_IN_GAME_MODE");
     const char* cameraEnttName  = (startInGameMode) ? "game_camera" : "editor_camera";
@@ -179,7 +182,7 @@ bool App::InitRender(const Core::EngineConfigs& cfgs)
 
 
     // init the "Render" module
-    bool result = render_.Init(mainHWND_, renderParams);
+    bool result = pRender->Init(mainHWND_, renderParams);
     if (!result)
     {
         LogErr(LOG, "can't init the render module");
@@ -187,9 +190,9 @@ bool App::InitRender(const Core::EngineConfigs& cfgs)
     }
 
     // do some setup after initialization
-    render_.SetSkyGradient(skyColorCenter, skyColorApex);
-    render_.SetGrassDistFullSize(cfgs.GetFloat("GRASS_DIST_FULL_SIZE"));
-    render_.SetGrassDistVisible (cfgs.GetFloat("GRASS_DIST_VISIBLE"));
+    pRender->SetSkyGradient(skyColorCenter, skyColorApex);
+    pRender->SetGrassDistFullSize(cfgs.GetFloat("GRASS_DIST_FULL_SIZE"));
+    pRender->SetGrassDistVisible (cfgs.GetFloat("GRASS_DIST_VISIBLE"));
 
     return true;
 }
@@ -227,7 +230,8 @@ bool App::InitGUI(
 
         char videoCardName[128]{ '\0' };
         int videoCardMemory = 0;
-        render_.GetD3D().GetVideoCardInfo(videoCardName, 128, videoCardMemory);
+
+        Render::g_Render.GetD3D().GetVideoCardInfo(videoCardName, 128, videoCardMemory);
 
         // initialize the user interface
         userInterface_.Initialize(
