@@ -1,6 +1,5 @@
 newmtl wpn_wpn_groza
 shader LightShader
-states 66186
 Ka 0.50 0.50 0.50 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.20 0.20 0.20
@@ -12,7 +11,6 @@ tex_opac wpn/groza
 
 newmtl wpn_wpn_vog
 shader LightShader
-states 66186
 Ka 0.50 0.50 0.50 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.20 0.20 0.20

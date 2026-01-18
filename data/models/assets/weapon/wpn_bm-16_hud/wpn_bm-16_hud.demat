@@ -1,6 +1,5 @@
 newmtl act_act_arm_perchatka
 shader LightShader
-states 66186
 Ka 0.00 0.00 0.00 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.80 0.80 0.80
@@ -11,7 +10,6 @@ tex_opac act/arm_1
 
 newmtl wpn_wpn_bm_16
 shader LightShader
-states 66186
 Ka 0.00 0.00 0.00 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.80 0.80 0.80
@@ -22,7 +20,6 @@ tex_opac wpn/bm16
 
 newmtl wpn_wpn_gilza1
 shader LightShader
-states 66186
 Ka 0.00 0.00 0.00 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.80 0.80 0.80

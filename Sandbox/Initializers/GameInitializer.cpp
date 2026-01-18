@@ -866,11 +866,11 @@ void CreateSkyBox(const char* filepath, ECS::EntityMgr& mgr)
 
 
     // setup a material
-    Material& mat = g_MaterialMgr.AddMaterial(skyMaterialName);
+    Material& mat = g_MaterialMgr.GetMatByName(skyMaterialName);
     mat.SetTexture(TEX_TYPE_DIFFUSE, skyMapId);
-    mat.SetCull(MAT_PROP_CULL_FRONT);
-    mat.SetFrontClockwise(MAT_PROP_FRONT_COUNTER_CLOCKWISE);
-    mat.SetDepthStencil(MAT_PROP_DSS_SKY_DOME);
+    //mat.SetCull(MAT_PROP_CULL_FRONT);
+    //mat.SetFrontClockwise(MAT_PROP_FRONT_COUNTER_CLOCKWISE);
+    //mat.SetDepthStencil(MAT_PROP_DSS_SKY_DOME);
 
     // create a sky model
     Core::ModelsCreator creator;

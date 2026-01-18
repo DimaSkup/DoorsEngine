@@ -504,13 +504,17 @@ void Engine::RenderUI(UI::UserInterface* pUI, Render::CRender* pRender)
     assert(pUI != nullptr);
     assert(pRender != nullptr);
 
-    Render::D3DClass&    d3d      = GetD3D();
-    ID3D11DeviceContext* pContext = d3d.GetDeviceContext();
+    Render::D3DClass&    d3d  = GetD3D();
+    ID3D11DeviceContext* pCtx = d3d.GetDeviceContext();
 
     // preparation before 2D rendering
-    d3d.GetRenderStates().ResetDSS(pContext);
+    Render::RenderStates& rndStates = d3d.GetRenderStates();
+    static BsID bsFor2d     = rndStates.GetBsId("enabled");
+
+    rndStates.SetBs(bsFor2d);
+    rndStates.ResetDss();
+
     d3d.TurnZBufferOff();
-    d3d.TurnOnBlending(Render::R_ALPHA_ENABLE);
     d3d.TurnOnRSfor2Drendering();
 
 
@@ -546,7 +550,8 @@ void Engine::RenderUI(UI::UserInterface* pUI, Render::CRender* pRender)
     }
 
     // reset after 2D rendering
-    d3d.TurnZBufferOn(); 
+    d3d.TurnZBufferOn();
+    rndStates.ResetBs();
 }
 
 //---------------------------------------------------------

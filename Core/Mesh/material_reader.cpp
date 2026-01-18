@@ -25,14 +25,13 @@ namespace Core
 //---------------------------------------------------------
 // helpers forward declaration
 //---------------------------------------------------------
-void CreateNewMat           (const char* buf, FILE* pFile, Material** ppMat);
-void ReadCommon             (FILE* pFile, Material& mat);
-void ReadColor              (const char* buf, Material& mat);
-void ReadTexture            (const char* buf, Material& mat, const char* targetDir);
-void ReadFillMode           (const char* buf, Material& mat);
-void ReadCullMode           (const char* buf, Material& mat);
-void ReadBlendState         (const char* buf, Material& mat);
-void ReadDepthStencilState  (const char* buf, Material& mat);
+void CreateNewMat           (const char* buf, Material** ppMat, FILE* pFile);
+void ReadCommon             (FILE* pFile,     Material* pMat);
+void ReadColor              (const char* buf, Material* pMat);
+void ReadTexture            (const char* buf, Material* pMat, const char* targetDir);
+void ReadRasterState        (const char* buf, Material* pMat);
+void ReadBlendState         (const char* buf, Material* pMat);
+void ReadDepthStencilState  (const char* buf, Material* pMat);
 
 //---------------------------------------------------------
 // Desc:   read data for multiple materials from a file
@@ -76,36 +75,31 @@ bool MaterialReader::Read(const char* filePath)
 
                     pMat->SetAlphaClip((bool)alphaClip);
                 }
-                    
                 break;
 
             // newmtl
             case 'n':
-                CreateNewMat(buf, pFile, &pMat);
+                CreateNewMat(buf, &pMat, pFile);
                 break;
 
             case 'b':
-                ReadBlendState(buf, *pMat);
-                break;
-
-            case 'c':
-                ReadCullMode(buf, *pMat);
+                ReadBlendState(buf, pMat);
                 break;
 
             case 'd':
-                ReadDepthStencilState(buf, *pMat);
-                break;
-
-            case 'f':
-                ReadFillMode(buf, *pMat);
+                ReadDepthStencilState(buf, pMat);
                 break;
 
             case 'K':
-                ReadColor(buf, *pMat);
+                ReadColor(buf, pMat);
+                break;
+
+            case 'r':
+                ReadRasterState(buf, pMat);
                 break;
 
             case 't':
-                ReadTexture(buf, *pMat, targetDir);
+                ReadTexture(buf, pMat, targetDir);
                 break;
         }
     }
@@ -117,51 +111,47 @@ bool MaterialReader::Read(const char* filePath)
 //---------------------------------------------------------
 // Desc:   create and setup a material with basic params
 //---------------------------------------------------------
-void CreateNewMat(const char* buf, FILE* pFile, Material** ppMat)
+void CreateNewMat(const char* buf, Material** ppMat, FILE* pFile)
 {
     assert(buf && buf[0] != '\0');
-    assert(pFile != nullptr);
+    assert(ppMat);
+    assert(pFile);
 
     char matName[MAX_LEN_MAT_NAME]{ '\0' };
     int count = sscanf(buf, "newmtl %s\n", matName);
     assert(count == 1);
 
     *ppMat = &g_MaterialMgr.AddMaterial(matName);
-    ReadCommon(pFile, **ppMat);
+    ReadCommon(pFile, *ppMat);
 }
 
 //---------------------------------------------------------
 // Desc:   read basic info: material id, shader id, render states, etc
 //---------------------------------------------------------
-void ReadCommon(FILE* pFile, Material& mat)
+void ReadCommon(FILE* pFile, Material* pMat)
 {
-    assert(pFile != nullptr);
+    assert(pFile);
+    assert(pMat);
 
     char shaderName[MAX_LEN_SHADER_NAME];
-    MaterialID tempMatId = 0;
-    int count = 0;
-
-    count = fscanf(pFile, "\nshader %s\n", shaderName);
-    assert(count == 1);
-
-    count = fscanf(pFile, "\nstates %" SCNu32, &mat.renderStates);
+    int count = fscanf(pFile, "\nshader %s\n", shaderName);
     assert(count == 1);
 
     fscanf(pFile, "\n");
 
-    mat.shaderId = Render::g_Render.GetShaderIdByName(shaderName);
-
-    if (mat.renderStates == 0)
-        mat.renderStates = MAT_PROP_DEFAULT;
+    pMat->shaderId = Render::g_Render.GetShaderIdByName(shaderName);
 }
 
 //---------------------------------------------------------
 // Desc:   read a single color property for input material
 //         (ambient, diffuse, specular, etc.)
 //---------------------------------------------------------
-void ReadColor(const char* buf, Material& mat)
+void ReadColor(const char* buf, Material* pMat)
 {
-    assert(buf != nullptr);
+    assert(buf && buf[0] == 'K');
+    assert(pMat);
+
+    Material& mat = *pMat;
     int count = 0;
 
     switch (buf[1])
@@ -272,10 +262,11 @@ eTexType GetTexType(const char* texType)
 //---------------------------------------------------------
 // Desc:   load a single texture from file and bind it to input material
 //---------------------------------------------------------
-void ReadTexture(const char* buf, Material& mat, const char* targetDir)
+void ReadTexture(const char* buf, Material* pMat, const char* targetDir)
 {
-    assert(buf && (buf[0] != '\0'));
-    assert(targetDir && (targetDir[0] != '\0'));
+    assert(buf && buf[0] != '\0');
+    assert(pMat);
+    assert(targetDir && targetDir[0] != '\0');
 
     char texType[16]{'\0'};
     char texName[MAX_LEN_TEX_NAME]{'\0'};
@@ -284,153 +275,57 @@ void ReadTexture(const char* buf, Material& mat, const char* targetDir)
     assert(count == 2);
 
     const TexID texId = g_TextureMgr.GetTexIdByName(texName);
-
     if (texId == INVALID_TEX_ID)
         LogErr(LOG, "no texture by name: %s", texName);
 
     eTexType type = GetTexType(texType);
-    mat.texIds[type] = texId;
+    pMat->texIds[type] = texId;
 }
 
 //---------------------------------------------------------
-// Desc:   read in a fill mode for this material
+// Desc:  read in a rasterizer state for this material
 //---------------------------------------------------------
-void ReadFillMode(const char* buf, Material& mat)
+void ReadRasterState(const char* buf, Material* pMat)
 {
-    assert(buf && (buf[0] != '\0'));
-    char fill[8]{'\0'};
-    
-    int count = sscanf(buf, "fill %s\n", fill);
+    assert(buf && buf[0] != '\0');
+    assert(pMat);
+
+    char rsName[32]{ '\0' };
+    int count = sscanf(buf, "rs %s\n", rsName);
     assert(count == 1);
 
-
-    if (fill[0] == 's')
-        mat.SetFill(MAT_PROP_FILL_SOLID);
-
-    else if (fill[0] == 'w')
-        mat.SetFill(MAT_PROP_FILL_WIREFRAME);
-
-    else
-        LogErr(LOG, "unknown type of fill mode (%s) for material (%s)", fill, mat.name);
-}
-
-//---------------------------------------------------------
-// Desc:   read in a cull mode for this material
-//---------------------------------------------------------
-void ReadCullMode(const char* buf, Material& mat)
-{
-    assert(buf && (buf[0] != '\0'));
-    char cull[8]{'\0'};
-
-    int count = sscanf(buf, "cull %s\n", cull);
-    assert(count == 1);
-
-    if (cull[0] == 'b')
-        mat.SetCull(MAT_PROP_CULL_BACK);
-
-    else if (cull[0] == 'f')
-        mat.SetCull(MAT_PROP_CULL_FRONT);
-
-    else if (cull[0] == 'n')
-        mat.SetCull(MAT_PROP_CULL_NONE);
-
-    else
-        LogErr(LOG, "unknown type of cull mode (%s) for material (%s)", cull, mat.name);
+    pMat->rsId = Render::g_Render.GetRenderStates().GetRsId(rsName);
 }
 
 //---------------------------------------------------------
 // Desc:   read in a blend state for this material
 //---------------------------------------------------------
-void ReadBlendState(const char* buf, Material& mat)
+void ReadBlendState(const char* buf, Material* pMat)
 {
     assert(buf && (buf[0] != '\0'));
-    char bs[32]{'\0'};
+    assert(pMat);
 
-    int count = sscanf(buf, "bs %s\n", bs);
+    char bsName[32]{'\0'};
+
+    int count = sscanf(buf, "bs %s\n", bsName);
     assert(count == 1);
 
-    switch (bs[0])
-    {
-        case 'a':
-        {
-            if (strcmp(bs, "add") == 0)
-                mat.SetBlending(MAT_PROP_BS_ADD);
-
-            else if (strcmp(bs, "alpha_to_coverage") == 0)
-                mat.SetBlending(MAT_PROP_BS_ALPHA_TO_COVERAGE);
-
-            break;
-        }
-
-        case 'd':
-            mat.SetBlending(MAT_PROP_BS_DISABLE);
-            break;
-
-        case 'e':
-            mat.SetBlending(MAT_PROP_BS_ENABLE);
-            break;
-
-        case 'm':
-            mat.SetBlending(MAT_PROP_BS_MUL);
-            break;
-
-        case 'n':
-            mat.SetBlending(MAT_PROP_BS_NO_RENDER_TARGET_WRITES);
-            break;
-
-        case 's':
-            mat.SetBlending(MAT_PROP_BS_SUB);
-            break;
-
-        case 't':
-            mat.SetBlending(MAT_PROP_BS_TRANSPARENCY);
-            break;
-
-        default:
-            LogErr(LOG, "unknown type of blend state (%s) for material (%s)", bs, mat.name);
-    }
+    pMat->bsId = Render::g_Render.GetRenderStates().GetBsId(bsName);
 }
 
 //---------------------------------------------------------
 // Desc:   read in depth stencil state for this material
 //---------------------------------------------------------
-void ReadDepthStencilState(const char* buf, Material& mat)
+void ReadDepthStencilState(const char* buf, Material* pMat)
 {
-    assert(buf && (buf[0] != '\0'));
-    char dss[32]{ '\0' };
+    assert(buf && buf[0] != '\0');
+    assert(pMat);
 
-    int count = sscanf(buf, "dss %s\n", dss);
+    char dssName[32]{ '\0' };
+    int count = sscanf(buf, "dss %s\n", dssName);
     assert(count == 1);
 
-    switch (dss[0])
-    {
-         case 'd':
-            mat.SetDepthStencil(MAT_PROP_DSS_DEPTH_DISABLED);
-            break;
-
-        case 'e':
-            mat.SetDepthStencil(MAT_PROP_DSS_DEPTH_ENABLED);
-            break;
-
-        case 'm':
-            mat.SetDepthStencil(MAT_PROP_DSS_MARK_MIRROR);
-            break;
-
-        case 'n':
-            mat.SetDepthStencil(MAT_PROP_DSS_NO_DOUBLE_BLEND);
-            break;
-
-        case 'r':
-            mat.SetDepthStencil(MAT_PROP_DSS_DRAW_REFLECTION);
-            break;
-
-        case 's':
-            mat.SetDepthStencil(MAT_PROP_DSS_SKY_DOME);
-            break;
-
-        default:
-            LogErr(LOG, "unknown type of depth-stencil state (%s) for material (%s)", dss, mat.name);
-    }
+    pMat->dssId = Render::g_Render.GetRenderStates().GetDssId(dssName);
 }
 
 } // namespace

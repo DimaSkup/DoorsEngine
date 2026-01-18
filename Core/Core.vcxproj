@@ -209,19 +209,21 @@ dir /b /s /a "$(SolutionDir)build\$(IntDir)data\animations\" | findstr .&gt;nul 
   xcopy /Y "$(SolutionDir)data\animations\" "$(SolutionDir)build\$(IntDir)data\animations\" /E
 )
 
-if not exist "$(SolutionDir)build\$(IntDir)data\animations.cfg"            xcopy /Y /f "$(SolutionDir)data\animations.cfg"                "$(SolutionDir)build\$(IntDir)data\"
-if not exist "$(SolutionDir)build\$(IntDir)data\bindless_textures.cfg"   xcopy /Y /f "$(SolutionDir)data\bindless_textures.cfg"     "$(SolutionDir)build\$(IntDir)data\"
-if not exist "$(SolutionDir)build\$(IntDir)data\entities.dentt"                 xcopy /Y /f "$(SolutionDir)data\entities.dentt"                 "$(SolutionDir)build\$(IntDir)data\"
-if not exist "$(SolutionDir)build\$(IntDir)data\light.dentt"                     xcopy /Y /f "$(SolutionDir)data\light.dentt"                      "$(SolutionDir)build\$(IntDir)data\"
-if not exist "$(SolutionDir)build\$(IntDir)data\materials.demat"           xcopy /Y /f "$(SolutionDir)data\materials.demat"             "$(SolutionDir)build\$(IntDir)data\"
-if not exist "$(SolutionDir)build\$(IntDir)data\models.demdl"              xcopy /Y /f "$(SolutionDir)data\models.demdl"                "$(SolutionDir)build\$(IntDir)data\"
-if not exist "$(SolutionDir)build\$(IntDir)data\nature.cfg"                     xcopy /Y /f "$(SolutionDir)data\nature.cfg"                       "$(SolutionDir)build\$(IntDir)data\"
-if not exist "$(SolutionDir)build\$(IntDir)data\player.cfg"                      xcopy /Y /f "$(SolutionDir)data\player.cfg"                        "$(SolutionDir)build\$(IntDir)data\"
-if not exist "$(SolutionDir)build\$(IntDir)data\settings.txt"                    xcopy /Y /f "$(SolutionDir)data\settings.txt"                      "$(SolutionDir)build\$(IntDir)data\"
-if not exist "$(SolutionDir)build\$(IntDir)data\sky.cfg"                           xcopy /Y /f "$(SolutionDir)data\sky.cfg"                             "$(SolutionDir)build\$(IntDir)data\"
-if not exist "$(SolutionDir)build\$(IntDir)data\sky_plane.cfg"               xcopy /Y /f "$(SolutionDir)data\sky_plane.cfg"                  "$(SolutionDir)build\$(IntDir)data\"
-if not exist "$(SolutionDir)build\$(IntDir)data\weapon.cfg"                  xcopy /Y /f "$(SolutionDir)data\weapon.cfg"                    "$(SolutionDir)build\$(IntDir)data\"
-
+if not exist "$(SolutionDir)build\$(IntDir)data\animations.cfg"                     xcopy /Y /f "$(SolutionDir)data\animations.cfg"                "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\bindless_textures.cfg"           xcopy /Y /f "$(SolutionDir)data\bindless_textures.cfg"     "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\entities.dentt"                        xcopy /Y /f "$(SolutionDir)data\entities.dentt"                   "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\light.dentt"                             xcopy /Y /f "$(SolutionDir)data\light.dentt"                        "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\materials.demat"                   xcopy /Y /f "$(SolutionDir)data\materials.demat"              "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\models.demdl"                      xcopy /Y /f "$(SolutionDir)data\models.demdl"                 "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\nature.cfg"                             xcopy /Y /f "$(SolutionDir)data\nature.cfg"                         "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\player.cfg"                              xcopy /Y /f "$(SolutionDir)data\player.cfg"                          "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\settings.txt"                            xcopy /Y /f "$(SolutionDir)data\settings.txt"                        "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\sky.cfg"                                   xcopy /Y /f "$(SolutionDir)data\sky.cfg"                               "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\sky_plane.cfg"                       xcopy /Y /f "$(SolutionDir)data\sky_plane.cfg"                    "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\weapon.cfg"                          xcopy /Y /f "$(SolutionDir)data\weapon.cfg"                       "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\rasterizer_states.cfg"             xcopy /Y /f "$(SolutionDir)data\rasterizer_states.cfg"          "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\blending_states.cfg"             xcopy /Y /f "$(SolutionDir)data\blending_states.cfg"          "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\depth_stencil_states.cfg"     xcopy /Y /f "$(SolutionDir)data\depth_stencil_states.cfg"   "$(SolutionDir)build\$(IntDir)data\"
 
 if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mtd.dll"          xcopy /Y /f "$(SolutionDir)Core\assimp-vc143-mtd.dll"   "$(SolutionDir)build\$(IntDir)"
 
@@ -356,19 +358,21 @@ dir /b /s /a "$(SolutionDir)build\$(IntDir)data\animations\" | findstr .&gt;nul 
   xcopy /Y "$(SolutionDir)data\animations\" "$(SolutionDir)build\$(IntDir)data\animations\" /E
 )
 
-if not exist "$(SolutionDir)build\$(IntDir)data\animations.cfg"            xcopy /Y /f "$(SolutionDir)data\animations.cfg"                "$(SolutionDir)build\$(IntDir)data\"
-if not exist "$(SolutionDir)build\$(IntDir)data\bindless_textures.cfg"   xcopy /Y /f "$(SolutionDir)data\bindless_textures.cfg"     "$(SolutionDir)build\$(IntDir)data\"
-if not exist "$(SolutionDir)build\$(IntDir)data\entities.dentt"                 xcopy /Y /f "$(SolutionDir)data\entities.dentt"                 "$(SolutionDir)build\$(IntDir)data\"
-if not exist "$(SolutionDir)build\$(IntDir)data\light.dentt"                     xcopy /Y /f "$(SolutionDir)data\light.dentt"                      "$(SolutionDir)build\$(IntDir)data\"
-if not exist "$(SolutionDir)build\$(IntDir)data\materials.demat"           xcopy /Y /f "$(SolutionDir)data\materials.demat"             "$(SolutionDir)build\$(IntDir)data\"
-if not exist "$(SolutionDir)build\$(IntDir)data\models.demdl"              xcopy /Y /f "$(SolutionDir)data\models.demdl"                "$(SolutionDir)build\$(IntDir)data\"
-if not exist "$(SolutionDir)build\$(IntDir)data\nature.cfg"                     xcopy /Y /f "$(SolutionDir)data\nature.cfg"                       "$(SolutionDir)build\$(IntDir)data\"
-if not exist "$(SolutionDir)build\$(IntDir)data\player.cfg"                      xcopy /Y /f "$(SolutionDir)data\player.cfg"                        "$(SolutionDir)build\$(IntDir)data\"
-if not exist "$(SolutionDir)build\$(IntDir)data\settings.txt"                    xcopy /Y /f "$(SolutionDir)data\settings.txt"                      "$(SolutionDir)build\$(IntDir)data\"
-if not exist "$(SolutionDir)build\$(IntDir)data\sky.cfg"                           xcopy /Y /f "$(SolutionDir)data\sky.cfg"                             "$(SolutionDir)build\$(IntDir)data\"
-if not exist "$(SolutionDir)build\$(IntDir)data\sky_plane.cfg"               xcopy /Y /f "$(SolutionDir)data\sky_plane.cfg"                  "$(SolutionDir)build\$(IntDir)data\"
-if not exist "$(SolutionDir)build\$(IntDir)data\weapon.cfg"                  xcopy /Y /f "$(SolutionDir)data\weapon.cfg"                    "$(SolutionDir)build\$(IntDir)data\"
-
+if not exist "$(SolutionDir)build\$(IntDir)data\animations.cfg"                     xcopy /Y /f "$(SolutionDir)data\animations.cfg"                "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\bindless_textures.cfg"           xcopy /Y /f "$(SolutionDir)data\bindless_textures.cfg"     "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\entities.dentt"                        xcopy /Y /f "$(SolutionDir)data\entities.dentt"                   "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\light.dentt"                             xcopy /Y /f "$(SolutionDir)data\light.dentt"                        "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\materials.demat"                   xcopy /Y /f "$(SolutionDir)data\materials.demat"              "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\models.demdl"                      xcopy /Y /f "$(SolutionDir)data\models.demdl"                 "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\nature.cfg"                             xcopy /Y /f "$(SolutionDir)data\nature.cfg"                         "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\player.cfg"                              xcopy /Y /f "$(SolutionDir)data\player.cfg"                          "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\settings.txt"                            xcopy /Y /f "$(SolutionDir)data\settings.txt"                        "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\sky.cfg"                                   xcopy /Y /f "$(SolutionDir)data\sky.cfg"                               "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\sky_plane.cfg"                       xcopy /Y /f "$(SolutionDir)data\sky_plane.cfg"                    "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\weapon.cfg"                          xcopy /Y /f "$(SolutionDir)data\weapon.cfg"                       "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\rasterizer_states.cfg"             xcopy /Y /f "$(SolutionDir)data\rasterizer_states.cfg"          "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\blending_states.cfg"             xcopy /Y /f "$(SolutionDir)data\blending_states.cfg"          "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\depth_stencil_states.cfg"     xcopy /Y /f "$(SolutionDir)data\depth_stencil_states.cfg"   "$(SolutionDir)build\$(IntDir)data\"
 
 if not exist "$(SolutionDir)build\$(IntDir)assimp-vc143-mtd.dll"          xcopy /Y /f "$(SolutionDir)Core\assimp-vc143-mtd.dll"   "$(SolutionDir)build\$(IntDir)"
 

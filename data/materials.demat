@@ -1,25 +1,24 @@
+newmtl sky_mat_01
+shader SkyDomeShader
+rs skyDome
+dss skyDome
+
 newmtl grass_0
 shader GrassShader
-states 0
 Kd 0.82 0.82 0.82 1.0
 Kd 0.82 0.82 0.82 1.0
 tex_diff plants/grass01
 alpha_clip 1
-fill solid
-cull none
-bs disabled
+rs rs_grass
 
 newmtl grass_1
 shader GrassShader
-states 0
 tex_diff plants/grass02
 alpha_clip 1
-cull none
-bs disabled
+rs rs_grass
 
 newmtl brick_01
 shader LightShader
-states 0
 Ka 0.4 0.4 0.4 1.0
 Kd 0.8 0.8 0.8 1.0
 Kg 1.0
@@ -29,18 +28,16 @@ tex_norm brick/brick01n
 
 newmtl brick_blend_add
 shader LightShader
-states 0
 Ka 0.4 0.4 0.4 1.0
 Kd 0.8 0.8 0.8 1.0
 Kg 1.0
 Kr 0.0 0.0 0.0 1.0
 tex_diff brick/brick01d
 tex_norm brick/brick01n
-bs add
+bs additive
 
 newmtl brick_blend_sub
 shader LightShader
-states 0
 Ka 0.4 0.4 0.4 1.0
 Kd 0.8 0.8 0.8 1.0
 Kg 1.0
@@ -51,7 +48,6 @@ bs sub
 
 newmtl brick_blend_mul
 shader LightShader
-states 0
 Ka 0.4 0.4 0.4 1.0
 Kd 0.8 0.8 0.8 1.0
 Kg 1.0
@@ -62,42 +58,36 @@ bs mul
 
 newmtl brick_blend_transparent
 shader LightShader
-states 0
 Ka 0.4 0.4 0.4 1.0
 Kd 0.8 0.8 0.8 1.0
 Kg 1.0
 Kr 0.0 0.0 0.0 1.0
 tex_diff brick/brick01d
 tex_norm brick/brick01n
-bs transparency
+bs transparent
 
 newmtl mirror
 shader MetallicShader
-states 0
 Kr 1.0 1.0 1.0 1.0
 tex_diff random/gray
 
 newmtl cat
 shader LightShader
-states 0
 tex_diff random/cat
 tex_norm blankNRM
 
 newmtl wood_crate_1
 shader LightShader
-states 0
 tex_diff wood/crate01
 tex_norm blankNRM
 
 newmtl wood_crate_2
 shader LightShader
-states 0
 tex_diff wood/crate02
 tex_norm blankNRM
 
 newmtl box01
 shader LightShader
-states 0
 Ka 0.20 0.20 0.20 1.0
 Kd 0.90 0.90 0.90 1.0
 Ks 0.14 0.14 0.14
@@ -108,34 +98,28 @@ tex_norm wood/box01n
 
 newmtl flameMat
 shader LightShader
-states 0
 tex_diff fx/flame0
-bs add
-dss mark_mirror
+bs additive
+dss particles_2
 
 newmtl flareMat
 shader ParticleShader
-states 0
 tex_diff flare/flare01
-bs add
-dss mark_mirror
+bs additive
+dss particles
 
 newmtl wirefence
 shader LightShader
-states 0
 tex_diff mtl/wirefence
 alpha_clip 1
-cull none
 
 newmtl shodan
 shader ShaderArt
-states 0
 tex_diff random/shodan
 tex_norm blankNRM
 
 newmtl ground04
 shader LightShader
-states 0
 Ka 0.3 0.3 0.3 1.0
 Kd 0.5 0.5 0.5 1.0 
 Kg 1.0
@@ -145,7 +129,6 @@ tex_norm blankNRM
 
 newmtl gigachad
 shader LightShader
-states 0
 Ka 0.3 0.3 0.3 1.0
 Kd 0.5 0.5 0.5 1.0 
 Kg 1.0
@@ -154,8 +137,6 @@ tex_diff random/gigachad
 
 newmtl tree_pine_lod_1
 shader TreeLod1Shader
-states 66187
-bs alpha_to_coverage
 Ka 0.40 0.40 0.40 1.00
 Kd 0.65 0.65 0.65 1.00
 Ks 0.00 0.00 0.00
@@ -166,7 +147,6 @@ tex_norm lods/pine_norm
 
 newmtl tree_pine_lod_2
 shader TreeLod2Shader
-states 66187
 Ka 0.40 0.40 0.40 1.00
 Kd 0.65 0.65 0.65 1.00
 Ks 0.00 0.00 0.00
@@ -175,11 +155,10 @@ Kr 0.00 0.00 0.00 0.00
 tex_diff  lods/pine_diff
 tex_norm  lods/pine_norm
 tex_light lods/lod2_lightmap
+alpha_clip 1
 
 newmtl tree_spruce_lod_1
 shader TreeLod1Shader
-states 66187
-bs alpha_to_coverage
 Ka 1.00 1.00 1.00 1.00
 Kd 1.00 1.00 1.00 1.00
 Ks 0.00 0.00 0.00
@@ -187,10 +166,10 @@ Kg 10.00
 Kr 0.00 0.00 0.00 0.00
 tex_diff  lods/spruce_diff
 tex_norm  lods/spruce_norm
+alpha_clip 1
 
 newmtl tree_spruce_lod_2
 shader TreeLod2Shader
-states 66187
 Ka 1.00 1.00 1.00 1.00
 Kd 1.00 1.00 1.00 1.00
 Ks 0.00 0.00 0.00
@@ -199,64 +178,57 @@ Kr 0.00 0.00 0.00 0.00
 tex_diff lods/spruce_diff
 tex_norm lods/spruce_norm
 tex_light lods/lod2_lightmap
+alpha_clip 1
 
 newmtl rainMat0
 shader ParticleShader
-states 0
 tex_diff fx/rain
-bs add
-dss mark_mirror
+bs mul
+dss particles
 
 newmtl smokeMat0
 shader ParticleShader
-states 0
 tex_diff particle/smoke01
-bs add
-dss mark_mirror
+bs additive
+dss particles
 
 newmtl smokeMat1
 shader ParticleShader
-states 0
 tex_diff particle/smoke05
-bs add
-dss mark_mirror
+bs additive
+dss particles
 
 newmtl smokeMat2
 shader ParticleShader
-states 0
 tex_diff particle/smoke08
-bs add
-dss mark_mirror
+bs additive
+dss particles
 
 newmtl sparkMat0
 shader ParticleShader
-states 0
 tex_diff particle/spark05
-bs add
-dss mark_mirror
+bs additive
+dss particles
 
 newmtl sparkMat1
 shader ParticleShader
-states 0
 tex_diff particle/spark06
-bs add
-dss mark_mirror
-
-newmtl fragments
-shader ParticleShader
-states 0
-tex_diff ston/ston_walls2
-dss mark_mirror
+bs additive
+dss particles
 
 newmtl pfx_smokePuffs1
 shader ParticleShader
-states 0
 tex_diff pfx/pfx_smokePuffs1
-bs add
-dss mark_mirror
+bs transparent
+dss decals
+
+newmtl fragments
+shader ParticleShader
+tex_diff ston/ston_walls2
 
 newmtl wallmark
 shader DecalShader
-states 0
 tex_diff wallmark/default
-bs alpha_to_coverage
+rs decals
+bs transparent
+dss decals

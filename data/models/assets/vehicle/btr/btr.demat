@@ -1,6 +1,5 @@
 newmtl veh_BTR_S_001
 shader LightShader
-states 66186
 Ka 0.40 0.40 0.40 1.00
 Kd 0.60 0.60 0.60 1.00
 Ks 0.10 0.10 0.10
@@ -11,7 +10,6 @@ tex_norm blankNRM
 
 newmtl veh_BTR_S4_001
 shader LightShader
-states 66186
 Ka 0.40 0.40 0.40 1.00
 Kd 0.60 0.60 0.60 1.00
 Ks 0.10 0.10 0.10
@@ -22,7 +20,6 @@ tex_norm blankNRM
 
 newmtl veh_BTR_S3_001
 shader LightShader
-states 66186
 Ka 0.40 0.40 0.40 1.00
 Kd 0.60 0.60 0.60 1.00
 Ks 0.10 0.10 0.10

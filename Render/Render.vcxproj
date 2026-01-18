@@ -245,6 +245,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">../Common/pch.h</PrecompiledHeaderFile>
     </ClCompile>
+    <ClCompile Include="Render\r_state_reader.cpp" />
     <ClCompile Include="Shaders\GeometryShader.cpp" />
     <ClCompile Include="Shaders\InputLayouts.cpp" />
     <ClCompile Include="Shaders\PixelShader.cpp" />
@@ -661,6 +662,7 @@
     <ClInclude Include="Render\RenderStates.h" />
     <ClInclude Include="Common\RenderTypes.h" />
     <ClInclude Include="Render\CRender.h" />
+    <ClInclude Include="Render\r_state_reader.h" />
     <ClInclude Include="Shaders\ConstantBuffer.h" />
     <ClInclude Include="Shaders\GeometryShader.h" />
     <ClInclude Include="Shaders\InputLayouts.h" />

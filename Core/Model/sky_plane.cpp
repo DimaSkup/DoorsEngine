@@ -206,8 +206,8 @@ bool SkyPlane::Init(const char* cfgFilename)
     mat.texIds[1] = tex0Id;
     mat.texIds[2] = tex1Id;
 
-    mat.SetBlending(MAT_PROP_BS_ENABLE);
-    mat.SetDepthStencil(MAT_PROP_DSS_SKY_DOME);
+    //mat.SetBlending(MAT_PROP_BS_ENABLE);
+    //mat.SetDepthStencil(MAT_PROP_DSS_SKY_DOME);
 
     matId_ = mat.id;
 

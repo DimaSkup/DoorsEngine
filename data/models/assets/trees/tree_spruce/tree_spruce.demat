@@ -1,7 +1,6 @@
 newmtl tree_spruce_mat
 shader FoliageShader
-states 66187
-cull none
+rs rs_trees
 Ka 1.00 1.00 1.00 1.00
 Kd 1.00 1.00 1.00 1.00
 Ks 0.00 0.00 0.00

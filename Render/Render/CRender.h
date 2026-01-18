@@ -101,7 +101,6 @@ public:
     //                                  Binders
     // ================================================================================
 
-    
 
     //-----------------------------------------------------
     // bind input vertex buffer at startSlot == 0 by default
@@ -150,6 +149,15 @@ public:
     // ================================================================================
     //                                  Rendering
     // ================================================================================
+
+    //-----------------------------------------------------
+    // Desc:  reset rasterizer state, blend state, and depth-stencil state
+    //        to its default value
+    //-----------------------------------------------------
+    inline void ResetRenderStates()
+    {
+        GetRenderStates().ResetRenderStates();
+    }
 
     //-----------------------------------------------------
     // draw vertexCount vertices starting from startVertexLocation

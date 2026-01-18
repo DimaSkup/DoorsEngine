@@ -72,7 +72,10 @@ bool MaterialMgr::Init()
 
     Material& invalidMat = materials_.back();
     invalidMat.shaderId = INVALID_SHADER_ID;
-    invalidMat.renderStates = MAT_PROP_DEFAULT;
+    invalidMat.rsId = 0;
+    invalidMat.bsId = 0;
+    invalidMat.dssId = 0;
+    invalidMat.alphaClip = false;
     invalidMat.SetTexture(TEX_TYPE_DIFFUSE, INVALID_TEX_ID);
 
     return true;

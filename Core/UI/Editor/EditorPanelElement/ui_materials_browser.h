@@ -39,10 +39,10 @@ private:
 
     void RenderMatPreview    ();
     void RenderMatPropsFields();
-    void RenderStatesSelectors(
-        const char* label,
-        const uint matRenderProp,
-        index& selectedStateIdx);
+
+    void DrawRasterStatesSelectors(void);
+    void DrawBlendStatesSelectors(void);
+    void DrawDepthStencilStatesSelectors(void);
 
     void DrawShadersSelectors();
     void DrawRelatedTextures();

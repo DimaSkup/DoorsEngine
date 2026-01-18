@@ -18,6 +18,7 @@
 #include "material_writer.h"
 #include "material_mgr.h"
 #include <Texture/texture_mgr.h>
+#include <Render/CRender.h>
 
 
 
@@ -81,20 +82,21 @@ void WriteCommon(FILE* pFile, const Material& mat)
 {
     assert(pFile != nullptr);
 
-    ShaderID shaderId = 0;
+    ShaderID shaderId = mat.shaderId;
 
     // if we don't have any shader for this material use this as default 
     if (mat.shaderId == INVALID_SHADER_ID)
         shaderId = g_MaterialMgr.GetMatIdByName("LightShader");
 
-    else
-        shaderId = mat.shaderId;
 
-  
+    const Render::RenderStates& rndStates = Render::g_Render.GetRenderStates();
+
     fprintf(pFile, "newmtl %s\n",    mat.name);
     fprintf(pFile, "mat_id %d\n",    (int)mat.id);
     fprintf(pFile, "shader_id %d\n", (int)shaderId);
-    fprintf(pFile, "states %u\n",    mat.renderStates);
+    fprintf(pFile, "rs %s\n",        rndStates.GetRsName(mat.rsId));
+    fprintf(pFile, "bs %s\n",        rndStates.GetBsName(mat.bsId));
+    fprintf(pFile, "dss %s\n",       rndStates.GetDssName(mat.dssId));
 }
 
 //---------------------------------------------------------

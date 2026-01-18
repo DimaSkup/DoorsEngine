@@ -38,6 +38,11 @@ using AnimationID       = uint32_t;         // for model skinning
 using ShaderID          = uint32_t;
 using SoundID           = uint32_t;
 
+// render states related stuff
+using RsID              = uint16_t;         // rasterizer state id
+using BsID              = uint16_t;         // blending state id
+using DssID             = uint16_t;         // depth-stencil state id
+
 // common constants
 constexpr EntityID   INVALID_ENTITY_ID      = 0;
 constexpr ModelID    INVALID_MODEL_ID       = 0;
@@ -55,10 +60,11 @@ constexpr int        MAX_LEN_MAT_NAME       = 32;       // limit for the materia
 constexpr int        MAX_LEN_SHADER_NAME    = 32;
 constexpr int        MAX_LEN_SKY_MODEL_NAME = 16;
 constexpr int        MAX_LEN_SOUND_NAME     = 32;
+constexpr int        MAX_LEN_RND_STATE_NAME = 16;
 
-constexpr int        MAX_NUM_POST_EFFECTS = 8;
+constexpr int        MAX_NUM_POST_EFFECTS = 8;          // maximal number of post effects that can be applied at the same time
 
-constexpr int        MAX_NUM_DIRECTED_LIGHTS = 3;      // maximal number of directed lights on the scene
+constexpr int        MAX_NUM_DIRECTED_LIGHTS = 3;       // maximal number of directed lights on the scene
 
 constexpr int        MAX_NUM_BONES_PER_CHARACTER = 192;
 
@@ -81,6 +87,11 @@ struct ShaderName
 struct SoundName
 {
     char name[MAX_LEN_SOUND_NAME]{ '\0' };
+};
+
+struct RenderStateName
+{
+    char name[MAX_LEN_RND_STATE_NAME]{ '\0' };
 };
 
 

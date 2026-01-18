@@ -30,5 +30,5 @@ struct PS_INPUT
 float4 PS(PS_INPUT pin) : SV_TARGET
 {
     float4 tex = gTextures[1].Sample(gSamLinearWrap, pin.tex);
-    return float4(tex.rgb * pin.color, pin.translucency);
+    return float4(tex.rgb * pin.color, pin.translucency * tex.a);
 }

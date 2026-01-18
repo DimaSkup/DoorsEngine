@@ -219,10 +219,25 @@ void D3DClass::GetVideoCardInfo(
 //         rendering of 2D elements / UI;
 //         NOTE: we store a hash of the previous RS so later we can set it back
 //---------------------------------------------------------
-void D3DClass::TurnOnRSfor2Drendering()
+void D3DClass::TurnOnRSfor2Drendering(void)
 {
-    prevRasterStateHash_ = renderStates_.GetCurrentRSHash();
-    renderStates_.SetRS(pContext_, { R_FILL_SOLID, R_CULL_BACK, R_FRONT_CLOCKWISE });
+    const RsID id = renderStates_.GetRsId("default");
+    renderStates_.SetRs(id);
+}
+
+//---------------------------------------------------------
+// turning the Z buffer on and off when rendering 2D images
+//---------------------------------------------------------
+void D3DClass::TurnZBufferOn(void)
+{
+    const DssID id = renderStates_.GetDssId("depthEnabled");
+    renderStates_.SetDss(id, 1);
+}
+
+void D3DClass::TurnZBufferOff(void)
+{
+    const DssID id = renderStates_.GetDssId("depthDisabled");
+    renderStates_.SetDss(id, 1);
 }
 
 //---------------------------------------------------------

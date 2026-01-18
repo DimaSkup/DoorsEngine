@@ -1,6 +1,5 @@
 newmtl wood_table_01_S
 shader WoodShader
-states 66186
 Ka 0.50 0.50 0.50 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.10 0.10 0.10
@@ -11,7 +10,6 @@ tex_norm blankNRM
 
 newmtl wood_table_02_S
 shader WoodShader
-states 66186
 Ka 0.50 0.50 0.50 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.10 0.10 0.10

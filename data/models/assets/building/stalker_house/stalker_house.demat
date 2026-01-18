@@ -1,6 +1,5 @@
 newmtl Material__896
 shader LightShader
-states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.00 0.00 0.00
@@ -11,7 +10,6 @@ tex_norm blankNRM
 
 newmtl Material__1674
 shader LightShader
-states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.00 0.00 0.00
@@ -22,7 +20,6 @@ tex_norm blankNRM
 
 newmtl Material__955
 shader LightShader
-states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.00 0.00 0.00
@@ -33,7 +30,6 @@ tex_norm blankNRM
 
 newmtl Material__549
 shader LightShader
-states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.00 0.00 0.00
@@ -44,7 +40,6 @@ tex_norm blankNRM
 
 newmtl Material__796
 shader LightShader
-states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.00 0.00 0.00
@@ -55,7 +50,6 @@ tex_norm blankNRM
 
 newmtl Material__1003
 shader LightShader
-states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.00 0.00 0.00
@@ -66,7 +60,6 @@ tex_norm blankNRM
 
 newmtl Material__551
 shader LightShader
-states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.00 0.00 0.00
@@ -77,7 +70,6 @@ tex_norm blankNRM
 
 newmtl Material__830
 shader LightShader
-states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.00 0.00 0.00
@@ -88,7 +80,6 @@ tex_norm blankNRM
 
 newmtl Material__1002
 shader LightShader
-states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.00 0.00 0.00
@@ -99,7 +90,6 @@ tex_norm blankNRM
 
 newmtl Material__1006
 shader LightShader
-states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.00 0.00 0.00
@@ -110,7 +100,6 @@ tex_norm blankNRM
 
 newmtl Material__1007
 shader LightShader
-states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.00 0.00 0.00
@@ -121,7 +110,6 @@ tex_norm blankNRM
 
 newmtl Material__954
 shader LightShader
-states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.00 0.00 0.00
@@ -132,7 +120,6 @@ tex_norm blankNRM
 
 newmtl Material__1673
 shader LightShader
-states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.00 0.00 0.00
@@ -143,7 +130,6 @@ tex_norm blankNRM
 
 newmtl Material__1466
 shader LightShader
-states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.00 0.00 0.00
@@ -154,7 +140,6 @@ tex_norm blankNRM
 
 newmtl Material__1683
 shader LightShader
-states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.00 0.00 0.00
@@ -165,7 +150,6 @@ tex_norm blankNRM
 
 newmtl Material__1684
 shader LightShader
-states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.00 0.00 0.00
@@ -176,7 +160,6 @@ tex_norm blankNRM
 
 newmtl Material__1659
 shader LightShader
-states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.00 0.00 0.00
@@ -187,7 +170,6 @@ tex_norm blankNRM
 
 newmtl Material__803
 shader LightShader
-states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.00 0.00 0.00
@@ -198,7 +180,6 @@ tex_norm blankNRM
 
 newmtl Material__1005
 shader LightShader
-states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.00 0.00 0.00
@@ -209,7 +190,6 @@ tex_norm blankNRM
 
 newmtl Material__910
 shader LightShader
-states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.00 0.00 0.00
@@ -220,7 +200,6 @@ tex_norm blankNRM
 
 newmtl Material__1656
 shader LightShader
-states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.00 0.00 0.00
@@ -231,7 +210,6 @@ tex_norm blankNRM
 
 newmtl Material__1657
 shader LightShader
-states 66186
 Ka 0.30 0.30 0.30 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.00 0.00 0.00

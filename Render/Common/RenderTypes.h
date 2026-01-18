@@ -240,11 +240,16 @@ struct InstanceBatch
     ID3D11Buffer*          pVB = nullptr;                // vertex buffer
     ID3D11Buffer*          pIB = nullptr;                // index buffer
     Subset                 subset;                       // mesh metadata
-    uint32                 renderStates;                 // a bitfield about render states of the current material
     SRV*                   textures[NUM_TEXTURE_TYPES];  // textures of this material
 
     // debug data
     char                   name[32]{ '\0' };
+
+    // render states
+    RsID          rsId = 0;
+    BsID           bsId = 0;
+    DssID    dssId = 0;
+    bool                   alphaClip = false;
 };
 
 //---------------------------------------------------------

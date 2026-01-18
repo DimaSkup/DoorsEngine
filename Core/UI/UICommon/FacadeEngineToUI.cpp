@@ -1047,31 +1047,19 @@ bool FacadeEngineToUI::GetMaterialDataById(const MaterialID id, MaterialData& ou
 //---------------------------------------------------------
 // Desc:  get number of render state props by input group type
 //---------------------------------------------------------
-uint FacadeEngineToUI::GetNumRenderStates(const eMaterialPropGroup type) const
+size FacadeEngineToUI::GetNumRenderStates(const eRenderStatesGroup type) const
 {
-    using enum eMaterialPropGroup;
+    Render::RenderStates& rndStates = pRender_->GetRenderStates();
 
     switch (type)
     {
-        case FILL:
-            return pRender_->GetRenderStates().GetNumFillModes();
-
-        case CULL:
-            return pRender_->GetRenderStates().GetNumCullModes();
-
-        case WINDING_ORDER:
-            return pRender_->GetRenderStates().GetNumWindingOrders();
-
-        case BLENDING:
-            return pRender_->GetRenderStates().GetNumBlendStates();
-
-        case DEPTH_STENCIL:
-            return pRender_->GetRenderStates().GetNumDepthStencilStates();
-
-        default:
-            LogErr(LOG, "unknown type of render states group: %d", (int)type);
-            return 0;
+        case RND_STATES_RASTER:        return rndStates.GetNumRasterStates();
+        case RND_STATES_BLEND:         return rndStates.GetNumBlendStates();
+        case RND_STATES_DEPTH_STENCIL: return rndStates.GetNumDepthStencilStates();
     }
+
+    LogErr(LOG, "unknown render states group: %d\n so return a number of raster states (by default)", (int)type);
+    return pRender_->GetRenderStates().GetNumRasterStates();
 }
 
 //---------------------------------------------------------
@@ -1079,33 +1067,258 @@ uint FacadeEngineToUI::GetNumRenderStates(const eMaterialPropGroup type) const
 //         (groups: fill, cull, blending, etc.)
 // 
 // Args:   - type: what kind of names we want to get
-// Ret:    - arr of names
+// Ret:    - ptr to arr of names
 //---------------------------------------------------------
-const char** FacadeEngineToUI::GetRenderStateNames(const eMaterialPropGroup type) const
+const cvector<RenderStateName>* FacadeEngineToUI::GetRenderStateNames(const eRenderStatesGroup type) const
 {
-    using enum eMaterialPropGroup;
+    Render::RenderStates& rndStates = pRender_->GetRenderStates();
 
     switch (type)
     {
-        case FILL:
-            return pRender_->GetRenderStates().GetFillModesNames();
+        case RND_STATES_RASTER:        return &rndStates.GetRasterStatesNames();
+        case RND_STATES_BLEND:         return &rndStates.GetBlendStatesNames();
+        case RND_STATES_DEPTH_STENCIL: return &rndStates.GetDepthStencilStatesNames();
+    }
 
-        case CULL:
-            return pRender_->GetRenderStates().GetCullModesNames();
+    LogErr(LOG, "unknown render states group: %d\n so return a list of raster states names by default", (int)type);
+    return &pRender_->GetRenderStates().GetRasterStatesNames();
+}
 
-        case WINDING_ORDER:
-            return pRender_->GetRenderStates().GetWindingOrdersNames();
+//---------------------------------------------------------
+// Desc:  return a number of properties names for some specific
+//        parameter of blending state (BS)
+//        (for instance:  a number of all possible blend operations)
+//---------------------------------------------------------
+int FacadeEngineToUI::GetNumBlendStateParams(const eBlendStatePropType type) const
+{
+    const Render::RenderStates& rndStates = pRender_->GetRenderStates();
+    Render::eBsParamType        paramType = Render::eBsParamType(0);
 
-        case BLENDING:
-            return pRender_->GetRenderStates().GetBlendStatesNames();
+    switch (type)
+    {
+        case UI_BLEND_OPERATION:
+            paramType = Render::BLEND_OPERATION;
+            break;
 
-        case DEPTH_STENCIL:
-            return pRender_->GetRenderStates().GetDepthStencilStatesNames();
+        case UI_BLEND_FACTOR:
+            paramType = Render::BLEND_FACTOR;
+            break;
+
+        case UI_BLEND_RND_TARGET_WRITE_MASK:
+            paramType = Render::BLEND_RND_TARGET_WRITE_MASK;
+            break;
+    }
+
+    return rndStates.GetNumBsParams(paramType);
+}
+
+//---------------------------------------------------------
+// Desc:  return an array of properties names for some specific
+//        parameter of blending state (BS)
+//        (for instance:  names of all possible blend operations)
+//---------------------------------------------------------
+const char** FacadeEngineToUI::GetBlendStateParamsNames(const eBlendStatePropType type) const
+{
+    const Render::RenderStates& rndStates = pRender_->GetRenderStates();
+    Render::eBsParamType        paramType = Render::eBsParamType(0);
+
+    switch (type)
+    {
+        case UI_BLEND_OPERATION:
+            paramType = Render::BLEND_OPERATION;
+            break;
+
+        case UI_BLEND_FACTOR:
+            paramType = Render::BLEND_FACTOR;
+            break;
+
+        case UI_BLEND_RND_TARGET_WRITE_MASK:
+            paramType = Render::BLEND_RND_TARGET_WRITE_MASK;
+            break;
+    }
+
+    return rndStates.GetArrBsParamsNames(paramType);
+}
+
+//---------------------------------------------------------
+//---------------------------------------------------------
+const char* FacadeEngineToUI::GetBsParamStr(
+    const BsID id,
+    const eBlendStatePropType type)
+{
+    Render::RenderStates&  rndStates = pRender_->GetRenderStates();
+    Render::eBsParamType   paramType = Render::eBsParamType(0);
+
+    switch (type)
+    {
+        case UI_BLEND_RND_TARGET_WRITE_MASK:
+            paramType = Render::BLEND_RND_TARGET_WRITE_MASK;
+            break;
+
+        case UI_BLEND_SRC_BLEND:
+            paramType = Render::BLEND_SRC_BLEND;
+            break;
+
+        case UI_BLEND_DST_BLEND:
+            paramType = Render::BLEND_DST_BLEND;
+            break;
+
+        case UI_BLEND_OP:
+            paramType = Render::BLEND_OP;
+            break;
+
+        case UI_BLEND_SRC_BLEND_ALPHA:
+            paramType = Render::BLEND_SRC_BLEND_ALPHA;
+            break;
+
+        case UI_BLEND_DST_BLEND_ALPHA:
+            paramType = Render::BLEND_DST_BLEND_ALPHA;
+            break;
+
+        case UI_BLEND_OP_ALPHA:
+            paramType = Render::BLEND_OP_ALPHA;
+            break;
 
         default:
-            LogErr(LOG, "unknown type of render states group: %d", (int)type);
-            return nullptr;
+        {
+            const char* bsName = rndStates.GetBsName(id);
+            LogErr(LOG, "can't get a str value of blend state ([%d] '%s'   prop_type: %d)", (int)id, bsName, (int)type);
+            return s_DummyStr;
+        }
     }
+
+    return rndStates.GetBsParamStr(id, paramType);
+}
+
+//---------------------------------------------------------
+//---------------------------------------------------------
+bool FacadeEngineToUI::GetBsParamBool(
+    const BsID id,
+    const eBlendStatePropType type)
+{
+    Render::RenderStates&  rndStates = pRender_->GetRenderStates();
+    Render::eBsParamType   paramType = Render::eBsParamType(0);
+
+    switch (type)
+    {
+        case UI_BLEND_IS_ALPHA_TO_COVERAGE:
+            paramType = Render::BLEND_IS_ALPHA_TO_COVERAGE;
+            break;
+
+        case UI_BLEND_IS_INDEPENDENT:
+            paramType = Render::BLEND_IS_INDEPENDENT;
+            break;
+
+        case UI_BLEND_IS_ENABLED:
+            paramType = Render::BLEND_IS_ENABLED;
+            break;
+
+        default:
+        {
+            const char* bsName = rndStates.GetBsName(id);
+            LogErr(LOG, "can't get a bool value of blend state ([%d] '%s'   prop_type: %d)", (int)id, bsName, (int)type);
+            return false;
+        }
+    }
+
+    return rndStates.GetBsParamBool(id, paramType);
+}
+
+//---------------------------------------------------------
+//---------------------------------------------------------
+void FacadeEngineToUI::UpdateCustomBlendState(
+    const bool alphaToCoverage,
+    const bool independentBlend,
+    const bool blendEnabled,
+    const char* srcBlend,
+    const char* dstBlend,
+    const char* blendOp,
+    const char* srcBlendAlpha,
+    const char* dstBlendAlpha,
+    const char* blendOpAlpha,
+    const char* writeMask)
+{
+#if 0
+    printf("update bs:\n");
+    printf("alpha to coverage: %d\n", alphaToCoverage);
+    printf("independ:          %d\n", independentBlend);
+    printf("enabled:           %d\n", blendEnabled);
+
+    printf("src blend:         %s\n", currSrcBlend);
+    printf("dst blend:         %s\n", currDstBlend);
+    printf("blend op:          %s\n", currBlendOp);
+    printf("src blend alpha:   %s\n", currSrcBlendAlpha);
+    printf("dst blend alpha:   %s\n", currDstBlendAlpha);
+    printf("blend op alpha:    %s\n", currBlendOpAlpha);
+    printf("write mask:        %s\n", currWriteMask);
+#endif
+
+    Render::RenderStates& rndStates = pRender_->GetRenderStates();
+}
+
+//---------------------------------------------------------
+// Desc:  get id of material's current render state 
+//---------------------------------------------------------
+uint FacadeEngineToUI::GetMaterialRndStateId(
+    const MaterialID id,
+    const eRenderStatesGroup type) const
+{
+    const Material& mat = g_MaterialMgr.GetMatById(id);
+
+    switch (type)
+    {
+        case RND_STATES_RASTER:         return (uint)mat.rsId;
+        case RND_STATES_BLEND:          return (uint)mat.bsId;
+        case RND_STATES_DEPTH_STENCIL:  return (uint)mat.dssId;
+    }
+
+    LogErr(LOG, "unknown render state group: %d", type);
+    return 0;
+}
+
+//---------------------------------------------------------
+// Desc:  switch material's render state to some predefined state
+//        (one of raster state, blend state or depth-stencil state)
+//---------------------------------------------------------
+bool FacadeEngineToUI::SetMaterialRenderState(const RenderStateSetup& params)
+{
+    Material& mat = g_MaterialMgr.GetMatById(params.matId);
+
+    if (mat.id == INVALID_MATERIAL_ID)
+    {
+        LogErr(LOG, "no material by id: %d", (int)mat.id);
+        return false;
+    }
+
+    switch (params.rndState)
+    {
+        case RND_STATES_RASTER:
+            mat.rsId = (RsID)params.rndStateId;
+            break;
+
+        case RND_STATES_BLEND:
+            mat.bsId = (BsID)params.rndStateId;
+            break;
+
+        case RND_STATES_DEPTH_STENCIL:
+            mat.dssId = (DssID)params.rndStateId;
+            break;
+
+        default:
+            LogErr(LOG, "unknown render state group: %d", params.rndState);
+            return false;
+    }
+
+    return true;
+}
+
+//---------------------------------------------------------
+// Desc:  setup material's custom render state's property
+//        (for instance: switch depth function for custom depth-stencil state)
+//---------------------------------------------------------
+bool FacadeEngineToUI::SetMaterialRenderStateProp(const RenderStateSetup& params)
+{
+    return true;
 }
 
 //---------------------------------------------------------
@@ -1137,64 +1350,6 @@ bool FacadeEngineToUI::SetMaterialTexture(
     const uint texType) const
 {
     return g_MaterialMgr.SetMatTexture(matId, texId, texType);
-}
-
-//---------------------------------------------------------
-// Desc:   setup render state of particular type (group) for material by id
-//         (groups: fill, cull, blending, etc.)
-// Args:   - id:        material identifier
-//         - stateIdx:  an index of render state inside its group
-//         - type:      what kind of render states group we want to change
-//---------------------------------------------------------
-bool FacadeEngineToUI::SetMaterialRenderState(
-    const MaterialID id,
-    const uint32 stateIdx,
-    const eMaterialPropGroup type) const
-{
-    using enum eMaterialPropGroup;
-    Material& mat = g_MaterialMgr.GetMatById(id);
-
-    if (mat.id == INVALID_MATERIAL_ID)
-    {
-        LogErr(LOG, "can't change render state "
-                    "(idx: %" PRIu32 "; type: %d\n"
-                    "because there is no material by id : %" PRIu32, id);
-        return false;
-    }
-
-
-    switch (type)
-    {
-        case ALPHA_CLIP:
-            // for alpha clipping we switch the state to the opposite
-            mat.SetAlphaClip(!mat.HasAlphaClip());
-            break;
-
-        case FILL:
-            mat.SetFillByIdx(stateIdx);
-            break;
-
-        case CULL:
-            mat.SetCullByIdx(stateIdx);
-            break;
-
-        case WINDING_ORDER:
-            break;
-
-        case BLENDING:
-            mat.SetBlendingByIdx(stateIdx);
-            break;
-
-        case DEPTH_STENCIL:
-            mat.SetDepthStencilByIdx(stateIdx);
-            break;
-
-        default:
-            LogErr(LOG, "unknown type of render states group: %u", type);
-            return false;
-    }
-
-    return true;
 }
 
 //---------------------------------------------------------

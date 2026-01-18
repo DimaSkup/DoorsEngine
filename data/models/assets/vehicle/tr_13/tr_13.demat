@@ -1,6 +1,5 @@
 newmtl veh_veh_traktor
 shader LightShader
-states 66186
 Ka 0.80 0.80 0.80 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.00 0.00 0.00
@@ -12,8 +11,7 @@ tex_opac veh/traktor
 
 newmtl lights_lights_cone_handing_lamp
 shader TextureShader
-states 264354
-bs no_render_target_writes
+bs no_color_write
 Ka 0.17 0.17 0.17 1.00
 Kd 0.00 0.00 0.00 1.00
 Ks 0.00 0.00 0.00
@@ -24,8 +22,7 @@ tex_opac light/cone_handing_lamp
 
 newmtl glow_glow_Orange
 shader TextureShader
-states 264354
-bs no_render_target_writes
+bs no_color_write
 Ka 1.00 1.00 1.00 1.00
 Kd 1.00 1.00 1.00 1.00
 Ks 0.00 0.00 0.00
@@ -36,7 +33,6 @@ tex_opac glow/orange
 
 newmtl veh_veh_traktor_001
 shader LightShader
-states 66186
 Ka 0.80 0.80 0.80 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.00 0.00 0.00
@@ -48,7 +44,6 @@ tex_opac veh/traktor
 
 newmtl veh_veh_nivaglass1
 shader LightShader
-states 1065122
 Ka 1.00 1.00 1.00 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 1.00 1.00 1.00

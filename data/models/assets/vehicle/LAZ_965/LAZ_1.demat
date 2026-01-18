@@ -1,6 +1,5 @@
 newmtl LAZ_965_wheel_mat
 shader LightShader
-states 66186
 Ka 0.40 0.40 0.40 1.00
 Kd 0.50 0.50 0.50 1.00
 Ks 0.10 0.10 0.10

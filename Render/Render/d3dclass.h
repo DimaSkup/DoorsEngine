@@ -93,23 +93,16 @@ public:
     inline void BindDepthBuffer()                                { pContext_->OMSetRenderTargets(1, &pSwapChainRTV_, pDepthStencilView_); }
     inline void UnbindDepthBuffer()                              { pContext_->OMSetRenderTargets(1, &pSwapChainRTV_, nullptr); }
 
-    // set rasterizer states (RS)
-    inline void SetRS(const eRenderState state)                  { renderStates_.SetRS(pContext_, state); }
-    inline void SetRS(const std::set<eRenderState>& states)      { renderStates_.SetRS(pContext_, states); }
-
-    // turning the Z buffer on and off when rendering 2D images
-    inline void TurnZBufferOn()                                  { pContext_->OMSetDepthStencilState(renderStates_.GetDSS(R_DEPTH_ENABLED), 1); }
-    inline void TurnZBufferOff()                                 { pContext_->OMSetDepthStencilState(renderStates_.GetDSS(R_DEPTH_DISABLED), 1); }
-
-    inline void TurnOnBlending(const eRenderState state)         { renderStates_.SetBS(pContext_, state); }
-    inline void TurnOffBlending()                                { renderStates_.SetBS(pContext_, R_ALPHA_DISABLE); }
 
     // set default render target/viewport
     inline void ResetBackBufferRenderTarget()                    { pContext_->OMSetRenderTargets(1, &pSwapChainRTV_, pDepthStencilView_); }
     inline void ResetViewport()                                  { pContext_->RSSetViewports(1, &viewport_); }
 
-    void        TurnOnRSfor2Drendering();
-    inline void TurnOffRSfor2Drendering()                        { renderStates_.SetRSByHash(pContext_, prevRasterStateHash_); }
+    // turning the Z buffer on and off when rendering 2D images
+    void TurnOnRSfor2Drendering(void);
+    void TurnZBufferOn(void);
+    void TurnZBufferOff(void);
+
 
     // fullscreen/windowed stuff
     bool ToggleFullscreen(HWND hwnd, bool isFullscreen);
@@ -185,7 +178,6 @@ public:
 
     AdapterReader             adaptersReader_;
     RenderStates              renderStates_;
-    uint8                     prevRasterStateHash_ = 0;
 
     AntiAliasingType          currAntiAliasing_ = AA_TYPE_NO_AA;
 

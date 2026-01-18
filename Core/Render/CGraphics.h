@@ -175,20 +175,32 @@ public:
 
     void ClearRenderingDataBeforeFrame();
     void Render3D();
-    
+    void RenderDecals();
+
+    //
+    // material binding
+    //
     void BindMaterial      (const Material& mat);
     void BindMaterialById  (const MaterialID matId);
-    void BindMaterialByName(const char* matName);
 
     void BindMaterial(
-        const uint32 renderStatesBitfields,
+        const bool alphaClip,
+        const RsID rsId,
+        const BsID bsId,
+        const DssID dssId,
         const TexID* texIds);
 
     void BindMaterial(
-        const uint32 renderStatesBitfield,
+        const bool alphaClip,
+        const RsID rsId,
+        const BsID bsId,
+        const DssID dssId,
         ID3D11ShaderResourceView* const* texViews);
 
-    
+
+    //
+    // rendering into frame buffers
+    //
     bool InitMatBigIconFrameBuf(const uint width, const uint height);
 
     bool InitMatIconFrameBuffers(
@@ -204,7 +216,6 @@ public:
 
     bool RenderMaterialsIcons();
 
-    void RenderDecals();
 
 
     // ---------------------------------------

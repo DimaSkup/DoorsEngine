@@ -113,15 +113,15 @@ void CGraphics::Render3D()
     ResetBeforeRendering();
     g_GpuProfiler.Timestamp(GTS_RenderScene_Reset);
 
-    if (enableDepthPrepass_)
-        DepthPrepass();
+    //if (enableDepthPrepass_)
+   //     DepthPrepass();
     g_GpuProfiler.Timestamp(GTS_RenderScene_DepthPrepass);
 
     //if (!enableDepthPrepass_)
     if (!visualizeDepth_)
         ColorLightPass();
 
-    PostFxPass();
+    //PostFxPass();
     g_GpuProfiler.Timestamp(GTS_RenderScene_PostFX);
 
     // calc frame stats
@@ -742,135 +742,11 @@ void CGraphics::ClearRenderingDataBeforeFrame()
 }
 
 //---------------------------------------------------------
-// Desc:   switch to another fill mode according to input argument
-//---------------------------------------------------------
-void SwitchFillMode(
-    ID3D11DeviceContext* pContext,
-    Render::RenderStates& renderStates,
-    const uint32 fillMode)
-{
-    switch (fillMode)
-    {
-        case MAT_PROP_FILL_SOLID:
-            renderStates.SetRS(pContext, R_FILL_SOLID);
-            break;
-
-        case MAT_PROP_FILL_WIREFRAME:
-            renderStates.SetRS(pContext, R_FILL_WIREFRAME);
-            break;
-    }
-}
-
-//---------------------------------------------------------
-// Desc:   switch to another cull mode according to input argument
-//---------------------------------------------------------
-void SwitchCullMode(
-    ID3D11DeviceContext* pContext,
-    Render::RenderStates& renderStates,
-    const uint32 cullMode)
-{
-    switch (cullMode)
-    {
-        case MAT_PROP_CULL_BACK:
-            renderStates.SetRS(pContext, R_CULL_BACK);
-            break;
-
-        case MAT_PROP_CULL_FRONT:
-            renderStates.SetRS(pContext, R_CULL_FRONT);
-            break;
-
-        case MAT_PROP_CULL_NONE:
-            renderStates.SetRS(pContext, R_CULL_NONE);
-            break;
-    }
-}
-
-//---------------------------------------------------------
-// Desc:   switch to another blend state according to input argument
-//---------------------------------------------------------
-void SwitchBlendState(
-    ID3D11DeviceContext* pContext,
-    Render::RenderStates& renderStates,
-    const uint32 blendState)
-{
-    switch (blendState)
-    {
-        case MAT_PROP_BS_NO_RENDER_TARGET_WRITES:
-            renderStates.SetBS(pContext, R_NO_RENDER_TARGET_WRITES);
-            break;
-
-        case MAT_PROP_BS_DISABLE:
-            renderStates.SetBS(pContext, R_ALPHA_DISABLE);
-            break;
-
-        case MAT_PROP_BS_ENABLE:
-            renderStates.SetBS(pContext, R_ALPHA_ENABLE);
-            break;
-
-        case MAT_PROP_BS_ADD:
-            renderStates.SetBS(pContext, R_ADDING);
-            break;
-
-        case MAT_PROP_BS_SUB:
-            renderStates.SetBS(pContext, R_SUBTRACTING);
-            break;
-
-        case MAT_PROP_BS_MUL:
-            renderStates.SetBS(pContext, R_MULTIPLYING);
-            break;
-
-        case MAT_PROP_BS_TRANSPARENCY:
-            renderStates.SetBS(pContext, R_TRANSPARENCY);
-            break;
-
-        case MAT_PROP_BS_ALPHA_TO_COVERAGE:
-            renderStates.SetBS(pContext, R_ALPHA_TO_COVERAGE);
-            break;
-    }
-}
-
-//---------------------------------------------------------
-// Desc:   switch to another depth-stencil state according to input argument
-//---------------------------------------------------------
-void SwitchDepthStencilState(
-    ID3D11DeviceContext* pContext,
-    Render::RenderStates& renderStates,
-    const uint32 depthStencilState)
-{
-    switch (depthStencilState)
-    {
-        case MAT_PROP_DSS_DEPTH_ENABLED:
-            renderStates.SetDSS(pContext, R_DEPTH_ENABLED, 0);
-            break;
-
-        case MAT_PROP_DSS_DEPTH_DISABLED:
-            renderStates.SetDSS(pContext, R_DEPTH_DISABLED, 0);
-            break;
-
-        case MAT_PROP_DSS_MARK_MIRROR:
-            renderStates.SetDSS(pContext, R_MARK_MIRROR, 0);
-            break;
-
-        case MAT_PROP_DSS_DRAW_REFLECTION:
-            renderStates.SetDSS(pContext, R_DRAW_REFLECTION, 0);
-            break;
-
-        case MAT_PROP_DSS_NO_DOUBLE_BLEND:
-            renderStates.SetDSS(pContext, R_NO_DOUBLE_BLEND, 0);
-            break;
-
-        case MAT_PROP_DSS_SKY_DOME:
-            renderStates.SetDSS(pContext, R_SKY_DOME, 0);
-            break;
-    }
-}
-
-//---------------------------------------------------------
 // Desc:  bind input material (textures + render states) 
 //---------------------------------------------------------
 void CGraphics::BindMaterial(const Material& mat)
 {
-    BindMaterial(mat.renderStates, mat.texIds);
+    BindMaterial(mat.alphaClip, mat.rsId, mat.bsId, mat.dssId, mat.texIds);
 }
 
 //---------------------------------------------------------
@@ -879,47 +755,37 @@ void CGraphics::BindMaterial(const Material& mat)
 void CGraphics::BindMaterialById(const MaterialID matId)
 {
     const Material& mat = g_MaterialMgr.GetMatById(matId);
-    BindMaterial(mat.renderStates, mat.texIds);
-}
-
-//---------------------------------------------------------
-// Desc:  bind a material (textures + render states) by input name
-//---------------------------------------------------------
-void CGraphics::BindMaterialByName(const char* matName)
-{
-    if (!matName || matName[0] == '\0')
-    {
-        LogErr(LOG, "can't bind a material: input name is empty!");
-        return;
-    }
-
-    const Material& mat = g_MaterialMgr.GetMatByName("grass_0");
-    BindMaterial(mat.renderStates, mat.texIds);
+    BindMaterial(mat.alphaClip, mat.rsId, mat.bsId, mat.dssId, mat.texIds);
 }
 
 //---------------------------------------------------------
 // Desc:   setup rendering states according to input material params
-// Args:   - renderStatesBitfield:  bitfield with render states for this material
+// Args:   
 //         - texIdx:                identifiers to textures which will be bound
 //---------------------------------------------------------
 void CGraphics::BindMaterial(
-    const uint32 renderStatesBitfields,
+    const bool alphaClip,
+    const RsID rsId,
+    const BsID bsId,
+    const DssID dssId,
     const TexID* texIds)
 {
     // find texture resource views by input textures ids
     ID3D11ShaderResourceView* texViews[NUM_TEXTURE_TYPES]{ nullptr };
     g_TextureMgr.GetTexViewsByIds(texIds, NUM_TEXTURE_TYPES, texViews);
 
-    BindMaterial(renderStatesBitfields, texViews);
+    BindMaterial(alphaClip, rsId, bsId, dssId, texViews);
 }
 
 //---------------------------------------------------------
 // Desc:   setup rendering states according to input material params
-// Args:   - renderStatesBitfield:  bitfield with render states for this material
-//         - texViews:              textures to bind
+// Args:   - texViews:              textures to bind
 //---------------------------------------------------------
 void CGraphics::BindMaterial(
-    const uint32 renderStatesBitfield,
+    const bool alphaClip,
+    const RsID rsId,
+    const BsID bsId,
+    const DssID dssId,
     ID3D11ShaderResourceView* const* texViews)
 {
     if (!texViews)
@@ -930,74 +796,61 @@ void CGraphics::BindMaterial(
 
     ID3D11DeviceContext* pContext = GetContext();
 
-    // static bitfield of render states
-    static uint32 prevBitfield = 0;
+    static bool                prevAlphaClip = 0;
+    static RsID       prevRsId = 0;
+    static BsID        prevBsId = 0;
+    static DssID prevDssId = 0;
 
     // bind textures of this material
     pContext->PSSetShaderResources(100U, NUM_TEXTURE_TYPES, texViews);
 
     // check if we need to switch render states
-    if (prevBitfield == renderStatesBitfield)
+    if (prevAlphaClip == alphaClip &&
+        prevRsId == rsId &&
+        prevBsId == bsId &&
+        prevDssId == dssId)
         return;
 
  
     Render::RenderStates& renderStates = pRender_->GetRenderStates();
-    uint32 prev = 0;
-    uint32 curr = 0;
+
+    // switch alpha clipping if need...
+    if (prevAlphaClip != alphaClip)
+    {
+        pRender_->SwitchAlphaClipping(alphaClip);
+        prevAlphaClip = alphaClip;
+    }
 
 
-    // switch alpha clipping
-    prev = prevBitfield & MAT_PROP_ALPHA_CLIPPING;
-    curr = renderStatesBitfield & MAT_PROP_ALPHA_CLIPPING;
+    // switch raster state (fill mode, cull mode, etc.) if need...
+    if (prevRsId != rsId)
+    {
+        renderStates.SetRs(rsId);
+        prevRsId = rsId;
+    }
 
-    if (prev != curr)
-        pRender_->SwitchAlphaClipping(curr);
+    // switch blending state if need...
+    if (prevBsId != bsId)
+    {
+        renderStates.SetBs(bsId);
+        prevBsId = bsId;
+    }
 
-
-    // switch fill mode if need
-    prev = prevBitfield & ALL_FILL_MODES;
-    curr = renderStatesBitfield & ALL_FILL_MODES;
-
-    if (prev != curr)
-        SwitchFillMode(pContext, renderStates, curr);
-
-
-    // switch cull mode if need
-    prev = prevBitfield & ALL_CULL_MODES;
-    curr = renderStatesBitfield & ALL_CULL_MODES;
-
-    if (prev != curr)
-        SwitchCullMode(pContext, renderStates, curr);
-
-
-    // switch blending state if necessary
-    prev = prevBitfield & ALL_BLEND_STATES;
-    curr = renderStatesBitfield & ALL_BLEND_STATES;
-
-    if (prev != curr)
-        SwitchBlendState(pContext, renderStates, curr);
-
-
-    // switch depth-stencil state if need
-    prev = prevBitfield & ALL_DEPTH_STENCIL_STATES;
-    curr = renderStatesBitfield & ALL_DEPTH_STENCIL_STATES;
-
-    if (prev != curr)
-        SwitchDepthStencilState(pContext, renderStates, curr);
-
-
-    // update the static bitfield of render states before the the next material
-    prevBitfield = renderStatesBitfield;
+    // switch depth-stencil state if need...
+    if (prevDssId != dssId)
+    {
+        renderStates.SetDss(dssId, 0);
+        prevDssId = dssId;
+    }
 }
 
 //---------------------------------------------------------
-// Desc:   reset different stuff before rendering of each frame
+// Desc:  reset textures and render states so we will be able
+//        to setup it properly for rendering
 //---------------------------------------------------------
 void CGraphics::ResetBeforeRendering()
 {
-    // reset textures and render states so we will be able to setup it properly for rendering
-    ID3D11ShaderResourceView* zeroTexViews[NUM_TEXTURE_TYPES]{ nullptr };
-    BindMaterial(MAT_PROP_DEFAULT, zeroTexViews);
+    BindMaterialById(0);
 }
 
 //---------------------------------------------------------
@@ -1024,10 +877,7 @@ void CGraphics::DepthPrepass()
     if (storage.instancesBuf.GetSize() <= 0)
         return;
 
-    Render::RenderStates& renderStates = pRender_->GetRenderStates();
-    renderStates.ResetRS(pContext);
-    renderStates.ResetBS(pContext);
-    renderStates.SetDSS(pContext, R_DEPTH_PREPASS, 0);
+    pRender_->ResetRenderStates();
 
     // only depth writing
     pContext->OMSetRenderTargets(0, nullptr, d3d.pDepthStencilView_);
@@ -1043,9 +893,7 @@ void CGraphics::DepthPrepass()
     // render terrain
     TerrainDepthPrepass();
 
-    // reset depth-stencil state, and bind back a swap chain's RTV
-    renderStates.SetDSS(pContext, R_DEPTH_ENABLED, 0);
-
+    // bind back a swap chain's RTV
     pContext->OMSetRenderTargets(1, &d3d.pSwapChainRTV_, d3d.pDepthStencilView_);
 }
 
@@ -1097,10 +945,7 @@ void CGraphics::ColorLightPass()
     RenderPlayerWeapon();
     g_GpuProfiler.Timestamp(GTS_RenderScene_Weapon);
 
-    // render grass
-    pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-    RenderGrass();
-    g_GpuProfiler.Timestamp(GTS_RenderScene_Grass);
+   
 
     // render masked geometry: tree branches, bushes, etc.
     pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -1113,11 +958,13 @@ void CGraphics::ColorLightPass()
 
 
     // render each animated entity separately
+#if 1
     for (const EntityID id : pEnttMgr_->animationSys_.GetEnttsIds())
     {
         if (pEnttMgr_->renderSys_.HasEntity(id))
             RenderSkinnedModel(id);
     }
+#endif
     g_GpuProfiler.Timestamp(GTS_RenderScene_SkinnedModels);
 
 
@@ -1125,14 +972,22 @@ void CGraphics::ColorLightPass()
     RenderTerrainGeomip();
     g_GpuProfiler.Timestamp(GTS_RenderScene_Terrain);
 
+    // render grass
+    pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+    RenderGrass();
+    g_GpuProfiler.Timestamp(GTS_RenderScene_Grass);
+
+
     // render 3d decals
+    pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     RenderDecals();
 
     // render sky and clouds
+    pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     RenderSkyDome();
     g_GpuProfiler.Timestamp(GTS_RenderScene_Sky);
 
-    RenderSkyClouds();
+    //RenderSkyClouds();
     g_GpuProfiler.Timestamp(GTS_RenderScene_SkyPlane);
 
     // render blended geometry (but not transparent)
@@ -1163,11 +1018,10 @@ void CGraphics::PostFxPass()
 
     Render::D3DClass&     d3d      = GetD3D();
     ID3D11DeviceContext*  pContext = GetContext();
-    Render::RenderStates& rs       = d3d.GetRenderStates();
 
-    rs.ResetRS(pContext);
-    rs.ResetBS(pContext);
-    rs.ResetDSS(pContext);
+
+    // reset raster state, blend state, depth-stencil state to default
+    pRender_->ResetRenderStates();
 
 
     if (visualizeDepth_)
@@ -1361,7 +1215,7 @@ bool CGraphics::RenderBigMaterialIcon(
 
     // bind material data and its textures
     const Material& mat = g_MaterialMgr.GetMatById(matID);
-    BindMaterial(mat.renderStates, mat.texIds);
+    BindMaterial(mat);
     pRender->UpdateCbMaterialColors(mat.ambient, mat.diffuse, mat.specular, mat.reflect);
 
 
@@ -1425,7 +1279,7 @@ bool CGraphics::RenderMaterialsIcons()
     {
         // bind material data and its textures
         const Material& mat = g_MaterialMgr.GetMatById(matId);
-        BindMaterial(mat.renderStates, mat.texIds);
+        BindMaterial(mat);
         pRender->UpdateCbMaterialColors(mat.ambient, mat.diffuse, mat.specular, mat.reflect);
 
         // render geometry
@@ -1518,6 +1372,30 @@ void CGraphics::RenderGrass()
 }
 
 //---------------------------------------------------------
+//---------------------------------------------------------
+void PrintDumpInstancesBatches(
+    const char* groupName,
+    const cvector<Render::InstanceBatch>& batches)
+{
+    assert(groupName && groupName[0] != '\0');
+
+    LogMsg(LOG, "dump instances batches (group: %s):", groupName);
+
+    for (int i = 0; const Render::InstanceBatch& batch : batches)
+    {
+        printf("\t[%d] %-40s num_inst %-5d rs %d  bs %d  dss %d\n",
+            i,
+            batch.name,
+            (int)batch.numInstances,
+            (int)batch.rsId,
+            (int)batch.bsId,
+            (int)batch.dssId);
+        i++;
+    }
+    printf("\n");
+}
+
+//---------------------------------------------------------
 // Desc:   render all the instances from the input array
 // Args:   - pRender:               a ptr to CRender class from the Render module
 //         - instanceBatches:       array of instance batches
@@ -1539,9 +1417,27 @@ void CGraphics::RenderInstanceGroups(
     uint32 numDrawnInstances = 0;
     uint32 numDrawCalls = 0;
 
+#if 0
+    if (geomType == GEOM_TYPE_OPAQUE)
+        PrintDumpInstancesBatches("opaque", instanceBatches);
+    else if (geomType == GEOM_TYPE_MASKED)
+        PrintDumpInstancesBatches("masked", instanceBatches);
+    else if (geomType == GEOM_TYPE_BLENDED)
+        PrintDumpInstancesBatches("blended", instanceBatches);
+#endif
+
+    //if (geomType == GEOM_TYPE_BLENDED)
+     //   PrintDumpInstancesBatches("blended", instanceBatches);
+
     for (const Render::InstanceBatch& batch : instanceBatches)
     {
-        BindMaterial(batch.renderStates, batch.textures);
+        BindMaterial(
+            batch.alphaClip,
+            batch.rsId,
+            batch.bsId,
+            batch.dssId,
+            batch.textures);
+
         pRender->RenderInstances(batch, startInstanceLocation);
 
         // stride idx in the instances buffer and accumulate render statistic
@@ -2248,9 +2144,7 @@ void RenderDebugWireframes(Render::CRender* pRender)
     RenderInstancesDebugWireframe(storage.masked, pRender, startInstanceLocation);
     RenderInstancesDebugWireframe(storage.opaque, pRender, startInstanceLocation);
 
-    pRender->GetRenderStates().ResetRS(pRender->GetContext());
-    pRender->GetRenderStates().ResetBS(pRender->GetContext());
-    pRender->GetRenderStates().ResetDSS(pRender->GetContext());
+    pRender->ResetRenderStates();
 }
 
 //---------------------------------------------------------
@@ -2649,13 +2543,8 @@ void CGraphics::RemovePostFx(const uint8 orderNum)
 //---------------------------------------------------------
 void CGraphics::ResetRenderStatesToDefault()
 {
-    RenderStates& renderStates    = GetD3D().GetRenderStates();
-    ID3D11DeviceContext* pContext = GetContext();
-
     pRender_->SwitchAlphaClipping(false);
-    renderStates.ResetRS(pContext);
-    renderStates.ResetBS(pContext);
-    renderStates.ResetDSS(pContext);
+    pRender_->ResetRenderStates();
 }
 
 
@@ -2710,10 +2599,7 @@ bool CGraphics::RenderModelIntoFrameBuf()
     ID3D11DeviceContext* pContext = pRender->GetContext();
 
     // reset render states to prevent rendering bugs
-    Render::RenderStates& renderStates = pRender->GetRenderStates();
-    renderStates.ResetRS(pContext);
-    renderStates.ResetBS(pContext);
-    renderStates.SetDSS(pContext, R_DEPTH_ENABLED, 0);
+    pRender->ResetRenderStates();
 
     // prepare model's instance
     const ModelPreviewRenderParams& params = modelPreviewRndParams_;

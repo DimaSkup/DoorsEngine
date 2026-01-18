@@ -28,7 +28,6 @@ private:
     Core::CGraphics*      pGraphics_     = nullptr;
     Core::TerrainGeomip*  pTerrain_      = nullptr;
 
-
 public:
     FacadeEngineToUI(
         Core::Engine* pEngine,
@@ -270,22 +269,42 @@ public:
 
     virtual bool        GetMaterialDataById     (const MaterialID id, MaterialData& outData)    const override;
 
-    virtual uint         GetNumRenderStates     (const eMaterialPropGroup type)                 const override;
-    virtual const char** GetRenderStateNames    (const eMaterialPropGroup type)                 const override;
-
     virtual uint         GetNumTexTypesNames    (void)                                          const override;
     virtual const char** GetTexTypesNames       (void)                                          const override;
     virtual const char*  GetTexTypeName         (const uint texType)                            const override;
+
+    // get render states info (about rasterizer states, blending states, or depth-stencil states)
+    virtual size                            GetNumRenderStates (const eRenderStatesGroup type)  const override;
+    virtual const cvector<RenderStateName>* GetRenderStateNames(const eRenderStatesGroup type)  const override;
+
+    // get info specific to blend states
+    virtual int          GetNumBlendStateParams  (const eBlendStatePropType type)                const override;
+    virtual const char** GetBlendStateParamsNames(const eBlendStatePropType type)                const override;
+    virtual const char*  GetBsParamStr           (const BsID id, const eBlendStatePropType type)       override;
+    virtual bool         GetBsParamBool          (const BsID id, const eBlendStatePropType type)       override;
+
+    virtual void UpdateCustomBlendState(
+        const bool alphaToCoverage,
+        const bool independentBlend,
+        const bool blendEnabled,
+        const char* srcBlend,
+        const char* dstBlend,
+        const char* blendOp,
+        const char* srcBlendAlpha,
+        const char* dstBlendAlpha,
+        const char* blendOpAlpha,
+        const char* writeMask) override;
+
+    // setup render states of material
+    virtual uint        GetMaterialRndStateId     (const MaterialID id, const eRenderStatesGroup type) const override;
+    virtual bool        SetMaterialRenderState    (const RenderStateSetup& params)                           override;
+    virtual bool        SetMaterialRenderStateProp(const RenderStateSetup& params)                           override;
+
 
     virtual bool SetMaterialTexture(
         const MaterialID matId,
         const TexID texId,
         const uint texType) const override;
-
-    virtual bool SetMaterialRenderState(
-        const MaterialID id,
-        const uint32 stateIdx,
-        const eMaterialPropGroup type) const override;
 
     virtual bool SetMaterialColorData(
         const MaterialID id,

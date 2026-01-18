@@ -18,6 +18,7 @@
 #include <Render/d3dclass.h>
 #include <geometry/frustum.h>
 #include <camera_params.h>
+#include <set>
 
 
 namespace Core

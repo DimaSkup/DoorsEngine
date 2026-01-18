@@ -332,6 +332,10 @@ void UIMaterialsBrowser::GetMaterialDataByIdx(const int matIdx)
         matData_.textureIDs,
         matData_.textures,
         NUM_TEXTURE_TYPES);
+
+    matData_.currRsId  = pFacade_->GetMaterialRndStateId(selectedMatId_, RND_STATES_RASTER);
+    matData_.currBsId  = pFacade_->GetMaterialRndStateId(selectedMatId_, RND_STATES_BLEND);
+    matData_.currDssId = pFacade_->GetMaterialRndStateId(selectedMatId_, RND_STATES_DEPTH_STENCIL);
 }
 
 //---------------------------------------------------------
@@ -533,15 +537,11 @@ void UIMaterialsBrowser::RenderMatPropsFields()
 
 
     // render selectors for choosing render state params of material
-    using enum eMaterialPropGroup;
-
-    if (ImGui::TreeNode("Select render state"))
+    if (ImGui::TreeNode("Setup render state"))
     {
-        RenderStatesSelectors("Select fill mode",           (uint)FILL,          matData_.selectedFillModeIdx);
-        RenderStatesSelectors("Select cull mode",           (uint)CULL,          matData_.selectedCullModeIdx);
-
-        RenderStatesSelectors("Select blend state",         (uint)BLENDING,      matData_.selectedBlendStateIdx);
-        RenderStatesSelectors("Select depth-stencil state", (uint)DEPTH_STENCIL, matData_.selectedDepthStencilStateIdx);
+        DrawRasterStatesSelectors();
+        DrawBlendStatesSelectors();
+        DrawDepthStencilStatesSelectors();
 
         ImGui::TreePop();
     }
@@ -602,51 +602,411 @@ void UIMaterialsBrowser::RenderDeleteWnd()
 }
 
 //---------------------------------------------------------
-// Desc:   render selectors for choosing render state params of material
-// Args:   - label:             text label about this types of selectors
-//         - statesType:        what kind of render states selectors we will render
-//         - pFacade:           facade interface btw UI and engine
-//         - selectedStateIdx:  in/out index of selected state inside its group
-//---------------------------------------------------------
-void UIMaterialsBrowser::RenderStatesSelectors(
-    const char* label,
-    const uint matRndStateGroup,
-    index& selectedStateIdx)
+
+void UIMaterialsBrowser::DrawRasterStatesSelectors(void)
 {
-    if (StrHelper::IsEmpty(label))
+    if (ImGui::TreeNode("Rasterizer states"))
     {
-        LogErr(LOG, "input label (string) for render state is empty");
-        return;
-    }
+        const cvector<RenderStateName>& statesNames = *pFacade_->GetRenderStateNames(RND_STATES_RASTER);
+        const index currRasterStateId = (index)matData_.currRsId;
 
-    const eMaterialPropGroup rndStateType = (eMaterialPropGroup)matRndStateGroup;
-    if (rndStateType >= eMaterialPropGroup::NUM_GROUPS)
-    {
-        LogErr(LOG, "invalid input render state group: %u", matRndStateGroup);
-        return;
-    }
 
-    if (ImGui::TreeNode(label))
-    {
-        // get name of each render state from the current group
-        const uint   numStates   = pFacade_->GetNumRenderStates(rndStateType);
-        const char** statesNames = pFacade_->GetRenderStateNames(rndStateType);
-
-        if (!statesNames)
+        // "custom" rasterizer state: we will be able to manually setup each parameter
+        if (currRasterStateId == 1)
         {
-            LogErr(LOG, "your arr of render states names == nullptr");
-            return;
+
         }
 
-        for (uint idx = 0; idx < numStates; ++idx)
+        // print a selectable list of render states
+        for (index i = 0; i < statesNames.size(); ++i)
         {
-            if (ImGui::Selectable(statesNames[idx], selectedStateIdx == idx))
+            if (ImGui::Selectable(statesNames[i].name, i == currRasterStateId))
             {
-                pFacade_->SetMaterialRenderState(matData_.materialId, (uint32)idx, rndStateType);
-                selectedStateIdx = idx;
+                RenderStateSetup params;
+                params.matId = matData_.materialId;
+                params.rndState = RND_STATES_RASTER;
+                params.rndStateId = (int)i;
+
+                pFacade_->SetMaterialRenderState(params);
+                matData_.currRsId = (uint)i;
             }
         }
+        ImGui::TreePop();
+    }
+    ImGui::Separator();
+}
 
+//---------------------------------------------------------
+//---------------------------------------------------------
+bool DrawBlendWriteMaskControl(
+    const char* label,
+    const char* comboId,
+    const char** currMask,
+    const char** maskNames,
+    const int numMasks)
+{
+    if (!label)
+    {
+        LogErr(LOG, "empty label");
+        return false;
+    }
+    if (!comboId)
+    {
+        LogErr(LOG, "empty combo id");
+        return false;
+    }
+    if (!currMask || !(*currMask) || (*currMask[0] == '\0'))
+    {
+        LogErr(LOG, "empty current factor");
+        return false;
+    }
+    if (!maskNames)
+    {
+        LogErr(LOG, "empty arr of factors names");
+        return false;
+    }
+
+    bool changed = false;
+
+    ImGui::TableNextColumn();
+    ImGui::Text("Blend render target write mask");
+
+    ImGui::TableNextColumn();
+    ImGui::PushItemWidth(-FLT_MIN);
+
+    if (ImGui::BeginCombo("##blend_write_mask", *currMask))
+    {
+        for (int i = 0; i < numMasks; ++i)
+        {
+            const bool isSelected = (strcmp(*currMask, maskNames[i]) == 0);
+            if (ImGui::Selectable(maskNames[i], isSelected))
+            {
+                *currMask = maskNames[i];
+                changed = true;
+            }
+
+            if (isSelected)
+                ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::PopItemWidth();
+
+    return changed;
+}
+
+//---------------------------------------------------------
+//---------------------------------------------------------
+bool DrawBlendFactorControl(
+    const char* label,
+    const char* comboId,
+    const char** currFactor,
+    const char** factors,
+    const int numFactors)
+{
+    if (!label)
+    {
+        LogErr(LOG, "empty label");
+        return false;
+    }
+    if (!comboId)
+    {
+        LogErr(LOG, "empty combo id");
+        return false;
+    }
+    if (!currFactor || !(*currFactor) || (*currFactor[0] == '\0'))
+    {
+        LogErr(LOG, "empty current factor");
+        return false;
+    }
+    if (!factors)
+    {
+        LogErr(LOG, "empty arr of factors names");
+        return false;
+    }
+
+    bool changed = false;
+
+    ImGui::TableNextColumn();
+    ImGui::Text(label);
+
+    ImGui::TableNextColumn();
+    ImGui::PushItemWidth(-FLT_MIN);   // make widget fill available width in the column
+
+    if (ImGui::BeginCombo(comboId, *currFactor))
+    {
+        for (int i = 0; i < numFactors; ++i)
+        {
+            const bool isSelected = (strcmp(*currFactor, factors[i]) == 0);
+            if (ImGui::Selectable(factors[i], isSelected))
+            {
+                *currFactor = factors[i];
+                changed = true;
+            }
+
+            // set the initial focus when opening the combo
+            if (isSelected)
+                ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::PopItemWidth();
+
+    return changed;
+}
+
+//---------------------------------------------------------
+//---------------------------------------------------------
+bool DrawBlendOpControl(
+    const char* label,
+    const char* comboId,
+    const char** currOp,
+    const char** ops,
+    const int numOps)
+{
+    if (!label)
+    {
+        LogErr(LOG, "empty label");
+        return false;
+    }
+    if (!comboId)
+    {
+        LogErr(LOG, "empty combo id");
+        return false;
+    }
+    if (!currOp || !(*currOp) || (*currOp[0] == '\0'))
+    {
+        LogErr(LOG, "empty current operation");
+        return false;
+    }
+    if (!ops)
+    {
+        LogErr(LOG, "empty arr of operations names");
+        return false;
+    }
+
+    bool changed = false;
+
+    ImGui::TableNextColumn();
+    ImGui::Text(label);
+
+    ImGui::TableNextColumn();
+    ImGui::PushItemWidth(-FLT_MIN);
+    if (ImGui::BeginCombo(comboId, *currOp))
+    {
+        for (int i = 0; i < numOps; ++i)
+        {
+            const bool isSelected = (strcmp(*currOp, ops[i]) == 0);
+            if (ImGui::Selectable(ops[i], isSelected))
+            {
+                *currOp = ops[i];
+                changed = true;
+            }
+
+            // set the initial focus when opening the combo
+            if (isSelected)
+                ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::PopItemWidth();
+
+    return changed;
+}
+
+//---------------------------------------------------------
+
+void UIMaterialsBrowser::DrawBlendStatesSelectors(void)
+{
+    if (ImGui::TreeNode("Blend states"))
+    {
+        const BsID currBsId = matData_.currBsId;
+
+        bool alphaToCoverage  = pFacade_->GetBsParamBool(currBsId, UI_BLEND_IS_ALPHA_TO_COVERAGE);
+        bool independentBlend = pFacade_->GetBsParamBool(currBsId, UI_BLEND_IS_INDEPENDENT);
+        bool blendEnabled     = pFacade_->GetBsParamBool(currBsId, UI_BLEND_IS_ENABLED);
+
+        // if it is a "custom" blend state we will be able to manually setup each parameter
+        if (currBsId != 1)
+        {
+            ImGui::BeginDisabled(true);
+        }
+
+        int numBlendOps               = pFacade_->GetNumBlendStateParams(UI_BLEND_OPERATION);
+        int numBlendFactors           = pFacade_->GetNumBlendStateParams(UI_BLEND_FACTOR);
+        int numBlendWriteMasks        = pFacade_->GetNumBlendStateParams(UI_BLEND_RND_TARGET_WRITE_MASK);
+
+        const char** blendOps         = pFacade_->GetBlendStateParamsNames(UI_BLEND_OPERATION);
+        const char** blendFactors     = pFacade_->GetBlendStateParamsNames(UI_BLEND_FACTOR);
+        const char** blendWriteMasks  = pFacade_->GetBlendStateParamsNames(UI_BLEND_RND_TARGET_WRITE_MASK);
+
+        // color blend (factor, factor, operation)
+        const char* currSrcBlend      = pFacade_->GetBsParamStr(currBsId, UI_BLEND_SRC_BLEND);
+        const char* currDstBlend      = pFacade_->GetBsParamStr(currBsId, UI_BLEND_DST_BLEND);
+        const char* currBlendOp       = pFacade_->GetBsParamStr(currBsId, UI_BLEND_OP);
+
+        // alpha blend (factor, factor, operation)
+        const char* currSrcBlendAlpha = pFacade_->GetBsParamStr(currBsId, UI_BLEND_SRC_BLEND_ALPHA);
+        const char* currDstBlendAlpha = pFacade_->GetBsParamStr(currBsId, UI_BLEND_DST_BLEND_ALPHA);
+        const char* currBlendOpAlpha  = pFacade_->GetBsParamStr(currBsId, UI_BLEND_OP_ALPHA);
+
+        // render target write mask
+        const char* currWriteMask     = pFacade_->GetBsParamStr(currBsId, UI_BLEND_RND_TARGET_WRITE_MASK);
+
+        bool bsModified = false;
+
+
+        bsModified |= ImGui::Checkbox("Alpha to coverage", &alphaToCoverage);
+        bsModified |= ImGui::Checkbox("Independent blend", &independentBlend);
+        bsModified |= ImGui::Checkbox("Blend enabled",     &blendEnabled);
+
+        ImGui::NewLine();
+
+
+        const int             numColumns = 2;
+        const ImGuiTableFlags tableFlags = 0;   // or ImGuiTableFlags_SizingFixedFit
+
+
+        if (ImGui::BeginTable("SetupBlendParams", numColumns, tableFlags))
+        {
+           
+            // 1st row (souce color blend factor)
+            bsModified |= DrawBlendFactorControl(
+                "Src color blend factor",
+                "##src_col_blend_factor",
+                &currSrcBlend,
+                blendFactors,
+                numBlendFactors);
+
+            // 2nd row (destination color blend factor)
+            bsModified |= DrawBlendFactorControl(
+                "Dst color blend factor",
+                "##dst_col_blend_factor",
+                &currDstBlend,
+                blendFactors,
+                numBlendFactors);
+
+            // 3rd row (color blend operation)
+            bsModified |= DrawBlendOpControl(
+                "Color blend op",
+                "##col_blend_op",
+                &currBlendOp,
+                blendOps,
+                numBlendOps);
+        
+            // 4th row (src alpha blend factor)
+            bsModified |= DrawBlendFactorControl(
+                "Src alpha blend factor",
+                "##src_alpha_blend_factor",
+                &currSrcBlendAlpha,
+                blendFactors,
+                numBlendFactors);
+
+            // 5th row (dst alpha blend factor)
+            bsModified |= DrawBlendFactorControl(
+                "Dst alpha blend factor",
+                "##dst_alpha_blend_factor",
+                &currDstBlendAlpha,
+                blendFactors,
+                numBlendFactors);
+
+            // 6th row (alpha blend operation)
+            bsModified |= DrawBlendOpControl(
+                "Alpha blend op",
+                "##alpha_blend_op",
+                &currBlendOpAlpha,
+                blendOps,
+                numBlendOps);
+
+            // 7th row (blend render target write mask)
+            bsModified |= DrawBlendWriteMaskControl(
+                "Blend render target write mask",
+                "##blend_write_mask",
+                &currWriteMask,
+                blendWriteMasks,
+                numBlendWriteMasks);
+
+            if (bsModified)
+            {
+                pFacade_->UpdateCustomBlendState(
+                    alphaToCoverage,
+                    independentBlend,
+                    blendEnabled,
+                    currSrcBlend,
+                    currDstBlend,
+                    currBlendOp,
+                    currSrcBlendAlpha,
+                    currDstBlendAlpha,
+                    currBlendOpAlpha,
+                    currWriteMask);
+            }
+
+            ImGui::EndTable();
+        }
+
+        ImGui::NewLine();
+        ImGui::Separator();
+
+
+        // if "custom" blend state
+        if (currBsId != 1)
+        {
+            ImGui::EndDisabled();
+        }
+
+        // print a selectable list of render states
+        const cvector<RenderStateName>& statesNames = *pFacade_->GetRenderStateNames(RND_STATES_BLEND);
+
+        for (index i = 0; i < statesNames.size(); ++i)
+        {
+            const bool isSelected = (i == currBsId);
+            if (ImGui::Selectable(statesNames[i].name, isSelected))
+            {
+                RenderStateSetup params;
+                params.matId = matData_.materialId;
+                params.rndState = RND_STATES_BLEND;
+                params.rndStateId = (int)i;
+
+                pFacade_->SetMaterialRenderState(params);
+                matData_.currBsId = (uint)i;
+            }
+        }
+        ImGui::TreePop();
+    }
+    ImGui::Separator();
+}
+
+//---------------------------------------------------------
+
+void UIMaterialsBrowser::DrawDepthStencilStatesSelectors(void)
+{
+    if (ImGui::TreeNode("Depth-stencil states"))
+    {
+        const cvector<RenderStateName>& statesNames = *pFacade_->GetRenderStateNames(RND_STATES_DEPTH_STENCIL);
+        const index         currDepthStencilStateId = (index)matData_.currDssId;
+
+
+        // "custom" depth-stencil state: we will be able to manually setup each parameter
+        if (ImGui::Selectable("custom dss...", false))
+        {
+            //pFacade_->SetMaterialRenderState(matData_.materialId, (uint32)idx, rndStateType);
+            //selectedStateIdx = idx;
+        }
+
+        // print a selectable list of render states
+        for (index i = 0; i < statesNames.size(); ++i)
+        {
+            if (ImGui::Selectable(statesNames[i].name, i == currDepthStencilStateId))
+            {
+                RenderStateSetup params;
+                params.matId = matData_.materialId;
+                params.rndState = RND_STATES_DEPTH_STENCIL;
+                params.rndStateId = (int)i;
+
+                pFacade_->SetMaterialRenderState(params);
+                matData_.currDssId = (uint)i;
+            }
+        }
         ImGui::TreePop();
     }
     ImGui::Separator();

@@ -8,6 +8,7 @@
 #include "../Model/model_mgr.h"
 #include "../Mesh/material_mgr.h"
 #include "../Texture/texture_mgr.h"
+#include <Render/CRender.h>
 
 #define PRINT_DBG_DATA 0
 
@@ -347,7 +348,11 @@ void PrepareMaterials(
     {
         // if current material differs from the previous one we get another material
         // if model OR submesh was changed to another one
-        if ((data.matId != matId) || (data.modelId != modelId) || (data.subsetId != subsetId))
+        const bool sameMaterial = data.matId == matId;
+        const bool sameModel    = data.modelId == modelId;
+        const bool sameMesh     = data.subsetId == subsetId;
+
+        if (!sameMaterial || !sameModel || !sameMesh)
         {
             pMat = &g_MaterialMgr.GetMatById(data.matId);
             matId = data.matId;
@@ -356,13 +361,17 @@ void PrepareMaterials(
             instanceBatches.push_back(Render::InstanceBatch());
 
             pInstances               = &instanceBatches.back();
+            pInstances->shaderId     = pMat->shaderId;
             pInstances->modelId      = data.modelId;
             pInstances->subsetId     = data.subsetId;
-            pInstances->shaderId     = pMat->shaderId;
+            pInstances->numInstances = 1;
+            pInstances->rsId         = pMat->rsId;      // raster state id
+            pInstances->bsId         = pMat->bsId;      // blend state id
+            pInstances->dssId        = pMat->dssId;     // depth-stencil state id
+            pInstances->alphaClip    = pMat->alphaClip; // use alpha clip
+
             modelId                  = data.modelId;
             subsetId                 = data.subsetId;
-            pInstances->numInstances = 1;
-            pInstances->renderStates = pMat->renderStates;       
 
             // get textures for the current instance batch
             g_TextureMgr.GetTexViewsByIds(pMat->texIds, NUM_TEXTURE_TYPES, pInstances->textures);
@@ -593,6 +602,7 @@ void RenderDataPreparator::PrepareEnttsDataForRendering(
 
     MaterialID matId = INVALID_MATERIAL_ID;
     const Material* pMat = &g_MaterialMgr.GetMatById(matId);
+    const Render::RenderStates& rndStates = Render::g_Render.GetRenderStates();
 
     // group entities geometry type (masked, opaque, blended, etc.)
     for (vsize i = 0; i < numActualInstances; ++i)
@@ -604,21 +614,29 @@ void RenderDataPreparator::PrepareEnttsDataForRendering(
             matId = s_Data[i].matId;
         }
 
+
+        //
         // define to which rendering group does this instance belongs to:
+        //
+        bool isBlended     = false;
+        bool isTransparent = false;
 
-        // 1. blending group (add / sub / mul)
-        if (pMat->renderStates & MAT_BLEND_NOT_TRANSPARENT)
-            s_BlendGroup.push_back(s_Data[i]);
+        rndStates.IsBlendEnabled(pMat->bsId, isTransparent, isBlended);
 
-        // 2. blending group (transparency)
-        else if (pMat->renderStates & MAT_PROP_BS_TRANSPARENCY)
-            s_BlendTransparentGroup.push_back(s_Data[i]);
+        // 1. blending
+        if (isBlended)
+        {
+            if (isTransparent)
+                s_BlendTransparentGroup.push_back(s_Data[i]);
+            else
+                s_BlendGroup.push_back(s_Data[i]);
+        }
 
-        // 3. masked / alpha clipping group
-        else if (pMat->renderStates & MAT_PROP_ALPHA_CLIPPING)
+        // 2. masked / alpha clipping group
+        else if (pMat->HasAlphaClip())
             s_MaskedGroup.push_back(s_Data[i]);
 
-        // 4. opaque group
+        // 3. opaque group
         else
             s_OpaqueGroup.push_back(s_Data[i]);
     }

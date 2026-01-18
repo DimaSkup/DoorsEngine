@@ -93,16 +93,32 @@ enum eEnttComponentType
 
 ///////////////////////////////////////////////////////////
 
-enum class eMaterialPropGroup
+enum eRenderStatesGroup
 {
-    ALPHA_CLIP,
-    FILL,
-    CULL,
-    WINDING_ORDER,
-    BLENDING,
-    DEPTH_STENCIL,
+    RND_STATES_RASTER,
+    RND_STATES_BLEND,
+    RND_STATES_DEPTH_STENCIL,
 
-    NUM_GROUPS
+    NUM_GROUPS_RND_STATES
+};
+
+enum eBlendStatePropType
+{
+    UI_BLEND_OPERATION,
+    UI_BLEND_FACTOR,
+    UI_BLEND_RND_TARGET_WRITE_MASK,
+
+    UI_BLEND_SRC_BLEND,
+    UI_BLEND_DST_BLEND,
+    UI_BLEND_OP,
+
+    UI_BLEND_SRC_BLEND_ALPHA,
+    UI_BLEND_DST_BLEND_ALPHA,
+    UI_BLEND_OP_ALPHA,
+
+    UI_BLEND_IS_ALPHA_TO_COVERAGE,
+    UI_BLEND_IS_INDEPENDENT,
+    UI_BLEND_IS_ENABLED,
 };
 
 //---------------------------------------------------------
@@ -139,7 +155,23 @@ enum eModelPreviewParams
     NUM_MODEL_PREVIEW_PARAMS
 };
 
-///////////////////////////////////////////////////////////
+//---------------------------------------------------------
+// data container for setup a custom render state or switch to some predefined state 
+//---------------------------------------------------------
+struct RenderStateSetup
+{
+    MaterialID matId;
+    eRenderStatesGroup rndState;
+    int rndStateId = 0;
+    char propName[32];
+    char propValue[32];
+};
+
+//---------------------------------------------------------
+
+static const char* s_DummyStr = "LMFAO";
+
+//---------------------------------------------------------
 
 class IFacadeEngineToUI
 {
@@ -406,12 +438,41 @@ public:
 
     virtual bool        GetMaterialDataById     (const MaterialID id, MaterialData& data)   const { NOTIFY;  return false; }
 
-    virtual uint         GetNumRenderStates     (const eMaterialPropGroup type)             const { NOTIFY; return 0;}
-    virtual const char** GetRenderStateNames    (const eMaterialPropGroup type)             const { NOTIFY; return nullptr; }
-
     virtual uint         GetNumTexTypesNames    (void)                                      const { NOTIFY; return 0; }
     virtual const char** GetTexTypesNames       (void)                                      const { NOTIFY; return nullptr; }
     virtual const char*  GetTexTypeName         (const uint texType)                        const { NOTIFY; return nullptr; }
+
+
+    // get render states info (about rasterizer states, blending states, or depth-stencil states)
+    virtual size                            GetNumRenderStates (const eRenderStatesGroup type)      const { NOTIFY; return 0; }
+    virtual const cvector<RenderStateName>* GetRenderStateNames(const eRenderStatesGroup type)      const { NOTIFY; return nullptr; }
+
+    // get info specific to blend states
+    virtual int          GetNumBlendStateParams  (const eBlendStatePropType type)                   const { NOTIFY; return 0; }
+    virtual const char** GetBlendStateParamsNames(const eBlendStatePropType type)                   const { NOTIFY; return nullptr; }
+    virtual const char*  GetBsParamStr           (const BsID id, const eBlendStatePropType type)          { NOTIFY; return nullptr; }
+    virtual bool         GetBsParamBool          (const BsID id, const eBlendStatePropType type)          { NOTIFY; return false; }
+
+    virtual void UpdateCustomBlendState(
+        const bool alphaToCoverage,
+        const bool independentBlend,
+        const bool blendEnabled,
+        const char* srcBlend,
+        const char* dstBlend,
+        const char* blendOp,
+        const char* srcBlendAlpha,
+        const char* dstBlendAlpha,
+        const char* blendOpAlpha,
+        const char* writeMask)
+    {
+        NOTIFY; return;
+    }
+
+    // setup render states of material
+    virtual uint GetMaterialRndStateId     (const MaterialID id, const eRenderStatesGroup type) const { NOTIFY; return 0; }
+    virtual bool SetMaterialRenderState    (const RenderStateSetup& params)                           { NOTIFY; return false; }
+    virtual bool SetMaterialRenderStateProp(const RenderStateSetup& params)                           { NOTIFY; return false; }
+
 
     virtual bool SetMaterialTexture(
         const MaterialID matId,
@@ -419,11 +480,6 @@ public:
         const uint texType) const
     { NOTIFY; return false; }
 
-    virtual bool SetMaterialRenderState(
-        const MaterialID id,
-        const uint32 stateIdx,
-        const eMaterialPropGroup type) const
-    { NOTIFY; return false; }
 
     virtual bool SetMaterialColorData(
         const MaterialID id,
