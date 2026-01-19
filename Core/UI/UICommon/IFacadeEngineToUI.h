@@ -93,7 +93,7 @@ enum eEnttComponentType
 
 ///////////////////////////////////////////////////////////
 
-enum eRenderStatesGroup
+enum eRndStatesGroup
 {
     RND_STATES_RASTER,
     RND_STATES_BLEND,
@@ -102,7 +102,7 @@ enum eRenderStatesGroup
     NUM_GROUPS_RND_STATES
 };
 
-enum eBlendStatePropType
+enum eBlendProp
 {
     UI_BLEND_OPERATION,
     UI_BLEND_FACTOR,
@@ -119,6 +119,32 @@ enum eBlendStatePropType
     UI_BLEND_IS_ALPHA_TO_COVERAGE,
     UI_BLEND_IS_INDEPENDENT,
     UI_BLEND_IS_ENABLED,
+};
+
+enum eDepthStencilProp
+{
+    UI_DSS_STENCIL_OP,
+    UI_DSS_COMPARISON_FUNC,
+
+    //-----------------------
+
+    UI_DSS_DEPTH_ENABLED,
+    UI_DSS_DEPTH_WRITE_MASK,
+    UI_DSS_DEPTH_FUNC,
+
+    UI_DSS_STENCIL_ENABLED,
+    UI_DSS_STENCIL_READ_MASK,
+    UI_DSS_STENCIL_WRITE_MASK,
+
+    UI_DSS_FRONT_FACE_STENCIL_FAIL_OP,
+    UI_DSS_FRONT_FACE_STENCIL_DEPTH_FAIL_OP,
+    UI_DSS_FRONT_FACE_STENCIL_PASS_OP,
+    UI_DSS_FRONT_FACE_STENCIL_FUNC,
+
+    UI_DSS_BACK_FACE_STENCIL_FAIL_OP,
+    UI_DSS_BACK_FACE_STENCIL_DEPTH_FAIL_OP,
+    UI_DSS_BACK_FACE_STENCIL_PASS_OP,
+    UI_DSS_BACK_FACE_STENCIL_FUNC,
 };
 
 //---------------------------------------------------------
@@ -161,7 +187,7 @@ enum eModelPreviewParams
 struct RenderStateSetup
 {
     MaterialID matId;
-    eRenderStatesGroup rndState;
+    eRndStatesGroup rndState;
     int rndStateId = 0;
     char propName[32];
     char propValue[32];
@@ -223,7 +249,7 @@ public:
 
     virtual const cvector<EntityID>* GetAllEnttsIDs (void)                                                                          const { NOTIFY;  return nullptr; }
     virtual EntityID                 GetEnttIdByName(const char* name)                                                              const { NOTIFY;  return INVALID_ENTITY_ID; }
-    virtual const char*              GetEnttNameById(const EntityID id)                                                             const { NOTIFY;  return nullptr; }
+    virtual const char*              GetEnttNameById(const EntityID id)                                                             const { NOTIFY;  return s_DummyStr; }
 
 
     // extract entities with particular component
@@ -248,10 +274,10 @@ public:
     virtual bool                            SetEnttSkeletonAnimation  (const EntityID enttId, const AnimationID animId)                   { NOTIFY; return false; }
 
     virtual SkeletonID                      GetEnttSkeletonId         (const EntityID id)                                           const { NOTIFY; return 0; }
-    virtual const char*                     GetSkeletonName           (const SkeletonID id)                                         const { NOTIFY; return nullptr; }
+    virtual const char*                     GetSkeletonName           (const SkeletonID id)                                         const { NOTIFY; return s_DummyStr; }
     virtual size                            GetSkeletonNumAnimations  (const SkeletonID id)                                         const { NOTIFY; return 0; }
     virtual const cvector<AnimationName>*   GetSkeletonAnimNames      (const SkeletonID id)                                         const { NOTIFY; return nullptr; }
-    virtual const char*                     GetSkeletonAnimName       (const SkeletonID skeletonId, const AnimationID animId)       const { NOTIFY; return nullptr; }
+    virtual const char*                     GetSkeletonAnimName       (const SkeletonID skeletonId, const AnimationID animId)       const { NOTIFY; return s_DummyStr; }
 
     virtual AnimationID                     GetEnttAnimationId        (const EntityID id)                                           const { NOTIFY; return 0; }
     virtual float                           GetEnttCurrAnimTime       (const EntityID id)                                           const { NOTIFY; return 0; };
@@ -431,47 +457,45 @@ public:
     virtual bool        GetModelsNamesList      (cvector<std::string>& names)               const { NOTIFY;  return false; }
     virtual TexID       GetTextureIdByIdx       (const index idx)                           const { NOTIFY;  return INVALID_TEX_ID; }
     virtual MaterialID  GetMaterialIdByIdx      (const index idx)                           const { NOTIFY;  return INVALID_MATERIAL_ID; }
-    virtual const char* GetMaterialNameById     (const MaterialID id)                       const { NOTIFY;  return nullptr; }
+    virtual const char* GetMaterialNameById     (const MaterialID id)                       const { NOTIFY;  return s_DummyStr; }
     virtual bool        GetMaterialTexIds       (const MaterialID id, TexID* outTexIds)     const { NOTIFY;  return false; }
-    virtual const char* GetTextureNameById      (const TexID id)                            const { NOTIFY;  return nullptr; }
+    virtual const char* GetTextureNameById      (const TexID id)                            const { NOTIFY;  return s_DummyStr; }
     virtual size        GetNumMaterials         (void)                                      const { NOTIFY;  return 0; }
 
     virtual bool        GetMaterialDataById     (const MaterialID id, MaterialData& data)   const { NOTIFY;  return false; }
 
     virtual uint         GetNumTexTypesNames    (void)                                      const { NOTIFY; return 0; }
-    virtual const char** GetTexTypesNames       (void)                                      const { NOTIFY; return nullptr; }
-    virtual const char*  GetTexTypeName         (const uint texType)                        const { NOTIFY; return nullptr; }
+    virtual const char** GetTexTypesNames       (void)                                      const { NOTIFY; return &s_DummyStr; }
+    virtual const char*  GetTexTypeName         (const uint texType)                        const { NOTIFY; return s_DummyStr; }
 
 
     // get render states info (about rasterizer states, blending states, or depth-stencil states)
-    virtual size                            GetNumRenderStates (const eRenderStatesGroup type)      const { NOTIFY; return 0; }
-    virtual const cvector<RenderStateName>* GetRenderStateNames(const eRenderStatesGroup type)      const { NOTIFY; return nullptr; }
+    virtual size                            GetNumRenderStates (const eRndStatesGroup type)             const { NOTIFY; return 0; }
+    virtual const cvector<RenderStateName>* GetRenderStateNames(const eRndStatesGroup type)             const { NOTIFY; return nullptr; }
 
     // get info specific to blend states
-    virtual int          GetNumBlendStateParams  (const eBlendStatePropType type)                   const { NOTIFY; return 0; }
-    virtual const char** GetBlendStateParamsNames(const eBlendStatePropType type)                   const { NOTIFY; return nullptr; }
-    virtual const char*  GetBsParamStr           (const BsID id, const eBlendStatePropType type)          { NOTIFY; return nullptr; }
-    virtual bool         GetBsParamBool          (const BsID id, const eBlendStatePropType type)          { NOTIFY; return false; }
+    virtual int          GetNumBsParams             (const eBlendProp type)                             const { NOTIFY; return 0; }
+    virtual const char** GetBsParamsNames           (const eBlendProp type)                             const { NOTIFY; return &s_DummyStr; }
+    virtual const char*  GetBsParamStr              (const BsID id, const eBlendProp type)              const { NOTIFY; return s_DummyStr; }
+    virtual bool         GetBsParamBool             (const BsID id, const eBlendProp type)              const { NOTIFY; return false; }
 
-    virtual void UpdateCustomBlendState(
-        const bool alphaToCoverage,
-        const bool independentBlend,
-        const bool blendEnabled,
-        const char* srcBlend,
-        const char* dstBlend,
-        const char* blendOp,
-        const char* srcBlendAlpha,
-        const char* dstBlendAlpha,
-        const char* blendOpAlpha,
-        const char* writeMask)
-    {
-        NOTIFY; return;
-    }
+    // get info specific to depth-stencil states
+    virtual int          GetNumDssParams            (const eDepthStencilProp type)                      const { NOTIFY; return 0; }
+    virtual const char** GetDssParamsNames          (const eDepthStencilProp type)                      const { NOTIFY; return &s_DummyStr; }
+    virtual const char*  GetDssParamStr             (const DssID id, const eDepthStencilProp type)      const { NOTIFY; return s_DummyStr; }
+    virtual bool         GetDssParamBool            (const DssID id, const eDepthStencilProp type)      const { NOTIFY; return false; }
+
+    // update render param
+    virtual void         UpdateCustomBsParam        (const eBlendProp type, bool value)                 const { NOTIFY; return; }
+    virtual void         UpdateCustomBsParam        (const eBlendProp type, const char* value)          const { NOTIFY; return; }
+
+    virtual void         UpdateCustomDssParam       (const eDepthStencilProp type, bool value)          const { NOTIFY; return; }
+    virtual void         UpdateCustomDssParam       (const eDepthStencilProp type, const char* value)   const { NOTIFY; return; }
 
     // setup render states of material
-    virtual uint GetMaterialRndStateId     (const MaterialID id, const eRenderStatesGroup type) const { NOTIFY; return 0; }
-    virtual bool SetMaterialRenderState    (const RenderStateSetup& params)                           { NOTIFY; return false; }
-    virtual bool SetMaterialRenderStateProp(const RenderStateSetup& params)                           { NOTIFY; return false; }
+    virtual uint         GetMaterialRndStateId      (const MaterialID id, const eRndStatesGroup type)   const { NOTIFY; return 0; }
+    virtual bool         SetMaterialRenderState     (const RenderStateSetup& params)                          { NOTIFY; return false; }
+    virtual bool         SetMaterialRenderStateProp (const RenderStateSetup& params)                          { NOTIFY; return false; }
 
 
     virtual bool SetMaterialTexture(

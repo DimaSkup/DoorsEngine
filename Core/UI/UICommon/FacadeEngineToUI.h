@@ -274,31 +274,33 @@ public:
     virtual const char*  GetTexTypeName         (const uint texType)                            const override;
 
     // get render states info (about rasterizer states, blending states, or depth-stencil states)
-    virtual size                            GetNumRenderStates (const eRenderStatesGroup type)  const override;
-    virtual const cvector<RenderStateName>* GetRenderStateNames(const eRenderStatesGroup type)  const override;
+    virtual size                            GetNumRenderStates (const eRndStatesGroup type)             const override;
+    virtual const cvector<RenderStateName>* GetRenderStateNames(const eRndStatesGroup type)             const override;
 
     // get info specific to blend states
-    virtual int          GetNumBlendStateParams  (const eBlendStatePropType type)                const override;
-    virtual const char** GetBlendStateParamsNames(const eBlendStatePropType type)                const override;
-    virtual const char*  GetBsParamStr           (const BsID id, const eBlendStatePropType type)       override;
-    virtual bool         GetBsParamBool          (const BsID id, const eBlendStatePropType type)       override;
+    virtual int          GetNumBsParams             (const eBlendProp type)                             const override;
+    virtual const char** GetBsParamsNames           (const eBlendProp type)                             const override;
+    virtual const char*  GetBsParamStr              (const BsID id, const eBlendProp type)              const override;
+    virtual bool         GetBsParamBool             (const BsID id, const eBlendProp type)              const override;
 
-    virtual void UpdateCustomBlendState(
-        const bool alphaToCoverage,
-        const bool independentBlend,
-        const bool blendEnabled,
-        const char* srcBlend,
-        const char* dstBlend,
-        const char* blendOp,
-        const char* srcBlendAlpha,
-        const char* dstBlendAlpha,
-        const char* blendOpAlpha,
-        const char* writeMask) override;
+    // get info specific to depth-stencil states
+    virtual int          GetNumDssParams            (const eDepthStencilProp type)                      const override;
+    virtual const char** GetDssParamsNames          (const eDepthStencilProp type)                      const override;
+    virtual const char*  GetDssParamStr             (const DssID id, const eDepthStencilProp type)      const override;
+    virtual bool         GetDssParamBool            (const DssID id, const eDepthStencilProp type)      const override;
+
+    // update render param
+    virtual void         UpdateCustomBsParam        (const eBlendProp type, bool value)                 const override;
+    virtual void         UpdateCustomBsParam        (const eBlendProp type, const char* value)          const override;
+
+    virtual void         UpdateCustomDssParam       (const eDepthStencilProp type, bool value)          const override;
+    virtual void         UpdateCustomDssParam       (const eDepthStencilProp type, const char* value)   const override;
+
 
     // setup render states of material
-    virtual uint        GetMaterialRndStateId     (const MaterialID id, const eRenderStatesGroup type) const override;
-    virtual bool        SetMaterialRenderState    (const RenderStateSetup& params)                           override;
-    virtual bool        SetMaterialRenderStateProp(const RenderStateSetup& params)                           override;
+    virtual uint         GetMaterialRndStateId      (const MaterialID id, const eRndStatesGroup type)   const override;
+    virtual bool         SetMaterialRenderState     (const RenderStateSetup& params)                          override;
+    virtual bool         SetMaterialRenderStateProp (const RenderStateSetup& params)                          override;
 
 
     virtual bool SetMaterialTexture(

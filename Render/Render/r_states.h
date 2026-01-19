@@ -1,13 +1,24 @@
-// *********************************************************************************
-// Filename:  RenderStates.h
-//
-// NOTATION:
-//            rs  - rasterizer state
-//            bs  - blending state
-//            dss - depth-stencil state
-// 
-// Created:   09.09.24
-// *********************************************************************************
+/**********************************************************************************\
+
+    ******     ******    ******   ******    ********
+    **    **  **    **  **    **  **    **  **    **
+    **    **  **    **  **    **  **    **  **
+    **    **  **    **  **    **  **    **  ********
+    **    **  **    **  **    **  ******          **
+    **    **  **    **  **    **  **  ***   **    **
+    ******     ******    ******   **    **  ********
+
+    Filename: r_states.h
+    Desc:     initialization and work with DX11 render states
+
+    NOTATION:
+              rs  - rasterizer state
+              bs  - blending state
+              dss - depth-stencil state
+
+    Created:            09.09.2024
+    Completely remade:  around 19.01.2026
+/**********************************************************************************/
 #pragma once
 
 #include <types.h>
@@ -66,7 +77,7 @@ enum eDssParamType
     // depth-stencil properties (groups)
     DSS_DEPTH_WRITE_MASK,
     DSS_COMPARISON_FUNC,
-    DSS_FACE_STENCIL_OP,
+    DSS_STENCIL_OP,
 
     // depth-stencil props (specific)
     DSS_DEPTH_ENABLED,

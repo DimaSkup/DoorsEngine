@@ -8,7 +8,7 @@
 #pragma once
 
 #include "AdapterReader.h"
-#include "RenderStates.h"
+#include "r_states.h"
 #include <d3dcommon.h>
 
 namespace Render

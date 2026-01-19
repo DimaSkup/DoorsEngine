@@ -485,9 +485,9 @@ bool CRender::InitSamplers(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
     linearWrapDesc.AddressU         = D3D11_TEXTURE_ADDRESS_WRAP;
     linearWrapDesc.AddressV         = D3D11_TEXTURE_ADDRESS_WRAP;
     linearWrapDesc.AddressW         = D3D11_TEXTURE_ADDRESS_WRAP;
-    linearWrapDesc.BorderColor[0]   = 0.0f;
-    linearWrapDesc.BorderColor[1]   = 0.0f;
-    linearWrapDesc.BorderColor[2]   = 0.0f;
+    linearWrapDesc.BorderColor[0]   = 1.0f;
+    linearWrapDesc.BorderColor[1]   = 1.0f;
+    linearWrapDesc.BorderColor[2]   = 1.0f;
     linearWrapDesc.BorderColor[3]   = 0.0f;
     linearWrapDesc.ComparisonFunc   = D3D11_COMPARISON_NEVER;
     linearWrapDesc.MinLOD           = 0.0f;

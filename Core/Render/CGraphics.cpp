@@ -10,7 +10,7 @@
 #include "../Model/model_mgr.h"
 #include "../Mesh/material_mgr.h"
 #include "debug_draw_manager.h"
-#include <Render/RenderStates.h>      // Render module
+#include <Render/r_states.h>          // Render module
 #include <Shaders/Shader.h>           // Render module
 #include <geometry/frustum.h>
 #include <QuadTree/scene_object.h>
@@ -1626,7 +1626,7 @@ void CGraphics::RenderParticles()
     if (numParticles == 0)
         return;
 
-    render.BindShaderByName("ParticleShader");
+    
 
     // for particles we bind only vertex buffer
     const VertexBuffer<BillboardSprite>& vb = g_ModelMgr.GetBillboardsBuffer();
@@ -1639,7 +1639,9 @@ void CGraphics::RenderParticles()
     // render each type of particles separately
     for (index i = 0; i < particlesData.materialIds.size(); ++i)
     {
-        BindMaterialById(particlesData.materialIds[i]);
+        const Material& mat = g_MaterialMgr.GetMatById(particlesData.materialIds[i]);
+        BindMaterial(mat);
+        render.BindShaderById(mat.shaderId);
 
         pContext->Draw(particlesData.numInstances[i], particlesData.baseInstance[i]);
 

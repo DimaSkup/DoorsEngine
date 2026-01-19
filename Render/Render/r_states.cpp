@@ -1,10 +1,10 @@
 // *********************************************************************************
-// Filename:     RenderStates.h
+// Filename:     r_states.cpp
 // 
 // Created:      09.09.24
 // *********************************************************************************
 #include "../Common/pch.h"
-#include "RenderStates.h"
+#include "r_states.h"
 #include "r_state_reader.h"
 #include <inttypes.h>      // for SCNx8
 
@@ -533,6 +533,7 @@ void RenderStates::UpdateCustomBsParam(const eBsParamType type, const char* valu
 
         case BLEND_RND_TARGET_WRITE_MASK:
             params.writeMask = rStateReader.GetRenderTargetWriteMask(value);
+            break;
 
         default:
             LogErr(LOG, "you can't setup this bs param with bool value (param_type: %d, value: %d)", (int)type, value);
@@ -874,7 +875,7 @@ int RenderStates::GetNumDssParams(const eDssParamType type) const
     {
         case DSS_DEPTH_WRITE_MASK:         return NUM_DSS_DEPTH_WRITE_MASKS;
         case DSS_COMPARISON_FUNC:          return NUM_DSS_CMP_FUNCTIONS;
-        case DSS_FACE_STENCIL_OP:          return NUM_DSS_STENCIL_OPERATIONS;
+        case DSS_STENCIL_OP:               return NUM_DSS_STENCIL_OPERATIONS;
     }
 
     LogErr(LOG, "invalid depth-stencil param type: %d", (int)type);
@@ -922,7 +923,7 @@ const char** RenderStates::GetArrDssParamsNames(const eDssParamType type) const
     {
         case DSS_DEPTH_WRITE_MASK:         return s_DssDepthWriteMasksNames;
         case DSS_COMPARISON_FUNC:          return s_DssComparisonFuncNames;
-        case DSS_FACE_STENCIL_OP:          return s_DssStencilOpsNames;
+        case DSS_STENCIL_OP:               return s_DssStencilOpsNames;
     }
 
     LogErr(LOG, "invalid depth-stencil params type: %d", (int)type);
@@ -1029,11 +1030,42 @@ const char* RenderStates::GetDssParamStr(const DssID id, const eDssParamType typ
 
     switch (type)
     {
+        case DSS_DEPTH_WRITE_MASK:
+            return (params.depthWriteMask == 0) ? "zero" : "all";
+
         case DSS_DEPTH_FUNC:
             return GetStrByCmpFunc(D3D11_COMPARISON_FUNC(params.depthFunc));
 
+        case DSS_STENCIL_READ_MASK:
+            return s_InvalidStr[0];
+
+        case DSS_STENCIL_WRITE_MASK:
+            return s_InvalidStr[0];
+
+
+        // -- front face
+        case DSS_FRONT_FACE_STENCIL_FAIL_OP:
+            return GetStrStencilOp(D3D11_STENCIL_OP(params.ffStencilFailOp));
+
+        case DSS_FRONT_FACE_STENCIL_DEPTH_FAIL_OP:
+            return GetStrStencilOp(D3D11_STENCIL_OP(params.ffStencilDepthFailOp));
+
+        case DSS_FRONT_FACE_STENCIL_PASS_OP:
+            return GetStrStencilOp(D3D11_STENCIL_OP(params.ffStencilPassOp));
+
         case DSS_FRONT_FACE_STENCIL_FUNC:
             return GetStrByCmpFunc(D3D11_COMPARISON_FUNC(params.ffStencilFunc));
+
+
+        // -- back face
+        case DSS_BACK_FACE_STENCIL_FAIL_OP:
+            return GetStrStencilOp(D3D11_STENCIL_OP(params.bfStencilFailOp));
+
+        case DSS_BACK_FACE_STENCIL_DEPTH_FAIL_OP:
+            return GetStrStencilOp(D3D11_STENCIL_OP(params.bfStencilDepthFailOp));
+
+        case DSS_BACK_FACE_STENCIL_PASS_OP:
+            return GetStrStencilOp(D3D11_STENCIL_OP(params.bfStencilPassOp));
 
         case DSS_BACK_FACE_STENCIL_FUNC:
             return GetStrByCmpFunc(D3D11_COMPARISON_FUNC(params.bfStencilFunc));
@@ -1098,11 +1130,11 @@ bool RenderStates::GetDssParamBool(const DssID id, const eDssParamType type) con
         return false;
     }
 
-    switch (type)
-    {
-        case DSS_DEPTH_ENABLED:     return dssParams_[id].depthEnable;
-        case DSS_STENCIL_ENABLED:   return dssParams_[id].stencilEnable;
-    }
+    if (type == DSS_DEPTH_ENABLED)
+        return dssParams_[id].depthEnable;
+
+    if (type == DSS_STENCIL_ENABLED)
+        return dssParams_[id].stencilEnable;
 
     LogErr(LOG, "can't get bool param for dss: (%d) %s,  param_type: %d", (int)id, dssNames_[id].name, (int)type);
     return false;
@@ -1215,7 +1247,6 @@ void RenderStates::PrintDumpBsDesc(const BsID id) const
     printf(fmtS, "render_target_write_mask", GetBsParamStr(id, BLEND_RND_TARGET_WRITE_MASK));
     printf("\n");
 }
-
 
 //---------------------------------------------------------
 // Desc:  print out current params of the depth-stencil state by id

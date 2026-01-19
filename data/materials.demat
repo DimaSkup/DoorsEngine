@@ -96,18 +96,6 @@ Kr 0.00 0.00 0.00 0.00
 tex_diff wood/box01d
 tex_norm wood/box01n
 
-newmtl flameMat
-shader LightShader
-tex_diff fx/flame0
-bs additive
-dss particles_2
-
-newmtl flareMat
-shader ParticleShader
-tex_diff flare/flare01
-bs additive
-dss particles
-
 newmtl wirefence
 shader LightShader
 tex_diff mtl/wirefence
@@ -183,8 +171,8 @@ alpha_clip 1
 newmtl rainMat0
 shader ParticleShader
 tex_diff fx/rain
-bs mul
-dss particles
+bs transparent
+dss rain
 
 newmtl smokeMat0
 shader ParticleShader
@@ -225,6 +213,18 @@ dss decals
 newmtl fragments
 shader ParticleShader
 tex_diff ston/ston_walls2
+
+newmtl flameMat
+shader ParticleShader
+tex_diff fx/flame0
+bs transparent
+dss particles
+
+newmtl flareMat
+shader ParticleShader
+tex_diff flare/flare01
+bs additive
+dss particles
 
 newmtl wallmark
 shader DecalShader

@@ -638,13 +638,12 @@ void UIMaterialsBrowser::DrawRasterStatesSelectors(void)
 
 //---------------------------------------------------------
 //---------------------------------------------------------
-bool DrawBlendWriteMaskControl(
+bool UIMaterialsBrowser::DrawBlendWriteMaskControl(
     const char* label,
     const char* comboId,
-    const char** currMask,
-    const char** maskNames,
-    const int numMasks)
+    const char** currMask)
 {
+    // check input args
     if (!label)
     {
         LogErr(LOG, "empty label");
@@ -660,11 +659,8 @@ bool DrawBlendWriteMaskControl(
         LogErr(LOG, "empty current factor");
         return false;
     }
-    if (!maskNames)
-    {
-        LogErr(LOG, "empty arr of factors names");
-        return false;
-    }
+
+    //---------------------------------
 
     bool changed = false;
 
@@ -674,14 +670,19 @@ bool DrawBlendWriteMaskControl(
     ImGui::TableNextColumn();
     ImGui::PushItemWidth(-FLT_MIN);
 
+    // dropdown menu
     if (ImGui::BeginCombo("##blend_write_mask", *currMask))
     {
+        // get names arr of available render target write masks (for blending) and its count
+        const int numMasks = pFacade_->GetNumBsParams(UI_BLEND_RND_TARGET_WRITE_MASK);
+        const char** masks = pFacade_->GetBsParamsNames(UI_BLEND_RND_TARGET_WRITE_MASK);
+
         for (int i = 0; i < numMasks; ++i)
         {
-            const bool isSelected = (strcmp(*currMask, maskNames[i]) == 0);
-            if (ImGui::Selectable(maskNames[i], isSelected))
+            const bool isSelected = (strcmp(*currMask, masks[i]) == 0);
+            if (ImGui::Selectable(masks[i], isSelected))
             {
-                *currMask = maskNames[i];
+                *currMask = masks[i];
                 changed = true;
             }
 
@@ -697,13 +698,12 @@ bool DrawBlendWriteMaskControl(
 
 //---------------------------------------------------------
 //---------------------------------------------------------
-bool DrawBlendFactorControl(
+bool UIMaterialsBrowser::DrawBlendFactorControl(
     const char* label,
     const char* comboId,
-    const char** currFactor,
-    const char** factors,
-    const int numFactors)
+    const char** currFactor)
 {
+    // check input args
     if (!label)
     {
         LogErr(LOG, "empty label");
@@ -719,11 +719,8 @@ bool DrawBlendFactorControl(
         LogErr(LOG, "empty current factor");
         return false;
     }
-    if (!factors)
-    {
-        LogErr(LOG, "empty arr of factors names");
-        return false;
-    }
+
+    //---------------------------------
 
     bool changed = false;
 
@@ -731,10 +728,15 @@ bool DrawBlendFactorControl(
     ImGui::Text(label);
 
     ImGui::TableNextColumn();
-    ImGui::PushItemWidth(-FLT_MIN);   // make widget fill available width in the column
+    ImGui::PushItemWidth(-FLT_MIN);
 
+    // dropdown menu
     if (ImGui::BeginCombo(comboId, *currFactor))
     {
+        // get names arr of available blend factors and its count
+        const int numFactors = pFacade_->GetNumBsParams(UI_BLEND_FACTOR);
+        const char** factors = pFacade_->GetBsParamsNames(UI_BLEND_FACTOR);
+
         for (int i = 0; i < numFactors; ++i)
         {
             const bool isSelected = (strcmp(*currFactor, factors[i]) == 0);
@@ -757,13 +759,12 @@ bool DrawBlendFactorControl(
 
 //---------------------------------------------------------
 //---------------------------------------------------------
-bool DrawBlendOpControl(
+bool UIMaterialsBrowser::DrawBlendOpControl(
     const char* label,
     const char* comboId,
-    const char** currOp,
-    const char** ops,
-    const int numOps)
+    const char** currOp)
 {
+    // check input args
     if (!label)
     {
         LogErr(LOG, "empty label");
@@ -779,11 +780,8 @@ bool DrawBlendOpControl(
         LogErr(LOG, "empty current operation");
         return false;
     }
-    if (!ops)
-    {
-        LogErr(LOG, "empty arr of operations names");
-        return false;
-    }
+
+    //---------------------------------
 
     bool changed = false;
 
@@ -792,8 +790,14 @@ bool DrawBlendOpControl(
 
     ImGui::TableNextColumn();
     ImGui::PushItemWidth(-FLT_MIN);
+
+    // dropdown menu
     if (ImGui::BeginCombo(comboId, *currOp))
     {
+        // get names arr of possible blend operations and its count
+        const int numOps = pFacade_->GetNumBsParams(UI_BLEND_OPERATION);
+        const char** ops = pFacade_->GetBsParamsNames(UI_BLEND_OPERATION);
+
         for (int i = 0; i < numOps; ++i)
         {
             const bool isSelected = (strcmp(*currOp, ops[i]) == 0);
@@ -816,145 +820,153 @@ bool DrawBlendOpControl(
 
 //---------------------------------------------------------
 
+void UIMaterialsBrowser::DrawBlendParamsControl(const BsID bsId)
+{
+    // allow params modification only if id == 1 (blend state is "custom")
+    if (bsId != 1)
+    {
+        ImGui::BeginDisabled(true);
+    }
+
+    //
+    // get current params of the blend state
+    //
+    bool alphaToCoverage          = pFacade_->GetBsParamBool(bsId, UI_BLEND_IS_ALPHA_TO_COVERAGE);
+    bool independentBlend         = pFacade_->GetBsParamBool(bsId, UI_BLEND_IS_INDEPENDENT);
+    bool blendEnabled             = pFacade_->GetBsParamBool(bsId, UI_BLEND_IS_ENABLED);
+
+    // color blend (factor, factor, operation)
+    const char* currSrcBlend      = pFacade_->GetBsParamStr(bsId, UI_BLEND_SRC_BLEND);
+    const char* currDstBlend      = pFacade_->GetBsParamStr(bsId, UI_BLEND_DST_BLEND);
+    const char* currBlendOp       = pFacade_->GetBsParamStr(bsId, UI_BLEND_OP);
+
+    // alpha blend (factor, factor, operation)
+    const char* currSrcBlendAlpha = pFacade_->GetBsParamStr(bsId, UI_BLEND_SRC_BLEND_ALPHA);
+    const char* currDstBlendAlpha = pFacade_->GetBsParamStr(bsId, UI_BLEND_DST_BLEND_ALPHA);
+    const char* currBlendOpAlpha  = pFacade_->GetBsParamStr(bsId, UI_BLEND_OP_ALPHA);
+
+    // render target write mask
+    const char* currWriteMask     = pFacade_->GetBsParamStr(bsId, UI_BLEND_RND_TARGET_WRITE_MASK);
+
+
+    //
+    // draw control checkboxes
+    //
+    if (ImGui::Checkbox("Alpha to coverage", &alphaToCoverage))
+    {
+        pFacade_->UpdateCustomBsParam(UI_BLEND_IS_ALPHA_TO_COVERAGE, alphaToCoverage);
+    }
+    if (ImGui::Checkbox("Independent blend", &independentBlend))
+    {
+        pFacade_->UpdateCustomBsParam(UI_BLEND_IS_INDEPENDENT, independentBlend);
+    }
+    if (ImGui::Checkbox("Blend enabled", &blendEnabled))
+    {
+        pFacade_->UpdateCustomBsParam(UI_BLEND_IS_ENABLED, blendEnabled);
+    }
+
+    ImGui::NewLine();
+
+
+    //
+    // Draw a table of dropdown menus to control blend factors, blend operations, etc.
+    //
+    const int             numColumns = 2;
+    const ImGuiTableFlags tableFlags = 0;
+
+    if (ImGui::BeginTable("SetupBlendParams", numColumns, tableFlags))
+    {
+           
+        // 1st row (souce color blend factor)
+        if (DrawBlendFactorControl(
+            "Src color blend factor",
+            "##src_col_blend_factor",
+            &currSrcBlend))
+        {
+            pFacade_->UpdateCustomBsParam(UI_BLEND_SRC_BLEND, currSrcBlend);
+        }
+
+        // 2nd row (destination color blend factor)
+        if (DrawBlendFactorControl(
+            "Dst color blend factor",
+            "##dst_col_blend_factor",
+            &currDstBlend))
+        {
+            pFacade_->UpdateCustomBsParam(UI_BLEND_DST_BLEND, currDstBlend);
+        }
+
+        // 3rd row (color blend operation)
+        if (DrawBlendOpControl(
+            "Color blend op",
+            "##col_blend_op",
+            &currBlendOp))
+        {
+            pFacade_->UpdateCustomBsParam(UI_BLEND_OP, currBlendOp);
+        }
+        
+        // 4th row (src alpha blend factor)
+        if (DrawBlendFactorControl(
+            "Src alpha blend factor",
+            "##src_alpha_blend_factor",
+            &currSrcBlendAlpha))
+        {
+            pFacade_->UpdateCustomBsParam(UI_BLEND_SRC_BLEND_ALPHA, currSrcBlendAlpha);
+        }
+
+        // 5th row (dst alpha blend factor)
+        if (DrawBlendFactorControl(
+            "Dst alpha blend factor",
+            "##dst_alpha_blend_factor",
+            &currDstBlendAlpha))
+        {
+            pFacade_->UpdateCustomBsParam(UI_BLEND_DST_BLEND_ALPHA, currDstBlendAlpha);
+        }
+
+        // 6th row (alpha blend operation)
+        if (DrawBlendOpControl(
+            "Alpha blend op",
+            "##alpha_blend_op",
+            &currBlendOpAlpha))
+        {
+            pFacade_->UpdateCustomBsParam(UI_BLEND_OP_ALPHA, currBlendOpAlpha);
+        }
+
+        // 7th row (blend render target write mask)
+        if (DrawBlendWriteMaskControl(
+            "Blend render target write mask",
+            "##blend_write_mask",
+            &currWriteMask))
+        {
+            pFacade_->UpdateCustomBsParam(UI_BLEND_RND_TARGET_WRITE_MASK, currWriteMask);
+        }
+
+        ImGui::EndTable();
+    }
+
+    // (for clearness: look at the same condition at the beginning of this method)
+    if (bsId != 1)
+    {
+        ImGui::EndDisabled();
+    }
+}
+
+//---------------------------------------------------------
+
 void UIMaterialsBrowser::DrawBlendStatesSelectors(void)
 {
     if (ImGui::TreeNode("Blend states"))
     {
+        // id of currently selected blend state for this materials
         const BsID currBsId = matData_.currBsId;
 
-        bool alphaToCoverage  = pFacade_->GetBsParamBool(currBsId, UI_BLEND_IS_ALPHA_TO_COVERAGE);
-        bool independentBlend = pFacade_->GetBsParamBool(currBsId, UI_BLEND_IS_INDEPENDENT);
-        bool blendEnabled     = pFacade_->GetBsParamBool(currBsId, UI_BLEND_IS_ENABLED);
-
-        // if it is a "custom" blend state we will be able to manually setup each parameter
-        if (currBsId != 1)
-        {
-            ImGui::BeginDisabled(true);
-        }
-
-        int numBlendOps               = pFacade_->GetNumBlendStateParams(UI_BLEND_OPERATION);
-        int numBlendFactors           = pFacade_->GetNumBlendStateParams(UI_BLEND_FACTOR);
-        int numBlendWriteMasks        = pFacade_->GetNumBlendStateParams(UI_BLEND_RND_TARGET_WRITE_MASK);
-
-        const char** blendOps         = pFacade_->GetBlendStateParamsNames(UI_BLEND_OPERATION);
-        const char** blendFactors     = pFacade_->GetBlendStateParamsNames(UI_BLEND_FACTOR);
-        const char** blendWriteMasks  = pFacade_->GetBlendStateParamsNames(UI_BLEND_RND_TARGET_WRITE_MASK);
-
-        // color blend (factor, factor, operation)
-        const char* currSrcBlend      = pFacade_->GetBsParamStr(currBsId, UI_BLEND_SRC_BLEND);
-        const char* currDstBlend      = pFacade_->GetBsParamStr(currBsId, UI_BLEND_DST_BLEND);
-        const char* currBlendOp       = pFacade_->GetBsParamStr(currBsId, UI_BLEND_OP);
-
-        // alpha blend (factor, factor, operation)
-        const char* currSrcBlendAlpha = pFacade_->GetBsParamStr(currBsId, UI_BLEND_SRC_BLEND_ALPHA);
-        const char* currDstBlendAlpha = pFacade_->GetBsParamStr(currBsId, UI_BLEND_DST_BLEND_ALPHA);
-        const char* currBlendOpAlpha  = pFacade_->GetBsParamStr(currBsId, UI_BLEND_OP_ALPHA);
-
-        // render target write mask
-        const char* currWriteMask     = pFacade_->GetBsParamStr(currBsId, UI_BLEND_RND_TARGET_WRITE_MASK);
-
-        bool bsModified = false;
-
-
-        bsModified |= ImGui::Checkbox("Alpha to coverage", &alphaToCoverage);
-        bsModified |= ImGui::Checkbox("Independent blend", &independentBlend);
-        bsModified |= ImGui::Checkbox("Blend enabled",     &blendEnabled);
-
-        ImGui::NewLine();
-
-
-        const int             numColumns = 2;
-        const ImGuiTableFlags tableFlags = 0;   // or ImGuiTableFlags_SizingFixedFit
-
-
-        if (ImGui::BeginTable("SetupBlendParams", numColumns, tableFlags))
-        {
-           
-            // 1st row (souce color blend factor)
-            bsModified |= DrawBlendFactorControl(
-                "Src color blend factor",
-                "##src_col_blend_factor",
-                &currSrcBlend,
-                blendFactors,
-                numBlendFactors);
-
-            // 2nd row (destination color blend factor)
-            bsModified |= DrawBlendFactorControl(
-                "Dst color blend factor",
-                "##dst_col_blend_factor",
-                &currDstBlend,
-                blendFactors,
-                numBlendFactors);
-
-            // 3rd row (color blend operation)
-            bsModified |= DrawBlendOpControl(
-                "Color blend op",
-                "##col_blend_op",
-                &currBlendOp,
-                blendOps,
-                numBlendOps);
-        
-            // 4th row (src alpha blend factor)
-            bsModified |= DrawBlendFactorControl(
-                "Src alpha blend factor",
-                "##src_alpha_blend_factor",
-                &currSrcBlendAlpha,
-                blendFactors,
-                numBlendFactors);
-
-            // 5th row (dst alpha blend factor)
-            bsModified |= DrawBlendFactorControl(
-                "Dst alpha blend factor",
-                "##dst_alpha_blend_factor",
-                &currDstBlendAlpha,
-                blendFactors,
-                numBlendFactors);
-
-            // 6th row (alpha blend operation)
-            bsModified |= DrawBlendOpControl(
-                "Alpha blend op",
-                "##alpha_blend_op",
-                &currBlendOpAlpha,
-                blendOps,
-                numBlendOps);
-
-            // 7th row (blend render target write mask)
-            bsModified |= DrawBlendWriteMaskControl(
-                "Blend render target write mask",
-                "##blend_write_mask",
-                &currWriteMask,
-                blendWriteMasks,
-                numBlendWriteMasks);
-
-            if (bsModified)
-            {
-                pFacade_->UpdateCustomBlendState(
-                    alphaToCoverage,
-                    independentBlend,
-                    blendEnabled,
-                    currSrcBlend,
-                    currDstBlend,
-                    currBlendOp,
-                    currSrcBlendAlpha,
-                    currDstBlendAlpha,
-                    currBlendOpAlpha,
-                    currWriteMask);
-            }
-
-            ImGui::EndTable();
-        }
+        DrawBlendParamsControl(currBsId);
 
         ImGui::NewLine();
         ImGui::Separator();
 
-
-        // if "custom" blend state
-        if (currBsId != 1)
-        {
-            ImGui::EndDisabled();
-        }
-
-        // print a selectable list of render states
+        //
+        // draw a selectable list of predefined blend states
+        //
         const cvector<RenderStateName>& statesNames = *pFacade_->GetRenderStateNames(RND_STATES_BLEND);
 
         for (index i = 0; i < statesNames.size(); ++i)
@@ -977,26 +989,28 @@ void UIMaterialsBrowser::DrawBlendStatesSelectors(void)
 }
 
 //---------------------------------------------------------
+//---------------------------------------------------------
 
 void UIMaterialsBrowser::DrawDepthStencilStatesSelectors(void)
 {
     if (ImGui::TreeNode("Depth-stencil states"))
     {
+        // id of currently selected depth-stencil state for this material
+        const DssID currDssId = matData_.currDssId;
+
+        DrawDepthStencilParamsControl(currDssId);
+
+        ImGui::NewLine();
+        ImGui::Separator();
+
+        //
+        // draw a selectable list of predefined depth-stencil states
+        //
         const cvector<RenderStateName>& statesNames = *pFacade_->GetRenderStateNames(RND_STATES_DEPTH_STENCIL);
-        const index         currDepthStencilStateId = (index)matData_.currDssId;
 
-
-        // "custom" depth-stencil state: we will be able to manually setup each parameter
-        if (ImGui::Selectable("custom dss...", false))
-        {
-            //pFacade_->SetMaterialRenderState(matData_.materialId, (uint32)idx, rndStateType);
-            //selectedStateIdx = idx;
-        }
-
-        // print a selectable list of render states
         for (index i = 0; i < statesNames.size(); ++i)
         {
-            if (ImGui::Selectable(statesNames[i].name, i == currDepthStencilStateId))
+            if (ImGui::Selectable(statesNames[i].name, i == currDssId))
             {
                 RenderStateSetup params;
                 params.matId = matData_.materialId;
@@ -1010,6 +1024,274 @@ void UIMaterialsBrowser::DrawDepthStencilStatesSelectors(void)
         ImGui::TreePop();
     }
     ImGui::Separator();
+}
+
+//---------------------------------------------------------
+// Desc:  draw a dropdown menu (ImGui::Combo)
+// Args:  - label:      label for the menu
+//        - comboId:    unique identifier for the menu
+//        - currParam:  (in/out) current parameter (will be highlighted) and if we
+//                      select any option it will be rewritten by this option value
+//                      (we will just set a pointer to another value)
+//        - items:      selectable options of menu
+//        - numItems:   num of selectable options in menu
+//
+// Ret:   true if we selected any other option
+//---------------------------------------------------------
+bool DrawDropdown(
+    const char* label,
+    const char* comboId,
+    const char** currParam,
+    const char** items,
+    const int numItems)
+{
+    // check input args
+    if (!label)
+    {
+        LogErr(LOG, "empty label");
+        return false;
+    }
+    if (!comboId)
+    {
+        LogErr(LOG, "empty combo id");
+        return false;
+    }
+    if (!currParam || StrHelper::IsEmpty(*currParam))
+    {
+        LogErr(LOG, "empty current param");
+        return false;
+    }
+    if (!items)
+    {
+        LogErr(LOG, "empty items arr");
+        return false;
+    }
+
+    //---------------------------------
+
+    bool changed = false;
+
+    ImGui::TableNextColumn();
+    ImGui::Text(label);
+
+    ImGui::TableNextColumn();
+    ImGui::PushItemWidth(-FLT_MIN);
+
+    // dropdown menu
+    if (ImGui::BeginCombo(comboId, *currParam))
+    {
+        for (int i = 0; i < numItems; ++i)
+        {
+            const bool isSelected = (strcmp(*currParam, items[i]) == 0);
+            if (ImGui::Selectable(items[i], isSelected))
+            {
+                *currParam = items[i];
+                changed = true;
+            }
+
+            // set the initial focus when opening the combo
+            if (isSelected)
+                ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::PopItemWidth();
+
+    return changed;
+}
+
+//---------------------------------------------------------
+//---------------------------------------------------------
+void UIMaterialsBrowser::DrawDepthStencilParamsControl(const DssID dssId)
+{
+    // allow params modification only if id == 1 (depth-stencil state is "custom")
+    if (dssId != 1)
+    {
+        ImGui::BeginDisabled(true);
+    }
+
+    //
+    // get current params of the depth-stencil state
+    //
+    bool depthEnabled                = pFacade_->GetDssParamBool(dssId, UI_DSS_DEPTH_ENABLED);
+    bool stencilEnabled              = pFacade_->GetDssParamBool(dssId, UI_DSS_STENCIL_ENABLED);
+
+    const char* depthWriteMask       = pFacade_->GetDssParamStr(dssId, UI_DSS_DEPTH_WRITE_MASK);
+    const char* depthFunc            = pFacade_->GetDssParamStr(dssId, UI_DSS_DEPTH_FUNC);
+
+    // ff - front face
+    const char* ffStencilFailOp      = pFacade_->GetDssParamStr(dssId, UI_DSS_FRONT_FACE_STENCIL_FAIL_OP);
+    const char* ffStencilDepthFailOp = pFacade_->GetDssParamStr(dssId, UI_DSS_FRONT_FACE_STENCIL_DEPTH_FAIL_OP);
+    const char* ffStencilPassOp      = pFacade_->GetDssParamStr(dssId, UI_DSS_FRONT_FACE_STENCIL_PASS_OP);
+    const char* ffStencilFunc        = pFacade_->GetDssParamStr(dssId, UI_DSS_FRONT_FACE_STENCIL_FUNC);
+
+    // bf - back face
+    const char* bfStencilFailOp      = pFacade_->GetDssParamStr(dssId, UI_DSS_BACK_FACE_STENCIL_FAIL_OP);
+    const char* bfStencilDepthFailOp = pFacade_->GetDssParamStr(dssId, UI_DSS_BACK_FACE_STENCIL_DEPTH_FAIL_OP);
+    const char* bfStencilPassOp      = pFacade_->GetDssParamStr(dssId, UI_DSS_BACK_FACE_STENCIL_PASS_OP);
+    const char* bfStencilFunc        = pFacade_->GetDssParamStr(dssId, UI_DSS_BACK_FACE_STENCIL_FUNC);
+
+
+    //
+    // get available dss params to switch to
+    //
+    const int numDepthWriteMasks     = pFacade_->GetNumDssParams(UI_DSS_DEPTH_WRITE_MASK);
+    const char** depthWriteMasks     = pFacade_->GetDssParamsNames(UI_DSS_DEPTH_WRITE_MASK);
+
+    // comparison func
+    const int numCmpFunctions        = pFacade_->GetNumDssParams(UI_DSS_COMPARISON_FUNC);
+    const char** cmpFunctions        = pFacade_->GetDssParamsNames(UI_DSS_COMPARISON_FUNC);
+
+    // stencil operations
+    const int  numStencilOps         = pFacade_->GetNumDssParams(UI_DSS_STENCIL_OP);
+    const char**  stencilOps         = pFacade_->GetDssParamsNames(UI_DSS_STENCIL_OP);
+
+
+    //
+    // draw control checkboxes
+    //
+    if (ImGui::Checkbox("Depth enabled", &depthEnabled))
+    {
+        pFacade_->UpdateCustomDssParam(UI_DSS_DEPTH_ENABLED, depthEnabled);
+    }
+    if (ImGui::Checkbox("Stencil enabled", &stencilEnabled))
+    {
+        pFacade_->UpdateCustomDssParam(UI_DSS_STENCIL_ENABLED, stencilEnabled);
+    }
+
+    ImGui::NewLine();
+
+    //
+    // draw a table of dropdown menus to control depth func, stencil operations, etc.
+    //
+    const int             numColumns = 2;
+    const ImGuiTableFlags tableFlags = 0;
+
+    if (ImGui::BeginTable("SetupDepthStencilParams", numColumns, tableFlags))
+    {
+        // 1st row (depth write mask)
+        if (DrawDropdown(
+            "Write Mask",
+            "##depth_write_mask",
+            &depthWriteMask,
+            depthWriteMasks,
+            numDepthWriteMasks))
+        {
+            pFacade_->UpdateCustomDssParam(UI_DSS_DEPTH_WRITE_MASK, depthWriteMask);
+        }
+
+        // 2nd row (depth func)
+        if (DrawDropdown(
+            "Depth func",
+            "##depth_func",
+            &depthFunc,
+            cmpFunctions,
+            numCmpFunctions))
+        {
+            pFacade_->UpdateCustomDssParam(UI_DSS_DEPTH_FUNC, depthFunc);
+        }
+
+        // 3rd row (stencil read mask)
+
+        // 4th row (stencil write mask)
+
+
+        //-----------------------------
+        // front face params:
+        //-----------------------------
+
+        // 5th row (ff stencil fail op)
+        if (DrawDropdown(
+            "front face stencil fail operation",
+            "##ff_stencil_fail_op",
+            &ffStencilFailOp,
+            stencilOps,
+            numStencilOps))
+        {
+        }
+
+        // 6th row (ff stencil depth fail op)
+        if (DrawDropdown(
+            "front face stencil depth fail op",
+            "##ff_stencil_depth_fail_op",
+            &ffStencilDepthFailOp,
+            stencilOps,
+            numStencilOps))
+        {
+        }
+
+        // 7th row (ff stencil pass op)
+        if (DrawDropdown(
+            "front face stencil pass op",
+            "##ff_stencil_pass_op",
+            &ffStencilPassOp,
+            stencilOps,
+            numStencilOps))
+        {
+        }
+
+        // 8th row (ff stencil func)
+        if (DrawDropdown(
+            "front face stencil func",
+            "#ff_stencil_func",
+            &ffStencilFunc,
+            cmpFunctions,
+            numCmpFunctions))
+        {
+        }
+
+        //-----------------------------
+        // back face params:
+        //-----------------------------
+
+        // 9th row (bf stencil fail op)
+        if (DrawDropdown(
+            "back face stencil fail op",
+            "#bf_stencil_fail_op",
+            &bfStencilFailOp,
+            stencilOps,
+            numStencilOps))
+        {
+        }
+
+        // 10th row (bf stencil depth fail op)
+        if (DrawDropdown(
+            "back face stencil depth fail op",
+            "##bf_stencil_depth_fail_op",
+            &bfStencilDepthFailOp,
+            stencilOps,
+            numStencilOps))
+        {
+        }
+
+        // 11th row (bf stencil pass op)
+        if (DrawDropdown(
+            "back face stencil pass op",
+            "##bf_stencil_pass_op",
+            &bfStencilPassOp,
+            stencilOps,
+            numStencilOps))
+        {
+        }
+
+        // 12th row (bf stencil func)
+        if (DrawDropdown(
+            "back face stencil func",
+            "##bf_stencil_func",
+            &bfStencilFunc,
+            cmpFunctions,
+            numCmpFunctions))
+        {
+        }
+
+        ImGui::EndTable();
+    }
+
+    // (for clearness: look at the same condition at the beginning of this method)
+    if (dssId != 1)
+    {
+        ImGui::EndDisabled();
+    }
 }
 
 //---------------------------------------------------------

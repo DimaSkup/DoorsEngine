@@ -36,7 +36,7 @@
     <ClCompile Include="Common\pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Render\RenderStates.cpp">
+    <ClCompile Include="Render\r_states.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Render\d3dclass.cpp">
@@ -95,7 +95,7 @@
     <ClInclude Include="Common\pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Render\RenderStates.h">
+    <ClInclude Include="Render\r_states.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Render\d3dclass.h">
