@@ -102,10 +102,27 @@ enum eRndStatesGroup
     NUM_GROUPS_RND_STATES
 };
 
+enum eRasterProp
+{
+    UI_RS_FILL,
+    UI_RS_CULL,
+    UI_RS_FRONT_CCW,
+    UI_RS_DEPTH_BIAS,
+    UI_RS_DEPTH_BIAS_CLAMP,
+    UI_RS_SLOPE_SCALED_DEPTH_BIAS,
+    UI_RS_DEPTH_CLIP_ENABLE,
+    UI_RS_SCISSOR_ENABLE,
+    UI_RS_MULTISAMPLE_ENABLE,
+    UI_RS_ANTIALIASED_LINE_ENABLE,
+};
+
 enum eBlendProp
 {
     UI_BLEND_OPERATION,
     UI_BLEND_FACTOR,
+
+    //-----------------------
+
     UI_BLEND_RND_TARGET_WRITE_MASK,
 
     UI_BLEND_SRC_BLEND,
@@ -473,6 +490,14 @@ public:
     virtual size                            GetNumRenderStates (const eRndStatesGroup type)             const { NOTIFY; return 0; }
     virtual const cvector<RenderStateName>* GetRenderStateNames(const eRndStatesGroup type)             const { NOTIFY; return nullptr; }
 
+    // get info specific to rasterizer states
+    virtual int          GetNumRsParams             (const eRasterProp type)                            const { NOTIFY; return 0; }
+    virtual const char** GetRsParamsNames           (const eRasterProp type)                            const { NOTIFY; return &s_DummyStr; }
+    virtual const char*  GetRsParamStr              (const RsID id, const eRasterProp type)             const { NOTIFY; return s_DummyStr; }
+    virtual int          GetRsParamInt              (const RsID id, const eRasterProp type)             const { NOTIFY; return 0; }
+    virtual float        GetRsParamFloat            (const RsID id, const eRasterProp type)             const { NOTIFY; return 0.0f; }
+    virtual bool         GetRsParamBool             (const RsID id, const eRasterProp type)             const { NOTIFY; return false; }
+
     // get info specific to blend states
     virtual int          GetNumBsParams             (const eBlendProp type)                             const { NOTIFY; return 0; }
     virtual const char** GetBsParamsNames           (const eBlendProp type)                             const { NOTIFY; return &s_DummyStr; }
@@ -486,16 +511,20 @@ public:
     virtual bool         GetDssParamBool            (const DssID id, const eDepthStencilProp type)      const { NOTIFY; return false; }
 
     // update render param
-    virtual void         UpdateCustomBsParam        (const eBlendProp type, bool value)                 const { NOTIFY; return; }
+    virtual void         UpdateCustomRsParam        (const eRasterProp type, const bool value)          const { NOTIFY; return; }
+    virtual void         UpdateCustomRsParam        (const eRasterProp type, const int value)           const { NOTIFY; return; }
+    virtual void         UpdateCustomRsParam        (const eRasterProp type, const float value)         const { NOTIFY; return; }
+    virtual void         UpdateCustomRsParam        (const eRasterProp type, const char* value)         const { NOTIFY; return; }
+
+    virtual void         UpdateCustomBsParam        (const eBlendProp type, const bool value)           const { NOTIFY; return; }
     virtual void         UpdateCustomBsParam        (const eBlendProp type, const char* value)          const { NOTIFY; return; }
 
-    virtual void         UpdateCustomDssParam       (const eDepthStencilProp type, bool value)          const { NOTIFY; return; }
+    virtual void         UpdateCustomDssParam       (const eDepthStencilProp type, const bool value)    const { NOTIFY; return; }
     virtual void         UpdateCustomDssParam       (const eDepthStencilProp type, const char* value)   const { NOTIFY; return; }
 
     // setup render states of material
-    virtual uint         GetMaterialRndStateId      (const MaterialID id, const eRndStatesGroup type)   const { NOTIFY; return 0; }
+    virtual uint         GetMaterialRenderStateId   (const MaterialID id, const eRndStatesGroup type)   const { NOTIFY; return 0; }
     virtual bool         SetMaterialRenderState     (const RenderStateSetup& params)                          { NOTIFY; return false; }
-    virtual bool         SetMaterialRenderStateProp (const RenderStateSetup& params)                          { NOTIFY; return false; }
 
 
     virtual bool SetMaterialTexture(

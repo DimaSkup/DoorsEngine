@@ -19,7 +19,7 @@ struct MaterialData
     TexID                     textureIDs[NUM_TEXTURE_TYPES]{ INVALID_TEX_ID };
     ID3D11ShaderResourceView* textures[NUM_TEXTURE_TYPES]{ nullptr };
 
-    uint currRsId = 0;      // current raster state of this material
-    uint currBsId = 0;      // current blend state of this material
-    uint currDssId = 0;     // current depth-stencil state of this material
+    RsID  currRsId = 0;      // current raster state of this material
+    BsID  currBsId = 0;      // current blend state of this material
+    DssID currDssId = 0;     // current depth-stencil state of this material
 };

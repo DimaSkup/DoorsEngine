@@ -277,6 +277,14 @@ public:
     virtual size                            GetNumRenderStates (const eRndStatesGroup type)             const override;
     virtual const cvector<RenderStateName>* GetRenderStateNames(const eRndStatesGroup type)             const override;
 
+    // get info specific to rasterizer states
+    virtual int          GetNumRsParams             (const eRasterProp type)                            const override;
+    virtual const char** GetRsParamsNames           (const eRasterProp type)                            const override;
+    virtual const char*  GetRsParamStr              (const RsID id, const eRasterProp type)             const override;
+    virtual int          GetRsParamInt              (const RsID id, const eRasterProp type)             const override;
+    virtual float        GetRsParamFloat            (const RsID id, const eRasterProp type)             const override;
+    virtual bool         GetRsParamBool             (const RsID id, const eRasterProp type)             const override;
+
     // get info specific to blend states
     virtual int          GetNumBsParams             (const eBlendProp type)                             const override;
     virtual const char** GetBsParamsNames           (const eBlendProp type)                             const override;
@@ -290,17 +298,22 @@ public:
     virtual bool         GetDssParamBool            (const DssID id, const eDepthStencilProp type)      const override;
 
     // update render param
-    virtual void         UpdateCustomBsParam        (const eBlendProp type, bool value)                 const override;
+    virtual void         UpdateCustomRsParam        (const eRasterProp type, const bool value)          const override;
+    virtual void         UpdateCustomRsParam        (const eRasterProp type, const int value)           const override;
+    virtual void         UpdateCustomRsParam        (const eRasterProp type, const float value)         const override;
+    virtual void         UpdateCustomRsParam        (const eRasterProp type, const char* value)         const override;
+
+    virtual void         UpdateCustomBsParam        (const eBlendProp type, const bool value)           const override;
     virtual void         UpdateCustomBsParam        (const eBlendProp type, const char* value)          const override;
 
-    virtual void         UpdateCustomDssParam       (const eDepthStencilProp type, bool value)          const override;
+    virtual void         UpdateCustomDssParam       (const eDepthStencilProp type, const bool value)    const override;
     virtual void         UpdateCustomDssParam       (const eDepthStencilProp type, const char* value)   const override;
 
 
     // setup render states of material
-    virtual uint         GetMaterialRndStateId      (const MaterialID id, const eRndStatesGroup type)   const override;
+    virtual uint         GetMaterialRenderStateId      (const MaterialID id, const eRndStatesGroup type)   const override;
     virtual bool         SetMaterialRenderState     (const RenderStateSetup& params)                          override;
-    virtual bool         SetMaterialRenderStateProp (const RenderStateSetup& params)                          override;
+    //virtual bool         SetMaterialRenderStateProp (const RenderStateSetup& params)                          override;
 
 
     virtual bool SetMaterialTexture(

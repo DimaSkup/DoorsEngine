@@ -169,14 +169,15 @@ void ImGuiLayer::Begin()
         ImGui::DockBuilderSetNodeSize(dockspaceId, viewport->Size);
 
         // split main dockspace into separate dock windows
-        ImGuiID dockIdRight            = ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Right, 0.2f, nullptr, &dockspaceId);
-        ImGuiID dockIdRightBottomHalf  = ImGui::DockBuilderSplitNode(dockIdRight, ImGuiDir_Down, 0.5f, nullptr, &dockIdRight);
+        ImGuiID dockIdRight            = ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Right, 0.25f, nullptr, &dockspaceId);
+        ImGuiID dockIdRightBottomHalf  = ImGui::DockBuilderSplitNode(dockIdRight, ImGuiDir_Down, 0.31f, nullptr, &dockIdRight);
         ImGuiID dockIdBottom           = ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Down, 0.3f, nullptr, &dockspaceId);
         ImGuiID dockIdLeft             = ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Left, 0.2f, nullptr, &dockspaceId);
-        ImGuiID dockIdScene            = ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Down, 0.89f, nullptr, &dockspaceId);
+        ImGuiID dockIdScene            = ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Down, 0.90f, nullptr, &dockspaceId);
 
         // register dock windows and relate them to specific window names
         ImGui::DockBuilderDockWindow("Debug", dockIdRight);
+        ImGui::DockBuilderDockWindow("Material editor", dockIdRight);
         ImGui::DockBuilderDockWindow("Properties", dockIdRightBottomHalf);
         ImGui::DockBuilderDockWindow("Log", dockIdBottom);
         ImGui::DockBuilderDockWindow("Entities List", dockIdLeft);

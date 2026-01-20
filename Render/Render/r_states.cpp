@@ -304,17 +304,20 @@ void RenderStates::UpdateCustomRsParam(const eRsParamType type, const float valu
         return;
     }
 
+    if (type != RS_DEPTH_BIAS_CLAMP && type != RS_SLOPE_SCALED_DEPTH_BIAS)
+    {
+        LogErr(LOG, "you can't setup this rs param with float value (param_type: %d, value: %d)", (int)type, value);
+        return;
+    }
+
+
     RsParams& params = rsParams_[customRsId];
 
-    switch (type)
-    {
-        case RS_DEPTH_BIAS_CLAMP:         params.depthBiasClamp       = value;  break;
-        case RS_SLOPE_SCALED_DEPTH_BIAS:  params.slopeScaledDepthBias = value;  break;
+    if (type == RS_DEPTH_BIAS_CLAMP)
+        params.depthBiasClamp = value;
 
-        default:
-            LogErr(LOG, "you can't setup this rs param with float value (param_type: %d, value: %d)", (int)type, value);
-            return;
-    }
+    else if (type == RS_SLOPE_SCALED_DEPTH_BIAS)
+        params.slopeScaledDepthBias = value;
 
     UpdateRs(customRsId, GetRsDescByParams(params));
 }
@@ -931,6 +934,45 @@ const char** RenderStates::GetArrDssParamsNames(const eDssParamType type) const
 }
 
 //---------------------------------------------------------
+// Desc:  get current value (integer) of rasterizer state's (RS) property
+//---------------------------------------------------------
+int RenderStates::GetRsParamInt(const RsID id, const eRsParamType type) const
+{
+    if (!IsRsExist(id))
+    {
+        LogErr(LOG, "invalid raster state id: %d", (int)id);
+        return 0;
+    }
+
+    if (type == RS_DEPTH_BIAS)
+        return rsParams_[id].depthBias;
+
+    LogErr(LOG, "invalid rasterizer state param type (rs: [%d] '%s', param_type: %d)", (int)id, rsNames_[id].name, (int)type);
+    return 0;
+}
+
+//---------------------------------------------------------
+// Desc:  get current value (float) of rasterizer state's (RS) property
+//---------------------------------------------------------
+float RenderStates::GetRsParamFloat(const RsID id, const eRsParamType type) const
+{
+    if (!IsRsExist(id))
+    {
+        LogErr(LOG, "invalid raster state id: %d", (int)id);
+        return 0.0f;
+    }
+
+    if (type == RS_DEPTH_BIAS_CLAMP)
+        return rsParams_[id].depthBias;
+
+    if (type == RS_SLOPE_SCALED_DEPTH_BIAS)
+        return rsParams_[id].slopeScaledDepthBias;
+
+    LogErr(LOG, "invalid rasterizer state param type (rs: [%d] '%s', param_type: %d)", (int)id, rsNames_[id].name, (int)type);
+    return 0.0f;
+}
+
+//---------------------------------------------------------
 // Desc:  get parameter's current value in string-form for rasterizer state by id
 //---------------------------------------------------------
 const char* RenderStates::GetRsParamStr(const RsID id, const eRsParamType type) const
@@ -941,34 +983,32 @@ const char* RenderStates::GetRsParamStr(const RsID id, const eRsParamType type) 
         return s_InvalidStr[0];
     }
 
-    switch (type)
+    if (type == RS_FILL)
     {
-        case RS_FILL:
-        {
-            const D3D11_FILL_MODE fill = D3D11_FILL_MODE(rsParams_[id].fillMode);
+        const D3D11_FILL_MODE fill = D3D11_FILL_MODE(rsParams_[id].fillMode);
 
-            if (fill == D3D11_FILL_WIREFRAME)
-                return s_RasterFillModeNames[0];
+        if (fill == D3D11_FILL_WIREFRAME)
+            return s_RasterFillModeNames[0];
 
-            if (fill == D3D11_FILL_SOLID)
-                return s_RasterFillModeNames[1];
-        }
-        case RS_CULL:
-        {
-            const D3D11_CULL_MODE cull = D3D11_CULL_MODE(rsParams_[id].cullMode);
-
-            if (cull == D3D11_CULL_NONE)
-                return s_RasterCullModeNames[0];
-
-            if (cull == D3D11_CULL_FRONT)
-                return s_RasterCullModeNames[1];
-
-            if (cull == D3D11_CULL_BACK)
-                return s_RasterCullModeNames[2];
-        }
+        if (fill == D3D11_FILL_SOLID)
+            return s_RasterFillModeNames[1];
     }
 
-    LogErr(LOG, "invalid rasterizer state param type (rs_id: %d, param_type: %d)", (int)id, (int)type);
+    else if (type == RS_CULL)
+    {
+        const D3D11_CULL_MODE cull = D3D11_CULL_MODE(rsParams_[id].cullMode);
+
+        if (cull == D3D11_CULL_NONE)
+            return s_RasterCullModeNames[0];
+
+        if (cull == D3D11_CULL_FRONT)
+            return s_RasterCullModeNames[1];
+
+        if (cull == D3D11_CULL_BACK)
+            return s_RasterCullModeNames[2];
+    }
+
+    LogErr(LOG, "invalid rasterizer state param type (rs: [%d] '%s', param_type: %d)", (int)id, rsNames_[id].name, (int)type);
     return s_InvalidStr[0];
 }
 
@@ -1031,7 +1071,10 @@ const char* RenderStates::GetDssParamStr(const DssID id, const eDssParamType typ
     switch (type)
     {
         case DSS_DEPTH_WRITE_MASK:
-            return (params.depthWriteMask == 0) ? "zero" : "all";
+            if (params.depthWriteMask == 0)
+                return s_DssDepthWriteMasksNames[0];   // "zero"
+            else
+                return s_DssDepthWriteMasksNames[1];   // "all"
 
         case DSS_DEPTH_FUNC:
             return GetStrByCmpFunc(D3D11_COMPARISON_FUNC(params.depthFunc));
@@ -1076,7 +1119,7 @@ const char* RenderStates::GetDssParamStr(const DssID id, const eDssParamType typ
 }
 
 //---------------------------------------------------------
-// Desc:  get current boolean-value parameter of blend state by id
+// Desc:  get current value (boolean) of rasterizer state's (RS) property
 //---------------------------------------------------------
 bool RenderStates::GetRsParamBool(const RsID id, const eRsParamType type) const
 {
@@ -1100,6 +1143,7 @@ bool RenderStates::GetRsParamBool(const RsID id, const eRsParamType type) const
 }
 
 //---------------------------------------------------------
+// Desc:  get current value (boolean) of blending state's (BS) property
 //---------------------------------------------------------
 bool RenderStates::GetBsParamBool(const BsID id, const eBsParamType type) const
 {
@@ -1121,6 +1165,7 @@ bool RenderStates::GetBsParamBool(const BsID id, const eBsParamType type) const
 }
 
 //---------------------------------------------------------
+// Desc:  get current value (boolean) of depth-stencil state's (DSS) property
 //---------------------------------------------------------
 bool RenderStates::GetDssParamBool(const DssID id, const eDssParamType type) const
 {

@@ -56,14 +56,6 @@ private:
     void LoadTextureFromFile();
     void UnbindTexture();
 
-    // render states switching/editing
-    void DrawBlendParamsControl   (const BsID bsId);
-    bool DrawBlendWriteMaskControl(const char* label, const char* comboId, const char** currMask);
-    bool DrawBlendFactorControl   (const char* label, const char* comboId, const char** currFactor);
-    bool DrawBlendOpControl       (const char* label, const char* comboId, const char** currOp);
-
-    void DrawDepthStencilParamsControl(const DssID dssId);
-
 
 private:
     IFacadeEngineToUI* pFacade_ = nullptr;

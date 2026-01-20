@@ -500,6 +500,7 @@ if not exist "$(SolutionDir)build\$(IntDir)data\shaders\input_layouts.json" xcop
     <ClCompile Include="UI\Editor\Debug\ui_debug_control.cpp" />
     <ClCompile Include="UI\Editor\EditorPanelElement\ui_materials_browser.cpp" />
     <ClCompile Include="UI\Editor\EditorPanelElement\ui_models_browser.cpp" />
+    <ClCompile Include="UI\Editor\EditorPanelElement\ui_r_states_controller.cpp" />
     <ClCompile Include="UI\Editor\EditorPanelElement\ui_textures_browser.cpp" />
     <ClCompile Include="UI\Editor\Entity\Controller\ui_entt_dir_light_controller.cpp" />
     <ClCompile Include="UI\Editor\Entity\EnttEditorController.cpp" />
@@ -650,6 +651,7 @@ if not exist "$(SolutionDir)build\$(IntDir)data\shaders\input_layouts.json" xcop
     <ClInclude Include="UI\Editor\Debug\ui_debug_control.h" />
     <ClInclude Include="UI\Editor\EditorPanelElement\ui_materials_browser.h" />
     <ClInclude Include="UI\Editor\EditorPanelElement\ui_models_browser.h" />
+    <ClInclude Include="UI\Editor\EditorPanelElement\ui_r_states_controller.h" />
     <ClInclude Include="UI\Editor\EditorPanelElement\ui_textures_browser.h" />
     <ClInclude Include="UI\Editor\Entity\Controller\ui_entt_dir_light_controller.h" />
     <ClInclude Include="UI\Editor\Entity\EnttEditorController.h" />

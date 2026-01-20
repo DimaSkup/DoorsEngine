@@ -354,6 +354,9 @@
     <ClCompile Include="Sound\sound_mgr.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="UI\Editor\EditorPanelElement\ui_r_states_controller.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Input\mouse.h">
@@ -786,6 +789,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Sound\sound_mgr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Editor\EditorPanelElement\ui_r_states_controller.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

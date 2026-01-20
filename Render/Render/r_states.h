@@ -258,6 +258,9 @@ public:
     const char** GetArrBsParamsNames    (const eBsParamType type) const;
     const char** GetArrDssParamsNames   (const eDssParamType type) const;
 
+    int          GetRsParamInt          (const RsID id, const eRsParamType type) const;
+    float        GetRsParamFloat        (const RsID id, const eRsParamType type) const;
+
     const char*  GetRsParamStr          (const RsID id, const eRsParamType type) const;
     const char*  GetBsParamStr          (const BsID id, const eBsParamType type) const;
     const char*  GetDssParamStr         (const DssID id, const eDssParamType type) const;

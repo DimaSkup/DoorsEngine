@@ -1049,7 +1049,7 @@ bool FacadeEngineToUI::GetMaterialDataById(const MaterialID id, MaterialData& ou
 //---------------------------------------------------------
 size FacadeEngineToUI::GetNumRenderStates(const eRndStatesGroup type) const
 {
-    Render::RenderStates& rndStates = pRender_->GetRenderStates();
+    const Render::RenderStates& rndStates = pRender_->GetRenderStates();
 
     switch (type)
     {
@@ -1071,7 +1071,7 @@ size FacadeEngineToUI::GetNumRenderStates(const eRndStatesGroup type) const
 //---------------------------------------------------------
 const cvector<RenderStateName>* FacadeEngineToUI::GetRenderStateNames(const eRndStatesGroup type) const
 {
-    Render::RenderStates& rndStates = pRender_->GetRenderStates();
+    const Render::RenderStates& rndStates = pRender_->GetRenderStates();
 
     switch (type)
     {
@@ -1085,6 +1085,176 @@ const cvector<RenderStateName>* FacadeEngineToUI::GetRenderStateNames(const eRnd
 }
 
 //---------------------------------------------------------
+// Desc:  get responsible render's rasterizer state param / params group by input type
+//---------------------------------------------------------
+Render::eRsParamType GetRasterParamType(const eRasterProp type)
+{
+    switch (type)
+    {
+        case UI_RS_FILL:                     return Render::RS_FILL;
+        case UI_RS_CULL:                     return Render::RS_CULL;
+        case UI_RS_FRONT_CCW:                return Render::RS_FRONT_COUNTER_CLOCKWISE;
+        case UI_RS_DEPTH_BIAS:               return Render::RS_DEPTH_BIAS;
+        case UI_RS_DEPTH_BIAS_CLAMP:         return Render::RS_DEPTH_BIAS_CLAMP;
+        case UI_RS_SLOPE_SCALED_DEPTH_BIAS:  return Render::RS_SLOPE_SCALED_DEPTH_BIAS;
+        case UI_RS_DEPTH_CLIP_ENABLE:        return Render::RS_DEPTH_CLIP_ENABLE;
+        case UI_RS_SCISSOR_ENABLE:           return Render::RS_SCISSOR_ENABLE;
+        case UI_RS_MULTISAMPLE_ENABLE:       return Render::RS_MULTISAMPLE_ENABLE;
+        case UI_RS_ANTIALIASED_LINE_ENABLE:  return Render::RS_ANTIALIASED_LINE_ENABLE;
+    }
+
+    return Render::eRsParamType(0);
+}
+
+//---------------------------------------------------------
+// Desc:  get responsible render's blend state param / params group by input type
+//---------------------------------------------------------
+Render::eBsParamType GetBlendParamType(const eBlendProp type)
+{
+    switch (type)
+    {
+        case UI_BLEND_OPERATION:             return Render::BLEND_OPERATION;
+        case UI_BLEND_FACTOR:                return Render::BLEND_FACTOR;
+        case UI_BLEND_RND_TARGET_WRITE_MASK: return Render::BLEND_RND_TARGET_WRITE_MASK;
+        case UI_BLEND_SRC_BLEND:             return Render::BLEND_SRC_BLEND;
+        case UI_BLEND_DST_BLEND:             return Render::BLEND_DST_BLEND;
+        case UI_BLEND_OP:                    return Render::BLEND_OP;
+        case UI_BLEND_SRC_BLEND_ALPHA:       return Render::BLEND_SRC_BLEND_ALPHA;
+        case UI_BLEND_DST_BLEND_ALPHA:       return Render::BLEND_DST_BLEND_ALPHA;
+        case UI_BLEND_OP_ALPHA:              return Render::BLEND_OP_ALPHA;
+        case UI_BLEND_IS_ALPHA_TO_COVERAGE:  return Render::BLEND_IS_ALPHA_TO_COVERAGE;
+        case UI_BLEND_IS_INDEPENDENT:        return Render::BLEND_IS_INDEPENDENT;
+        case UI_BLEND_IS_ENABLED:            return Render::BLEND_IS_ENABLED;
+    }
+
+    return Render::eBsParamType(0);
+}
+
+//---------------------------------------------------------
+// Desc:  get responsible render's dss param / params group by input type
+//---------------------------------------------------------
+Render::eDssParamType GetDepthStencilParamType(const eDepthStencilProp type)
+{
+    switch (type)
+    {
+        case UI_DSS_STENCIL_OP:         return Render::DSS_STENCIL_OP;
+        case UI_DSS_COMPARISON_FUNC:    return Render::DSS_COMPARISON_FUNC;
+        case UI_DSS_DEPTH_ENABLED:      return Render::DSS_DEPTH_ENABLED;
+        case UI_DSS_DEPTH_WRITE_MASK:   return Render::DSS_DEPTH_WRITE_MASK;
+        case UI_DSS_DEPTH_FUNC:         return Render::DSS_DEPTH_FUNC;
+        case UI_DSS_STENCIL_ENABLED:    return Render::DSS_STENCIL_ENABLED;
+
+        // -- front face
+        case UI_DSS_FRONT_FACE_STENCIL_FAIL_OP:
+            return Render::DSS_FRONT_FACE_STENCIL_FAIL_OP;
+
+        case UI_DSS_FRONT_FACE_STENCIL_DEPTH_FAIL_OP:
+            return Render::DSS_FRONT_FACE_STENCIL_DEPTH_FAIL_OP;
+
+        case UI_DSS_FRONT_FACE_STENCIL_PASS_OP:
+            return Render::DSS_FRONT_FACE_STENCIL_PASS_OP;
+
+        case UI_DSS_FRONT_FACE_STENCIL_FUNC:
+            return Render::DSS_FRONT_FACE_STENCIL_FUNC;
+
+        // -- back face
+        case UI_DSS_BACK_FACE_STENCIL_FAIL_OP:
+            return Render::DSS_BACK_FACE_STENCIL_FAIL_OP;
+
+        case UI_DSS_BACK_FACE_STENCIL_DEPTH_FAIL_OP:
+            return Render::DSS_BACK_FACE_STENCIL_DEPTH_FAIL_OP;
+
+        case UI_DSS_BACK_FACE_STENCIL_PASS_OP:
+            return Render::DSS_BACK_FACE_STENCIL_PASS_OP;
+
+        case UI_DSS_BACK_FACE_STENCIL_FUNC:
+            return Render::DSS_BACK_FACE_STENCIL_FUNC;
+    }
+
+    return Render::eDssParamType(0);
+}
+
+
+//**********************************************************************************
+// get info specific to rasterizer states
+//**********************************************************************************
+
+//---------------------------------------------------------
+// Desc:  return a name number of properties for some specific
+//        parameter of rasterizer state (RS)
+//        (for instance:  a number of all possible cull modes)
+//---------------------------------------------------------
+int FacadeEngineToUI::GetNumRsParams(const eRasterProp type) const
+{
+    const Render::RenderStates& rndStates = pRender_->GetRenderStates();
+    const Render::eRsParamType  paramType = GetRasterParamType(type);
+
+    return rndStates.GetNumRsParams(paramType);
+}
+
+//---------------------------------------------------------
+// Desc:  return an array of properties names for some specific
+//        parameter of rasterizer state (RS)
+//        (for instance:  names of all possible cull modes)
+//---------------------------------------------------------
+const char** FacadeEngineToUI::GetRsParamsNames(const eRasterProp type) const
+{
+    const Render::RenderStates& rndStates = pRender_->GetRenderStates();
+    const Render::eRsParamType  paramType = GetRasterParamType(type);
+
+    return rndStates.GetArrRsParamsNames(paramType);
+}
+
+//---------------------------------------------------------
+// Desc:  get string representation of current value of rasterizer state's (RS) property
+//---------------------------------------------------------
+const char* FacadeEngineToUI::GetRsParamStr(const RsID id, const eRasterProp type) const
+{
+    const Render::RenderStates& rndStates = pRender_->GetRenderStates();
+    const Render::eRsParamType  paramType = GetRasterParamType(type);
+
+    return rndStates.GetRsParamStr(id, paramType);
+}
+
+//---------------------------------------------------------
+// Desc:  get current value (integer) of rasterizer state's (RS) property
+//---------------------------------------------------------
+int FacadeEngineToUI::GetRsParamInt(const RsID id, const eRasterProp type) const
+{
+    const Render::RenderStates& rndStates = pRender_->GetRenderStates();
+    const Render::eRsParamType  paramType = GetRasterParamType(type);
+
+    return rndStates.GetRsParamInt(id, paramType);
+}
+
+//---------------------------------------------------------
+// Desc:  get current value (float) of rasterizer state's (RS) property
+//---------------------------------------------------------
+float FacadeEngineToUI::GetRsParamFloat(const RsID id, const eRasterProp type) const
+{
+    const Render::RenderStates& rndStates = pRender_->GetRenderStates();
+    const Render::eRsParamType  paramType = GetRasterParamType(type);
+
+    return rndStates.GetRsParamFloat(id, paramType);
+}
+
+//---------------------------------------------------------
+// Desc:  get current value (boolean) of rasterizer state's (RS) property
+//---------------------------------------------------------
+bool FacadeEngineToUI::GetRsParamBool(const RsID id, const eRasterProp type) const
+{
+    const Render::RenderStates& rndStates = pRender_->GetRenderStates();
+    const Render::eRsParamType  paramType = GetRasterParamType(type);
+
+    return rndStates.GetRsParamBool(id, paramType);
+}
+
+
+//**********************************************************************************
+// get info specific to blending states
+//**********************************************************************************
+
+//---------------------------------------------------------
 // Desc:  return a name number of properties for some specific
 //        parameter of blending state (BS)
 //        (for instance:  a number of all possible blend operations)
@@ -1092,22 +1262,7 @@ const cvector<RenderStateName>* FacadeEngineToUI::GetRenderStateNames(const eRnd
 int FacadeEngineToUI::GetNumBsParams(const eBlendProp type) const
 {
     const Render::RenderStates& rndStates = pRender_->GetRenderStates();
-    Render::eBsParamType        paramType = Render::eBsParamType(0);
-
-    switch (type)
-    {
-        case UI_BLEND_OPERATION:
-            paramType = Render::BLEND_OPERATION;
-            break;
-
-        case UI_BLEND_FACTOR:
-            paramType = Render::BLEND_FACTOR;
-            break;
-
-        case UI_BLEND_RND_TARGET_WRITE_MASK:
-            paramType = Render::BLEND_RND_TARGET_WRITE_MASK;
-            break;
-    }
+    const Render::eBsParamType  paramType = GetBlendParamType(type);
 
     return rndStates.GetNumBsParams(paramType);
 }
@@ -1120,22 +1275,7 @@ int FacadeEngineToUI::GetNumBsParams(const eBlendProp type) const
 const char** FacadeEngineToUI::GetBsParamsNames(const eBlendProp type) const
 {
     const Render::RenderStates& rndStates = pRender_->GetRenderStates();
-    Render::eBsParamType        paramType = Render::eBsParamType(0);
-
-    switch (type)
-    {
-        case UI_BLEND_OPERATION:
-            paramType = Render::BLEND_OPERATION;
-            break;
-
-        case UI_BLEND_FACTOR:
-            paramType = Render::BLEND_FACTOR;
-            break;
-
-        case UI_BLEND_RND_TARGET_WRITE_MASK:
-            paramType = Render::BLEND_RND_TARGET_WRITE_MASK;
-            break;
-    }
+    const Render::eBsParamType  paramType = GetBlendParamType(type);
 
     return rndStates.GetArrBsParamsNames(paramType);
 }
@@ -1146,38 +1286,7 @@ const char** FacadeEngineToUI::GetBsParamsNames(const eBlendProp type) const
 const char* FacadeEngineToUI::GetBsParamStr(const BsID id, const eBlendProp type) const
 {
     const Render::RenderStates& rndStates = pRender_->GetRenderStates();
-    Render::eBsParamType        paramType = Render::eBsParamType(0);
-
-    switch (type)
-    {
-        case UI_BLEND_RND_TARGET_WRITE_MASK:
-            paramType = Render::BLEND_RND_TARGET_WRITE_MASK;
-            break;
-
-        case UI_BLEND_SRC_BLEND:
-            paramType = Render::BLEND_SRC_BLEND;
-            break;
-
-        case UI_BLEND_DST_BLEND:
-            paramType = Render::BLEND_DST_BLEND;
-            break;
-
-        case UI_BLEND_OP:
-            paramType = Render::BLEND_OP;
-            break;
-
-        case UI_BLEND_SRC_BLEND_ALPHA:
-            paramType = Render::BLEND_SRC_BLEND_ALPHA;
-            break;
-
-        case UI_BLEND_DST_BLEND_ALPHA:
-            paramType = Render::BLEND_DST_BLEND_ALPHA;
-            break;
-
-        case UI_BLEND_OP_ALPHA:
-            paramType = Render::BLEND_OP_ALPHA;
-            break;
-    }
+    const Render::eBsParamType  paramType = GetBlendParamType(type);
 
     return rndStates.GetBsParamStr(id, paramType);
 }
@@ -1188,25 +1297,11 @@ const char* FacadeEngineToUI::GetBsParamStr(const BsID id, const eBlendProp type
 bool FacadeEngineToUI::GetBsParamBool(const BsID id, const eBlendProp type) const
 {
     const Render::RenderStates& rndStates = pRender_->GetRenderStates();
-    Render::eBsParamType        paramType = Render::eBsParamType(0);
-
-    switch (type)
-    {
-        case UI_BLEND_IS_ALPHA_TO_COVERAGE:
-            paramType = Render::BLEND_IS_ALPHA_TO_COVERAGE;
-            break;
-
-        case UI_BLEND_IS_INDEPENDENT:
-            paramType = Render::BLEND_IS_INDEPENDENT;
-            break;
-
-        case UI_BLEND_IS_ENABLED:
-            paramType = Render::BLEND_IS_ENABLED;
-            break;
-    }
+    const Render::eBsParamType  paramType = GetBlendParamType(type);
 
     return rndStates.GetBsParamBool(id, paramType);
 }
+
 
 //**********************************************************************************
 // get info specific to depth-stencil states
@@ -1220,22 +1315,7 @@ bool FacadeEngineToUI::GetBsParamBool(const BsID id, const eBlendProp type) cons
 int FacadeEngineToUI::GetNumDssParams(const eDepthStencilProp type) const
 {
     const Render::RenderStates& rndStates = pRender_->GetRenderStates();
-    Render::eDssParamType       paramType = Render::eDssParamType(0);
-
-    switch (type)
-    {
-        case UI_DSS_STENCIL_OP:
-            paramType = Render::DSS_STENCIL_OP;
-            break;
-
-        case UI_DSS_COMPARISON_FUNC:
-            paramType = Render::DSS_COMPARISON_FUNC;
-            break;
-
-        case UI_DSS_DEPTH_WRITE_MASK:
-            paramType = Render::DSS_DEPTH_WRITE_MASK;
-            break;
-    }
+    const Render::eDssParamType paramType = GetDepthStencilParamType(type);
 
     return rndStates.GetNumDssParams(paramType);
 }
@@ -1248,22 +1328,7 @@ int FacadeEngineToUI::GetNumDssParams(const eDepthStencilProp type) const
 const char** FacadeEngineToUI::GetDssParamsNames(const eDepthStencilProp type) const
 {
     const Render::RenderStates& rndStates = pRender_->GetRenderStates();
-    Render::eDssParamType       paramType = Render::eDssParamType(0);
-
-    switch (type)
-    {
-        case UI_DSS_STENCIL_OP:
-            paramType = Render::DSS_STENCIL_OP;
-            break;
-
-        case UI_DSS_COMPARISON_FUNC:
-            paramType = Render::DSS_COMPARISON_FUNC;
-            break;
-
-        case UI_DSS_DEPTH_WRITE_MASK:
-            paramType = Render::DSS_DEPTH_WRITE_MASK;
-            break;
-    }
+    const Render::eDssParamType paramType = GetDepthStencilParamType(type);
 
     return rndStates.GetArrDssParamsNames(paramType);
 }
@@ -1277,50 +1342,7 @@ const char* FacadeEngineToUI::GetDssParamStr(
     const eDepthStencilProp type) const
 {
     const Render::RenderStates& rndStates = pRender_->GetRenderStates();
-    Render::eDssParamType       paramType = Render::eDssParamType(0);
-
-    switch (type)
-    {
-        case UI_DSS_DEPTH_WRITE_MASK:
-            paramType = Render::DSS_DEPTH_WRITE_MASK;
-            break;
-
-        case UI_DSS_DEPTH_FUNC:
-            paramType = Render::DSS_DEPTH_FUNC;
-            break;
-
-        case UI_DSS_FRONT_FACE_STENCIL_FAIL_OP:
-            paramType = Render::DSS_FRONT_FACE_STENCIL_FAIL_OP;
-            break;
-
-        case UI_DSS_FRONT_FACE_STENCIL_DEPTH_FAIL_OP:
-            paramType = Render::DSS_FRONT_FACE_STENCIL_DEPTH_FAIL_OP;
-            break;
-
-        case UI_DSS_FRONT_FACE_STENCIL_PASS_OP:
-            paramType = Render::DSS_FRONT_FACE_STENCIL_PASS_OP;
-            break;
-
-        case UI_DSS_FRONT_FACE_STENCIL_FUNC:
-            paramType = Render::DSS_FRONT_FACE_STENCIL_FUNC;
-            break;
-
-        case UI_DSS_BACK_FACE_STENCIL_FAIL_OP:
-            paramType = Render::DSS_BACK_FACE_STENCIL_FAIL_OP;
-            break;
-
-        case UI_DSS_BACK_FACE_STENCIL_DEPTH_FAIL_OP:
-            paramType = Render::DSS_BACK_FACE_STENCIL_DEPTH_FAIL_OP;
-            break;
-
-        case UI_DSS_BACK_FACE_STENCIL_PASS_OP:
-            paramType = Render::DSS_BACK_FACE_STENCIL_PASS_OP;
-            break;
-
-        case UI_DSS_BACK_FACE_STENCIL_FUNC:
-            paramType = Render::DSS_BACK_FACE_STENCIL_FUNC;
-            break;
-    }
+    const Render::eDssParamType paramType = GetDepthStencilParamType(type);
 
     return rndStates.GetDssParamStr(id, paramType);
 }
@@ -1333,120 +1355,77 @@ bool FacadeEngineToUI::GetDssParamBool(
     const eDepthStencilProp type) const
 {
     const Render::RenderStates& rndStates = pRender_->GetRenderStates();
-    Render::eDssParamType       paramType = Render::eDssParamType(0);
-
-    if (type == UI_DSS_DEPTH_ENABLED)
-        paramType = Render::DSS_DEPTH_ENABLED;
-
-    else if (type == UI_DSS_STENCIL_ENABLED)
-        paramType = Render::DSS_STENCIL_ENABLED;
+    const Render::eDssParamType paramType = GetDepthStencilParamType(type);
 
     return rndStates.GetDssParamBool(id, paramType);
 }
 
+
+//**********************************************************************************
+// Update the custom rasterizer / blending / depth-stencil state
+//**********************************************************************************
+
 //---------------------------------------------------------
+// Desc:  update a rasterizer state's param with input boolean-value
 //---------------------------------------------------------
-void FacadeEngineToUI::UpdateCustomBsParam(
-    const eBlendProp type,
-    bool value) const
+void FacadeEngineToUI::UpdateCustomRsParam(const eRasterProp type, const bool value) const
 {
-    Render::eBsParamType paramType = Render::eBsParamType(0);
+    const Render::eRsParamType paramType = GetRasterParamType(type);
+    Render::RenderStates&      rndStates = pRender_->GetRenderStates();
 
-    switch (type)
-    {
-        case UI_BLEND_IS_ALPHA_TO_COVERAGE:
-            paramType = Render::BLEND_IS_ALPHA_TO_COVERAGE;
-            break;
+    rndStates.UpdateCustomRsParam(paramType, value);
+}
 
-        case UI_BLEND_IS_INDEPENDENT:
-            paramType = Render::BLEND_IS_INDEPENDENT;
-            break;
-
-        case UI_BLEND_IS_ENABLED:
-            paramType = Render::BLEND_IS_ENABLED;
-            break;
-
-        default:
-            LogErr(LOG, "invalid blend state param to change it with boolean (param_type: %d)", (int)type);
-            return;
-    }
-
+//---------------------------------------------------------
+// Desc:  update a rasterizer state's param with input integer-value 
+//---------------------------------------------------------
+void FacadeEngineToUI::UpdateCustomRsParam(const eRasterProp type, const int value) const
+{
+    const Render::eRsParamType paramType = GetRasterParamType(type);
     Render::RenderStates& rndStates = pRender_->GetRenderStates();
+
+    rndStates.UpdateCustomRsParam(paramType, value);
+}
+
+//---------------------------------------------------------
+// Desc:  update a rasterizer state's param with input float-value
+//---------------------------------------------------------
+void FacadeEngineToUI::UpdateCustomRsParam(const eRasterProp type, const float value) const
+{
+    const Render::eRsParamType paramType = GetRasterParamType(type);
+    Render::RenderStates&      rndStates = pRender_->GetRenderStates();
+
+    rndStates.UpdateCustomRsParam(paramType, value);
+}
+
+//---------------------------------------------------------
+// Desc:  update a rasterizer state's param with input string-value
+//---------------------------------------------------------
+void FacadeEngineToUI::UpdateCustomRsParam(const eRasterProp type, const char* value) const
+{
+    const Render::eRsParamType paramType = GetRasterParamType(type);
+    Render::RenderStates&      rndStates = pRender_->GetRenderStates();
+
+    rndStates.UpdateCustomRsParam(paramType, value);
+}
+
+//---------------------------------------------------------
+// Desc:  update a blending state's param with input boolean-value
+//---------------------------------------------------------
+void FacadeEngineToUI::UpdateCustomBsParam(const eBlendProp type, const bool value) const
+{
+    const Render::eBsParamType paramType = GetBlendParamType(type);
+    Render::RenderStates&      rndStates = pRender_->GetRenderStates();
+
     rndStates.UpdateCustomBsParam(paramType, value);
 }
 
 //---------------------------------------------------------
+// Desc:  update a blending state's param with input string-value
 //---------------------------------------------------------
 void FacadeEngineToUI::UpdateCustomBsParam(
     const eBlendProp type,
     const char* value) const
-{
-    if (!value || value[0] == '\0')
-    {
-        LogErr(LOG, "empty str value");
-        return;
-    }
-
-    Render::eBsParamType paramType = Render::eBsParamType(0);
-
-    switch (type)
-    {
-        case UI_BLEND_SRC_BLEND:
-            paramType = Render::BLEND_SRC_BLEND;
-            break;
-
-        case UI_BLEND_DST_BLEND:
-            paramType = Render::BLEND_DST_BLEND;
-            break;
-
-        case UI_BLEND_OP:
-            paramType = Render::BLEND_OP;
-            break;
-
-        case UI_BLEND_SRC_BLEND_ALPHA:
-            paramType = Render::BLEND_SRC_BLEND_ALPHA;
-            break;
-
-        case UI_BLEND_DST_BLEND_ALPHA:
-            paramType = Render::BLEND_DST_BLEND_ALPHA;
-            break;
-
-        case UI_BLEND_OP_ALPHA:
-            paramType = Render::BLEND_OP_ALPHA;
-            break;
-
-        case UI_BLEND_RND_TARGET_WRITE_MASK:
-            paramType = Render::BLEND_RND_TARGET_WRITE_MASK;
-            break;
-
-        default:
-            LogErr(LOG, "invalid blend state param to change it with str (param_type: %d, str_value: %s)", (int)type, value);
-            return;
-    }
-
-    Render::RenderStates& rndStates = pRender_->GetRenderStates();
-    rndStates.UpdateCustomBsParam(paramType, value);
-}
-
-//---------------------------------------------------------
-//---------------------------------------------------------
-void FacadeEngineToUI::UpdateCustomDssParam(const eDepthStencilProp type, bool value) const
-{
-    Render::eDssParamType paramType = Render::eDssParamType(0);
-
-    if (type == UI_DSS_DEPTH_ENABLED)
-        paramType = Render::DSS_DEPTH_ENABLED;
-
-    else if (type == UI_DSS_STENCIL_ENABLED)
-        paramType = Render::DSS_STENCIL_ENABLED;
-
-    Render::RenderStates& rndStates = pRender_->GetRenderStates();
-    rndStates.UpdateCustomDssParam(paramType, value);
-}
-
-//---------------------------------------------------------
-//---------------------------------------------------------
-void FacadeEngineToUI::UpdateCustomDssParam(const eDepthStencilProp type, const char* value) const
 {
     if (StrHelper::IsEmpty(value))
     {
@@ -1454,31 +1433,61 @@ void FacadeEngineToUI::UpdateCustomDssParam(const eDepthStencilProp type, const 
         return;
     }
 
-    Render::eDssParamType paramType = Render::eDssParamType(0);
+    const Render::eBsParamType paramType = GetBlendParamType(type);
+    Render::RenderStates&      rndStates = pRender_->GetRenderStates();
 
-    switch (type)
-    {
-        case UI_DSS_DEPTH_WRITE_MASK:
-            paramType = Render::DSS_DEPTH_WRITE_MASK;
-            break;
+    rndStates.UpdateCustomBsParam(paramType, value);
+}
 
-        case UI_DSS_DEPTH_FUNC:
-            paramType = Render::DSS_DEPTH_FUNC;
-            break;
-    }
+//---------------------------------------------------------
+// Desc:  update a depth-stencil state's param with input boolean-value
+//---------------------------------------------------------
+void FacadeEngineToUI::UpdateCustomDssParam(const eDepthStencilProp type, const bool value) const
+{
+    const Render::eDssParamType paramType = GetDepthStencilParamType(type);
+    Render::RenderStates&       rndStates = pRender_->GetRenderStates();
 
-    Render::RenderStates& rndStates = pRender_->GetRenderStates();
     rndStates.UpdateCustomDssParam(paramType, value);
 }
 
 //---------------------------------------------------------
+// Desc:  update a depth-stencil state's param with input string-value
+//---------------------------------------------------------
+void FacadeEngineToUI::UpdateCustomDssParam(
+    const eDepthStencilProp type,
+    const char* value) const
+{
+    if (StrHelper::IsEmpty(value))
+    {
+        LogErr(LOG, "empty str value");
+        return;
+    }
+
+    const Render::eDssParamType paramType = GetDepthStencilParamType(type);
+    Render::RenderStates&       rndStates = pRender_->GetRenderStates();
+
+    rndStates.UpdateCustomDssParam(paramType, value);
+}
+
+
+//**********************************************************************************
+// Get/set material's data related to render states
+//**********************************************************************************
+
+//---------------------------------------------------------
 // Desc:  get id of material's current render state 
 //---------------------------------------------------------
-uint FacadeEngineToUI::GetMaterialRndStateId(
+uint FacadeEngineToUI::GetMaterialRenderStateId(
     const MaterialID id,
     const eRndStatesGroup type) const
 {
     const Material& mat = g_MaterialMgr.GetMatById(id);
+
+    if (mat.id == INVALID_MATERIAL_ID)
+    {
+        LogErr(LOG, "invalid material id: %d", (int)id);
+        return 0;
+    }
 
     switch (type)
     {
@@ -1487,7 +1496,7 @@ uint FacadeEngineToUI::GetMaterialRndStateId(
         case RND_STATES_DEPTH_STENCIL:  return (uint)mat.dssId;
     }
 
-    LogErr(LOG, "unknown render state group: %d", type);
+    LogErr(LOG, "unknown render state group: %d    for material (id: %d, name: %s)", type, (int)mat.id, mat.name);
     return 0;
 }
 
@@ -1527,14 +1536,6 @@ bool FacadeEngineToUI::SetMaterialRenderState(const RenderStateSetup& params)
     return true;
 }
 
-//---------------------------------------------------------
-// Desc:  setup material's custom render state's property
-//        (for instance: switch depth function for custom depth-stencil state)
-//---------------------------------------------------------
-bool FacadeEngineToUI::SetMaterialRenderStateProp(const RenderStateSetup& params)
-{
-    return true;
-}
 
 //---------------------------------------------------------
 // Desc:  return a number of texture types names,

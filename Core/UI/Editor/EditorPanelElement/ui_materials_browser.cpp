@@ -10,6 +10,7 @@
 #include <win_file_dialog.h>               // for using OS dialog window to load file from a file
 #include <UICommon/IFacadeEngineToUI.h>
 #include <imgui.h>
+#include "ui_r_states_controller.h"
 
 
 #pragma warning (disable : 4996)
@@ -313,9 +314,8 @@ void UIMaterialsBrowser::GetMaterialDataByIdx(const int matIdx)
         return;
     }
 
-    selectedMatId_ = matId;
-
-    selectedItemIdx_ = matIdx;                        // update index so the icon of this material will be shown as selected
+    selectedMatId_      = matId;
+    selectedItemIdx_    = matIdx;                     // update index so the icon of this material will be shown as selected
     materialWasChanged_ = true;                       // material was changed since the prev frame
 
     const char* matName = pFacade_->GetMaterialNameById(selectedMatId_);
@@ -333,9 +333,9 @@ void UIMaterialsBrowser::GetMaterialDataByIdx(const int matIdx)
         matData_.textures,
         NUM_TEXTURE_TYPES);
 
-    matData_.currRsId  = pFacade_->GetMaterialRndStateId(selectedMatId_, RND_STATES_RASTER);
-    matData_.currBsId  = pFacade_->GetMaterialRndStateId(selectedMatId_, RND_STATES_BLEND);
-    matData_.currDssId = pFacade_->GetMaterialRndStateId(selectedMatId_, RND_STATES_DEPTH_STENCIL);
+    matData_.currRsId  = pFacade_->GetMaterialRenderStateId(selectedMatId_, RND_STATES_RASTER);
+    matData_.currBsId  = pFacade_->GetMaterialRenderStateId(selectedMatId_, RND_STATES_BLEND);
+    matData_.currDssId = pFacade_->GetMaterialRenderStateId(selectedMatId_, RND_STATES_DEPTH_STENCIL);
 }
 
 //---------------------------------------------------------
@@ -392,49 +392,35 @@ void UIMaterialsBrowser::ComputeZooming(
 
 //---------------------------------------------------------
 // Desc:   show a window which is used to edit a chosen material
-// NOTE:   we split into half this window (left: preview; right: editing fields)
 //---------------------------------------------------------
 void UIMaterialsBrowser::RenderEditorWnd()
 {
-    // always center this window when appearing
-    const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-    const float sizeX   = ImGui::GetMainViewport()->Size.x * 0.5f;
-    const float sizeY   = ImGui::GetMainViewport()->Size.y * 0.66f;
-    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-    ImGui::SetNextWindowSize(ImVec2(sizeX, sizeY), ImGuiCond_Appearing);
-
-
     if (ImGui::Begin("Material editor", &showMaterialEditorWnd_, ImGuiWindowFlags_NoScrollbar))
     {
-        const ImVec2 wndPos     = ImGui::GetWindowPos();
-        const ImVec2 availReg   = ImGui::GetContentRegionAvail();
-        const float halfWidth   = availReg.x / 2;
-        const ImVec2 padding    = { 20.0f, 40.0f };
+        const ImVec2 wndPos      = ImGui::GetWindowPos();
+        const ImVec2 availReg    = ImGui::GetContentRegionAvail();
+        const ImVec2 padding     = { 20.0f, 40.0f };
 
-        const ImVec2 wndPosL    = wndPos + padding;
-        const ImVec2 wndPosR    = wndPos + padding + ImVec2(halfWidth, 0);
+        const ImVec2 wndSizeUp   = { availReg.x - padding.x, availReg.y * 0.33f };
+        const ImVec2 wndSizeDown = { availReg.x - padding.x, availReg.y * 0.66f };
 
-        const ImVec2 wndSizeL   = { halfWidth - padding.x, availReg.y };
-        const ImVec2 wndSizeR   = wndSizeL;
+        const ImVec2 wndPosUp    = wndPos + padding;
+        const ImVec2 wndPosDown  = wndPos + padding + ImVec2(0, wndSizeUp.y + padding.y);
 
 
         // render material preview (model + material)
-        ImGui::SetNextWindowPos(wndPosL);
+        ImGui::SetNextWindowPos(wndPosUp);
 
-        if (ImGui::BeginChild("Material preview", wndSizeL))
-        {
+        if (ImGui::BeginChild("Material preview", wndSizeUp))
             RenderMatPreview();
-        }
         ImGui::EndChild();
 
 
         // render material properties fields 
-        ImGui::SetNextWindowPos(wndPosR);
+        ImGui::SetNextWindowPos(wndPosDown);
 
-        if (ImGui::BeginChild("Material props", wndSizeR))
-        {
+        if (ImGui::BeginChild("Material props", wndSizeDown))
             RenderMatPropsFields();
-        } 
         ImGui::EndChild();
     }
     ImGui::End();
@@ -448,22 +434,18 @@ void UIMaterialsBrowser::RenderMatPreview()
 {
     const MaterialID matId = selectedMatId_;
 
-    const ImVec2 wndPos   = ImGui::GetItemRectMin();
-    const ImVec2 availReg = ImGui::GetContentRegionAvail();
-    const int iAvailRegX  = (int)availReg.x;
-    const int iAvailRegY  = (int)availReg.y;
-    const int smallerSide = min(iAvailRegX, iAvailRegY);
-    const int iIconSize   = smallerSide;
-    const float fIconSize = (float)smallerSide;
+    const ImVec2 wndPos    = ImGui::GetItemRectMin();
+    const ImVec2 availReg  = ImGui::GetContentRegionAvail();
+    const int    iIconSize = (int)(availReg.y * 0.85f);
+    const float  fIconSize = (float)iIconSize;
 
     if (!pFacade_->InitMaterialBigIcon(iIconSize, iIconSize))
     {
         LogErr(LOG, "can't init a material's big icon");
+        return;
     }
 
-    ImGui::Text("Edit material:");
-    ImGui::Text("ID:   %" PRIu32, matId);
-    ImGui::Text("Name: %s", selectedMaterialName_);
+    ImGui::Text("ID: %d    Name: %s", matId, selectedMaterialName_);
     ImGui::Separator();
 
     // if we selected another material we need to reload its data
@@ -494,22 +476,24 @@ void UIMaterialsBrowser::RenderMatPropsFields()
 {
     ImGui::Checkbox("Rotate preview", &rotateMaterialBigIcon_);
 
+    ImGuiColorEditFlags flags = ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel;
     bool matColorChanged = false;
-    ImGui::Text("Ambient color ....................");
-    ImGui::SameLine();
-    matColorChanged |= ImGui::ColorEdit4("Ambient", matData_.ambient.xyzw, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
 
-    ImGui::Text("Diffuse color ......................");
+    ImGui::Text("Ambient color ............................");
     ImGui::SameLine();
-    matColorChanged |= ImGui::ColorEdit4("Diffuse", matData_.diffuse.xyzw, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+    matColorChanged |= ImGui::ColorEdit4("Ambient", matData_.ambient.xyzw, flags);
 
-    ImGui::Text("Specular color ...................");
+    ImGui::Text("Diffuse color ..............................");
     ImGui::SameLine();
-    matColorChanged |= ImGui::ColorEdit4("Specular", matData_.specular.xyzw, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+    matColorChanged |= ImGui::ColorEdit4("Diffuse", matData_.diffuse.xyzw, flags);
 
-    ImGui::Text("Reflect color ......................");
+    ImGui::Text("Specular color ...........................");
     ImGui::SameLine();
-    matColorChanged |= ImGui::ColorEdit4("Reflect", matData_.reflect.xyzw, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+    matColorChanged |= ImGui::ColorEdit4("Specular", matData_.specular.xyzw, flags);
+
+    ImGui::Text("Reflect color ..............................");
+    ImGui::SameLine();
+    matColorChanged |= ImGui::ColorEdit4("Reflect", matData_.reflect.xyzw, flags);
 
     ImGui::Text("Glossiness");
     ImGui::SameLine();
@@ -536,12 +520,26 @@ void UIMaterialsBrowser::RenderMatPropsFields()
     ImGui::Separator();
 
 
-    // render selectors for choosing render state params of material
+    // render selectors for choosing/modifying render state params of material
     if (ImGui::TreeNode("Setup render state"))
     {
-        DrawRasterStatesSelectors();
-        DrawBlendStatesSelectors();
-        DrawDepthStencilStatesSelectors();
+        UIRenderStatesController rStatesControl(pFacade_);
+        const MaterialID matId = selectedMatId_;
+
+        if (rStatesControl.DrawRasterStatesSelectors(matData_.currRsId, matId))
+        {
+            matData_.currRsId = pFacade_->GetMaterialRenderStateId(matId, RND_STATES_RASTER);
+        }
+
+        if (rStatesControl.DrawBlendStatesSelectors(matData_.currBsId, matId))
+        {
+            matData_.currBsId = pFacade_->GetMaterialRenderStateId(matId, RND_STATES_BLEND);
+        }
+
+        if (rStatesControl.DrawDepthStencilStatesSelectors(matData_.currDssId, matId))
+        {
+            matData_.currDssId = pFacade_->GetMaterialRenderStateId(matId, RND_STATES_DEPTH_STENCIL);
+        }
 
         ImGui::TreePop();
     }
@@ -601,698 +599,6 @@ void UIMaterialsBrowser::RenderDeleteWnd()
     }
 }
 
-//---------------------------------------------------------
-
-void UIMaterialsBrowser::DrawRasterStatesSelectors(void)
-{
-    if (ImGui::TreeNode("Rasterizer states"))
-    {
-        const cvector<RenderStateName>& statesNames = *pFacade_->GetRenderStateNames(RND_STATES_RASTER);
-        const index currRasterStateId = (index)matData_.currRsId;
-
-
-        // "custom" rasterizer state: we will be able to manually setup each parameter
-        if (currRasterStateId == 1)
-        {
-
-        }
-
-        // print a selectable list of render states
-        for (index i = 0; i < statesNames.size(); ++i)
-        {
-            if (ImGui::Selectable(statesNames[i].name, i == currRasterStateId))
-            {
-                RenderStateSetup params;
-                params.matId = matData_.materialId;
-                params.rndState = RND_STATES_RASTER;
-                params.rndStateId = (int)i;
-
-                pFacade_->SetMaterialRenderState(params);
-                matData_.currRsId = (uint)i;
-            }
-        }
-        ImGui::TreePop();
-    }
-    ImGui::Separator();
-}
-
-//---------------------------------------------------------
-//---------------------------------------------------------
-bool UIMaterialsBrowser::DrawBlendWriteMaskControl(
-    const char* label,
-    const char* comboId,
-    const char** currMask)
-{
-    // check input args
-    if (!label)
-    {
-        LogErr(LOG, "empty label");
-        return false;
-    }
-    if (!comboId)
-    {
-        LogErr(LOG, "empty combo id");
-        return false;
-    }
-    if (!currMask || !(*currMask) || (*currMask[0] == '\0'))
-    {
-        LogErr(LOG, "empty current factor");
-        return false;
-    }
-
-    //---------------------------------
-
-    bool changed = false;
-
-    ImGui::TableNextColumn();
-    ImGui::Text("Blend render target write mask");
-
-    ImGui::TableNextColumn();
-    ImGui::PushItemWidth(-FLT_MIN);
-
-    // dropdown menu
-    if (ImGui::BeginCombo("##blend_write_mask", *currMask))
-    {
-        // get names arr of available render target write masks (for blending) and its count
-        const int numMasks = pFacade_->GetNumBsParams(UI_BLEND_RND_TARGET_WRITE_MASK);
-        const char** masks = pFacade_->GetBsParamsNames(UI_BLEND_RND_TARGET_WRITE_MASK);
-
-        for (int i = 0; i < numMasks; ++i)
-        {
-            const bool isSelected = (strcmp(*currMask, masks[i]) == 0);
-            if (ImGui::Selectable(masks[i], isSelected))
-            {
-                *currMask = masks[i];
-                changed = true;
-            }
-
-            if (isSelected)
-                ImGui::SetItemDefaultFocus();
-        }
-        ImGui::EndCombo();
-    }
-    ImGui::PopItemWidth();
-
-    return changed;
-}
-
-//---------------------------------------------------------
-//---------------------------------------------------------
-bool UIMaterialsBrowser::DrawBlendFactorControl(
-    const char* label,
-    const char* comboId,
-    const char** currFactor)
-{
-    // check input args
-    if (!label)
-    {
-        LogErr(LOG, "empty label");
-        return false;
-    }
-    if (!comboId)
-    {
-        LogErr(LOG, "empty combo id");
-        return false;
-    }
-    if (!currFactor || !(*currFactor) || (*currFactor[0] == '\0'))
-    {
-        LogErr(LOG, "empty current factor");
-        return false;
-    }
-
-    //---------------------------------
-
-    bool changed = false;
-
-    ImGui::TableNextColumn();
-    ImGui::Text(label);
-
-    ImGui::TableNextColumn();
-    ImGui::PushItemWidth(-FLT_MIN);
-
-    // dropdown menu
-    if (ImGui::BeginCombo(comboId, *currFactor))
-    {
-        // get names arr of available blend factors and its count
-        const int numFactors = pFacade_->GetNumBsParams(UI_BLEND_FACTOR);
-        const char** factors = pFacade_->GetBsParamsNames(UI_BLEND_FACTOR);
-
-        for (int i = 0; i < numFactors; ++i)
-        {
-            const bool isSelected = (strcmp(*currFactor, factors[i]) == 0);
-            if (ImGui::Selectable(factors[i], isSelected))
-            {
-                *currFactor = factors[i];
-                changed = true;
-            }
-
-            // set the initial focus when opening the combo
-            if (isSelected)
-                ImGui::SetItemDefaultFocus();
-        }
-        ImGui::EndCombo();
-    }
-    ImGui::PopItemWidth();
-
-    return changed;
-}
-
-//---------------------------------------------------------
-//---------------------------------------------------------
-bool UIMaterialsBrowser::DrawBlendOpControl(
-    const char* label,
-    const char* comboId,
-    const char** currOp)
-{
-    // check input args
-    if (!label)
-    {
-        LogErr(LOG, "empty label");
-        return false;
-    }
-    if (!comboId)
-    {
-        LogErr(LOG, "empty combo id");
-        return false;
-    }
-    if (!currOp || !(*currOp) || (*currOp[0] == '\0'))
-    {
-        LogErr(LOG, "empty current operation");
-        return false;
-    }
-
-    //---------------------------------
-
-    bool changed = false;
-
-    ImGui::TableNextColumn();
-    ImGui::Text(label);
-
-    ImGui::TableNextColumn();
-    ImGui::PushItemWidth(-FLT_MIN);
-
-    // dropdown menu
-    if (ImGui::BeginCombo(comboId, *currOp))
-    {
-        // get names arr of possible blend operations and its count
-        const int numOps = pFacade_->GetNumBsParams(UI_BLEND_OPERATION);
-        const char** ops = pFacade_->GetBsParamsNames(UI_BLEND_OPERATION);
-
-        for (int i = 0; i < numOps; ++i)
-        {
-            const bool isSelected = (strcmp(*currOp, ops[i]) == 0);
-            if (ImGui::Selectable(ops[i], isSelected))
-            {
-                *currOp = ops[i];
-                changed = true;
-            }
-
-            // set the initial focus when opening the combo
-            if (isSelected)
-                ImGui::SetItemDefaultFocus();
-        }
-        ImGui::EndCombo();
-    }
-    ImGui::PopItemWidth();
-
-    return changed;
-}
-
-//---------------------------------------------------------
-
-void UIMaterialsBrowser::DrawBlendParamsControl(const BsID bsId)
-{
-    // allow params modification only if id == 1 (blend state is "custom")
-    if (bsId != 1)
-    {
-        ImGui::BeginDisabled(true);
-    }
-
-    //
-    // get current params of the blend state
-    //
-    bool alphaToCoverage          = pFacade_->GetBsParamBool(bsId, UI_BLEND_IS_ALPHA_TO_COVERAGE);
-    bool independentBlend         = pFacade_->GetBsParamBool(bsId, UI_BLEND_IS_INDEPENDENT);
-    bool blendEnabled             = pFacade_->GetBsParamBool(bsId, UI_BLEND_IS_ENABLED);
-
-    // color blend (factor, factor, operation)
-    const char* currSrcBlend      = pFacade_->GetBsParamStr(bsId, UI_BLEND_SRC_BLEND);
-    const char* currDstBlend      = pFacade_->GetBsParamStr(bsId, UI_BLEND_DST_BLEND);
-    const char* currBlendOp       = pFacade_->GetBsParamStr(bsId, UI_BLEND_OP);
-
-    // alpha blend (factor, factor, operation)
-    const char* currSrcBlendAlpha = pFacade_->GetBsParamStr(bsId, UI_BLEND_SRC_BLEND_ALPHA);
-    const char* currDstBlendAlpha = pFacade_->GetBsParamStr(bsId, UI_BLEND_DST_BLEND_ALPHA);
-    const char* currBlendOpAlpha  = pFacade_->GetBsParamStr(bsId, UI_BLEND_OP_ALPHA);
-
-    // render target write mask
-    const char* currWriteMask     = pFacade_->GetBsParamStr(bsId, UI_BLEND_RND_TARGET_WRITE_MASK);
-
-
-    //
-    // draw control checkboxes
-    //
-    if (ImGui::Checkbox("Alpha to coverage", &alphaToCoverage))
-    {
-        pFacade_->UpdateCustomBsParam(UI_BLEND_IS_ALPHA_TO_COVERAGE, alphaToCoverage);
-    }
-    if (ImGui::Checkbox("Independent blend", &independentBlend))
-    {
-        pFacade_->UpdateCustomBsParam(UI_BLEND_IS_INDEPENDENT, independentBlend);
-    }
-    if (ImGui::Checkbox("Blend enabled", &blendEnabled))
-    {
-        pFacade_->UpdateCustomBsParam(UI_BLEND_IS_ENABLED, blendEnabled);
-    }
-
-    ImGui::NewLine();
-
-
-    //
-    // Draw a table of dropdown menus to control blend factors, blend operations, etc.
-    //
-    const int             numColumns = 2;
-    const ImGuiTableFlags tableFlags = 0;
-
-    if (ImGui::BeginTable("SetupBlendParams", numColumns, tableFlags))
-    {
-           
-        // 1st row (souce color blend factor)
-        if (DrawBlendFactorControl(
-            "Src color blend factor",
-            "##src_col_blend_factor",
-            &currSrcBlend))
-        {
-            pFacade_->UpdateCustomBsParam(UI_BLEND_SRC_BLEND, currSrcBlend);
-        }
-
-        // 2nd row (destination color blend factor)
-        if (DrawBlendFactorControl(
-            "Dst color blend factor",
-            "##dst_col_blend_factor",
-            &currDstBlend))
-        {
-            pFacade_->UpdateCustomBsParam(UI_BLEND_DST_BLEND, currDstBlend);
-        }
-
-        // 3rd row (color blend operation)
-        if (DrawBlendOpControl(
-            "Color blend op",
-            "##col_blend_op",
-            &currBlendOp))
-        {
-            pFacade_->UpdateCustomBsParam(UI_BLEND_OP, currBlendOp);
-        }
-        
-        // 4th row (src alpha blend factor)
-        if (DrawBlendFactorControl(
-            "Src alpha blend factor",
-            "##src_alpha_blend_factor",
-            &currSrcBlendAlpha))
-        {
-            pFacade_->UpdateCustomBsParam(UI_BLEND_SRC_BLEND_ALPHA, currSrcBlendAlpha);
-        }
-
-        // 5th row (dst alpha blend factor)
-        if (DrawBlendFactorControl(
-            "Dst alpha blend factor",
-            "##dst_alpha_blend_factor",
-            &currDstBlendAlpha))
-        {
-            pFacade_->UpdateCustomBsParam(UI_BLEND_DST_BLEND_ALPHA, currDstBlendAlpha);
-        }
-
-        // 6th row (alpha blend operation)
-        if (DrawBlendOpControl(
-            "Alpha blend op",
-            "##alpha_blend_op",
-            &currBlendOpAlpha))
-        {
-            pFacade_->UpdateCustomBsParam(UI_BLEND_OP_ALPHA, currBlendOpAlpha);
-        }
-
-        // 7th row (blend render target write mask)
-        if (DrawBlendWriteMaskControl(
-            "Blend render target write mask",
-            "##blend_write_mask",
-            &currWriteMask))
-        {
-            pFacade_->UpdateCustomBsParam(UI_BLEND_RND_TARGET_WRITE_MASK, currWriteMask);
-        }
-
-        ImGui::EndTable();
-    }
-
-    // (for clearness: look at the same condition at the beginning of this method)
-    if (bsId != 1)
-    {
-        ImGui::EndDisabled();
-    }
-}
-
-//---------------------------------------------------------
-
-void UIMaterialsBrowser::DrawBlendStatesSelectors(void)
-{
-    if (ImGui::TreeNode("Blend states"))
-    {
-        // id of currently selected blend state for this materials
-        const BsID currBsId = matData_.currBsId;
-
-        DrawBlendParamsControl(currBsId);
-
-        ImGui::NewLine();
-        ImGui::Separator();
-
-        //
-        // draw a selectable list of predefined blend states
-        //
-        const cvector<RenderStateName>& statesNames = *pFacade_->GetRenderStateNames(RND_STATES_BLEND);
-
-        for (index i = 0; i < statesNames.size(); ++i)
-        {
-            const bool isSelected = (i == currBsId);
-            if (ImGui::Selectable(statesNames[i].name, isSelected))
-            {
-                RenderStateSetup params;
-                params.matId = matData_.materialId;
-                params.rndState = RND_STATES_BLEND;
-                params.rndStateId = (int)i;
-
-                pFacade_->SetMaterialRenderState(params);
-                matData_.currBsId = (uint)i;
-            }
-        }
-        ImGui::TreePop();
-    }
-    ImGui::Separator();
-}
-
-//---------------------------------------------------------
-//---------------------------------------------------------
-
-void UIMaterialsBrowser::DrawDepthStencilStatesSelectors(void)
-{
-    if (ImGui::TreeNode("Depth-stencil states"))
-    {
-        // id of currently selected depth-stencil state for this material
-        const DssID currDssId = matData_.currDssId;
-
-        DrawDepthStencilParamsControl(currDssId);
-
-        ImGui::NewLine();
-        ImGui::Separator();
-
-        //
-        // draw a selectable list of predefined depth-stencil states
-        //
-        const cvector<RenderStateName>& statesNames = *pFacade_->GetRenderStateNames(RND_STATES_DEPTH_STENCIL);
-
-        for (index i = 0; i < statesNames.size(); ++i)
-        {
-            if (ImGui::Selectable(statesNames[i].name, i == currDssId))
-            {
-                RenderStateSetup params;
-                params.matId = matData_.materialId;
-                params.rndState = RND_STATES_DEPTH_STENCIL;
-                params.rndStateId = (int)i;
-
-                pFacade_->SetMaterialRenderState(params);
-                matData_.currDssId = (uint)i;
-            }
-        }
-        ImGui::TreePop();
-    }
-    ImGui::Separator();
-}
-
-//---------------------------------------------------------
-// Desc:  draw a dropdown menu (ImGui::Combo)
-// Args:  - label:      label for the menu
-//        - comboId:    unique identifier for the menu
-//        - currParam:  (in/out) current parameter (will be highlighted) and if we
-//                      select any option it will be rewritten by this option value
-//                      (we will just set a pointer to another value)
-//        - items:      selectable options of menu
-//        - numItems:   num of selectable options in menu
-//
-// Ret:   true if we selected any other option
-//---------------------------------------------------------
-bool DrawDropdown(
-    const char* label,
-    const char* comboId,
-    const char** currParam,
-    const char** items,
-    const int numItems)
-{
-    // check input args
-    if (!label)
-    {
-        LogErr(LOG, "empty label");
-        return false;
-    }
-    if (!comboId)
-    {
-        LogErr(LOG, "empty combo id");
-        return false;
-    }
-    if (!currParam || StrHelper::IsEmpty(*currParam))
-    {
-        LogErr(LOG, "empty current param");
-        return false;
-    }
-    if (!items)
-    {
-        LogErr(LOG, "empty items arr");
-        return false;
-    }
-
-    //---------------------------------
-
-    bool changed = false;
-
-    ImGui::TableNextColumn();
-    ImGui::Text(label);
-
-    ImGui::TableNextColumn();
-    ImGui::PushItemWidth(-FLT_MIN);
-
-    // dropdown menu
-    if (ImGui::BeginCombo(comboId, *currParam))
-    {
-        for (int i = 0; i < numItems; ++i)
-        {
-            const bool isSelected = (strcmp(*currParam, items[i]) == 0);
-            if (ImGui::Selectable(items[i], isSelected))
-            {
-                *currParam = items[i];
-                changed = true;
-            }
-
-            // set the initial focus when opening the combo
-            if (isSelected)
-                ImGui::SetItemDefaultFocus();
-        }
-        ImGui::EndCombo();
-    }
-    ImGui::PopItemWidth();
-
-    return changed;
-}
-
-//---------------------------------------------------------
-//---------------------------------------------------------
-void UIMaterialsBrowser::DrawDepthStencilParamsControl(const DssID dssId)
-{
-    // allow params modification only if id == 1 (depth-stencil state is "custom")
-    if (dssId != 1)
-    {
-        ImGui::BeginDisabled(true);
-    }
-
-    //
-    // get current params of the depth-stencil state
-    //
-    bool depthEnabled                = pFacade_->GetDssParamBool(dssId, UI_DSS_DEPTH_ENABLED);
-    bool stencilEnabled              = pFacade_->GetDssParamBool(dssId, UI_DSS_STENCIL_ENABLED);
-
-    const char* depthWriteMask       = pFacade_->GetDssParamStr(dssId, UI_DSS_DEPTH_WRITE_MASK);
-    const char* depthFunc            = pFacade_->GetDssParamStr(dssId, UI_DSS_DEPTH_FUNC);
-
-    // ff - front face
-    const char* ffStencilFailOp      = pFacade_->GetDssParamStr(dssId, UI_DSS_FRONT_FACE_STENCIL_FAIL_OP);
-    const char* ffStencilDepthFailOp = pFacade_->GetDssParamStr(dssId, UI_DSS_FRONT_FACE_STENCIL_DEPTH_FAIL_OP);
-    const char* ffStencilPassOp      = pFacade_->GetDssParamStr(dssId, UI_DSS_FRONT_FACE_STENCIL_PASS_OP);
-    const char* ffStencilFunc        = pFacade_->GetDssParamStr(dssId, UI_DSS_FRONT_FACE_STENCIL_FUNC);
-
-    // bf - back face
-    const char* bfStencilFailOp      = pFacade_->GetDssParamStr(dssId, UI_DSS_BACK_FACE_STENCIL_FAIL_OP);
-    const char* bfStencilDepthFailOp = pFacade_->GetDssParamStr(dssId, UI_DSS_BACK_FACE_STENCIL_DEPTH_FAIL_OP);
-    const char* bfStencilPassOp      = pFacade_->GetDssParamStr(dssId, UI_DSS_BACK_FACE_STENCIL_PASS_OP);
-    const char* bfStencilFunc        = pFacade_->GetDssParamStr(dssId, UI_DSS_BACK_FACE_STENCIL_FUNC);
-
-
-    //
-    // get available dss params to switch to
-    //
-    const int numDepthWriteMasks     = pFacade_->GetNumDssParams(UI_DSS_DEPTH_WRITE_MASK);
-    const char** depthWriteMasks     = pFacade_->GetDssParamsNames(UI_DSS_DEPTH_WRITE_MASK);
-
-    // comparison func
-    const int numCmpFunctions        = pFacade_->GetNumDssParams(UI_DSS_COMPARISON_FUNC);
-    const char** cmpFunctions        = pFacade_->GetDssParamsNames(UI_DSS_COMPARISON_FUNC);
-
-    // stencil operations
-    const int  numStencilOps         = pFacade_->GetNumDssParams(UI_DSS_STENCIL_OP);
-    const char**  stencilOps         = pFacade_->GetDssParamsNames(UI_DSS_STENCIL_OP);
-
-
-    //
-    // draw control checkboxes
-    //
-    if (ImGui::Checkbox("Depth enabled", &depthEnabled))
-    {
-        pFacade_->UpdateCustomDssParam(UI_DSS_DEPTH_ENABLED, depthEnabled);
-    }
-    if (ImGui::Checkbox("Stencil enabled", &stencilEnabled))
-    {
-        pFacade_->UpdateCustomDssParam(UI_DSS_STENCIL_ENABLED, stencilEnabled);
-    }
-
-    ImGui::NewLine();
-
-    //
-    // draw a table of dropdown menus to control depth func, stencil operations, etc.
-    //
-    const int             numColumns = 2;
-    const ImGuiTableFlags tableFlags = 0;
-
-    if (ImGui::BeginTable("SetupDepthStencilParams", numColumns, tableFlags))
-    {
-        // 1st row (depth write mask)
-        if (DrawDropdown(
-            "Write Mask",
-            "##depth_write_mask",
-            &depthWriteMask,
-            depthWriteMasks,
-            numDepthWriteMasks))
-        {
-            pFacade_->UpdateCustomDssParam(UI_DSS_DEPTH_WRITE_MASK, depthWriteMask);
-        }
-
-        // 2nd row (depth func)
-        if (DrawDropdown(
-            "Depth func",
-            "##depth_func",
-            &depthFunc,
-            cmpFunctions,
-            numCmpFunctions))
-        {
-            pFacade_->UpdateCustomDssParam(UI_DSS_DEPTH_FUNC, depthFunc);
-        }
-
-        // 3rd row (stencil read mask)
-
-        // 4th row (stencil write mask)
-
-
-        //-----------------------------
-        // front face params:
-        //-----------------------------
-
-        // 5th row (ff stencil fail op)
-        if (DrawDropdown(
-            "front face stencil fail operation",
-            "##ff_stencil_fail_op",
-            &ffStencilFailOp,
-            stencilOps,
-            numStencilOps))
-        {
-        }
-
-        // 6th row (ff stencil depth fail op)
-        if (DrawDropdown(
-            "front face stencil depth fail op",
-            "##ff_stencil_depth_fail_op",
-            &ffStencilDepthFailOp,
-            stencilOps,
-            numStencilOps))
-        {
-        }
-
-        // 7th row (ff stencil pass op)
-        if (DrawDropdown(
-            "front face stencil pass op",
-            "##ff_stencil_pass_op",
-            &ffStencilPassOp,
-            stencilOps,
-            numStencilOps))
-        {
-        }
-
-        // 8th row (ff stencil func)
-        if (DrawDropdown(
-            "front face stencil func",
-            "#ff_stencil_func",
-            &ffStencilFunc,
-            cmpFunctions,
-            numCmpFunctions))
-        {
-        }
-
-        //-----------------------------
-        // back face params:
-        //-----------------------------
-
-        // 9th row (bf stencil fail op)
-        if (DrawDropdown(
-            "back face stencil fail op",
-            "#bf_stencil_fail_op",
-            &bfStencilFailOp,
-            stencilOps,
-            numStencilOps))
-        {
-        }
-
-        // 10th row (bf stencil depth fail op)
-        if (DrawDropdown(
-            "back face stencil depth fail op",
-            "##bf_stencil_depth_fail_op",
-            &bfStencilDepthFailOp,
-            stencilOps,
-            numStencilOps))
-        {
-        }
-
-        // 11th row (bf stencil pass op)
-        if (DrawDropdown(
-            "back face stencil pass op",
-            "##bf_stencil_pass_op",
-            &bfStencilPassOp,
-            stencilOps,
-            numStencilOps))
-        {
-        }
-
-        // 12th row (bf stencil func)
-        if (DrawDropdown(
-            "back face stencil func",
-            "##bf_stencil_func",
-            &bfStencilFunc,
-            cmpFunctions,
-            numCmpFunctions))
-        {
-        }
-
-        ImGui::EndTable();
-    }
-
-    // (for clearness: look at the same condition at the beginning of this method)
-    if (dssId != 1)
-    {
-        ImGui::EndDisabled();
-    }
-}
 
 //---------------------------------------------------------
 // Desc:   draw a selection menu where we can
@@ -1480,8 +786,6 @@ void UIMaterialsBrowser::RenderTexturesTable()
         ImGuiTableFlags_BordersOuter |
         ImGuiTableFlags_BordersInner;
 
-    //enum ContentsType { CT_Text, CT_FillButton };
-    //static int contents_type = CT_Text;
 
     if (ImGui::BeginTable("table", 2, flags))
     {
@@ -1593,7 +897,7 @@ void UIMaterialsBrowser::UnbindTexture()
     {
         if (modifyTexType_ >= NUM_TEXTURE_TYPES)
         {
-            LogErr(LOG, "you want to unbind a texture by wrong tex type: %u", (int)modifyTexType_);
+            LogErr(LOG, "you want to unbind a texture by wrong tex type: %d", (int)modifyTexType_);
             ImGui::EndPopup();
             return;
         }
@@ -1625,6 +929,5 @@ void UIMaterialsBrowser::UnbindTexture()
         ImGui::EndPopup();
     }
 }
-
 
 } // namespace UI
