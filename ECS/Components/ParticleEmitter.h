@@ -40,26 +40,71 @@ enum eVelocityDirInitType : uint8
 };
 
 //---------------------------------------------------------
+// enumeration of emitter's properties
+//---------------------------------------------------------
+enum eEmitterPropType : uint8
+{
+    EMITTER_PROP_TYPE_NONE,
+
+    EMITTER_MATERIAL,
+    EMITTER_SRC_TYPE,
+    EMITTER_POSITION,
+    EMITTER_SRC_PLANE_OFFSET_Y,
+    EMITTER_VEL_INIT_TYPE,                  // velocity init type
+    EMITTER_VEL_INIT_DIR,                   // velocity init direction
+    EMITTER_VEL_INIT_MAG,                   // velocity init magnitude
+
+    EMITTER_SPAWN_RATE,
+    EMITTER_PARTICLE_LIFETIME_SEC,
+    EMITTER_PARTICLE_START_COLOR,
+    EMITTER_PARTICLE_END_COLOR,
+    EMITTER_PARTICLE_COLOR_AFTER_REFLECT,   // which color will be set for particle when it hit emitter's AABB
+    EMITTER_PARTICLE_START_SIZE,
+    EMITTER_PARTICLE_END_SIZE,
+    EMITTER_PARTICLE_START_ALPHA,
+    EMITTER_PARTICLE_END_ALPHA,
+
+    EMITTER_PARTICLE_MASS,
+    EMITTER_PARTICLE_FRICTION,              // air resistance
+    EMITTER_EXTERNAL_FORCES,
+
+    EMITTER_AABB_CENTER,
+    EMITTER_AABB_EXTENTS,
+    EMITTER_EVENT_PARTICLE_HIT_AABB,        // what to do with particle when it hit its emitter's AABB?
+
+    EMITTER_TEX_ANIM_ENABLE,                // enable/disable using of texture animation (if enable then it's supposed that our texture will be an atlas or spritesheet)
+    EMITTER_TEX_ANIM_DURATION_SEC,          // duration of texture animation in seconds
+    EMITTER_TEX_NUM_FRAMES_BY_X,            // how many frames by X we have in our spritesheet
+    EMITTER_TEX_NUM_FRAMES_BY_Y,            // how many frames by Y we have in our spritesheet
+};
+
+//---------------------------------------------------------
 
 struct Particle
 {
-    DirectX::XMVECTOR pos   = { 0,0,0 };  // current position: this is the particle's current position in 2D/3D space
-    DirectX::XMVECTOR vel   = { 1,1,1 };  // velocity: this is the particle's direction and speed
-    DirectX::XMFLOAT3 color = { 1,1,1 };  // the current color of the particle (RGB triplet)
-    DirectX::XMFLOAT2 size  = { 1,1 };    // particle's visual size by X and Y in world
+    DirectX::XMVECTOR pos   = { 0,0,0 };    // current position: this is the particle's current position in 2D/3D space
+    DirectX::XMVECTOR vel   = { 1,1,1 };    // velocity: this is the particle's direction and speed
+    DirectX::XMFLOAT3 color = { 1,1,1 };    // the current color of the particle (RGB triplet)
+    DirectX::XMFLOAT2 size  = { 1,1 };      // particle's visual size by X and Y in world
 
-    float alpha = 0;               // current alpha value (transparency) of the particle
-    float ageMs = 0;               // Life span in milliseconds(!!!). This is how long the particle will live
+    // uv0, uv1 - are used for texture animation (if anim is disabled then these values are remains default)
+    DirectX::XMFLOAT2 uv0   = { 0,0 };      // texture coords: upper left
+    DirectX::XMFLOAT2 uv1   = { 1,1 };      // texture coords: bottom right
+    int frameRandOffset = 0;
+
+    float alpha = 0;                        // current alpha value (transparency) of the particle
+    float ageMs = 0;                        // Life span in milliseconds(!!!). This is how long the particle will live
 };
 
 //-----------------------------------------------
 
 struct ParticleRenderInstance
 {
-    DirectX::XMFLOAT3 pos   = {0,0,0};
-    float alpha             = 0.0f;
-    DirectX::XMFLOAT3 color = {1,1,1};
-    DirectX::XMFLOAT2 size  = {1,1};
+    DirectX::XMFLOAT4 color = { 1,0,0,1 };   // w-component contains translucency value
+    DirectX::XMFLOAT3 pos = { 0,0,0 };
+    DirectX::XMFLOAT2 uv0 = { 0,0 };
+    DirectX::XMFLOAT2 uv1 = { 1,1 };
+    DirectX::XMFLOAT2 size = { 1,1 };
 };
 
 //-----------------------------------------------
@@ -104,7 +149,7 @@ struct ParticleEmitter
     DirectX::XMFLOAT3 velInitDir        = { 0,0,0 };        // velocity initial direction
 
     float             velInitMag        = 0.15f;            // velocity initial magnitude
-    float             life              = 1;                // lifespan of particle in seconds
+    float             life              = 1.0f;             // lifespan of particle in seconds
     float             friction          = 0.1f;             // air resistance
     float             mass              = 1.0f;             // mass of particle
     float             size              = 0.1f;             // size of particle in world
@@ -112,11 +157,16 @@ struct ParticleEmitter
     float             startAlpha        = 1.0f;
     float             endAlpha          = 0.0f;
     float             srcPlaneHeight    = 0.0f;             // local space height of generation plane (if srcType is PLANE)
+    float             texAnimDurationSec = 0.0f;            // duration of the texture animation (in seconds)
+
 
     int               spawnRate  = 0;                       // number of particles generated per 1 second
     int               numSpawned = 0;
     bool              isActive = true;
 
+    bool              hasTexAnimations = false;
+    uint8             numTexFramesByX = 1;
+    uint8             numTexFramesByY = 1;
 
 
     eEmitterSrcType      srcType        = EMITTER_SRC_TYPE_POINT;

@@ -171,25 +171,25 @@ alpha_clip 1
 newmtl rainMat0
 shader ParticleShader
 tex_diff fx/rain
-bs transparent
+bs particles
 dss rain
 
 newmtl smokeMat0
 shader ParticleShader
 tex_diff particle/smoke01
-bs additive
+bs particles
 dss particles
 
 newmtl smokeMat1
 shader ParticleShader
 tex_diff particle/smoke05
-bs additive
+bs particles
 dss particles
 
 newmtl smokeMat2
 shader ParticleShader
 tex_diff particle/smoke08
-bs additive
+bs particles
 dss particles
 
 newmtl sparkMat0
@@ -210,20 +210,28 @@ tex_diff pfx/pfx_smokePuffs1
 bs transparent
 dss decals
 
-newmtl fragments
+newmtl fragments0
 shader ParticleShader
-tex_diff ston/ston_walls2
+tex_diff pfx/pfx_stonedebris2
+bs transparent
+dss particles
+
+newmtl fragments1
+shader ParticleShader
+tex_diff pfx/pfx_stonedebris3
+bs transparent
+dss particles
 
 newmtl flameMat
 shader ParticleShader
 tex_diff fx/flame0
-bs transparent
+bs particles
 dss particles
 
 newmtl flareMat
 shader ParticleShader
 tex_diff flare/flare01
-bs additive
+bs particles
 dss particles
 
 newmtl wallmark

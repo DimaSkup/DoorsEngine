@@ -589,7 +589,7 @@ void UIRenderStatesController::DrawDepthStencilParamsControl(const DssID dssId)
 
         // a lable of the table block
         ImGui::TableNextColumn();
-        ImGui::Text("Front face stencil:");
+        ImGui::Text("Back face stencil:");
         ImGui::TableNextRow();
 
         // 9th row (bf stencil fail op)

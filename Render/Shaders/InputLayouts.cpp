@@ -4,14 +4,15 @@
 #include <rapidjson/error/en.h>      // for error handling
 #pragma warning (disable : 4996)
 
+
 namespace Render
 {
 
 // some functions declarations
-void ReadInputLayoutsJSON(const char* path, char** json, long& jsonSize);
-void AddPerVertexInputLayoutElems(VertexInputLayout& layout, const rapidjson::Value& arrElements, const UINT inputSlotIdx);
-void AddPerInstanceInputLayoutElems(VertexInputLayout& layout, const rapidjson::Value& arrElems);
-void AddInputLayout(const rapidjson::Value& layoutData, VertexInputLayoutMgr& mgr);
+void ReadInputLayoutsJSON           (const char* path, char** json, long& jsonSize);
+void AddPerVertexInputLayoutElems   (VertexInputLayout& layout, const rapidjson::Value& arrElements, const UINT inputSlotIdx);
+void AddPerInstanceInputLayoutElems (VertexInputLayout& layout, const rapidjson::Value& arrElems);
+void AddInputLayout                 (const rapidjson::Value& layoutData, VertexInputLayoutMgr& mgr);
 
 
 //---------------------------------------------------------
@@ -308,15 +309,18 @@ void AddPerVertexInputLayoutElems(
 
 
         // define a DXGI format
-        DXGI_FORMAT     dxgiFormat = DXGI_FORMAT_UNKNOWN;
-        UINT            numElems   = 1;
-        const char*     fmt = format.GetString();
+        UINT        semanticIndex = 0;
+        DXGI_FORMAT dxgiFormat = DXGI_FORMAT_UNKNOWN;
+        UINT        numElems = 1;
+        const char* fmt = format.GetString();
 
         GetFormatDXGI(fmt, dxgiFormat, numElems);
 
         if (dxgiFormat == DXGI_FORMAT_UNKNOWN)
             continue;
 
+
+      
 
         // add a new input element description into layout
         layout.desc.push_back(D3D11_INPUT_ELEMENT_DESC());
@@ -335,6 +339,14 @@ void AddPerVertexInputLayoutElems(
         desc.AlignedByteOffset      = D3D11_APPEND_ALIGNED_ELEMENT;
         desc.InputSlotClass         = D3D11_INPUT_PER_VERTEX_DATA;
         desc.InstanceDataStepRate   = 0;
+
+
+        // setup a semantic index (if we have any)
+        const rapidjson::SizeType arrSemanticElemIdx = 2;
+
+        if (arrSemanticElemIdx < arrElem.Size())
+            desc.SemanticIndex = (UINT)arrElem[arrSemanticElemIdx].GetUint();
+
     }
 }
 

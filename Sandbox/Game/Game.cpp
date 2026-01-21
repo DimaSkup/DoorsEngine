@@ -916,7 +916,7 @@ void Game::HandleBulletHit(const IntersectionData& data)
     const EntityID emitter0Id = pEnttMgr_->nameSys_.GetIdByName("shot_splash_0");
     const EntityID emitter1Id = pEnttMgr_->nameSys_.GetIdByName("shot_splash_1");
     const EntityID emitter2Id = pEnttMgr_->nameSys_.GetIdByName("shot_splash_2");
-    const EntityID emitter3Id = pEnttMgr_->nameSys_.GetIdByName("shot_splash_smoke");
+    const EntityID emitterIdSmoke = pEnttMgr_->nameSys_.GetIdByName("shot_splash_smoke");
 
 
     using namespace DirectX;
@@ -926,7 +926,7 @@ void Game::HandleBulletHit(const IntersectionData& data)
     pEnttMgr_->transformSys_.SetPosition(emitter0Id, emitterNewPos);
     pEnttMgr_->transformSys_.SetPosition(emitter1Id, emitterNewPos);
     pEnttMgr_->transformSys_.SetPosition(emitter2Id, emitterNewPos);
-    pEnttMgr_->transformSys_.SetPosition(emitter3Id, emitterNewPos);
+    pEnttMgr_->transformSys_.SetPosition(emitterIdSmoke, emitterNewPos);
 
 
 
@@ -937,14 +937,16 @@ void Game::HandleBulletHit(const IntersectionData& data)
     const ECS::ParticleEmitter& emitter0 = sys.GetEmitter(emitter0Id);
     const ECS::ParticleEmitter& emitter1 = sys.GetEmitter(emitter1Id);
     const ECS::ParticleEmitter& emitter2 = sys.GetEmitter(emitter2Id);
-    const ECS::ParticleEmitter& emitter3 = sys.GetEmitter(emitter3Id);
+    const ECS::ParticleEmitter& emitter3 = sys.GetEmitter(emitterIdSmoke);
     
     //sys.SetExternForces(splashEmitterId, newForces.x, newForces.y, newForces.z);
     sys.PushNewParticles(emitter0Id, emitter0.spawnRate);
     sys.PushNewParticles(emitter1Id, emitter1.spawnRate);
     sys.PushNewParticles(emitter2Id, emitter2.spawnRate);
-    sys.PushNewParticles(emitter3Id, emitter3.spawnRate);
+    sys.PushNewParticles(emitterIdSmoke, emitter3.spawnRate);
 
+    Vec3 smokeExtForces = (norm *= 0.0001);
+    sys.SetExternForces(emitterIdSmoke, smokeExtForces.x, smokeExtForces.y, smokeExtForces.z);
 
     // calc decal direction
     Vec3 v0 = { data.vx1, data.vy1, data.vz1 };

@@ -70,7 +70,7 @@ void EnttAnimationView::Render(
                 if (ImGui::Selectable(label, isSelected))
                 {
                     AnimationID newSelectedAnimId = (AnimationID)i;
-                    CmdChangeFloat cmd(CHANGE_ENTITY_ANIMATION_TYPE, newSelectedAnimId);
+                    CmdChangeFloat cmd(CHANGE_ENTITY_ANIMATION_TYPE, (float)newSelectedAnimId);
                     pController->ExecCmd(&cmd);
                 }
             }

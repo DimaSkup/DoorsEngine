@@ -100,7 +100,7 @@ void ParticleSystem::InitParticles(
 
                 particles[i].vel = {
                     (emitter.velInitDir.x + randOffsetX) * emitter.velInitMag,
-                    emitter.velInitDir.y * emitter.velInitMag,
+                    (emitter.velInitDir.y * emitter.velInitMag),
                     (emitter.velInitDir.z + randOffsetZ) * emitter.velInitMag,
                 };
             }
@@ -108,13 +108,14 @@ void ParticleSystem::InitParticles(
         // src type: plane/volume
         else
         {
+            // calc initial velocity
+            const float vx = emitter.velInitDir.x * emitter.velInitMag;
+            const float vy = emitter.velInitDir.y * emitter.velInitMag;
+            const float vz = emitter.velInitDir.z * emitter.velInitMag;
+
             for (index i = 0; i < numParticles; ++i)
             {
-                particles[i].vel = {
-                    emitter.velInitDir.x * emitter.velInitMag,
-                    emitter.velInitDir.y * emitter.velInitMag,
-                    emitter.velInitDir.z * emitter.velInitMag,
-                };
+                particles[i].vel = { vx, vy, vz };
             }
         }
     }
@@ -153,7 +154,7 @@ void ParticleSystem::InitParticles(
         }
     }
 
-    // particles spawn equally at random point inside a volume
+    // particle spawns at random point inside a volume
     else if (emitter.srcType == EMITTER_SRC_TYPE_VOLUME)   
     {
         const Rect3d aabb = GetEmitterAABB(emitter.id);
@@ -174,10 +175,25 @@ void ParticleSystem::InitParticles(
         for (uint i = 0; i < numParticles; ++i)
             particles[i].pos = emitter.position;
     }
-
     else
     {
         LogErr(LOG, "can't generate positions: unknown source type: %d", (int)emitter.srcType);
+    }
+
+
+    //---------------------------------
+
+    if (emitter.hasTexAnimations)
+    {
+        // calc initial tex coords
+        const float tu = 1.0f / (float)emitter.numTexFramesByX;
+        const float tv = 1.0f / (float)emitter.numTexFramesByY;
+
+        for (uint i = 0; i < numParticles; ++i)
+        {
+            particles[i].uv1 = { tu, tv };
+            particles[i].frameRandOffset = (int)RandUint(0, 1000);
+        }
     }
 }
 
@@ -252,11 +268,15 @@ void UpdateParticleEmitter(
     {
         if (particle.ageMs <= 0.0f)
         {
-            // swap with the last and pop_back (remove particle)
+            // remove particle: swap n pop
             particle = emitter.particles.back();
             emitter.particles.pop_back();
         }
     }
+
+    if (emitter.particles.empty())
+        return;
+
 
     // update particles positions
     const float velChangeFactor = emitter.mass * delta;
@@ -359,6 +379,40 @@ void UpdateParticleEmitter(
             particle.size = XMFLOAT2(size.x, size.y);
         }
     }
+
+
+    // update particles texture animation (if necessary)
+    if (emitter.hasTexAnimations)
+    {
+        const int  numFramesX = emitter.numTexFramesByX;
+        const int  numFramesY = emitter.numTexFramesByY;
+
+        const int   numFrames = numFramesX * numFramesY;
+        const float frameTimeMs = 1000.0f / (float)numFrames;
+
+        const float dtu = 1.0f / (float)numFramesX;
+        const float dtv = 1.0f / (float)numFramesY;
+
+
+        for (int i = 0; Particle& particle : emitter.particles)
+        {
+            int currFrame = (int)floorf(frameTimeMs * particle.ageMs);
+            currFrame += particle.frameRandOffset;
+            currFrame %= numFrames;
+
+            const int rowIdx = currFrame / numFramesX;
+            const int colIdx = currFrame % numFramesX;
+
+            const float tu0 = dtu * colIdx;
+            const float tv0 = dtv * rowIdx;
+
+            const float tu1 = dtu * (colIdx + 1);
+            const float tv1 = dtv * (rowIdx + 1);
+
+            particle.uv0 = { tu0, tv0 };
+            particle.uv1 = { tu1, tv1 };
+        }
+    }
 }
 
 //---------------------------------------------------------
@@ -427,11 +481,16 @@ ParticlesRenderData& ParticleSystem::GetParticlesToRender()
 
         for (const Particle& particle : emitter.particles)
         {
+            renderData_.particles[i].color.x = particle.color.x;
+            renderData_.particles[i].color.y = particle.color.y;
+            renderData_.particles[i].color.z = particle.color.z;
+            renderData_.particles[i].color.w = particle.alpha;
+
             DirectX::XMStoreFloat3(&renderData_.particles[i].pos, particle.pos);
 
-            renderData_.particles[i].alpha  = particle.alpha;
-            renderData_.particles[i].color  = particle.color;
-            renderData_.particles[i].size   = particle.size;
+            renderData_.particles[i].uv0     = particle.uv0;
+            renderData_.particles[i].uv1     = particle.uv1;
+            renderData_.particles[i].size    = particle.size;
 
             ++i;
         }

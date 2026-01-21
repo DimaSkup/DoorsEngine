@@ -19,9 +19,10 @@
 #include <assert.h>
 #include <stdio.h>
 
+#pragma warning (disable : 4996)
 
 //---------------------------------------------------------
-// Desc:  helpers for reading float/float3/float4/string from input CHAR BUFFER
+// Desc:  helpers for reading float(1,2,3,4)/string from input CHAR BUFFER
 //---------------------------------------------------------
 inline void ReadFloat(const char* buf, const char* fmt, float* outFloat)
 {
@@ -29,6 +30,16 @@ inline void ReadFloat(const char* buf, const char* fmt, float* outFloat)
 
     if (sscanf(buf, fmt, outFloat) != 1)
         LogErr(LOG, "can't read float from buffer: %s", buf);
+}
+
+//---------------------------------------------------------
+
+inline void ReadFloat2(const char* buf, const char* fmt, float* arr)
+{
+    assert(buf && fmt && arr);
+
+    if (sscanf(buf, fmt, arr, arr + 1) != 2)
+        LogErr(LOG, "can't read float2 from buffer: %s", buf);
 }
 
 //---------------------------------------------------------

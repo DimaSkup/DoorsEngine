@@ -151,10 +151,11 @@
 		{
 			"name": "Particle",
 			"per_vertex": [
+				[ "COLOR",               "f4" ],
 				[ "POSITION",            "f3" ],
-				[ "TRANSLUCENCY",        "f1" ],
-				[ "COLOR",               "f3" ],
-				[ "SIZE",                "f2" ]
+				[ "TEXCOORD",            "f2", 0 ],
+				[ "TEXCOORD",            "f2", 1 ],
+				[ "TEXCOORD",            "f2", 2 ]
 			]
 		}, 
 		

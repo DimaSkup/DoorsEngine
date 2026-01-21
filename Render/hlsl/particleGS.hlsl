@@ -12,10 +12,11 @@
 //---------------------------
 struct GS_IN
 {
+    float4   color         : COLOR;
     float3   posW          : POSITION;       // particle (point) center position in world
-    float    translucency  : TRANSLUCENCY;
-    float3   color         : COLOR;
-    float2   sizeW         : SIZE;           // width and height of the particle
+    float2   uv0           : TEXCOORD0;
+    float2   uv1           : TEXCOORD1;
+    float2   sizeW         : TEXCOORD2;           // width and height of the particle
 };
 
 struct GS_OUT
@@ -44,12 +45,25 @@ void GS(
     // we expand each point into a quad (4 vertices), so the maximum number
     // of vertices we output per geometry shader invocation is 4
 
+    /*
     float2 texC[4] =
     {
-        float2(0.0f, 1.0f),
-        float2(0.0f, 0.0f),
-        float2(1.0f, 1.0f),
-        float2(1.0f, 0.0f)
+        float2(0.0f, 1.0f),   // uv0.x, uv1.y
+        float2(0.0f, 0.0f),   // uv0
+        float2(1.0f, 1.0f),   // uv1
+        float2(1.0f, 0.0f),   // uv1.x, uv0.y
+    };
+    */
+
+    const float2 uv0 = gin[0].uv0;
+    const float2 uv1 = gin[0].uv1;
+
+    float2 texC[4] =
+    {
+        float2(uv0.x, uv1.y),
+        uv0,
+        uv1,
+        float2(uv1.x, uv0.y)
     };
 
     // compute the local coordinate system of the sprite relative to the world space
@@ -80,8 +94,8 @@ void GS(
     {
         gout.posH           = mul(v[i], gViewProj);
         gout.posW           = v[i].xyz;
-        gout.translucency   = gin[0].translucency;
-        gout.color          = gin[0].color;
+        gout.translucency   = gin[0].color.w;
+        gout.color          = gin[0].color.xyz;
         gout.normalX        = look.x;
         gout.tex            = texC[i];
         gout.normalY        = look.y;

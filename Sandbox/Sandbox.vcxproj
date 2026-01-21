@@ -171,6 +171,7 @@
   <ItemGroup>
     <ClCompile Include="Game\Application.cpp" />
     <ClCompile Include="Game\Game.cpp" />
+    <ClCompile Include="Initializers\particles_initializer.cpp" />
     <ClCompile Include="Initializers\weapons_initializer.cpp" />
     <ClCompile Include="main.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
@@ -195,6 +196,7 @@
     <ClInclude Include="Game\Application.h" />
     <ClInclude Include="Common\ConsoleColorMacro.h" />
     <ClInclude Include="Game\Game.h" />
+    <ClInclude Include="Initializers\particles_initializer.h" />
     <ClInclude Include="Initializers\weapons_initializer.h" />
     <ClInclude Include="Common\pch.h" />
     <ClInclude Include="Initializers\GameInitializer.h" />

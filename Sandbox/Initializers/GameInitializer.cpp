@@ -26,6 +26,8 @@
 #include <Model/animation_loader.h>
 #include <Mesh/material_reader.h>
 
+#include "particles_initializer.h"
+
 #include <inttypes.h>                   // for using PRIu32, SCNu32, etc.
 
 using namespace Core;
@@ -88,231 +90,15 @@ void InitMaterials(const char* materialsFilepath)
 }
 
 //---------------------------------------------------------
-// Desc:    load data from a file and create particle emitters using this data
-// Args:    - pFile:   particles config file descriptor
-//---------------------------------------------------------
-void ReadAndCreateEmitter(
-    ECS::EntityMgr& enttMgr,
-    FILE* pFile,
-    const char* emitterName,
-    const int emitterIdx)
-{
-    assert(pFile);
-    assert(emitterName && emitterName[0] != '\0');
-    assert(emitterIdx >= 0);
-
-    char buf[16];
-    char materialName[64]{'\0'};
-    char srcTypeStr[16]{'\0'};
-    char velInitTypeStr[16]{'\0'};
-    char hitEventStr[16]{'\0'};
-
-    const EntityID         enttId = enttMgr.CreateEntity();
-    enttMgr.AddParticleEmitterComponent(enttId);
-    ECS::ParticleEmitter& emitter = enttMgr.particleSys_.GetEmitter(enttId);
-
-    XMFLOAT3 pos                       = { 0,0,0 };
-    XMFLOAT3 forces                    = { 0,0,0 };
-    XMFLOAT3 aabbCenter                = { 0,0,0 };
-    XMFLOAT3 aabbExtents               = { 1,1,1 };
-
-
-    // read in common params
-    LogMsg("\t[%d] create particle emitter: %s", emitterIdx, emitterName);
-
-    ReadFileStr   (pFile, "material",               materialName);
-    ReadFileStr   (pFile, "src_type",               srcTypeStr);
-
-    ReadFileFloat3(pFile, "pos",                     &pos.x);
-    ReadFileFloat (pFile, "src_plane_height_offset", &emitter.srcPlaneHeight);
-
-    ReadFileStr   (pFile, "vel_init_type",          velInitTypeStr);
-    ReadFileFloat3(pFile, "vel_init_dir",           &emitter.velInitDir.x);
-    ReadFileFloat (pFile, "vel_init_mag",           &emitter.velInitMag);
-    ReadFileInt   (pFile, "spawn_rate",             &emitter.spawnRate);
-    ReadFileFloat (pFile, "lifetime_sec",           &emitter.life);
-
-    ReadFileFloat3(pFile, "start_color",            &emitter.startColor.x);
-    ReadFileFloat3(pFile, "end_color",              &emitter.endColor.x);
-    ReadFileFloat3(pFile, "color_after_reflect",    &emitter.colorAfterReflect.x);
-
-    ReadFileFloat2(pFile, "start_size",             &emitter.startSize.x);
-    ReadFileFloat2(pFile, "end_size",               &emitter.endSize.x);
-
-    ReadFileFloat (pFile, "start_alpha",            &emitter.startAlpha);
-    ReadFileFloat (pFile, "end_alpha",              &emitter.endAlpha);
-
-    // read in physics properties
-    ReadFileFloat (pFile, "mass",                   &emitter.mass);
-    ReadFileFloat (pFile, "friction",               &emitter.friction); // air resistance
-    ReadFileFloat3(pFile, "external_forces",        &forces.x);
-
-    // read in Bounding Box params
-    ReadFileFloat3(pFile, "aabb_center",            &aabbCenter.x);
-    ReadFileFloat3(pFile, "aabb_extents",           &aabbExtents.x);
-
-    ReadFileStr   (pFile, "hit_aabb",               hitEventStr);
-
-
-    // assert that we have reached the end of the definition block
-    fscanf(pFile, "%s", buf);
-    assert(buf[0] == '}');
-
-
-    // setup the entity
-    enttMgr.AddTransformComponent(enttId, pos);
-    enttMgr.AddNameComponent(enttId, emitterName);
-
-    const DirectX::BoundingBox aabb(aabbCenter, aabbExtents);
-    enttMgr.AddBoundingComponent(enttId, aabb);
-
-
-    // add a debug AABB of this emitter for rendering
-    using namespace DirectX;
-    const XMFLOAT3 minP(aabbCenter - aabbExtents + pos);   // AABB min point in world
-    const XMFLOAT3 maxP(aabbCenter + aabbExtents + pos);   // AABB max point in world
-
-    g_DebugDrawMgr.AddAABB(
-        Vec3(minP.x, minP.y, minP.z),
-        Vec3(maxP.x, maxP.y, maxP.z),
-        Vec3(0, 1, 1));                 // AABB color
-
-
-    // define what generation type the emitter will have
-    if (strcmp(srcTypeStr, "point") == 0)
-        emitter.srcType = ECS::EMITTER_SRC_TYPE_POINT;
-
-    else if (strcmp(srcTypeStr, "plane") == 0)
-        emitter.srcType = ECS::EMITTER_SRC_TYPE_PLANE;
-
-    else if (strcmp(srcTypeStr, "volume") == 0)
-        emitter.srcType = ECS::EMITTER_SRC_TYPE_VOLUME;
-
-    else if (strcmp(srcTypeStr, "splash") == 0)
-        emitter.srcType = ECS::EMITTER_SRC_TYPE_SPLASH;
-
-    else
-        LogErr(LOG, "unknown emitter source type: %s", srcTypeStr);
-
-
-    // define generation type for velocity direction
-    if (strcmp(velInitTypeStr, "rand") == 0)
-        emitter.velDirInitType = ECS::PARTICLE_VELOCITY_DIR_RANDOM;
-
-    else if (strcmp(velInitTypeStr, "defined") == 0)
-        emitter.velDirInitType = ECS::PARTICLE_VELOCITY_DIR_DEFINED;
-
-    else
-        LogErr(LOG, "uknown velocity direction generation type: %s", velInitTypeStr);
-
-
-    // define what to do with particle when it hit its emitter's bounding box
-    // (or do nothing: "none" by default)
-    if (strcmp(hitEventStr, "die") == 0)
-        emitter.hitEvent = ECS::EVENT_PARTICLE_HIT_BOX_DIE;
-
-    else if (strcmp(hitEventStr, "reflect") == 0)
-        emitter.hitEvent = ECS::EVENT_PARTICLE_HIT_BOX_REFLECT;
-
-    emitter.position   = XMVECTOR{ pos.x, pos.y, pos.z };
-    emitter.forces     = XMVECTOR{ forces.x, forces.y, forces.z };
-    emitter.materialId = Core::g_MaterialMgr.GetMatIdByName(materialName);
-}
-
-//---------------------------------------------------------
-// Desc:    load particles emitters data from config file
-// Args:    - filepath:  a path to the particles config file
-//                       (relatively to the working directory)
-// Ret:     true if we managed to it
-//---------------------------------------------------------
-bool LoadParticlesFromFile(const char* filepath, ECS::EntityMgr& mgr)
-{
-    if (StrHelper::IsEmpty(filepath))
-    {
-        LogErr(LOG, "empty filepath");
-        return false;
-    }
-
-    // open config file
-    FILE* pFile = fopen(filepath, "r");
-    if (!pFile)
-    {
-        LogErr(LOG, "can't open particles config file: %s", filepath);
-        return false;
-    }
-
-    char buf[256];
-    char emitterName[64];
-    int  emitterIdx = 0;
-    int  count = 0;
-
-    // skip comments section
-    do
-    {
-        fgets(buf, sizeof(buf), pFile);
-    } while (buf[0] == ';');
-
-
-    // read in definition of each particle emitter
-    while (!feof(pFile))
-    {
-        fgets(buf, sizeof(buf), pFile);
-
-        if (strncmp(buf, "emitter", 7) != 0)
-            continue;
-
-        count = sscanf(buf, "emitter \"%s", emitterName);
-        assert(count == 1);
-
-        // skip the last quote (") symbol in the name
-        emitterName[strlen(emitterName) - 1] = '\0';
-
-        ReadAndCreateEmitter(mgr, pFile, emitterName, emitterIdx);
-        emitterIdx++;
-    }
-
-   
-    fclose(pFile);
-    return true;
-}
-
-//---------------------------------------------------------
 // Desc:   manually create and setup some particles on the scene
 // Args:   - filepath:  a file with definitions of particle emitters 
 //---------------------------------------------------------
 void GameInitializer::InitParticles(const char* filepath, ECS::EntityMgr& enttMgr)
 {
-    if (StrHelper::IsEmpty(filepath))
-    {
-        LogErr(LOG, "empty path");
-        return;
-    }
+    ParticlesInitializer initializer;
 
-    SetConsoleColor(YELLOW);
-    LogMsg("---------------------------------------------------------");
-    LogMsg("            INITIALIZATION: PARTICLE EMITTERS            ");
-    LogMsg("---------------------------------------------------------");
-    LogMsg(LOG, "initialize emitters from file: %s", filepath);
-
-
-    const TimePoint start = GetTimePoint();
-
-    if (!LoadParticlesFromFile(filepath, enttMgr))
-    {
-        LogErr(LOG, "can't load paticles from file: %s", filepath);
-        return;
-    }
-
-    const TimePoint      end = GetTimePoint();
-    const TimeDurationMs dur = end - start;
-
-
-    LogMsg(LOG, "PARTICLE emitters are initialized");
-    SetConsoleColor(MAGENTA);
-    LogMsg("--------------------------------------");
-    LogMsg("Init of particles took: %.3f ms", dur.count());
-    LogMsg("--------------------------------------\n");
-    SetConsoleColor(RESET);
+    bool result = initializer.Init(filepath, enttMgr);
+    assert(result == true);
 }
 
 //---------------------------------------------------------
