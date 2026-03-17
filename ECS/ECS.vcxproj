@@ -48,6 +48,9 @@
     <ClInclude Include="Components\Transform.h" />
     <ClInclude Include="Entity\EntityMgr.h" />
     <ClInclude Include="Events\IEvent.h" />
+    <ClInclude Include="QuadTree\quad_tree.h" />
+    <ClInclude Include="QuadTree\quad_tree_node.h" />
+    <ClInclude Include="QuadTree\scene_object.h" />
     <ClInclude Include="Systems\AnimationSystem.h" />
     <ClInclude Include="Systems\BoundingSystem.h" />
     <ClInclude Include="Systems\CameraSystem.h" />
@@ -62,7 +65,6 @@
     <ClInclude Include="Systems\PlayerSystem.h" />
     <ClInclude Include="Systems\RenderSystem.h" />
     <ClInclude Include="Systems\SpriteSystem.h" />
-    <ClInclude Include="Systems\TextureTransformSystem.h" />
     <ClInclude Include="Systems\TransformSystem.h" />
   </ItemGroup>
   <ItemGroup>
@@ -73,6 +75,9 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Entity\EntityMgr.cpp" />
+    <ClCompile Include="QuadTree\quad_tree.cpp" />
+    <ClCompile Include="QuadTree\quad_tree_node.cpp" />
+    <ClCompile Include="QuadTree\scene_object.cpp" />
     <ClCompile Include="Systems\AnimationSystem.cpp" />
     <ClCompile Include="Systems\BoundingSystem.cpp" />
     <ClCompile Include="Systems\CameraSystem.cpp" />
@@ -92,7 +97,6 @@
     <ClCompile Include="Systems\PlayerSystem.cpp" />
     <ClCompile Include="Systems\RenderSystem.cpp" />
     <ClCompile Include="Systems\SpriteSystem.cpp" />
-    <ClCompile Include="Systems\TextureTransformSystem.cpp" />
     <ClCompile Include="Systems\TransformSystem.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

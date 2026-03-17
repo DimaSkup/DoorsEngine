@@ -14,7 +14,7 @@
     Created:  13.09.2025 by DimaSkup
 \**********************************************************************************/
 #pragma once
-#include <math/math_helpers.h>
+#include "math_helpers.h"
 
 
 struct Vec3

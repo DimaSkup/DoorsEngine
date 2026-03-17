@@ -26,26 +26,25 @@
     Created:  17.09.2025 by DimaSkup
 \**********************************************************************************/
 #pragma once
-
-#include <math/matrix.h>
-#include <geometry/plane_3d.h>
-#include <geometry/rect_3d.h>
+#include <geometry/plane3d.h>
+#include <geometry/rect3d.h>
 #include <geometry/sphere.h>
 #include <geometry/intersection_tests.h>
 
+
+//------------------------------------------
+// forward declarations (pointer use only)
+//------------------------------------------
+class Matrix;
+
+//------------------------------------------
+// class name:  Frustum
+//------------------------------------------
 class Frustum
 {
 public:
-    enum ePlaneClassifications
-    {
-        PLANE_FRONT = 0,
-        PLANE_BACK,
-        PLANE_INTERSECT
-    };
 
-    //-----------------------------------------------------
-    // public data
-    //-----------------------------------------------------
+    // public data...
     Plane3d leftPlane_;
     Plane3d rightPlane_;
     Plane3d topPlane_;
@@ -58,19 +57,19 @@ public:
     float nearPlaneHeight_ = 0;
     float farPlaneWidth_   = 0;
     float farPlaneHeight_  = 0;
+    float nearZ_           = 0;
+    float farZ_            = 0;
 
-    //-----------------------------------------------------
-    // creators
-    //-----------------------------------------------------
+    
+
+    // creators...
     Frustum();
     Frustum(const float fov, const float aspectRatio, const float zn, const float zf);
     Frustum(const Plane3d& l, const Plane3d& r, const Plane3d& t, const Plane3d& b, const Plane3d& n, const Plane3d& f);
     Frustum(const Matrix& proj);
-    ~Frustum();
+    ~Frustum() {};
 
-    //-----------------------------------------------------
-    // mutators / setters
-    //-----------------------------------------------------
+    // mutators / setters...
     void Init(
         const float fov,
         const float aspectRatio,
@@ -79,23 +78,36 @@ public:
 
     void CreateFromProjMatrix(const Matrix& proj, const bool normalizePlanes = false);
 
-    void Transform(Frustum& outFrustum, const Matrix& mat) const;
+    void Transform(Frustum& outFrustum, const Matrix& m) const;
 
-    void GetPoints(
-        Vec3& nearTopLeft,
-        Vec3& nearBottomLeft,
-        Vec3& nearTopRight,
-        Vec3& nearBottomRight,
-        Vec3& farTopLeft,
-        Vec3& farBottomLeft,
-        Vec3& farTopRight,
-        Vec3& farBottomRight);
+    void GetPointsInView(
+        Vec3& nearTL,
+        Vec3& nearBL,
+        Vec3& nearTR,
+        Vec3& nearBR,
+        Vec3& farTL,
+        Vec3& farBL,
+        Vec3& farTR,
+        Vec3& farBR) const;
 
+    void GetPointsInWorld(
+        Vec3& nearTL,
+        Vec3& nearBL,
+        Vec3& nearTR,
+        Vec3& nearBR,
+        Vec3& farTL,
+        Vec3& farBL,
+        Vec3& farTR,
+        Vec3& farBR,
+        const Matrix* m) const;
 
-    //-----------------------------------------------------
-    // test operations
-    //-----------------------------------------------------
-    bool TestPoint(const Vec3& point) const;
-    bool TestRect(const Rect3d& rect) const;
+    Rect3d GetBoundBoxInView(void) const;
+    Rect3d GetBoundBoxInWorld(const Matrix* invView) const;
+
+    // frustum tests...
+    bool TestPoint (const Vec3& point)    const;
+    bool TestRect  (const Rect3d& rect)   const;
     bool TestSphere(const Sphere& sphere) const;
+
+    int GetNumTests() const;
 };

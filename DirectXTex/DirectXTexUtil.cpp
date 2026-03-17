@@ -1687,7 +1687,7 @@ void Blob::Release() noexcept
 }
 
 _Use_decl_annotations_
-HRESULT Blob::Initialize(size_t size) noexcept
+HRESULT Blob::Init(size_t size) noexcept
 {
     if (!size)
         return E_INVALIDARG;

@@ -40,7 +40,6 @@ constexpr int MAX_NUM_2D_SPRITES = 32;
 //---------------------------------------------------------
 struct InitParams
 {
-    
     // for 2D rendering
     DirectX::XMMATRIX worldViewOrtho = DirectX::XMMatrixIdentity();
 
@@ -59,7 +58,7 @@ struct InitParams
 };
 
 //---------------------------------------------------------
-// Class
+// class name:  CRender
 //---------------------------------------------------------
 class CRender
 {
@@ -101,94 +100,37 @@ public:
     //                                  Binders
     // ================================================================================
 
+    void BindVB(ID3D11Buffer* const* ppVB, const UINT stride, const UINT offset);
 
-    //-----------------------------------------------------
-    // bind input vertex buffer at startSlot == 0 by default
-    //-----------------------------------------------------
-    inline void BindVB(ID3D11Buffer* const* ppVB, const UINT stride, const UINT offset)
-    {
-        GetContext()->IASetVertexBuffers(0U, 1U, ppVB, &stride, &offset);
-    }
+    void BindVB(
+        const UINT startSlot,
+        ID3D11Buffer* const* ppVB,
+        const UINT stride,
+        const UINT offset);
 
-    //-----------------------------------------------------
-    // bind input vertex buffer at particular start slot
-    //-----------------------------------------------------
-    inline void BindVB(const UINT startSlot, ID3D11Buffer* const* ppVB, const UINT stride, const UINT offset)
-    {
-        GetContext()->IASetVertexBuffers(startSlot, 1, ppVB, &stride, &offset);
-    }
-
-    inline void BindVBs(
+    void BindVBs(
         const UINT startSlot,
         const UINT numBuffers,
         ID3D11Buffer* const* ppVBs,
         const UINT stride,
-        const UINT offset)
-    {
-        GetContext()->IASetVertexBuffers(startSlot, numBuffers, ppVBs, &stride, &offset);
-    }
+        const UINT offset);
 
-    inline void BindIB(ID3D11Buffer* pIB, const DXGI_FORMAT format)
-    {
-        GetContext()->IASetIndexBuffer(pIB, format, 0);
-    }
+    void BindIB(ID3D11Buffer* pIB, const DXGI_FORMAT format);
 
     void BindShaderById(const ShaderID id);
     void BindShaderByName(const char* shaderName);
    
-    inline void SetPrimTopology(const D3D_PRIMITIVE_TOPOLOGY type)
-    {
-        if (currPrimTopology_ == type)
-            return;
-
-        currPrimTopology_ = type;
-        GetContext()->IASetPrimitiveTopology(type);
-    }
-
+    void SetPrimTopology(const D3D_PRIMITIVE_TOPOLOGY type);
 
     // ================================================================================
-    //                                  Rendering
+    //                                  drawing
     // ================================================================================
 
-    //-----------------------------------------------------
-    // Desc:  reset rasterizer state, blend state, and depth-stencil state
-    //        to its default value
-    //-----------------------------------------------------
-    inline void ResetRenderStates()
-    {
-        GetRenderStates().ResetRenderStates();
-    }
+    void ResetRenderStates();
 
-    //-----------------------------------------------------
-    // draw vertexCount vertices starting from startVertexLocation
-    //-----------------------------------------------------
-    inline void Draw(const UINT vertexCount, const UINT startVertexLocation)
-    {
-        GetContext()->Draw(vertexCount, startVertexLocation);
-    }
-
-    inline void DrawIndexed(
-        const UINT indexCount,
-        const UINT startIndexLocation,
-        const UINT baseVertexLocation)
-    {
-        GetContext()->DrawIndexed(indexCount, startIndexLocation, baseVertexLocation);
-    }
-
-    void DrawIndexedInstanced(const InstanceBatch& batch, UINT& instanceLocation)
-    {
-        const Render::Subset& subset = batch.subset;
-
-        GetContext()->DrawIndexedInstanced(
-            subset.indexCount,
-            batch.numInstances,
-            subset.indexStart,
-            subset.vertexStart,
-            instanceLocation);
-
-        // stride idx in the instances buffer
-        instanceLocation += (UINT)batch.numInstances;
-    }
+    void Draw                (const UINT vertexCount, const UINT startVertexLocation);
+    void DrawIndexed         (const UINT indexCount, const UINT startIndexLocation, const UINT baseVertexLocation);
+    void DrawIndexedInstanced(const InstanceBatch& batch, UINT& instanceLocation);
 
     void PushSpriteToRender(const Render::Sprite2D& sprite);
     void Render2dSprites();
@@ -216,7 +158,9 @@ public:
     // ================================================================================
     //                                   Getters
     // ================================================================================
+    bool  IsFogEnabled() const;
     void  GetFogData(DirectX::XMFLOAT3& color, float& start, float& range, bool& enabled);
+    float GetDistFogged(void) const;
 
     const DirectX::XMFLOAT3& GetSkyCenterColor() const;
     const DirectX::XMFLOAT3& GetSkyApexColor()   const;
@@ -230,31 +174,31 @@ public:
     // ================================================================================
     //                                   Setters
     // ================================================================================
-    void SetFogEnabled      (const bool state);
-    void SetFogStart        (const float start);
-    void SetFogRange        (const float range);
-    void SetFogColor        (const DirectX::XMFLOAT3 color);
+    void SetFogEnabled          (const bool state);
+    void SetFogStart            (const float start);
+    void SetFogRange            (const float range);
+    void SetFogColor            (const DirectX::XMFLOAT3 color);
 
-    void  UpdateCbWeatherParam(const eWeatherParam param, const float val);
-    float GetWeatherParam     (const eWeatherParam param) const;
+    void  UpdateCbWeatherParam  (const eWeatherParam param, const float val);
+    float GetWeatherParam       (const eWeatherParam param) const;
 
-    void SwitchFlashLight   (const bool state);
+    void SwitchFlashLight       (const bool state);
 
-    void SwitchAlphaClipping   (const bool state);
-    void UpdateCbDirLightsCount(const uint numOfLights);
+    void SwitchAlphaClipping    (const bool state);
+    void UpdateCbDirLightsCount (const uint numOfLights);
 
-    void SetDebugFontColor(const DirectX::XMFLOAT3& color);
+    void SetDebugFontColor      (const DirectX::XMFLOAT3& color);
 
     void SetSkyGradient(
         const DirectX::XMFLOAT3& colorCenter,
         const DirectX::XMFLOAT3& colorApex);
 
-    void SetSkyColorCenter(const DirectX::XMFLOAT3& color);
-    void SetSkyColorApex  (const DirectX::XMFLOAT3& color);
+    void SetSkyColorCenter      (const DirectX::XMFLOAT3& color);
+    void SetSkyColorApex        (const DirectX::XMFLOAT3& color);
 
-    void UpdateCbBoneTransforms(const cvector<DirectX::XMMATRIX>& boneTransforms);
+    void UpdateCbBoneTransforms (const cvector<DirectX::XMMATRIX>& boneTransforms);
 
-    void UpdateCbDebug(const uint currBoneId);
+    void UpdateCbDebug          (const uint currBoneId);
 
     void UpdateCbMaterialColors(
         const Vec4& ambient,
@@ -314,13 +258,10 @@ public:
     bool SetGrassDistVisible(const float dist);
 
 private:
-    bool InitConstBuffers(
-        ID3D11Device* pDevice,
-        ID3D11DeviceContext* pContext,
-        const InitParams& params);
+    bool InitConstBuffers(const InitParams& params);
 
-    bool InitInstancesBuffer(ID3D11Device* pDevice);
-    bool InitSamplers       (ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
+    bool InitInstancesBuffer(void);
+    bool InitSamplers       (void);
 
     void UpdateLights(
         const DirLight* dirLights,
@@ -388,9 +329,93 @@ private:
     int      numSpritesToRender_ = 0;
 };
 
-//---------------------------------------------------------
+
+//==================================================================================
 // global instance of the Render
-//---------------------------------------------------------
+//==================================================================================
 extern CRender g_Render;
+
+
+//==================================================================================
+// inline functions
+//==================================================================================
+
+//-----------------------------------------------------
+// bind input vertex buffer at startSlot == 0 by default
+//-----------------------------------------------------
+inline void CRender::BindVB(ID3D11Buffer* const* ppVB, const UINT stride, const UINT offset)
+{
+    GetContext()->IASetVertexBuffers(0U, 1U, ppVB, &stride, &offset);
+}
+
+//-----------------------------------------------------
+// bind input vertex buffer at particular start slot
+//-----------------------------------------------------
+inline void CRender::BindVB(const UINT startSlot, ID3D11Buffer* const* ppVB, const UINT stride, const UINT offset)
+{
+    GetContext()->IASetVertexBuffers(startSlot, 1, ppVB, &stride, &offset);
+}
+
+inline void CRender::BindVBs(
+    const UINT startSlot,
+    const UINT numBuffers,
+    ID3D11Buffer* const* ppVBs,
+    const UINT stride,
+    const UINT offset)
+{
+    GetContext()->IASetVertexBuffers(startSlot, numBuffers, ppVBs, &stride, &offset);
+}
+
+inline void CRender::BindIB(ID3D11Buffer* pIB, const DXGI_FORMAT format)
+{
+    GetContext()->IASetIndexBuffer(pIB, format, 0);
+}
+
+inline void CRender::SetPrimTopology(const D3D_PRIMITIVE_TOPOLOGY type)
+{
+    if (currPrimTopology_ == type)
+        return;
+
+    currPrimTopology_ = type;
+    GetContext()->IASetPrimitiveTopology(type);
+}
+
+//-----------------------------------------------------
+// Desc:  reset rasterizer state, blend state, and depth-stencil state
+//        to its default value
+//-----------------------------------------------------
+inline void CRender::ResetRenderStates()
+{
+    GetRenderStates().ResetRenderStates();
+}
+
+//-----------------------------------------------------
+// draw vertexCount vertices starting from startVertexLocation
+//-----------------------------------------------------
+inline void CRender::Draw(const UINT vertexCount, const UINT startVertexLocation)
+{
+    GetContext()->Draw(vertexCount, startVertexLocation);
+}
+
+inline void CRender::DrawIndexed(
+    const UINT indexCount,
+    const UINT startIndexLocation,
+    const UINT baseVertexLocation)
+{
+    GetContext()->DrawIndexed(indexCount, startIndexLocation, baseVertexLocation);
+}
+
+inline void CRender::DrawIndexedInstanced(const InstanceBatch& batch, UINT& instanceLocation)
+{
+    GetContext()->DrawIndexedInstanced(
+        batch.subset.indexCount,
+        batch.numInstances,
+        batch.subset.indexStart,
+        batch.subset.vertexStart,
+        instanceLocation);
+
+    // stride idx in the instances buffer
+    instanceLocation += (UINT)batch.numInstances;
+}
 
 }; // namespace Render

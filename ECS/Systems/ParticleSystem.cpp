@@ -1,249 +1,55 @@
 #include "../Common/pch.h"
 #include "ParticleSystem.h"
 #include <math/random.h>
-#include <geometry/rect_3d_functions.h>
+#include <geometry/rect3d_functions.h>
 #include <math/vec_functions.h>
 
 #pragma warning (disable : 4996)
-
-using namespace DirectX;
 
 
 namespace ECS
 {
 
 //---------------------------------------------------------
-// Desc:    constructor
+// Desc:  default constructor
 //---------------------------------------------------------
 ParticleSystem::ParticleSystem(
+    ParticleEmitter* pParticleComponent,
     TransformSystem* pTransformSys,
     BoundingSystem* pBoundingSys)
     :
+    pParticleComponent_(pParticleComponent),
     pTransformSys_(pTransformSys),
     pBoundingSys_(pBoundingSys)
 {
-    if (!pTransformSys_)
-        LogErr(LOG, "input ptr to transform system == nullptr");
+    if (!pParticleComponent)
+        LogFatal(LOG, "ptr to particle component == NULL");
+
+    if (!pTransformSys)
+        LogFatal(LOG, "ptr to transform system == NULL");
 
     if (!pBoundingSys_)
-        LogErr(LOG, "input ptr to bounding system == nullptr");
+        LogFatal(LOG, "ptr to bounding system == NULL");
 }
 
 //---------------------------------------------------------
-// Desc:    add a new emitter (instance of this system)
+// Desc:    add a new emitter
 // Args:    - id:   an identifier of the entity which owns this emitter
-// 
-// Ret:     a ref to the added emitter
 //---------------------------------------------------------
-ParticleEmitter& ParticleSystem::AddEmitter(const EntityID id)
+void ParticleSystem::AddEmitter(const EntityID id)
 {
     if (id == INVALID_ENTITY_ID)
     {
         LogErr(LOG, "input entity id is invalid");
+        return;
     }
 
     // push a new emitter and set related entity ID
-    emitters_.push_back(ParticleEmitter(id));
-
-    return emitters_.back();
+    pParticleComponent_->ids.push_back(id);
+    pParticleComponent_->data.push_back(EmitterData());
 }
 
-//---------------------------------------------------------
-// Desc:    generate data for new particles of input emitter
-// Args:    - emitter:       get from here inital params for particles
-//          - particles:     init particles from this arr
-//          - numParticles:  how many particles to init
-//---------------------------------------------------------
-void ParticleSystem::InitParticles(
-    const ParticleEmitter& emitter,
-    Particle* particles,
-    const uint numParticles)
-{
-    // check input args
-    if (!particles)
-    {
-        LogErr(LOG, "input arr of particles == nullptr");
-        return;
-    }
 
-
-    // init velocity: particles move in random directions
-    if (emitter.velDirInitType == PARTICLE_VELOCITY_DIR_RANDOM)
-    {
-        for (index i = 0; i < numParticles; ++i)
-        {
-            // set the particle's angle
-            const float     yaw = RandF(0.0f, 1.0f) * PI;
-            const float     pitch = DEG_TO_RAD(RandF(0.0f, 360.0f));
-
-            Particle& particle = particles[i];
-
-            // set the particle's position and velocity
-            particle.vel = {
-                cosf(pitch)             * emitter.velInitMag * RandF(), // velocity X
-                sinf(pitch) * cosf(yaw) * emitter.velInitMag * RandF(), // velocity Y
-                sinf(pitch) * sinf(yaw) * emitter.velInitMag * RandF()  // velocity Z
-            };
-        }
-    }
-
-    // init velocity: particles move in defined direction
-    else if (emitter.velDirInitType == PARTICLE_VELOCITY_DIR_DEFINED)
-    {
-
-        if (emitter.srcType == EMITTER_SRC_TYPE_POINT)
-        {
-            for (index i = 0; i < numParticles; ++i)
-            {
-                const float randOffsetX = RandF(0.0f, 100.0f) * PI * 0.005f - 0.5f;
-                const float randOffsetZ = RandF(0.0f, 100.0f) * PI * 0.005f - 0.5f;
-
-                particles[i].vel = {
-                    (emitter.velInitDir.x + randOffsetX) * emitter.velInitMag,
-                    (emitter.velInitDir.y * emitter.velInitMag),
-                    (emitter.velInitDir.z + randOffsetZ) * emitter.velInitMag,
-                };
-            }
-        }
-        // src type: plane/volume
-        else
-        {
-            // calc initial velocity
-            const float vx = emitter.velInitDir.x * emitter.velInitMag;
-            const float vy = emitter.velInitDir.y * emitter.velInitMag;
-            const float vz = emitter.velInitDir.z * emitter.velInitMag;
-
-            for (index i = 0; i < numParticles; ++i)
-            {
-                particles[i].vel = { vx, vy, vz };
-            }
-        }
-    }
-
-
-    // init color, size, alpha, etc. for each particle
-    for (uint i = 0; i < numParticles; ++i)
-    {
-        particles[i].color = emitter.startColor;
-        particles[i].size  = emitter.startSize;
-        particles[i].alpha = emitter.startAlpha;
-        particles[i].ageMs = emitter.life;
-    }
-   
-
-    // particles spawn from a single point
-    if (emitter.srcType == EMITTER_SRC_TYPE_POINT)        
-    {
-        for (uint i = 0; i < numParticles; ++i)
-            particles[i].pos = emitter.position;
-    }
-
-    // particles spawn equally on plane's area
-    else if (emitter.srcType == EMITTER_SRC_TYPE_PLANE)   
-    {
-        const Rect3d aabb = GetEmitterAABB(emitter.id);
-        const float  posY = XMVectorGetY(emitter.position) + emitter.srcPlaneHeight;
-
-        for (uint i = 0; i < numParticles; ++i)
-        {
-            particles[i].pos = {
-                RandF(aabb.x0, aabb.x1),
-                posY,
-                RandF(aabb.z0, aabb.z1),
-            };
-        }
-    }
-
-    // particle spawns at random point inside a volume
-    else if (emitter.srcType == EMITTER_SRC_TYPE_VOLUME)   
-    {
-        const Rect3d aabb = GetEmitterAABB(emitter.id);
-
-        for (uint i = 0; i < numParticles; ++i)
-        {
-            particles[i].pos = {
-                RandF(aabb.x0, aabb.x1),
-                RandF(aabb.y0, aabb.y1),
-                RandF(aabb.z0, aabb.z1),
-            };
-        }
-    }
-
-    // generate multiple particles at once and then stop generation
-    else if (emitter.srcType == EMITTER_SRC_TYPE_SPLASH)
-    {
-        for (uint i = 0; i < numParticles; ++i)
-            particles[i].pos = emitter.position;
-    }
-    else
-    {
-        LogErr(LOG, "can't generate positions: unknown source type: %d", (int)emitter.srcType);
-    }
-
-
-    //---------------------------------
-
-    if (emitter.hasTexAnimations)
-    {
-        // calc initial tex coords
-        const float tu = 1.0f / (float)emitter.numTexFramesByX;
-        const float tv = 1.0f / (float)emitter.numTexFramesByY;
-
-        for (uint i = 0; i < numParticles; ++i)
-        {
-            particles[i].uv1 = { tu, tv };
-            particles[i].frameRandOffset = (int)RandUint(0, 1000);
-        }
-    }
-}
-
-//---------------------------------------------------------
-// Desc:   generate new particles for each active emitter
-// Args:   - dt: delta time
-//---------------------------------------------------------
-void ParticleSystem::CreateParticles(const float dt)
-{
-    // prevent generation of too big amount of particles after game pauses
-    if (dt >= 0.1f)
-        return;
-
-    // maybe TEMP: update emitting position of each emitter
-    for (ParticleEmitter& emitter : emitters_)
-    {
-        emitter.position = pTransformSys_->GetPositionVec(emitter.id);
-    }
-
-
-    // update only visible particle emitters
-    for (const index i : visibleEmittersIdxs_)
-    {
-        ParticleEmitter& emitter = emitters_[i];
-
-        if (!emitter.isActive)
-            continue;
-
-        if (emitter.srcType == EMITTER_SRC_TYPE_SPLASH)
-            continue;
-
-        emitter.time += dt;
-        const uint numNewParticles = (uint)(emitter.time * emitter.spawnRate);
-
-        // if too little time spent for generation of any particles
-        if (numNewParticles == 0)
-            continue;
-
-        emitter.time = 0;
-
-        // alloc memory for new amount of particles and init them
-        const uint newStartIdx = (uint)emitter.particles.size();
-        emitter.particles.resize(newStartIdx + numNewParticles);
-
-        InitParticles(
-            emitter,
-            emitter.particles.data() + newStartIdx,
-            numNewParticles);
-    }
-}
 
 //---------------------------------------------------------
 // Desc:  update all the particles of the input emitter
@@ -251,29 +57,28 @@ void ParticleSystem::CreateParticles(const float dt)
 //        - dt:       delta time
 //        - aabb:     emitter's axis-aligned bounding box
 //---------------------------------------------------------
-void UpdateParticleEmitter(
-    ParticleEmitter& emitter,
-    const float dt,
-    const Rect3d& aabb)
+void UpdateParticleEmitter(EmitterData& emitter, const float dt, const Rect3d& aabb)
 {
+    using namespace DirectX;
+
     const float invLife = 1.0f / emitter.life;
     const float delta   = dt * 200;
 
-    // update particles age
-    for (Particle& particle : emitter.particles)
-        particle.ageMs -= dt;
-
-    // if this particle is already dead we remove it
     for (Particle& particle : emitter.particles)
     {
+        // update particle's age
+        particle.ageMs -= dt;
+
+        // if this particle is already dead we remove it
         if (particle.ageMs <= 0.0f)
         {
-            // remove particle: swap n pop
+            // swap n pop
             particle = emitter.particles.back();
             emitter.particles.pop_back();
         }
     }
 
+    // if all dead...
     if (emitter.particles.empty())
         return;
 
@@ -426,16 +231,17 @@ void ParticleSystem::Update(const float dt)
         return;
 
     // if we have no emitters for this system
-    if (emitters_.empty())
+    if (pParticleComponent_->ids.empty())
         return;
 
     // update only visible emitters
-    for (const index i : visibleEmittersIdxs_)
+    for (const EntityID id : visEmitters_)
     {
-        ParticleEmitter& emitter = emitters_[i];
-        const Rect3d aabb = GetEmitterAABB(emitter.id);
-        UpdateParticleEmitter(emitter, dt, aabb);
+        UpdateParticleEmitter(GetEmitterData(id), dt, GetEmitterWorldAABB(id));
     }
+
+    // generate particles for each active emitter
+    CreateNewParticles(dt);
 }
 
 //---------------------------------------------------------
@@ -448,11 +254,10 @@ ParticlesRenderData& ParticleSystem::GetParticlesToRender()
     renderData_.particles.resize(0);                    // clear particles from the prev frame
     renderData_.Reset();
 
-
     // go through each active particle emitter and gather alive particles
-    for (const index idx : visibleEmittersIdxs_)
+    for (const EntityID id : visEmitters_)
     {
-        const ParticleEmitter& emitter = emitters_[idx];
+        const EmitterData& emitter = GetEmitterData(id);
 
         if (!emitter.isActive)
             continue;
@@ -500,102 +305,33 @@ ParticlesRenderData& ParticleSystem::GetParticlesToRender()
 }
 
 //-----------------------------------------------------
-// Desc:  find a particle emitter by its id
-//-----------------------------------------------------
-ParticleEmitter& ParticleSystem::GetEmitter(const EntityID id)
-{
-    for (ParticleEmitter& emitter : emitters_)
-    {
-        if (emitter.id == id)
-            return emitter;
-    }
-
-    LogErr(LOG, "can't find a particles emitter by entity ID: %" PRIu32, id);
-    return emitters_[0];
-}
-
-//-----------------------------------------------------
-
-const ParticleEmitter& ParticleSystem::GetEmitter(const EntityID id) const
-{
-    for (const ParticleEmitter& emitter : emitters_)
-    {
-        if (emitter.id == id)
-            return emitter;
-    }
-
-    LogErr(LOG, "can't find a particles emitter by entity ID: %" PRIu32, id);
-    return emitters_[0];
-}
-
-//-----------------------------------------------------
-// Desc:  return an AABB of emitter by input ID (the AABB will be in WORLD space)
-//-----------------------------------------------------
-Rect3d ParticleSystem::GetEmitterAABB(const EntityID id)
-{
-    const XMFLOAT3 pos = GetEmitterPos(id);
-    const DirectX::BoundingBox& aabb = pBoundingSys_->GetAABB(id);
-
-    const XMFLOAT3& c = aabb.Center;
-    const XMFLOAT3& e = aabb.Extents;
-
-    return Rect3d(
-        c.x - e.x + pos.x,   // minX
-        c.x + e.x + pos.x,   // maxX
-        c.y - e.y + pos.y,   // minY
-        c.y + e.y + pos.y,   // maxY
-        c.z - e.z + pos.z,   // minY
-        c.z + e.z + pos.z);  // maxZ
-}
-
-//-----------------------------------------------------
-// Desc:  return an AABB of emitter by input ID (the AABB will be in LOCAL space)
-//-----------------------------------------------------
-Rect3d ParticleSystem::GetEmitterLocalAABB(const EntityID id)
-{
-    const DirectX::BoundingBox& aabb = pBoundingSys_->GetAABB(id);
-
-    const XMFLOAT3& c = aabb.Center;
-    const XMFLOAT3& e = aabb.Extents;
-
-    return Rect3d(
-        c.x - e.x,   // minX
-        c.x + e.x,   // maxX
-        c.y - e.y,   // minY
-        c.y + e.y,   // maxY
-        c.z - e.z,   // minY
-        c.z + e.z);  // maxZ
-}
-
-//-----------------------------------------------------
 // Desc:  get a position of emitter by input ID
 //-----------------------------------------------------
-const XMFLOAT3 ParticleSystem::GetEmitterPos(const EntityID id)
+const XMFLOAT3 ParticleSystem::GetEmitterPos(const EntityID id) const
 {
-    const ParticleEmitter& emitter = GetEmitter(id);
     XMFLOAT3 pos;
-    XMStoreFloat3(&pos, emitter.position);
+    XMStoreFloat3(&pos, GetEmitterData(id).position);
     return pos;
 }
 
 //-----------------------------------------------------
 // Desc:  generate a new portion of particles from the emitter by id
+// Args:  - numNewParticles:  how many particles we want to create
 //-----------------------------------------------------
 void ParticleSystem::PushNewParticles(const EntityID id, const uint numNewParticles)
 {
-    ParticleEmitter& emitter = GetEmitter(id);
+    EmitterData& data = GetEmitterData(id);
 
     // force update emitter's position
-    emitter.position = pTransformSys_->GetPositionVec(emitter.id);
+    data.position = pTransformSys_->GetPositionVec(id);
 
     // alloc memory for new particles and generate them
-    size currNumParticles = emitter.particles.size();
-    emitter.particles.resize(currNumParticles + numNewParticles);
+    size currNumParticles = data.particles.size();
+    data.particles.resize(currNumParticles + numNewParticles);
 
-    InitParticles(
-        emitter,
-        &emitter.particles[currNumParticles],   // setup starting from...
-        numNewParticles);                       // setup this number of new particles
+    Particle* newParticles = &data.particles[currNumParticles];
+
+    SetupNewParticles(id, data, newParticles, numNewParticles);
 }
 
 //-----------------------------------------------------
@@ -603,7 +339,7 @@ void ParticleSystem::PushNewParticles(const EntityID id, const uint numNewPartic
 //-----------------------------------------------------
 void ParticleSystem::SetSpawnRate(const EntityID id, const uint spawnRate)
 {
-    GetEmitter(id).spawnRate = spawnRate;
+    GetEmitterData(id).spawnRate = spawnRate;
 }
 
 //-----------------------------------------------------
@@ -611,7 +347,7 @@ void ParticleSystem::SetSpawnRate(const EntityID id, const uint spawnRate)
 //-----------------------------------------------------
 void ParticleSystem::SetMaterialId(const EntityID id, const MaterialID matId)
 {
-    GetEmitter(id).materialId = matId;
+    GetEmitterData(id).materialId = matId;
 }
 
 //-----------------------------------------------------
@@ -625,7 +361,7 @@ void ParticleSystem::SetLife(const EntityID id, const float lifeMs)
         return;
     }
 
-    GetEmitter(id).life = lifeMs * 0.001f;
+    GetEmitterData(id).life = lifeMs * 0.001f;
 }
 
 //-----------------------------------------------------
@@ -639,7 +375,7 @@ void ParticleSystem::SetMass(const EntityID id, const float mass)
         return;
     }
 
-    GetEmitter(id).mass = mass;
+    GetEmitterData(id).mass = mass;
 }
 
 //-----------------------------------------------------
@@ -651,11 +387,11 @@ void ParticleSystem::SetSize(const EntityID id, const float sz)
 
     if (sz <= lower)
     {
-        LogErr(LOG, "particle size can't be <= %f, for entt: %" PRIu32, lower, id);
+        LogErr(LOG, "particle size can't be <= %.3f, for entt: %" PRIu32, lower, id);
         return;
     }
 
-    GetEmitter(id).size = sz;
+    GetEmitterData(id).size = sz;
 }
 
 //-----------------------------------------------------
@@ -663,7 +399,7 @@ void ParticleSystem::SetSize(const EntityID id, const float sz)
 //-----------------------------------------------------
 void ParticleSystem::SetColor(const EntityID id, const float r, const float g, const float b)
 {
-    GetEmitter(id).startColor = DirectX::XMFLOAT3{ r,g,b };
+    GetEmitterData(id).startColor = { r,g,b };
 }
 
 //-----------------------------------------------------
@@ -677,7 +413,7 @@ void ParticleSystem::SetFriction(const EntityID id, const float friction)
         return;
     }
 
-    GetEmitter(id).friction = friction;
+    GetEmitterData(id).friction = friction;
 }
 
 //-----------------------------------------------------
@@ -685,14 +421,207 @@ void ParticleSystem::SetFriction(const EntityID id, const float friction)
 //-----------------------------------------------------
 void ParticleSystem::SetExternForces(const EntityID id, const float x, const float y, const float z)
 {
-    GetEmitter(id).forces = DirectX::XMVECTOR{ x,y,z };
+    GetEmitterData(id).forces = { x,y,z };
 }
 
 //-----------------------------------------------------
 //-----------------------------------------------------
 void ParticleSystem::ResetNumSpawnedParticles(const EntityID id)
 {
-    GetEmitter(id).numSpawned = 0;
+    GetEmitterData(id).numSpawned = 0;
+}
+
+//---------------------------------------------------------
+// Desc:   generate new particles for each active emitter
+// Args:   - dt: delta time
+//---------------------------------------------------------
+void ParticleSystem::CreateNewParticles(const float dt)
+{
+    // prevent generation of too big amount of particles after game pauses
+    if (dt >= 0.1f)
+        return;
+
+
+    // update only visible particle emitters
+    for (const EntityID id : visEmitters_)
+    {
+        EmitterData& emitter = GetEmitterData(id);
+
+        if (!emitter.isActive)
+            continue;
+
+        if (emitter.srcType == EMITTER_SRC_TYPE_SPLASH)
+            continue;
+
+        emitter.time += dt;
+
+        const uint numNewParticles = (uint)(emitter.time * emitter.spawnRate);
+
+        // if too little time spent for generation of any particles
+        if (numNewParticles == 0)
+            continue;
+
+        emitter.time = 0;
+
+        // maybe TEMP: update position of emitter
+        emitter.position = pTransformSys_->GetPositionVec(id);
+
+        // alloc mem for new amount of particles and init them
+        const uint newStartIdx = (uint)emitter.particles.size();
+        emitter.particles.resize(newStartIdx + numNewParticles);
+
+        Particle* newParticles = emitter.particles.data() + newStartIdx;
+
+        SetupNewParticles(id, emitter, newParticles, numNewParticles);
+    }
+}
+
+//---------------------------------------------------------
+// Desc:    generate data for new particles of input emitter
+// Args:    - emitter:       get from here inital params for particles
+//          - particles:     init particles from this arr
+//          - numParticles:  how many particles to init
+//---------------------------------------------------------
+void ParticleSystem::SetupNewParticles(
+    const EntityID emitterId,
+    const EmitterData& initData,
+    Particle* particles,
+    const uint numParticles)
+{
+    // check input args
+    if (!particles)
+    {
+        LogErr(LOG, "input arr of particles == NULL");
+        return;
+    }
+
+    // init velocity: particles move in random directions
+    if (initData.velDirInitType == PARTICLE_VELOCITY_DIR_RANDOM)
+    {
+        for (index i = 0; i < numParticles; ++i)
+        {
+            // set the particle's angle
+            const float yaw   = RandF(0.0f, 1.0f) * PI;
+            const float pitch = DEG_TO_RAD(RandF(0.0f, 360.0f));
+
+            // set the particle's position and velocity
+            particles[i].vel = {
+                cosf(pitch)             * initData.velInitMag * RandF(), // velocity X
+                sinf(pitch) * cosf(yaw) * initData.velInitMag * RandF(), // velocity Y
+                sinf(pitch) * sinf(yaw) * initData.velInitMag * RandF()  // velocity Z
+            };
+        }
+    }
+
+    // init velocity: particles move in defined direction
+    else if (initData.velDirInitType == PARTICLE_VELOCITY_DIR_DEFINED)
+    {
+        if (initData.srcType == EMITTER_SRC_TYPE_POINT)
+        {
+            const XMFLOAT3 dir = initData.velInitDir;
+
+            for (index i = 0; i < numParticles; ++i)
+            {
+                const float randOffsetX = RandF(0.0f, 100.0f) * PI * 0.005f - 0.5f;
+                const float randOffsetZ = RandF(0.0f, 100.0f) * PI * 0.005f - 0.5f;
+
+                particles[i].vel = {
+                    (dir.x + randOffsetX) * initData.velInitMag,
+                    (dir.y              ) * initData.velInitMag,
+                    (dir.z + randOffsetZ) * initData.velInitMag,
+                };
+            }
+        }
+        // src type: plane/volume
+        else
+        {
+            // calc initial velocity
+            const float vx = initData.velInitDir.x * initData.velInitMag;
+            const float vy = initData.velInitDir.y * initData.velInitMag;
+            const float vz = initData.velInitDir.z * initData.velInitMag;
+
+            for (index i = 0; i < numParticles; ++i)
+            {
+                particles[i].vel = { vx, vy, vz };
+            }
+        }
+    }
+
+
+    // init color, size, alpha, etc. for each particle
+    for (uint i = 0; i < numParticles; ++i)
+    {
+        particles[i].color = initData.startColor;
+        particles[i].size  = initData.startSize;
+        particles[i].alpha = initData.startAlpha;
+        particles[i].ageMs = initData.life;
+    }
+   
+
+    // particles spawn from a single point
+    if (initData.srcType == EMITTER_SRC_TYPE_POINT)
+    {
+        for (uint i = 0; i < numParticles; ++i)
+            particles[i].pos = initData.position;
+    }
+
+    // particles spawn equally on plane's area
+    // (for instance: rain from a plane above the player)
+    else if (initData.srcType == EMITTER_SRC_TYPE_PLANE)
+    {
+        const Rect3d aabb = GetEmitterWorldAABB(emitterId);
+        const float  posY = DirectX::XMVectorGetY(initData.position) + initData.srcPlaneHeight;
+
+        for (uint i = 0; i < numParticles; ++i)
+        {
+            particles[i].pos = {
+                RandF(aabb.x0, aabb.x1),
+                posY,
+                RandF(aabb.z0, aabb.z1),
+            };
+        }
+    }
+
+    // particle spawns at random point inside a volume
+    else if (initData.srcType == EMITTER_SRC_TYPE_VOLUME)   
+    {
+        const Rect3d aabb = GetEmitterWorldAABB(emitterId);
+
+        for (uint i = 0; i < numParticles; ++i)
+        {
+            particles[i].pos = {
+                RandF(aabb.x0, aabb.x1),
+                RandF(aabb.y0, aabb.y1),
+                RandF(aabb.z0, aabb.z1),
+            };
+        }
+    }
+
+    // generate multiple particles at once and then stop generation
+    else if (initData.srcType == EMITTER_SRC_TYPE_SPLASH)
+    {
+        for (uint i = 0; i < numParticles; ++i)
+            particles[i].pos = initData.position;
+    }
+    else
+    {
+        LogErr(LOG, "can't generate positions: unknown source type: %d", (int)initData.srcType);
+    }
+
+    //---------------------------------
+
+    if (initData.hasTexAnimations)
+    {
+        // calc initial tex coords
+        const float tu = 1.0f / (float)initData.numTexFramesByX;
+        const float tv = 1.0f / (float)initData.numTexFramesByY;
+
+        for (uint i = 0; i < numParticles; ++i)
+        {
+            particles[i].uv1             = { tu, tv };
+            particles[i].frameRandOffset = (int)RandUint(0, 1000);
+        }
+    }
 }
 
 } // namespace

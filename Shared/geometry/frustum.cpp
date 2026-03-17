@@ -1,19 +1,28 @@
 #include "frustum.h"
-#include <geometry/plane_3d_functions.h>
+#include <geometry/plane3d_functions.h>
+#include <geometry/rect3d_functions.h>
+#include <math/matrix.h>
 
-//==================================================================================
-// INLINE METHODS
-//==================================================================================
 
-//---------------------------------------------------------
-// Desc:   default constructor and destructor
-//---------------------------------------------------------
-Frustum::Frustum()
+int numTests = 0;
+
+int Frustum::GetNumTests() const
 {
+    return numTests;
 }
 
 //---------------------------------------------------------
+// Desc:   default constructor
+//---------------------------------------------------------
+Frustum::Frustum()
+{
+    numTests = 0;
+}
 
+//---------------------------------------------------------
+// Desc:   create view frustum planes in camera space in terms of
+//         the field of view (fov), aspect ratio, near and far plane distance
+//---------------------------------------------------------
 Frustum::Frustum(
     const float fov,
     const float aspectRatio, 
@@ -24,7 +33,8 @@ Frustum::Frustum(
 }
 
 //---------------------------------------------------------
-
+// Desc:  init frustum with 6 input planes
+//---------------------------------------------------------
 Frustum::Frustum(
     const Plane3d& left, 
     const Plane3d& right, 
@@ -43,13 +53,7 @@ Frustum::Frustum(
 }
 
 //---------------------------------------------------------
-
-Frustum::~Frustum()
-{
-}
-
-//---------------------------------------------------------
-// Desc:   create view frustum plane vectors in camera space in
+// Desc:   create view frustum planes in camera space in
 //         terms of the focal length, aspect ratio, near and far plane distance
 // Args:   - fov:          field of view in radians
 //         - aspectRatio:  screen width divided by height
@@ -80,6 +84,8 @@ void Frustum::Init(
     float vertNy  = e * invDenom2;
     float vertNz  = aspect * invDenom2;
 
+    nearZ_ = nearZ;
+    farZ_  = farZ;
 
     nearPlane_   = Plane3d(0, 0, +1, -nearZ);
     farPlane_    = Plane3d(0, 0, -1, farZ);
@@ -98,13 +104,11 @@ void Frustum::Init(
     farPlaneHeight_  = 2 * farZ / (e * aspectRatio);
 }
 
-
 //---------------------------------------------------------
 // Desc:   setup the fructum clipping planes using input proj matrix
 //---------------------------------------------------------
 Frustum::Frustum(const Matrix& m)
 {
-
     Matrix mt;
     MatrixTranspose(m, mt);
 
@@ -202,12 +206,12 @@ void Frustum::Transform(Frustum& outFrustum, const Matrix& mat) const
 
     outFrustum = *this;
 
-    outFrustum.leftPlane_.Transform(invMT);
-    outFrustum.rightPlane_.Transform(invMT);
-    outFrustum.topPlane_.Transform(invMT);
-    outFrustum.bottomPlane_.Transform(invMT);
-    outFrustum.nearPlane_.Transform(invMT);
-    outFrustum.farPlane_.Transform(invMT);
+    outFrustum.leftPlane_.Transform(&invMT);
+    outFrustum.rightPlane_.Transform(&invMT);
+    outFrustum.topPlane_.Transform(&invMT);
+    outFrustum.bottomPlane_.Transform(&invMT);
+    outFrustum.nearPlane_.Transform(&invMT);
+    outFrustum.farPlane_.Transform(&invMT);
 }
 
 
@@ -229,6 +233,8 @@ bool Frustum::TestPoint(const Vec3& p) const
 //---------------------------------------------------------
 bool Frustum::TestRect(const Rect3d& rect) const
 {
+    ++numTests;
+
     return  (PlaneClassify(rect, leftPlane_)     != PLANE_BACK) &&
             (PlaneClassify(rect, rightPlane_)    != PLANE_BACK) &&
             (PlaneClassify(rect, topPlane_)      != PLANE_BACK) &&
@@ -242,6 +248,7 @@ bool Frustum::TestRect(const Rect3d& rect) const
 //---------------------------------------------------------
 bool Frustum::TestSphere(const Sphere& sphere) const
 {
+#if 0
     return
         leftPlane_.SignedDistance(sphere.center)     >= -sphere.radius &&
         rightPlane_.SignedDistance(sphere.center)    >= -sphere.radius &&
@@ -249,36 +256,110 @@ bool Frustum::TestSphere(const Sphere& sphere) const
         bottomPlane_.SignedDistance(sphere.center)   >= -sphere.radius &&
         nearPlane_.SignedDistance(sphere.center)     >= -sphere.radius &&
         farPlane_.SignedDistance(sphere.center)      >= -sphere.radius;
+#else
+
+    ++numTests;
+
+    if ((PlaneClassify(sphere, leftPlane_)     == PLANE_BACK) ||
+        (PlaneClassify(sphere, rightPlane_)    == PLANE_BACK) ||
+        (PlaneClassify(sphere, topPlane_)      == PLANE_BACK) ||
+        (PlaneClassify(sphere, bottomPlane_)   == PLANE_BACK) ||
+        (PlaneClassify(sphere, nearPlane_)     == PLANE_BACK) ||
+        (PlaneClassify(sphere, farPlane_)      == PLANE_BACK))
+    {
+        return false;
+    }
+
+    return true;
+
+#endif
 }
 
 //---------------------------------------------------------
-// Desc:   get frustum's corner points
+// Desc:   get frustum's corner points (in view space)
+//         (T-top, B-bottom, R-right, L-left)
 //---------------------------------------------------------
-void Frustum::GetPoints(
-    Vec3& nearTopLeft,
-    Vec3& nearBottomLeft,
-    Vec3& nearTopRight,
-    Vec3& nearBottomRight,
-    Vec3& farTopLeft,
-    Vec3& farBottomLeft,
-    Vec3& farTopRight,
-    Vec3& farBottomRight)
+void Frustum::GetPointsInView(
+    Vec3& nearTL,
+    Vec3& nearBL,
+    Vec3& nearTR,
+    Vec3& nearBR,
+    Vec3& farTL,
+    Vec3& farBL,
+    Vec3& farTR,
+    Vec3& farBR) const
 {
-    const float xNear = nearPlaneWidth_ * 0.5f;
-    const float yNear = nearPlaneHeight_ * 0.5f;
-    const float zNear = -nearPlane_.distance;
+    // near plane
+    const float xn = nearPlaneWidth_ * 0.5f;
+    const float yn = nearPlaneHeight_ * 0.5f;
+    const float zn = -nearZ_;
 
-    const float xFar = farPlaneWidth_ * 0.5f;
-    const float yFar = farPlaneHeight_ * 0.5f;
-    const float zFar = farPlane_.distance;
+    // far plane
+    const float xf = farPlaneWidth_ * 0.5f;
+    const float yf = farPlaneHeight_ * 0.5f;
+    const float zf = farZ_;
 
-    nearTopLeft     = Vec3(-xNear, yNear, zNear);
-    nearBottomLeft  = Vec3(-xNear, -yNear, zNear);
-    nearTopRight    = Vec3(xNear, yNear, zNear);
-    nearBottomRight = Vec3(xNear, -yNear, zNear);
+    nearTL = Vec3(-xn,  yn, zn);
+    nearBL = Vec3(-xn, -yn, zn);
+    nearTR = Vec3( xn,  yn, zn);
+    nearBR = Vec3( xn, -yn, zn);
 
-    farTopLeft      = Vec3(-xFar, yFar, zFar);
-    farBottomLeft   = Vec3(-xFar, -yFar, zFar);
-    farTopRight     = Vec3(xFar, yFar, zFar);
-    farBottomRight  = Vec3(xFar, -yFar, zFar);
+    farTL  = Vec3(-xf,  yf, zf);
+    farBL  = Vec3(-xf, -yf, zf);
+    farTR  = Vec3( xf,  yf, zf);
+    farBR  = Vec3( xf, -yf, zf);
+}
+
+//---------------------------------------------------------
+// Desc:  get frustum's corner points in world space
+//        (T-top, B-bottom, R-right, L-left)
+//---------------------------------------------------------
+void Frustum::GetPointsInWorld(
+    Vec3& nearTL,
+    Vec3& nearBL,
+    Vec3& nearTR,
+    Vec3& nearBR,
+    Vec3& farTL,
+    Vec3& farBL,
+    Vec3& farTR,
+    Vec3& farBR,
+    const Matrix* invView) const
+{
+    assert(invView);
+
+    GetPointsInView(nearTL, nearBL, nearTR, nearBR, farTL, farBL, farTR, farBR);
+
+    // transform each point into world space
+    MatrixMulVec3(nearTL, *invView, nearTL);
+    MatrixMulVec3(nearBL, *invView, nearBL);
+    MatrixMulVec3(nearTR, *invView, nearTR);
+    MatrixMulVec3(nearBR, *invView, nearBR);
+
+    MatrixMulVec3(farTL, *invView, farTL);
+    MatrixMulVec3(farBL, *invView, farBL);
+    MatrixMulVec3(farTR, *invView, farTR);
+    MatrixMulVec3(farBR, *invView, farBR);
+}
+
+//---------------------------------------------------------
+// Desc:  get axis-aligned bounding box (in view space!!!) around the frustum volume
+//---------------------------------------------------------
+Rect3d Frustum::GetBoundBoxInView(void) const
+{
+    const float xf = farPlaneWidth_ * 0.5f;
+    const float yf = farPlaneHeight_ * 0.5f;
+
+    return Rect3d(-xf, +xf, -yf, +yf, -nearZ_, farZ_);
+}
+
+//---------------------------------------------------------
+// Desc:  get axis-aligned bounding box (in world space) around the frustum volume
+// Args:  - inverse view matrix (to convert AABB from view space into world space)
+//---------------------------------------------------------
+Rect3d Frustum::GetBoundBoxInWorld(const Matrix* pInvView) const
+{
+    Vec3 p[8];  // 8 corner points of the frustum volume
+    GetPointsInWorld(p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], pInvView);
+
+    return Rect3d{ p, 8 };
 }

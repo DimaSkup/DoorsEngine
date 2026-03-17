@@ -121,14 +121,11 @@ public:
     // ----------------------------------------------------
     inline void GetColor(const uint x, const uint y, uint8& red, uint8& green, uint8& blue) const
     {
-        //if ((x < width_) && (y < height_))
-        //{
-            const uint idx = ((y*height_) + x) * bytesPerPixel_;
+        const uint idx = ((y*height_) + x) * bytesPerPixel_;
 
-            red   = pixels_[idx + 0];
-            green = pixels_[idx + 1];
-            blue  = pixels_[idx + 2];
-        //}
+        red   = pixels_[idx + 0];
+        green = pixels_[idx + 1];
+        blue  = pixels_[idx + 2];
     }
 
     // ----------------------------------------------------
@@ -197,19 +194,19 @@ public:
 
 private:
     bool LoadRgbBMP(const char* filename);
-    bool LoadTGA            (const char* filename);
+    bool LoadTGA   (const char* filename);
 
     void LoadUncompressedTGA(const TGAInfoHeader& header, uint8*& pixelsData);
     void LoadCompressedTGA24(uint8*& pixelsData, const int width, const int height);
     void LoadCompressedTGA32(uint8*& pixelsData, const int width, const int height);
 
 private:
-    uint    id_         = 0;
-    uint    width_      = 0;
-    uint    height_     = 0;
-    uint    bpp_        = 0;           // bits per pixel
+    uint    id_            = 0;
+    uint    width_         = 0;
+    uint    height_        = 0;
+    uint    bpp_           = 0;           // bits per pixel
     uint    bytesPerPixel_ = 0;
-    uint8*  pixels_     = nullptr;
-    bool    isLoaded_   = false;
+    uint8*  pixels_        = nullptr;
     char    name_[64]{ '\0' };
+    bool    isLoaded_      = false;
 };

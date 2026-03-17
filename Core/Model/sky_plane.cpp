@@ -275,15 +275,15 @@ bool SkyPlane::InitBuffers()
     vb_.Shutdown();
     ib_.Shutdown();
 
-    if (!vb_.Initialize(Render::g_pDevice, vertices_, numVertices_, isDynamicBuf))
+    if (!vb_.Init(vertices_, numVertices_, isDynamicBuf))
     {
-        LogErr(LOG, "can't init a vertex buffer for sky plane");
+        LogErr(LOG, "can't init VB for sky plane");
         return false;
     }
 
-    if (!ib_.Initialize(Render::g_pDevice, indices_, numIndices_, isDynamicBuf))
+    if (!ib_.Init(indices_, numIndices_, isDynamicBuf))
     {
-        LogErr(LOG, "can't init an index buffer for sky plane");
+        LogErr(LOG, "can't init IB for sky plane");
         return false;
     }
 

@@ -18,7 +18,6 @@
 #pragma warning (disable : 4996)
 
 
-
 namespace Core
 {
 
@@ -114,19 +113,15 @@ void Engine::Init(
     // GRAPHICS SYSTEM: initialize the core's graphics system
     graphics_.Init(hwnd_, systemState_);
 
-    Render::D3DClass&         d3d = GetD3D();
-    ID3D11Device*         pDevice = d3d.GetDevice();
-    ID3D11DeviceContext* pContext = d3d.GetDeviceContext();
-
-    
-
-    systemState_.wndWidth_  = d3d.GetWindowWidth();
-    systemState_.wndHeight_ = d3d.GetWindowHeight();
+    systemState_.wndWidth_  = GetD3D().GetWindowWidth();
+    systemState_.wndHeight_ = GetD3D().GetWindowHeight();
 
     // TIMERS: (game timer, CPU)
     timer_.Tick();                 
-    //cpu_.Initialize();
-    imGuiLayer_.Initialize(hwnd_, pDevice, pContext);
+    //cpu_.Init();
+
+    // init ImGui stuff
+    imGuiLayer_.Init(hwnd_, Render::GetD3dDevice(), Render::GetD3dContext());
 
     // initialize some data/resource managers
     if (!g_TextureMgr.Init("data/textures/textures.cfg"))
@@ -164,19 +159,19 @@ bool Engine::BindBindlessTextures(const char* cfgPath)
 {
     if (!cfgPath || cfgPath[0] == '\0')
     {
-        LogErr(LOG, "can't bind bindless textures: input path to config is empty");
+        LogErr(LOG, "empty filepath");
         return false;
     }
 
     FILE* pFile = fopen(cfgPath, "r");
     if (!pFile)
     {
-        LogErr(LOG, "can't bind bindless textures because can't open file: %s", cfgPath);
+        LogErr(LOG, "can't open file: %s", cfgPath);
         return false;
     }
 
-    ID3D11DeviceContext* pContext = pRender_->GetContext();
-    assert(pContext != nullptr);
+    ID3D11DeviceContext* pCtx = pRender_->GetContext();
+    assert(pCtx != nullptr);
 
     int count = 0;
     int startSlot = 0;
@@ -207,14 +202,14 @@ bool Engine::BindBindlessTextures(const char* cfgPath)
             else
                 pDepthSRV = GetD3D().GetDepthSRV();
 
-            pContext->PSSetShaderResources((UINT)startSlot, 1U, &pDepthSRV);
+            pCtx->PSSetShaderResources((UINT)startSlot, 1U, &pDepthSRV);
         }
 
         else if (strcmp(semanticName, "depth_tex_4x_msaa") == 0)
         {
             // bind depth tex (shader resource view) in case when we use 4xMSAA
             ID3D11ShaderResourceView* pDepthSrv4xMSAA = GetD3D().GetDepthSRV();
-            pContext->PSSetShaderResources((UINT)startSlot, 1U, &pDepthSrv4xMSAA);
+            pCtx->PSSetShaderResources((UINT)startSlot, 1U, &pDepthSrv4xMSAA);
         }
 
         else if (strcmp(semanticName, "screen_tex") == 0)
@@ -234,9 +229,9 @@ bool Engine::BindBindlessTextures(const char* cfgPath)
             }
 
             // bind a texture by slot
-            Texture& tex = g_TextureMgr.GetTexByID(texId);
-            pContext->VSSetShaderResources((UINT)startSlot, 1U, tex.GetTextureResourceViewAddress());
-            pContext->PSSetShaderResources((UINT)startSlot, 1U, tex.GetTextureResourceViewAddress());
+            Texture& tex = g_TextureMgr.GetTexById(texId);
+            pCtx->VSSetShaderResources((UINT)startSlot, 1U, tex.GetResourceViewAddr());
+            pCtx->PSSetShaderResources((UINT)startSlot, 1U, tex.GetResourceViewAddr());
         }
 
     }
@@ -262,7 +257,7 @@ void Engine::Update(const float deltaTime, const float gameTime)
 #endif
 
     // get the time which passed since the previous frame
-    deltaTime_ = deltaTime;// timer_.GetDeltaTime();
+    deltaTime_ = deltaTime;
 
     systemState_.deltaTime = deltaTime;
     systemState_.frameTime = deltaTime * 1000.0f;
@@ -279,9 +274,11 @@ void Engine::Update(const float deltaTime, const float gameTime)
     // update the entities and related data
     pEnttMgr_->Update(timer_.GetGameTime(), deltaTime);
 
-    pUserInterface_->Update(pRender_->GetContext(), systemState_);
+    pUserInterface_->Update(systemState_);
     keyboard_.Update();
     graphics_.Update(deltaTime, gameTime);
+
+    g_ModelMgr.Update(deltaTime);
 
     // if we want to switch btw game/editor mode
     if (switchEngineMode_)
@@ -303,7 +300,6 @@ void Engine::UpdateRenderTimingStat(SystemState& sysState)
     // Draw performance readout - at end of CPU frame, so hopefully the previous frame
     // (whose data we're getting) will have finished on the GPU by now.
     g_GpuProfiler.WaitForDataAndUpdate(timer_.GetGameTime());
-
 
     // calc render timings for the last frame
     sysState.msRenderTimings[RND_TIME_RESET]          = g_GpuProfiler.GetDeltaTime(GTS_RenderScene_Reset);
@@ -353,11 +349,10 @@ void Engine::UpdateRenderTimingStat(SystemState& sysState)
         sysState.msRenderTimingsAvg[RND_TIME_DBG_SHAPES]     = g_GpuProfiler.GetDeltaTimeAvg(GTS_RenderScene_DbgShapes);
         sysState.msRenderTimingsAvg[RND_TIME_POST_FX]        = g_GpuProfiler.GetDeltaTimeAvg(GTS_RenderScene_PostFX);
 
-        sysState.msRenderTimingsAvg[RND_TIME_3D_SCENE]     = g_GpuProfiler.GetSceneDeltaTimeAvg();
-        sysState.msRenderTimingsAvg[RND_TIME_UI]           = g_GpuProfiler.GetDeltaTimeAvg(GTS_RenderUI);
+        sysState.msRenderTimingsAvg[RND_TIME_3D_SCENE]       = g_GpuProfiler.GetSceneDeltaTimeAvg();
+        sysState.msRenderTimingsAvg[RND_TIME_UI]             = g_GpuProfiler.GetDeltaTimeAvg(GTS_RenderUI);
     }
 }
-
 
 //---------------------------------------------------------
 // measure the number of frames being rendered per second (FPS);
@@ -383,8 +378,12 @@ void Engine::CalculateFrameStats()
         frameCount = 0;
         ++timeElapsed;
 
-        // print FPS, frame_time, used RAM as the window caption
+        // if fullscreen we don't see window caption so no need to do further calculations 
+        if (isFullscreen_)
+            return;
+
 #if 1
+        // print FPS, frame_time, used RAM as the window caption
         PROCESS_MEMORY_COUNTERS pmc;
         DWORD processID;
         GetWindowThreadProcessId(hwnd_, &processID);
@@ -424,7 +423,6 @@ void Engine::RenderFrame()
        
         if (systemState_.isEditorMode)
             RenderInEditorMode();
-
         else  
             RenderInGameMode();
 
@@ -432,7 +430,6 @@ void Engine::RenderFrame()
             UpdateRenderTimingStat(systemState_);
 
         pRender_->Update();
-        
 
         // display frame on-screen and finish up queries
         GetD3D().EndScene();
@@ -445,7 +442,7 @@ void Engine::RenderFrame()
     }
     catch (EngineException& e)
     {
-        LogErr(e, true);
+        LogErr(LOG, e.what());
         LogErr(LOG, "can't render a frame");
         isExit_ = true;                   // exit after it (shutdown the engine)
     }
@@ -456,13 +453,10 @@ void Engine::RenderFrame()
 //---------------------------------------------------------
 void Engine::RenderInEditorMode()
 {
-    Render::D3DClass& d3d         = GetD3D();
-    ID3D11DeviceContext* pContext = d3d.GetDeviceContext();
-
     // Clear all the buffers before frame rendering and render our 3D scene
-    d3d.ResetBackBufferRenderTarget();
-    d3d.ResetViewport();
-    d3d.BeginScene();
+    GetD3D().ResetBackBufferRenderTarget();
+    GetD3D().ResetViewport();
+    GetD3D().BeginScene();
     g_GpuProfiler.Timestamp(GTS_ClearFrame);
 
     graphics_.Render3D();
@@ -470,7 +464,7 @@ void Engine::RenderInEditorMode()
 
     // begin rendering of the editor elements
     imGuiLayer_.Begin();
-    RenderUI(pUserInterface_, pRender_);
+    RenderUI();
     g_GpuProfiler.Timestamp(GTS_RenderUI);
 
     ImGui::End();
@@ -490,49 +484,41 @@ void Engine::RenderInGameMode()
     g_GpuProfiler.Timestamp(GTS_RenderFullScene);
 
     // render game UI
-    RenderUI(pUserInterface_, pRender_);
+    RenderUI();
     g_GpuProfiler.Timestamp(GTS_RenderUI);
 }
 
 //---------------------------------------------------------
 // Desc:  render graphics user interface
-//        - in game mode:    game UI elements
-//        - in editor mode:  editor's UI element
 //---------------------------------------------------------
-void Engine::RenderUI(UI::UserInterface* pUI, Render::CRender* pRender)
+void Engine::RenderUI()
 {
-    assert(pUI != nullptr);
-    assert(pRender != nullptr);
-
-    Render::D3DClass&    d3d  = GetD3D();
-    ID3D11DeviceContext* pCtx = d3d.GetDeviceContext();
-
     // preparation before 2D rendering
-    Render::RenderStates& rndStates = d3d.GetRenderStates();
-    static BsID bsFor2d     = rndStates.GetBsId("enabled");
+    Render::RenderStates& rndStates = GetD3D().GetRenderStates();
+    static BsID bsFor2d = rndStates.GetBsId("enabled");
 
     rndStates.SetBs(bsFor2d);
     rndStates.ResetDss();
 
-    d3d.TurnZBufferOff();
-    d3d.TurnOnRSfor2Drendering();
+    GetD3D().TurnZBufferOff();
+    GetD3D().TurnOnRSfor2Drendering();
 
 
     if (systemState_.isEditorMode)
     {
-        pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        pRender_->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
         // all render the scene view space and gizmos (if any entt is selected)
-        pUI->RenderSceneWnd(systemState_);
+        pUserInterface_->RenderSceneWnd(systemState_);
 
         // HACK: we set background color for ImGui elements (except of scene windows)
         //       each fucking time because if we don't do it we will have 
         //       scene objects which are using blending to be mixed with 
         //       ImGui bg color; so we want to have proper scene colors;
         ImVec4* colors = ImGui::GetStyle().Colors;
-        colors[ImGuiCol_WindowBg] = imGuiLayer_.GetBackgroundColor();
+        colors[ImGuiCol_WindowBg] = imGuiLayer_.GetBgColor();
 
-        pUI->RenderEditor(systemState_);
+        pUserInterface_->RenderEditor(systemState_);
 
         // reset: ImGui window bg color to fully invisible since we
         //        want to see the scene through the window
@@ -542,15 +528,15 @@ void Engine::RenderUI(UI::UserInterface* pUI, Render::CRender* pRender)
     // we're in the game mode
     else
     {
-        pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+        pRender_->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
         pRender_->Render2dSprites();
 
-        pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        pUI->RenderGameUI(*pRender, systemState_);
+        pRender_->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        pUserInterface_->RenderGameUI(*pRender_, systemState_);
     }
 
     // reset after 2D rendering
-    d3d.TurnZBufferOn();
+    GetD3D().TurnZBufferOn();
     rndStates.ResetBs();
 }
 
@@ -861,7 +847,7 @@ void Engine::HandleEditorEventKeyboard(void)
                     break;
 
                 // recompute light map for the terrain
-                TerrainGeomip& terrain = g_ModelMgr.GetTerrainGeomip();
+                Terrain& terrain = g_ModelMgr.GetTerrain();
                 TerrainConfig terrainCfg;
 
                 const char* configPath = "data/terrain/terrain.cfg";
@@ -884,7 +870,7 @@ void Engine::HandleEditorEventKeyboard(void)
 
                 const int bitsPerPixel = 8;
                 const LightmapData& lightmap = terrain.lightmap_;
-                Texture& tex = g_TextureMgr.GetTexByID(lightmap.id);
+                Texture& tex = g_TextureMgr.GetTexById(lightmap.id);
                 
 
                 g_TextureMgr.RecreateTextureFromRawData(
@@ -1074,7 +1060,7 @@ void Engine::TurnOnEditorMode()
 
     isFullscreen_ = false;
     GetD3D().ToggleFullscreen(hwnd_, isFullscreen_);
-    graphics_.SetCurrentCamera(editorCamId);
+    graphics_.SetActiveCamera(editorCamId);
 
     systemState_.isGameMode   = false;
     systemState_.isEditorMode = true;
@@ -1121,7 +1107,7 @@ void Engine::TurnOnGameMode()
 
     isFullscreen_ = false;
     GetD3D().ToggleFullscreen(hwnd_, isFullscreen_);
-    graphics_.SetCurrentCamera(gameCamId);
+    graphics_.SetActiveCamera(gameCamId);
 
     ShowCursor(FALSE);
     TurnOnClipCursorMode(hwnd_);

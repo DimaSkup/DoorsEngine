@@ -3,8 +3,7 @@
 // Description: just logger
 // =================================================================================
 #pragma once
-#include "EngineException.h"
-#pragma warning (disable : 4996)
+
 
 //---------------------------------------------------------
 // constants
@@ -12,7 +11,6 @@
 #define LOG_BUF_SIZE 512
 #define LOG_STORAGE_SIZE 1024
 #define LOG_MSGS_CHARS_BUF_SIZE 65536
-
 
 //---------------------------------------------------------
 // it is necessary to differ logs when we print it in the editor's GUI
@@ -22,9 +20,9 @@ enum eLogType
     LOG_TYPE_MESSAGE,
     LOG_TYPE_DEBUG,
     LOG_TYPE_ERROR,
-    LOG_TYPE_FORMATTED
+    LOG_TYPE_FORMATTED,
+    LOG_TYPE_FATAL
 };
-
 
 //---------------------------------------------------------
 // Desc:   a buffer for all the chars of all the log messages;
@@ -37,7 +35,6 @@ struct LogMsgsCharsBuffer
     const int maxSize  = LOG_MSGS_CHARS_BUF_SIZE;
     int       currSize = 0;
 };
-
 
 //---------------------------------------------------------
 // a single log message metadata
@@ -80,8 +77,7 @@ struct LogStorage
 #define BOLDCYAN    "\033[1m\033[36m"       /* Bold Cyan */
 #define BOLDWHITE   "\033[1m\033[37m"       /* Bold White */
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
 
 // macros for standard log message (info about caller: file_name, func_name, code_line, message)
 #define LOG __FILE__, __func__, __LINE__
@@ -89,12 +85,11 @@ struct LogStorage
 // string global container
 extern char g_String[LOG_BUF_SIZE];
 
-///////////////////////////////////////////////////////////
+//---------------------------------------------------------
 
-
-extern int  InitLogger(const char* logFileName);      // call it at the very beginning of the application
-extern void CloseLogger();                            // call it at the very end of the application
-extern void SetConsoleColor(const char* keyColor);
+int  InitLogger(const char* logFileName);      // call it at the very beginning of the application
+void CloseLogger();                            // call it at the very end of the application
+void SetConsoleColor(const char* keyColor);
 
 int         GetNumLogMsgs();
 const char* GetLogTextByIdx(const int idx);
@@ -124,6 +119,9 @@ void LogErr(
     const char* format,
     ...);
 
-// exception handlers
-void LogErr(const EngineException* pException, const bool showMsgBox = false);
-void LogErr(const EngineException& e,          const bool showMsgBox = false);
+void LogFatal(
+    const char* fileName,
+    const char* funcName,
+    const int codeLine,
+    const char* format,
+    ...);

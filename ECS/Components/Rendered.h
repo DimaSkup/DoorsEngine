@@ -6,7 +6,7 @@
 // *********************************************************************************
 #pragma once
 
-#include <Types.h>
+#include <types.h>
 #include <cvector.h>
 
 namespace ECS
@@ -14,9 +14,9 @@ namespace ECS
 
 struct Rendered
 {
-    cvector<EntityID>                   ids;                    // renderable entities (can be visible)
-    cvector<EntityID>                   visibleEnttsIDs;        // currently visible entts (models) for this frame
-    cvector<EntityID>                   visiblePointLightsIDs;  // currently visible point light sources
+    cvector<EntityID> ids;                    // renderable entities (can be visible)
+    cvector<EntityID> visibleEnttsIDs;        // currently visible entts (models) for this frame
+    cvector<EntityID> visiblePointLightsIDs;  // currently visible point light sources
 };
 
 }

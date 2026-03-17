@@ -351,15 +351,15 @@ void LoadTarga32Bit(
         SafeDeleteArr(targaImageDataArr);
         SafeDeleteArr(*targaDataArr);
         fclose(pFile);              // close the targa file
-        LogErr(e.what());
-        throw EngineException("can't allocate memory for the targa image data array / targa destination data array");
+        LogErr(LOG, e.what());
+        throw EngineException("can't alloc mem for a targa image data array / targa destination data array");
     }
     catch (EngineException & e)
     {
         SafeDeleteArr(targaImageDataArr);
         SafeDeleteArr(*targaDataArr);
         fclose(pFile);              // close the targa file
-        LogErr(e);
+        LogErr(LOG, e.what());
         throw EngineException("can't read targa-image data");
     }
 }

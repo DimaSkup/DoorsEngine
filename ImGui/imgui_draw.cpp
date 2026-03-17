@@ -414,7 +414,7 @@ ImDrawList::~ImDrawList()
     _ClearFreeMemory();
 }
 
-// Initialize before use in a new frame. We always have a command ready in the buffer.
+// Init before use in a new frame. We always have a command ready in the buffer.
 // In the majority of cases, you would want to call PushClipRect() and PushTextureID() after this.
 void ImDrawList::_ResetForNewFrame()
 {
@@ -2885,7 +2885,7 @@ static bool ImFontAtlasBuildWithStbTruetype(ImFontAtlas* atlas)
     memset(src_tmp_array.Data, 0, (size_t)src_tmp_array.size_in_bytes());
     memset(dst_tmp_array.Data, 0, (size_t)dst_tmp_array.size_in_bytes());
 
-    // 1. Initialize font loading structure, check font data validity
+    // 1. Init font loading structure, check font data validity
     for (int src_i = 0; src_i < atlas->ConfigData.Size; src_i++)
     {
         ImFontBuildSrcData& src_tmp = src_tmp_array[src_i];
@@ -2902,7 +2902,7 @@ static bool ImFontAtlasBuildWithStbTruetype(ImFontAtlas* atlas)
             IM_ASSERT(src_tmp.DstIndex != -1); // cfg.DstFont not pointing within atlas->Fonts[] array?
             return false;
         }
-        // Initialize helper structure for font loading and verify that the TTF/OTF data is correct
+        // Init helper structure for font loading and verify that the TTF/OTF data is correct
         const int font_offset = stbtt_GetFontOffsetForIndex((unsigned char*)cfg.FontData, cfg.FontNo);
         IM_ASSERT(font_offset >= 0 && "FontData is incorrect, or FontNo cannot be found.");
         if (!stbtt_InitFont(&src_tmp.FontInfo, (unsigned char*)cfg.FontData, font_offset))

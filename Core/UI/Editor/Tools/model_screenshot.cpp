@@ -16,23 +16,17 @@
 #include <UICommon/IFacadeEngineToUI.h>
 #include "../Debug/rnd_dbg_type_switcher.h"
 #include <imgui.h>
+#pragma warning (disable : 4996)
 
 namespace UI
 {
-
-// static ptr to the models names array
-static cvector<ModelName>* s_ModelsNamesArr = nullptr;
 
 //---------------------------------------------------------
 // Desc:  do some initialization
 //---------------------------------------------------------
 void ModelScreenshot::Init(IFacadeEngineToUI* pFacade)
 {
-    if (!pFacade)
-    {
-        LogErr(LOG, "can't init model screeshot tool: input ptr to UI facade == nullptr");
-        return;
-    }
+    assert(pFacade);
 
     pFacade_ = pFacade;
 
@@ -53,11 +47,8 @@ void Checkbox(
     const char* text,
     const eModelPreviewParams param)
 {
-    if (!text || text[0] == '\0')
-    {
-        LogErr(LOG, "can't draw checkbox: input text is empty!");
-        return;
-    }
+    assert(pFacade);
+    assert(text && text[0] != '\0');
 
     bool flag = (bool)pFacade->GetModelPreviewParam(param);
 
@@ -75,11 +66,8 @@ void DragFloat3(
     const eModelPreviewParams param2,
     const float speed = 0.01f)
 {
-    if (!text || text[0] == '\0')
-    {
-        LogErr(LOG, "can't draw float3: input text is empty!");
-        return;
-    }
+    assert(pFacade);
+    assert(text && text[0] != '\0');
 
     Vec3 vec;
     vec.x = pFacade->GetModelPreviewParam(param0);
@@ -95,41 +83,33 @@ void DragFloat3(
 
 
     // do some stuff according to specific value of input param
-    switch (param0)
+    if (param0 == CAMERA_POS_X)
     {
-        // prevent crash when camera pos == Vec3(0,0,0)
-        case CAMERA_POS_X:
-        {
-            if (vec.x == 0 && vec.y == 0 && vec.z == 0)
-                pFacade->SetModelPreviewParam(param2, vec.z + 0.01f);
-            break;
-        }
-
+        // prevent crash when camera pos == <0,0,0>
+        if (vec.x == 0 && vec.y == 0 && vec.z == 0)
+            pFacade->SetModelPreviewParam(param2, vec.z + 0.01f);
+    }
+    else if (param0 == MODEL_ROT_X || param0 == CAMERA_ROT_X)
+    {
         // draw helper buttons to rotate model/camera exactly by 45 degrees
-        case MODEL_ROT_X:
-        case CAMERA_ROT_X:
-        {
-            ImGui::PushID(text);
+        ImGui::PushID(text);
 
-            if (ImGui::Button("rX -45"))
-                pFacade->SetModelPreviewParam(param0, vec.x - DEG_TO_RAD(45));
-            ImGui::SameLine();
+        if (ImGui::Button("rX -45"))
+            pFacade->SetModelPreviewParam(param0, vec.x - DEG_TO_RAD(45));
+        ImGui::SameLine();
 
-            if (ImGui::Button("rX +45"))
-                pFacade->SetModelPreviewParam(param0, vec.x + DEG_TO_RAD(45));
-            ImGui::SameLine();
+        if (ImGui::Button("rX +45"))
+            pFacade->SetModelPreviewParam(param0, vec.x + DEG_TO_RAD(45));
+        ImGui::SameLine();
 
-            if (ImGui::Button("rY -45"))
-                pFacade->SetModelPreviewParam(param1, vec.y - DEG_TO_RAD(45));
-            ImGui::SameLine();
+        if (ImGui::Button("rY -45"))
+            pFacade->SetModelPreviewParam(param1, vec.y - DEG_TO_RAD(45));
+        ImGui::SameLine();
 
-            if (ImGui::Button("rY +45"))
-                pFacade->SetModelPreviewParam(param1, vec.y + DEG_TO_RAD(45));
+        if (ImGui::Button("rY +45"))
+            pFacade->SetModelPreviewParam(param1, vec.y + DEG_TO_RAD(45));
 
-            ImGui::PopID();
-
-            break;
-        }
+        ImGui::PopID();
     }
 }
 
@@ -142,11 +122,8 @@ void DragFloat(
     const float speed = 0.01f,
     const float minVal = EPSILON_E6)
 {
-    if (!text || text[0] == '\0')
-    {
-        LogErr(LOG, "can't draw float: input text is empty!");
-        return;
-    }
+    assert(pFacade);
+    assert(text && text[0] != '\0');
 
     float val = pFacade->GetModelPreviewParam(param);
 
@@ -185,11 +162,8 @@ bool DragUint(
     const eModelPreviewParams param,
     const float speed = 0.01f)
 {
-    if (!text || text[0] == '\0')
-    {
-        LogErr(LOG, "can't draw UINT: input text is empty!");
-        return false;
-    }
+    assert(pFacade);
+    assert(text && text[0] != '\0');
 
     int val = (int)pFacade->GetModelPreviewParam(param);
 
@@ -204,11 +178,10 @@ bool DragUint(
 
 //---------------------------------------------------------
 
-void RenderModelPreview(
-    IFacadeEngineToUI* pFacade,
-    const float width,
-    const float height)
+void RenderModelPreview(IFacadeEngineToUI* pFacade, float width, float height)
 {
+    assert(pFacade);
+
     pFacade->RenderModelFrameBuf();
 
     ID3D11ShaderResourceView* pSRV = pFacade->GetModelFrameBufView();
@@ -222,6 +195,8 @@ void RenderModelPreview(
 //---------------------------------------------------------
 void ResizePreviewWnd(IFacadeEngineToUI* pFacade)
 {
+    assert(pFacade);
+
     const uint width  = (uint)pFacade->GetModelPreviewParam(FRAME_BUF_WIDTH);
     const uint height = (uint)pFacade->GetModelPreviewParam(FRAME_BUF_HEIGHT);
 
@@ -235,15 +210,18 @@ void ResizePreviewWnd(IFacadeEngineToUI* pFacade)
 //
 // Args:  - filename:  where to save a texture atlas
 //---------------------------------------------------------
-void MakeScreenshotAtlas(const char* filename, IFacadeEngineToUI* pFacade)
+void MakeScreenshotAtlas(const char* filename, IFacadeEngineToUI* pFacade, UINT frames)
 {
+    assert(filename && filename[0] != '\0');
+    assert(pFacade);
+    assert(frames > 0 && frames <= 16);
+
     const uint width  = (uint)pFacade->GetModelPreviewParam(FRAME_BUF_WIDTH);
     const uint height = (uint)pFacade->GetModelPreviewParam(FRAME_BUF_HEIGHT);
 
     // save for restoring after screenshot creation
     float prevRotation = pFacade->GetModelPreviewParam(CAMERA_ROT_Y);
-
-    const uint frames = 8;
+    
     const float angleStep = 360.0f / frames;
 
     pFacade->CreateEmptyTexAtlas(width, height, frames);
@@ -284,16 +262,16 @@ void RenderEditingFields(IFacadeEngineToUI* pFacade)
 
     ImGui::Text("Frame buffer (and screenshot)");
 
-    bool resize = false;
-    resize |= DragUint (pFacade, "width",  FRAME_BUF_WIDTH);
-    resize |= DragUint (pFacade, "height", FRAME_BUF_HEIGHT);
+    bool resizeFrameBuf = false;
+    resizeFrameBuf |= DragUint (pFacade, "width",  FRAME_BUF_WIDTH);
+    resizeFrameBuf |= DragUint (pFacade, "height", FRAME_BUF_HEIGHT);
 
     DragColor(pFacade,  "bg color",  BG_COLOR_R, BG_COLOR_G, BG_COLOR_B);
     DragFloat(pFacade,  "ortho view height", ORTHO_MATRIX_VIEW_HEIGHT, 0.001f, 0.001f);
 
 
-    // handle some stuff
-    if (resize)
+    // handle resizing of the preview window
+    if (resizeFrameBuf)
         ResizePreviewWnd(pFacade);
 }
 
@@ -329,6 +307,8 @@ void RenderModelsNamesList(IFacadeEngineToUI* pFacade, int& selectedIdx)
 //---------------------------------------------------------
 inline void RenderDebugTypesList(IFacadeEngineToUI* pFacade)
 {
+    assert(pFacade);
+
     if (ImGui::TreeNode("Select rendering debug"))
     {
         // switch btw different rendering states
@@ -342,11 +322,8 @@ inline void RenderDebugTypesList(IFacadeEngineToUI* pFacade)
 //---------------------------------------------------------
 void ModelScreenshot::Render(bool* pOpen)
 {
-    if (!pFacade_)
-    {
-        LogErr(LOG, "dude, you forgot to init ptr to facade interface!");
-        return;
-    }
+    assert(pOpen);
+    assert(pFacade_);
 
     // always center this window when appearing
     const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
@@ -386,8 +363,12 @@ void ModelScreenshot::Render(bool* pOpen)
         ImGui::SetNextWindowPos(rightPos);
         if (ImGui::BeginChild("Control fields", rightSideSz))
         {
+            DrawNumFramesSelector();
+            
             if (ImGui::Button("Make screenshot"))
-                MakeScreenshotAtlas("screenshot.dds", pFacade_);
+                MakeScreenshotAtlas("screenshot.dds", pFacade_, frames_);
+
+            ImGui::Separator();
 
             RenderEditingFields(pFacade_);
             RenderModelsNamesList(pFacade_, selectedModelIdx_);
@@ -396,6 +377,47 @@ void ModelScreenshot::Render(bool* pOpen)
         ImGui::EndChild();
     }
     ImGui::End();
+}
+
+//---------------------------------------------------------
+// Desc:   draw a dropdown menu for screenshot frames number selection
+//---------------------------------------------------------
+void ModelScreenshot::DrawNumFramesSelector()
+{
+    ImGui::Text("Select num frames in screenshot");
+
+    ImGui::PushItemWidth(-FLT_MIN);
+
+    uint frames = frames_;
+    char currNumFramesStr[] = { "16" };
+
+    switch (frames_)
+    {
+        case 1:  strcpy(currNumFramesStr, "1");     break;
+        case 4:  strcpy(currNumFramesStr, "4");     break;
+        case 8:  strcpy(currNumFramesStr, "8");     break;
+        case 16: strcpy(currNumFramesStr, "16");    break;
+    }
+
+    const char* optStr[4]    = { "1","4","8","16" };
+    const uint framesOpts[4] = { 1,4,8,16 };
+
+    if (ImGui::BeginCombo("select_num_frames", currNumFramesStr))
+    {
+        for (int i = 0; i < 4; ++i)
+        {
+            const bool isSelected = (frames == framesOpts[i]);
+
+            if (ImGui::Selectable(optStr[i], isSelected))
+                frames_ = framesOpts[i];
+
+            if (isSelected)
+                ImGui::SetItemDefaultFocus();
+        }
+
+        ImGui::EndCombo();
+    }
+    ImGui::PopItemWidth();
 }
 
 

@@ -15,6 +15,8 @@
 \**********************************************************************************/
 #pragma once
 
+
+// forward declaration (pointer use only)
 struct ID3D11Query;
 
 //---------------------------------------------------------
@@ -33,6 +35,7 @@ enum eGTS
     GTS_RenderScene_Opaque,
     GTS_RenderScene_SkinnedModels,
     GTS_RenderScene_Terrain,
+    GTS_RenderScene_Decals,
     GTS_RenderScene_Sky,
     GTS_RenderScene_SkyPlane,
     GTS_RenderScene_Blended,

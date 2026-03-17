@@ -15,6 +15,8 @@
 \**********************************************************************************/
 #pragma once
 
+#include <bit_flags.h>
+
 // components (ECS)
 #include "../Components/Transform.h"
 #include "../Components/Movement.h"
@@ -22,13 +24,13 @@
 #include "../Components/Rendered.h"
 #include "../Components/Name.h"
 #include "../Components/Material.h"   
-#include "../Components/TextureTransform.h"
 #include "../Components/Light.h"
 #include "../Components/Bounding.h"
 #include "../Components/Camera.h"
 #include "../Components/Player.h"
 #include "../Components/Hierarchy.h"
 #include "../Components/Inventory.h"
+#include "../Components/ParticleEmitter.h"
 #include "../Components/animation.h"
 #include "../Components/Sprite.h"
 
@@ -39,7 +41,6 @@
 #include "../Systems/RenderSystem.h"
 #include "../Systems/NameSystem.h"
 #include "../Systems/MaterialSystem.h"
-#include "../Systems/TextureTransformSystem.h"
 #include "../Systems/LightSystem.h"
 #include "../Systems/BoundingSystem.h"
 #include "../Systems/CameraSystem.h"
@@ -52,6 +53,10 @@
 
 // events (ECS)
 #include "../Events/IEvent.h"
+
+// quad tree related stuff
+#include "../QuadTree/quad_tree.h"
+#include "../QuadTree/scene_object.h"
 
 
 namespace ECS
@@ -73,14 +78,11 @@ public:
     ~EntityMgr();
 
     // restrict any copying of instances of this class
-    EntityMgr(const EntityMgr&) = delete;
-    EntityMgr(EntityMgr&&) = delete;
-    EntityMgr& operator=(const EntityMgr&) = delete;
-    EntityMgr& operator=(EntityMgr&&) = delete;
+    EntityMgr(const EntityMgr&)             = delete;
+    EntityMgr(EntityMgr&&)                  = delete;
+    EntityMgr& operator=(const EntityMgr&)  = delete;
+    EntityMgr& operator=(EntityMgr&&)       = delete;
 
-
-    bool                Serialize(const std::string& dataFilepath);
-    bool                Deserialize(const std::string& dataFilepath);
 
     // public creation/destroyment API
     cvector<EntityID>   CreateEntities(const int newEnttsCount);
@@ -88,13 +90,23 @@ public:
 
     EntityID            CreateEntity();
     EntityID            CreateEntity(const char* enttName);
-    //void DestroyEntity(const EntityName& enttName);
 
-    void                Update(const float totalGameTime, const float deltaTime);
+    void                Update(const float gameTime, const float dt);
     void                PushEvent(const Event& e);
 
     void                RemoveComponent(const EntityID id, eComponentType component);
 
+    // quad tree functions...
+    size                GetNumSceneObjects() const;
+    ::QuadTree&         GetQuadTree();
+    void                AttachEnttToQuadTree(const EntityID id);
+    void                AttachEnttsToQuadTree(const EntityID* ids, const size count);
+    void                UpdateQuadTreeMembership(const EntityID id);
+    void                UpdateQuadTreeMembership(const EntityID* ids, const size count);
+
+    // debugging functions...
+    void DumpEntts()        const;
+    void DumpSceneObjects() const;
 
     // =============================================================================
     // PUBLIC METHODS: ADD COMPONENTS 
@@ -104,8 +116,8 @@ public:
     void AddTransformComponent(
         const EntityID& enttID,
         const XMFLOAT3& position = { 0,0,0 },
-        const XMVECTOR& direction = { 0,0,0,1 },  // no rotation by default
-        const float uniformScale = 1.0f);
+        const XMVECTOR& direction = { 0,0,1,1 },
+        const float scale = 1.0f);
 
     void AddTransformComponent(
         const EntityID* ids,
@@ -150,28 +162,17 @@ public:
     void AddRenderingComponent(const EntityID* ids, const size numEntts);
   
     // add MATERIAL component
+    void AddMaterialComponent(const EntityID enttId, const MaterialID matId);
+
     void AddMaterialComponent(
-        const EntityID enttId,
+        const EntityID* enttsIds,
+        const size numEntts,
         const MaterialID matId);
 
     void AddMaterialComponent(
-        const EntityID enttID,
-        const MaterialID* materialsIDs,
-        const size numSubmeshes);
-
-
-    // add TEXTURE TRANSFORM component
-    void AddTextureTransformComponent(
-        const EntityID enttID,
-        const TexTransformType type,
-        const TexTransformInitParams& params);
-
-    void AddTextureTransformComponent(
-        const EntityID* ids,
-        const size numEntts,
-        const TexTransformType type,
-        const TexTransformInitParams& params);
-
+        const EntityID enttId,
+        const MaterialID* materialsIds,
+        const size numMeshes);
 
     // add LIGHT component
     void AddLightComponent(const EntityID id, const DirLight& initData);
@@ -179,13 +180,21 @@ public:
     void AddLightComponent(const EntityID id, const SpotLight& initData);
 
     // add BOUNDING component
-    void AddBoundingComponent(const EntityID id, const DirectX::BoundingSphere& sphere);
-    void AddBoundingComponent(const EntityID id, const DirectX::BoundingBox& aabb);
+    void AddBoundingComponent(
+        const EntityID id,
+        const DirectX::BoundingSphere& localSphere,
+        const DirectX::BoundingSphere& worldSphere);
+
+    void AddBoundingComponent(
+        const EntityID id,
+        const DirectX::BoundingBox& localBox,
+        const DirectX::BoundingBox& worldBox);
 
     void AddBoundingComponent(
         const EntityID* ids,
         const size numEntts,
-        const DirectX::BoundingBox& aabb);
+        const DirectX::BoundingBox& localBox,
+        const DirectX::BoundingBox* worldBoxes);
 
     void AddCameraComponent         (const EntityID id, const CameraData& data);
     void AddPlayerComponent         (const EntityID id);
@@ -210,49 +219,40 @@ public:
     // =============================================================================
     // public API: QUERY
     // =============================================================================
-    inline const Transform&         GetComponentTransform()     const { return transform_; }
-    inline const Movement&          GetComponentMovement()      const { return movement_; }
-    inline const Model&             GetComponentModel()         const { return modelComp_; }
-    inline const Name&              GetComponentName()          const { return names_; }
-    inline const Rendered&          GetComponentRendered()      const { return renderComp_; }
-    inline const Material&          GetComponentMaterial()      const { return materials_;; }
-    inline const TextureTransform&  GetComponentTexTransform()  const { return texTransform_; }
-    inline const Light&             GetComponentLight()         const { return light_; }
-    inline const Bounding&          GetComponentBounding()      const { return bounding_; }
+    const char*              GetComponentName(const eComponentType comp) const;
 
-    inline const std::map<eComponentType, std::string>& GetMapCompTypeToName() { return componentTypeToName_; }
+    const size               GetNumAllEntts(void) const;
+    const cvector<EntityID>& GetAllEnttsIDs(void) const;
 
-    inline const size               GetNumAllEntts()            const { return ids_.size(); }
-    inline const cvector<EntityID>& GetAllEnttsIDs()            const { return ids_; }
+    bool                     CheckEnttExist (const EntityID id)                        const;
+    bool                     CheckEnttsExist(const EntityID* ids, const size numEntts) const;
 
-    bool                            GetComponentNamesByEntt(const EntityID id, cvector<std::string>& names) const;
-    bool                            GetComponentTypesByEntt(const EntityID id, cvector<uint8_t>& types)     const;
+    // get entity's components info
+    bool     GetAddedComponentsByEntt(const EntityID id, ECS::eComponentType* outArr, size& outNumComponents) const;
+    u32Flags GetAddedComponentsByEntt(const EntityID id) const;
 
-    inline bool                     CheckEnttExist (const EntityID id)                        const { return ids_.binary_search(id); }
-    inline bool                     CheckEnttsExist(const EntityID* ids, const size numEntts) const { return ids_.binary_search(ids, numEntts); }
 
 private:
-    ComponentBitfield GetHashByComponent(const eComponentType component);
- 
-    // common setters: components
-    void SetEnttHasComponent(
-        const EntityID id,
-        const eComponentType compType);
+    index GetEnttIdx(const EntityID id) const;
+
+    void CreateQuadTreeObjects(const EntityID* ids, const size numEntts);
+
+    void SetEnttHasComponent(const EntityID id, const eComponentType comp);
 
     void SetEnttsHaveComponent(
         const EntityID* ids,
         const size numEntts,
         const eComponentType compType);
 
-    void SetEnttsHaveComponents(
-        const EntityID* ids,
-        const cvector<eComponentType>& compTypes,
-        const size numEntts);
-
-
 public:
 
-    // SYSTEMS
+    // public data...
+    QuadTree                quadTree_;
+
+    cvector<EntityID>       sceneObjectsIds_;
+    cvector<SceneObject>    sceneObjects_;
+
+    // systems...
     LightSystem             lightSys_;
     NameSystem              nameSys_;
     TransformSystem         transformSys_;
@@ -260,7 +260,6 @@ public:
     ModelSystem             modelSys_;
     RenderSystem            renderSys_;
     MaterialSystem          materialSys_;
-    TextureTransformSystem  texTransformSys_;
     BoundingSystem          boundingSys_;
     CameraSystem            cameraSys_;
     PlayerSystem            playerSys_;
@@ -274,31 +273,94 @@ public:
     cvector<EntityID> ids_;
 
     // bit flags for every component, indicating whether this object "has it"
-    cvector<ComponentBitfield> componentHashes_;
+    cvector<u32Flags> componentFlags_;
 
-    std::map<eComponentType, std::string> componentTypeToName_;  
+    // pairs [component_type => component_name]
+    std::map<eComponentType, std::string> componentNames_;  
 
 private:
-    Event eventsList_[MAX_NUM_EVENTS];
-    int currNumEvents_ = 0;
 
-    static int       lastEntityID_;
+    // private data...
+    Event       eventsList_[MAX_NUM_EVENTS];
+    int         currNumEvents_ = 0;
 
-    // COMPONENTS
-    Transform        transform_;
-    Movement         movement_;
-    Model            modelComp_;
-    Rendered         renderComp_;
-    Material         materials_;
-    Name             names_;
-    TextureTransform texTransform_;
-    Light            light_;
-    Bounding         bounding_;
-    Camera           camera_;
-    Hierarchy        hierarchy_;
-    Inventory        inventory_;
-    Animations       animations_;
-    Sprite           sprites_;
+    static int  lastEntityID_;
+
+    // components
+    Transform       transform_;
+    Movement        movement_;
+    Model           modelComp_;
+    Rendered        renderComp_;
+    Material        materials_;
+    Name            names_;
+    Light           light_;
+    Bounding        bounding_;
+    Camera          camera_;
+    Hierarchy       hierarchy_;
+    Inventory       inventory_;
+    ParticleEmitter particleEmitter_;
+    Animations      animations_;
+    Sprite          sprites_;
 };
+
+
+//==================================================================================
+// inline functions
+//==================================================================================
+
+//---------------------------------------------------------
+// return an index of entity by id
+//---------------------------------------------------------
+inline index EntityMgr::GetEnttIdx(const EntityID id) const
+{
+    const index idx = ids_.get_idx(id);
+    assert(idx > 0 && idx < ids_.size());
+    return idx;
+}
+
+//---------------------------------------------------------
+// return a name of the component by its type
+//---------------------------------------------------------
+inline const char* EntityMgr::GetComponentName(const eComponentType comp) const
+{
+    return componentNames_.at(comp).c_str();
+}
+
+//---------------------------------------------------------
+// how many entities we currently have at all?
+//---------------------------------------------------------
+inline const size EntityMgr::GetNumAllEntts() const
+{
+    return ids_.size();
+}
+
+//---------------------------------------------------------
+// return an array of all the entities IDs
+//---------------------------------------------------------
+inline const cvector<EntityID>& EntityMgr::GetAllEnttsIDs() const
+{
+    return ids_;
+}
+
+//---------------------------------------------------------
+// return a components bitfield of entity by id
+//---------------------------------------------------------
+inline u32Flags EntityMgr::GetAddedComponentsByEntt(const EntityID id) const
+{
+    return componentFlags_[GetEnttIdx(id)];
+}
+
+//---------------------------------------------------------
+// simply check if entities exist in the manager
+//---------------------------------------------------------
+inline bool EntityMgr::CheckEnttExist(const EntityID id) const
+{
+    return ids_.binary_search(id);
+}
+
+inline bool EntityMgr::CheckEnttsExist(const EntityID* ids, const size numEntts) const
+{
+    return ids_.binary_search(ids, numEntts);
+}
 
 };

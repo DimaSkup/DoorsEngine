@@ -11,7 +11,7 @@
 #include "Engine/engine.h"
 #include "Engine/engine_configs.h"
 #include "Window/window_container.h"
-#include <EngineException.h>
+#include <engine_exception.h>
 
 // shared stuff
 #include <FileSystemPaths.h>

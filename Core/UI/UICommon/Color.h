@@ -21,33 +21,33 @@ public:
 	ColorRGB(const float r_, const float g_, const float b_) :
 		r(r_), g(g_), b(b_) {}
 
-	ColorRGB(const ColorRGB& color) :
-		r(color.r), g(color.g), b(color.b) {}
+	ColorRGB(const ColorRGB& c) :
+		r(c.r), g(c.g), b(c.b) {}
 
-	ColorRGB(const DirectX::XMFLOAT3& color) :
-		r(color.x), g(color.y), b(color.z) {}
+	ColorRGB(const DirectX::XMFLOAT3& c) :
+		r(c.x), g(c.y), b(c.z) {}
 
 
 	// ------------------------------------------
 
 	inline DirectX::XMFLOAT3 ToFloat3() const { return { r, g, b };	}
 
-	inline ColorRGB& operator=(const ColorRGB& color)
+	inline ColorRGB& operator=(const ColorRGB& c)
 	{
-		if (this == &color) return *this;
+		if (this == &c) return *this;
 
-		r = color.r;
-		g = color.g;
-		b = color.b;
+		r = c.r;
+		g = c.g;
+		b = c.b;
 
 		return *this;
 	}
 
-	inline ColorRGB& operator=(ColorRGB&& color) noexcept
+	inline ColorRGB& operator=(ColorRGB&& c) noexcept
 	{
-		r = color.r;
-		g = color.g;
-		b = color.b;
+		r = c.r;
+		g = c.g;
+		b = c.b;
 
 		return *this;
 	}
@@ -56,7 +56,7 @@ public:
 	// data: can get as an array (rgb), or can get values separately (r, g, b)
 	union
 	{
-		float rgb[3]{ 0.0f };
+		float rgb[3];
 
 		struct {
 			float r, g, b;
@@ -75,35 +75,35 @@ public:
 	ColorRGBA(const float r_, const float g_, const float b_, const float a_) :
 		r(r_), g(g_), b(b_), a(a_) {}
 
-	ColorRGBA(const ColorRGBA& color) :
-		r(color.r), g(color.g), b(color.b), a(color.a) {}
+	ColorRGBA(const ColorRGBA& c) :
+		r(c.r), g(c.g), b(c.b), a(c.a) {}
 
-	ColorRGBA(const DirectX::XMFLOAT4& color) :
-		r(color.x), g(color.y), b(color.z), a(color.w) {}
+	ColorRGBA(const DirectX::XMFLOAT4& c) :
+		r(c.x), g(c.y), b(c.z), a(c.w) {}
 
 	// ------------------------------------------
 
 	inline DirectX::XMFLOAT4 ToFloat4() const { return { r, g, b, a }; }
 	inline ColorRGB          ToRGB()    const { return { r, g, b }; }
 
-	inline ColorRGBA& operator=(const ColorRGBA& color)
+	inline ColorRGBA& operator=(const ColorRGBA& c)
 	{
-		if (this == &color) return *this;
+		if (this == &c) return *this;
 
-		r = color.r;
-		g = color.g;
-		b = color.b;
-		a = color.a;
+		r = c.r;
+		g = c.g;
+		b = c.b;
+		a = c.a;
 
 		return *this;
 	}
 
-	inline ColorRGBA& operator=(ColorRGBA&& color) noexcept
+	inline ColorRGBA& operator=(ColorRGBA&& c) noexcept
 	{
-		r = color.r;
-		g = color.g;
-		b = color.b;
-		a = color.a;
+		r = c.r;
+		g = c.g;
+		b = c.b;
+		a = c.a;
 
 		return *this;
 	}
@@ -112,7 +112,7 @@ public:
 	// data: can get as an array (rgba), or can get values separately (r, g, b, a)
 	union
 	{
-		float rgba[4]{ 0, 0, 0, 1 };
+		float rgba[4];
 
 		struct {
 			float r, g, b, a;

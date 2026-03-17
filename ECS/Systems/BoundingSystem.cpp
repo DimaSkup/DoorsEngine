@@ -16,44 +16,169 @@
 #include "../Common/pch.h"
 #include "BoundingSystem.h"
 
+using namespace DirectX;
 
 namespace ECS
 {
-
-using namespace DirectX;
 
 // static arrays for internal purposes
 static cvector<index> s_Idxs;
 
 
-// functions prototypes
-BoundingSphere CreateSphereFromBoxes(const BoundingBox* AABBs, const size count);
-BoundingSphere CreateSphereFromBox  (const BoundingBox& aabb);
-BoundingBox    CreateBoxFromSphere  (const BoundingSphere& sphere);
-BoundingBox    ComputeAABB          (const BoundingBox* AABBs, const size count);
+//**********************************************************************************
+// PRIVATE INTERNAL HELPERS
+//**********************************************************************************
 
-///////////////////////////////////////////////////////////
-
-BoundingSystem::BoundingSystem(Bounding* pBoundingComponent) :
-    pBoundingComponent_(pBoundingComponent)
+//---------------------------------------------------------
+// Desc:  compute a merged AABB based on input array of AABBs
+//---------------------------------------------------------
+BoundingBox ComputeMergedAABB(const BoundingBox* AABBs, const size count)
 {
-    CAssert::NotNullptr(pBoundingComponent, "ptr to the bounding component == nullptr");
+    assert(AABBs);
+    assert(count > 0);
 
-    Bounding& comp = *pBoundingComponent;
+    XMVECTOR vMin{ FLT_MAX, FLT_MAX, FLT_MAX };
+    XMVECTOR vMax{ FLT_MIN, FLT_MIN, FLT_MIN };
+
+    // go through each subset (mesh)
+    for (int i = 0; i < count; ++i)
+    {
+        // define min/max point of this mesh
+        const XMVECTOR center = XMLoadFloat3(&AABBs[i].Center);
+        const XMVECTOR extents = XMLoadFloat3(&AABBs[i].Extents);
+
+        vMin = XMVectorMin(vMin, center - extents);
+        vMax = XMVectorMax(vMax, center + extents);
+    }
+
+    // compute a model's AABB
+    BoundingBox outAABB;
+    XMStoreFloat3(&outAABB.Center, 0.5f * (vMin + vMax));
+    XMStoreFloat3(&outAABB.Extents, 0.5f * (vMax - vMin));
+
+    return outAABB;
+}
+
+//--------------------------------------------------------
+// Desc:  compute a bounding sphere AROUND input axis-aligned bounding box
+//--------------------------------------------------------
+inline BoundingSphere CreateSphereFromBox(const BoundingBox& aabb)
+{
+    const XMFLOAT3& e = aabb.Extents;
+    return BoundingSphere{ aabb.Center, sqrtf(SQR(e.x) + SQR(e.y) + SQR(e.z)) };
+}
+
+//--------------------------------------------------------
+// Desc:  compute a bounding sphere from input arr of axis-aligned bounding boxes
+//--------------------------------------------------------
+inline BoundingSphere CreateSphereFromBoxes(const BoundingBox* AABBs, const size count)
+{
+    assert(AABBs);
+    assert(count > 0);
+    return CreateSphereFromBox(ComputeMergedAABB(AABBs, count));
+}
+
+//--------------------------------------------------------
+// Desc:  compute a axis-aligned bounding box AROUND input bounding sphere
+//--------------------------------------------------------
+inline BoundingBox CreateBoxFromSphere(const BoundingSphere& sphere)
+{
+    const float r = sphere.Radius;
+    return BoundingBox(sphere.Center, XMFLOAT3(r, r, r));
+}
+
+
+//==================================================================================
+// BoundingSystem class's methods implementation
+//==================================================================================
+BoundingSystem::BoundingSystem(Bounding* pComponent, TransformSystem* pTransSys) :
+    pBoundingComponent_(pComponent),
+    pTransSys_(pTransSys)
+{
+    assert(pComponent);
+    assert(pTransSys);
 
     // alloc memory ahead
-    comp.ids.reserve(256);
-    comp.data.reserve(256);
+    pComponent->ids.reserve(256);
+    pComponent->data.reserve(256);
+}
 
-    // add "invalid" bounding shape
-    comp.ids.push_back(INVALID_ENTITY_ID);
-    comp.data.push_back(BoundingData());
+//---------------------------------------------------------
+// Desc:  relocate world bounding box and world bounding sphere
+//        according to current world position of entity by id
+//---------------------------------------------------------
+void BoundingSystem::TranslateWorldBoundings(const EntityID id)
+{
+    TranslateWorldBoundings(&id, 1);
+}
+
+void BoundingSystem::TranslateWorldBoundings(const EntityID* ids, const size count)
+{
+    if (!ids || count <= 0)
+    {
+        LogErr(LOG, "invalid input args");
+        return;
+    }
+
+    for (index i = 0; i < count; ++i)
+    {
+        ECS::BoundData& data = pBoundingComponent_->data[GetIdx(ids[i])];
+        const XMFLOAT3&    p = pTransSys_->GetPosition(ids[i]);
+
+
+        // translate world AABB
+        const XMFLOAT3& localBoxC = data.localBox.Center;
+        XMFLOAT3&       worldBoxC = data.worldBox.Center;
+
+        worldBoxC.x = localBoxC.x + p.x;
+        worldBoxC.y = localBoxC.y + p.y;
+        worldBoxC.z = localBoxC.z + p.z;
+
+
+        // translate world sphere
+        const XMFLOAT3& localSphereC = data.localSphere.Center;
+        XMFLOAT3&       worldSphereC = data.worldSphere.Center;
+
+        worldSphereC.x = localSphereC.x + p.x;
+        worldSphereC.y = localSphereC.y + p.y;
+        worldSphereC.z = localSphereC.z + p.z;
+    }
+}
+
+//---------------------------------------------------------
+// Desc:  recompute world bounding box and world bounding sphere
+//        according to current world transformation of entity by id
+//---------------------------------------------------------
+void BoundingSystem::UpdateWorldBoundings(const EntityID id)
+{
+    UpdateWorldBoundings(&id, 1);
+}
+
+void BoundingSystem::UpdateWorldBoundings(const EntityID* ids, const size count)
+{
+    if (!ids || count <= 0)
+    {
+        LogErr(LOG, "invalid input args");
+        return;
+    }
+
+    for (index i = 0; i < count; ++i)
+    {
+        ECS::BoundData& data = pBoundingComponent_->data[GetIdx(ids[i])];
+        const XMMATRIX& W    = pTransSys_->GetWorld(ids[i]);
+
+        data.localBox.Transform(data.worldBox, W);
+        data.localSphere.Transform(data.worldSphere, W);
+    }
 }
 
 //---------------------------------------------------------
 // Desc:  add only one entt with only one bounding SPHERE
 //---------------------------------------------------------
-bool BoundingSystem::Add(const EntityID id, const BoundingSphere& sphere)
+bool BoundingSystem::Add(
+    const EntityID id,
+    const BoundingSphere& localSphere,     // in local space
+    const BoundingSphere& worldSphere)     // in world space
 {
     Bounding& comp = *pBoundingComponent_;
 
@@ -64,11 +189,23 @@ bool BoundingSystem::Add(const EntityID id, const BoundingSphere& sphere)
         return false;
     }
 
-    const index          idx = comp.ids.get_insert_idx(id);
-    const BoundingBox    aabb = CreateBoxFromSphere(sphere);
+    const BoundingBox localBox = CreateBoxFromSphere(localSphere);
+    const BoundingBox worldBox = CreateBoxFromSphere(worldSphere);
+
+    // if we just need to push back
+    if (id > comp.ids.back())
+    {
+        comp.ids.push_back(id);
+        comp.data.push_back(BoundData(localBox, worldBox, localSphere, worldSphere));
+    }
 
     // execute sorted insertion of ID and initial data
-    comp.data.insert_before(idx, BoundingData(BOUND_SPHERE, sphere, aabb));
+    else
+    {
+        const index idx = comp.ids.get_insert_idx(id);
+        comp.ids.insert_before(idx, id);
+        comp.data.insert_before(idx, BoundData(localBox, worldBox, localSphere, worldSphere));
+    }
 
     return true;
 }
@@ -76,7 +213,10 @@ bool BoundingSystem::Add(const EntityID id, const BoundingSphere& sphere)
 //---------------------------------------------------------
 // Desc:  add only one entt with only one axis-aligned bounding box (AABB)
 //---------------------------------------------------------
-bool BoundingSystem::Add(const EntityID id, const BoundingBox& aabb)
+bool BoundingSystem::Add(
+    const EntityID id,
+    const BoundingBox& localBox,     // in local space
+    const BoundingBox& worldBox)     // in world space
 {
     Bounding& comp = *pBoundingComponent_;
 
@@ -87,59 +227,113 @@ bool BoundingSystem::Add(const EntityID id, const BoundingBox& aabb)
         return false;
     }
 
-    const index          idx      = comp.ids.get_insert_idx(id);
-    const BoundingSphere sphere   = CreateSphereFromBox(aabb);
+    const BoundingSphere localSphere = CreateSphereFromBox(localBox);
+    const BoundingSphere worldSphere = CreateSphereFromBox(worldBox);
+
+    // if we just need to push back
+    if (id > comp.ids.back())
+    {
+        comp.ids.push_back(id);
+        comp.data.push_back(BoundData(localBox, worldBox, localSphere, worldSphere));
+    }
 
     // execute sorted insertion of ID and initial data
-    comp.ids.insert_before(idx, id);
-    comp.data.insert_before(idx, BoundingData(BOUND_SPHERE, sphere, aabb));
+    else
+    {
+        const index idx = comp.ids.get_insert_idx(id);
+        comp.ids.insert_before(idx, id);
+        comp.data.insert_before(idx, BoundData(localBox, worldBox, localSphere, worldSphere));
+    }
+    
+    return true;
+}
+
+//---------------------------------------------------------
+// Desc:  add THE SAME local bounding sphere, but DIFFERENT world bounding sphere
+//        for each input entity
+// 
+// Args:  - ids:        array of entities IDs
+//        - numEntts:   how many entities in the input arr
+//        - localSphere:    bounding sphere in local space
+//        - worldSpheres:   arr of bounding spheres in world space
+//---------------------------------------------------------
+bool BoundingSystem::Add(
+    const EntityID* ids,
+    const size numEntts,
+    const DirectX::BoundingSphere& localSphere,
+    const DirectX::BoundingSphere* worldSpheres)
+{
+    assert(ids);
+    assert(numEntts > 0);
+    assert(worldSpheres);
+
+    Bounding& comp = *pBoundingComponent_;
+    BoundingBox localBox = CreateBoxFromSphere(localSphere);
+    BoundingBox worldBox;
+
+    // check that there are no records with input ids yet
+    if (comp.ids.binary_search(ids, numEntts))
+    {
+        LogErr(LOG, "there is already a record with some input id");
+        return false;
+    }
+
+    comp.ids.get_insert_idxs(ids, numEntts, s_Idxs);
+
+    // sorted intertion of IDs and initial data
+    for (index i = 0; i < numEntts; ++i)
+        comp.ids.insert_before(s_Idxs[i]+i, ids[i]);
+
+    for (index i = 0; i < numEntts; ++i)
+    {
+        worldBox = CreateBoxFromSphere(worldSpheres[i]);
+        comp.data.insert_before(s_Idxs[i]+i, BoundData(localBox, worldBox, localSphere, worldSpheres[i]));
+    }
 
     return true;
 }
 
 //---------------------------------------------------------
-// Desc:  add the same BOUNDING BOX for each input entity;
+// Desc:  add THE SAME local bounding box, but DIFFERENT world bounding box
+//        for each input entity
 // 
 // Args:  - ids:        array of entities IDs
 //        - numEntts:   how many entities in the input arr
-//        - aabb:       axis-aligned bounding box
+//        - localBox:       AABB in local space
+//        - worldBoxes:     arr of AABBs in world space
 //---------------------------------------------------------
 bool BoundingSystem::Add(
     const EntityID* ids,
     const size numEntts,
-    const DirectX::BoundingBox& aabb)
+    const DirectX::BoundingBox& localBox,
+    const DirectX::BoundingBox* worldBoxes)
 {
-    if (!ids)
-    {
-        LogErr(LOG, "input arr of entities IDs == nullptr");
-        return false;
-    }
-    if (numEntts <= 0)
-    {
-        LogErr(LOG, "input number of entities can't be <= 0");
-        return false;
-    }
+    assert(ids);
+    assert(numEntts > 0);
+    assert(worldBoxes);
 
-    // check that there is no records with input IDs yet
     Bounding& comp = *pBoundingComponent_;
+    BoundingSphere localSphere = CreateSphereFromBox(localBox);
+    BoundingSphere worldSphere;
+
+    // check that there are no records with input IDs yet
     if (comp.ids.binary_search(ids, numEntts))
     {
         LogErr(LOG, "there is already a record with some input ID");
         return false;
     }
 
-
-    const BoundingSphere sphere = CreateSphereFromBox(aabb);
-    const BoundingData initData = { BOUND_BOX, sphere, aabb };
-
     comp.ids.get_insert_idxs(ids, numEntts, s_Idxs);
 
     // sorted insertion of IDs and initial data
     for (index i = 0; i < numEntts; ++i)
-        comp.ids.insert_before(s_Idxs[i] + i, ids[i]);
+        comp.ids.insert_before(s_Idxs[i]+i, ids[i]);
 
     for (index i = 0; i < numEntts; ++i)
-        comp.data.insert_before(s_Idxs[i] + i, initData);
+    {
+        worldSphere = CreateSphereFromBox(worldBoxes[i]);
+        comp.data.insert_before(s_Idxs[i]+i, BoundData(localBox, worldBoxes[i], localSphere, worldSphere));
+    }
 
     return true;
 }
@@ -153,16 +347,8 @@ void BoundingSystem::GetBoundSpheres(
     const size numEntts,
     cvector<BoundingSphere>& outSpheres)
 {
-    if (!ids)
-    {
-        LogErr(LOG, "input ptr to ids arr == nullptr");
-        return;
-    }
-    if (numEntts <= 0)
-    {
-        LogErr(LOG, "input number of entts can't be <= 0");
-        return;
-    }
+    assert(ids);
+    assert(numEntts);
 
     Bounding& comp = *pBoundingComponent_;
 
@@ -170,95 +356,31 @@ void BoundingSystem::GetBoundSpheres(
     outSpheres.resize(numEntts);
 
     for (int i = 0; const index idx : s_Idxs)
-        outSpheres[i++] = comp.data[idx].sphere;
+        outSpheres[i++] = comp.data[idx].worldSphere;
 }
 
 //--------------------------------------------------------
-// Desc:  get an axis-aligned bounding box around entity by input ID
+// DEBUG PRINT:  print all the bounding component data into console
 //--------------------------------------------------------
-const BoundingBox& BoundingSystem::GetAABB(const EntityID id) const
+void BoundingSystem::PrintDump() const
 {
-    return pBoundingComponent_->data[GetIdxByID(id)].aabb;
-}
+    Bounding& comp = *pBoundingComponent_;
 
-//--------------------------------------------------------
-// Desc:  get a bounding spehre around entity by input ID
-//--------------------------------------------------------
-const BoundingSphere& BoundingSystem::GetBoundSphere(const EntityID id) const
-{
-    return pBoundingComponent_->data[GetIdxByID(id)].sphere;
-}
-
-
-
-//**********************************************************************************
-// PRIVATE INTERNAL HELPERS
-//**********************************************************************************
-
-//--------------------------------------------------------
-// Desc:  compute a bounding sphere from input arr of axis-aligned bounding boxes
-//--------------------------------------------------------
-BoundingSphere CreateSphereFromBoxes(const BoundingBox* AABBs, const size count)
-{
-    if (!AABBs || count <= 0)
+    printf("\n");
+    for (index i = 0; i < comp.ids.size(); ++i)
     {
-        LogErr(LOG, "invalid input args; return default bound sphere (center: <0,0,0>, radius: 1.0");
-        return BoundingSphere({ 0,0,0 }, 1);
+        const BoundingBox&       localBox = comp.data[i].localBox;
+        const BoundingBox&       worldBox = comp.data[i].worldBox;
+        const BoundingSphere& localSphere = comp.data[i].localSphere;
+        const BoundingSphere& worldSphere = comp.data[i].worldSphere;
+
+        printf("[%d] id: %d  ",                                (int)i, (int)comp.ids[i]);
+        printf("boxL(%.2f %.2f %.2f, %.2f %.2f %.2f),  ",      localBox.Center.x, localBox.Center.y, localBox.Center.z, localBox.Extents.x, localBox.Extents.y, localBox.Extents.z);
+        printf("boxW(% .2f % .2f % .2f, % .2f % .2f % .2f), ", worldBox.Center.x, worldBox.Center.y, worldBox.Center.z, worldBox.Extents.x, worldBox.Extents.y, worldBox.Extents.z);
+        printf("sphereL(%.2f %.2f %.2f,  r=%.2f),  ",          localSphere.Center.x, localSphere.Center.y, localSphere.Center.z, localSphere.Radius);
+        printf("sphereW(%.2f %.2f %.2f,  r=%.2f)\n",           worldSphere.Center.x, worldSphere.Center.y, worldSphere.Center.z, worldSphere.Radius);
     }
-
-    return CreateSphereFromBox(ComputeAABB(AABBs, count));
-}
-
-//--------------------------------------------------------
-// Desc:  compute a bounding sphere from input axis-aligned bounding box
-//--------------------------------------------------------
-BoundingSphere CreateSphereFromBox(const BoundingBox& aabb)
-{
-    return BoundingSphere {
-        aabb.Center,
-        sqrtf(SQR(aabb.Extents.x) + SQR(aabb.Extents.y) + SQR(aabb.Extents.z))
-    };
-}
-
-//--------------------------------------------------------
-// Desc:  compute a axis-aligned bounding box from input bounding sphere
-//--------------------------------------------------------
-BoundingBox CreateBoxFromSphere(const BoundingSphere& sphere)
-{
-    return BoundingBox(sphere.Center, XMFLOAT3(sphere.Radius, sphere.Radius, sphere.Radius));
-}
-
-//---------------------------------------------------------
-// Desc:  compute a merged AABB based on input array of AABBs
-//---------------------------------------------------------
-BoundingBox ComputeAABB(const BoundingBox* AABBs, const size count)
-{
-    if (!AABBs || count <= 0)
-    {
-        LogErr(LOG, "invalid input args; return default AABB (center: <0,0,0>, ext: <1,1,1>)");
-        return BoundingBox(XMFLOAT3(0,0,0), XMFLOAT3(1,1,1));
-    }
-
-    XMVECTOR vMin{ FLT_MAX, FLT_MAX, FLT_MAX };
-    XMVECTOR vMax{ FLT_MIN, FLT_MIN, FLT_MIN };
-
-    // go through each subset (mesh)
-    for (int i = 0; i < count; ++i)
-    {
-        // define min/max point of this mesh
-        const XMVECTOR center  = XMLoadFloat3(&AABBs[i].Center);
-        const XMVECTOR extents = XMLoadFloat3(&AABBs[i].Extents);
-
-        vMin = XMVectorMin(vMin, center - extents);
-        vMax = XMVectorMax(vMax, center + extents);
-    }
-
-    // compute a model's AABB
-    BoundingBox outAABB;
-    XMStoreFloat3(&outAABB.Center, 0.5f * (vMin + vMax));
-    XMStoreFloat3(&outAABB.Extents, 0.5f * (vMax - vMin));
-
-    return outAABB;
+    printf("\n");
 }
 
 } // namespace ECS

@@ -4,7 +4,7 @@
 // ====================================================================================
 #include <CoreCommon/pch.h>
 #include "frame_buffer.h"
-
+#include <Render/CRender.h>
 
 namespace Core
 {
@@ -65,7 +65,7 @@ void FrameBuffer::Shutdown()
 //                               public methods
 // ====================================================================================
 
-bool FrameBuffer::Initialize(ID3D11Device* pDevice, const FrameBufSpec& spec)
+bool FrameBuffer::Init(const FrameBufSpec& spec)
 {
     // 1. this function will do the setup of the render texture object. The function creates
     //    a render target texture by first setting up the description of the texture and
@@ -91,11 +91,11 @@ bool FrameBuffer::Initialize(ID3D11Device* pDevice, const FrameBufSpec& spec)
         // prevent memory leakage
         Shutdown();
 
-        CreateRenderTargetTexture(pDevice);
-        CreateRenderTargetView(pDevice);
-        CreateShaderResourceView(pDevice);
-        CreateDepthStencilBuffer(pDevice);
-        CreateDepthStencilView(pDevice);
+        CreateRenderTargetTexture();
+        CreateRenderTargetView();
+        CreateShaderResourceView();
+        CreateDepthStencilBuffer();
+        CreateDepthStencilView();
         SetupViewportAndMatrices();
 
         isInit_ = true;
@@ -103,36 +103,30 @@ bool FrameBuffer::Initialize(ID3D11Device* pDevice, const FrameBufSpec& spec)
     catch (EngineException & e)
     {
         Shutdown();
-        LogErr(e, true);
-        LogErr("can't initialize");
+        LogErr(LOG, e.what());
+        LogErr(LOG, "can't init a frame buffer");
         return false;
     }
 
     return true;
 }
 
-//////////////////////////////////////////////////////////
-
-void FrameBuffer::ResizeBuffers(
-    ID3D11DeviceContext* pContext,
-    const int newWidth, 
-    const int newHeight)
+//---------------------------------------------------------
+// handle window resizing
+//---------------------------------------------------------
+void FrameBuffer::ResizeBuffers(const int w, const int h)
 {
-    // handle window resizing
-
     try
     {
-        specification_.width = newWidth;
-        specification_.height = newHeight;
+        specification_.width = w;
+        specification_.height = h;
 
-        ID3D11Device* pDevice = nullptr;
-        pContext->GetDevice(&pDevice);
-
+        ID3D11DeviceContext* pCtx = Render::GetD3dContext();
 
         // 1. Clear render targets from device context
         //    crear the previous window size specific context
         ID3D11RenderTargetView* nullViews[] = { nullptr };
-        pContext->OMSetRenderTargets(_countof(nullViews), nullViews, nullptr);
+        pCtx->OMSetRenderTargets(_countof(nullViews), nullViews, nullptr);
 
         // 2. Release rendering target
         SafeRelease(&pDepthStencilBuffer_);
@@ -140,19 +134,19 @@ void FrameBuffer::ResizeBuffers(
         SafeRelease(&pShaderResourceView_);
         SafeRelease(&pRenderTargetTexture_);
         SafeRelease(&pRenderTargetView_);
-        pContext->Flush();
+        pCtx->Flush();
 
         // 4. recreate the render target view, depth stencil buffer/view, and viewport
-        CreateRenderTargetTexture(pDevice);
-        CreateRenderTargetView(pDevice);
-        CreateShaderResourceView(pDevice);
-        CreateDepthStencilBuffer(pDevice);
-        CreateDepthStencilView(pDevice);
+        CreateRenderTargetTexture();
+        CreateRenderTargetView();
+        CreateShaderResourceView();
+        CreateDepthStencilBuffer();
+        CreateDepthStencilView();
         SetupViewportAndMatrices();
     }
     catch (EngineException& e)
     {
-        LogErr(e, true);
+        LogErr(LOG, e.what());
         Shutdown();
         throw EngineException("can't resize buffers for the framebuffer");
     }
@@ -166,34 +160,34 @@ void FrameBuffer::ResizeBuffers(
 // the dimensions might be different that the back buffer or wherever we were
 // rendering to before this function was called
 //---------------------------------------------------------
-void FrameBuffer::Bind(ID3D11DeviceContext* pContext)
+void FrameBuffer::Bind()
 {
+    ID3D11DeviceContext* pCtx = Render::GetD3dContext();
+
     // bind the render target view and depth stencil buffer to the output render pipeline
-    pContext->OMSetRenderTargets(1, &pRenderTargetView_, pDepthStencilView_);
+    pCtx->OMSetRenderTargets(1, &pRenderTargetView_, pDepthStencilView_);
 
     // set the viewport
-    pContext->RSSetViewports(1, &viewport_);
+    pCtx->RSSetViewports(1, &viewport_);
 }
 
 //---------------------------------------------------------
 // Desc:   clear the prev content of the frame buffer before rendering
 //---------------------------------------------------------
-void FrameBuffer::ClearBuffers(
-    ID3D11DeviceContext* pContext,
-    const DirectX::XMFLOAT4& rgba)
+void FrameBuffer::ClearBuffers(float r, float g, float b, float a)
 {
-    // setup the colour to clear the buffer to
-    float color[4]{ rgba.x, rgba.y, rgba.z, rgba.w };
+    ID3D11DeviceContext* pCtx = Render::GetD3dContext();
+
+    float color[4]{ r, g, b, a };
 
     // clear the back buffer
     if (pRenderTargetView_)
-        pContext->ClearRenderTargetView(pRenderTargetView_, color);
+        pCtx->ClearRenderTargetView(pRenderTargetView_, color);
 
     // clear the depth buffer
     if (pDepthStencilView_)
-        pContext->ClearDepthStencilView(pDepthStencilView_, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+        pCtx->ClearDepthStencilView(pDepthStencilView_, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 }
-
 
 
 // ====================================================================================
@@ -203,36 +197,36 @@ void FrameBuffer::ClearBuffers(
 //---------------------------------------------------------
 // Desc:   create a render target texture buffer
 //---------------------------------------------------------
-void FrameBuffer::CreateRenderTargetTexture(ID3D11Device* pDevice)
+void FrameBuffer::CreateRenderTargetTexture()
 {
     HRESULT hr = S_OK;
     D3D11_TEXTURE2D_DESC desc;
-    ZeroMemory(&desc, sizeof(D3D11_TEXTURE2D_DESC));
+    ZeroMemory(&desc, sizeof(desc));
 
     // setup the render target texture description
-    desc.Width = specification_.width;
-    desc.Height = specification_.height;
-    desc.MipLevels = 1;
-    desc.ArraySize = 1;
-    desc.Format = specification_.format;
-    desc.SampleDesc.Count = 1;
-    desc.Usage = D3D11_USAGE_DEFAULT;
-    desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-    desc.CPUAccessFlags = 0;
-    desc.MiscFlags = 0;
+    desc.Width              = specification_.width;
+    desc.Height             = specification_.height;
+    desc.MipLevels          = 1;
+    desc.ArraySize          = 1;
+    desc.Format             = specification_.format;
+    desc.SampleDesc.Count   = 1;
+    desc.Usage              = D3D11_USAGE_DEFAULT;
+    desc.BindFlags          = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+    desc.CPUAccessFlags     = 0;
+    desc.MiscFlags          = 0;
 
     // create the render target texture
-    hr = pDevice->CreateTexture2D(&desc, nullptr, &pRenderTargetTexture_);
+    hr = Render::GetD3dDevice()->CreateTexture2D(&desc, nullptr, &pRenderTargetTexture_);
     CAssert::NotFailed(hr, "can't create the render target texture");
 }
 
-///////////////////////////////////////////////////////////
+//---------------------------------------------------------
 
-void FrameBuffer::CreateRenderTargetView(ID3D11Device* pDevice)
+void FrameBuffer::CreateRenderTargetView()
 {
     HRESULT hr = S_OK;
     D3D11_RENDER_TARGET_VIEW_DESC desc;
-    ZeroMemory(&desc, sizeof(D3D11_RENDER_TARGET_VIEW_DESC));
+    ZeroMemory(&desc, sizeof(desc));
 
     // setup the description of the render target view
     desc.Format             = specification_.format;
@@ -240,19 +234,18 @@ void FrameBuffer::CreateRenderTargetView(ID3D11Device* pDevice)
     desc.Texture2D.MipSlice = 0;
 
     // create the render target view
-    hr = pDevice->CreateRenderTargetView(pRenderTargetTexture_, &desc, &pRenderTargetView_);
+    hr = Render::GetD3dDevice()->CreateRenderTargetView(pRenderTargetTexture_, &desc, &pRenderTargetView_);
     CAssert::NotFailed(hr, "can't create the render target view");
 }
 
-///////////////////////////////////////////////////////////
-
-void FrameBuffer::CreateShaderResourceView(ID3D11Device* pDevice)
+//---------------------------------------------------------
+// create a shader resource view related to the render target
+//---------------------------------------------------------
+void FrameBuffer::CreateShaderResourceView()
 {
-    // create a shader resource view related to the render target
-
     HRESULT hr = S_OK;
     D3D11_SHADER_RESOURCE_VIEW_DESC desc;
-    ZeroMemory(&desc, sizeof(D3D11_SHADER_RESOURCE_VIEW_DESC));
+    ZeroMemory(&desc, sizeof(desc));
 
     // setup the description of the shader resource view
     desc.Format                    = specification_.format;
@@ -261,17 +254,17 @@ void FrameBuffer::CreateShaderResourceView(ID3D11Device* pDevice)
     desc.Texture2D.MipLevels       = 1;
 
     // create the shader resource view
-    hr = pDevice->CreateShaderResourceView(pRenderTargetTexture_, &desc, &pShaderResourceView_);
+    hr = Render::GetD3dDevice()->CreateShaderResourceView(pRenderTargetTexture_, &desc, &pShaderResourceView_);
     CAssert::NotFailed(hr, "can't create the shader resource view");
 }
 
-///////////////////////////////////////////////////////////
+//---------------------------------------------------------
 
-void FrameBuffer::CreateDepthStencilBuffer(ID3D11Device* pDevice)
+void FrameBuffer::CreateDepthStencilBuffer()
 {
     HRESULT hr = S_OK;
     D3D11_TEXTURE2D_DESC desc;
-    ZeroMemory(&desc, sizeof(D3D11_TEXTURE2D_DESC));
+    ZeroMemory(&desc, sizeof(desc));
 
     // set up the description of the depth buffer
     desc.Width              = specification_.width;
@@ -287,17 +280,17 @@ void FrameBuffer::CreateDepthStencilBuffer(ID3D11Device* pDevice)
     desc.MiscFlags          = 0;
 
     // create the texture for the depth buffer using the filled out description
-    hr = pDevice->CreateTexture2D(&desc, nullptr, &pDepthStencilBuffer_);
+    hr = Render::GetD3dDevice()->CreateTexture2D(&desc, nullptr, &pDepthStencilBuffer_);
     CAssert::NotFailed(hr, "can't create the texture for the depth buffer");
 }
 
-///////////////////////////////////////////////////////////
+//---------------------------------------------------------
 
-void FrameBuffer::CreateDepthStencilView(ID3D11Device* pDevice)
+void FrameBuffer::CreateDepthStencilView()
 {
     HRESULT hr = S_OK;
     D3D11_DEPTH_STENCIL_VIEW_DESC desc;
-    ZeroMemory(&desc, sizeof(D3D11_DEPTH_STENCIL_VIEW_DESC));
+    ZeroMemory(&desc, sizeof(desc));
 
     // set up the depth stencil view description
     desc.Format             = DXGI_FORMAT_D24_UNORM_S8_UINT;
@@ -305,19 +298,18 @@ void FrameBuffer::CreateDepthStencilView(ID3D11Device* pDevice)
     desc.Texture2D.MipSlice = 0;
 
     // create the depth stencil view
-    //hr = pDevice->CreateDepthStencilView(pDepthStencilBuffer_, &desc, &pDepthStencilView_);
-    hr = pDevice->CreateDepthStencilView(pDepthStencilBuffer_, nullptr, &pDepthStencilView_);
+    hr = Render::GetD3dDevice()->CreateDepthStencilView(pDepthStencilBuffer_, nullptr, &pDepthStencilView_);
     CAssert::NotFailed(hr, "can't create the depth stencil view");
 }
 
-///////////////////////////////////////////////////////////
+//---------------------------------------------------------
 
 void FrameBuffer::SetupViewportAndMatrices()
 {
-    const float w = (float)specification_.width;
-    const float h = (float)specification_.height;
-    const float nearZ = specification_.screenNear;
-    const float farZ  = specification_.screenDepth;
+    const float w  = (float)specification_.width;
+    const float h  = (float)specification_.height;
+    const float zn = specification_.screenNear;
+    const float zf = specification_.screenDepth;
 
     // Setup the viewport for rendering
     viewport_.TopLeftX = 0;
@@ -328,14 +320,10 @@ void FrameBuffer::SetupViewportAndMatrices()
     viewport_.MaxDepth = 1;
 
     // setup the projection matrix
-    projection_ = DirectX::XMMatrixPerspectiveFovLH(
-        DirectX::XM_PIDIV4,
-        w / h,     // aspect ratio
-        nearZ,
-        farZ);
+    projection_ = DirectX::XMMatrixPerspectiveFovLH(DirectX::XM_PIDIV4, w/h, zn, zf);
 
     // create an orthographic projection matrix for 2D rendering
-    orthoMatrix_ = DirectX::XMMatrixOrthographicLH(w, h, nearZ, farZ);
+    orthoMatrix_ = DirectX::XMMatrixOrthographicLH(w, h, zn, zf);
 }
 
-} // namespace Core
+} // namespace

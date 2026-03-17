@@ -8,7 +8,7 @@
 // *********************************************************************************
 #pragma once
 #include "enum_texture_types.h"
-#include <Types.h>
+#include <types.h>
 #include "../Render/Color.h"
 #include <d3d11.h>
 
@@ -97,9 +97,9 @@ public:
 
     ~Texture();
 
-    // --------------------------------------------------------------------------------
+    // -----------------------------------------------------------------------------
 
-    bool Initialize(
+    bool Init(
         const char* name,
         const uint8* data,
         const uint width,
@@ -116,19 +116,19 @@ public:
 
     bool CreateCubeMap(const char* name, const CubeMapInitParams& params);
 
-    inline ID3D11Resource*           GetResource()                                { return pTexture_; }
-    inline ID3D11ShaderResourceView* GetTextureResourceView()               const { return pTextureView_; }
-    inline ID3D11ShaderResourceView* const* GetTextureResourceViewAddress() const { return &pTextureView_; }
+    ID3D11Resource*           GetResource(void);
+    ID3D11ShaderResourceView* GetResourceView(void) const;
+    ID3D11ShaderResourceView* const* GetResourceViewAddr(void) const;
 
-    inline const std::string&        GetName()                              const { return name_; }
-    inline UINT                      GetWidth()                             const { return width_; }
-    inline UINT                      GetHeight()                            const { return height_; }
+    const std::string&        GetName(void) const;
+    UINT                      GetWidth(void) const;
+    UINT                      GetHeight(void) const;
 
     void SetName(const char* name);
 
 private:
-    void Initialize1x1ColorTexture(const Color& data);
-    void InitializeColorTexture   (const Color* pData, const UINT width, const UINT height);
+    void Init1x1ColorTexture(const Color& data);
+    void InitColorTexture   (const Color* pData, const UINT width, const UINT height);
 
 private:
     std::string               name_ {"no_tex_name"};
@@ -137,5 +137,44 @@ private:
     UINT                      width_ = 30;                                   
     UINT                      height_ = 30;
 };
+
+
+//---------------------------------------------------------
+// inline methods
+//---------------------------------------------------------
+
+inline ID3D11Resource* Texture::GetResource(void)
+{ 
+	return pTexture_; 
+}
+
+inline ID3D11ShaderResourceView* Texture::GetResourceView(void) const
+{ 
+	return pTextureView_; 
+}
+
+inline ID3D11ShaderResourceView* const* Texture::GetResourceViewAddr(void) const
+{ 
+	return &pTextureView_; 
+}
+
+// get a name of this texture
+inline const std::string& Texture::GetName(void) const 
+{ 
+	return name_; 
+}
+
+// return width of this texture
+inline UINT Texture::GetWidth(void) const 
+{ 
+	return width_; 
+}
+
+// return height of this texture
+inline UINT Texture::GetHeight(void) const 
+{ 
+	return height_; 
+}
+
 
 } // namespace Core

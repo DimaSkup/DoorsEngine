@@ -127,13 +127,9 @@ struct ParticlesRenderData
 
 //-----------------------------------------------
 
-struct ParticleEmitter
+struct EmitterData
 {
-    ParticleEmitter() {}
-    ParticleEmitter(EntityID enttId) : id(enttId) {}
-
-    EntityID          id         = INVALID_ENTITY_ID;       // identifier of entity to which this emitter is bound
-    MaterialID        materialId = INVALID_MATERIAL_ID;
+     MaterialID       materialId = INVALID_MATERIAL_ID;
 
     // alive particles
     cvector<Particle> particles;                            
@@ -156,9 +152,9 @@ struct ParticleEmitter
     float             time              = 0.0f;             // need for particles generation (to be independent from fps)
     float             startAlpha        = 1.0f;
     float             endAlpha          = 0.0f;
-    float             srcPlaneHeight    = 0.0f;             // local space height of generation plane (if srcType is PLANE)
     float             texAnimDurationSec = 0.0f;            // duration of the texture animation (in seconds)
-
+    float             srcPlaneHeight    = 0.0f;             // local space height of generation plane (if srcType is PLANE
+                                                            // for instance: plane which generates rain must be on some height relatively to the center if the entity)
 
     int               spawnRate  = 0;                       // number of particles generated per 1 second
     int               numSpawned = 0;
@@ -172,6 +168,21 @@ struct ParticleEmitter
     eEmitterSrcType      srcType        = EMITTER_SRC_TYPE_POINT;
     eEventParticleHitBox hitEvent       = EVENT_PARTICLE_HIT_BOX_DIE;  // what to do with particle when it hit its emitter's bounding box
     eVelocityDirInitType velDirInitType = PARTICLE_VELOCITY_DIR_RANDOM;
+};
+
+//-----------------------------------------------
+// ECS component
+//-----------------------------------------------
+struct ParticleEmitter
+{
+    ParticleEmitter()
+    {
+        ids.push_back(INVALID_ENTITY_ID);
+        data.push_back(EmitterData());
+    }
+
+    cvector<EntityID>    ids;
+    cvector<EmitterData> data;
 };
 
 } // namespace

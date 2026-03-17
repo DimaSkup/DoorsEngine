@@ -104,20 +104,20 @@ rot_axis    1 0 0 1.570796327
 uni_scale   2.0
 archetype   weapon
 
-newentt     stalker_house
-model       stalker_house
-pos         261.47 78.8 227.9
-dir         0 0 1
-rot_axis    1 0 0 1.570796327
-uni_scale   1.0
-archetype   building
-
 newentt     military_house
 model       military_house
 pos         434.8 63.92 445.0
 dir         0 0 1
 rot_axis    1 0 0 1.570796327
 uni_scale   0.013
+archetype   building
+
+newentt     stalker_house
+model       stalker_house
+pos         261.47 78.8 227.9
+dir         0 0 1
+rot_axis    1 0 0 1.570796327
+uni_scale   1.0
 archetype   building
 
 newentt     traktor_tr13
@@ -332,7 +332,7 @@ uni_scale   0.7
 dir         0 0 1
 rot_axis_x  1.57
 rot_axis_y  -1.57
-archetype   vehicle
+archetype   building
 
 newentt     tumba_village_2
 model       tumba_village_2
@@ -340,11 +340,19 @@ pos         257.03 76.81 232.78
 uni_scale   1.0
 dir         0 0 1
 rot_axis_x  1.57
-archetype   vehicle
+archetype   building
 
 newentt     boblampclean
 model       boblampclean
 pos         257.03 76.81 250.78
 uni_scale   0.035
 dir         0 0 1
+archetype   building
+
+newentt     stalker_freedom_1
+model       stalker_freedom_1
+pos         255.47 76.5 235.6
+dir         0 0 1
+rot_quat    -0.450 0.545 -0.545 -0.450
+uni_scale   1.0
 archetype   vehicle

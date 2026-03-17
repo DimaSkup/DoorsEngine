@@ -375,7 +375,7 @@ bool TerrainBase::LoadTextureMap(const char* texName)
         return false;
     }
 
-    const Texture& tex = g_TextureMgr.GetTexByID(texId);
+    const Texture& tex = g_TextureMgr.GetTexById(texId);
 
     // set params of tile map
     texture_.SetID(texId);
@@ -546,7 +546,7 @@ bool TerrainBase::GenHeightFaultFormation(
     }
     catch (std::bad_alloc& e)
     {
-        LogErr(e.what());
+        LogErr(LOG, e.what());
         throw EngineException("can't allocate the memory for heights data");
     }
     catch (EngineException& e)
@@ -554,7 +554,7 @@ bool TerrainBase::GenHeightFaultFormation(
         heightMap_.Unload();
         SafeDeleteArr(tempBuf);
 
-        LogErr(e);
+        LogErr(LOG, e.what());
         return false;
     }
 }
@@ -585,8 +585,8 @@ bool TerrainBase::GenHeightMidpointDisplacement(const int size, float roughness,
     try
     {
         // check input params
-        CAssert::True(size > 0,                   "input size of mipmap must be > 0");
-        CAssert::True(IsPow2(size), "input size must be a power of 2");
+        CAssert::True(size > 0,      "input size of mipmap must be > 0");
+        CAssert::True(IS_POW2(size), "input size must be a power of 2");
 
         // unload previous height data if we has any
         heightMap_.Unload();
@@ -756,14 +756,14 @@ bool TerrainBase::GenHeightMidpointDisplacement(const int size, float roughness,
     }
     catch (std::bad_alloc& e)
     {
-        LogErr(e.what());
-        throw EngineException("can't allocate the memory for height data");
+        LogErr(LOG, e.what());
+        throw EngineException("can't alloc mem for height data");
     }
     catch (EngineException& e)
     {
         heightMap_.Unload();
         SafeDeleteArr(tempBuf);
-        LogErr(e);
+        LogErr(LOG, e.what());
         return false;
     }
 }
@@ -781,13 +781,13 @@ bool TerrainBase::GenHeightMidpointDisplacement(const int size, float roughness,
 bool TerrainBase::GenerateTextureMap(const uint texMapSize)
 {
     // check input params
-    if (texMapSize <= 0)
+    if (texMapSize == 0)
     {
-        LogErr(LOG, "can't generate texture map: input size for texture map must be > 0");
+        LogErr(LOG, "tex dimension can't == 0");
         return false;
     }
 
-    LogDbg(LOG, "wait while texture map is generated");
+    LogDbg(LOG, "wait a while until tex map is generated...");
 
     // find out the number and indices of tiles that we have
     int numTiles = 0;
@@ -918,7 +918,7 @@ bool TerrainBase::SaveTextureMap(const char* filename)
 {
     if (StrHelper::IsEmpty(filename))
     {
-        LogErr(LOG, "input texture map filename is empty!");
+        LogErr(LOG, "empty filename");
         return false;
     }
 
@@ -936,6 +936,7 @@ bool TerrainBase::SaveTextureMap(const char* filename)
         LogErr(LOG, "I don't know how I got here :)");
         return false;
     }
+
     else
     {
         LogErr(LOG, "you want to save a texture map into file: %s\n\t%s", filename,
@@ -1284,7 +1285,7 @@ bool TerrainBase::SaveLightMap(const char* filename)
     // check input args
     if (StrHelper::IsEmpty(filename))
     {
-        LogErr("input filename is empty!");
+        LogErr(LOG, "empty filename");
         return false;
     }
 
@@ -1298,18 +1299,14 @@ bool TerrainBase::SaveLightMap(const char* filename)
 
     // save to RAW
     if (strcmp(extension, ".raw") == 0)
-    {
         return SaveRAW(filename, data, width*height);
-    }
+
     // save to BMP
     else if (strcmp(extension, ".bmp") == 0)
-    {
         return Image::SaveRawAsGrayBmp(filename, data, width, height);
-    }
+
     else
-    {
-        LogErr("can't save lightmap into file: unsupported output format");
-    }
+        LogErr(LOG, "can't save lightmap into file (%s): unsupported output format", filename);
 
     return false;
 }

@@ -12,7 +12,7 @@
 #include <Render/CGraphics.h>            // from the Core module
 #include "Entity/EntityMgr.h"            // from the ECS module
 #include <Render/CRender.h>              // from the Render module
-#include <Terrain/TerrainGeomipmapped.h>
+#include <Terrain/Terrain.h>
 
 
 namespace UI
@@ -21,21 +21,19 @@ namespace UI
 class FacadeEngineToUI : public IFacadeEngineToUI
 {
 private:
-    Core::Engine*         pEngine_       = nullptr;
-    ID3D11DeviceContext*  pContext_      = nullptr;
-    Render::CRender*      pRender_       = nullptr;
-    ECS::EntityMgr*       pEnttMgr_      = nullptr;
-    Core::CGraphics*      pGraphics_     = nullptr;
-    Core::TerrainGeomip*  pTerrain_      = nullptr;
+    Core::Engine*     pEngine_       = nullptr;
+    Render::CRender*  pRender_       = nullptr;
+    ECS::EntityMgr*   pEnttMgr_      = nullptr;
+    Core::CGraphics*  pGraphics_     = nullptr;
+    Core::Terrain*    pTerrain_      = nullptr;
 
 public:
     FacadeEngineToUI(
         Core::Engine* pEngine,
-        ID3D11DeviceContext* pContext,
         Render::CRender* pRender,
         ECS::EntityMgr* pEntityMgr,
         Core::CGraphics* pGraphics,
-        Core::TerrainGeomip* pTerrain);
+        Core::Terrain* pTerrain);
 
     //-----------------------------------------------------
 
@@ -59,10 +57,12 @@ public:
     // =============================================================================
     // for the entity editor
     // =============================================================================
-    virtual EntityID    CreateEntity(void) override;
+    virtual EntityID CreateEntity(void) override;
 
-    virtual bool        GetEnttAddedComponentsNames (const EntityID id, cvector<std::string>& componentsNames)                  const override;
-    virtual bool        GetEnttAddedComponentsTypes (const EntityID id, cvector<eEnttComponentType>& componentTypes)            const override;
+    virtual bool GetEnttAddedComponents(
+        const EntityID id,
+        eEnttComponentType* outArr,
+        size& numAddedComponents) const override;
 
     // add ECS components
     virtual bool        AddNameComponent            (const EntityID id, const char* name)                                             override;
@@ -87,7 +87,7 @@ public:
 
     virtual bool        SetEnttPosition             (const EntityID entityId, const Vec3& pos)                                        override;
     virtual bool        SetEnttDirection            (const EntityID entityId, const Vec3& dir)                                        override;
-    virtual bool        SetEnttUniScale             (const EntityID entityId, const float scale)                                      override;
+    virtual bool        SetEnttScale                (const EntityID entityId, const float scale)                                      override;
 
     virtual bool        RotateEnttByQuat            (const EntityID id, const Vec4& rotQuat)                                          override;
 

@@ -19,7 +19,7 @@ namespace UI
 // Desc:   initialize the particles controller
 // Args:   - pFacade: the facade interface is used to contact with the rest of the engine
 //---------------------------------------------------------
-void EnttParticlesController::Initialize(IFacadeEngineToUI* pFacade)
+void EnttParticlesController::Init(IFacadeEngineToUI* pFacade)
 {
     assert(pFacade != nullptr && "input ptr to the facade interface == nullptr");
     pFacade_ = pFacade;
@@ -32,7 +32,7 @@ void EnttParticlesController::LoadEnttData(const EntityID id)
 {
     if (pFacade_ == nullptr)
     {
-        LogErr("ptr to facade interface == nullptr (you have to init it first!)");
+        LogErr(LOG, "ptr to facade interface == nullptr (you have to init it first!)");
         return;
     }
 

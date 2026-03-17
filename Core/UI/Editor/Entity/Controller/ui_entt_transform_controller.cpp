@@ -188,7 +188,7 @@ void EnttTransformController::ExecChangeScale(
 {
     assert(pFacade);
 
-    if (!pFacade->SetEnttUniScale(id, scale))
+    if (!pFacade->SetEnttScale(id, scale))
     {
         LogErr(LOG, "can't change scale of entt: %" PRIu32, id);
         return;
@@ -221,7 +221,7 @@ void EnttTransformController::UndoChangePos(
     assert(pFacade);
 
     if (pFacade->SetEnttPosition(id, pos))                     // update entity
-        data_.position_ = pos;                                  // update editor fields
+        data_.position_ = pos;                                 // update editor fields
 }
 
 //---------------------------------------------------------
@@ -252,7 +252,7 @@ void EnttTransformController::UndoChangeScale(
 {
     assert(pFacade);
 
-    if (pFacade->SetEnttUniScale(id, scale))                   // update entity
+    if (pFacade->SetEnttScale(id, scale))                       // update entity
         data_.uniformScale_ = scale;                            // update editor fields
 }
 

@@ -13,7 +13,6 @@
 
 #include <cvector.h>
 #include <d3d11.h>
-//#include <d3dx11tex.h>
 #include <string>
 
 
@@ -64,42 +63,39 @@ public:
         const size numTextures,
         const DXGI_FORMAT format);
 
-    bool        ReloadFromFile(const TexID id, const char* path);
-    TexID       Add          (const char* name, Texture&& tex);
-    TexID       LoadFromFile (const char* name, const char* path);
-    TexID       CreateCubeMap(const char* name, const CubeMapInitParams& params);
-
+    bool        ReloadFromFile (const TexID id, const char* path);
+    TexID       Add            (const char* name, Texture&& tex);
+    TexID       LoadFromFile   (const char* name, const char* path);
+    TexID       CreateCubeMap  (const char* name, const CubeMapInitParams& params);
     TexID       CreateWithColor(const Color& textureColor);
     
-
-    Texture&    GetTexByID     (const TexID id);
-    Texture*    GetTexPtrByID  (const TexID id);
+	// getters...
+    Texture&    GetTexById     (const TexID id);
+    Texture*    GetTexPtrById  (const TexID id);
     Texture&    GetTexByName   (const char* name);
     Texture*    GetTexPtrByName(const char* name);
     void        SetTexName     (const TexID id, const char* inName);
 
-    const char* GetTexTypeName(const uint texType) const;
-    const char**GetTexTypesNames()                 const;
-    const uint  GetNumTexTypesNames()              const;
-    
+    const char* GetTexTypeName     (const uint texType) const;
+    const char**GetTexTypesNames   (void)               const;
+    const uint  GetNumTexTypesNames(void)               const;
 
-    TexID       GetTexIdByName (const char* name);
-    TexID       GetTexIdByIdx  (const index idx) const;
+    TexID       GetTexIdByName     (const char* name);
+    TexID       GetTexIdByIdx      (const index idx)    const;
 
-    SRV*        GetTexViewsById(const TexID texID);
-
+    SRV*        GetTexViewsById    (const TexID texID);
 
     void GetTexViewsByIds(
-        const TexID* texIDs,
+        const TexID* texIds,
         const size numTex,
         ID3D11ShaderResourceView** outSRVs);
 
     const ID3D11ShaderResourceView** GetAllShaderResourceViews();
     size                             GetNumShaderResourceViews() const;
 
+	
 private:
-    int  GenID          (void);
-    bool IsIdxValid     (const index idx) const;
+    int  GenId          (void);
     bool IsTexNameUnique(const char* texName) const;
 
 private:
@@ -145,17 +141,69 @@ inline size TextureMgr::GetNumShaderResourceViews() const
 //-----------------------------------------------------
 // Desc:  generate a values which will be an ID for new texture
 //-----------------------------------------------------
-inline int TextureMgr::GenID()
+inline int TextureMgr::GenId()
 {
     return lastTexID_++;
 }
 
-//-----------------------------------------------------
-// Desc:  check if input index of texture is in proper range
-//-----------------------------------------------------
-inline bool TextureMgr::IsIdxValid(const index idx) const
+//---------------------------------------------------------
+// Desc:  return a texture by input id or return an unloaded texture
+//        (id: 0) if there is no texture by such ID
+//---------------------------------------------------------
+inline Texture& TextureMgr::GetTexById(const TexID id)
 {
-    return (idx >= 0 && idx < ids_.size());
+    const index idx = ids_.get_idx(id);
+
+    if (ids_.is_valid_index(idx))
+        return textures_[idx];
+
+    return textures_[INVALID_TEX_ID];
 }
 
-} // namespace Core
+//---------------------------------------------------------
+// Desc:  return a ptr to the texture by ID or nullptr if there is no such a texture
+//---------------------------------------------------------
+inline Texture* TextureMgr::GetTexPtrById(const TexID id)
+{
+    const index idx = ids_.get_idx(id);
+
+    if (ids_.is_valid_index(idx))
+        return &textures_[idx];
+
+    return &textures_[INVALID_TEX_ID];
+}
+
+//---------------------------------------------------------
+// Desc:   return a ref to the texture by name
+//         or nullptr if there is no such a texture
+//---------------------------------------------------------
+inline Texture& TextureMgr::GetTexByName(const char* name)
+{
+    return *GetTexPtrByName(name);
+}
+
+//---------------------------------------------------------
+// Desc:   return a texture ID by input idx; if idx is invalid we return 0
+//---------------------------------------------------------
+inline TexID TextureMgr::GetTexIdByIdx(const index idx) const
+{
+    if (ids_.is_valid_index(idx))
+        return ids_[idx];
+
+    return INVALID_TEX_ID;
+}
+
+//---------------------------------------------------------
+// Desc:   get shader resource view of texture by input ID
+//---------------------------------------------------------
+inline ID3D11ShaderResourceView* TextureMgr::GetTexViewsById(const TexID texId)
+{
+    const index idx = ids_.get_idx(texId);
+
+    if (shaderResourceViews_.is_valid_index(idx))
+        return shaderResourceViews_[idx];
+
+    return shaderResourceViews_[INVALID_TEX_ID];
+}
+
+} // namespace

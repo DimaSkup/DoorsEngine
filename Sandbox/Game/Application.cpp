@@ -5,6 +5,7 @@
 // =================================================================================
 #include "../Common/pch.h"
 #include "Application.h"
+#include <Timers/game_timer.h>
 
 
 namespace Game
@@ -19,17 +20,6 @@ App::~App()
     SafeDelete(pFacadeEngineToUI_);
 }
 
-
-//---------------------------------------------------------
-// some typedefs and helpers to get timings
-//---------------------------------------------------------
-using TimeDurationMs = std::chrono::duration<float, std::milli>;
-
-inline std::chrono::steady_clock::time_point GetTimePoint()
-{
-    return std::chrono::steady_clock::now();
-}
-
 //---------------------------------------------------------
 // Desc:   do all the init stuff for the engine:
 //         init window, init engine's modules, load scene elements, etc.
@@ -37,14 +27,13 @@ inline std::chrono::steady_clock::time_point GetTimePoint()
 void App::Init()
 {
     // compute duration of importing process
-    auto initStartTime = GetTimePoint();
+    auto initStartTime = Core::GameTimer::GetTimePoint();
 
     // explicitly init Windows Runtime and COM
-    HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+    HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
     if (FAILED(hr))
     {
-        LogErr(LOG, "can't explicitly initialize Windows Runtime and COM");
-        exit(-1);
+        LogFatal(LOG, "can't explicitly initialize Windows Runtime and COM");
     }
 
     eventHandler_.AddEventListener(&engine_);        // set engine class as one of the window events listeners
@@ -63,33 +52,33 @@ void App::Init()
     Core::CGraphics&     graphics = engine_.GetGraphicsClass();
     Render::D3DClass&    d3d      = pRender->GetD3D();
     ID3D11Device*        pDevice  = d3d.GetDevice();
-    ID3D11DeviceContext* pContext = d3d.GetDeviceContext();
 
     // after initialization of entine's modules we init the game related stuff
     // (model entities, light source, particle emitters, etc.)
     game_.Init(&engine_, &entityMgr_, pRender, engineConfigs_);
 
-    Core::TerrainGeomip& terrain = Core::g_ModelMgr.GetTerrainGeomip();
 
     // create a facade btw the UI and the engine parts
     pFacadeEngineToUI_ = new UI::FacadeEngineToUI(
         &engine_,
-        pContext,
         pRender,
         &entityMgr_,
         &graphics,
-        &terrain);
+        &Core::g_ModelMgr.GetTerrain());
 
     // initialize the main UserInterface class
     InitGUI(pDevice, d3d.GetWindowWidth(), d3d.GetWindowHeight());
  
 
     // create a str with duration time about the engine initialization process
-    const TimeDurationMs initDurationMs = GetTimePoint() - initStartTime;
-    const POINT drawAt = { 10, 820 };
-    char initTimeBuf[32]{'\0'};
-    snprintf(initTimeBuf, 32, "Init time: %d ms", (int)initDurationMs.count());
-    userInterface_.AddConstStr(pDevice, initTimeBuf, drawAt);
+    const TimePoint      initEndTime = Core::GameTimer::GetTimePoint();
+    const TimeDurationMs initDur     = initEndTime - initStartTime;
+    const POINT          drawAt      = { 10, 820 };
+
+    char initTime[32]{'\0'};
+    snprintf(initTime, sizeof(initTime), "Init time: %d ms", (int)initDur.count());
+
+    userInterface_.AddConstStr(initTime, drawAt);
 
 
     // for some textures do its binding only once
@@ -114,9 +103,8 @@ bool App::InitWindow()
     const std::string wndClass  = "MyWindowClass";
     const int wndWidth          = engineConfigs_.GetInt("WINDOW_WIDTH");
     const int wndHeight         = engineConfigs_.GetInt("WINDOW_HEIGHT");
-
    
-    bool result = wndContainer_.renderWindow_.Initialize(
+    bool result = wndContainer_.renderWindow_.Init(
         hInstance_,
         mainHWND_,
         isFullScreen,
@@ -126,7 +114,7 @@ bool App::InitWindow()
         wndHeight);
 
     if (!result)
-        LogErr("can't initialize the window");
+        LogErr(LOG, "can't init the window");
 
     return result;
 }
@@ -231,11 +219,11 @@ bool App::InitGUI(
         char videoCardName[128]{ '\0' };
         int videoCardMemory = 0;
 
-        Render::g_Render.GetD3D().GetVideoCardInfo(videoCardName, 128, videoCardMemory);
+        Render::D3DClass& d3d = Render::g_Render.GetD3D();
+        d3d.GetVideoCardInfo(videoCardName, 128, videoCardMemory);
 
         // initialize the user interface
-        userInterface_.Initialize(
-            pDevice,
+        userInterface_.Init(
             pFacadeEngineToUI_,
             dbgFontDataFilepath,
             dbgFontTexName,
@@ -250,7 +238,7 @@ bool App::InitGUI(
     }
     catch (EngineException& e)
     {
-        LogErr(e, true);
+        LogErr(LOG, e.what());
         return false;
     }
 }
@@ -266,11 +254,10 @@ void App::Run()
         {
             engine_.GetTimer().Tick();
 
-            const float deltaTime = engine_.GetTimer().GetDeltaTime();
-            const float gameTime  = engine_.GetTimer().GetGameTime();
-
             // update game and engine
-            Update(deltaTime, gameTime);
+            Update(
+                engine_.GetTimer().GetDeltaTime(),
+                engine_.GetTimer().GetGameTime());
 
             engine_.RenderFrame();
         }
@@ -284,7 +271,6 @@ void App::Run()
     }
 }
 
-
 //---------------------------------------------------------
 // Desc:  update the game and then update the engine;
 //        aslo calculate duration of updating process
@@ -296,13 +282,13 @@ void App::Update(const float deltaTime, const float gameTime)
     static float sumTime          = 0;
     static float sumUpdateTime    = 0;
 
-    const auto startTimestamp = GetTimePoint();
+    const auto startTimestamp = Core::GameTimer::GetTimePoint();
 
     game_.Update(deltaTime, gameTime);
-    const auto gameUpdatedTimestamp = GetTimePoint();
+    const auto gameUpdatedTimestamp = Core::GameTimer::GetTimePoint();
 
     engine_.Update(deltaTime, gameTime);
-    auto endTimestamp = GetTimePoint();
+    const auto endTimestamp = Core::GameTimer::GetTimePoint();
 
 
     // calc the duration of the whole update process and its stages
@@ -330,7 +316,7 @@ void App::Update(const float deltaTime, const float gameTime)
     }
 }
 
-///////////////////////////////////////////////////////////
+//---------------------------------------------------------
 
 void App::Close()
 {

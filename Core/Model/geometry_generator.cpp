@@ -12,10 +12,10 @@
 
 #pragma warning (disable : 4996)
 
-using XMVECTOR = DirectX::XMVECTOR;
-using XMFLOAT2 = DirectX::XMFLOAT2;
-using XMFLOAT3 = DirectX::XMFLOAT3;
-using XMFLOAT4 = DirectX::XMFLOAT4;
+using DirectX::XMVECTOR;
+using DirectX::XMFLOAT2;
+using DirectX::XMFLOAT3;
+using DirectX::XMFLOAT4;
 
 
 namespace Core
@@ -31,23 +31,148 @@ namespace Core
 //---------------------------------------------------------
 inline XMFLOAT3 RotateVecAroundY(const XMFLOAT3 vec, const float s, const float c)
 {
-    return XMFLOAT3
-    {
-        c*vec.x - s*vec.z,
-        vec.y,
-        s*vec.x + c*vec.z
-    };
+    return XMFLOAT3 { c*vec.x - s*vec.z, vec.y, s*vec.x + c*vec.z };
 }
 
 inline XMFLOAT3 RotateVecAroundX(const XMFLOAT3 vec, const float s, const float c)
 {
-    return XMFLOAT3
-    {
-        vec.x,
-        c*vec.y - s*vec.z,
-        s*vec.y + c*vec.z
-    };
+    return XMFLOAT3 { vec.x, c*vec.y - s*vec.z, s*vec.y + c*vec.z };
 }
+
+//---------------------------------------------------------
+// Desc:  setup a model which will serve us as a lod;
+//        it may be used as a lod for trees, bushes, plants, etc.
+//---------------------------------------------------------
+void GeometryGenerator::GeneratePlaneLod(
+    Model& model,
+    const float planeW,
+    const float planeH)
+{
+    // 1 vertex, 1 index, 1 mesh
+    model.AllocMem(1, 1, 1);
+
+    // we have only a single point which will be expanded into
+    // a billboard in the geometry shader
+    Vertex3D& v = *model.GetVertices();
+
+    // origin is always at the bottom so encode lod side into the position
+    v.position.x = planeW;
+    v.position.y = planeH;
+    v.position.z = 0;
+
+
+    // setup only one index
+    UINT& i = *model.GetIndices();
+    i = 0;
+
+    // setup subset (mesh) data, here we have only one subset
+    model.GetMeshes().SetSubsetName(0, "plane_lod_mesh");
+}
+
+//---------------------------------------------------------
+// 
+//---------------------------------------------------------
+bool GeometryGenerator::GenerateGrass(
+    Model& model,
+    const float planeWidth,
+    const float planeHeight)
+{
+    // check input args
+    if (planeWidth <= 0 || planeHeight <= 0)
+    {
+        LogErr(LOG, "dude, your width or height is <= 0; (width: %f;  height: %f)", planeWidth, planeHeight);
+        return false;
+    }
+
+    constexpr int numPlanes     = 3;
+    constexpr int vertsPerPlane = 4;                            // 4 vertices per plane
+    constexpr int idxsPerPlane  = 6;                            // 6 indices per plane
+
+    constexpr int numVertices   = numPlanes * vertsPerPlane;
+    constexpr int numIndices    = numPlanes * idxsPerPlane;
+    constexpr int numSubsets    = 1;                            // only one mesh
+
+
+    if (!model.AllocMem(numVertices, numIndices, numSubsets))
+    {
+        LogErr(LOG, "can't alloc mem for a grass instance");
+        return false;
+    }
+
+
+    const float hw = (float)planeWidth  * 0.5f; // half width
+    const float hh = (float)planeHeight * 0.5f; // half height
+
+    // 3 planes (4 vertices per each plane)
+    Vertex3D planes[3][4];
+
+    // setup positions for plane 0 (front clockwise; imagine we loot at +Z direction)
+    const XMFLOAT3 pos0 = { -hw, -hh, 0 };      // bottom left
+    const XMFLOAT3 pos1 = { -hw, +hh, 0 };      // top left
+    const XMFLOAT3 pos2 = { +hw, +hh, 0 };      // top right
+    const XMFLOAT3 pos3 = { +hw, -hh, 0 };      // bottom right
+
+    const XMFLOAT3 normal = { 0,0,-1 };         // is the same for each point of a plane
+    const XMFLOAT3 tangent = { 1,0,0 };
+
+    const uint angleStep = 360 / numPlanes;
+
+
+    // setup vertices for all the planes
+    for (uint i = 0; i < numPlanes; ++i)
+    {
+        const float sinY = sinf(DEG_TO_RAD(i * angleStep));
+        const float cosY = cosf(DEG_TO_RAD(i * angleStep));
+
+        // rotate around Y-axis
+        const XMFLOAT3 N = RotateVecAroundY(normal,  sinY, cosY);
+        const XMFLOAT3 T = RotateVecAroundY(tangent, sinY, cosY);
+
+        // setup normal vectors
+        planes[i][0].normal = N;
+        planes[i][1].normal = N;
+        planes[i][2].normal = N;
+        planes[i][3].normal = N;
+
+        // setup tangent vectors
+        planes[i][0].tangent = { T.x, T.y, T.z, 1 };
+        planes[i][1].tangent = { T.x, T.y, T.z, 1 };
+        planes[i][2].tangent = { T.x, T.y, T.z, 1 };
+        planes[i][3].tangent = { T.x, T.y, T.z, 1 };
+
+        // setup positions
+        planes[i][0].position = RotateVecAroundY(pos0, sinY, cosY);
+        planes[i][1].position = RotateVecAroundY(pos1, sinY, cosY);
+        planes[i][2].position = RotateVecAroundY(pos2, sinY, cosY);
+        planes[i][3].position = RotateVecAroundY(pos3, sinY, cosY);
+
+        // offset grass grass origin to be in 0 by Y 
+        planes[i][0].position.y += hh;
+        planes[i][1].position.y += hh;
+        planes[i][2].position.y += hh;
+        planes[i][3].position.y += hh;
+
+        // setup textures
+        planes[i][0].texture = { 0, 1 };
+        planes[i][1].texture = { 0, 0 };
+        planes[i][2].texture = { 1, 0 };
+        planes[i][3].texture = { 1, 1 };
+    }
+
+    const UINT indices[numIndices] =
+    {
+        0,1,2,      0,2,3,     // plane_0 (vertex[0-3])
+        4,5,6,      4,6,7,     // plane_1 (vertex[4-7])
+        8,9,10,     8,10,11,   // plane_2 (vertex[8-11])
+    };
+
+    // copy geometry into model
+    model.CopyVertices((const Vertex3D*)planes, numVertices);
+    model.CopyIndices(indices, numIndices);
+
+    model.GetMeshes().SetSubsetName(0, "grass_mesh");
+}
+
 
 //---------------------------------------------------------
 // Desc:  generate a mesh which will serve as LOD1 for trees;
@@ -70,7 +195,7 @@ inline XMFLOAT3 RotateVecAroundX(const XMFLOAT3 vec, const float s, const float 
 //                 0                              0 *---------------* 3
 //---------------------------------------------------------
 void GeometryGenerator::GenerateTreeLod1(
-    BasicModel& model,
+    Model& model,
     const float planeWidth,
     const float planeHeight,
     const bool originAtBottom,
@@ -86,12 +211,11 @@ void GeometryGenerator::GenerateTreeLod1(
         return;
     }
 
-    if (!model.AllocateMemory(numVertices, numIndices, numSubsets))
+    if (!model.AllocMem(numVertices, numIndices, numSubsets))
     {
-        LogErr(LOG, "can't allocate memory for geometry: tree LOD1");
+        LogErr(LOG, "can't alloc memory for geometry: tree LOD1");
         return;
     }
-
 
     const float hw = (float)planeWidth  * 0.5f; // half width
     const float hh = (float)planeHeight * 0.5f; // half height
@@ -195,21 +319,19 @@ void GeometryGenerator::GenerateTreeLod1(
     model.CopyVertices((const Vertex3D*)planes, numVertices);
     model.CopyIndices(indices, numIndices);
 
-    model.meshes_.SetSubsetName(0, "tree_lod1");
+    model.GetMeshes().SetSubsetName(0, "tree_lod1");
 }
 
 //---------------------------------------------------------
 // Desc:  manually generate cube geometry (each side has the same texture)
 //---------------------------------------------------------
-void GeometryGenerator::GenerateCube(BasicModel& model)
+void GeometryGenerator::GenerateCube(Model& model)
 {
     constexpr int numVertices = 24;
     constexpr int numIndices  = 36;
     constexpr int numSubsets  = 1;     // only one mesh
 
-    model.AllocateMemory(numVertices, numIndices, numSubsets);
-
-    // ---------------------------------------------
+    model.AllocMem(numVertices, numIndices, numSubsets);
 
     // 
     // create vertices of the cube 
@@ -251,7 +373,7 @@ void GeometryGenerator::GenerateCube(BasicModel& model)
     };
 
 
-    Vertex3D* vertices = model.vertices_;
+    Vertex3D* vertices = model.GetVertices();
 
     // front
     vertices[0] = { pos5, tex[0], normFront, tangents[0] };
@@ -290,8 +412,6 @@ void GeometryGenerator::GenerateCube(BasicModel& model)
     vertices[23] = { pos3, tex[3], normBottom, tangents[5] };
 
 
-    // ---------------------------------------------
-
     // setup the indices of the cube
     constexpr UINT indicesData[numIndices] =
     {
@@ -305,17 +425,14 @@ void GeometryGenerator::GenerateCube(BasicModel& model)
 
     model.CopyIndices(indicesData, numIndices);
 
-    // ---------------------------------------------
 
     // setup subset (mesh) data (for cube we have only one subset)
-    model.meshes_.SetSubsetName(0, "cube_mesh");
+    model.GetMeshes().SetSubsetName(0, "cube_mesh");
 }
 
 //---------------------------------------------------------
-// 
 // a helper function for sky sphere vertices generation;
 // (is called from the GenerateSkySphere() method)
-//
 //---------------------------------------------------------
 void BuildSkySphereVertices(
     Vertex3DPos* vertices,
@@ -328,8 +445,8 @@ void BuildSkySphereVertices(
     const float dAlpha = DirectX::XM_PI  / stackCount;    // vertical angle delta
 
     // allocate memory for the transient data
-    float* thetaSines   = new float[sliceCount + 1];
-    float* thetaCosines = new float[sliceCount + 1];
+    cvector<float> thetaSines(sliceCount + 1);
+    cvector<float> thetaCosines(sliceCount + 1);
 
     // precompute sin/cos of Theta 
     for (int j = 0; j <= sliceCount; ++j)
@@ -352,16 +469,12 @@ void BuildSkySphereVertices(
         // make vertices for the current ring
         for (int j = 0; j <= sliceCount; ++j)
         {
-            vertices[vIdx++] = DirectX::XMFLOAT3(r * thetaCosines[j], y, r * thetaSines[j]);
+            vertices[vIdx++] = XMFLOAT3(r * thetaCosines[j], y, r * thetaSines[j]);
         }
     }
 
     // make the lowest vertex of the sphere
     vertices[vIdx++].position = { 0, -radius, 0 };
-
-    // release memory from the transient data
-    SafeDeleteArr(thetaSines);
-    SafeDeleteArr(thetaCosines);
 }
 
 //---------------------------------------------------------
@@ -419,7 +532,6 @@ void BuildSkySphereIndices(
 ///////////////////////////////////////////////////////////
 
 void GeometryGenerator::GenerateSkySphere(
-    ID3D11Device* pDevice, 
     SkyModel& sky,
     const float radius_,
     const int sliceCount_,
@@ -443,7 +555,7 @@ void GeometryGenerator::GenerateSkySphere(
     BuildSkySphereIndices(indices, vertexIdx - 1, sliceCount, stackCount);
 
     // init vertex/index buffer of the sky
-    sky.InitializeBuffers(pDevice, vertices, indices, numVertices, numIndices);
+    sky.InitBuffers(vertices, indices, numVertices, numIndices);
 
     SafeDeleteArr(vertices);
     SafeDeleteArr(indices);
@@ -452,12 +564,8 @@ void GeometryGenerator::GenerateSkySphere(
 //---------------------------------------------------------
 // generate a sky cube model for the cube map texture (not altas)
 //---------------------------------------------------------
-void GeometryGenerator::GenerateSkyBoxForCubeMap(
-    ID3D11Device* pDevice, 
-    SkyModel& sky,
-    const float height)
+void GeometryGenerator::GenerateSkyBoxForCubeMap(SkyModel& sky, const float height)
 {
-
     constexpr int numVertices = 24; 
     constexpr int numIndices = 36;
 
@@ -508,7 +616,7 @@ void GeometryGenerator::GenerateSkyBoxForCubeMap(
     };
 
     // initialize vb/ib
-    sky.InitializeBuffers(pDevice, vertices, indices, numVertices, numIndices);
+    sky.InitBuffers(vertices, indices, numVertices, numIndices);
 }
 
 //////////////////////////////////////////////////////////
@@ -516,7 +624,7 @@ void GeometryGenerator::GenerateSkyBoxForCubeMap(
 void GeometryGenerator::GeneratePlane(
     const float width,
     const float height,
-    BasicModel& model)
+    Model& model)
 {
     // if input params is wrong we use the default params
     const float w = (width > 0) ? width : 1;
@@ -531,8 +639,8 @@ void GeometryGenerator::GeneratePlane(
 
     DirectX::BoundingBox aabb;
 
-    model.AllocateMemory(numVertices, numIndices, numSubsets);
-    Vertex3D*& vertices = model.vertices_;
+    model.AllocMem(numVertices, numIndices, numSubsets);
+    Vertex3D* vertices = model.GetVertices();
 
     // top left / bottom right
     vertices[0].position = { -halfWidth, +halfHeight,  0 };
@@ -557,7 +665,7 @@ void GeometryGenerator::GeneratePlane(
     model.CopyIndices(indicesData, numIndices);
 
     // setup subset (mesh) data (for plane we have only one subset)
-    model.meshes_.SetSubsetName(0, "plane_mesh");
+    model.GetMeshes().SetSubsetName(0, "plane_mesh");
 }
 
 //////////////////////////////////////////////////////////
@@ -618,7 +726,7 @@ bool BuildFlatGridVertices(
     }
     catch (EngineException& e)
     {
-        LogErr(e);
+        LogErr(LOG, e.what());
         return false;
     }
 }
@@ -668,9 +776,8 @@ void BuildFlatGridVertices(
     }
     catch (const std::bad_alloc& e)
     {
-        LogErr(e.what());
-        LogErr("can't allocate memory during a flat grid vertices creation");
-        throw EngineException("can't allocate memory during a flat grid vertices creation");
+        LogErr(LOG, e.what());
+        LogErr(LOG, "can't alloc memory during a flat grid vertices creation");
     }
 }
 
@@ -753,14 +860,14 @@ void GeometryGenerator::GenerateTerrainFlatGrid(
     }
     catch (std::bad_alloc& e)
     {
-        LogErr(e.what());
-        LogErr("can't allocate memory for a terrain's flat grid");
+        LogErr(LOG, e.what());
+        LogErr(LOG, "can't alloc mem for a terrain's flat grid");
         return;
     }
     catch (EngineException& e)
     {
-        LogErr(e);
-        LogErr("can't generate flat grid for terrain");
+        LogErr(LOG, e.what());
+        LogErr(LOG, "can't generate flat grid for terrain");
         return;
     }
 }
@@ -773,7 +880,7 @@ void GeometryGenerator::GeneratePyramid(
     const float height,                                // height of the pyramid
     const float baseWidth,                             // width (length by X) of one of the base side
     const float baseDepth,                             // depth (length by Z) of one of the base side
-    BasicModel& model)
+    Model& model)
 {
     constexpr int verticesOfSides = 12;
     constexpr int numVertices = 16;
@@ -794,10 +901,10 @@ void GeometryGenerator::GeneratePyramid(
     // -------------------------------------------------- //
 
     // allocate memory for the pyramid data
-    model.AllocateMemory(numVertices, numIndices, numSubsets);
-    Vertex3D* vertices = model.vertices_;
+    model.AllocMem(numVertices, numIndices, numSubsets);
+    Vertex3D* vertices = model.GetVertices();
 
-    const DirectX::XMFLOAT3 basePositions[4] =
+    const XMFLOAT3 basePositions[4] =
     {
         { -baseWidth, 0, +baseDepth },
         { -baseWidth, 0, -baseDepth },
@@ -835,7 +942,7 @@ void GeometryGenerator::GeneratePyramid(
     }
 
     // bottom
-    const DirectX::XMFLOAT2 bottomTexCoords[4] = {{1, 0},{1, 1},{0, 1},{0, 0}};
+    const XMFLOAT2 bottomTexCoords[4] = {{1, 0},{1, 1},{0, 1},{0, 0}};
 
     for (int v_idx = verticesOfSides, data_idx = 0; v_idx < numVertices; ++v_idx, ++data_idx)
     {
@@ -880,22 +987,22 @@ void GeometryGenerator::GeneratePyramid(
 //---------------------------------------------------------
 void GeometryGenerator::GenerateCylinder(
     const MeshCylinderParams& params,
-    BasicModel& model)
+    Model& model)
 {
     try
     {
         // check input data
-        assert(params.bottomRadius_ > 0);
-        assert(params.topRadius_ > 0);
-        assert(params.height_ > 0);
-        assert(params.sliceCount_ > 0);
-        assert(params.stackCount_ > 0);
+        assert(params.bottomRadius > 0);
+        assert(params.topRadius > 0);
+        assert(params.height > 0);
+        assert(params.sliceCount > 0);
+        assert(params.stackCount > 0);
 
         // Add one because we duplicate the first and last vertex per ring
         // since the texture coordinates are different
-        const int ringVertexCount = params.sliceCount_ + 1;
+        const int ringVertexCount = params.sliceCount + 1;
 
-        const float du = 1.0f / params.sliceCount_;
+        const float du = 1.0f / params.sliceCount;
         const float dTheta = DirectX::XM_2PI * du;        // delta theta
 
         CylinderTempData tempData;
@@ -904,20 +1011,20 @@ void GeometryGenerator::GenerateCylinder(
         tempData.thetaCosines = new float[ringVertexCount]{0.0f};
 
         // precompute texture coords by X
-        for (int j = 0; j <= params.sliceCount_; ++j)
+        for (int j = 0; j <= params.sliceCount; ++j)
             tempData.tu[j] = (float)j * du;
 
         // precompute sines/cosines of Theta
-        for (int j = 0; j <= params.sliceCount_; ++j)
+        for (int j = 0; j <= params.sliceCount; ++j)
             tempData.thetaSines[j] = sinf(j * dTheta);
 
-        for (int j = 0; j <= params.sliceCount_; ++j)
+        for (int j = 0; j <= params.sliceCount; ++j)
             tempData.thetaCosines[j] = cosf(j * dTheta);
 
 
         // allocate memory for the model data
-        const int numRings = params.stackCount_ + 1;
-        const int numVerticesInRing = params.sliceCount_ + 1;
+        const int numRings = params.stackCount + 1;
+        const int numVerticesInRing = params.sliceCount + 1;
 
         const int numVerticesCylSide = ringVertexCount * numVerticesInRing;
         const int numVerticesTopCap = numVerticesInRing + 1;   // ring + center
@@ -927,7 +1034,7 @@ void GeometryGenerator::GenerateCylinder(
         int numIndices = numVertices * 6;
         int numSubsets = 1;                                    // only one mesh
 
-        model.AllocateMemory(numVertices, numIndices, numSubsets);
+        model.AllocMem(numVertices, numIndices, numSubsets);
 
 
         //
@@ -943,12 +1050,11 @@ void GeometryGenerator::GenerateCylinder(
         SafeDeleteArr(tempData.tu);
         SafeDeleteArr(tempData.thetaSines);
         SafeDeleteArr(tempData.thetaCosines);
-
     }
     catch (const std::bad_alloc& e)
     {
-        LogErr(e.what());
-        LogErr("can't allocate memory for some data");
+        LogErr(LOG, e.what());
+        LogErr(LOG, "can't alloc mem for some data");
     }
 }
 
@@ -960,9 +1066,9 @@ void BuildSphereVertices(
     const MeshSphereParams& params,
     const int numVertices)
 {
-    const float radius = params.radius_;
-    const int sliceCount = params.sliceCount_;
-    const int stackCount = params.stackCount_;
+    const float radius = params.radius;
+    const int sliceCount = params.sliceCount;
+    const int stackCount = params.stackCount;
 
     const float du = 1.0f / sliceCount;
     const float dv = 1.0f / stackCount;
@@ -971,22 +1077,22 @@ void BuildSphereVertices(
     const float dAlpha = DirectX::XM_PI * dv;    // vertical angle delta
 
     // allocate memory for the transient data
-    float* tu = new float[sliceCount + 1];               // texture X coords
-    float* thetaSines = new float[sliceCount + 1];
-    float* thetaCosines = new float[sliceCount + 1];
+    cvector<float> tu(sliceCount + 1);           // texture X coords
+    cvector<float> thetaSin(sliceCount + 1);
+    cvector<float> thetaCos(sliceCount + 1);
 
     // ------------------------------------------
 
     // precompute texture X coord
-    for (int j = 0; j <= sliceCount; ++j)
+    for (int j = 0; j < tu.size(); ++j)
         tu[j] = j * du;
 
     // precompute sin/cos of Theta
-    for (int j = 0; j <= sliceCount; ++j)
-        thetaSines[j] = sinf(j * dTheta);
+    for (int j = 0; j < thetaSin.size(); ++j)
+        thetaSin[j] = sinf(j * dTheta);
 
-    for (int j = 0; j <= sliceCount; ++j)
-        thetaCosines[j] = cosf(j * dTheta);
+    for (int j = 0; j < thetaCos.size(); ++j)
+        thetaCos[j] = cosf(j * dTheta);
 
 
     // build vertices
@@ -1003,9 +1109,9 @@ void BuildSphereVertices(
         const float tv = 1.0f - (float)(i + 1) * dv;
 
         // make vertices for this ring
-        for (int j = 0; j <= sliceCount; ++j)
+        for (int j = 0; j < sliceCount+1; ++j)
         {
-            vertices[idx].position = { r * thetaCosines[j], y, r * thetaSines[j] };
+            vertices[idx].position = { r * thetaCos[j], y, r * thetaSin[j] };
             vertices[idx].texture = { tu[j], tv };
 
             ++idx;
@@ -1027,11 +1133,6 @@ void BuildSphereVertices(
         const XMVECTOR normVec = DirectX::XMVector3Normalize({ v.position.x, v.position.y, v.position.z });
         DirectX::XMStoreFloat3(&v.normal, normVec);
     }
-
-    // release the memory from transient data
-    SafeDeleteArr(tu);
-    SafeDeleteArr(thetaSines);
-    SafeDeleteArr(thetaCosines);
 }
 
 //---------------------------------------------------------
@@ -1095,30 +1196,31 @@ void BuildSphereIndices(
 //---------------------------------------------------------
 void GeometryGenerator::GenerateSphere(
     const MeshSphereParams& params,
-    BasicModel& model)
+    Model& model)
 {
     // check input params
-    assert(params.radius_ > 0);
-    assert(params.sliceCount_ > 0);
-    assert(params.stackCount_ > 0);
+    assert(params.radius > 0);
+    assert(params.sliceCount > 0);
+    assert(params.stackCount > 0);
 
-    const float radius = params.radius_;
-    const int sliceCount = params.sliceCount_;                         // num vertical quads
-    const int stackCount = params.stackCount_;                         // num horizontal quads
+    const int sliceCount = params.sliceCount;                         // num vertical quads
+    const int stackCount = params.stackCount;                         // num horizontal quads
 
     const int numVertices = stackCount * sliceCount + 1 + sliceCount;  // +1 because of lowest center vertex
     const int numIndices = numVertices * 6 + (sliceCount * 3);         // + (sliceCount * 3) -- because of the lowest part of sphere
     const int numSubsets = 1;                                          // only one mesh
     int vertexIdx = 0;
 
-    // prepare memory for the model's data
-    model.AllocateMemory(numVertices, numIndices, numSubsets);
-
-    BuildSphereVertices(model.vertices_, vertexIdx, params, numVertices);
-    BuildSphereIndices(model.indices_, vertexIdx - 1, sliceCount, stackCount);
-
     ModelMath math;
-    math.CalcTangents(model.vertices_, model.indices_, model.numVertices_, model.numIndices_);
+
+    // prepare memory for the model's data
+    model.AllocMem(numVertices, numIndices, numSubsets);
+
+    // build geometry
+    BuildSphereVertices(model.GetVertices(), vertexIdx, params, numVertices);
+    BuildSphereIndices(model.GetIndices(), vertexIdx - 1, sliceCount, stackCount);
+
+    math.CalcTangents(model.GetVertices(), model.GetIndices(), numVertices, numIndices);
 }
 
 ///////////////////////////////////////////////////////////
@@ -1127,7 +1229,7 @@ void GeometryGenerator::GenerateSkyDome(
     const float radius_,
     const int sliceCount_,
     const int stackCount_,
-    BasicModel& model)
+    Model& model)
 {
     using namespace DirectX;
 
@@ -1146,12 +1248,13 @@ void GeometryGenerator::GenerateSkyDome(
     bottomVertex.position = { 0.0f, -radius, 0.0f };
 
     const float phiStep   = XM_PIDIV2  / stackCount;  // vertical
-    const float thetaStep = XM_2PI / sliceCount;  // horizontal
+    const float thetaStep = XM_2PI / sliceCount;      // horizontal
 
     const int numVertices = stackCount * (sliceCount + 1);
     const int numIndices = numVertices * 6 + (sliceCount * 3);
+    const int numMeshes = 1;
 
-    model.AllocateMemory(numVertices, numIndices, 1);
+    model.AllocMem(numVertices, numIndices, numMeshes);
 
     int verticesCount = 0;
     int vIdx = 0;            // index of the current vertex
@@ -1160,16 +1263,17 @@ void GeometryGenerator::GenerateSkyDome(
     const float du = 1.0f / sliceCount;
     const float dv = 1.0f / stackCount;
 
-
-    Vertex3D* vertices = model.vertices_;
-    UINT*      indices = model.indices_;
+    Vertex3D* vertices = model.GetVertices();
+    UINT*      indices = model.GetIndices();
 
     vertices[vIdx++] = topVertex;
 
     // compute vertices for each stack ring (do not count the poles as rights)
     for (int i = 1; i <= stackCount-1; ++i)
     {
-        float phi = i * phiStep;
+        const float phi    = i * phiStep;
+        const float sinPhi = sinf(phi);
+        const float cosPhi = cosf(phi);
 
         // vertices of ring
         for (int j = 0; j <= sliceCount; ++j)
@@ -1179,20 +1283,18 @@ void GeometryGenerator::GenerateSkyDome(
             Vertex3D& v = vertices[vIdx++];
             verticesCount++;
 
-            v.position.x = radius * sinf(phi) * cosf(theta);
-            v.position.y = radius * cosf(phi);
-            v.position.z = radius * sinf(phi) * sinf(theta);
+            v.position.x = radius * sinPhi * cosf(theta);
+            v.position.y = radius * cosPhi;
+            v.position.z = radius * sinPhi * sinf(theta);
 
-            const float tu = j * du;
-            const float tv = (float)(i + 1) * dv;
-            
-            v.texture = { tu, tv };
+            v.texture = {
+                j * du,                 // tu
+                (float)(i+1) * dv       // tv
+            };
         }
     }
 
     vertices[vIdx] = bottomVertex;
-
-    LogErr(LOG, "sky dome has %d vertices", verticesCount);
 
 
     //
@@ -1224,7 +1326,7 @@ void GeometryGenerator::GenerateSkyDome(
             indices[iIdx++] = baseIndex + i * ringVertexCount + j+1;
             indices[iIdx++] = baseIndex + (i+1) * ringVertexCount + j;
 
-            indices[iIdx++] = baseIndex + (i + 1) * ringVertexCount + j;
+            indices[iIdx++] = baseIndex + (i+1) * ringVertexCount + j;
             indices[iIdx++] = baseIndex + i * ringVertexCount + j+1;
             indices[iIdx++] = baseIndex + (i+1) * ringVertexCount + j+1;
         }
@@ -1247,10 +1349,6 @@ void GeometryGenerator::GenerateSkyDome(
         indices[iIdx++] = baseIndex + i;
         indices[iIdx++] = baseIndex + i + 1;
     }
-
-
-    //SafeDeleteArr(thetaSines);
-    //SafeDeleteArr(thetaCosines);
 }
 
 //---------------------------------------------------------
@@ -1267,7 +1365,7 @@ void GeometryGenerator::GenerateSkyDome(
 void GeometryGenerator::GenerateGeosphere(
     const float radius,
     int numSubdivisions,
-    BasicModel& model)
+    Model& model)
 {
     // put a cap on the number of subdivisition
     numSubdivisions = min(numSubdivisions, 5u);
@@ -1300,23 +1398,25 @@ void GeometryGenerator::GenerateGeosphere(
 
     
     // allocate memory for the geosphere's data
-    model.AllocateMemory(numVertices, numIndices, numSubsets);
+    model.AllocMem(numVertices, numIndices, numSubsets);
+
+    Vertex3D* vertices = model.GetVertices();
 
     // setup vertices positions
     for (int i = 0; i < numVertices; ++i)
-        model.vertices_[i].position = pos[i];
+        vertices[i].position = pos[i];
 
     // setup indices data
     model.CopyIndices(indicesData, numIndices);
 
     // divide each triangle of sphere into smaller ones
     for (int i = 0; i < numSubdivisions; ++i)
-        Subdivide(model);
-
-    Vertex3D* vertices = model.vertices_;
+        SubdivideGeoSphere(model);
+    
+    const float invRadius = 1.0f / radius;
 
     // project vertices onto the sphere and scale
-    for (uint32 i = 0; i < model.numVertices_; ++i)
+    for (int i = 0; i < model.GetNumVertices(); ++i)
     {
         XMFLOAT3& pos = vertices[i].position;
 
@@ -1325,24 +1425,24 @@ void GeometryGenerator::GenerateGeosphere(
         const XMVECTOR n = DirectX::XMVector3Normalize(N);
 
         // store the normal vector
-        DirectX::XMStoreFloat3(&vertices[i].normal, n);
+        XMStoreFloat3(&vertices[i].normal, n);
 
         // compute and store position of vertex
-        DirectX::XMStoreFloat3(&pos, DirectX::XMVectorScale(n, radius));
+        XMStoreFloat3(&pos, DirectX::XMVectorScale(n, radius));
 
         // derive texture coordinates from spherical coordinates
         const float theta = MathHelper::AngleFromXY(pos.x, pos.z);
-        const float phi = acosf(pos.y / radius);
+        const float phi = acosf(pos.y * invRadius);
 
         vertices[i].texture.x = theta * DirectX::XM_1DIV2PI;
         vertices[i].texture.y = phi   * DirectX::XM_1DIVPI;
 
         // partial derivative of P with respect to theta
         const float tangX = radius * sinf(phi);
-        const DirectX::XMVECTOR T = { -tangX * sinf(theta), 0, +tangX * cosf(theta) };
+        const XMVECTOR T = { -tangX * sinf(theta), 0, +tangX * cosf(theta) };
 
         // normalize the tangent
-        DirectX::XMStoreFloat4(&vertices[i].tangent, DirectX::XMVector4Normalize(T));
+        XMStoreFloat4(&vertices[i].tangent, DirectX::XMVector4Normalize(T));
     }
 }
 
@@ -1543,40 +1643,43 @@ void GeometryGenerator::SetupCubeFacesNormals(DirectX::XMFLOAT3* facesNormals)
 void GeometryGenerator::BuildCylinderStacks(
     const MeshCylinderParams& params,
     CylinderTempData& tempData,
-    BasicModel& model)
+    Model& model)
 {
-    const float dv = 1.0f / params.stackCount_;
+    const float dv = 1.0f / params.stackCount;
 
     // (delta_h)
-    const float stackHeight = params.height_ * dv;
+    const float stackHeight = params.height * dv;
 
     // (delta_r) amount to increment radius as we move up each stack level from bottom to top 
-    const float dr = (params.topRadius_ - params.bottomRadius_);
+    const float dr = (params.topRadius - params.bottomRadius);
 
     const float radiusStep = dr * dv;
-    const float halfHeight = -0.5f * params.height_;
+    const float halfHeight = -0.5f * params.height;
     
-    const int ringCount = params.stackCount_ + 1;
+    const int ringCount = params.stackCount + 1;
 
     
     // Add one because we duplicate the first and last vertex per ring
     // since the texture coordinates are different
-    const int ringVertexCount = params.sliceCount_ + 1;
+    const int ringVertexCount = params.sliceCount + 1;
 
     int& vertexIdx = tempData.lastVertexIdx;
-    int& indexIdx = tempData.lastIndexIdx;
+    int& indexIdx  = tempData.lastIndexIdx;
+
+    Vertex3D* vertices = model.GetVertices();
 
     // compute vertices for each stack ring starting at the bottom and moving up
     for (int i = 0; i < ringCount; ++i)
     {
         const float y = halfHeight + i*stackHeight;              // Hi = -(h/2) + i*delta_h,
-        const float r = params.bottomRadius_ + i*radiusStep;     // Ri = bottomRadius + i*delta_r
+        const float r = params.bottomRadius + i*radiusStep;      // Ri = bottomRadius + i*delta_r
         const float tv = 1.0f - (float)(i * dv);                 // Y (vertical) coord of the texture
 
         // vertices of ring
         for (int j = 0; j < ringVertexCount; ++j)
         {
-            Vertex3D vertex;
+            Vertex3D& vertex = vertices[vertexIdx];
+            ++vertexIdx;
 
             const float c = tempData.thetaCosines[j];
             const float s = tempData.thetaSines[j];
@@ -1609,16 +1712,13 @@ void GeometryGenerator::BuildCylinderStacks(
             vertex.tangent = { -s, 0.0f, c, 1.0f };
 
             //const float dr = bottomRadius - topRadius;
-            const XMFLOAT3 binormal = { -dr * c, -params.height_, -dr * s };
+            const XMFLOAT3 binormal = { -dr * c, -params.height, -dr * s };
 
             // compute the normal vector
             const DirectX::XMVECTOR T = DirectX::XMLoadFloat4(&vertex.tangent);
             const DirectX::XMVECTOR B = DirectX::XMLoadFloat3(&binormal);
             const DirectX::XMVECTOR N = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(T, B));
             DirectX::XMStoreFloat3(&vertex.normal, N);
-
-            // store this vertex
-            model.vertices_[vertexIdx++] = vertex;
         }
     }
 
@@ -1637,12 +1737,12 @@ void GeometryGenerator::BuildCylinderStacks(
     //            |  /          |
     //   A(i,j)   |/____________| D(i,j+1)
 
-    UINT* indices = model.indices_;
+    UINT* indices = model.GetIndices();
 
     // compute indices for each stack
-    for (int i = 0; i < params.stackCount_; ++i)
+    for (int i = 0; i < params.stackCount; ++i)
     {
-        for (int j = 0; j < params.sliceCount_; ++j)
+        for (int j = 0; j < params.sliceCount; ++j)
         {
             const int idx_1 = i*ringVertexCount + j;
             const int idx_2 = (i + 1)*ringVertexCount + j;
@@ -1671,11 +1771,11 @@ void GeometryGenerator::BuildCylinderCapRingVertices(
     const MeshCylinderParams& params,
     const bool isTopCap,
     CylinderTempData& tempData,
-    BasicModel& model)
+    Model& model)
 {
     int& vertexIdx = tempData.lastVertexIdx;
-    const float inv_height = 1.0f / params.height_;
-    const float halfHeight = 0.5f * params.height_;
+    const float inv_height = 1.0f / params.height;
+    const float halfHeight = 0.5f * params.height;
     float posY = 0.0f;
     float radius = 1.0f;
     float normalY = 1.0f;
@@ -1684,41 +1784,41 @@ void GeometryGenerator::BuildCylinderCapRingVertices(
     if (isTopCap)
     {
         posY = halfHeight;
-        radius = params.topRadius_;
+        radius = params.topRadius;
         normalY = 1.0f;
     }
     // we will build a bottom cap
     else
     {
         posY = -halfHeight;
-        radius = params.bottomRadius_;
+        radius = params.bottomRadius;
         normalY = -1.0f;
     }
-    
+
+    Vertex3D* vertices = model.GetVertices();
+
     // duplicate bottom cap ring vertices because the texture coordinates and normals differ
-    for (int i = 0; i <= params.sliceCount_; ++i)
+    for (int i = 0; i <= params.sliceCount; ++i)
     {
         const float posX = radius * tempData.thetaCosines[i];
         const float posZ = radius * tempData.thetaSines[i];
 
         // scale down by the height to try and make cap texture coord
         // area proportional to base
-        const float u = posX * inv_height + 0.5f;
-        const float v = posZ * inv_height + 0.5f;
+        const float tu = posX * inv_height + 0.5f;
+        const float tv = posZ * inv_height + 0.5f;
 
         // make a vertex of the cap
-        Vertex3D vertex;
-        vertex.position = { posX, posY, posZ };
-        vertex.texture  = { u, v };
-        vertex.normal   = { 0, normalY, 0 };
-        vertex.tangent  = { 1, 0, 0, 1 };
+        Vertex3D& v = vertices[vertexIdx++];
 
-        // store this vertex
-        model.vertices_[vertexIdx++] = vertex;
+        v.position = { posX, posY, posZ };
+        v.texture  = { tu, tv };
+        v.normal   = { 0, normalY, 0 };
+        v.tangent  = { 1, 0, 0, 1 };
     }
 
     // cap center vertex
-    model.vertices_[vertexIdx++] = Vertex3D
+    vertices[vertexIdx++] = Vertex3D
     {
         { 0, posY, 0 },      // position
         { 0.5f, 0.5f },      // uv
@@ -1734,11 +1834,11 @@ void GeometryGenerator::BuildCylinderCapRingVertices(
 void GeometryGenerator::BuildCylinderTopCap(
     const MeshCylinderParams& params,
     CylinderTempData& tempData,
-    BasicModel& model)
+    Model& model)
 {
     const int baseIndex = tempData.lastVertexIdx;
     int& indexIdx = tempData.lastIndexIdx;
-    UINT* indices = model.indices_;
+    UINT* indices = model.GetIndices();
     
     BuildCylinderCapRingVertices(params, true, tempData, model);
 
@@ -1746,13 +1846,11 @@ void GeometryGenerator::BuildCylinderTopCap(
     const int centerIndex = tempData.lastVertexIdx - 1;
 
     // make top cap faces
-    for (int i = 0; i < params.sliceCount_; ++i)
+    for (int i = 0; i < params.sliceCount; ++i)
     {
-        indices[indexIdx + 0] = centerIndex;
-        indices[indexIdx + 1] = baseIndex + i + 1;
-        indices[indexIdx + 2] = baseIndex + i;
-
-        indexIdx += 3;
+        indices[indexIdx++] = centerIndex;
+        indices[indexIdx++] = baseIndex + i + 1;
+        indices[indexIdx++] = baseIndex + i;
     }
 }
 
@@ -1763,11 +1861,11 @@ void GeometryGenerator::BuildCylinderTopCap(
 void GeometryGenerator::BuildCylinderBottomCap(
     const MeshCylinderParams& params,
     CylinderTempData& tempData,
-    BasicModel& model)
+    Model& model)
 {
     const int baseIndex = tempData.lastVertexIdx;
     int& indexIdx = tempData.lastIndexIdx;
-    UINT* indices = model.indices_;
+    UINT* indices = model.GetIndices();
 
     BuildCylinderCapRingVertices(params, false, tempData, model);
 
@@ -1775,42 +1873,45 @@ void GeometryGenerator::BuildCylinderBottomCap(
     const int centerIndex = tempData.lastVertexIdx - 1;
 
     // build bottom cap faces
-    for (int i = 0; i < params.sliceCount_; ++i)
+    for (int i = 0; i < params.sliceCount; ++i)
     {
-        indices[indexIdx + 0] = baseIndex + i;
-        indices[indexIdx + 1] = baseIndex + i + 1;
-        indices[indexIdx + 2] = centerIndex;
-
-        indexIdx += 3;
+        indices[indexIdx++] = baseIndex + i;
+        indices[indexIdx++] = baseIndex + i + 1;
+        indices[indexIdx++] = centerIndex;
     }
 }
 
 //---------------------------------------------------------
 // subdivide the input geosphere mesh into a smaller triangles
 //---------------------------------------------------------
-void GeometryGenerator::Subdivide(BasicModel& model)
+void GeometryGenerator::SubdivideGeoSphere(Model& model)
 {
     int vertexIdx = 0;
     int indexIdx = 0;
 
-    const int numVertices = model.numVertices_;
-    const int numIndices = model.numIndices_;
+  
+    const int numVertices    = model.GetNumVertices();
+    const int numIndices     = model.GetNumIndices();
     const int newNumVertices = numIndices * 2;      // the number of vertices/indices of the subdivided geometry
-    const int newNumIndices = numIndices * 4;      
+    const int newNumIndices  = numIndices * 4;      
     
-    // move ownership over old vertices/indices
-    Vertex3D* oldVertices = model.vertices_;
-    UINT* oldIndices = model.indices_;
+    // store old data (we will use it for subdivision)
+    cvector<Vertex3D> oldVertices(numVertices);
+    cvector<UINT>     oldIndices(numIndices);
 
-    model.vertices_ = nullptr;
-    model.indices_ = nullptr;
+    memcpy(oldVertices.data(), model.GetVertices(), numVertices * sizeof(Vertex3D));
+    memcpy(oldIndices.data(),  model.GetIndices(),  numIndices * sizeof(UINT));
 
     // allocate memory for the new subdivided geometry
-    model.AllocateVertices(newNumVertices);
-    model.AllocateIndices(newNumIndices);
+    model.AllocVertices(newNumVertices);
+    model.AllocIndices(newNumIndices);
 
-    model.meshes_.subsets_[0].vertexCount = newNumVertices;
-    model.meshes_.subsets_[0].indexCount = newNumIndices;
+    Vertex3D* vertices = model.GetVertices();
+    UINT*     indices  = model.GetIndices();
+    Subset*   subsets  = model.GetSubsets();
+
+    subsets[0].vertexCount = newNumVertices;
+    subsets[0].indexCount = newNumIndices;
 
     //       v1
     //       *
@@ -1821,27 +1922,29 @@ void GeometryGenerator::Subdivide(BasicModel& model)
     //  /   \ /   \
     // *-----*-----*
     // v0    m2     v2
-
-    Vertex3D* newVertices = model.vertices_;
-    UINT* newIndices = model.indices_;
     
     // go through each origin triangle and divide it
     for (int i = 0; i < numIndices / 3; ++i)
     {
-        // make vertices of subdivided triangle
-        Vertex3D& v0 = newVertices[vertexIdx++];
-        Vertex3D& v1 = newVertices[vertexIdx++];
-        Vertex3D& v2 = newVertices[vertexIdx++];
+        // main vertices
+        Vertex3D& v0 = vertices[vertexIdx++];
+        Vertex3D& v1 = vertices[vertexIdx++];
+        Vertex3D& v2 = vertices[vertexIdx++];
 
-        Vertex3D& m0 = newVertices[vertexIdx++];
-        Vertex3D& m1 = newVertices[vertexIdx++];
-        Vertex3D& m2 = newVertices[vertexIdx++];
+        // midpoints
+        Vertex3D& m0 = vertices[vertexIdx++];
+        Vertex3D& m1 = vertices[vertexIdx++];
+        Vertex3D& m2 = vertices[vertexIdx++];
 
         // copy 3 old main vertices
         const int baseIdx = i * 3;
-        v0 = oldVertices[oldIndices[baseIdx + 0] ];
-        v1 = oldVertices[oldIndices[baseIdx + 1] ];
-        v2 = oldVertices[oldIndices[baseIdx + 2] ];
+        const int i0 = oldIndices[baseIdx + 0];
+        const int i1 = oldIndices[baseIdx + 1];
+        const int i2 = oldIndices[baseIdx + 2];
+
+        v0 = oldVertices[i0];
+        v1 = oldVertices[i1];
+        v2 = oldVertices[i2];
 
         //
         // generate midpoints
@@ -1849,17 +1952,17 @@ void GeometryGenerator::Subdivide(BasicModel& model)
 
         // For subdivision, we just care about the position component. We derive the other
         // vertex components in GenerateGeosphereMesh.
-        m0.position = DirectX::XMFLOAT3(
+        m0.position = XMFLOAT3(
             0.5f * (v0.position.x + v1.position.x),
             0.5f * (v0.position.y + v1.position.y),
             0.5f * (v0.position.z + v1.position.z));
 
-        m1.position = DirectX::XMFLOAT3(
+        m1.position = XMFLOAT3(
             0.5f * (v1.position.x + v2.position.x),
             0.5f * (v1.position.y + v2.position.y),
             0.5f * (v1.position.z + v2.position.z));
 
-        m2.position = DirectX::XMFLOAT3(
+        m2.position = XMFLOAT3(
             0.5f * (v0.position.x + v2.position.x),
             0.5f * (v0.position.y + v2.position.y),
             0.5f * (v0.position.z + v2.position.z));
@@ -1871,26 +1974,22 @@ void GeometryGenerator::Subdivide(BasicModel& model)
         const int newGeoIdx = i * 6;
     
         // make indices of subdivided triangle
-        newIndices[indexIdx++] = newGeoIdx + 0;
-        newIndices[indexIdx++] = newGeoIdx + 3;
-        newIndices[indexIdx++] = newGeoIdx + 5;
+        indices[indexIdx++] = newGeoIdx + 0;
+        indices[indexIdx++] = newGeoIdx + 3;
+        indices[indexIdx++] = newGeoIdx + 5;
 
-        newIndices[indexIdx++] = newGeoIdx + 3;
-        newIndices[indexIdx++] = newGeoIdx + 4;
-        newIndices[indexIdx++] = newGeoIdx + 5;
+        indices[indexIdx++] = newGeoIdx + 3;
+        indices[indexIdx++] = newGeoIdx + 4;
+        indices[indexIdx++] = newGeoIdx + 5;
 
-        newIndices[indexIdx++] = newGeoIdx + 5;
-        newIndices[indexIdx++] = newGeoIdx + 4;
-        newIndices[indexIdx++] = newGeoIdx + 2;
+        indices[indexIdx++] = newGeoIdx + 5;
+        indices[indexIdx++] = newGeoIdx + 4;
+        indices[indexIdx++] = newGeoIdx + 2;
 
-        newIndices[indexIdx++] = newGeoIdx + 3;
-        newIndices[indexIdx++] = newGeoIdx + 1;
-        newIndices[indexIdx++] = newGeoIdx + 4;
-
+        indices[indexIdx++] = newGeoIdx + 3;
+        indices[indexIdx++] = newGeoIdx + 1;
+        indices[indexIdx++] = newGeoIdx + 4;
     }
-
-    SafeDeleteArr(oldVertices);
-    SafeDeleteArr(oldIndices);
 }
 
 } // namespace

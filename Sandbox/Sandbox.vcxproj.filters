@@ -18,7 +18,7 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Initializers\GameInitializer.cpp">
+    <ClCompile Include="Initializers\game_initializer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Common\pch.cpp">
@@ -36,12 +36,18 @@
     <ClCompile Include="Initializers\particles_initializer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Initializers\grass_initializer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Initializers\light_initializer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Game\Application.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Initializers\GameInitializer.h">
+    <ClInclude Include="Initializers\game_initializer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Common\ConsoleColorMacro.h">
@@ -60,6 +66,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Initializers\particles_initializer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Initializers\grass_initializer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Initializers\light_initializer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Initializers\quad_tree_attach_control.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

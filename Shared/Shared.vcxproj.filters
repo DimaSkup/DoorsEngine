@@ -21,10 +21,10 @@
     <ClInclude Include="cvector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="EngineException.h">
+    <ClInclude Include="engine_exception.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FileSystem.h">
+    <ClInclude Include="file_system.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="FileSystemPaths.h">
@@ -51,7 +51,7 @@
     <ClInclude Include="UtilsFilesystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="RawFile.h">
+    <ClInclude Include="raw_file.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="math\math_helpers.h">
@@ -75,10 +75,10 @@
     <ClInclude Include="math\vec4.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="geometry\rect_3d.h">
+    <ClInclude Include="geometry\rect3d.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="geometry\rect_3d_functions.h">
+    <ClInclude Include="geometry\rect3d_functions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="bit_flags.h">
@@ -93,10 +93,10 @@
     <ClInclude Include="geometry\intersection_tests.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="geometry\plane_3d.h">
+    <ClInclude Include="geometry\plane3d.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="geometry\plane_3d_functions.h">
+    <ClInclude Include="geometry\plane3d_functions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="geometry\frustum.h">
@@ -143,7 +143,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="EngineException.cpp">
+    <ClCompile Include="engine_exception.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="log.cpp">
@@ -156,6 +156,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="geometry\frustum.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="math\matrix.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="file_system.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="raw_file.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

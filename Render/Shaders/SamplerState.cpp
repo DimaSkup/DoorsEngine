@@ -24,7 +24,7 @@ SamplerState::~SamplerState()
 //        in another case we will use default params
 // Args:  - pSamplerDesc:  a description for the sampler state
 //---------------------------------------------------------
-bool SamplerState::Initialize(ID3D11Device* pDevice, D3D11_SAMPLER_DESC* pSamplerDesc)
+bool SamplerState::Init(ID3D11Device* pDevice, D3D11_SAMPLER_DESC* pSamplerDesc)
 {
 
     HRESULT hr = S_OK;

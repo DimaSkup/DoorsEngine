@@ -13,18 +13,59 @@ namespace ECS
 // static arrays for internal purposes
 static cvector<index> s_Idxs;
 
+//---------------------------------------------------------
+// Desc:  internal private helper to check if input arr of names is completely valid
+//---------------------------------------------------------
+bool CheckNamesArr(const char** names, const size numNames)
+{
+    if (!names)
+    {
+        LogErr(LOG, "names arr == NULL ");
+        return false;
+    }
+    if (numNames <= 0)
+    {
+        LogErr(LOG, "input number of names <= 0");
+        return false;
+    }
+
+    bool bNamesValid = true;
+
+    // check if each input name has any data
+    for (uint i = 0; i < numNames; ++i)
+        bNamesValid &= (!StrHelper::IsEmpty(names[i]));
+
+    // if we have some invalid name -- print out a dump of input names arr
+    if (bNamesValid == false)
+    {
+        LogErr(LOG, "some input name is empty:");
+        printf("\tprint dump of input arr:\n");
+
+        for (int i = 0; i < (int)numNames; ++i)
+        {
+            printf("\tname [%d]:  ", i);
+
+            if (names[i])
+                printf("%s", names[i]);
+            else
+                printf("ERR: invalid name");
+
+            printf("\n");
+        }
+
+        return false;
+    }
+
+    // all the names are valid
+    return true;
+}
 
 //---------------------------------------------------------
 // Desc:  constructor
 //---------------------------------------------------------
-NameSystem::NameSystem(Name* pNameComponent)
+NameSystem::NameSystem(Name* pNameComponent) : pNameComponent_(pNameComponent)
 {
-    CAssert::NotNullptr(pNameComponent, "ptr to the Name component == nullptr");
-    pNameComponent_ = pNameComponent;
-
-    // add invalid data; this data is returned when we ask for wrong entity
-    pNameComponent_->ids_.push_back(INVALID_ENTITY_ID);
-    pNameComponent_->names_.push_back("invalid");
+    CAssert::NotNullptr(pNameComponent, "ptr to the Name component == NULL");
 }
 
 //---------------------------------------------------------
@@ -40,7 +81,7 @@ bool NameSystem::AddRecord(const EntityID id, const char* name)
 
     if (!IsUnique(name))
     {
-        LogErr(LOG, "input name is not unique (entt_id: %" PRIu32 ", name: %s)", id, name);
+        LogErr(LOG, "no unique name (entt_id: %" PRIu32 ", name: %s)", id, name);
         return false;
     } 
 
@@ -67,12 +108,12 @@ bool NameSystem::AddRecords(
     // check input args
     if (!ids)
     {
-        LogErr(LOG, "input arr of entities ids == nullptr");
+        LogErr(LOG, "input arr of entts IDs == NULL");
         return false;
     }
     if (!names)
     {
-        LogErr(LOG, "input arr of names == nullptr");
+        LogErr(LOG, "input arr of names == NULL");
         return false;
     }
     if (numEntts <= 0)
@@ -103,7 +144,7 @@ bool NameSystem::AddRecords(
 
     Name& comp = *pNameComponent_;
 
-    cvector<index> idxs;
+    cvector<index>& idxs = s_Idxs;
     comp.ids_.get_insert_idxs(ids, numEntts, idxs);
 
     // allocate additional memory ahead
@@ -129,59 +170,18 @@ EntityID NameSystem::GetIdByName(const char* name) const
 {
     if (StrHelper::IsEmpty(name))
     {
-        LogErr(LOG, "input name is empty");
+        LogErr(LOG, "empty name");
         return INVALID_ENTITY_ID;
     }
 
     const Name& comp = *pNameComponent_;
     const index idx  = comp.names_.find(name);
 
-    if (IsIdxValid(idx))
+    if (comp.ids_.is_valid_index(idx))
         return comp.ids_[idx];
 
-    LogErr(LOG, "there is no entity by name: %s", name);
+    LogErr(LOG, "no entity by name: %s", name);
     return INVALID_ENTITY_ID;
-}
-
-//---------------------------------------------------------
-// Desc:  check if input arr of names is completely valid
-//---------------------------------------------------------
-bool CheckNamesArr(const char** names, const size numNames)
-{
-    if (!names)
-    {
-        LogErr(LOG, "input ptr to arr of names == nullptr");
-        return false;
-    }
-    if (numNames <= 0)
-    {
-        LogErr(LOG, "input number of names <= 0");
-        return false;
-    }
-
-    // check if each input name has any data
-    bool namesValid = true;
-    for (uint i = 0; i < numNames; ++i)
-        namesValid &= (!StrHelper::IsEmpty(names[i]));
-
-    // if we have some invalid name -- print out a dump of input names arr
-    if (namesValid == false)
-    {
-        LogErr(LOG, "some input name is empty:");
-        printf("\tprint dump of input arr:\n");
-
-        for (int i = 0; i < (int)numNames; ++i)
-        {
-            printf("\tname[%d]:  ", i);
-            if (names[i])  printf("%s", names[i]);
-            printf("\n");
-        }
-
-        return false;
-    }
-
-    // all the names are valid
-    return true;
 }
 
 //---------------------------------------------------------
@@ -192,31 +192,9 @@ void NameSystem::GetIdsByNames(
     const size numNames,
     cvector<EntityID>& outIds) const
 {
-    if (!CheckNamesArr(names, numNames))
-    {
-        LogErr(LOG, "can't get IDs by names: input args are invalid");
-        outIds.resize(0);
-        return;
-    }
-
-    const Name& comp = *pNameComponent_;
-    s_Idxs.resize(numNames, 0);
     outIds.resize(numNames);
-
-    // find idxs by names
-    for (uint i = 0; i < numNames; ++i)
-    {
-        const index idx = comp.names_.find(names[i]);
-
-        if (IsIdxValid(idx))
-            s_Idxs[i] = idx;
-    }
-
-    // gather IDs by idxs
-    for (uint i = 0; i < numNames; ++i)
-        outIds[i] = comp.ids_[s_Idxs[i]];
+    GetIdsByNames(names, numNames, outIds.data());
 }
-
 
 //---------------------------------------------------------
 // Desc:  get arr of entities IDs by input arr of names
@@ -242,7 +220,7 @@ void NameSystem::GetIdsByNames(
     {
         const index idx = comp.names_.find(names[i]);
 
-        if (IsIdxValid(idx))
+        if (comp.ids_.is_valid_index(idx))
             s_Idxs[i] = idx;
     }
 
@@ -257,13 +235,12 @@ void NameSystem::GetIdsByNames(
 const char* NameSystem::GetNameById(const EntityID id) const
 {
     const Name& comp = *pNameComponent_;
-    const index idx  = comp.ids_.get_idx(id);
+    index        idx = comp.ids_.get_idx(id);
 
-    if (IsIdxValid(idx))
-        return comp.names_[idx].c_str();
+    if (!comp.names_.is_valid_index(idx))
+        idx = 0;
 
-    else
-        return comp.names_[0].c_str();
+    return comp.names_[idx].c_str();
 }
 
 //-----------------------------------------------------
@@ -273,7 +250,7 @@ bool NameSystem::IsUnique(const char* name) const
 {
     if (StrHelper::IsEmpty(name))
     {
-        LogErr(LOG, "input name is empty");
+        LogErr(LOG, "empty name");
         return false;
     }
 

@@ -1,7 +1,7 @@
 {
 	"params": {
-	    "runtime_compilation":       false,
-		"shader_model":              "5_0",
+	    "runtime_compilation":       true,
+		"shader_model":              "4_1",
 		"dir_path_to_precompiled":   "data/shaders/cso/",
 		"dir_path_to_hlsl":          "data/shaders/hlsl/"
 	},
@@ -58,7 +58,7 @@
 			"name":          "SkyDomeShader",
 			"vs":            "SkyDomeVS",
 			"ps":            "SkyDomePS",
-			"input_layout":  "Sky"
+			"input_layout":  "Position"
 			
 		},
 		{
@@ -359,6 +359,7 @@
 			"id":             49,
 			"name":           "TreeLod1Shader",
 			"vs":             "tree_lod1_VS",
+			"gs":             "tree_lod_GS",
 			"ps":             "tree_lod1_PS",
 			"input_layout":   "TreeLod"
 		},
@@ -366,6 +367,7 @@
 			"id":             50,
 			"name":           "TreeLod2Shader",
 			"vs":             "tree_lod2_VS",
+			"gs":             "tree_lod2_GS",
 			"ps":             "tree_lod2_PS",
 			"input_layout":   "TreeLod"
 		},
@@ -388,7 +390,7 @@
 			"name":           "TerrainLowLodShader",
 			"vs":             "terrain_low_lod_VS",
 			"ps":             "terrain_low_lod_PS",
-			"input_layout":   "TerrainPos"
+			"input_layout":   "Position"
 		},
 		{
 			"id":             54,
@@ -411,7 +413,7 @@
 			"name":           "DecalShader",
 			"vs":             "decalVS",
 			"ps":             "decalPS",
-			"input_layout":   "VertexPosTex"
+			"input_layout":   "Decal"
 		},
 		{
 			"id":             57,

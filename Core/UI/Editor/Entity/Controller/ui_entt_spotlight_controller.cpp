@@ -189,7 +189,7 @@ void EnttSpotLightController::ExecChangeAmbient(
 
     if (!pFacade->SetSpotLightAmbient(id, ambient))
     {
-        LogErr(GenerateErrMsg(id, "ambient").c_str());
+        LogErr(LOG, GenerateErrMsg(id, "ambient").c_str());
         return;
     }
 
@@ -217,7 +217,7 @@ void EnttSpotLightController::ExecChangeDiffuse(
 
     if (!pFacade->SetSpotLightDiffuse(id, diffuse))
     {
-        LogErr(GenerateErrMsg(id, "diffuse").c_str());
+        LogErr(LOG, GenerateErrMsg(id, "diffuse").c_str());
         return;
     }
 
@@ -245,7 +245,7 @@ void EnttSpotLightController::ExecChangeSpecular(
 
     if (!pFacade->SetSpotLightSpecular(id, specular))
     {
-        LogErr(GenerateErrMsg(id, "specular").c_str());
+        LogErr(LOG, GenerateErrMsg(id, "specular").c_str());
         return;
     }
 
@@ -345,7 +345,7 @@ void EnttSpotLightController::ExecChangeRange(
 
     if (!pFacade->SetSpotLightRange(id, range))
     {
-        LogErr(GenerateErrMsg(id, "range").c_str());
+        LogErr(LOG, GenerateErrMsg(id, "range").c_str());
         return;
     }
 
@@ -373,7 +373,7 @@ void EnttSpotLightController::ExecChangeAttenuation(
 
     if (!pFacade->SetSpotLightAttenuation(id, att))
     {
-        LogErr(GenerateErrMsg(id, "attenuation").c_str());
+        LogErr(LOG, GenerateErrMsg(id, "attenuation").c_str());
         return;
     }
 
@@ -401,7 +401,7 @@ void EnttSpotLightController::ExecChangeSpotExponent(
 
     if (!pFacade->SetSpotLightSpotExponent(id, spotExponent))
     {
-        LogErr(GenerateErrMsg(id, "spot exponent (fallof)").c_str());
+        LogErr(LOG, GenerateErrMsg(id, "spot exponent (fallof)").c_str());
         return;
     }
 

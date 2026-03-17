@@ -392,9 +392,8 @@ private:
     void NormalizeTerrain (float* heightData, const int size);
 
 public:
-    //int                 heightMapSize_ = 0;             // must be power of two
-    int                 terrainLength_ = 0;    // since the terrain is always a square its width==depth (size by X == size by Z)
-    float               heightScale_   = 1.0f;          // it lets us dynamically scale the heights of the terrain
+    int                 terrainLength_ = 0;       // since the terrain is always a square its width==depth (size by X == size by Z)
+    float               heightScale_   = 1.0f;    // it lets us dynamically scale the heights of the terrain
 
     // texture info
     TerrainTextureTiles tiles_;
@@ -403,10 +402,6 @@ public:
     //Image               lightMap_;
     Image               detailMap_;
     Image               natureDensityMap_;
-
-    bool                textureMapped_ = false;
-    bool                multitextured_ = false;
-    bool                detailMapped_ = false;
 
     // lighting info
     eLightingTypes      lightingType_  = HEIGHT_BASED;
@@ -418,8 +413,12 @@ public:
     int                 directionZ_    = 0;
 
     // stat variables
-    int vertsPerFrame_ = 0;
-    int trisPerFrame_ = 0;
+    int                 vertsPerFrame_ = 0;
+    int                 trisPerFrame_ = 0;
+
+    uint8               textureMapped_ : 1 = false;
+    uint8               multitextured_ : 1 = false;
+    uint8               detailMapped_  : 1 = false;
 };
 
 } // namespace

@@ -115,7 +115,6 @@ bool ShaderMgr::Init(
         ShaderCommonParams commonParams;
         ReadShadersInitCommonParams(doc["params"], commonParams);
 
-
         // read in all the shaders definitions
         const rapidjson::Value& shadersData = doc["shaders"];
         
@@ -144,12 +143,11 @@ bool ShaderMgr::Init(
 
         SafeDeleteArr(json);
 
-
         LogMsg(LOG, "shaders initialization: finished successfully");
     }
     catch (EngineException& e) 
     {
-        LogErr(e, true);
+        LogErr(LOG, e.what());
         return false;
     }
 
@@ -238,7 +236,7 @@ bool ShaderMgr::HotReload(ID3D11Device* pDevice)
     }
     catch (EngineException& e)
     {
-        LogErr(e, true);
+        LogErr(LOG, e.what());
         return false;
     }
 

@@ -27,7 +27,7 @@ private:
 public:
 	FogEditorController() : fogView_(this) {}
 
-	void Initialize(IFacadeEngineToUI* pFacade);
+	void Init(IFacadeEngineToUI* pFacade);
 
 	// execute command and store this change into the events history
 	virtual void ExecCmd(const ICommand* pCmd) override;

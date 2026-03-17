@@ -39,7 +39,7 @@ void FontClass::Init(
         fontTexID_ = g_TextureMgr.GetTexIdByName(fontTexName);
 
         // we need to have a height of the font texture for proper building of the vertices data
-        fontHeight_ = g_TextureMgr.GetTexPtrByID(fontTexID_)->GetHeight();
+        fontHeight_ = g_TextureMgr.GetTexPtrById(fontTexID_)->GetHeight();
         
         // load the data into the font data array
         LoadFontData(fontDataFilePath, charNum_, fontDataArr_);
@@ -47,7 +47,7 @@ void FontClass::Init(
     catch (EngineException & e)
     {
         this->~FontClass();
-        LogErr(e, true);
+        LogErr(LOG, e.what());
         throw EngineException("can't init the FontClass object");
     }
 }
@@ -140,7 +140,7 @@ void* FontClass::operator new(size_t i)
         return ptr;
     }
 
-    LogErr("can't allocate the memory for object");
+    LogErr(LOG, "can't alloc mem for object");
     throw std::bad_alloc{};
 }
 
@@ -156,12 +156,12 @@ void FontClass::operator delete(void* p)
 
 ID3D11ShaderResourceView* const FontClass::GetTexResourceView()
 {
-    return g_TextureMgr.GetTexByID(fontTexID_).GetTextureResourceView();
+    return g_TextureMgr.GetTexById(fontTexID_).GetResourceView();
 }
 
 ID3D11ShaderResourceView* const* FontClass::GetTexResourceViewAddress()
 {
-    return g_TextureMgr.GetTexByID(fontTexID_).GetTextureResourceViewAddress();
+    return g_TextureMgr.GetTexById(fontTexID_).GetResourceViewAddr();
 }
 
 
@@ -174,17 +174,28 @@ ID3D11ShaderResourceView* const* FontClass::GetTexResourceViewAddress()
 //        for each symbol and the width in pixels of each symbol
 //---------------------------------------------------------
 void FontClass::LoadFontData(
-    const char* fontDataFilePath,
+    const char* fondDataFilepath,
     const int numOfFontChars,
     FontType* fontData)
 {
-    std::ifstream fin;
+    ;
+
+    if (StrHelper::IsEmpty(fondDataFilepath))
+    {
+        LogErr(LOG, "empty filepath");
+        return;
+    }
+
+    // open file
+    std::ifstream fin(fondDataFilepath, std::ifstream::in);
+    if (!fin.is_open())
+    {
+        LogErr(LOG, "can't open the file with font data: %s", fondDataFilepath);
+        return;
+    }
 
     try 
     {
-        fin.open(fontDataFilePath, std::ifstream::in);
-        CAssert::True(fin.is_open(), "can't open the file with font data");
-
         // read in data from the buffer
         for (int i = 0; i < numOfFontChars - 2; i++)
         {
@@ -203,13 +214,7 @@ void FontClass::LoadFontData(
     catch (std::ifstream::failure e)
     {
         fin.close();
-        throw EngineException("exception opening/reading/closing file");
-    }
-    catch (EngineException & e)
-    {
-        fin.close();
-        LogErr(e);
-        throw EngineException("can't load the font data from the file");
+        LogErr(LOG, "failed opening/reading/closing file");
     }
 }
 

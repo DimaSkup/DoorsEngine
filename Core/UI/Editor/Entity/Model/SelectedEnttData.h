@@ -8,34 +8,23 @@
 // Created:     02.04.2025  by DimaSkup
 // =================================================================================
 #pragma once
-
-#include <UICommon/IFacadeEngineToUI.h>
-#include <cvector.h>
-#include <string>
+#include <UICommon/ui_common_types.h>
 
 
 namespace UI
 {
-
-enum eEnttLightType
-{
-    ENTT_LIGHT_TYPE_DIRECTED,
-    ENTT_LIGHT_TYPE_POINT,
-    ENTT_LIGHT_TYPE_SPOT,
-    NUM_LIGHT_TYPES
-};
 
 struct SelectedEnttData
 {
     inline bool IsSelectedAnyEntt() const { return (id != 0); }
 
     
-    EntityID        id = 0;                        // selected entity ID
-    char            name[MAX_LEN_ENTT_NAME];       // selected entity name
-    eEnttLightType  lightType = NUM_LIGHT_TYPES;
-    
-    cvector<eEnttComponentType> componentsTypes;   // types of components which are added to the entity
-};
+    EntityID           id = 0;                        // selected entity ID
+    char               name[MAX_LEN_ENTT_NAME];       // selected entity name
+    eEnttLightType     lightType = NUM_LIGHT_TYPES;
 
+    eEnttComponentType addedComponents[eEnttComponentType::NUM_COMPONENTS];
+    size               numAddedComponents = 0;
+};
 
 } // namespace UI

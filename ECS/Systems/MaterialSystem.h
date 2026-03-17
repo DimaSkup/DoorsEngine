@@ -7,10 +7,9 @@
 // **********************************************************************************
 #pragma once
 
-#include <Types.h>
+#include <log.h>
 #include "../Components/Material.h"
 #include "../Systems/NameSystem.h"
-#include <fstream>
 
 namespace ECS
 {
@@ -45,9 +44,36 @@ private:
         const index* idxs,
         const size numEntts) const;
 
+    index GetIdx(const EntityID id) const;
+
 private:
     Material*   pMaterialComponent_ = nullptr;
     NameSystem* pNameSystem_        = nullptr;
 };
+
+//---------------------------------------------------------
+// Desc:  get VALID index to data by entity id
+//        if there is no data we return 0
+//---------------------------------------------------------
+inline index MaterialSystem::GetIdx(const EntityID id) const
+{
+    const Material& comp = *pMaterialComponent_;
+    const index idx = comp.enttsIds.get_idx(id);
+
+    if (comp.enttsIds.is_valid_index(idx))
+        return idx;
+
+    LogErr(LOG, "there is no entity by ID: %d", (int)id);
+    return 0;
+}
+
+//---------------------------------------------------------
+// Desc:   get arr of material Ids for entity by input ID
+//---------------------------------------------------------
+inline const MaterialData& MaterialSystem::GetDataByEnttId(const EntityID id) const
+{
+    return pMaterialComponent_->data[GetIdx(id)];
+}
+
 
 }

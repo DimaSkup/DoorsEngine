@@ -18,12 +18,13 @@
 namespace Core
 {
 
-class BasicModel;
+// forward declaration (pointer use only)
+class Model;
 
 class ModelLoader
 {
 public:
-    bool Load(const char* filePath, BasicModel* pModel);
+    bool Load(const char* filePath, Model* pModel);
 };
 
 } // namespace

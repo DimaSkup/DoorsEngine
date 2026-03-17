@@ -125,6 +125,7 @@ tex_diff random/gigachad
 
 newmtl tree_pine_lod_1
 shader TreeLod1Shader
+alpha_clip 1
 Ka 0.40 0.40 0.40 1.00
 Kd 0.65 0.65 0.65 1.00
 Ks 0.00 0.00 0.00
@@ -147,14 +148,14 @@ alpha_clip 1
 
 newmtl tree_spruce_lod_1
 shader TreeLod1Shader
+alpha_clip 1
 Ka 1.00 1.00 1.00 1.00
 Kd 1.00 1.00 1.00 1.00
 Ks 0.00 0.00 0.00
-Kg 10.00
+Kg 1.00
 Kr 0.00 0.00 0.00 0.00
 tex_diff  lods/spruce_diff
 tex_norm  lods/spruce_norm
-alpha_clip 1
 
 newmtl tree_spruce_lod_2
 shader TreeLod2Shader
@@ -236,6 +237,8 @@ dss particles
 
 newmtl wallmark
 shader DecalShader
+Ka 0.33 0.33 0.33 1.00
+Kd 0.50 0.50 0.50 1.00
 tex_diff wallmark/default
 rs decals
 bs transparent

@@ -1089,7 +1089,7 @@ namespace
         if (!stream)
             return E_INVALIDARG;
 
-        // Initialize WIC
+        // Init WIC
         bool iswic2 = false;
         auto pWIC = GetWICFactory(iswic2);
         if (!pWIC)
@@ -1157,7 +1157,7 @@ namespace
         if (!images)
             return E_POINTER;
 
-        // Initialize WIC
+        // Init WIC
         bool iswic2 = false;
         auto pWIC = GetWICFactory(iswic2);
         if (!pWIC)
@@ -1249,7 +1249,7 @@ HRESULT DirectX::GetMetadataFromWICMemory(
     if (FAILED(hr))
         return hr;
 
-    // Initialize WIC
+    // Init WIC
     ComPtr<IWICBitmapDecoder> decoder;
     hr = pWIC->CreateDecoderFromStream(stream.Get(), nullptr, WICDecodeMetadataCacheOnDemand, decoder.GetAddressOf());
     if (FAILED(hr))
@@ -1287,7 +1287,7 @@ HRESULT DirectX::GetMetadataFromWICFile(
     if (!pWIC)
         return E_NOINTERFACE;
 
-    // Initialize WIC
+    // Init WIC
     ComPtr<IWICBitmapDecoder> decoder;
     HRESULT hr = pWIC->CreateDecoderFromFilename(szFile, nullptr, GENERIC_READ, WICDecodeMetadataCacheOnDemand, decoder.GetAddressOf());
     if (FAILED(hr))
@@ -1342,7 +1342,7 @@ HRESULT DirectX::LoadFromWICMemory(
     if (FAILED(hr))
         return hr;
 
-    // Initialize WIC
+    // Init WIC
     ComPtr<IWICBitmapDecoder> decoder;
     hr = pWIC->CreateDecoderFromStream(stream.Get(), nullptr, WICDecodeMetadataCacheOnDemand, decoder.GetAddressOf());
     if (FAILED(hr))
@@ -1403,7 +1403,7 @@ HRESULT DirectX::LoadFromWICFile(
 
     image.Release();
 
-    // Initialize WIC
+    // Init WIC
     ComPtr<IWICBitmapDecoder> decoder;
     HRESULT hr = pWIC->CreateDecoderFromFilename(szFile, nullptr, GENERIC_READ, WICDecodeMetadataCacheOnDemand, decoder.GetAddressOf());
     if (FAILED(hr))
@@ -1458,7 +1458,7 @@ HRESULT DirectX::SaveToWICMemory(
     if (!image.pixels)
         return E_POINTER;
 
-    HRESULT hr = blob.Initialize(65535u);
+    HRESULT hr = blob.Init(65535u);
     if (FAILED(hr))
         return hr;
 
@@ -1502,7 +1502,7 @@ HRESULT DirectX::SaveToWICMemory(
     if (!images || nimages == 0)
         return E_INVALIDARG;
 
-    HRESULT hr = blob.Initialize(65535u);
+    HRESULT hr = blob.Init(65535u);
     if (FAILED(hr))
         return hr;
 

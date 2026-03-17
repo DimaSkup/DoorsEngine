@@ -13,16 +13,15 @@ ViewFog::ViewFog(IEditorController* pController) : pController_(pController)
 {
     if (!pController)
     {
-        LogErr("ptr to the view listener == nullptr");
+        LogErr(LOG, "ptr to the view listener == nullptr");
     }
 }
 
-///////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// show the fog editor's fields
+//---------------------------------------------------------
 void ViewFog::Draw(const ModelFog* pData)
 {
-    // show the fog editor fields
-
     // make local copies of the current model data to use it in the fields
     FogData data;
     pData->GetData(data);
@@ -52,6 +51,5 @@ void ViewFog::Draw(const ModelFog* pData)
         pController_->ExecCmd(&cmd);
     }
 }
-
 
 } // namespace UI

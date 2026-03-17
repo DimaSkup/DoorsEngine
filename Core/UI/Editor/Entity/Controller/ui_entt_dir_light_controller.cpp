@@ -156,7 +156,7 @@ void EnttDirLightController::ExecChangeAmbient(
 
     if (!pFacade->SetDirectedLightAmbient(id, ambient))
     {
-        LogErr(GenerateErrMsg(id, "ambient").c_str());
+        LogErr(LOG, GenerateErrMsg(id, "ambient").c_str());
         return;
     }
 
@@ -184,7 +184,7 @@ void EnttDirLightController::ExecChangeDiffuse(
 
     if (!pFacade->SetDirectedLightDiffuse(id, diffuse))
     {
-        LogErr(GenerateErrMsg(id, "diffuse").c_str());
+        LogErr(LOG, GenerateErrMsg(id, "diffuse").c_str());
         return;
     }
        
@@ -212,7 +212,7 @@ void EnttDirLightController::ExecChangeSpecular(
 
     if (!pFacade->SetDirectedLightSpecular(id, specular))
     {
-        LogErr(GenerateErrMsg(id, "specular").c_str());
+        LogErr(LOG, GenerateErrMsg(id, "specular").c_str());
         return;
     }
 

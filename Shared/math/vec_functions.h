@@ -1,6 +1,7 @@
 #pragma once
 #include "vec2.h"
 #include "vec3.h"
+#include <assert.h>
 
 
 //==================================================================================
@@ -64,15 +65,6 @@ inline Vec3 Vec3Mul(const Vec3& v1, const float s)
 
 //---------------------------------------------------------
 
-inline Vec3 Vec3Div(const Vec3& v1, const float s)
-{
-    assert(s != 0 && "divide by zero error");
-
-    return Vec3(v1.x / s, v1.y / s, v1.z / s);
-}
-
-//---------------------------------------------------------
-
 inline void Vec2Lerp(const Vec2& v1, const Vec2& v2, const float factor, Vec2& out)
 {
     out.x = (v1.x * factor + (1.0f - factor) * v2.x);
@@ -119,7 +111,12 @@ inline float Vec3Length(const Vec3& v)
 
 inline void Vec3Normalize(Vec3& v)
 {
-    const float invLen = 1.0f / Vec3Length(v);
+    const float len = Vec3Length(v);
+
+    if (len < EPSILON_E5)
+        return;
+
+    const float invLen = 1.0f / len;
     v.x *= invLen;
     v.y *= invLen;
     v.z *= invLen;
@@ -129,7 +126,12 @@ inline void Vec3Normalize(Vec3& v)
 
 inline Vec3 Vec3Normalize(Vec3&& v)
 {
-    const float invLen = 1.0f / Vec3Length(v);
+    const float len = Vec3Length(v);
+
+    if (len < EPSILON_E5)
+        return v;
+
+    const float invLen = 1.0f / len;
 
     return Vec3(
         v.x *= invLen,
@@ -141,7 +143,12 @@ inline Vec3 Vec3Normalize(Vec3&& v)
 
 inline void Vec3Normalize(const Vec3& v, Vec3& outNormalizedVec)
 {
-    const float invLen = 1.0f / Vec3Length(v);
+    const float len = Vec3Length(v);
+
+    if (len < EPSILON_E5)
+        return;
+
+    const float invLen = 1.0f / len;
     outNormalizedVec.x *= invLen;
     outNormalizedVec.y *= invLen;
     outNormalizedVec.z *= invLen;

@@ -14,14 +14,14 @@
 \**********************************************************************************/
 #pragma once
 
-#include <math/vec4.h>
-#include <math/vec3.h>
-#include <math/math_constants.h>
-#include <math/math_helpers.h>
+#include "vec4.h"
+#include "vec3.h"
+#include "math_constants.h"
+#include "math_helpers.h"
 #include <assert.h>
 #include <memory.h>
 #include <math.h>
-#include <stdio.h>
+
 
 
 //==================================================================================
@@ -66,7 +66,11 @@ public:
     Matrix& operator =  (const Matrix& mat);
 
     inline const Vec4& operator[](const int row) const { return r[row]; }
-    inline Vec4& operator[](const int row)             { return r[row]; }
+    inline       Vec4& operator[](const int row)       { return r[row]; }
+
+    // print into console
+    void Print(const char* msg) const;
+
 
 public:
     union
@@ -166,21 +170,6 @@ inline Matrix::Matrix(const Vec4& r0, const Vec4& r1, const Vec4& r2, const Vec4
 //==================================================================================
 // matrix functions
 //==================================================================================
-
-//---------------------------------------------------------
-// Desc:   print out a matrix into the console
-//---------------------------------------------------------
-inline void MatrixPrint(const Matrix& mat)
-{
-    for (int i = 0; i < 4; ++i)
-    {
-        for (int j = 0; j < 4; ++j)
-        {
-            printf("%13.6f ", mat.m[i][j]);
-        }
-        printf("\n");
-    }
-}
 
 //---------------------------------------------------------
 // Desc:  compare two matrices and return true if they are equal
@@ -358,7 +347,7 @@ inline void MatrixMul(const Matrix& ma, const Matrix& mb, Matrix& outMat)
 //
 //         this function can be used both for 3D points/vectors transformation using 4x4 matrices;
 //---------------------------------------------------------
-inline void MatrixMulVec3(const Vec3& vec, const Matrix& mat, Vec3& outVec)
+inline void MatrixMulVec3(const Vec3 vec, const Matrix& mat, Vec3& outVec)
 {
     Vec3 tmp(0,0,0);
 
@@ -494,8 +483,13 @@ inline Matrix MatrixRotationZ(const float angle)
 //---------------------------------------------------------
 inline Matrix MatrixRotationAxis(Vec3 axis, const float angle)
 {
+    const float len = sqrtf(SQR(axis.x) + SQR(axis.y) + SQR(axis.z));
+
+    if (len < EPSILON_E5)
+        return Matrix();
+
     // first of all we normalize the input axis vector
-    const float invLen = 1.0f / sqrtf(SQR(axis.x) + SQR(axis.y) + SQR(axis.z));
+    const float invLen = 1.0f / len;
     const float nx = axis.x * invLen;
     const float ny = axis.y * invLen;
     const float nz = axis.z * invLen;

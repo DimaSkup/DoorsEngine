@@ -19,7 +19,7 @@ public:
 	~RenderWindow();
 
 	// initializes the private members and registers the window class
-	bool Initialize(
+	bool Init(
 		HINSTANCE hInstance, 
 		HWND& mainWnd,
 		const bool isFullScreen,

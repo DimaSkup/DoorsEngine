@@ -25,7 +25,7 @@ bool GeometryShader::LoadPrecompiled(ID3D11Device* pDevice, const char* shaderPa
 {
     if (StrHelper::IsEmpty(shaderPath))
     {
-        LogErr("input path to geometry shader file is empty!");
+        LogErr(LOG, "empty shader path");
         return false;
     }
 
@@ -35,6 +35,7 @@ bool GeometryShader::LoadPrecompiled(ID3D11Device* pDevice, const char* shaderPa
     const size_t len = ShaderCompiler::LoadCSO(shaderPath, buf);
     if (!len)
     {
+        SafeDeleteArr(buf);
         LogErr(LOG, "Failed to load .CSO-file of geometry shader: %s", shaderPath);
         Shutdown();
         return false;
@@ -43,6 +44,7 @@ bool GeometryShader::LoadPrecompiled(ID3D11Device* pDevice, const char* shaderPa
     const HRESULT hr = pDevice->CreateGeometryShader(buf, len, nullptr, &pShader_);
     if (FAILED(hr))
     {
+        SafeDeleteArr(buf);
         LogErr(LOG, "Failed to create a geometry shader obj: %s", shaderPath);
         Shutdown();
         return false;
@@ -67,9 +69,11 @@ bool GeometryShader::CompileFromFile(
     const char* funcName,
     const char* shaderModel)
 {
-    if (StrHelper::IsEmpty(path) || StrHelper::IsEmpty(funcName) || StrHelper::IsEmpty(shaderModel))
+    if (StrHelper::IsEmpty(path)     ||
+        StrHelper::IsEmpty(funcName) ||
+        StrHelper::IsEmpty(shaderModel))
     {
-        LogErr("input arguments are invalid: some path is empty");
+        LogErr(LOG, "input args are invalid: some path is empty");
         return false;
     }
 

@@ -42,17 +42,14 @@ public:
     FrameBuffer(const FrameBuffer& obj) = delete;
     FrameBuffer& operator=(const FrameBuffer& obj) = delete;
 
-    bool Initialize(ID3D11Device* pDevice, const FrameBufSpec& fbSpec);
+    bool Init(const FrameBufSpec& fbSpec);
 
-    void ResizeBuffers(
-        ID3D11DeviceContext* pContext,
-        const int newWidth,
-        const int newHeight);
+    void ResizeBuffers(const int width, const int height);
 
     void Shutdown();
 
-    void Bind(ID3D11DeviceContext* pContext);
-    void ClearBuffers(ID3D11DeviceContext* pContext, const DirectX::XMFLOAT4& rgbaColor);
+    void Bind();
+    void ClearBuffers(float r, float g, float b, float a);
 
 
     //
@@ -63,22 +60,22 @@ public:
     inline ID3D11ShaderResourceView*  GetSRV()                const { return pShaderResourceView_; }
     inline ID3D11ShaderResourceView** GetAddressOfSRV()             { return &pShaderResourceView_; }
 
-    inline void GetProjectionMatrix(DirectX::XMMATRIX& proj)  const { proj = projection_; }
-    inline void GetOrthoMatrix(DirectX::XMMATRIX& ortho)      const { ortho = orthoMatrix_; }
+    inline const DirectX::XMMATRIX&   GetProjMatrix()         const { return projection_; }
+    inline const DirectX::XMMATRIX&   GetOrthoMatrix()        const { return orthoMatrix_; }
 
-    inline UINT  GetTexWidth()  const { return specification_.width; }
-    inline UINT  GetTexHeight() const { return specification_.height; }
-    inline float GetAspect()    const { return (float)GetTexWidth() / (float)GetTexHeight(); }
+    inline UINT  GetWidth()     const { return specification_.width; }
+    inline UINT  GetHeight()    const { return specification_.height; }
+    inline float GetAspect()    const { return (float)GetWidth() / (float)GetHeight(); }
     inline float GetNearZ()     const { return specification_.screenNear; }
     inline float GetFarZ()      const { return specification_.screenDepth; }
 
 
 private:
-    void CreateRenderTargetTexture(ID3D11Device* pDevice);
-    void CreateRenderTargetView(ID3D11Device* pDevice);
-    void CreateShaderResourceView(ID3D11Device* pDevice);
-    void CreateDepthStencilBuffer(ID3D11Device* pDevice);
-    void CreateDepthStencilView(ID3D11Device* pDevice);
+    void CreateRenderTargetTexture();
+    void CreateRenderTargetView();
+    void CreateShaderResourceView();
+    void CreateDepthStencilBuffer();
+    void CreateDepthStencilView();
     void SetupViewportAndMatrices();
 
 private:

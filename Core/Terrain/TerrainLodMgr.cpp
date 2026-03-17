@@ -242,11 +242,10 @@ void TerrainLodMgr::CalcMaxLOD()
 {
     const int numSegments = patchSize_ - 1;
 
-    if (!IsPow2(numSegments))
+    if (!IS_POW2(numSegments))
     {
-        LogErr(LOG, "the number of vertices in the patch minus 1 must be a power of two!");
-        LogErr(LOG, "your number of vertices-1: %d", numSegments);
-        exit(0);
+        LogErr  (LOG, "your number of vertices-1: %d", numSegments);
+        LogFatal(LOG, "the number of vertices in the patch minus 1 must be a power of two!");
     }
 
     maxLOD_ = (int)log2f((float)numSegments) - 1;

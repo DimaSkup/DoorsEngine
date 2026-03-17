@@ -15,30 +15,16 @@ namespace fs = std::filesystem;
 namespace Core
 {
 
-// static arr of indices (for internal purposes)
-static cvector<index> s_Idxs;
+// static arrays for internal purposes
+static cvector<index>         s_Idxs;
+static cvector<VertexDecal3D> s_VertsDecals;
 
 // init a global instance of the model manager
 ModelMgr g_ModelMgr;
 
-// when we add some new model into a storage its ID == lastModelID
-// and then we increase the lastModelID_ by 1, so the next model will have as ID
-// this increased value, and so on
+// value is used to get an ID for a new model
 ModelID ModelMgr::lastModelID_ = 0;
 
-
-//---------------------------------------------------------
-// a little cringe helper to wrap getting of DX11 device and context
-//---------------------------------------------------------
-inline ID3D11Device* GetDevice()
-{
-    return Render::g_pDevice;
-}
-
-inline ID3D11DeviceContext* GetContext()
-{
-    return Render::g_pContext;
-}
 
 //---------------------------------------------------------
 // default constructor and destructor
@@ -69,48 +55,42 @@ bool ModelMgr::Init()
     const ModelID cubeId = creator.CreateCube();
 
     // currently we expect "invalid" model to be only one and have ID == 0
-    if ((cubeId != INVALID_MODEL_ID) || (ids_.size() != 1) || (models_.size() != 1))
+    if ((cubeId != INVALID_MODEL_ID) ||
+        (ids_.size() != 1) ||
+        (models_.size() != 1))
     {
-        LogErr(LOG, "something went wrong: there is already some other models");
+        LogErr(LOG, "there is already some other models");
         return false;
     }
 
-    BasicModel& invalid = g_ModelMgr.GetModelById(cubeId);
-    g_ModelMgr.SetModelName(invalid.id_, "invalid_model");
-    invalid.SetMaterialForSubset(0, INVALID_MATERIAL_ID);
+    Model& invalidModel = g_ModelMgr.GetModelById(cubeId);
+    
+    g_ModelMgr.SetModelName(invalidModel.GetId(), "invalid_model");
+    invalidModel.SetMaterialForSubset(0, INVALID_MATERIAL_ID);
 
     //---------------------------------
 
-    if (!InitBillboardBuffer())
+    if (!InitBillboardsVB())
     {
-        LogErr(LOG, "can't init billboard/particles VB");
+        LogErr(LOG, "can't init VB for billboard/particles");
         return false;
     }
 
-    if (!InitLineVertexBuffer())
+    if (!InitDecalsBuffers())
     {
-        LogErr(LOG, "can't init debug lines VB");
+        LogErr(LOG, "can't init buffers for decals");
         return false;
     }
-
-    //---------------------------------------------
-
-    // init DECALS buffers
-    const bool isDynamicVB = true;
-    constexpr int numDecalsVertices = MAX_NUM_DECALS * NUM_VERTS_PER_DECAL;
-    VertexPosTex decalsVertices[numDecalsVertices];
-
-    memset(decalsVertices, 0, sizeof(decalsVertices));
-    memset(decalsRenderList_, 0, sizeof(decalsRenderList_));
-
-    if (!decalsVB_.Initialize(GetDevice(), decalsVertices, numDecalsVertices, isDynamicVB))
-    {
-        LogErr(LOG, "can't init decals VB");
-        return false;
-    }
-    
 
     return true;
+}
+
+//---------------------------------------------------------
+// Desc:  update some buffers (vb/ib) if necessary
+//---------------------------------------------------------
+void ModelMgr::Update(const float deltaTime)
+{
+    UpdateDynamicDecals(deltaTime);
 }
 
 //---------------------------------------------------------
@@ -133,20 +113,16 @@ void ModelMgr::Shutdown()
 //---------------------------------------------------------
 // Desc:  init a billboards vertex buffer (mainly is used for particles)
 //---------------------------------------------------------
-bool ModelMgr::InitBillboardBuffer()
+bool ModelMgr::InitBillboardsVB()
 {
-    constexpr int  maxNumBillboards = 30000;
+    constexpr int  maxNumBillboards = 3000;
     constexpr bool isDynamic = true;
 
     cvector<BillboardSprite> vertices(maxNumBillboards);
 
-    if (!billboardsVB_.Initialize(
-        GetDevice(),
-        vertices.data(),
-        maxNumBillboards,
-        isDynamic))
+    if (!billboardsVB_.Init(vertices.data(), maxNumBillboards, isDynamic))
     {
-        LogErr(LOG, "can't create a vertex buffer for billboard sprites");
+        LogErr(LOG, "can't create a VB for billboard sprites");
         return false;
     }
 
@@ -154,38 +130,79 @@ bool ModelMgr::InitBillboardBuffer()
 }
 
 //---------------------------------------------------------
-// Desc:   initialize a vertex buffer for debug lines
+// Desc:   initialize a vertex/index buffer for debug lines
 //---------------------------------------------------------
-bool ModelMgr::InitLineVertexBuffer()
+bool ModelMgr::InitDebugLinesBuffers()
 {
     // TODO: I hate todo but fix it to prevent eating so much memory
-    constexpr int  maxNumVertices = 120000;
-    constexpr int  maxNumIndices = 256;
-    constexpr bool isDynamic = true;
+    constexpr int  maxNumVertices = 30000;
+    constexpr int  maxNumIndices  = 256;
+    constexpr bool isDynamicVB    = true;
 
     cvector<VertexPosColor> vertices(maxNumVertices);
     cvector<uint16>         indices(maxNumIndices, 0);
 
-    if (!debugLinesVB_.Initialize(
-        GetDevice(),
-        vertices.data(),
-        maxNumVertices,
-        isDynamic))
+    if (!debugLinesVB_.Init(vertices.data(), maxNumVertices, isDynamicVB))
     {
-        LogErr(LOG, "can't create a vertex buffer for debug lines");
+        ShutdownDebugLinesBuffers();
+        LogErr(LOG, "can't create a VB for debug lines");
         return false;
     }
 
-    if (!debugLinesIB_.Initialize(
-        GetDevice(),
-        indices.data(),
-        maxNumIndices,
-        isDynamic))
+    if (!debugLinesIB_.Init(indices.data(), maxNumIndices, isDynamicVB))
     {
-        LogErr(LOG, "can't create an index buffer for debug lines");
+        ShutdownDebugLinesBuffers();
+        LogErr(LOG, "can't create an IB for debug lines");
         return false;
     }
 
+    return true;
+}
+
+//---------------------------------------------------------
+// Desc:  release VRAM from debug lines VB and IB
+//---------------------------------------------------------
+void ModelMgr::ShutdownDebugLinesBuffers()
+{
+    debugLinesVB_.Shutdown();
+    debugLinesIB_.Shutdown();
+}
+
+//---------------------------------------------------------
+// Desc:  initialize buffers for decals
+//---------------------------------------------------------
+bool ModelMgr::InitDecalsBuffers()
+{
+    const bool    bDynamicVB   = true;
+    const bool    bDynamicIB   = false;
+    const int     numVerts     = MAX_NUM_DECALS * NUM_VERTS_PER_DECAL;
+    const int     numIndices   = 6;
+    ID3D11Device* pDevice      = Render::GetD3dDevice();    
+    const uint16  indices[numIndices] = { 0,1,2,  0,2,3 };
+    
+    s_VertsDecals.resize(numVerts);
+    VertexDecal3D* verts = s_VertsDecals.data();
+
+    
+    // reset with zeros CPU-side decals data
+    memset(decalsRendList_, 0, sizeof(decalsRendList_));
+    memset(verts,           0, sizeof(VertexDecal3D) * numVerts);
+
+    // init vertex buffer
+    if (!decalsVB_.Init(verts, numVerts, bDynamicVB))
+    {
+        LogErr(LOG, "can't init decals VB");
+        return false;
+    }
+
+    // init index buffer
+    if (!decalsIB_.Init(indices, numIndices, bDynamicIB))
+    {
+        LogErr(LOG, "can't init decals IB");
+        return false;
+    }
+
+    // return great success
     return true;
 }
 
@@ -194,27 +211,28 @@ bool ModelMgr::InitLineVertexBuffer()
 // Args:  - model:   a model which will be moved into the manager
 // Ret:   identifier of added model
 //---------------------------------------------------------
-ModelID ModelMgr::AddModel(BasicModel&& model)
+ModelID ModelMgr::AddModel(Model&& model)
 {
-    bool isUnique = !ids_.binary_search(model.id_);
+    const ModelID id = model.GetId();
+
+    // check if input model is unique
+    bool isUnique = !ids_.binary_search(id);
     if (!isUnique)
     {
         PrintDump();
 
-        LogErr(LOG, "there is already a model by ID: %" PRIu32, model.id_);
+        LogErr(LOG, "there is already a model by ID: %" PRIu32, id);
         return INVALID_MODEL_ID;
     }
 
-    const ModelID id = model.id_;
-    const index idx = ids_.get_insert_idx(model.id_);
+    const index idx = ids_.get_insert_idx(id);
 
     names_.insert_before(idx, ModelName());
-    strncpy(names_[idx].name, model.name_, MAX_LEN_MODEL_NAME);
+    strncpy(names_[idx].name, model.GetName(), MAX_LEN_MODEL_NAME);
 
-    ids_.insert_before(idx, id);
+    ids_.insert_before(idx, model.GetId());
     models_.insert_before(idx, std::move(model));
     
-
     if (id >= lastModelID_)
         lastModelID_ = id + 1;
 
@@ -225,34 +243,31 @@ ModelID ModelMgr::AddModel(BasicModel&& model)
 // Desc:   push a new empty model into the storage
 // Ret:    a ref to this new model
 //---------------------------------------------------------
-BasicModel& ModelMgr::AddEmptyModel()
+Model& ModelMgr::AddEmptyModel()
 {
     const ModelID id = lastModelID_;
     ++lastModelID_;
 
     ids_.push_back(id);
-    models_.push_back(BasicModel());
+    models_.push_back(Model(id));
 
     // add an "invalid" name
     names_.push_back(ModelName());
 
-    BasicModel& model = models_.back();
+    // setup a name stored in the manager
     ModelName& name = names_.back();
+    strcpy(name.name, "inv");
 
-    strcpy(name.name, "invalid");
-    strcpy(model.name_, "invalid");
-    model.id_ = id;
-
-    return model;
+    return models_.back();
 }
 
 //---------------------------------------------------------
 // Out:   array of pointers to models by input Ids
 //---------------------------------------------------------
-void ModelMgr::GetModelsByIDs(
+void ModelMgr::GetModelsByIds(
     const ModelID* ids,
     const size numModels,
-    cvector<const BasicModel*>& outModels)
+    cvector<const Model*>& outModels)
 {
     if (ids == nullptr || numModels == 0)
     {
@@ -264,9 +279,10 @@ void ModelMgr::GetModelsByIDs(
     ids_.get_idxs(ids, numModels, s_Idxs);
 
     // check idxs
+#if _DEBUG | DEBUG
     for (const index idx : s_Idxs)
-        assert(IsIdxValid(idx));
-
+        assert(models_.is_valid_index(idx));
+#endif
 
     // get pointers by idxs
     outModels.resize(numModels);
@@ -278,11 +294,11 @@ void ModelMgr::GetModelsByIDs(
 //---------------------------------------------------------
 // return a model by ID, or invalid model (by idx == 0) if there is no such ID
 //---------------------------------------------------------
-BasicModel& ModelMgr::GetModelById(const ModelID id)
+Model& ModelMgr::GetModelById(const ModelID id)
 {
     const index idx = ids_.get_idx(id);
 
-    if (IsIdxValid(idx))
+    if (models_.is_valid_index(idx))
         return models_[idx];
 
     return models_[INVALID_MODEL_ID];
@@ -291,7 +307,7 @@ BasicModel& ModelMgr::GetModelById(const ModelID id)
 //---------------------------------------------------------
 // Desc:   get a model by input name
 //---------------------------------------------------------
-BasicModel& ModelMgr::GetModelByName(const char* name)
+Model& ModelMgr::GetModelByName(const char* name)
 {
     if (StrHelper::IsEmpty(name))
     {
@@ -306,7 +322,8 @@ BasicModel& ModelMgr::GetModelByName(const char* name)
     }
 
     // return an empty model if we didn't find any
-    LogErr(LOG, "there is no model by name: %s", name);
+    LogErr(LOG, "no model by name: %s", name);
+    PrintDump();
     return models_[INVALID_MODEL_ID];
 }
 //---------------------------------------------------------
@@ -316,7 +333,7 @@ ModelID ModelMgr::GetModelIdByName(const char* name)
 {
     if (StrHelper::IsEmpty(name))
     {
-        LogErr("input name is empty");
+        LogErr(LOG, "empty name");
         return ids_[0];                     // return empty model (actually cube)
     }
 
@@ -327,7 +344,7 @@ ModelID ModelMgr::GetModelIdByName(const char* name)
     }
 
     // return an empty model ID if we didn't find any
-    LogErr(LOG, "there is no model by name: %s", name);
+    LogErr(LOG, "no model by name: %s", name);
     return ids_[0];
 }
 
@@ -336,10 +353,9 @@ ModelID ModelMgr::GetModelIdByName(const char* name)
 //---------------------------------------------------------
 void ModelMgr::GetModelsNamesList(cvector<ModelName>& names)
 {
-    const int numNames = GetNumAssets();
-    names.resize(numNames);
+    names.resize(GetNumAssets());
 
-    for (int i = 0; i < numNames; ++i)
+    for (int i = 0; i < GetNumAssets(); ++i)
         strcpy(names[i].name, models_[i].GetName());
 }
 
@@ -356,7 +372,7 @@ void ModelMgr::SetModelName(const ModelID id, const char* name)
     }
 
     const index idx = ids_.get_idx(id);
-    if (!IsIdxValid(idx))
+    if (!ids_.is_valid_index(idx))
     {
         LogErr(LOG, "there is no model by id: %" PRIu32, id);
         return;
@@ -365,13 +381,11 @@ void ModelMgr::SetModelName(const ModelID id, const char* name)
     // clamp length of the name
     size_t len = strlen(name);
 
-    if (len > MAX_LEN_MODEL_NAME - 1)
-        len = MAX_LEN_MODEL_NAME - 1;
+    if (len > MAX_LEN_MODEL_NAME)
+        len = MAX_LEN_MODEL_NAME;
 
     // update model's name
-    BasicModel& model = models_[idx];
-    strncpy(model.name_, name, len);
-    model.name_[len] = '\0';
+    models_[idx].SetName(name);
 
     // update arr of names
     strncpy(names_[idx].name, name, len);
@@ -381,38 +395,46 @@ void ModelMgr::SetModelName(const ModelID id, const char* name)
 //---------------------------------------------------------
 // Desc:  generate and push a new decal into the decals rendering list
 // 
-// Args:  - center:     the collision point, or the center of the decal
-//        - direction:  direction for the decal
-//        - normal:     normal vector of decal surface
-//        - width:      width of the decal
-//        - height:     height of the decal
+// Args:  - center:        the collision point, or the center of the decal
+//        - decalTangent:  direction for the decal
+//        - normal:        normal vector of decal surface
+//        - width:         width of the decal
+//        - height:        height of the decal
+//        - lifeTimeMs:    lifespace of this decal (if == 0, the decal won't dissapear)
 //---------------------------------------------------------
-void ModelMgr::PushDecalToRender(
+void ModelMgr::AddDecal3D(
     const Vec3& center,
-    const Vec3& direction,
+    const Vec3& decalTangent,
     const Vec3& normal,
     const float width,
-    const float height)
+    const float height,
+    const float lifeTimeSec)
 {
+    // check input args
+    if (numDecals_ >= MAX_NUM_DECALS)
+    {
+        LogErr(LOG, "decals buf overflow");
+        return;
+    }
+
     if (width <= 0 || height <= 0)
     {
         LogErr(LOG, "invalid decal dimensions: %.3f x %.3f", width, height);
         return;
     }
 
-    Vec3 u = direction;
+
+    Vec3 u = decalTangent;
     Vec3Normalize(u);
 
     Vec3 n = normal;
     Vec3Normalize(n);
 
-    // v (we don't have to normalize the v vector because n and u is already normalized)
+    // v (no need to normalize the v vector because n and u is already normalized)
     Vec3 v = Vec3Cross(u, n);
-    Vec3Normalize(v);
 
-
-    u = u * height * 0.5f;
-    v = v * width  * 0.5f;
+    u *= (height * 0.5f);
+    v *= (width  * 0.5f);
 
     /*
       1 *---------------* 0
@@ -427,72 +449,122 @@ void ModelMgr::PushDecalToRender(
    */
 
     // a little offset for decal along the normal vector
-    Vec3 offset = n * 0.01f;
+    Vec3 offset = n * 0.005f;
 
-    Vec3 v0 = center + u + v + offset;  // UR
-    Vec3 v1 = center + u - v + offset;  // UL
-    Vec3 v2 = center - u - v + offset;  // BL
-    Vec3 v3 = center - u + v + offset;  // BR
+    // generate a decal
+    Decal3D& d = decalsRendList_[numDecals_];
+    numDecals_++;
 
-    Vec2 t0 = { 1, 0 };
-    Vec2 t1 = { 0, 0 };
-    Vec2 t2 = { 0, 1 };
-    Vec2 t3 = { 1, 1 };
+    d.pos[0] = center + u + v + offset;  // UR
+    d.pos[1] = center + u - v + offset;  // UL
+    d.pos[2] = center - u - v + offset;  // BL
+    d.pos[3] = center - u + v + offset;  // BR
 
+    d.tex[0] = { 1, 0 };
+    d.tex[1] = { 0, 0 };
+    d.tex[2] = { 0, 1 };
+    d.tex[3] = { 1, 1 };
 
-    // generate endpoints of the decal
-    Decal d;
+    d.normal      = n;
+    d.age         = lifeTimeSec;          // time until death of decal
+    d.lifeTimeSec = lifeTimeSec;
+}
 
-    // first triangle
-    d.vertices[0].pos = { v0.x, v0.y, v0.z };
-    d.vertices[1].pos = { v1.x, v1.y, v1.z };
-    d.vertices[2].pos = { v2.x, v2.y, v2.z };
+//---------------------------------------------------------
+// update dynamic decals (its transparency)
+// for instance: bullet wallmarks, or decals after explosions 
+//---------------------------------------------------------
+void ModelMgr::UpdateDynamicDecals(const float deltaTime)
+{
+    if (numDecals_ == 0)
+        return;
 
-    d.vertices[0].tex = { t0.u, t0.v };
-    d.vertices[1].tex = { t1.u, t1.v };
-    d.vertices[2].tex = { t2.u, t2.v };
+    constexpr uint numVerts = MAX_NUM_DECALS * NUM_VERTS_PER_DECAL;
+    assert(numVerts <= decalsVB_.GetVertexCount());
 
-    // second triangle
-    d.vertices[3].pos = { v0.x, v0.y, v0.z };
-    d.vertices[4].pos = { v2.x, v2.y, v2.z };
-    d.vertices[5].pos = { v3.x, v3.y, v3.z };
-
-    d.vertices[3].tex = { t0.u, t0.v };
-    d.vertices[4].tex = { t2.u, t2.v };
-    d.vertices[5].tex = { t3.u, t3.v };
+    int v = 0;
+    VertexDecal3D* verts = s_VertsDecals.data();
+    Decal3D* data = (Decal3D*)decalsRendList_;
     
 
-    // push decal into the render list (our render list is a ring buffer)
-    decalsRenderList_[decalIdx_++] = d;
-    decalIdx_ %= MAX_NUM_DECALS;
-
-
-    // update decals vertex buffer
-    VertexPosTex* vertices = (VertexPosTex*)decalsRenderList_;
-    uint          numVerts = MAX_NUM_DECALS * NUM_VERTS_PER_DECAL;
-
-    if (!decalsVB_.UpdateDynamic(GetContext(), vertices, numVerts))
+    // prepare data for each decal
+    for (uint decalIdx = 0; decalIdx < numDecals_; decalIdx++)
     {
-        LogErr(LOG, "can't update decals vertex buffer");
+        const Decal3D& d = data[decalIdx];
+        const Vec3* pos = d.pos;
+        const Vec2* tex = d.tex;
+        float translucency = 1.0f;
+
+        if (d.lifeTimeSec > EPSILON_E3)
+            translucency = d.age * (1.0f / d.lifeTimeSec);
+
+        // vertex 0
+        verts[v + 0].pos            = { pos[0].x, pos[0].y, pos[0].z };
+        verts[v + 0].tex            = { tex[0].u, tex[0].v };
+        verts[v + 0].normal         = { d.normal.x, d.normal.y, d.normal.z };
+        verts[v + 0].translucency   = translucency;
+
+        // vertex 1
+        verts[v + 1].pos            = { pos[1].x, pos[1].y, pos[1].z };
+        verts[v + 1].tex            = { tex[1].u, tex[1].v };
+        verts[v + 1].normal         = { d.normal.x, d.normal.y, d.normal.z };
+        verts[v + 1].translucency   = translucency;
+
+        // vertex 2
+        verts[v + 2].pos            = { pos[2].x, pos[2].y, pos[2].z };
+        verts[v + 2].tex            = { tex[2].u, tex[2].v };
+        verts[v + 2].normal         = { d.normal.x, d.normal.y, d.normal.z };
+        verts[v + 2].translucency   = translucency;
+
+        // vertex 3
+        verts[v + 3].pos            = { pos[3].x, pos[3].y, pos[3].z };
+        verts[v + 3].tex            = { tex[3].u, tex[3].v };
+        verts[v + 3].normal         = { d.normal.x, d.normal.y, d.normal.z };
+        verts[v + 3].translucency   = translucency;
+
+        v += NUM_VERTS_PER_DECAL;
+    }
+
+    // update vertex buffer
+    if (!decalsVB_.UpdateDynamic(verts, numVerts))
+    {
+        LogErr(LOG, "can't update decals VB");
+        return;
+    }
+
+    // update decals lifetime
+    for (uint32 i = 0; i < numDecals_; i++)
+    {
+        Decal3D& d = decalsRendList_[i];
+        d.age -= deltaTime;
+
+        // remove dead decal
+        if (d.lifeTimeSec > 0.0f && d.age < 0)
+        {
+            // swap n pop
+            d = decalsRendList_[numDecals_ - 1];
+            --numDecals_;
+        }
     }
 }
 
 //---------------------------------------------------------
-// Desc:   print a dump of all the models (BasicModel) in the model manager
+// Desc:   print a dump of all the models (Model) in the model manager
 //---------------------------------------------------------
 void ModelMgr::PrintDump() const
 {
     printf("\nALL MODELS DUMP: \n");
 
-    for (int i = 0; i < (int)models_.size(); ++i)
+    // [idx]: (id: model_id) Name: model_name   lod1: model_id_lod_1;   lod2: model_id_lod_2
+    const char* fmt = "[%u]: (id: %4" PRIu32 ") Name:%-32s  lod1: %" PRIu32 ";  lod2: %" PRIu32 "\n";
+
+    for (index i = 0; i < models_.size(); ++i)
     {
-        // [idx]: (id: model_id) Name: model_name   lod1: model_id_lod_1;   lod2: model_id_lod_2
-        printf("[%d]: (id: %4" PRIu32 ") Name:%-32s  lod1: %" PRIu32 ";  lod2: %" PRIu32 "\n",
-            i,
-            models_[i].id_,
-            names_[i].name,
-            models_[i].lods_[LOD_1],
-            models_[i].lods_[LOD_2]);
+        printf(fmt, i,
+            models_[i].GetId(),
+            models_[i].GetName(),
+            models_[i].GetLod(LOD_1),
+            models_[i].GetLod(LOD_2));
     }
 
     printf("\n");

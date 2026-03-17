@@ -36,13 +36,13 @@ public:
     {
         if (outWStr == nullptr)
         {
-            LogErr("in-out wide string == nullptr: so we cannot convert str => wstr");
+            LogErr(LOG, "in-out wide string == nullptr: so we cannot convert str => wstr");
             return;
         }
 
         if (IsEmpty(str))
         {
-            LogErr("input string is empty");
+            LogErr(LOG, "input string is empty");
             outWStr[0] = L'\0';
             return;
         }

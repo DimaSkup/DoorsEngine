@@ -45,9 +45,8 @@ bool CRender::Init(HWND hwnd, const InitParams& params)
     try
     {
         bool result = true;
-        HRESULT hr = S_OK;
 
-        result = d3d_.Initialize(
+        result = d3d_.Init(
             hwnd,
             params.vsyncEnabled,
             params.fullscreen,
@@ -56,27 +55,24 @@ bool CRender::Init(HWND hwnd, const InitParams& params)
             params.farZ);
         CAssert::True(result, "can't initialize the D3DClass");
 
-        ID3D11Device*        pDevice  = GetDevice();
-        ID3D11DeviceContext* pContext = GetContext();
-
-        result = InitConstBuffers(pDevice, pContext, params);
+        result = InitConstBuffers(params);
         CAssert::True(result, "can't init const buffers");
 
-        result = InitInstancesBuffer(pDevice);
+        result = InitInstancesBuffer();
         CAssert::True(result, "can't init instances buffer");
 
-        result = InitSamplers(pDevice, pContext);
+        result = InitSamplers();
         CAssert::True(result, "can't init samplers");
 
         pShaderMgr_ = NEW ShaderMgr();
         CAssert::NotNullptr(pShaderMgr_, "can't alloc memory from a shader manager");
 
-        result = pShaderMgr_->Init(pDevice, pContext, params.worldViewOrtho);
+        result = pShaderMgr_->Init(GetDevice(), GetContext(), params.worldViewOrtho);
         CAssert::True(result, "can't init shaders manager");
     }
     catch (EngineException& e)
     {
-        LogErr(e, true);
+        LogErr(LOG, e.what());
         LogErr(LOG, "can't initialize the CRender module");
         Shutdown();
         return false;
@@ -97,10 +93,7 @@ void CRender::Shutdown()
 //---------------------------------------------------------
 // Desc:   initialize and bind constant buffers
 //---------------------------------------------------------
-bool CRender::InitConstBuffers(
-    ID3D11Device* pDevice,
-    ID3D11DeviceContext* pContext,
-    const InitParams& params)
+bool CRender::InitConstBuffers(const InitParams& params)
 {
     try
     {
@@ -113,8 +106,9 @@ bool CRender::InitConstBuffers(
         CAssert::True(params.fogStart > 0.0f,            "fog start distance can't be <= 0");
         CAssert::True(params.fogRange > params.fogStart, "fog range can't be < fog start");
 
-        HRESULT hr = S_FALSE;
-
+        HRESULT                hr = S_FALSE;
+        ID3D11Device*     pDevice = GetDevice();
+        ID3D11DeviceContext* pCtx = GetContext();
 
         // INIT COMMON CONST BUFFERS --------------------
 
@@ -290,27 +284,27 @@ bool CRender::InitConstBuffers(
 
 
         // load data for const buffers into GPU
-        cbViewProj_.ApplyChanges(pContext);
-        cbCamera_.ApplyChanges(pContext);
-        cbWeather_.ApplyChanges(pContext);
-        cbTime_.ApplyChanges(pContext);
-        cbDebug_.ApplyChanges(pContext);
+        cbViewProj_.ApplyChanges(pCtx);
+        cbCamera_.ApplyChanges(pCtx);
+        cbWeather_.ApplyChanges(pCtx);
+        cbTime_.ApplyChanges(pCtx);
+        cbDebug_.ApplyChanges(pCtx);
 
-        cbvsWorldAndViewProj_.ApplyChanges(pContext);
-        cbvsWorldViewProj_.ApplyChanges(pContext);
-        cbvsWorldViewOrtho_.ApplyChanges(pContext);
-        cbvsWorldInvTranspose_.ApplyChanges(pContext);
-        cbvsSkinned_.ApplyChanges(pContext);
-        cbvsSprite_.ApplyChanges(pContext);
+        cbvsWorldAndViewProj_.ApplyChanges(pCtx);
+        cbvsWorldViewProj_.ApplyChanges(pCtx);
+        cbvsWorldViewOrtho_.ApplyChanges(pCtx);
+        cbvsWorldInvTranspose_.ApplyChanges(pCtx);
+        cbvsSkinned_.ApplyChanges(pCtx);
+        cbvsSprite_.ApplyChanges(pCtx);
 
-        cbgsGrassParams_.ApplyChanges(pContext);
+        cbgsGrassParams_.ApplyChanges(pCtx);
 
-        cbpsPerFrame_.ApplyChanges(pContext);
-        cbpsRareChanged_.ApplyChanges(pContext);
-        cbpsTerrainMaterial_.ApplyChanges(pContext);
-        cbpsFontPixelColor_.ApplyChanges(pContext);
-        cbpsMaterial_.ApplyChanges(pContext);
-        cbpsPostFx_.ApplyChanges(pContext);
+        cbpsPerFrame_.ApplyChanges(pCtx);
+        cbpsRareChanged_.ApplyChanges(pCtx);
+        cbpsTerrainMaterial_.ApplyChanges(pCtx);
+        cbpsFontPixelColor_.ApplyChanges(pCtx);
+        cbpsMaterial_.ApplyChanges(pCtx);
+        cbpsPostFx_.ApplyChanges(pCtx);
 
 
         // BIND CONST BUFFERS ---------------------------------------
@@ -377,9 +371,9 @@ bool CRender::InitConstBuffers(
         const UINT numBuffersPS = sizeof(psCBs) / sizeof(ID3D11Buffer*);
 
         // bind constant buffers 
-        pContext->VSSetConstantBuffers(0, numBuffersVS, vsCBs);
-        pContext->GSSetConstantBuffers(0, numBuffersGS, gsCBs);
-        pContext->PSSetConstantBuffers(0, numBuffersPS, psCBs);
+        pCtx->VSSetConstantBuffers(0, numBuffersVS, vsCBs);
+        pCtx->GSSetConstantBuffers(0, numBuffersGS, gsCBs);
+        pCtx->PSSetConstantBuffers(0, numBuffersPS, psCBs);
 
 
         LogMsg(LOG, "all the const buffers are initialized");
@@ -387,7 +381,7 @@ bool CRender::InitConstBuffers(
     }
     catch (EngineException& e)
     {
-        LogErr(e, true);
+        LogErr(LOG, e.what());
         LogErr(LOG, "can't initialize constant buffers");
         return false;
     } 
@@ -396,7 +390,7 @@ bool CRender::InitConstBuffers(
 //---------------------------------------------------------
 // Desc:   setup and create instances buffer
 //---------------------------------------------------------
-bool CRender::InitInstancesBuffer(ID3D11Device* pDevice)
+bool CRender::InitInstancesBuffer()
 {
     constexpr UINT maxInstancesNum = 9000;
     D3D11_BUFFER_DESC vbd;
@@ -410,7 +404,7 @@ bool CRender::InitInstancesBuffer(ID3D11Device* pDevice)
     vbd.MiscFlags           = 0;
     vbd.StructureByteStride = 0;
 
-    HRESULT hr = pDevice->CreateBuffer(&vbd, nullptr, &pInstancedBuffer_);
+    HRESULT hr = GetDevice()->CreateBuffer(&vbd, nullptr, &pInstancedBuffer_);
     if (FAILED(hr))
     {
         LogErr(LOG, "can't create an instanced buffer");
@@ -424,10 +418,11 @@ bool CRender::InitInstancesBuffer(ID3D11Device* pDevice)
 //---------------------------------------------------------
 // Desc:   setup and create sampler states
 //---------------------------------------------------------
-bool CRender::InitSamplers(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
+bool CRender::InitSamplers()
 {
-    bool result = false;
-
+    bool               result = false;
+    ID3D11Device*     pDevice = GetDevice();
+    ID3D11DeviceContext* pCtx = GetContext();
 
     // sampler with anisotropic filtering
     // (it is recreated when we change anisotropy max level: MaxAnisotropy)
@@ -498,25 +493,25 @@ bool CRender::InitSamplers(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
     //
     // init samplers
     //
-    if (!samplerAnisotrop_.Initialize(pDevice))
+    if (!samplerAnisotrop_.Init(pDevice))
     {
         LogErr(LOG, "can't init an anisotropic sampler state");
         return false;
     }
 
-    if (!samplerSky_.Initialize(pDevice, &skySamplerDesc))
+    if (!samplerSky_.Init(pDevice, &skySamplerDesc))
     {
         LogErr(LOG, "can't init a sky sampler state");
         return false;
     }
 
-    if (!samplerLinearClamp_.Initialize(pDevice, &linearClampDesc))
+    if (!samplerLinearClamp_.Init(pDevice, &linearClampDesc))
     {
         LogErr(LOG, "can't init a linear clamp sampler");
         return false;
     }
 
-    if (!samplerLinearWrap_.Initialize(pDevice, &linearWrapDesc))
+    if (!samplerLinearWrap_.Init(pDevice, &linearWrapDesc))
     {
         LogErr(LOG, "can't init a linear wrap sampler");
         return false;
@@ -528,20 +523,20 @@ bool CRender::InitSamplers(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
     //
 
     // bind to vertex shader stage
-    pContext->VSSetSamplers(1, 1, samplerSky_.GetAddressOf());
-    pContext->VSSetSamplers(2, 1, samplerLinearClamp_.GetAddressOf());
-    pContext->VSSetSamplers(3, 1, samplerLinearWrap_.GetAddressOf());
-    pContext->VSSetSamplers(4, 1, samplerAnisotrop_.GetAddressOf());
+    pCtx->VSSetSamplers(1, 1, samplerSky_.GetAddressOf());
+    pCtx->VSSetSamplers(2, 1, samplerLinearClamp_.GetAddressOf());
+    pCtx->VSSetSamplers(3, 1, samplerLinearWrap_.GetAddressOf());
+    pCtx->VSSetSamplers(4, 1, samplerAnisotrop_.GetAddressOf());
 
 
     // set basic sampler (is used as default for pixel shaders)
-    pContext->PSSetSamplers(0, 1, samplerAnisotrop_.GetAddressOf());
+    pCtx->PSSetSamplers(0, 1, samplerAnisotrop_.GetAddressOf());
 
     // bind to pixel shader stage
-    pContext->PSSetSamplers(1, 1, samplerSky_.GetAddressOf());
-    pContext->PSSetSamplers(2, 1, samplerLinearClamp_.GetAddressOf());
-    pContext->PSSetSamplers(3, 1, samplerLinearWrap_.GetAddressOf());
-    pContext->PSSetSamplers(4, 1, samplerAnisotrop_.GetAddressOf());   // duplicate anisotropic at this slot
+    pCtx->PSSetSamplers(1, 1, samplerSky_.GetAddressOf());
+    pCtx->PSSetSamplers(2, 1, samplerLinearClamp_.GetAddressOf());
+    pCtx->PSSetSamplers(3, 1, samplerLinearWrap_.GetAddressOf());
+    pCtx->PSSetSamplers(4, 1, samplerAnisotrop_.GetAddressOf());   // duplicate anisotropic at this slot
 
 
     LogMsg(LOG, "all the sampler states are initialized");
@@ -597,7 +592,7 @@ void CRender::UpdatePerFrame(const PerFrameData& data)
     }
     catch (EngineException& e)
     {
-        LogErr(e);
+        LogErr(LOG, e.what());
     }
     catch (...)
     {
@@ -624,37 +619,34 @@ void CRender::UpdateInstancedBuffer(
     const MaterialColors* matColors,
     const int count)
 {
-    try
+    assert(worlds);
+    assert(matColors);
+    assert(count > 0);
+  
+    ID3D11DeviceContext* pCtx = GetContext();
+    D3D11_MAPPED_SUBRESOURCE mappedData;
+
+    // map the instanced buffer to write into it
+    HRESULT hr = pCtx->Map(pInstancedBuffer_, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData);
+    if (FAILED(hr))
     {
-        CAssert::True(worlds != nullptr,    "input arr of world matrices == nullptr");
-        CAssert::True(matColors != nullptr, "input arr of materials == nullptr");
-        CAssert::True(count > 0,            "input number of elements must be > 0");
-
-        ID3D11DeviceContext* pContext = GetContext();
-
-        // map the instanced buffer to write into it
-        D3D11_MAPPED_SUBRESOURCE mappedData;
-        HRESULT hr = pContext->Map(pInstancedBuffer_, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData);
-        CAssert::NotFailed(hr, "can't map the instanced buffer");
-
-        ConstBufType::InstancedData* dataView = (ConstBufType::InstancedData*)mappedData.pData;
-
-        // write data into the subresource
-        for (int i = 0; i < count; ++i)
-        {
-            dataView[i].world = worlds[i];
-        }
-
-        for (int i = 0; i < count; ++i)
-            dataView[i].matColors = matColors[i];
-
-        pContext->Unmap(pInstancedBuffer_, 0);
+        LogErr(LOG, "can't map the instanced buffer");
+        return;
     }
-    catch (EngineException& e)
+
+    ConstBufType::InstancedData* data = (ConstBufType::InstancedData*)mappedData.pData;
+
+    // write data into the subresource
+    for (int i = 0; i < count; ++i)
     {
-        LogErr(e);
-        LogErr(LOG, "can't update instanced buffer for rendering");
+        data[i].world = worlds[i];
     }
+
+    for (int i = 0; i < count; ++i)
+        data[i].matColors = matColors[i];
+
+    // unmap the buffer
+    pCtx->Unmap(pInstancedBuffer_, 0);
 }
 
 
@@ -674,23 +666,22 @@ void CRender::RenderInstances(
 {
     try
     {
-        const UINT instancesBuffElemSize = (UINT)(sizeof(ConstBufType::InstancedData));
-
         // bind vertex/index buffers for these instances
         ID3D11Buffer* const vbs[2] = { instances.pVB, pInstancedBuffer_ };
-        const UINT strides[2] = { instances.vertexStride, instancesBuffElemSize };
-        const UINT offsets[2] = { 0,0 };
+        const UINT      strides[2] = { instances.vertexStride, sizeof(ConstBufType::InstancedData) };
+        const UINT      offsets[2] = { 0,0 };
+        ID3D11DeviceContext*  pCtx = GetContext();
 
-        ID3D11DeviceContext* pContext = Render::g_pContext;
-        pContext->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-        pContext->IASetIndexBuffer(instances.pIB, DXGI_FORMAT_R32_UINT, 0);
+        SetPrimTopology(instances.primTopology);
+        pCtx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
+        pCtx->IASetIndexBuffer(instances.pIB, DXGI_FORMAT_R32_UINT, 0);
 
         BindShaderById(instances.shaderId);
-        pShaderMgr_->Render(pContext, instances, startInstanceLocation);
+        pShaderMgr_->Render(pCtx, instances, startInstanceLocation);
     }
     catch (EngineException& e)
     {
-        LogErr(e);
+        LogErr(LOG, e.what());
         LogErr(LOG, "can't render the mesh instances onto the screen");
     }
     catch (...)
@@ -706,29 +697,23 @@ void CRender::DepthPrepassInstances(
     const InstanceBatch& instances,
     const UINT startInstanceLocation)
 {
-    constexpr UINT instancesBuffElemSize = (UINT)(sizeof(ConstBufType::InstancedData));
-
     // bind vertex/index buffers for these instances
     ID3D11Buffer* const vbs[2] = { instances.pVB, pInstancedBuffer_ };
-    const UINT strides[2]      = { instances.vertexStride, instancesBuffElemSize };
-    const UINT offsets[2]      = { 0,0 };
+    const UINT      strides[2] = { instances.vertexStride, sizeof(ConstBufType::InstancedData) };
+    const UINT      offsets[2] = { 0,0 };
+    ID3D11DeviceContext*  pCtx = GetContext();
 
-    ID3D11DeviceContext* pContext = Render::g_pContext;
-
-    pContext->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-    pContext->IASetIndexBuffer(instances.pIB, DXGI_FORMAT_R32_UINT, 0);
-
+    pCtx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
+    pCtx->IASetIndexBuffer(instances.pIB, DXGI_FORMAT_R32_UINT, 0);
     
-    pShaderMgr_->DepthPrePassBindShaderById(pContext, instances.shaderId);
-    pShaderMgr_->Render(pContext, instances, startInstanceLocation);
+    pShaderMgr_->DepthPrePassBindShaderById(pCtx, instances.shaderId);
+    pShaderMgr_->Render(pCtx, instances, startInstanceLocation);
 }
 
 //---------------------------------------------------------
 // Desc:   render sky dome (or sphere/box) onto screen
 //---------------------------------------------------------
-void CRender::RenderSkyDome(
-    const SkyInstance& sky,
-    const XMMATRIX& worldViewProj)
+void CRender::RenderSkyDome(const SkyInstance& sky, const XMMATRIX& worldViewProj)
 {
     // prepare input assembler (IA) and update const buffers
     BindVB(&sky.pVB, sky.vertexStride, 0);
@@ -761,7 +746,7 @@ void CRender::PushSpriteToRender(const Render::Sprite2D& sprite)
 void CRender::Render2dSprites()
 {
     BindShaderByName("SpriteShader");
-    ID3D11DeviceContext* pContext = GetContext();
+    ID3D11DeviceContext* pCtx = GetContext();
 
     for (int i = 0; i < numSpritesToRender_; ++i)
     {
@@ -772,10 +757,10 @@ void CRender::Render2dSprites()
         cbvsSprite_.data.top    = sprite.top;
         cbvsSprite_.data.width  = sprite.width;
         cbvsSprite_.data.height = sprite.height;
-        cbvsSprite_.ApplyChanges(pContext);
+        cbvsSprite_.ApplyChanges(pCtx);
 
-        pContext->PSSetShaderResources(101U, 1, &sprite.pSRV);  // bind texture
-        pContext->Draw(1, 0);                                   // render
+        pCtx->PSSetShaderResources(101U, 1, &sprite.pSRV);  // bind texture
+        pCtx->Draw(1, 0);                                   // render
     }
 }
 
@@ -799,18 +784,19 @@ void CRender::RenderFont(
         BindShaderByName("FontShader");
         BindIB(pIndexBuf, DXGI_FORMAT_R32_UINT);
 
+        ID3D11DeviceContext* pCtx = GetContext();
+
         // render each set of text
         for (index idx = 0; idx < numVertexBuffers; ++idx)
         {
             BindVB(&vertexBuffers[idx], fontVertexStride, 0);
-            pShaderMgr_->Render(GetContext(), indexCounts[idx]);
+            pShaderMgr_->Render(pCtx, indexCounts[idx]);
         }
     }
     catch (EngineException& e)
     {
-        LogErr(e, true);
-        LogErr("can't render using the shader");
-        return;
+        LogErr(LOG, e.what());
+        LogErr(LOG, "can't render font");
     }
 }
 
@@ -904,8 +890,8 @@ bool CRender::SetGrassDistVisible(const float dist)
 //---------------------------------------------------------
 void CRender::SetFogEnabled(const bool state)
 {
-    cbpsRareChanged_.data.fogEnabled = state;
-    cbpsRareChanged_.ApplyChanges(GetContext());
+    cbWeather_.data.fogEnabled = state;
+    cbWeather_.ApplyChanges(GetContext());
 }
 
 //---------------------------------------------------------
@@ -1110,12 +1096,6 @@ void CRender::UpdateLights(
     uint numPointLights,
     uint numSpotlights)
 {
-    if (!dirLights || !pointLights || !spotLights)
-    {
-        LogErr(LOG, "can't update light sources: some of input arr == nullptr");
-        return;
-    }
-
     // we want to copy the proper number of point lights
     constexpr uint maxNumDirLights   = 3;
     constexpr uint maxNumPointLights = ARRAYSIZE(cbpsPerFrame_.data.pointLights);
@@ -1320,6 +1300,14 @@ float CRender::GetPostFxParam(const uint16 fxParamIdx)
 }
 
 //---------------------------------------------------------
+// Desc:  are we currently using the fog?
+//---------------------------------------------------------
+bool CRender::IsFogEnabled() const
+{
+    return cbWeather_.data.fogEnabled;
+}
+
+//---------------------------------------------------------
 // Desc:  get fog parameters
 //---------------------------------------------------------
 void CRender::GetFogData(DirectX::XMFLOAT3& color, float& start, float& range, bool& enabled)
@@ -1328,7 +1316,16 @@ void CRender::GetFogData(DirectX::XMFLOAT3& color, float& start, float& range, b
     color   = cbWeather_.data.fogColor;
     start   = cbWeather_.data.fogStart;
     range   = cbWeather_.data.fogRange;
-    enabled = cbpsRareChanged_.data.fogEnabled;
+    enabled = cbWeather_.data.fogEnabled;
+}
+
+//---------------------------------------------------------
+// Desc:  return a distance after which all the geometry
+//        is completely fogged
+//---------------------------------------------------------
+float CRender::GetDistFogged(void) const
+{
+    return cbWeather_.data.fogStart + cbWeather_.data.fogRange;
 }
 
 //---------------------------------------------------------
@@ -1374,6 +1371,7 @@ void CRender::GetArrShadersNames(cvector<ShaderName>& outNames) const
 //---------------------------------------------------------
 ShaderID CRender::GetShaderIdByName(const char* shaderName) const
 {
+    assert(!StrHelper::IsEmpty(shaderName));
     return pShaderMgr_->GetShaderIdByName(shaderName);
 }
 
@@ -1387,7 +1385,10 @@ void CRender::BindShaderById(const ShaderID id)
 
     Shader* pShader = pShaderMgr_->GetShaderById(id);
     if (!pShader)
+    {
+        LogErr(LOG, "no shader by id: %d", (int)id);
         return;
+    }
 
     pShaderMgr_->BindShader(GetContext(), pShader);
 
@@ -1400,15 +1401,17 @@ void CRender::BindShaderById(const ShaderID id)
 //---------------------------------------------------------
 void CRender::BindShaderByName(const char* shaderName)
 {
-    if (StrHelper::IsEmpty(shaderName))
-        return;
+    assert(!StrHelper::IsEmpty(shaderName));
 
     if (strcmp(currShaderName_, shaderName) == 0)
         return;
 
     Shader* pShader = pShaderMgr_->GetShaderByName(shaderName);
     if (!pShader)
+    {
+        LogErr(LOG, "no shader by name: %s", shaderName);
         return;
+    }
 
     pShaderMgr_->BindShader(GetContext(), pShader);
 

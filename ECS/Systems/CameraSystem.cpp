@@ -194,8 +194,6 @@ void CameraSystem::SetupProjection(
 
         data.nearWndHeight = 2.0f * nearZ * tanf(0.5f * fovY);
         data.farWndHeight  = 2.0f * farZ  * tanf(0.5f * fovY);
-
-        
     }
 }
 
@@ -208,7 +206,7 @@ void CameraSystem::SetupOrthographicMatrix(
     const float nearZ,
     const float farZ)
 {
-    // Initialize the orthographic matrix for 2D rendering
+    // Init the orthographic matrix for 2D rendering
 
     if (HasEntity(id))
     {
@@ -223,21 +221,7 @@ void CameraSystem::SetupOrthographicMatrix(
 void CameraSystem::RotateYAroundFixedLook(const EntityID id, const float angle)
 {
     // move horizontally around fixed look_at point by angle in radians
-
     assert(0 && "FIXME");
-#if 0
-
-    XMMATRIX R = XMMatrixTransformation(
-        lookAtPoint_,
-        { 0,0,0 },
-        { 1,1,1 },
-        lookAtPoint_,
-        XMQuaternionRotationRollPitchYaw(0, angle, 0),
-        { 0,0,0 });
-
-    XMVECTOR newPos = XMVector3Transform(GetPositionVec(), R);
-    LookAt(newPos, lookAtPoint_, { 0,1,0 });
-#endif
 }
 
 ///////////////////////////////////////////////////////////
@@ -247,37 +231,8 @@ void CameraSystem::PitchAroundFixedLook(const EntityID id, const float angle)
     // move vertically around fixed look_at point by angle in radians
 
     assert(0 && "FIXME");
-
-#if 0
-    using namespace DirectX;
-
-    // distance from the current position to the fixed look_at point
-    float distToLookAt = XMVectorGetX(XMVector3Length(lookAtPoint_ - GetPositionVec()));
-
-    XMVECTOR horizontalAxis = XMVector3Normalize(XMVector3Cross({ 0, 1, 0 }, look_));
-    XMMATRIX R              = XMMatrixRotationNormal(horizontalAxis, angle);
-    XMVECTOR newLookVec     = XMVector3Normalize(XMVector3TransformCoord(look_, R));
-
-    // p = p0 + v*t
-    XMVECTOR newPos = lookAtPoint_ - (newLookVec * distToLookAt);
-
-    // update position
-    LookAt(newPos, lookAtPoint_, { 0,1,0 });
-#endif
 }
 
-///////////////////////////////////////////////////////////
-
-#if 0
-void CameraSystem::Update()
-{
-    // update view matrix of each existing camera
-    for (auto& [cameraID, data] : pCameraComponent_->data)
-    {
-        UpdateView(cameraID);
-    }
-}
-#endif
 
 //---------------------------------------------------------
 // Desc:   recompute view matrix based on camera position, direction, up vector
@@ -297,33 +252,12 @@ const XMMATRIX& CameraSystem::UpdateView(const EntityID id)
     // make look vector unit length
     L = XMVector3Normalize(L);
 
-    //const XMVECTOR lookAt = P + L;
-
-      // camera's up vector: by default 
+    // camera's up vector: by default 
     XMVECTOR U = { 0,1,0,0 };
 
     // compute camera's right vector (cross: look X world_up)
     XMVECTOR R = XMVector3Normalize(XMVector3Cross(U, L));
 
-#if 0
-  
-
-    CameraData& camData = pCameraComponent_->data[id];
-    camData.right = R;
-
-    // camera's up vector: L, R already ortho-normal, so no need to normalize cross product
-    U = XMVector3Cross(L, R);
-
-    camData.view = XMMatrixLookToLH(P, L, U);
-
-    // compute inverse view matrix
-    camData.invView = XMMatrixInverse(nullptr, camData.view);
-
-    return camData.view;
-
-    //------------------------------------
-
-#else
     // camera's up vector: L, R already ortho-normal, so no need to normalize cross product
     U = XMVector3Cross(L, R);
 
@@ -356,9 +290,7 @@ const XMMATRIX& CameraSystem::UpdateView(const EntityID id)
     camData.invView = XMMatrixInverse(nullptr, camData.view);
 
     return camData.view;
-#endif
 }
-
 
 // =================================================================================
 // Get camera's position/direction/vectors data

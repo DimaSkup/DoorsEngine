@@ -6,7 +6,7 @@
 //==================================================================================
 #pragma once
 
-#include <math/math_constants.h>
+#include "math_constants.h"
 #include <math.h>
 
 //---------------------------------------------------------
@@ -15,16 +15,12 @@
 #define DEG_TO_RAD( angle )	  ( ( angle )  *PIOVER180 )
 #define RAD_TO_DEG( radians ) ( ( radians )*PIUNDER180 )
 
-
 // --------------------------------------------------------
 // Desc:   check if input value is power of 2
 // Args:   - value: a value to check
 // Ret:    - true if is power of 2
 // --------------------------------------------------------
-inline bool IsPow2(const int value)
-{
-    return (value && !(value & (value - 1)));
-}
+#define IS_POW2(x) (((x) != 0) && !((x) & ((x) - 1)))
 
 //---------------------------------------
 // swapping values with XOR (NOTE: works only for INTEGER values)
@@ -34,11 +30,18 @@ inline bool IsPow2(const int value)
 //---------------------------------------
 // Desc:   helpers to get a square/cube of input value
 //---------------------------------------
-inline int   SQR(const int num)     { return num*num; }
-inline float SQR(const float num)   { return num*num; }
-inline int   CUBE(const int num)    { return num*num*num; }
-inline float CUBE(const float num)  { return num*num*num; }
+#define SQR(n)  ((n)*(n))
+#define CUBE(n) ((n)*(n)*(n))
 
+//-----------------------------------------------------
+
+// only for integers
+inline int FastClamp(int x, int lo, int hi)
+{
+    x = x + ((lo - x) & ((lo - x) >> 31));
+    x = x - ((x - hi) & ((x - hi) >> 31));
+    return x;
+}
 
 // ----------------------------------------------------
 
@@ -59,11 +62,8 @@ inline static T Clamp(const T& x, const T& low, const T& high)
 //---------------------------------------------------------
 inline float ClampPitch(const float pitch)
 {
-    if (pitch > PIDIV2 - 0.1f)
-        return PIDIV2 - 0.1f;
-
-    else if (pitch < -PIDIV2 + 0.1f)
-        return -PIDIV2 + 0.1f;
+    if (pitch > PIDIV2 - 0.1f)   return PIDIV2 - 0.1f;
+    if (pitch < -PIDIV2 + 0.1f)  return -PIDIV2 + 0.1f;
 
     return pitch;
 }
@@ -72,56 +72,12 @@ inline float ClampPitch(const float pitch)
 
 inline float ClampYaw(const float yaw)
 {
-    if (yaw > M_2PI)
-        return -M_2PI;
-
-    else if (yaw < -M_2PI)
-        return M_2PI;
+    if (yaw > M_2PI)   return -M_2PI;
+    if (yaw < -M_2PI)  return M_2PI;
 
     return yaw;
 }
 
-#if 0
-// ----------------------------------------------------
-// limit the pitch value in range (-(PI/2)+0.1f < pitch < (PI/2)-0.1f)
-// ----------------------------------------------------
-inline bool ClampPitch(float& pitch)
-{
-    if (pitch > PIDIV2 - 0.1f)
-    {
-        pitch = PIDIV2 - 0.1f;
-        return true;
-    }
-    else if (pitch < -PIDIV2 + 0.1f)
-    {
-        pitch = -PIDIV2 + 0.1f;
-        return true;
-    }
-
-    // we didn't any clamping
-    return false;
-}
-
-//---------------------------------------------------------
-// limit the yaw value in range (-2PI < yaw < 2PI)
-//---------------------------------------------------------
-inline bool ClampYaw(float& yaw)
-{
-    if (yaw > M_2PI)
-    {
-        yaw = -M_2PI;
-        return true;
-    }
-    else if (yaw < -M_2PI)
-    {
-        yaw = M_2PI;
-        return true;
-    }
-
-    // we didn't any clamping
-    return false;
-}
-#endif
 // ----------------------------------------------------
 
 inline int powi(const int value, const int power)

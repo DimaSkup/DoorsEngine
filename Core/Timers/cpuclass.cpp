@@ -24,7 +24,7 @@ CpuClass::~CpuClass()
 // --------------------------------------------------------------------------------- //
 //                              PUBLIC FUNCTIONS                                     // 
 // --------------------------------------------------------------------------------- //
-void CpuClass::Initialize()
+void CpuClass::Init()
 {
     // will setup the handle for querying the cpu on its usage
 
@@ -49,7 +49,7 @@ void CpuClass::Initialize()
 	status = PdhOpenQuery(NULL, 0, &m_queryHandle);
 	if (status != ERROR_SUCCESS)
 	{
-		LogErr("can't create a query object to poll CPU usage");
+		LogErr(LOG, "can't create a query object to poll CPU usage");
 		m_canReadCpu = false;
 	}
 
@@ -58,7 +58,7 @@ void CpuClass::Initialize()
 		                   0, &m_counterHandle);
 	if (status != ERROR_SUCCESS)
 	{
-		LogErr("can't set query object to poll all CPUs in the system");
+		LogErr(LOG, "can't set query object to poll all CPUs in the system");
 
 
 		if (!FormatMessage(FORMAT_MESSAGE_FROM_HMODULE |
@@ -71,21 +71,19 @@ void CpuClass::Initialize()
 			0,
 			NULL))
 		{
-            sprintf(g_String, "Format message failed with error: %d", GetLastError());
-            LogErr(g_String);
+            LogErr(LOG, "Format message failed with error: %d", GetLastError());
 		}
 
         char msg[128]{ '\0' };
         StrHelper::ToStr(pMessage, msg);
-        sprintf(g_String, "Formatted message: %s", msg);
-        LogErr(g_String);
+        LogErr(LOG, "Formatted message: %s", msg);
 
 		LocalFree(pMessage);
 		m_canReadCpu = false;
 	}
 	else
 	{
-		LogErr("can't set query object to poll all cpus in the system");
+		LogErr(LOG, "can't set query object to poll all cpus in the system");
 	}
 
 	m_lastSampleTime = GetTickCount();

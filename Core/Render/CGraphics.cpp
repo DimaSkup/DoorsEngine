@@ -9,7 +9,11 @@
 #include "../Texture/texture_mgr.h"
 #include "../Model/model_mgr.h"
 #include "../Mesh/material_mgr.h"
+
+// debug drawing stuff
 #include "debug_draw_manager.h"
+#include "r_debug_draw.h"
+
 #include <Render/r_states.h>          // Render module
 #include <Shaders/Shader.h>           // Render module
 #include <geometry/frustum.h>
@@ -30,25 +34,44 @@ namespace Core
 // container for the light sources temp data during update process
 struct LightTempData
 {
-    cvector<DirectX::XMVECTOR>  dirLightsDirections;
+    cvector<XMVECTOR>           dirLightsDirections;
     cvector<ECS::PointLight>    pointLightsData;
-    cvector<DirectX::XMFLOAT3>  pointLightsPositions;
+    cvector<XMFLOAT3>           pointLightsPositions;
     cvector<ECS::SpotLight>     spotLightsData;
-    cvector<DirectX::XMFLOAT3>  spotLightsPositions;
-    cvector<DirectX::XMFLOAT3>  spotLightsDirections;
+    cvector<XMFLOAT3>           spotLightsPositions;
+    cvector<XMFLOAT3>           spotLightsDirections;
 
     cvector<ECS::PointLight>    activePointLights;
 } s_LightTmpData;
 
 // static arrays for internal purposes
-static cvector<DirectX::XMMATRIX> s_BoneTransforms;
+static cvector<XMMATRIX> s_BoneTransforms;
+
+
+//---------------------------------------------------------
+
+struct FrustumCullingTmpData
+{
+    void Resize(const size numRenderableEntts)
+    {
+        boundSpheres.resize(numRenderableEntts);
+        idxsToVisEntts.resize(numRenderableEntts);
+        enttsWorlds.resize(numRenderableEntts);
+    }
+
+    cvector<BoundingSphere> boundSpheres;
+    cvector<index>          idxsToVisEntts;
+    cvector<XMMATRIX>       enttsWorlds;
+    cvector<XMFLOAT3>       positions;
+};
+
+static FrustumCullingTmpData s_tmpFrustumCullData;
 
 
 //---------------------------------------------------------
 // Desc:  default constructor and destructor
 //---------------------------------------------------------
-CGraphics::CGraphics() :
-    texturesBuf_(NUM_TEXTURE_TYPES, nullptr)
+CGraphics::CGraphics() : texturesBuf_(NUM_TEXTURE_TYPES, nullptr)
 {
     for (int i = 0; i < MAX_NUM_POST_EFFECTS; ++i)
         postFxsQueue_[i] = ePostFxType(-1);
@@ -74,19 +97,292 @@ void CGraphics::Init(HWND hwnd, SystemState& systemState)
     assert(pEnttMgr_ && "did you forget to bind the ECS?");
 
     pSysState_ = &systemState;
+}
 
-    // create frustums for frustum culling
-    frustums_.push_back(DirectX::BoundingFrustum());
+//---------------------------------------------------------
+// some convertation helpers
+//---------------------------------------------------------
+inline Vec3 ToVec3(const XMFLOAT3& v)
+{
+    return Vec3(v.x, v.y, v.z);
+}
+
+inline Vec3 ToVec3(const XMVECTOR& v)
+{
+    return Vec3(v.m128_f32);
+}
+
+inline XMFLOAT3 ToFloat3(const Vec3& v)
+{
+    return XMFLOAT3(v.x, v.y, v.z);
+}
+
+//---------------------------------------------------------
+// Desc:  add a new axis-aligned bounding box for debug visualization
+//---------------------------------------------------------
+inline void AddBoundBoxToDebugRender(const BoundingBox& bbox, const Vec3& color)
+{
+    const Vec3 c = ToVec3(bbox.Center);
+    const Vec3 e = ToVec3(bbox.Extents);
+    g_DebugDrawMgr.AddAABB(c - e, c + e, color);
+}
+
+//---------------------------------------------------------
+// gather data for rendering debug shapes
+// (visualization of lines, bounding boxes, spheres, wireframes, etc. )
+//---------------------------------------------------------
+void CGraphics::AddDebugShapesToRender(void)
+{
+    const Vec3 lightBlue(0, 1, 1);
+    const Vec3 yellow(1, 1, 0);
+    const Vec3 red(1, 0, 0);
+    const Vec3 orange(1, 0.5f, 0.125f);
+
+    const ECS::BoundingSystem& boundSys  = pEnttMgr_->boundingSys_;
+    const ECS::NameSystem&     nameSys   = pEnttMgr_->nameSys_;
+    const ECS::RenderSystem&   renderSys = pEnttMgr_->renderSys_;
+
+    //
+    // add frustum (frustum volume and AABB around it)
+    //
+    const EntityID gameCamId = nameSys.GetIdByName("game_camera");
+    AddFrustumToRender(gameCamId);
+
+    //
+    // add AABBs of entities
+    //
+    if (g_DebugDrawMgr.IsRenderableType(DbgDrawMgr::eDbgGeomType::AABB))
+    {
+        const Render::RenderDataStorage& storage = pRender_->dataStorage_;
+
+        for (EntityID id : renderSys.GetAllVisibleEntts())
+            AddBoundBoxToDebugRender(boundSys.GetWorldBoundBox(id), lightBlue);
+    }
+
+    //
+    // add AABBs of terrain's patches (sectors)
+    //
+    if (g_DebugDrawMgr.IsRenderableType(DbgDrawMgr::eDbgGeomType::TERRAIN_AABB))
+    {
+        const Terrain&         terrain      = g_ModelMgr.GetTerrain();
+        const cvector<Rect3d>& patchesAABBs = terrain.GetPatchesAABBs();
+
+        for (const int i : terrain.GetAllVisiblePatches())
+        {
+            const Rect3d& box = patchesAABBs[i];
+            g_DebugDrawMgr.AddTerrainAABB(box.MinPoint(), box.MaxPoint(), yellow);
+        }
+    }
+
+    //
+    // add debug AABB around each visible particles emitter
+    //
+    if (g_DebugDrawMgr.IsRenderableType(DbgDrawMgr::eDbgGeomType::AABB))
+    {
+        for (const EntityID id : pEnttMgr_->particleSys_.visEmitters_)
+        {
+            AddBoundBoxToDebugRender(boundSys.GetWorldBoundBox(id), orange);
+        }
+    }
+}
+
+//---------------------------------------------------------
+// Args:  camId:  identifier of a camera to get its params and world frustum
+// Out:   1. frustum in world space
+//        2. camera parameters
+//---------------------------------------------------------
+void CGraphics::GetWorldFrustum(
+    const EntityID camId,
+    Frustum& outFrustum,
+    CameraParams& params)
+{
+    GatherCameraParams(camId, params);
+
+    // create a view frustum planes
+    Frustum viewFrustum(params.fov, params.aspect, params.zn, params.zf);
+
+    // transform frustum to world space
+    Matrix invView = Matrix(params.invView);
+    viewFrustum.Transform(outFrustum, invView);
 }
 
 //---------------------------------------------------------
 // Desc:  update all the graphics stuff here
+// Args:  - deltaTime:  time passed since the prev frame
+//        - gameTime:   time passed since the start of the application
 //---------------------------------------------------------
-void CGraphics::Update(
-    const float deltaTime,
-    const float gameTime)
+void CGraphics::Update(const float deltaTime, const float gameTime)
 {
-    UpdateHelper(deltaTime, gameTime);
+    // check to prevent fuck up
+    assert(pSysState_);
+    assert(pEnttMgr_);
+    assert(pRender_);
+
+    gameTime_ = gameTime;
+
+    ECS::TransformSystem&   transformSys = pEnttMgr_->transformSys_;
+    ECS::NameSystem&        nameSys      = pEnttMgr_->nameSys_;
+
+    CameraParams   camParams;
+    Frustum        worldFrustum;
+    SkyPlane&      skyPlane   = g_ModelMgr.GetSkyPlane();
+    float          distFogged = 0;
+    Terrain&       terrain    = g_ModelMgr.GetTerrain();
+
+    //const EntityID camId = currCameraId_;
+    const EntityID camId = pEnttMgr_->nameSys_.GetIdByName("game_camera");
+
+    ResetRenderStats();
+    UpdateCamera();
+    GetWorldFrustum(camId, worldFrustum, camParams);
+
+
+    if (bUseQuadTree_)
+    {
+        //printf("use quad tree (%f)\n", gameTime);
+
+        //
+        // get visible entities: quad-tree search + frustum culling
+        //
+        QuadTree& quadTree = pEnttMgr_->GetQuadTree();
+        Matrix     invView = Matrix(camParams.invView);
+
+        // add frustum's AABB for rendering
+        const Rect3d frustumBox = worldFrustum.GetBoundBoxInWorld(&invView);
+
+        // clamp to world
+        Rect3d searchRect;
+        Rect3d terrainBox = terrain.GetAABB();
+        terrainBox.y1 = 160;
+        IntersectRect3d(frustumBox, terrainBox, searchRect);
+
+        SceneObject* pObj = quadTree.Search(searchRect, &worldFrustum);
+        //SceneObject* pObj = quadTree.Search(searchRect, nullptr);
+
+        //const size numSceneObj = pEnttMgr_->GetNumSceneObjects();
+        //const int numFrustumTest = worldFrustum.GetNumTests();
+
+        //printf("tests: %d / %d\n", numFrustumTest, numSceneObj);
+
+        ECS::LightSystem&    lightSys       = pEnttMgr_->lightSys_;
+        ECS::RenderSystem&   renderSys      = pEnttMgr_->renderSys_;
+        ECS::ParticleSystem& particleSys    = pEnttMgr_->particleSys_;
+
+        cvector<EntityID>& visEntts         = renderSys.GetAllVisibleEntts();
+        cvector<EntityID>& visPointLights   = renderSys.GetVisiblePointLights();
+        cvector<EntityID>& visEmitters      = particleSys.visEmitters_;
+
+        visEntts.clear();
+        visPointLights.clear();
+        visEmitters.clear();
+
+        // group entities according to its components
+        // (the same entity may be in multiple groups at the same time)
+        while (pObj)
+        {
+            const EntityID id    = pObj->GetId();
+            const u32Flags flags = pEnttMgr_->GetAddedComponentsByEntt(id);
+
+            // check if this entity have some components
+            if (flags.TestBit(ECS::ModelComponent) && flags.TestBit(ECS::RenderedComponent))
+                visEntts.push_back(id);
+
+            else if (flags.TestBit(ECS::LightComponent))
+                visPointLights.push_back(id);
+
+            else if (flags.TestBit(ECS::ParticlesComponent))
+                visEmitters.push_back(id);
+
+            pObj = pObj->GetNextSearchLink();
+        }
+
+        // use as point lights only actual point lights
+        for (index i = 0; i < visPointLights.size();)
+        {
+            if (lightSys.IsPointLight(visPointLights[i]))
+            {
+                i++;
+                continue;
+            }
+
+            // swap n pop
+            visPointLights[i] = visPointLights.back();
+            visPointLights.pop_back();
+        }
+
+
+        // render only active and visible particle emitters
+        for (index i = 0; i < visEmitters.size();)
+        {
+            if (particleSys.IsActive(visEmitters[i]))
+            {
+                i++;
+                continue;
+            }
+
+            // swap n pop
+            visEmitters[i] = visEmitters.back();
+            visEmitters.pop_back();
+        }
+
+
+#if 0
+
+    printf("objects are visible: ");
+    while (pObj)
+    {
+        printf("%d ", pObj->GetId());
+        pObj = pObj->GetNextSearchLink();
+    }
+    printf("   (%f)\n", gameTime);
+
+#endif
+
+    }
+    else
+    {
+
+
+        // perform frustum culling on all of our currently loaded entities
+        FrustumCullingEntts(worldFrustum);
+        FrustumCullingParticles(worldFrustum);
+        FrustumCullingPointLights(worldFrustum);
+
+       // const size numAllEntts = pEnttMgr_->GetNumAllEntts();
+        //const int numFrustumTest = worldFrustum.GetNumTests();
+
+        //printf("tests: %d / %d\n", numFrustumTest, numAllEntts);
+    }
+
+
+    // after this distance all the objects are completely fogged
+    if (pRender_->IsFogEnabled())
+        distFogged = pRender_->GetDistFogged();
+    else
+        distFogged = 1000000;
+
+    // update LOD and visibility for each terrain's patch
+    g_ModelMgr.GetTerrain().Update(camParams, worldFrustum, distFogged);
+
+    // update visibility of grass patches
+    g_GrassMgr.Update(&camParams, &worldFrustum);
+
+    // update clouds positions
+    skyPlane.Update(deltaTime);
+
+    if (g_DebugDrawMgr.IsRenderable())
+        AddDebugShapesToRender();
+
+    UpdateParticlesVB();
+
+    // prepare data for each entity
+    PrepareRenderInstances(pSysState_->cameraPos);
+
+    // Update shaders common data for this frame
+    UpdateShadersDataPerFrame(deltaTime, gameTime);
+
+    // push each 2D sprite into render list
+    Push2dSpritesToRender();
 }
 
 //---------------------------------------------------------
@@ -103,7 +399,6 @@ void CGraphics::BindECS(ECS::EntityMgr* pEnttMgr)
     assert(pEnttMgr);
     pEnttMgr_ = pEnttMgr;
 }
-
 
 //---------------------------------------------------------
 // Desc:  render 3D scene
@@ -180,10 +475,10 @@ void CGraphics::Render3D()
     SetConsoleColor(RESET);
 #endif
 
-    pSysState_->numDrawnAllVerts = rndStat_.numDrawnVerts[GEOM_TYPE_ALL];
-    pSysState_->numDrawnAllTris = rndStat_.numDrawnTris[GEOM_TYPE_ALL];
-    pSysState_->numDrawnEnttsInstances = rndStat_.numDrawnInstances[GEOM_TYPE_ENTTS];
-    pSysState_->numDrawCallsEnttsInstances = rndStat_.numDrawCalls[GEOM_TYPE_ENTTS];
+    pSysState_->numDrawnAllVerts            = rndStat_.numDrawnVerts[GEOM_TYPE_ALL];
+    pSysState_->numDrawnAllTris             = rndStat_.numDrawnTris[GEOM_TYPE_ALL];
+    pSysState_->numDrawnEnttsInstances      = rndStat_.numDrawnInstances[GEOM_TYPE_ENTTS];
+    pSysState_->numDrawCallsEnttsInstances  = rndStat_.numDrawCalls[GEOM_TYPE_ENTTS];
 }
 
 
@@ -202,18 +497,9 @@ void CGraphics::Shutdown()
 // =================================================================================
 
 //---------------------------------------------------------
-// Desc:   update all the graphics related stuff for this frame
 //---------------------------------------------------------
-void CGraphics::UpdateHelper(const float deltaTime, const float totalGameTime)
+void CGraphics::ResetRenderStats(void)
 {
-    // check to prevent fuck up
-    assert(pSysState_);
-    assert(pEnttMgr_);
-    assert(pRender_);
-
-
-    gameTime_ = totalGameTime;
-    
     // reset some counters
     SystemState& sysState = *pSysState_;
     sysState.numDrawnTerrainPatches     = 0;
@@ -231,191 +517,115 @@ void CGraphics::UpdateHelper(const float deltaTime, const float totalGameTime)
         rndStat_.numDrawnInstances[i] = 0;
         rndStat_.numDrawCalls[i]      = 0;
     }
+}
 
+//---------------------------------------------------------
+//---------------------------------------------------------
+void CGraphics::UpdatePlayerPos(void)
+{
+    if (!pSysState_->isGameMode)
+        return;
 
-    ECS::TransformSystem& transformSys = pEnttMgr_->transformSys_;
-    ECS::CameraSystem&    camSys       = pEnttMgr_->cameraSys_;
-    ECS::NameSystem&      nameSys      = pEnttMgr_->nameSys_;
+    ECS::PlayerSystem& player = pEnttMgr_->playerSys_;
+    XMFLOAT3        playerPos = player.GetPosition();
+    Terrain&    terrain = g_ModelMgr.GetTerrain();
+    const float   terrainSize = (float)terrain.heightMap_.GetWidth();
 
-    TerrainGeomip& terrain   = g_ModelMgr.GetTerrainGeomip();
-    const EntityID currCamId = currCameraID_;
+    // force the player to be always in world
+    playerPos.x = clampf(playerPos.x, 0, terrainSize - 1);
+    playerPos.z = clampf(playerPos.z, 0, terrainSize - 1);
 
-    // ---------------------------------------------
-    // update the cameras states
-
-    if (sysState.isGameMode)
+    if (!player.IsFreeFlyMode())
     {
-        ECS::PlayerSystem& player = pEnttMgr_->playerSys_;
-        XMFLOAT3 playerPos = player.GetPosition();
+        // make player's offset by Y-axis to be always over the terrain even
+        // when jump from lower to higher position
+        const float groundLevel = terrain.GetScaledInterpolatedHeightAtPoint(playerPos.x, playerPos.z);
+        const float minPlayerY  = groundLevel + player.GetOffsetOverTerrain();
 
-        const float terrainSize = (float)terrain.heightMap_.GetWidth();
+        player.SetMinVerticalOffset(minPlayerY);
+    }
+}
 
-        // clamp the camera position to be only on the terrain
-        if (playerPos.x < 0)
-            playerPos.x = 0;
-        if (playerPos.x >= terrainSize)
-            playerPos.x = terrainSize - 1;
+//---------------------------------------------------------
+// update the cameras states
+//---------------------------------------------------------
+void CGraphics::UpdateCamera(void)
+{
+    ECS::TransformSystem& transformSys  = pEnttMgr_->transformSys_;
+    ECS::CameraSystem&    camSys        = pEnttMgr_->cameraSys_;
 
-        if (playerPos.z < 0)
-            playerPos.z = 0;
-        if (playerPos.z >= terrainSize)
-            playerPos.z = terrainSize - 1;
+    if (pSysState_->isGameMode)
+    {
+        UpdatePlayerPos();
 
-
-        if (player.IsFreeFlyMode())
-        {
-            // do nothing
-        }
-
-        // we aren't in free fly mode
-        else
-        {
-            // make player's offset by Y-axis to be always over the terrain even
-            // when jump from lower to higher position
-            const float terrainHeight = terrain.GetScaledInterpolatedHeightAtPoint(playerPos.x, playerPos.z);
-            const float offsetOverTerrain = player.GetOffsetOverTerrain();
-            player.SetMinVerticalOffset(terrainHeight + offsetOverTerrain);
-        }
-
-        sysState.cameraPos = { playerPos.x, playerPos.y, playerPos.z };
+        pSysState_->cameraPos = pEnttMgr_->playerSys_.GetPosition();
+        pSysState_->cameraDir = transformSys.GetDirection(currCameraId_);
     }
 
-    // we aren't in the game mode (now is the editor mode)
+    // we are in the editor mode
     else
     {
-        sysState.cameraPos = transformSys.GetPosition(currCamId);
+        pSysState_->cameraPos = transformSys.GetPosition(currCameraId_);
+        pSysState_->cameraDir = transformSys.GetDirection(currCameraId_);
     }
 
-    sysState.cameraDir = transformSys.GetDirection(currCamId);
+    // update camera's matrices
+    camSys.UpdateView(currCameraId_);
 
-    // update camera's view matrix
+    pSysState_->cameraView = camSys.GetView(currCameraId_);
+    pSysState_->cameraProj = camSys.GetProj(currCameraId_);
+    viewProj_              = pSysState_->cameraView * pSysState_->cameraProj;
+}
 
-    camSys.UpdateView(currCamId);
-    sysState.cameraView = camSys.GetView(currCamId);
-    sysState.cameraProj = camSys.GetProj(currCamId);
-    viewProj_           = sysState.cameraView * sysState.cameraProj;
-    const XMMATRIX invView = camSys.GetInverseView(currCamId);
+//---------------------------------------------------------
+// Desc:  collect params of the camera by id
+//        so later we will use these params for culling
+//---------------------------------------------------------
+void CGraphics::GatherCameraParams(const EntityID camId, CameraParams& outParams)
+{
+    memset(&outParams, 0, sizeof(outParams));
 
-    // build the frustum in view space from the projection matrix
-    DirectX::BoundingFrustum::CreateFromMatrix(frustums_[0], sysState.cameraProj);
+    const ECS::CameraSystem& camSys = pEnttMgr_->cameraSys_;
 
+    const XMFLOAT3& pos       = camSys.GetPos(camId);
+    const XMMATRIX& xmViewMat = camSys.GetView(camId);
+    const XMMATRIX& xmInvView = camSys.GetInverseView(camId);
+    const XMMATRIX& xmProjMat = camSys.GetProj(camId);
 
-    // get camera params which will be used for culling of terrain patches 
-    CameraParams camParams;
+    outParams.posX = pos.x;
+    outParams.posY = pos.y;
+    outParams.posZ = pos.z;
 
-    // setup camera position
-    camParams.posX = sysState.cameraPos.x;
-    camParams.posY = sysState.cameraPos.y;
-    camParams.posZ = sysState.cameraPos.z;
+    camSys.GetFrustumInitParams(
+        camId,
+        outParams.fov,
+        outParams.aspect,
+        outParams.zn,
+        outParams.zf);
 
-    camParams.fov         = camSys.GetFovX(currCamId);
-    camParams.aspectRatio = camSys.GetAspect(currCamId);
-    //camParams.aspectRatio = 1.0f / camSys.GetAspect(currCamId);
-    camParams.nearZ       = camSys.GetNearZ(currCamId);
-    camParams.farZ        = camSys.GetFarZ(currCamId);
+    const float* viewMat = xmViewMat.r[0].m128_f32;
+    const float* invView = xmInvView.r[0].m128_f32;
+    const float* projMat = xmProjMat.r[0].m128_f32;
 
-    memcpy(camParams.view, (void*)(&sysState.cameraView.r[0].m128_f32), sizeof(float) * 16);
-    memcpy(camParams.proj, sysState.cameraProj.r[0].m128_f32, sizeof(float)*16);
+    memcpy(outParams.view,    viewMat, sizeof(float) * 16);
+    memcpy(outParams.invView, invView, sizeof(float) * 16);
+    memcpy(outParams.proj,    projMat, sizeof(float) * 16);
+}
 
-    //-------------------------------------------
- 
-    // get frustum's points in view space, and add for rendering
-    const EntityID gameCamId = nameSys.GetIdByName("game_camera");
-
-    // visualize frustum
-    AddFrustumToRender(gameCamId);
-   
-    //-------------------------------------------
-
-
-    const float farX = 766.50f;
-    const float farY = 422.05f;
-
-    DirectX::BoundingBox cameraAABB;
-    DirectX::BoundingBox::CreateFromPoints(cameraAABB, XMVECTOR{ -farX,-farY, 0.01f }, XMVECTOR{ farX, farY, 1000.0f });
-    cameraAABB.Transform(cameraAABB, invView);
-
-    XMFLOAT3 cameraCorners[8];
-    cameraAABB.GetCorners(cameraCorners);
-
-    XMFLOAT3 cameraMinPoint = cameraCorners[4];
-    XMFLOAT3 cameraMaxPoint = cameraCorners[2];
-
-#if 0
-    //const Rect3d cameraRect = Rect3d(244, 245, 80, 81, 247, 248);
-    const Rect3d cameraRect(
-        cameraMinPoint.x, cameraMaxPoint.x,
-        cameraMinPoint.y, cameraMaxPoint.y,
-        cameraMinPoint.z, cameraMaxPoint.z);
-
-    Frustum frustum;
-    frustum.CreateFromProjMatrix(camParams.proj);
-
-    g_QuadTree.CalcVisibleEntities(cameraRect, frustum);
-#endif
-
-
-    //-------------------------------------------
-
-    XMFLOAT3 fogColor = {0,0,0};
-    float fogStart    = 0;
-    float fogRange    = 0;
-    bool fogEnabled   = false;
-
-    pRender_->GetFogData(fogColor, fogStart, fogRange, fogEnabled);
-
-    // after this distance all the objects are completely fogged
-    float distFogged = fogStart + fogRange;
-
-    //-------------------------------------------
-    // update the terrain, grass, sky
-
-    // create a view frustum planes
-    Frustum frustum0;
-    Frustum worldFrustum;
-
-    frustum0.Init(camParams.fov, camParams.aspectRatio, camParams.nearZ, camParams.farZ);
-
-    // transform frustum from camera space into world space
-    const Matrix invView0 = MatrixInverse(nullptr, Matrix(camParams.view));
-    frustum0.Transform(worldFrustum, invView0);
-
-
-    // update LOD and visibility for each terrain's patch
-    terrain.Update(camParams, worldFrustum, distFogged);
-
-    // update visibility of grass patches
-    g_GrassMgr.Update(&camParams, &worldFrustum);
-
-    SkyPlane& skyPlane = g_ModelMgr.GetSkyPlane();
-    skyPlane.Update(deltaTime);
-
-    // perform frustum culling on all of our currently loaded entities
-    FrustumCullingEntts      (sysState);
-    FrustumCullingParticles  (sysState, worldFrustum);
-    FrustumCullingPointLights(sysState, worldFrustum);
-
-    UpdateParticlesVB();
-
-    // prepare data for each entity
-    PrepareRenderInstances(sysState.cameraPos);
-
-    // Update shaders common data for this frame
-    UpdateShadersDataPerFrame(deltaTime, totalGameTime);
-
-
-    // push each 2D sprite into render list
+//---------------------------------------------------------
+// push 2d sprite to the render list
+//---------------------------------------------------------
+void CGraphics::Push2dSpritesToRender(void)
+{
     ECS::SpriteSystem& spriteSys = pEnttMgr_->spriteSys_;
-    const EntityID* sprites = spriteSys.GetAllSpritesIds();
-    const size numSprites   = spriteSys.GetNumAllSprites();
+    const EntityID*    sprites   = spriteSys.GetAllSpritesIds();
+    TexID texId = 0;
+    uint16 left, top, width, height;
 
-    for (index i = 0; i < numSprites; ++i)
+    for (index i = 0; i < spriteSys.GetNumAllSprites(); ++i)
     {
-        TexID texId = 0;
-        uint16 left, top, width, height;
-
         spriteSys.GetData(sprites[i], texId, left, top, width, height);
-        SRV* pSRV = g_TextureMgr.GetTexViewsById(texId);
+        ID3D11ShaderResourceView* pSRV = g_TextureMgr.GetTexViewsById(texId);
 
         pRender_->PushSpriteToRender(Render::Sprite2D(pSRV, left, top, width, height));
     }
@@ -436,11 +646,11 @@ void CGraphics::UpdateParticlesVB()
     const int numParticles        = (int)particlesData.particles.size();
 
 
-    if (!particlesBuf)
+    if (!particlesBuf || numParticles == 0)
         return;
 
     // update the vertex buffer with updated particles data
-    if (!vb.UpdateDynamic(GetContext(), particlesBuf, numParticles))
+    if (!vb.UpdateDynamic(particlesBuf, numParticles))
     {
         LogErr(LOG, "didn't manage to update particles VB");
         return;
@@ -457,190 +667,129 @@ void CGraphics::PrepareRenderInstances(const DirectX::XMFLOAT3& cameraPos)
     if (visibleEntts.size() == 0)
         return;
 
-    Render::RenderDataStorage& storage = pRender_->dataStorage_;
-
     // gather entts data for rendering
     prep_.PrepareEnttsDataForRendering(
         visibleEntts,
         cameraPos,
         pEnttMgr_,
-        storage);
+        pRender_->dataStorage_);
 
-    pRender_->UpdateInstancedBuffer(storage.instancesBuf);
+    pRender_->UpdateInstancedBuffer(pRender_->dataStorage_.instancesBuf);
+}
+
+//---------------------------------------------------------
+// Desc:  add a debug AABB of this emitter for rendering (when we turn on dbg rendering)
+//---------------------------------------------------------
+void PushEmitterForDbgRender(
+    const DirectX::XMFLOAT3& emitterPos,
+    const DirectX::XMFLOAT3& aabbCenter,
+    const DirectX::XMFLOAT3& aabbExtents)
+{
+    const DirectX::XMFLOAT3 minP(aabbCenter - aabbExtents + emitterPos);   // AABB's min point in world
+    const DirectX::XMFLOAT3 maxP(aabbCenter + aabbExtents + emitterPos);   // AABB's max point in world
+    const Vec3 yellow = Vec3(0, 1, 1);
+
+    Core::g_DebugDrawMgr.AddAABB(
+        Vec3(minP.x, minP.y, minP.z),
+        Vec3(maxP.x, maxP.y, maxP.z),
+        yellow);
 }
 
 //---------------------------------------------------------
 // Desc:   add a view frustum of camera by id to the debug shapes render list
+// Args:   - camId:  identifier of a camera which frustum we want to visualize
 //---------------------------------------------------------
 void CGraphics::AddFrustumToRender(const EntityID camId)
 {
-    float fov    = 0;
-    float aspect = 0;
-    float nearZ  = 0;
-    float farZ   = 0;
+    const Vec3 green(0, 1, 0);
+    const Vec3 red(1, 0, 0);
 
-    const ECS::CameraSystem& camSys = pEnttMgr_->cameraSys_;
+    CameraParams camParams;
+    GatherCameraParams(camId, camParams);
 
-    if (!camSys.GetFrustumInitParams(camId, fov, aspect, nearZ, farZ))
-    {
-        LogErr(LOG, "there is no camera data by entt id: %" PRIu32, camId);
-        return;
-    }
+    const Frustum frustum(camParams.fov, camParams.aspect, camParams.zn, camParams.zf);
+    const Matrix invView(camParams.invView);
 
-    // get frustum's points in view space
-    Frustum frustum(fov, aspect, nearZ, farZ);
+    // 8 corner points of the frustum volume
+    Vec3 p[8];
 
-    Vec3 nearTopLeft, nearBottomLeft;
-    Vec3 nearTopRight, nearBottomRight;
-    Vec3 farTopLeft, farBottomLeft;
-    Vec3 farTopRight, farBottomRight;
+    frustum.GetPointsInWorld(p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], &invView);
 
-    frustum.GetPoints(nearTopLeft, nearBottomLeft,
-                      nearTopRight, nearBottomRight,
-                      farTopLeft, farBottomLeft,
-                      farTopRight, farBottomRight);
+    // add frustum volume for visualization
+    g_DebugDrawMgr.AddFrustum(p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], green);
 
-    // transform frustum's points from view to world space
-    const XMMATRIX& invView = camSys.GetInverseView(camId);
-    const Matrix    invViewMat(invView.r[0].m128_f32);
+    // add frustum's AABB for rendering
+    const Rect3d aabb(p, 8);
+    const Terrain& terrain = g_ModelMgr.GetTerrain();
 
-    MatrixMulVec3(nearTopLeft,     invViewMat, nearTopLeft);
-    MatrixMulVec3(nearBottomLeft,  invViewMat, nearBottomLeft);
-    MatrixMulVec3(nearTopRight,    invViewMat, nearTopRight);
-    MatrixMulVec3(nearBottomRight, invViewMat, nearBottomRight);
-
-    MatrixMulVec3(farTopLeft,      invViewMat, farTopLeft);
-    MatrixMulVec3(farBottomLeft,   invViewMat, farBottomLeft);
-    MatrixMulVec3(farTopRight,     invViewMat, farTopRight);
-    MatrixMulVec3(farBottomRight,  invViewMat, farBottomRight);
-
-    // add frustum's points for rendering to visualize frustum volume
-    const Vec3 color(0, 1, 0);
-
-    g_DebugDrawMgr.AddFrustum(
-        nearTopLeft, nearBottomLeft,
-        nearTopRight, nearBottomRight,
-        farTopLeft, farBottomLeft,
-        farTopRight, farBottomRight,
-        color);
+    // clamp to world
+    Rect3d aabbInWorld;
+    IntersectRect3d(aabb, terrain.GetAABB(), aabbInWorld);
+  
+    g_DebugDrawMgr.AddAABB(aabbInWorld.MinPoint(), aabbInWorld.MaxPoint(), red);
 }
 
 //---------------------------------------------------------
-
-struct FrustumCullingTmpData
+// test all the renderable entities agains the world frustum
+//---------------------------------------------------------
+void CGraphics::FrustumCullingEntts(const Frustum& worldFrustum)
 {
-    void Resize(const size numRenderableEntts)
-    {
-        boundSpheres.resize(numRenderableEntts);
-        idxsToVisEntts.resize(numRenderableEntts);
-        enttsWorlds.resize(numRenderableEntts);
-    }
-
-    cvector<BoundingSphere> boundSpheres;
-    cvector<index>          idxsToVisEntts;
-    cvector<XMMATRIX>       enttsWorlds;
-    cvector<XMFLOAT3>       positions;
-};
-
-
-static FrustumCullingTmpData s_tmpFrustumCullData;
-
-// --------------------------------------------------------
-// --------------------------------------------------------
-void CGraphics::FrustumCullingEntts(SystemState& sysState)
-{
-    assert(pEnttMgr_);
-
     ECS::EntityMgr&    mgr       = *pEnttMgr_;
     ECS::RenderSystem& renderSys = mgr.renderSys_;
-    ECS::CameraSystem& camSys    = mgr.cameraSys_;
 
-    const cvector<EntityID>& enttsRenderable = renderSys.GetAllEnttsIDs();
-    const size numRenderableEntts            = enttsRenderable.size();
+    const cvector<EntityID>& rendEntts = renderSys.GetAllEnttsIDs();
+    cvector<EntityID>&       visEntts  = renderSys.GetAllVisibleEntts();
+
     size numVisEntts = 0;                                        // the number of currently visible entts
 
-    if (numRenderableEntts == 0)
+    if (rendEntts.size() == 0)
         return;
 
     FrustumCullingTmpData& tmpData = s_tmpFrustumCullData;
-    tmpData.Resize(numRenderableEntts);
+    tmpData.Resize(rendEntts.size());
 
     // get arr of bounding spheres for each renderable entt
     mgr.boundingSys_.GetBoundSpheres(
-        enttsRenderable.data(),
-        numRenderableEntts,
+        rendEntts.data(),
+        rendEntts.size(),
         tmpData.boundSpheres);
 
-    mgr.transformSys_.GetWorlds(
-        enttsRenderable.data(),
-        numRenderableEntts,
-        tmpData.enttsWorlds);
-
-    // transform bound spheres from local space to world space
-    for (int i = 0; const XMMATRIX & world : tmpData.enttsWorlds)
-    {
-        BoundingSphere& sphere = tmpData.boundSpheres[i];
-        sphere.Transform(sphere, tmpData.enttsWorlds[i]);
-        ++i;
-    }
-
-    const EntityID currCamId  = currCameraID_;
-    const XMMATRIX& xmInvView = camSys.GetInverseView(currCamId);
-    const Matrix invView(xmInvView.r[0].m128_f32);
-
-    Frustum frustum;
-    Frustum worldFrustum;
-
-    float fov    = 0;
-    float aspect = 0;
-    float nearZ  = 0;
-    float farZ   = 0;
-
-    camSys.GetFrustumInitParams(currCamId, fov, aspect, nearZ, farZ);
-    frustum.Init(fov, aspect, nearZ, farZ);
-    frustum.Transform(worldFrustum, invView);
-
     // go through each entity and define if it is visible
-    for (index idx = 0; idx < numRenderableEntts; ++idx)
+    for (index idx = 0; idx < rendEntts.size(); ++idx)
     {
         tmpData.idxsToVisEntts[numVisEntts] = idx;
 
-        const XMFLOAT3 center = tmpData.boundSpheres[idx].Center;
-        const float    radius = tmpData.boundSpheres[idx].Radius;
+        const XMFLOAT3& c = tmpData.boundSpheres[idx].Center;
+        const float     r = tmpData.boundSpheres[idx].Radius;
 
-        numVisEntts += worldFrustum.TestSphere(Sphere(center.x, center.y, center.z, radius));
+        numVisEntts += worldFrustum.TestSphere(Sphere(c.x, c.y, c.z, r));
     }
 
     // store ids of visible entts
-    cvector<EntityID>& visibleEntts = renderSys.GetAllVisibleEntts();
-    visibleEntts.resize(numVisEntts);
+    visEntts.resize(numVisEntts);
 
     for (index i = 0; i < numVisEntts; ++i)
-        visibleEntts[i] = enttsRenderable[tmpData.idxsToVisEntts[i]];
+        visEntts[i] = rendEntts[tmpData.idxsToVisEntts[i]];
 
     // this number of entities (instances) will be rendered onto the screen
-    sysState.numDrawnEnttsInstances = (uint32)numVisEntts;
+    pSysState_->numDrawnEnttsInstances = (uint32)numVisEntts;
 }
 
 //--------------------------------------------------------
+// Desc:  test which particles emitters are visible for this frame
 //--------------------------------------------------------
-void CGraphics::FrustumCullingParticles(SystemState& sysState, const Frustum& worldFrustum)
+void CGraphics::FrustumCullingParticles(const Frustum& worldFrustum)
 {
-    assert(pEnttMgr_);
+    ECS::ParticleSystem&     particleSys = pEnttMgr_->particleSys_;
+    cvector<EntityID>&       visEmitters = particleSys.visEmitters_;
+    const cvector<EntityID>& allEmitters = particleSys.GetAllEmitters();
 
-    ECS::EntityMgr&      mgr         = *pEnttMgr_;
-    ECS::ParticleSystem& particleSys = mgr.particleSys_;
+    visEmitters.clear();
 
-    particleSys.visibleEmittersIdxs_.clear();
-
-    const cvector<ECS::ParticleEmitter>& emitters = particleSys.GetEmitters();
-
-    for (index i = 0; i < emitters.size(); ++i)
+    for (index i = 0; i < allEmitters.size(); ++i)
     {
-        const Rect3d aabb = particleSys.GetEmitterAABB(emitters[i].id);
-
-        if (worldFrustum.TestRect(aabb))
-            particleSys.visibleEmittersIdxs_.push_back(i);
+        if (worldFrustum.TestRect(particleSys.GetEmitterWorldAABB(allEmitters[i])))
+            visEmitters.push_back(allEmitters[i]);
     }
 }
 
@@ -648,10 +797,8 @@ void CGraphics::FrustumCullingParticles(SystemState& sysState, const Frustum& wo
 // Desc:  cull invisible point lights so we don't use them
 //        when calculate lighting in shaders
 //---------------------------------------------------------
-void CGraphics::FrustumCullingPointLights(SystemState& sysState, const Frustum& worldFrustum)
+void CGraphics::FrustumCullingPointLights(const Frustum& worldFrustum)
 {
-    assert(pEnttMgr_);
-
     const ECS::LightSystem&     lightSys          = pEnttMgr_->lightSys_;
     const ECS::RenderSystem&    renderSys         = pEnttMgr_->renderSys_;
 
@@ -661,7 +808,6 @@ void CGraphics::FrustumCullingPointLights(SystemState& sysState, const Frustum& 
     cvector<EntityID>&          visPointLights    = renderSys.GetVisiblePointLights();
     cvector<DirectX::XMFLOAT3>& positions         = s_tmpFrustumCullData.positions;
     size                        numVisiblePointL  = 0;
-
 
     pEnttMgr_->transformSys_.GetPositions(
         pointLights.ids.data(),
@@ -687,75 +833,46 @@ void CGraphics::FrustumCullingPointLights(SystemState& sysState, const Frustum& 
 }
 
 //---------------------------------------------------------
-// Desc:   pdate shaders common data for this frame: 
+// Desc:   update shaders common data (some const buffers) for this frame: 
 //         viewProj matrix, camera position, light sources data, etc.
-// Args:   - deltaTime:      the time passed since the prev frame
-//         - totalGameTime:  the time passed since the start of the application
+// Args:   - dt:        the time passed since the prev frame
+//         - gameTime:  the time passed since the start of the application
 //---------------------------------------------------------
-void CGraphics::UpdateShadersDataPerFrame(
-    const float deltaTime,
-    const float totalGameTime)
+void CGraphics::UpdateShadersDataPerFrame(const float dt, const float gameTime)
 {
-    Render::CRender* pRender   = pRender_;
-    ECS::EntityMgr* pEnttMgr   = pEnttMgr_;
     const SkyPlane& skyPlane   = g_ModelMgr.GetSkyPlane();
 
-    ECS::CameraSystem& camSys  = pEnttMgr->cameraSys_;
-    const EntityID currCamId   = currCameraID_;
+    ECS::CameraSystem& camSys  = pEnttMgr_->cameraSys_;
+    const EntityID currCamId   = currCameraId_;
+
+    const XMMATRIX& view       = camSys.GetView(currCamId);
+    const XMMATRIX& proj       = camSys.GetProj(currCamId);
     const XMMATRIX& invView    = camSys.GetInverseView(currCamId);
-    const XMMATRIX  invProj    = DirectX::XMMatrixInverse(nullptr, camSys.GetProj(currCamId));
+    const XMMATRIX  invProj    = DirectX::XMMatrixInverse(nullptr, proj);
 
+    pRender_->UpdateCbViewProj(DirectX::XMMatrixTranspose(viewProj_));
+    pRender_->UpdateCbTime(dt, gameTime);
 
-    pRender->UpdateCbViewProj(DirectX::XMMatrixTranspose(viewProj_));
-    pRender->UpdateCbTime(deltaTime, totalGameTime);
-
-    pRender->UpdateCbCamera(
-        DirectX::XMMatrixTranspose(camSys.GetView(currCamId)),
-        DirectX::XMMatrixTranspose(camSys.GetProj(currCamId)),
+    pRender_->UpdateCbCamera(
+        DirectX::XMMatrixTranspose(view),
+        DirectX::XMMatrixTranspose(proj),
         invView,
         invProj,
         camSys.GetPos(currCamId),
         camSys.GetNearZ(currCamId),
         camSys.GetFarZ(currCamId));
 
-
     SetupLightsForFrame(pRender_->perFrameData_);
 
     // update const buffers with new data
-    pRender->UpdatePerFrame(pRender_->perFrameData_);
+    pRender_->UpdatePerFrame(pRender_->perFrameData_);
 
-
-    pRender->UpdateCbSky(
+    pRender_->UpdateCbSky(
         skyPlane.GetTranslation(0),
         skyPlane.GetTranslation(1),
         skyPlane.GetTranslation(2),
         skyPlane.GetTranslation(3),
         skyPlane.GetBrightness());
-}
-
-//---------------------------------------------------------
-// Desc:   clear rendering data from the previous frame / instances set
-//---------------------------------------------------------
-void CGraphics::ClearRenderingDataBeforeFrame()
-{
-    pRender_->dataStorage_.Clear();
-}
-
-//---------------------------------------------------------
-// Desc:  bind input material (textures + render states) 
-//---------------------------------------------------------
-void CGraphics::BindMaterial(const Material& mat)
-{
-    BindMaterial(mat.alphaClip, mat.rsId, mat.bsId, mat.dssId, mat.texIds);
-}
-
-//---------------------------------------------------------
-// Desc:  bind a material (textures + render states) by input ID
-//---------------------------------------------------------
-void CGraphics::BindMaterialById(const MaterialID matId)
-{
-    const Material& mat = g_MaterialMgr.GetMatById(matId);
-    BindMaterial(mat.alphaClip, mat.rsId, mat.bsId, mat.dssId, mat.texIds);
 }
 
 //---------------------------------------------------------
@@ -794,15 +911,13 @@ void CGraphics::BindMaterial(
         return;
     }
 
-    ID3D11DeviceContext* pContext = GetContext();
-
-    static bool                prevAlphaClip = 0;
-    static RsID       prevRsId = 0;
-    static BsID        prevBsId = 0;
+    static bool  prevAlphaClip = 0;
+    static RsID  prevRsId = 0;
+    static BsID  prevBsId = 0;
     static DssID prevDssId = 0;
 
     // bind textures of this material
-    pContext->PSSetShaderResources(100U, NUM_TEXTURE_TYPES, texViews);
+    GetContext()->PSSetShaderResources(100U, NUM_TEXTURE_TYPES, texViews);
 
     // check if we need to switch render states
     if (prevAlphaClip == alphaClip &&
@@ -820,7 +935,6 @@ void CGraphics::BindMaterial(
         pRender_->SwitchAlphaClipping(alphaClip);
         prevAlphaClip = alphaClip;
     }
-
 
     // switch raster state (fill mode, cull mode, etc.) if need...
     if (prevRsId != rsId)
@@ -845,15 +959,6 @@ void CGraphics::BindMaterial(
 }
 
 //---------------------------------------------------------
-// Desc:  reset textures and render states so we will be able
-//        to setup it properly for rendering
-//---------------------------------------------------------
-void CGraphics::ResetBeforeRendering()
-{
-    BindMaterialById(0);
-}
-
-//---------------------------------------------------------
 // depth prepass: render the scene to a screen-size normal/depth texture map,
 // where RGB stores the view space normal and the alpha channel stores the view
 // space depth (z-coordinate);
@@ -862,16 +967,11 @@ void CGraphics::ResetBeforeRendering()
 //---------------------------------------------------------
 void CGraphics::DepthPrepass()
 {
-    assert(pRender_ != nullptr);
-    assert(pEnttMgr_ != nullptr);
-
-    Render::CRender*        pRender       = pRender_;
-    ECS::EntityMgr*         pEnttMgr      = pEnttMgr_;
-    ID3D11DeviceContext*    pContext      = pRender->GetContext();
-    Render::D3DClass&       d3d           = pRender->GetD3D();
+    ID3D11DeviceContext* pCtx = pRender_->GetContext();
+    Render::D3DClass&    d3d  = pRender_->GetD3D();
 
     UINT startInstanceLocation = 0;
-    const Render::RenderDataStorage& storage = pRender->dataStorage_;
+    const Render::RenderDataStorage& storage = pRender_->dataStorage_;
 
     // check if we have any instances to render
     if (storage.instancesBuf.GetSize() <= 0)
@@ -880,11 +980,10 @@ void CGraphics::DepthPrepass()
     pRender_->ResetRenderStates();
 
     // only depth writing
-    pContext->OMSetRenderTargets(0, nullptr, d3d.pDepthStencilView_);
-
+    pCtx->OMSetRenderTargets(0, nullptr, d3d.pDepthStencilView_);
 
     // render masked geometry: tree branches, bushes, etc.
-    pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    pRender_->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     DepthPrepassInstanceGroup(storage.masked, GEOM_TYPE_MASKED, startInstanceLocation);
 
     // render opaque geometry: solid objects
@@ -894,7 +993,7 @@ void CGraphics::DepthPrepass()
     TerrainDepthPrepass();
 
     // bind back a swap chain's RTV
-    pContext->OMSetRenderTargets(1, &d3d.pSwapChainRTV_, d3d.pDepthStencilView_);
+    pCtx->OMSetRenderTargets(1, &d3d.pSwapChainRTV_, d3d.pDepthStencilView_);
 }
 
 //---------------------------------------------------------
@@ -902,23 +1001,15 @@ void CGraphics::DepthPrepass()
 //---------------------------------------------------------
 void CGraphics::ColorLightPass()
 {
-    assert(pRender_ != nullptr);
-    assert(pEnttMgr_ != nullptr);
-
-    Render::CRender*     pRender  = pRender_;
-    ECS::EntityMgr*      pEnttMgr = pEnttMgr_;
-    ID3D11DeviceContext* pContext = pRender->GetContext();
-    Render::D3DClass&    d3d      = pRender->GetD3D();
-
+    const Render::RenderDataStorage& storage = pRender_->dataStorage_;
     UINT startInstanceLocation = 0;
-    const Render::RenderDataStorage& storage = pRender->dataStorage_;
-
 
     // for post effects we have to render into another (non default) render target
-    if (IsEnabledPostFxPass() || d3d.IsEnabledFXAA())
+    if (IsEnabledPostFxPass() || pRender_->GetD3D().IsEnabledFXAA())
     {
-        const float clearColor[4] = { 1,1,1,1 };
+        Render::D3DClass& d3d = pRender_->GetD3D();
         ID3D11RenderTargetView* pRTV = nullptr;
+        const float clearColor[4] = { 1,1,1,1 };
 
         // for MSAA we need to bind sufficient render target view (RTV)
         if (d3d.IsEnabled4xMSAA())
@@ -928,10 +1019,10 @@ void CGraphics::ColorLightPass()
         else
             pRTV = d3d.postFxsPassRTV_[0];
 
-        assert(pRTV != nullptr && "for post process: RTV tex == nullptr");
+        assert(pRTV && "for post process: RTV tex == nullptr");
 
-        pContext->OMSetRenderTargets(1, &pRTV, d3d.pDepthStencilView_);
-        pContext->ClearRenderTargetView(pRTV, clearColor);
+        pRender_->GetContext()->OMSetRenderTargets(1, &pRTV, d3d.pDepthStencilView_);
+        pRender_->GetContext()->ClearRenderTargetView(pRTV, clearColor);
     }
 
 
@@ -939,16 +1030,15 @@ void CGraphics::ColorLightPass()
     if (storage.instancesBuf.GetSize() <= 0)
         return;
 
-
     // first of all we render player's weapon
-    pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     RenderPlayerWeapon();
     g_GpuProfiler.Timestamp(GTS_RenderScene_Weapon);
-
-   
+    
+    // render grass
+    //RenderGrass();
+    g_GpuProfiler.Timestamp(GTS_RenderScene_Grass);
 
     // render masked geometry: tree branches, bushes, etc.
-    pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     RenderInstanceGroups(storage.masked, GEOM_TYPE_MASKED, startInstanceLocation);
     g_GpuProfiler.Timestamp(GTS_RenderScene_Masked);
 
@@ -958,10 +1048,13 @@ void CGraphics::ColorLightPass()
 
 
     // render each animated entity separately
+    pRender_->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 #if 1
+    const ECS::RenderSystem& renderSys = pEnttMgr_->renderSys_;
+
     for (const EntityID id : pEnttMgr_->animationSys_.GetEnttsIds())
     {
-        if (pEnttMgr_->renderSys_.HasEntity(id))
+        if (renderSys.HasEntity(id))
             RenderSkinnedModel(id);
     }
 #endif
@@ -969,21 +1062,14 @@ void CGraphics::ColorLightPass()
 
 
     // render terrain
-    RenderTerrainGeomip();
+    RenderTerrain();
     g_GpuProfiler.Timestamp(GTS_RenderScene_Terrain);
 
-    // render grass
-    pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-    RenderGrass();
-    g_GpuProfiler.Timestamp(GTS_RenderScene_Grass);
-
-
     // render 3d decals
-    pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     RenderDecals();
+    g_GpuProfiler.Timestamp(GTS_RenderScene_Decals);
 
     // render sky and clouds
-    pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     RenderSkyDome();
     g_GpuProfiler.Timestamp(GTS_RenderScene_Sky);
 
@@ -991,7 +1077,7 @@ void CGraphics::ColorLightPass()
     g_GpuProfiler.Timestamp(GTS_RenderScene_SkyPlane);
 
     // render blended geometry (but not transparent)
-    pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    pRender_->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     RenderInstanceGroups(storage.blended, GEOM_TYPE_BLENDED, startInstanceLocation);
     g_GpuProfiler.Timestamp(GTS_RenderScene_Blended);
 
@@ -1000,11 +1086,11 @@ void CGraphics::ColorLightPass()
     g_GpuProfiler.Timestamp(GTS_RenderScene_Transparent);
 
     // render billboards and particles
-    pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
     RenderParticles();
     g_GpuProfiler.Timestamp(GTS_RenderScene_Particles);
 
-    RenderDebugShapes();
+    if (g_DebugDrawMgr.IsRenderable())
+        RenderDebugShapes();
     g_GpuProfiler.Timestamp(GTS_RenderScene_DbgShapes);
 }
 
@@ -1014,37 +1100,35 @@ void CGraphics::ColorLightPass()
 //---------------------------------------------------------
 void CGraphics::PostFxPass()
 {
-    assert(pRender_ != nullptr);
-
-    Render::D3DClass&     d3d      = GetD3D();
-    ID3D11DeviceContext*  pContext = GetContext();
-
-
-    // reset raster state, blend state, depth-stencil state to default
-    pRender_->ResetRenderStates();
-
-
     if (visualizeDepth_)
     {
+        // reset raster state, blend state, depth-stencil state to default
+        pRender_->ResetRenderStates();
         VisualizeDepthBuffer();
         return;
     }
 
+    Render::D3DClass&     d3d = GetD3D();
+    ID3D11DeviceContext* pCtx = GetContext();
+
     // FXAA is a kind of post-effects
     if (d3d.IsEnabledFXAA())
     {
-        assert(d3d.pSwapChainRTV_     != nullptr && "swap chain RTV is wrong");
-        assert(d3d.postFxsPassSRV_[0] != nullptr && "resolved SRV is wrong");
+        // reset raster state, blend state, depth-stencil state to default
+        pRender_->ResetRenderStates();
+
+        assert(d3d.pSwapChainRTV_     && "swap chain RTV is wrong");
+        assert(d3d.postFxsPassSRV_[0] && "resolved SRV is wrong");
 
         // bind dst render target (+ unbind depth stencil view) and src shader resource view 
-        pContext->OMSetRenderTargets(1, &d3d.pSwapChainRTV_, nullptr);
-        pContext->PSSetShaderResources(TEX_SLOT_POST_FX_SRC, 1, &d3d.postFxsPassSRV_[0]);
+        pCtx->OMSetRenderTargets(1, &d3d.pSwapChainRTV_, nullptr);
+        pCtx->PSSetShaderResources(TEX_SLOT_POST_FX_SRC, 1, &d3d.postFxsPassSRV_[0]);
 
         pRender_->BindShaderByName("FXAA");
-        pContext->Draw(3, 0);
+        pCtx->Draw(3, 0);
 
         // bind depth stencil view back
-        pContext->OMSetRenderTargets(1, &d3d.pSwapChainRTV_, d3d.pDepthStencilView_);
+        pCtx->OMSetRenderTargets(1, &d3d.pSwapChainRTV_, d3d.pDepthStencilView_);
 
         return;
     }
@@ -1053,13 +1137,15 @@ void CGraphics::PostFxPass()
     if (!IsEnabledPostFxPass())
         return;
 
+    // reset raster state, blend state, depth-stencil state to default
+    pRender_->ResetRenderStates();
 
     if (d3d.IsEnabled4xMSAA())
     {
         // resolve MSAA -> single-sample (non MSAA)
-        assert(d3d.postFxsPassTex_[0] != nullptr && "resolved tex is wrong");
-        assert(d3d.pMSAAColorTex_     != nullptr && "MSAA color tex is wrong");
-        pContext->ResolveSubresource(d3d.postFxsPassTex_[0], 0, d3d.pMSAAColorTex_, 0, DXGI_FORMAT_R8G8B8A8_UNORM);
+        assert(d3d.postFxsPassTex_[0] && "resolved tex is wrong");
+        assert(d3d.pMSAAColorTex_     && "MSAA color tex is wrong");
+        pCtx->ResolveSubresource(d3d.postFxsPassTex_[0], 0, d3d.pMSAAColorTex_, 0, DXGI_FORMAT_R8G8B8A8_UNORM);
     }
 
 
@@ -1096,7 +1182,7 @@ bool CGraphics::InitMatBigIconFrameBuf(const uint width, const uint height)
     // TODO: if input params differ from the frame buffer's params we
     // need to recreate the frame buffer according to new params
 
-    if (!materialBigIconFrameBuf_.Initialize(GetD3D().GetDevice(), fbSpec))
+    if (!materialBigIconFrameBuf_.Init(fbSpec))
     {
         LogErr(LOG, "can't initialize a material's big icon");
         return false;
@@ -1126,7 +1212,7 @@ bool CGraphics::InitMatIconFrameBuffers(
     }
     if (width <= 0 && height <= 0)
     {
-        LogErr(LOG, "input icon width or height is wrong, it must be > 0 (current w: %d, h: %d)", width, height);
+        LogErr(LOG, "input width and height must be > 0 (current w: %zu, h: %zu)", width, height);
         return false;
     }
 
@@ -1148,10 +1234,9 @@ bool CGraphics::InitMatIconFrameBuffers(
 
     for (index i = 0; FrameBuffer& buf : materialsFrameBuffers_)
     {
-        bool inited = buf.Initialize(GetD3D().GetDevice(), fbSpec);
-
-        if (!inited)
+        if (!buf.Init(fbSpec))
         {
+            // release all the buffers
             for (FrameBuffer& buf : materialsFrameBuffers_)
                 buf.Shutdown();
 
@@ -1179,51 +1264,50 @@ bool CGraphics::RenderBigMaterialIcon(
 {
     if (!outMaterialImg)
     {
-        LogErr(LOG, "input shader resource view == nullptr");
+        LogErr(LOG, "input shader resource view == NULL");
         return false;
     }
 
-    assert(pRender_);
-    Render::CRender* pRender = pRender_;
-
     // get a sphere model
-    const ModelID      basicSphereId = g_ModelMgr.GetModelIdByName("basic_sphere");
-    const BasicModel&         sphere = g_ModelMgr.GetModelById(basicSphereId);
-    const MeshGeometry&   sphereMesh = sphere.meshes_;
+    const ModelID       sphereId   = g_ModelMgr.GetModelIdByName("basic_sphere");
+    const Model&        sphere     = g_ModelMgr.GetModelById(sphereId);
+    const MeshGeometry& sphereMesh = sphere.GetMeshes();
 
     const VertexBuffer<Vertex3D>& vb = sphereMesh.vb_;
     const IndexBuffer<UINT>&      ib = sphereMesh.ib_;
     const UINT                offset = 0;
 
-    // change view*proj matrix so we will be able to render material icons properly
+    // setup world, view and proj matrices
     const XMMATRIX W = XMMatrixRotationY(yRotationAngle);
     const XMMATRIX V = XMMatrixTranslation(0, 0, 1.1f);
     const XMMATRIX P = XMMatrixPerspectiveFovLH(1.0f, 1.0f, 0.1f, 100.0f);
 
-
-    pRender->UpdateCbWorldAndViewProj(XMMatrixTranspose(W), XMMatrixTranspose(V * P));
+    pRender_->UpdateCbWorldAndViewProj(XMMatrixTranspose(W), XMMatrixTranspose(V * P));
 
     // bind shader and prepare IA for rendering
-    pRender->BindShaderByName("MaterialIconShader");
-    pRender->SetPrimTopology (D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    pRender->BindVB          (vb.GetAddrOf(), vb.GetStride(), offset);
-    pRender->BindIB          (ib.Get(), DXGI_FORMAT_R32_UINT);
+    pRender_->BindShaderByName("MaterialIconShader");
+    pRender_->SetPrimTopology (D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    pRender_->BindVB          (vb.GetAddrOf(), vb.GetStride(), offset);
+    pRender_->BindIB          (ib.Get(), DXGI_FORMAT_R32_UINT);
 
     // prepare responsible frame buffer for rendering
-    materialBigIconFrameBuf_.ClearBuffers(GetContext(), { 0,0,0,0 });
-    materialBigIconFrameBuf_.Bind(GetContext());
+    materialBigIconFrameBuf_.ClearBuffers(0,0,0,0);
+    materialBigIconFrameBuf_.Bind();
 
-    // bind material data and its textures
+    // bind material
     const Material& mat = g_MaterialMgr.GetMatById(matID);
     BindMaterial(mat);
-    pRender->UpdateCbMaterialColors(mat.ambient, mat.diffuse, mat.specular, mat.reflect);
+    pRender_->UpdateCbMaterialColors(
+        mat.ambient,
+        mat.diffuse,
+        mat.specular,
+        mat.reflect);
 
-
-    pRender->DrawIndexed(ib.GetIndexCount(), 0U, 0U);
-
+    // draw
+    pRender_->DrawIndexed(ib.GetIndexCount(), 0U, 0U);
 
     // reset camera's viewProj to the previous one (it can be game or editor camera)
-    pRender->UpdateCbViewProj(XMMatrixTranspose(viewProj_));
+    pRender_->UpdateCbViewProj(XMMatrixTranspose(viewProj_));
 
     // copy frame buffer texture into the input SRV
     *outMaterialImg = materialBigIconFrameBuf_.GetSRV();
@@ -1241,38 +1325,34 @@ bool CGraphics::RenderBigMaterialIcon(
 //-----------------------------------------------------------------------------
 bool CGraphics::RenderMaterialsIcons()
 {
-    assert(pRender_);
     Render::CRender* pRender = pRender_;
 
     // get a sphere model
-    const ModelID basicSphereId    = g_ModelMgr.GetModelIdByName("basic_sphere");
-    const BasicModel& sphere       = g_ModelMgr.GetModelById(basicSphereId);
-    const MeshGeometry& sphereMesh = sphere.meshes_;
+    const ModelID       sphereId   = g_ModelMgr.GetModelIdByName("basic_sphere");
+    const Model&        sphere     = g_ModelMgr.GetModelById(sphereId);
+    const MeshGeometry& sphereMesh = sphere.GetMeshes();
 
-    ID3D11Buffer* vb      = sphereMesh.vb_.Get();
-    ID3D11Buffer* ib      = sphereMesh.ib_.Get();
-    const UINT indexCount = (UINT)sphereMesh.ib_.GetIndexCount();
-    const UINT vertexSize = (UINT)sphereMesh.vb_.GetStride();
-    const UINT offset     = 0;
+    const VertexBuffer<Vertex3D>& vb  = sphereMesh.vb_;
+    const IndexBuffer<UINT>&      ib  = sphereMesh.ib_;
+    const UINT            indexCount  = ib.GetIndexCount();
 
-    // change view*proj matrix so we will be able to render material icons properly
-    const XMMATRIX view  = XMMatrixTranslation(0, 0, 1.1f);
-    const XMMATRIX proj  = XMMatrixPerspectiveFovLH(1.0f, 1.0f, 0.1f, 100.0f);
+    // setup world, view and proj matrices
+    const XMMATRIX W = XMMatrixIdentity();
+    const XMMATRIX V = XMMatrixTranslation(0, 0, 1.1f);
+    const XMMATRIX P = XMMatrixPerspectiveFovLH(1.0f, 1.0f, 0.1f, 100.0f);
 
     // prepare IA for rendering, bind shaders, set matrices
-    ID3D11DeviceContext* pContext = GetD3D().GetDeviceContext();
     pRender->BindShaderByName("MaterialIconShader");
-    pRender->UpdateCbWorldAndViewProj(XMMatrixIdentity(), XMMatrixTranspose(view * proj));
+    pRender->UpdateCbWorldAndViewProj(W, XMMatrixTranspose(V * P));
 
     pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    pRender->BindVB(&vb, vertexSize, offset);
-    pRender->BindIB(ib, DXGI_FORMAT_R32_UINT);
+    pRender->BindVB(vb.GetAddrOf(), vb.GetStride(), 0);
+    pRender->BindIB(ib.Get(), DXGI_FORMAT_R32_UINT);
 
 
     // clear all the previous content of frame buffers
     for (FrameBuffer& buf : materialsFrameBuffers_)
-        buf.ClearBuffers(pContext, { 0,0,0,0 });
-
+        buf.ClearBuffers(0,0,0,0);
 
     // render material by idx into responsible frame buffer
     for (MaterialID matId = 0; FrameBuffer& buf : materialsFrameBuffers_)
@@ -1283,7 +1363,7 @@ bool CGraphics::RenderMaterialsIcons()
         pRender->UpdateCbMaterialColors(mat.ambient, mat.diffuse, mat.specular, mat.reflect);
 
         // render geometry
-        buf.Bind(pContext);
+        buf.Bind();
         pRender->DrawIndexed(indexCount, 0U, 0U);
 
         ++matId;
@@ -1303,27 +1383,26 @@ bool CGraphics::RenderMaterialsIcons()
 //---------------------------------------------------------
 void CGraphics::RenderDecals()
 {
-    assert(pRender_);
     Render::CRender* pRender = pRender_;
 
-    //printf("render decals\n");
-
+    pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     pRender->BindShaderByName("DecalShader");
     BindMaterialById(0);
 
-    ID3D11DeviceContext* pContext = GetContext();
-
     // update params which we will use to generate a 2D sprite (in geometry shader)
-    const VertexBuffer<VertexPosTex>& vb = g_ModelMgr.GetDecalsVB();
+    const VertexBuffer<VertexDecal3D>& vb = g_ModelMgr.GetDecalsVB();
+    const IndexBuffer<uint16>&         ib = g_ModelMgr.GetDecalsIB();
 
     const Material& mat = g_MaterialMgr.GetMatByName("wallmark");
     BindMaterial(mat);
-    //const TexID texId = g_TextureMgr.GetTexIdByName("wallmark_default");
-    //ID3D11ShaderResourceView* pSRV = g_TextureMgr.GetTexViewsById(texId);
-    //pContext->PSSetShaderResources(101U, 1, &pSRV);  // bind texture
+    pRender->UpdateCbMaterialColors(mat.ambient, mat.diffuse, mat.specular, mat.reflect);
 
     pRender->BindVB(vb.GetAddrOf(), vb.GetStride(), 0);
-    pRender->Draw(vb.GetVertexCount(), 0); 
+    pRender->BindIB(ib.Get(), DXGI_FORMAT_R16_UINT);
+
+    // render each decal
+    for (uint32 i = 0; i < g_ModelMgr.GetNumDecals(); ++i)
+        pRender->DrawIndexed(ib.GetIndexCount(), 0, i * NUM_VERTS_PER_DECAL);
 }
 
 //---------------------------------------------------------
@@ -1331,6 +1410,9 @@ void CGraphics::RenderDecals()
 //---------------------------------------------------------
 void CGraphics::RenderGrass()
 {
+    //assert(0 && "FIXME");
+    pRender_->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+#if 0
     assert(pRender_);
     Render::CRender* pRender = pRender_;
 
@@ -1369,6 +1451,10 @@ void CGraphics::RenderGrass()
 
     rndStat_.numDrawnInstances[GEOM_TYPE_GRASS] += numGrassVertices;
     rndStat_.numDrawCalls     [GEOM_TYPE_GRASS] += numDrawCalls;
+
+#endif
+
+    
 }
 
 //---------------------------------------------------------
@@ -1377,7 +1463,7 @@ void PrintDumpInstancesBatches(
     const char* groupName,
     const cvector<Render::InstanceBatch>& batches)
 {
-    assert(groupName && groupName[0] != '\0');
+    assert(!StrHelper::IsEmpty(groupName));
 
     LogMsg(LOG, "dump instances batches (group: %s):", groupName);
 
@@ -1409,7 +1495,6 @@ void CGraphics::RenderInstanceGroups(
     const eGeomType geomType,
     UINT& startInstanceLocation)
 {
-    assert(pRender_ != nullptr);
     Render::CRender* pRender = pRender_;
 
     uint32 numDrawnVertices = 0;
@@ -1425,18 +1510,16 @@ void CGraphics::RenderInstanceGroups(
     else if (geomType == GEOM_TYPE_BLENDED)
         PrintDumpInstancesBatches("blended", instanceBatches);
 #endif
-
-    //if (geomType == GEOM_TYPE_BLENDED)
-     //   PrintDumpInstancesBatches("blended", instanceBatches);
+#if 0
+    if (geomType == GEOM_TYPE_MASKED)
+        pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+    else
+        pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+#endif
 
     for (const Render::InstanceBatch& batch : instanceBatches)
     {
-        BindMaterial(
-            batch.alphaClip,
-            batch.rsId,
-            batch.bsId,
-            batch.dssId,
-            batch.textures);
+        BindMaterial(batch.alphaClip, batch.rsId, batch.bsId, batch.dssId, batch.textures);
 
         pRender->RenderInstances(batch, startInstanceLocation);
 
@@ -1471,10 +1554,8 @@ void CGraphics::DepthPrepassInstanceGroup(
     const eGeomType geomType,
     UINT& startInstanceLocation)
 {
-    assert(pRender_ != nullptr);
-    Render::CRender* pRender = pRender_;
-    ID3D11DeviceContext* pContext = pRender->GetContext();
 
+    // if we have got masked type we just skip it
     if (geomType == GEOM_TYPE_MASKED)
     {
         for (const Render::InstanceBatch& batch : instanceBatches)
@@ -1484,6 +1565,8 @@ void CGraphics::DepthPrepassInstanceGroup(
         }
         return;
     }
+
+    Render::CRender* pRender = pRender_;
 
     for (const Render::InstanceBatch& batch : instanceBatches)
     {
@@ -1500,8 +1583,8 @@ void CGraphics::DepthPrepassInstanceGroup(
 //---------------------------------------------------------
 void CGraphics::RenderPlayerWeapon()
 {
-    ECS::PlayerSystem& player = pEnttMgr_->playerSys_;
-    RenderSkinnedModel(player.GetActiveWeapon());
+    pRender_->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    RenderSkinnedModel(pEnttMgr_->playerSys_.GetActiveWeapon());
 }
 
 //---------------------------------------------------------
@@ -1526,7 +1609,6 @@ void CGraphics::RenderSkinnedModel(const EntityID enttId)
         return;
 
     Render::CRender*      pRender       = pRender_;
-    ID3D11DeviceContext*  pContext      = pRender->GetContext();
     ECS::EntityMgr&       enttMgr       = *pEnttMgr_;
     ECS::TransformSystem& transformSys  = pEnttMgr_->transformSys_;
     const char*           enttName      = enttMgr.nameSys_.GetNameById(enttId);
@@ -1539,8 +1621,8 @@ void CGraphics::RenderSkinnedModel(const EntityID enttId)
 
     // prepare model's instance
     const ModelID       modelId = enttMgr.modelSys_.GetModelIdRelatedToEntt(enttId);
-    const BasicModel&   model   = g_ModelMgr.GetModelById(modelId);
-    const MeshGeometry& meshes  = model.meshes_;
+    const Model&   model   = g_ModelMgr.GetModelById(modelId);
+    const MeshGeometry& meshes  = model.GetMeshes();
 
     const XMVECTOR quatRotZ = QuatRotAxis({ 0,0,1 }, +PIDIV2/2);
     const XMVECTOR quatRotY = QuatRotAxis({ 0,1,0 }, -PIDIV2);
@@ -1559,12 +1641,6 @@ void CGraphics::RenderSkinnedModel(const EntityID enttId)
     // update bone transformations for this frame
     s_BoneTransforms.resize(MAX_NUM_BONES_PER_CHARACTER, DirectX::XMMatrixIdentity());
     AnimSkeleton& skeleton = g_AnimationMgr.GetSkeleton(skeletonId);
-
-    if (strcmp(skeleton.name_, "ak_74_hud") == 0 && timePos > 0.1f)
-    {
-        int k = 0;
-        k++;
-    }
 
     skeleton.GetFinalTransforms(animationId, timePos, s_BoneTransforms);
 
@@ -1591,21 +1667,22 @@ void CGraphics::RenderSkinnedModel(const EntityID enttId)
     const UINT  strides[2] = { stride0, stride1 };
     const UINT  offsets[2] = { offset0, offset1 };
 
-    pContext->IASetVertexBuffers(0, 2, vbs, strides, offsets);
+    ID3D11DeviceContext* pCtx = pRender->GetContext();
+    pCtx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
 
     //---------------------------------
 
     // render each mesh of the model separately so we will receive a complete image
     for (int i = 0; i < model.GetNumSubsets(); ++i)
     {
-        // bind material and update a const buf with colors
+        // bind material and update a const buffer with colors
         const Subset& mesh  = meshes.subsets_[i];
         const Material& mat = g_MaterialMgr.GetMatById(mesh.materialId);
 
         BindMaterial(mat);
         pRender->UpdateCbMaterialColors(mat.ambient, mat.diffuse, mat.specular, mat.reflect);
 
-        pContext->DrawIndexed(mesh.indexCount, mesh.indexStart, mesh.vertexStart);
+        pCtx->DrawIndexed(mesh.indexCount, mesh.indexStart, mesh.vertexStart);
     }
 }
 
@@ -1614,19 +1691,15 @@ void CGraphics::RenderSkinnedModel(const EntityID enttId)
 //---------------------------------------------------------
 void CGraphics::RenderParticles()
 {
-    assert(pRender_ != nullptr);
-    assert(pEnttMgr_ != nullptr);
-
-    Render::CRender&     render                   = *pRender_;
-    ID3D11DeviceContext* pContext                 = GetContext();
-    ECS::ParticleSystem& particleSys              = pEnttMgr_->particleSys_;
+    Render::CRender&                render        = *pRender_;
+    ECS::ParticleSystem&            particleSys   = pEnttMgr_->particleSys_;
     const ECS::ParticlesRenderData& particlesData = particleSys.GetParticlesToRender();
-    const int numParticles                        = (int)particlesData.particles.size();
+    const int                       numParticles  = (int)particlesData.particles.size();
 
     if (numParticles == 0)
         return;
 
-    
+    pRender_->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 
     // for particles we bind only vertex buffer
     const VertexBuffer<BillboardSprite>& vb = g_ModelMgr.GetBillboardsBuffer();
@@ -1643,7 +1716,7 @@ void CGraphics::RenderParticles()
         BindMaterial(mat);
         render.BindShaderById(mat.shaderId);
 
-        pContext->Draw(particlesData.numInstances[i], particlesData.baseInstance[i]);
+        render.Draw(particlesData.numInstances[i], particlesData.baseInstance[i]);
 
         numDrawnVertices += (particlesData.numInstances[i] * 4);
         numDrawCalls++;
@@ -1678,14 +1751,15 @@ void CGraphics::RenderSkyDome()
     //instance.colorCenter  = sky.GetColorCenter();
     //instance.colorApex    = sky.GetColorApex();
 
-    // bind sky material
+    // setup IA and bind sky material
+    pRender_->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     BindMaterialById(sky.GetMaterialId());
 
     // compute a worldViewProj matrix for the sky instance
     const XMFLOAT3 skyOffset     = pEnttMgr_->transformSys_.GetPosition(skyEnttId);
-    const XMFLOAT3 eyePos        = pEnttMgr_->cameraSys_.GetPos(currCameraID_);
-    const XMFLOAT3 translation   = skyOffset + eyePos;
-    const XMMATRIX world         = DirectX::XMMatrixTranslation(translation.x, translation.y, translation.z);
+    const XMFLOAT3 eyePos        = pEnttMgr_->cameraSys_.GetPos(currCameraId_);
+    const XMFLOAT3 tr            = skyOffset + eyePos;
+    const XMMATRIX world         = DirectX::XMMatrixTranslation(tr.x, tr.y, tr.z);
     const XMMATRIX worldViewProj = DirectX::XMMatrixTranspose(world * viewProj_);
 
     pRender_->RenderSkyDome(instance, worldViewProj);
@@ -1703,8 +1777,6 @@ void CGraphics::RenderSkyDome()
 //---------------------------------------------------------
 void CGraphics::RenderSkyClouds()
 {
-    assert(pRender_ != nullptr);
-
     const SkyPlane& skyPlane             = g_ModelMgr.GetSkyPlane();
     const VertexBuffer<VertexPosTex>& vb = skyPlane.GetVB();
     const IndexBuffer<uint16>&        ib = skyPlane.GetIB();
@@ -1712,8 +1784,8 @@ void CGraphics::RenderSkyClouds()
     // bind buffers, material, and shader
     pRender_->BindVB(vb.GetAddrOf(), vb.GetStride(), 0);
     pRender_->BindIB(ib.Get(), DXGI_FORMAT_R16_UINT);
-    BindMaterialById(skyPlane.GetMaterialId());
     pRender_->BindShaderByName("SkyCloudShader");
+    BindMaterialById(skyPlane.GetMaterialId());
 
     // render
     GetContext()->DrawIndexed(skyPlane.GetNumIndices(), 0, 0);
@@ -1731,25 +1803,17 @@ void CGraphics::RenderSkyClouds()
 //---------------------------------------------------------
 void CGraphics::TerrainDepthPrepass()
 {
-    assert(pRender_ != nullptr);
-    Render::CRender*     pRender  = pRender_;
-    ID3D11DeviceContext* pContext = pRender->GetContext();
+    Render::CRender* pRender = pRender_;
 
     // prepare the terrain instance
-    TerrainGeomip& terrain = g_ModelMgr.GetTerrainGeomip();
-
-    // vertex/index buffers data
-    Render::TerrainInstance instance;
-    instance.vertexStride = terrain.GetVertexStride();
-    instance.pVB          = terrain.GetVertexBuffer();
-    instance.pIB          = terrain.GetIndexBuffer();
+    Terrain& terrain = g_ModelMgr.GetTerrain();
 
     // prepare IA stage and shaders
     pRender->BindShaderByName("TerrainDepthPrepass");
     pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    pRender->BindVB(&instance.pVB, instance.vertexStride, 0);
-    pRender->BindIB(instance.pIB, DXGI_FORMAT_R32_UINT);
+    pRender->BindVB(terrain.GetVbAddr(), terrain.GetVertexStride(), 0);
+    pRender->BindIB(terrain.GetIB(), DXGI_FORMAT_R32_UINT);
 
 
     const TerrainLodMgr& lodMgr      = terrain.GetLodMgr();
@@ -1775,7 +1839,7 @@ void CGraphics::TerrainDepthPrepass()
         const UINT baseVertex = (UINT)(z * terrainLen + x);
 
         // draw a patch
-        pContext->DrawIndexed(indexCount, baseIndex, baseVertex);
+        pRender->DrawIndexed(indexCount, baseIndex, baseVertex);
     }
 }
 
@@ -1783,17 +1847,18 @@ void CGraphics::TerrainDepthPrepass()
 // Desc:  render each terrain's patch (sector) by its index
 //---------------------------------------------------------
 void RenderTerrainPatches(
-    TerrainGeomip& terrain,
-    ID3D11DeviceContext* pContext,
+    Terrain& terrain,
+    Render::CRender* pRender,
     UINT& numDrawnTriangles,
     const cvector<int>& patchesIdxs)
 {
+    assert(pRender);
+
     const TerrainLodMgr& lodMgr      = terrain.GetLodMgr();
     const int terrainLen             = terrain.GetTerrainLength();
     const int numPatchesPerSide      = terrain.GetNumPatchesPerSide();
     const float invNumPatchesPerSide = 1.0f / numPatchesPerSide;
     const int patchSize              = lodMgr.GetPatchSize();
-
 
     for (const int idx : patchesIdxs)
     {
@@ -1811,7 +1876,7 @@ void RenderTerrainPatches(
         const UINT baseVertex = (UINT)(z * terrainLen + x);
 
         // draw a patch
-        pContext->DrawIndexed(indexCount, baseIndex, baseVertex);
+        pRender->DrawIndexed(indexCount, baseIndex, baseVertex);
 
         numDrawnTriangles += (indexCount / 3);
     }
@@ -1820,51 +1885,43 @@ void RenderTerrainPatches(
 //---------------------------------------------------------
 // Desc:   render the terrain onto the screen
 //---------------------------------------------------------
-void CGraphics::RenderTerrainGeomip()
+void CGraphics::RenderTerrain()
 {
-    assert(pRender_ != nullptr);
-
-    Render::CRender*     pRender  = pRender_;
-    ID3D11DeviceContext* pContext = pRender->GetContext();
-
-    // prepare the terrain instance
-    Render::TerrainInstance instance;
-    TerrainGeomip& terrain = g_ModelMgr.GetTerrainGeomip();
-    instance.vertexStride  = terrain.GetVertexStride();
-    instance.pVB           = terrain.GetVertexBuffer();
-    instance.pIB           = terrain.GetIndexBuffer();
-
+    Terrain&    terrain = g_ModelMgr.GetTerrain();
     const Material& mat = g_MaterialMgr.GetMatById(terrain.materialID_);
 
+    // bind materials
     BindMaterial(mat);
-    pRender->UpdateCbMaterialColors(mat.ambient, mat.diffuse, mat.specular, mat.reflect);
-    pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    pRender_->UpdateCbMaterialColors(mat.ambient, mat.diffuse, mat.specular, mat.reflect);
+    pRender_->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
+    // bind textures to VS (because we need to sample terrain's splat map in some VS)
     ID3D11ShaderResourceView* texViews[NUM_TEXTURE_TYPES]{ nullptr };
+
     g_TextureMgr.GetTexViewsByIds(mat.texIds, NUM_TEXTURE_TYPES, texViews);
-    pContext->VSSetShaderResources(100U, NUM_TEXTURE_TYPES, texViews);
-    
-    pRender->BindVB(&instance.pVB, instance.vertexStride, 0);
-    pRender->BindIB(instance.pIB, DXGI_FORMAT_R32_UINT);
+    pRender_->GetContext()->VSSetShaderResources(100U, NUM_TEXTURE_TYPES, texViews);
+
+    // bind buffers
+    pRender_->BindVB(terrain.GetVbAddr(), terrain.GetVertexStride(), 0);
+    pRender_->BindIB(terrain.GetIB(), DXGI_FORMAT_R32_UINT);
 
 
-    UINT numDrawnTris = 0;
+    UINT numDrawnTris    = 0;
     size numDrawnPatches = 0;
-    size numDrawCalls = 0;
+    size numDrawCalls    = 0;
 
     const cvector<int>& highDetailed = terrain.GetHighDetailedPatches();
     const cvector<int>& midDetailed  = terrain.GetMidDetailedPatches();
     const cvector<int>& lowDetailed  = terrain.GetLowDetailedPatches();
 
+    pRender_->BindShaderByName("TerrainShader");
+    RenderTerrainPatches(terrain, pRender_, numDrawnTris, highDetailed);
 
-    pRender->BindShaderByName("TerrainShader");
-    RenderTerrainPatches(terrain, pContext, numDrawnTris, highDetailed);
+    pRender_->BindShaderByName("TerrainMidLodShader");
+    RenderTerrainPatches(terrain, pRender_, numDrawnTris, midDetailed);
 
-    pRender->BindShaderByName("TerrainMidLodShader");
-    RenderTerrainPatches(terrain, pContext, numDrawnTris, midDetailed);
-
-    pRender->BindShaderByName("TerrainLowLodShader");
-    RenderTerrainPatches(terrain, pContext, numDrawnTris, lowDetailed);
+    pRender_->BindShaderByName("TerrainLowLodShader");
+    RenderTerrainPatches(terrain, pRender_, numDrawnTris, lowDetailed);
 
 
     // gather some rendering stats
@@ -1887,330 +1944,27 @@ void CGraphics::RenderTerrainGeomip()
 
 //---------------------------------------------------------
 
-void RenderDebugLines(Render::CRender* pRender, cvector<VertexPosColor>& vertices)
-{
-    assert(pRender != nullptr);
-
-    // fill arr with lines vertices data and update the vertex buffer with it
-    const int vertsPerLine    = 2;
-    const int numDbgLineVerts = MAX_NUM_DBG_LINES * vertsPerLine;
-    vertices.resize(numDbgLineVerts);
-
-
-    for (int lineIdx = 0, vertIdx = 0; lineIdx < MAX_NUM_DBG_LINES; ++lineIdx)
-    {
-        const DebugLine& line = g_DebugDrawMgr.lines_[lineIdx];
-
-        // setup the first vertex
-        vertices[vertIdx].position.x = line.fromPos.x;
-        vertices[vertIdx].position.y = line.fromPos.y;
-        vertices[vertIdx].position.z = line.fromPos.z;
-        vertices[vertIdx].color      = line.color;
-
-        vertIdx++;
-
-        // setup the second vertex
-        vertices[vertIdx].position.x = line.toPos.x;
-        vertices[vertIdx].position.y = line.toPos.y;
-        vertices[vertIdx].position.z = line.toPos.z;
-        vertices[vertIdx].color      = line.color;
-   
-
-        vertIdx++;
-    }
-
-    // update dynamic VB and draw geometry
-    ID3D11DeviceContext*    pContext = pRender->GetContext();
-    VertexBuffer<VertexPosColor>& vb = g_ModelMgr.GetDebugLinesVB();
-
-    vb.UpdateDynamic(pContext, vertices.data(), numDbgLineVerts);
-    pContext->Draw(numDbgLineVerts, 0);
-}
-
-
-//---------------------------------------------------------
-
-void RenderDebugLinesAABB(
-    Render::CRender* pRender,
-    cvector<VertexPosColor>& vertices)
-{
-    assert(pRender != nullptr);
-
-    const DebugDrawMgr& drawMgr = g_DebugDrawMgr;
-
-    if (drawMgr.currNumAABBs_ <= 0)
-        return;
-
-    const int numAABBs          = drawMgr.currNumAABBs_;
-    const int numVerticesInAABB = drawMgr.GetNumVerticesInAABB();
-    const int numIndicesInAABB  = drawMgr.GetNumIndicesInAABB();
-    const int numVertices       = numAABBs * numVerticesInAABB;
-
-    // fill arr with lines vertices data and update the vertex buffer with it
-    vertices.resize(numVertices);
-
-    // setup vertices for each aabb
-    for (int aabbIdx = 0, vertIdx = 0; aabbIdx < numAABBs; ++aabbIdx)
-    {
-        for (int i = 0; i < numVerticesInAABB; ++i, ++vertIdx)
-        {
-            const DebugLineVertex& v = drawMgr.aabbsVertices_[vertIdx];
-
-            vertices[vertIdx].position = { v.pos.x, v.pos.y, v.pos.z };
-            vertices[vertIdx].color    = v.color;
-        }
-    }
-
-    // update buffers
-    ID3D11DeviceContext*    pContext = pRender->GetContext();
-    VertexBuffer<VertexPosColor>& vb = g_ModelMgr.GetDebugLinesVB();
-    IndexBuffer<uint16>&          ib = g_ModelMgr.GetDebugLinesIB();
-
-    vb.UpdateDynamic(pContext, vertices.data(), numAABBs * numVerticesInAABB);
-    ib.Update       (pContext, drawMgr.aabbIndices_.data(), numIndicesInAABB);
-
-    // render
-    for (int i = 0; i < numAABBs; ++i)
-        pContext->DrawIndexed(numIndicesInAABB, 0, i * numVerticesInAABB);
-}
-
-//---------------------------------------------------------
-
-void RenderDebugLinesSphere(
-    Render::CRender* pRender,
-    cvector<VertexPosColor>& vertices)
-{
-    assert(pRender != nullptr);
-
-    const DebugDrawMgr& drawMgr = g_DebugDrawMgr;
-
-    if (drawMgr.currNumSpheres_ <= 0)
-        return;
-
-    const int numSpheres          = drawMgr.currNumSpheres_;
-    const int numVerticesInSphere = drawMgr.GetNumVerticesInSphere();
-    const int numIndicesInSphere  = drawMgr.GetNumIndicesInSphere();
-    const int numVertices         = numSpheres * numVerticesInSphere;
-
-    // fill arr with lines vertices data and update the vertex buffer with it
-    vertices.resize(numVertices);
-
-    // setup vertices for each shpere
-    for (int sphereIdx = 0, vertIdx = 0; sphereIdx < numSpheres; ++sphereIdx)
-    {
-        for (int i = 0; i < numVerticesInSphere; ++i, ++vertIdx)
-        {
-            const DebugLineVertex& v = drawMgr.sphereVertices_[vertIdx];
-
-            vertices[vertIdx].position = { v.pos.x, v.pos.y, v.pos.z };
-            vertices[vertIdx].color    = v.color;
-        }
-    }
-
-    // update buffers
-    VertexBuffer<VertexPosColor>& vb = g_ModelMgr.GetDebugLinesVB();
-    IndexBuffer<uint16>&          ib = g_ModelMgr.GetDebugLinesIB();
-    ID3D11DeviceContext*    pContext = pRender->GetContext();
-
-    vb.UpdateDynamic(pContext, vertices.data(), numSpheres * numVerticesInSphere);
-    ib.Update(pContext, drawMgr.sphereIndices_.data(), numIndicesInSphere);
-
-    // render
-    for (int i = 0; i < numSpheres; ++i)
-        pContext->DrawIndexed(numIndicesInSphere, 0, i * numVerticesInSphere);
-}
-
-//---------------------------------------------------------
-
-void RenderDebugLinesTerrainAABB(
-    Render::CRender* pRender,
-    cvector<VertexPosColor>& vertices)
-{
-    assert(pRender != nullptr);
-
-    const DebugDrawMgr& drawMgr = g_DebugDrawMgr;
-
-    if (drawMgr.currNumAABBs_ <= 0)
-        return;
-
-    const int numAABBs          = drawMgr.currNumTerrainAABBs_;
-    const int numVerticesInAABB = drawMgr.GetNumVerticesInAABB();
-    const int numIndicesInAABB  = drawMgr.GetNumIndicesInAABB();
-    const int numVertices       = numAABBs * numVerticesInAABB;
-
-    // fill arr with lines vertices data and update the vertex buffer with it
-    vertices.resize(numVertices);
-
-    // setup vertices for each aabb
-    for (int aabbIdx = 0, vertIdx = 0; aabbIdx < numAABBs; ++aabbIdx)
-    {
-        for (int i = 0; i < numVerticesInAABB; ++i, ++vertIdx)
-        {
-            const DebugLineVertex& v = drawMgr.terrainAABBsVertices_[vertIdx];
-
-            vertices[vertIdx].position = { v.pos.x, v.pos.y, v.pos.z };
-            vertices[vertIdx].color    = v.color;
-        }
-    }
-
-    // update buffers
-    VertexBuffer<VertexPosColor>& vb = g_ModelMgr.GetDebugLinesVB();
-    IndexBuffer<uint16>&          ib = g_ModelMgr.GetDebugLinesIB();
-    ID3D11DeviceContext*    pContext = pRender->GetContext();
-
-    vb.UpdateDynamic(pContext, vertices.data(), numAABBs * numVerticesInAABB);
-    ib.Update(pContext, drawMgr.aabbIndices_.data(), numIndicesInAABB);
-
-    // render
-    for (int i = 0; i < numAABBs; ++i)
-        pContext->DrawIndexed(numIndicesInAABB, 0, i * numVerticesInAABB);
-}
-
-//---------------------------------------------------------
-
-void RenderDebugLinesFrustum(Render::CRender* pRender)
-{
-    assert(pRender != nullptr);
-
-    // fill arr with vertices data
-    constexpr int numLinesInFrustum = 12;
-    constexpr int numVertices = 24;
-    VertexPosColor vertices[numVertices];
-
-    for (int lineIdx = 0, vertIdx = 0; lineIdx < numLinesInFrustum; ++lineIdx)
-    {
-        const DebugLine& line = g_DebugDrawMgr.frustumLines_[lineIdx];
-
-        // setup the first vertex
-        vertices[vertIdx].position.x = line.fromPos.x;
-        vertices[vertIdx].position.y = line.fromPos.y;
-        vertices[vertIdx].position.z = line.fromPos.z;
-        vertices[vertIdx].color = line.color;
-
-        vertIdx++;
-
-        // setup the second vertex
-        vertices[vertIdx].position.x = line.toPos.x;
-        vertices[vertIdx].position.y = line.toPos.y;
-        vertices[vertIdx].position.z = line.toPos.z;
-        vertices[vertIdx].color = line.color;
-
-        vertIdx++;
-    }
-
-    // update the vertex buffer with new data
-    ID3D11DeviceContext* pContext = pRender->GetContext();
-    g_ModelMgr.GetDebugLinesVB().UpdateDynamic(pContext, vertices, numVertices);
-
-    // render frustum
-    pContext->Draw(numVertices, 0);
-}
-
-//---------------------------------------------------------
-
-void RenderInstancesDebugWireframe(
-    const cvector<Render::InstanceBatch>& instancesGroup,
-    Render::CRender* pRender,
-    UINT& startInstanceLocation)
-{
-    const UINT offset = 0;
-
-    // bind the instanced buffer
-    const UINT startSlot = 1;
-    const UINT instancesBufElemSize = (UINT)(sizeof(ConstBufType::InstancedData));
-    pRender->BindVB(startSlot, &pRender->pInstancedBuffer_, instancesBufElemSize, offset);
-
-
-    // bind and render each instances batch
-    for (const Render::InstanceBatch& batch : instancesGroup)
-    {
-        pRender->BindVB(&batch.pVB, batch.vertexStride, offset);
-        pRender->BindIB(batch.pIB, DXGI_FORMAT_R32_UINT);
-
-        pRender->DrawIndexedInstanced(batch, startInstanceLocation);
-    }
-}
-
-//---------------------------------------------------------
-
-void RenderDebugWireframes(Render::CRender* pRender)
-{
-    assert(pRender);
-
-    UINT startInstanceLocation = 0;
-    const Render::RenderDataStorage& storage = pRender->dataStorage_;
-
-    pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    pRender->BindShaderByName("WireframeShader");
-   
-    RenderInstancesDebugWireframe(storage.masked, pRender, startInstanceLocation);
-    RenderInstancesDebugWireframe(storage.opaque, pRender, startInstanceLocation);
-
-    pRender->ResetRenderStates();
-}
-
-//---------------------------------------------------------
-
 void CGraphics::RenderDebugShapes()
 {
-    if (!g_DebugDrawMgr.doRendering_)
-        return;
-
-
     // reset all the render states to default before lines rendering
     ResetRenderStatesToDefault();
 
-    // setup rendering pipeline
-    VertexBuffer<VertexPosColor>& vb = g_ModelMgr.GetDebugLinesVB();
-    IndexBuffer<uint16>&          ib = g_ModelMgr.GetDebugLinesIB();
-    Render::CRender*         pRender = pRender_;
-
-    pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-    pRender->BindShaderByName("DebugLineShader");
-
-    // we always use the same VB/IB for rendering debug shaped, we just update them
-    pRender->BindVB(vb.GetAddrOf(), vb.GetStride(), 0);
-    pRender->BindIB(ib.Get(), DXGI_FORMAT_R16_UINT);
-
-
-    // common arr of vertices for rendering
-    cvector<VertexPosColor> vertices(1024);
-
-    if (g_DebugDrawMgr.renderDbgLines_)
-        RenderDebugLines(pRender, vertices);
-
-    if (g_DebugDrawMgr.renderDbgAABB_)
-        RenderDebugLinesAABB(pRender, vertices);
-
-    if (g_DebugDrawMgr.renderDbgSphere_)
-        RenderDebugLinesSphere(pRender, vertices);
-
-    if (!pSysState_->isGameMode && g_DebugDrawMgr.renderDbgFrustum_)
-        RenderDebugLinesFrustum(pRender);
-
-    if (g_DebugDrawMgr.renderDbgTerrainAABB_)
-        RenderDebugLinesTerrainAABB(pRender, vertices);
-
-    if (g_DebugDrawMgr.renderDbgWireframe_)
-        RenderDebugWireframes(pRender);
+    DbgShapeRender renderer;
+    renderer.Render(pRender_, pSysState_->isGameMode);
 }
 
 //---------------------------------------------------------
 // Desc:  bind a shader according to the input post effect's type
 //---------------------------------------------------------
-void BindPostFxShader(
-    ID3D11DeviceContext* pContext,
-    Render::CRender* pRender,
-    const ePostFxType fxType)
+void BindPostFxShader(Render::CRender* pRender, const ePostFxType fxType)
 {
-    assert(pContext != nullptr);
-    assert(pRender != nullptr);
+    assert(pRender);
 
     switch (fxType)
     {
         case POST_FX_VISUALIZE_DEPTH:
             pRender->BindShaderByName("DepthResolveShader");
-            pContext->Draw(3, 0);
+            pRender->GetContext()->Draw(3, 0);
             pRender->BindShaderByName("VisualizeDepthShader");
             break;
 
@@ -2259,7 +2013,6 @@ void BindPostFxShader(
         default:
             LogErr(LOG, "wrong post effect type (maybe you add a new postFx but forgot to add a new case here?): %d", (int)fxType);
             return;
-
     }
 }
 
@@ -2270,20 +2023,20 @@ void BindPostFxShader(
 void CGraphics::RenderPostFxOnePass()
 {
     Render::D3DClass&    d3d = GetD3D();
-    ID3D11DeviceContext* pContext = GetContext();
+    ID3D11DeviceContext* pCtx = GetContext();
 
     // bind dst render target and src shader resource view
-    assert(d3d.pSwapChainRTV_     != nullptr && "swap chain RTV is wrong");
-    assert(d3d.postFxsPassSRV_[0] != nullptr && "resolved SRV is wrong");
+    assert(d3d.pSwapChainRTV_     && "swap chain RTV is wrong");
+    assert(d3d.postFxsPassSRV_[0] && "resolved SRV is wrong");
 
-    pContext->OMSetRenderTargets(1, &d3d.pSwapChainRTV_, nullptr);
-    pContext->PSSetShaderResources(TEX_SLOT_POST_FX_SRC, 1, &d3d.postFxsPassSRV_[0]);
+    pCtx->OMSetRenderTargets(1, &d3d.pSwapChainRTV_, nullptr);
+    pCtx->PSSetShaderResources(TEX_SLOT_POST_FX_SRC, 1, &d3d.postFxsPassSRV_[0]);
 
-    BindPostFxShader(pContext, pRender_, postFxsQueue_[0]);
-    pContext->Draw(3, 0);
+    BindPostFxShader(pRender_, postFxsQueue_[0]);
+    pCtx->Draw(3, 0);
 
     // bind a depth stencil view back
-    pContext->OMSetRenderTargets(1, &d3d.pSwapChainRTV_, d3d.pDepthStencilView_);
+    pCtx->OMSetRenderTargets(1, &d3d.pSwapChainRTV_, d3d.pDepthStencilView_);
 }
 
 //---------------------------------------------------------
@@ -2293,11 +2046,11 @@ void CGraphics::RenderPostFxOnePass()
 //---------------------------------------------------------
 void CGraphics::RenderPostFxMultiplePass()
 {
-    Render::D3DClass&    d3d      = GetD3D();
-    ID3D11DeviceContext* pContext = GetContext();
+    Render::D3DClass&    d3d  = GetD3D();
+    ID3D11DeviceContext* pCtx = GetContext();
 
-    pContext->OMSetRenderTargets(1, &d3d.postFxsPassRTV_[1], nullptr);
-    pContext->PSSetShaderResources(TEX_SLOT_POST_FX_SRC, 1, &d3d.postFxsPassSRV_[0]);
+    pCtx->OMSetRenderTargets(1, &d3d.postFxsPassRTV_[1], nullptr);
+    pCtx->PSSetShaderResources(TEX_SLOT_POST_FX_SRC, 1, &d3d.postFxsPassSRV_[0]);
 
     int i = 0;
     int lastDstIdx = 0;
@@ -2307,26 +2060,26 @@ void CGraphics::RenderPostFxMultiplePass()
         // by this index we will get a source SRV for the last post process pass
         lastDstIdx = (i % 2 == 0);
 
-        BindPostFxShader(pContext, pRender_, postFxsQueue_[i]);
-        pContext->Draw(3, 0);
+        BindPostFxShader(pRender_, postFxsQueue_[i]);
+        pCtx->Draw(3, 0);
 
         // flip render targets and shader resource views
         // (one target becomes a dst, and another becomes a src)
         const int nextTargetIdx = (i % 2 != 0);
         const int nextSrcIdx    = (i % 2 == 0);
 
-        pContext->OMSetRenderTargets(1, &d3d.postFxsPassRTV_[nextTargetIdx], nullptr);
-        pContext->PSSetShaderResources(TEX_SLOT_POST_FX_SRC, 1, &d3d.postFxsPassSRV_[nextSrcIdx]);
+        pCtx->OMSetRenderTargets(1, &d3d.postFxsPassRTV_[nextTargetIdx], nullptr);
+        pCtx->PSSetShaderResources(TEX_SLOT_POST_FX_SRC, 1, &d3d.postFxsPassSRV_[nextSrcIdx]);
     }
 
     // final pass we render directly into swap chain's RTV
-    BindPostFxShader(pContext, pRender_, postFxsQueue_[i]);
-    pContext->OMSetRenderTargets(1, &d3d.pSwapChainRTV_, nullptr);
-    pContext->PSSetShaderResources(TEX_SLOT_POST_FX_SRC, 1, &d3d.postFxsPassSRV_[lastDstIdx]);
-    pContext->Draw(3, 0);
+    BindPostFxShader(pRender_, postFxsQueue_[i]);
+    pCtx->OMSetRenderTargets(1, &d3d.pSwapChainRTV_, nullptr);
+    pCtx->PSSetShaderResources(TEX_SLOT_POST_FX_SRC, 1, &d3d.postFxsPassSRV_[lastDstIdx]);
+    pCtx->Draw(3, 0);
 
     // bind depth stencil back
-    pContext->OMSetRenderTargets(1, &d3d.pSwapChainRTV_, d3d.pDepthStencilView_);
+    pCtx->OMSetRenderTargets(1, &d3d.pSwapChainRTV_, d3d.pDepthStencilView_);
 }
 
 //---------------------------------------------------------
@@ -2335,7 +2088,7 @@ void CGraphics::RenderPostFxMultiplePass()
 void CGraphics::VisualizeDepthBuffer()
 {
     Render::D3DClass&    d3d      = GetD3D();
-    ID3D11DeviceContext* pContext = GetContext();
+    ID3D11DeviceContext* pCtx = GetContext();
 
     // unbind depth before depth visualization
     d3d.UnbindDepthBuffer();
@@ -2343,19 +2096,19 @@ void CGraphics::VisualizeDepthBuffer()
     if (d3d.IsEnabled4xMSAA())
     {
         ID3D11ShaderResourceView* pDepthMSAASRV = d3d.GetDepthSRV();
-        pContext->PSSetShaderResources(TEX_SLOT_DEPTH_MSAA, 1, &pDepthMSAASRV);
+        pCtx->PSSetShaderResources(TEX_SLOT_DEPTH_MSAA, 1, &pDepthMSAASRV);
 
         pRender_->BindShaderByName("DepthResolveShader");
-        pContext->Draw(3, 0);
+        pCtx->Draw(3, 0);
     }
     else
     {
         // setup depth SRV
         ID3D11ShaderResourceView* pDepthSRV = d3d.GetDepthSRV();
-        pContext->PSSetShaderResources(TEX_SLOT_DEPTH, 1, &pDepthSRV);
+        pCtx->PSSetShaderResources(TEX_SLOT_DEPTH, 1, &pDepthSRV);
 
         pRender_->BindShaderByName("VisualizeDepthShader");
-        pContext->Draw(3, 0);
+        pCtx->Draw(3, 0);
     }
 
     // after rendering we bind depth buffer again
@@ -2368,28 +2121,21 @@ void CGraphics::VisualizeDepthBuffer()
 //---------------------------------------------------------
 void CGraphics::SetupLightsForFrame(Render::PerFrameData& outData)
 {
-    assert(pEnttMgr_);
-    ECS::EntityMgr& mgr = *pEnttMgr_;
-
-    ECS::LightSystem&     lightSys           = mgr.lightSys_;
-    ECS::RenderSystem&    renderSys          = mgr.renderSys_;
-    ECS::TransformSystem& transformSys       = mgr.transformSys_;
+    ECS::LightSystem&       lightSys         = pEnttMgr_->lightSys_;
 
     const ECS::DirLights&   dirLights        = lightSys.GetDirLights();
     const ECS::PointLights& pointLights      = lightSys.GetPointLights();
     const ECS::SpotLights&  spotLights       = lightSys.GetSpotLights();
 
-    const size numAllDirLights               = dirLights.data.size();
-    const size numAllPointLights             = pointLights.data.size();
-    const size numAllSpotLights              = spotLights.data.size();
+    const size numAllDirLights               = lightSys.GetNumDirLights();
+    const size numAllPointLights             = lightSys.GetNumPointLights();
+    const size numAllSpotLights              = lightSys.GetNumSpotLights();
 
-    const cvector<EntityID>& visPointLights  = renderSys.GetVisiblePointLights();
+    const cvector<EntityID>& visPointLights  = pEnttMgr_->renderSys_.GetVisiblePointLights();
     const size numVisPointLights             = visPointLights.size();
 
-    //printf("num visible point lights: %d\n", (int)numVisPointLights);
-
     cvector<ECS::PointLight>& activePointL    = s_LightTmpData.activePointLights;
-    cvector<ECS::XMFLOAT3>&   pointLPositions = s_LightTmpData.pointLightsPositions;
+    cvector<XMFLOAT3>&        pointLPositions = s_LightTmpData.pointLightsPositions;
     cvector<ECS::SpotLight>&  spotLData       = s_LightTmpData.spotLightsData;
     cvector<XMVECTOR>&        dirLDirections  = s_LightTmpData.dirLightsDirections;
 
@@ -2400,9 +2146,6 @@ void CGraphics::SetupLightsForFrame(Render::PerFrameData& outData)
         activePointL,
         pointLPositions);
 
-    //printf("num visible point lights to render: %d\n", (int)activePointL.size());
-
-
     lightSys.GetSpotLightsData(
         spotLights.ids.data(),
         numAllSpotLights,
@@ -2410,8 +2153,8 @@ void CGraphics::SetupLightsForFrame(Render::PerFrameData& outData)
         s_LightTmpData.spotLightsPositions,
         s_LightTmpData.spotLightsDirections);
 
-    const int numActivePointLights = (int)s_LightTmpData.activePointLights.size();
-    const int numActiveSpotLights  = (int)s_LightTmpData.spotLightsData.size();
+    const int numActivePointLights = (int)activePointL.size();
+    const int numActiveSpotLights  = (int)spotLData.size();
 
     pSysState_->numVisiblePointLights = (uint32)numActivePointLights;
     pSysState_->numVisibleSpotlights  = (uint32)numActiveSpotLights;
@@ -2453,7 +2196,7 @@ void CGraphics::SetupLightsForFrame(Render::PerFrameData& outData)
         outData.dirLights[i].specular = dirLights.data[i].specular;
     }
 
-    transformSys.GetDirections(
+    pEnttMgr_->transformSys_.GetDirections(
         dirLights.ids.data(),
         numAllDirLights,
         dirLDirections);
@@ -2575,7 +2318,7 @@ bool CGraphics::InitModelFrameBuf(const uint width, const uint height)
     if (pModelFrameBuf_ == nullptr)
         pModelFrameBuf_ = new FrameBuffer();
 
-    if (!pModelFrameBuf_->Initialize(GetDevice(), fbSpec))
+    if (!pModelFrameBuf_->Init(fbSpec))
     {
         LogErr(LOG, "can't init a frame buffer for model rendering");
         return false;
@@ -2597,16 +2340,15 @@ bool CGraphics::RenderModelIntoFrameBuf()
         return false;
     }
 
-    Render::CRender*     pRender  = pRender_;
-    ID3D11DeviceContext* pContext = pRender->GetContext();
+    Render::CRender* pRender  = pRender_;
 
     // reset render states to prevent rendering bugs
     pRender->ResetRenderStates();
 
     // prepare model's instance
     const ModelPreviewRenderParams& params = modelPreviewRndParams_;
-    BasicModel&                     model  = g_ModelMgr.GetModelById(params.modelId);
-    const MeshGeometry&             meshes = model.meshes_;
+    Model&                          model  = g_ModelMgr.GetModelById(params.modelId);
+    const MeshGeometry&             meshes = model.GetMeshes();
 
     // calc model world matrix
     const XMMATRIX S = XMMatrixScaling             (params.modelScale, params.modelScale, params.modelScale);
@@ -2628,11 +2370,14 @@ bool CGraphics::RenderModelIntoFrameBuf()
 
     // calc projection / ortho matrix
     XMMATRIX P;
+    const float fov = DEG_TO_RAD(75);
+    const float zn  = pFB->GetNearZ();
+    const float zf  = pFB->GetFarZ();
 
     if (!params.useOrthoMatrix)
-        P = XMMatrixPerspectiveFovLH(DEG_TO_RAD(75), pFB->GetAspect(), pFB->GetNearZ(), pFB->GetFarZ());
+        P = XMMatrixPerspectiveFovLH(fov, pFB->GetAspect(), zn, zf);
     else
-        P = XMMatrixOrthographicLH(DEG_TO_RAD(75), params.orthoViewHeight, pFB->GetNearZ(), pFB->GetFarZ());
+        P = XMMatrixOrthographicLH(fov, params.orthoViewHeight, zn, zf);
 
    
     // save pos for later restoring
@@ -2643,9 +2388,9 @@ bool CGraphics::RenderModelIntoFrameBuf()
     pRender->UpdateCbCameraPos({ trCamPos.x, trCamPos.y, trCamPos.z });
 
     // prepare and bind a frame buffer
-    const XMFLOAT4 clearColor = { params.bgColor.r, params.bgColor.g, params.bgColor.b, 1 };
-    pFB->ClearBuffers(pContext, clearColor);
-    pFB->Bind(pContext);
+    const Vec3& col = params.bgColor;
+    pFB->ClearBuffers(col.r, col.g, col.b, 1);
+    pFB->Bind();
 
     // bind a shader, prepare IA for rendering
     pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -2662,10 +2407,8 @@ bool CGraphics::RenderModelIntoFrameBuf()
 
         BindMaterial(mat);
         pRender->UpdateCbMaterialColors(mat.ambient, mat.diffuse, mat.specular, mat.reflect);
-
-        pContext->DrawIndexed(mesh.indexCount, mesh.indexStart, mesh.vertexStart);
+        pRender->DrawIndexed(mesh.indexCount, mesh.indexStart, mesh.vertexStart);
     }
-
 
     // reset camera position
     pRender->UpdateCbCameraPos(prevCamPos);
@@ -2793,181 +2536,6 @@ float CGraphics::GetModelPreviewParam(const uint8 param) const
 //==================================================================================
 
 //---------------------------------------------------------
-// Desc:  in game mode cast a ray from player to world
-//        and compute an intersection point with any stuff on the scene
-// 
-// Args:  - sx, xy:   screen coords
-// Out:   - outData:  data about intersection (if we have any)
-// Ret:   true if we have any intersection
-//---------------------------------------------------------
-#if 0
-bool CGraphics::GetRayIntersectionData(
-    const int sx,
-    const int sy,
-    IntersectionData& outData)
-{
-    using namespace DirectX;
-
-    ECS::EntityMgr& enttMgr = *pEnttMgr_;
-    const EntityID currCamId = currCameraID_;
-
-    const ECS::CameraSystem& camSys = enttMgr.cameraSys_;
-    const ECS::NameSystem& nameSys = enttMgr.nameSys_;
-
-    const XMFLOAT3  camPos  = camSys.GetPos(currCamId);
-    const XMMATRIX& proj    = camSys.GetProj(currCamId);
-    const XMMATRIX& invView = camSys.GetInverseView(currCamId);
-
-    // TODO: optimize it!
-    const float xndc = (+2.0f * sx / GetD3D().GetWindowWidth()  - 1.0f);
-    const float yndc = (-2.0f * sy / GetD3D().GetWindowHeight() + 1.0f);
-
-    // compute picking ray in view space
-    const float vx = xndc / proj.r[0].m128_f32[0];
-    const float vy = yndc / proj.r[1].m128_f32[1];
-
-    // ray definition in world space
-    XMVECTOR rayOriginW = { camPos.x, camPos.y, camPos.z, 1 };
-    XMVECTOR rayDirW    = XMVector3TransformNormal({ vx, vy, 1, 0 }, invView);     // supposed to take a vec (w == 0)
-    rayDirW             = XMVector3Normalize(rayDirW);
-
-    float tmin = MathHelper::Infinity;  // the distance along the ray where the intersection occurs
-    float dist = 0;                     // the length of the ray from origin to the intersection point with the AABB
-
-    // reset output data
-    memset(&outData, 0, sizeof(outData));
-
-    const EntityID playerId = nameSys.GetIdByName("player");
-
-
-    // go through each visible entt and check if we have an intersection with it
-    for (const EntityID enttId : enttMgr.renderSys_.GetAllVisibleEntts())
-    {
-        if (enttId == playerId)
-            continue;
-
-
-        const ModelID   modelId = enttMgr.modelSys_.GetModelIdRelatedToEntt(enttId);
-        const BasicModel& model = g_ModelMgr.GetModelById(modelId);
-
-        // transform model's AABB from local space to world space
-        const XMMATRIX world = enttMgr.transformSys_.GetWorld(enttId);
-        BoundingBox aabb;
-        model.GetModelAABB().Transform(aabb, world);
-
-        // if we hit the bounding box of the model, then we might have picked
-        // a model triangle, so do the ray/mesh test;
-        //
-        // if we didn't hit the bounding box, then it is impossible that we
-        // hit the model, so do not waste effort doing ray/mesh tests
-        if (!aabb.Intersects(rayOriginW, rayDirW, dist))
-            continue;
-
-
-        // execute ray/model test
-        for (int i = 0; i < model.GetNumIndices() / 3; ++i)
-        {
-            // indices for this triangle
-            UINT i0 = model.indices_[i * 3 + 0];
-            UINT i1 = model.indices_[i * 3 + 1];
-            UINT i2 = model.indices_[i * 3 + 2];
-
-            // vertices for this triangle
-            XMVECTOR v0 = XMLoadFloat3(&model.vertices_[i0].position);
-            XMVECTOR v1 = XMLoadFloat3(&model.vertices_[i1].position);
-            XMVECTOR v2 = XMLoadFloat3(&model.vertices_[i2].position);
-
-            v0 = XMVector3TransformCoord(v0, world);
-            v1 = XMVector3TransformCoord(v1, world);
-            v2 = XMVector3TransformCoord(v2, world);
-
-            // we have to iterate over all the triangle in order 
-            // to find the nearest intersection
-            float t = 0.0f;
-
-            if (!DirectX::TriangleTests::Intersects(rayOriginW, rayDirW, v0, v1, v2, t))
-                continue;
-
-            if (t > tmin)
-                continue;
-
-
-            // this is a new nearest picked entt and its triangle
-            tmin = t;
-
-            outData.enttId = enttId;
-            outData.modelId = modelId;
-            outData.triangleIdx = i;
-        }
-    }
-
-    // if we didn't intersect any entity...
-    if (outData.enttId == 0)
-        return false;
-
-
-    BasicModel& model = g_ModelMgr.GetModelById(outData.modelId);
-    uint           i0 = model.indices_[outData.triangleIdx * 3 + 0];
-    uint           i1 = model.indices_[outData.triangleIdx * 3 + 1];
-    uint           i2 = model.indices_[outData.triangleIdx * 3 + 2];
-    Vertex3D&      v0 = model.vertices_[i0];
-    Vertex3D&      v1 = model.vertices_[i1];
-    Vertex3D&      v2 = model.vertices_[i2];
-
-    printf("p0 %.2f %.2f %.2f     p1 %.2f %.2f %.2f    p2 %.2f %.2f %.2f\n",
-        v0.position.x, v0.position.y, v0.position.z,
-        v1.position.x, v1.position.y, v1.position.z,
-        v2.position.x, v2.position.y, v2.position.z);
-
-    printf("n0 %.2f %.2f %.2f     n1 %.2f %.2f %.2f    n2 %.2f %.2f %.2f\n",
-        v0.normal.x, v0.normal.y, v0.normal.z,
-        v1.normal.x, v1.normal.y, v1.normal.z,
-        v2.normal.x, v2.normal.y, v2.normal.z);
-
-    // store endpoints of the intersected triangle
-    outData.vx0 = v0.position.x;
-    outData.vy0 = v0.position.y;
-    outData.vz0 = v0.position.z;
-
-    outData.vx1 = v1.position.x;
-    outData.vy1 = v1.position.y;
-    outData.vz1 = v1.position.z;
-
-    outData.vx2 = v2.position.x;
-    outData.vy2 = v2.position.y;
-    outData.vz2 = v2.position.z;
-
-
-    // calc intersection point
-    XMVECTOR intersectP = rayOriginW + rayDirW * tmin;
-    XMFLOAT3 intersect;
-    XMStoreFloat3(&intersect, intersectP);
-
-    XMFLOAT3 rayOrig;
-    XMStoreFloat3(&rayOrig, rayOriginW);
-
-
-    // store ray origin...
-    outData.rayOrigX = rayOrig.x;
-    outData.rayOrigY = rayOrig.y;
-    outData.rayOrigZ = rayOrig.z;
-
-    // ...intersection point, 
-    outData.px = intersect.x;
-    outData.py = intersect.y;
-    outData.pz = intersect.z;
-
-    // ...and normal vec of intersected triangle
-    outData.nx = v0.normal.x;
-    outData.ny = v0.normal.y;
-    outData.nz = v0.normal.z;
-
-    return true;
-}
-#else
-
-
-//---------------------------------------------------------
 // Desc:  calculate intersection between a ray and some entity or terrain;
 //        the ray goes from camera pos to coordinate calculated
 //        by input screen sx, sy pixel coordinate;
@@ -2981,14 +2549,17 @@ bool CGraphics::GetRayIntersectionData(
 {
     using namespace DirectX;
 
-    ECS::EntityMgr& enttMgr = *pEnttMgr_;
-    const EntityID currCamId = currCameraID_;
+    // reset output data
+    memset(&outData, 0, sizeof(outData));
+
+    ECS::EntityMgr& enttMgr   = *pEnttMgr_;
+    const EntityID  playerId  = enttMgr.nameSys_.GetIdByName("player");
 
     const ECS::CameraSystem& camSys = enttMgr.cameraSys_;
 
-    const XMFLOAT3  camPos  = camSys.GetPos(currCamId);
-    const XMMATRIX& proj    = camSys.GetProj(currCamId);
-    const XMMATRIX& invView = camSys.GetInverseView(currCamId);
+    const XMFLOAT3  camPos  = camSys.GetPos(currCameraId_);
+    const XMMATRIX& proj    = camSys.GetProj(currCameraId_);
+    const XMMATRIX& invView = camSys.GetInverseView(currCameraId_);
 
     const float xndc = (+2.0f * sx / GetD3D().GetWindowWidth()  - 1.0f);
     const float yndc = (-2.0f * sy / GetD3D().GetWindowHeight() + 1.0f);
@@ -3008,13 +2579,7 @@ bool CGraphics::GetRayIntersectionData(
 
 
     // the distance along the ray where the intersection occurs
-    float tmin = MathHelper::Infinity;  
-
-    // reset output data
-    memset(&outData, 0, sizeof(outData));
-
-    const EntityID playerId = enttMgr.nameSys_.GetIdByName("player");
-
+    float tmin = FLT_MAX;  
 
     // go through each visible entt and check if we have an intersection with it
     for (const EntityID enttId : enttMgr.renderSys_.GetAllVisibleEntts())
@@ -3022,26 +2587,15 @@ bool CGraphics::GetRayIntersectionData(
         if (enttId == playerId)
             continue;
 
-        RayEnttTest(enttMgr, enttId, rayOrigW, rayDirW, tmin, outData, rayOrigL, rayDirL);
+        RayEnttTest(enttId, rayOrigW, rayDirW, tmin, outData, rayOrigL, rayDirL);
     }
 
     // if we didn't intersect any entity...
     if (outData.enttId == 0)
         return false;
 
-
     GatherIntersectionData(rayOrigL, rayDirL, rayOrigW, rayDirW, tmin, outData);
     return true;
-}
-
-#endif
-
-//---------------------------------------------------------
-// convertation helpers
-//---------------------------------------------------------
-inline Vec3 ToVec3(const XMVECTOR& v)
-{
-    return Vec3(v.m128_f32);
 }
 
 //---------------------------------------------------------
@@ -3065,7 +2619,6 @@ Vec3 CalcNormalVec(const XMFLOAT3& p0, const XMFLOAT3& p1, const XMFLOAT3& p2)
 // Desc:  ray/entity test (test ray agains each mesh of entity's model)
 //---------------------------------------------------------
 void CGraphics::RayEnttTest(
-    ECS::EntityMgr& enttMgr,
     const EntityID enttId,
     const XMVECTOR& rayOrigW,
     const XMVECTOR& rayDirW,
@@ -3074,11 +2627,11 @@ void CGraphics::RayEnttTest(
     XMVECTOR& outRayOrigL,
     XMVECTOR& outRayDirL)
 {
-    const ModelID    modelId = enttMgr.modelSys_.GetModelIdRelatedToEntt(enttId);
-    const BasicModel&  model = g_ModelMgr.GetModelById(modelId);
+    const ModelID    modelId = pEnttMgr_->modelSys_.GetModelIdRelatedToEntt(enttId);
+    const Model&  model = g_ModelMgr.GetModelById(modelId);
 
     // transform ray to model's local space
-    const XMMATRIX& invWorld = enttMgr.transformSys_.GetInvWorld(enttId);
+    const XMMATRIX& invWorld = pEnttMgr_->transformSys_.GetInvWorld(enttId);
     const XMVECTOR  rayOrigL = XMVector3Transform(rayOrigW, invWorld);
     const XMVECTOR  rayDirL  = XMVector3Normalize(XMVector3TransformNormal(rayDirW, invWorld));
 
@@ -3093,7 +2646,6 @@ void CGraphics::RayEnttTest(
     if (!RayModelTest(&model, rayOrigL, rayDirL, tmin, outData.triangleIdx))
         return;
 
-
     outData.enttId = enttId;
     outData.modelId = modelId;
 
@@ -3105,7 +2657,7 @@ void CGraphics::RayEnttTest(
 // Desc:  execute ray/model test
 //---------------------------------------------------------
 bool CGraphics::RayModelTest(
-    const BasicModel* pModel,
+    const Model* pModel,
     const XMVECTOR& rayOrigin,
     const XMVECTOR& rayDir,
     float& tmin,
@@ -3113,21 +2665,22 @@ bool CGraphics::RayModelTest(
 {
     assert(pModel);
 
-    const BasicModel& model = *pModel;
-    bool intersect = false;
+    const Vertex3D* vertices = pModel->GetVertices();
+    const UINT*     indices  = pModel->GetIndices();
+    bool           intersect = false;
 
     // ray/triangle tests
-    for (int i = 0; i < model.GetNumIndices() / 3; ++i)
+    for (int i = 0; i < pModel->GetNumIndices() / 3; ++i)
     {
         // indices for this triangle
-        const UINT i0 = model.indices_[i * 3 + 0];
-        const UINT i1 = model.indices_[i * 3 + 1];
-        const UINT i2 = model.indices_[i * 3 + 2];
+        const UINT i0 = indices[i*3 + 0];
+        const UINT i1 = indices[i*3 + 1];
+        const UINT i2 = indices[i*3 + 2];
 
         // vertices for this triangle
-        const XMVECTOR v0 = XMLoadFloat3(&model.vertices_[i0].position);
-        const XMVECTOR v1 = XMLoadFloat3(&model.vertices_[i1].position);
-        const XMVECTOR v2 = XMLoadFloat3(&model.vertices_[i2].position);
+        const XMVECTOR v0 = XMLoadFloat3(&vertices[i0].position);
+        const XMVECTOR v1 = XMLoadFloat3(&vertices[i1].position);
+        const XMVECTOR v2 = XMLoadFloat3(&vertices[i2].position);
 
         // we have to iterate over all the triangle in order 
         // to find the nearest intersection
@@ -3138,7 +2691,6 @@ bool CGraphics::RayModelTest(
 
         if (t > tmin)
             continue;
-
 
         // this is a new nearest picked entt and its triangle
         intersectedTriangleIdx = i;
@@ -3165,13 +2717,18 @@ void CGraphics::GatherIntersectionData(
     const float t,
     IntersectionData& outData)
 {
-    const BasicModel& model = g_ModelMgr.GetModelById(outData.modelId);
-    const uint           i0 = model.indices_[outData.triangleIdx * 3 + 0];
-    const uint           i1 = model.indices_[outData.triangleIdx * 3 + 1];
-    const uint           i2 = model.indices_[outData.triangleIdx * 3 + 2];
-    const Vertex3D&      v0 = model.vertices_[i0];
-    const Vertex3D&      v1 = model.vertices_[i1];
-    const Vertex3D&      v2 = model.vertices_[i2];
+    const Model& model = g_ModelMgr.GetModelById(outData.modelId);
+    const Vertex3D*   verts = model.GetVertices();
+    const UINT*     indices = model.GetIndices();
+    const uint      baseIdx = outData.triangleIdx * 3;
+
+    const uint           i0 = indices[baseIdx + 0];
+    const uint           i1 = indices[baseIdx + 1];
+    const uint           i2 = indices[baseIdx + 2];
+
+    const Vertex3D&      v0 = verts[i0];
+    const Vertex3D&      v1 = verts[i1];
+    const Vertex3D&      v2 = verts[i2];
 
     
     // transform triangle's points from local to world space
@@ -3240,8 +2797,8 @@ void CGraphics::GatherIntersectionData(
     outData.ny = normal.y;
     outData.nz = normal.z;
 
-
-    // PRINT STATS
+#if 0
+    // PRINT COLLISION STATS
     printf("\nlocal:\n");
     printf("p0 %.2f %.2f %.2f     p1 %.2f %.2f %.2f    p2 %.2f %.2f %.2f\n",
         v0.position.x, v0.position.y, v0.position.z,
@@ -3260,6 +2817,7 @@ void CGraphics::GatherIntersectionData(
         pos1.x, pos1.y, pos1.z);
 
     printf("n0 %.2f %.2f %.2f\n", normal.x, normal.y, normal.z);
+#endif
 }
 
 //---------------------------------------------------------
@@ -3274,10 +2832,9 @@ int CGraphics::TestEnttSelection(const int sx, const int sy)
     using namespace DirectX;
 
     ECS::EntityMgr* pEnttMgr = pEnttMgr_;
-    const XMMATRIX& P        = pEnttMgr->cameraSys_.GetProj(currCameraID_);
-    const XMMATRIX& invView  = pEnttMgr->cameraSys_.GetInverseView(currCameraID_);
+    const XMMATRIX& P        = pEnttMgr->cameraSys_.GetProj(currCameraId_);
+    const XMMATRIX& invView  = pEnttMgr->cameraSys_.GetInverseView(currCameraId_);
 
-    // TODO: optimize it!
     const float xndc = (+2.0f * sx / GetD3D().GetWindowWidth() - 1.0f);
     const float yndc = (-2.0f * sy / GetD3D().GetWindowHeight() + 1.0f);
 
@@ -3291,30 +2848,21 @@ int CGraphics::TestEnttSelection(const int sx, const int sy)
 
     // assume we have not picked anything yet, 
     // so init the ID to 0 and triangle idx to -1
-    uint32_t selectedEnttID = 0;
+    uint32_t selectedEnttId = 0;
     int selectedTriangleIdx = -1;
-    float tmin = MathHelper::Infinity;  // the distance along the ray where the intersection occurs
+    float tmin = FLT_MAX;               // the distance along the ray where the intersection occurs
     float dist = 0;                     // the length of the ray from origin to the intersection point with the AABB
 
 
     // go through each visible entt and check if we have an intersection with it
-    for (const EntityID enttID : pEnttMgr->renderSys_.GetAllVisibleEntts())
+    for (const EntityID enttId : pEnttMgr->renderSys_.GetAllVisibleEntts())
     {
-        //const EntityID enttID = visEntts[i];
-        const ModelID modelID = pEnttMgr->modelSys_.GetModelIdRelatedToEntt(enttID);
-        const BasicModel& model = g_ModelMgr.GetModelById(modelID);
-
-        if (model.type_ == MODEL_TYPE_Terrain)
-        {
-            continue;
-        }
-    
         // get an inverse world matrix of the current entt
-        const XMMATRIX invWorld = pEnttMgr->transformSys_.GetInvWorld(enttID);
-        const XMMATRIX toLocal = DirectX::XMMatrixMultiply(invView, invWorld);
+        const XMMATRIX invWorld = pEnttMgr->transformSys_.GetInvWorld(enttId);
+        const XMMATRIX toLocal  = DirectX::XMMatrixMultiply(invView, invWorld);
 
         XMVECTOR rayOrigin = XMVector3TransformCoord(rayOrigin_, toLocal);   // supposed to take a point (w == 1)
-        XMVECTOR rayDir    = XMVector3TransformNormal(rayDir_, toLocal);  // supposed to take a vec (w == 0)
+        XMVECTOR rayDir    = XMVector3TransformNormal(rayDir_, toLocal);     // supposed to take a vec (w == 0)
 
         // make the ray direction unit length for the intersection tests
         rayDir = XMVector3Normalize(rayDir);
@@ -3325,52 +2873,55 @@ int CGraphics::TestEnttSelection(const int sx, const int sy)
         //
         // if we didn't hit the bounding box, then it is impossible that we
         // hit the model, so do not waste efford doing ray/triangle tests
-        if (model.GetModelAABB().Intersects(rayOrigin, rayDir, dist))
+        const ModelID   modelId = pEnttMgr->modelSys_.GetModelIdRelatedToEntt(enttId);
+        const Model& model = g_ModelMgr.GetModelById(modelId);
+        
+        if (!model.GetModelAABB().Intersects(rayOrigin, rayDir, dist))
+            continue;
+
+        const Vertex3D* verts = model.GetVertices();
+        const UINT*   indices = model.GetIndices();
+
+        // execute ray/triangle tests
+        for (int i = 0; i < model.GetNumIndices() / 3; ++i)
         {
-            // execute ray/triangle tests
-            for (int i = 0; i < model.GetNumIndices() / 3; ++i)
-            {
-                // indices for this triangle
-                UINT i0 = model.indices_[i * 3 + 0];
-                UINT i1 = model.indices_[i * 3 + 1];
-                UINT i2 = model.indices_[i * 3 + 2];
+            // indices for this triangle
+            const UINT i0 = indices[i*3 + 0];
+            const UINT i1 = indices[i*3 + 1];
+            const UINT i2 = indices[i*3 + 2];
 
-                // vertices for this triangle
-                XMVECTOR v0 = XMLoadFloat3(&model.vertices_[i0].position);
-                XMVECTOR v1 = XMLoadFloat3(&model.vertices_[i1].position);
-                XMVECTOR v2 = XMLoadFloat3(&model.vertices_[i2].position);
+            // vertices for this triangle
+            const XMVECTOR v0 = XMLoadFloat3(&verts[i0].position);
+            const XMVECTOR v1 = XMLoadFloat3(&verts[i1].position);
+            const XMVECTOR v2 = XMLoadFloat3(&verts[i2].position);
 
-                // we have to iterate over all the triangle in order 
-                // to find the nearest intersection
-                float t = 0.0f;
+            float t = 0.0f;
 
-                if (DirectX::TriangleTests::Intersects(rayOrigin, rayDir, v0, v1, v2, t))
-                {
-                    if (t <= tmin)
-                    {
-                        // this is the new nearest picked entt and its triangle
-                        tmin = t;
-                        selectedTriangleIdx = i;
-                        selectedEnttID = enttID;
-                    }
-                }
-            }
+            if (!DirectX::TriangleTests::Intersects(rayOrigin, rayDir, v0, v1, v2, t))
+                continue;
+
+            if (t > tmin)
+                continue;
+
+            // this is the new nearest picked entt and its triangle
+            tmin = t;
+            selectedTriangleIdx = i;
+            selectedEnttId = enttId;
         }
     }
 
     // print a msg about selection of the entity
-    if (selectedEnttID)
+    if (selectedEnttId)
     {
-        const char* name = pEnttMgr->nameSys_.GetNameById(selectedEnttID);
+        const char* name = pEnttMgr->nameSys_.GetNameById(selectedEnttId);
 
         SetConsoleColor(YELLOW);
-        LogMsg("picked entt (id: %" PRIu32 "; name: % s)", selectedEnttID, name);
+        LogMsg("picked entt (id: %" PRIu32 "; name: % s)", selectedEnttId, name);
         SetConsoleColor(RESET);
     }
 
     // return ID of the selected entt, or 0 if we didn't pick any
-    return selectedEnttID;
+    return selectedEnttId;
 }
-
 
 } // namespace Core

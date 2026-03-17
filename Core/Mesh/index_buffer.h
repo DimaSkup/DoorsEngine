@@ -11,6 +11,8 @@
 #include <log.h>
 #include <CAssert.h>
 
+#include <Render/d3dclass.h>
+
 #include <d3d11.h>
 #include <memory>   // for using std::construct_at
 #include <utility>  // for using std::exchange
@@ -27,12 +29,16 @@ public:
 
     // ---------------------------------------------
 
-    inline IndexBuffer(ID3D11Device* pDevice, const T* indices, const int numIndices)
+    inline IndexBuffer(const T* indices, const int numIndices)
     {
-        CAssert::True((indices != nullptr) && (numIndices > 0), "wrong input data");
+        if (!indices || numIndices <= 0)
+        {
+            LogErr(LOG, "invalid input args");
+            return;
+        }
 
         constexpr bool isDynamic = false;
-        Initialize(pDevice, indices, numIndices, isDynamic);
+        Init(indices, numIndices, isDynamic);
     }
 
     // ---------------------------------------------
@@ -75,21 +81,11 @@ public:
     // ---------------------------------------------
 
     // Public modification API 
-    bool Initialize(
-        ID3D11Device* pDevice,
-        const T* indices,
-        const int numIndices,
-        const bool isDynamic);
+    bool Init(const T* indices, const int numIndices, const bool isDynamicIB);
 
-    bool Update(
-        ID3D11DeviceContext* pContext,
-        const T* indices,
-        const size count);
+    bool Update(const T* indices, const size numIndices);
+    void CopyBuffer(const IndexBuffer& srcBuffer);
 
-    void CopyBuffer(
-        ID3D11Device* pDevice,
-        ID3D11DeviceContext* pContext,
-        const IndexBuffer& srcBuffer);
 
     inline void Shutdown()
     {
@@ -103,17 +99,13 @@ public:
     inline UINT                 GetIndexCount() const { return indexCount_; }
 
 private:
-    bool InitializeHelper(
-        ID3D11Device* pDevice,
-        const D3D11_BUFFER_DESC& buffDesc,
-        const T* pIndices);
+    bool InitHelper(const D3D11_BUFFER_DESC& desc, const T* pIndices);
 
 private:
     ID3D11Buffer* pBuffer_    = nullptr;
     UINT          indexCount_ = 0;
     D3D11_USAGE   usageType_  = D3D11_USAGE_DEFAULT;
 };
-
 
 
 //---------------------------------------------------------
@@ -124,22 +116,17 @@ private:
 //          - isDynamic:    a flag to define if we want to create a dynamic buffer
 //---------------------------------------------------------
 template <typename T>
-bool IndexBuffer<T>::Initialize(
-    ID3D11Device* pDevice,
-    const T* indices,
-    const int numIndices,
-    const bool isDynamic)
+bool IndexBuffer<T>::Init(const T* indices, const int numIndices, const bool isDynamic)
 {
     // check input args
     if (!indices)
     {
-        LogErr(LOG, "can't init index buffer: input ptr to indices arr == nullptr");
+        LogErr(LOG, "input indices arr == NULL");
         return false;
     }
-
     if (numIndices <= 0)
     {
-        LogErr(LOG, "can't init index buffer: input number of indices <= 0");
+        LogErr(LOG, "invalid number (%d) of indices, must be > 0", numIndices);
         return false;
     }
 
@@ -156,12 +143,11 @@ bool IndexBuffer<T>::Initialize(
     desc.MiscFlags           = 0;
     desc.StructureByteStride = 0;
 
-    //Shutdown();
 
     // create and initialize a buffer with data
-    if (!InitializeHelper(pDevice, desc, indices))
+    if (!InitHelper(desc, indices))
     {
-        LogErr(LOG, "something went wrong during creation of the index buffer");
+        LogErr(LOG, "can't create IB");
         Shutdown();
         return false;
     }
@@ -177,60 +163,58 @@ bool IndexBuffer<T>::Initialize(
 // Ret:    true if we successfully updated the buffer
 //---------------------------------------------------------
 template <typename T>
-bool IndexBuffer<T>::Update(
-    ID3D11DeviceContext* pContext,
-    const T* indices,
-    const size count)
+bool IndexBuffer<T>::Update(const T* indices, const size count)
 {
     // check some params
     if (usageType_ != D3D11_USAGE_DYNAMIC)
     {
-        LogErr(LOG, "can't update index buffer: not dynamic usage type");
+        LogErr(LOG, "you try to update non-dynamic IB");
         return false;
     }
 
     if (!indices || (count > indexCount_))
     {
-        LogErr(LOG, "can't update index buffer: invalid input args");
+        LogErr(LOG, "invalid input args");
         return false;
     }
 
     // map the buffer
     D3D11_MAPPED_SUBRESOURCE mappedResource;
+    ID3D11DeviceContext* pCtx = Render::GetD3dContext();
 
-    const HRESULT hr = pContext->Map(pBuffer_, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+    const HRESULT hr = pCtx->Map(pBuffer_, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
     if (FAILED(hr))
     {
-        LogErr(LOG, "failed to map the index buffer");
+        LogErr(LOG, "failed to map IB");
         return false;
     }
 
     // copy new data into the buffer
     CopyMemory(mappedResource.pData, indices, sizeof(T) * count);
 
-    pContext->Unmap(pBuffer_, 0);
+    pCtx->Unmap(pBuffer_, 0);
 
     return true;
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// copy data from the input buffer into the current one
+//---------------------------------------------------------
 template <typename T>
-void IndexBuffer<T>::CopyBuffer(
-    ID3D11Device* pDevice,
-    ID3D11DeviceContext* pDeviceContext,
-    const IndexBuffer& srcBuffer)
+void IndexBuffer<T>::CopyBuffer(const IndexBuffer& srcBuf)
 {
-    // this function copies data from the inOriginBuffer into the current one
-    // and creates a new index buffer using this data;
-
-    // copy the main data from the origin buffer
-    ID3D11Buffer* pOrigBuffer = srcBuffer.Get();
-    const UINT origIndexCount = srcBuffer.GetIndexCount();
+    ID3D11Buffer* pOrigBuffer = srcBuf.Get();
+    const UINT origIndexCount = srcBuf.GetIndexCount();
 
     // check input params
-    CAssert::NotZero(origIndexCount, "there is no indices in the inOriginBuffer");
+    if (!pOrigBuffer || origIndexCount == 0)
+    {
+        LogErr(LOG, "invalid input source IB");
+        return;
+    }
 
+    ID3D11Device*            pDevice = Render::GetD3dDevice();
+    ID3D11DeviceContext*     pCtx    = Render::GetD3dContext();
     HRESULT                  hr = S_OK;
     D3D11_MAPPED_SUBRESOURCE mappedSubresource;
     D3D11_BUFFER_DESC        dstBufferDesc;
@@ -239,15 +223,15 @@ void IndexBuffer<T>::CopyBuffer(
 
     try
     {
-        /////////////////  CREATE A STAGING BUFFER AND COPY DATA INTO IT  /////////////////
+        // ---  CREATE A STAGING BUFFER AND COPY DATA INTO IT  --- //
 
         // setup the staging buffer description
         D3D11_BUFFER_DESC stagingBufferDesc;
         ZeroMemory(&stagingBufferDesc, sizeof(D3D11_BUFFER_DESC));
 
-        stagingBufferDesc.Usage = D3D11_USAGE_STAGING;
-        stagingBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-        stagingBufferDesc.ByteWidth = sizeof(T) * origIndexCount;
+        stagingBufferDesc.Usage             = D3D11_USAGE_STAGING;
+        stagingBufferDesc.CPUAccessFlags    = D3D11_CPU_ACCESS_READ;
+        stagingBufferDesc.ByteWidth         = sizeof(T) * origIndexCount;
 
         // create a staging buffer for reading data from the anotherBuffer
         hr = pDevice->CreateBuffer(&stagingBufferDesc, nullptr, &pStagingBuffer);
@@ -255,18 +239,18 @@ void IndexBuffer<T>::CopyBuffer(
 
         // copy the entire contents of the source resource to the destination 
         // resource using the GPU (from the anotherBuffer into the statingBuffer)
-        pDeviceContext->CopyResource(pStagingBuffer, pOrigBuffer);
+        pCtx->CopyResource(pStagingBuffer, pOrigBuffer);
 
         // map the staging buffer
-        hr = pDeviceContext->Map(pStagingBuffer, 0, D3D11_MAP_READ, 0, &mappedSubresource);
+        hr = pCtx->Map(pStagingBuffer, 0, D3D11_MAP_READ, 0, &mappedSubresource);
         CAssert::NotFailed(hr, "can't map the staging buffer");
 
         // in the end we unmap the staging buffer and release it
-        pDeviceContext->Unmap(pStagingBuffer, 0);
+        pCtx->Unmap(pStagingBuffer, 0);
         SafeRelease(&pStagingBuffer);
 
 
-        /////////////////////  CREATE A DESTINATION INDEX BUFFER  //////////////////////
+        // ---  CREATE A DESTINATION INDEX BUFFER  --- //
 
         // get the description of the anotherBuffer
         pOrigBuffer->GetDesc(&dstBufferDesc);
@@ -285,50 +269,53 @@ void IndexBuffer<T>::CopyBuffer(
     }
     catch (std::bad_alloc& e)
     {
+        pCtx->Unmap(pStagingBuffer, 0);
+        SafeRelease(&pStagingBuffer);
         SafeDeleteArr(indicesArr);
-        LogErr(e.what());
-        throw EngineException("can't allocate memory for indices of buffer");
+
+        LogErr(LOG, e.what());
+        LogErr(LOG, "can't alloc mem for indices of IB");
     }
     catch (EngineException& e)
     {
+        pCtx->Unmap(pStagingBuffer, 0);
+        SafeRelease(&pStagingBuffer);
         SafeDeleteArr(indicesArr);
-        LogErr(e);
-        throw EngineException("can't copy an index buffer");
+        
+        LogErr(LOG, e.what());
+        LogErr(LOG, "can't copy IB");
     }
 }
-
 
 
 // =================================================================================
 //                             PRIVATE METHODS
 // =================================================================================
 
+//---------------------------------------------------------
+// helper for initialization of index buffer
+//---------------------------------------------------------
 template <typename T>
-bool IndexBuffer<T>::InitializeHelper(
-    ID3D11Device* pDevice,
-    const D3D11_BUFFER_DESC& buffDesc,
-    const T* pIndices)
+bool IndexBuffer<T>::InitHelper(const D3D11_BUFFER_DESC& desc, const T* pIndices)
 {
-    // this function helps to initialize an INDEX buffer
+    D3D11_SUBRESOURCE_DATA ibData;
+    ZeroMemory(&ibData, sizeof(D3D11_SUBRESOURCE_DATA));
 
-    D3D11_SUBRESOURCE_DATA indexBufferData;
-    ZeroMemory(&indexBufferData, sizeof(D3D11_SUBRESOURCE_DATA));
-
-    // if we already have some data by the buffer pointer we need first of all to release it
+    // release buffer if we had some data before
     SafeRelease(&pBuffer_);
 
     // fill in initial indices data 
-    indexBufferData.pSysMem = pIndices;
+    ibData.pSysMem = pIndices;
 
     // create an index buffer
-    const HRESULT hr = pDevice->CreateBuffer(&buffDesc, &indexBufferData, &pBuffer_);
+    const HRESULT hr = Render::GetD3dDevice()->CreateBuffer(&desc, &ibData, &pBuffer_);
     if (FAILED(hr))
     {
-        LogErr(LOG, "can't create an index buffer");
+        LogErr(LOG, "can't create an IB");
         return false;
     }
 
     return true;
 }
 
-} // namespace Core
+} // namespace

@@ -44,18 +44,16 @@ void EnttEditorController::Init(IFacadeEngineToUI* pFacade)
         CAssert::NotNullptr(pFacade, "ptr to the IFacadeEngineToUI interface == nullptr");
         pFacade_ = pFacade;
 
-        particlesController_.Initialize(pFacade);
+        particlesController_.Init(pFacade);
 
         pAnimationController_ = NEW EnttAnimationController();
-        CAssert::NotNullptr(pAnimationController_, "can't alloc memory from entity animation controller");
+        CAssert::NotNullptr(pAnimationController_, "can't alloc mem from entity animation controller");
     }
     catch (EngineException& e)
     {
-        LogErr(e);
-        LogErr(LOG, "can't init entities editor controller");
-        exit(0);
+        LogErr(LOG, e.what());
+        LogFatal(LOG, "can't init entities editor controller");
     }
-    
 }
 
 //---------------------------------------------------------
@@ -63,33 +61,40 @@ void EnttEditorController::Init(IFacadeEngineToUI* pFacade)
 //---------------------------------------------------------
 void EnttEditorController::SetSelectedEntt(const EntityID enttId)
 {
+    SelectedEnttData& data = selectedEnttData_;
+
     // if we deselected the chosen entt so we won't render any control panel
     // until we won't select any other
     if (enttId == 0)
     {
-        selectedEnttData_.id   = 0;
-        memset(selectedEnttData_.name, 0, MAX_LEN_ENTT_NAME);
+        data.id = 0;
+        memset(data.name, 0, MAX_LEN_ENTT_NAME);
         return;
     }
+
     // we have chosen some entt
     else
     {
-        // get selected entity ID and name
-        selectedEnttData_.id = enttId;
+        // setup id
+        data.id = enttId;
+
+        // setup name
         const char* enttName = pFacade_->GetEnttNameById(enttId);
-        if (enttName)
-        {
-            strncpy(selectedEnttData_.name, enttName, MAX_LEN_ENTT_NAME);
-        }
+        strncpy(data.name, enttName, MAX_LEN_ENTT_NAME);
+
 
         // get names of added components
-        pFacade_->GetEnttAddedComponentsTypes(enttId, selectedEnttData_.componentsTypes);
+        pFacade_->GetEnttAddedComponents(
+            data.id,
+            data.addedComponents,
+            data.numAddedComponents);
+
 
 
         // load data for each component which is added to the selected entity
-        for (const eEnttComponentType type : selectedEnttData_.componentsTypes)
+        for (int i = 0; i < data.numAddedComponents; ++i)
         {
-            switch (type)
+            switch (data.addedComponents[i])
             {
                 case NameComponent:
                 {
@@ -175,12 +180,12 @@ void EnttEditorController::SetSelectedEntt(const EntityID enttId)
 //---------------------------------------------------------
 void EnttEditorController::Render()
 {
+    SelectedEnttData& data = selectedEnttData_;
+
     // if we have no entity as selected...
-    if (selectedEnttData_.id == 0)
+    if (data.id == 0)
         return;
 
-    const EntityID enttId   = selectedEnttData_.id;
-    const char*    enttName = selectedEnttData_.name;
 
     // we want the next editor panel to be visible
     static bool isOpen = true;
@@ -188,21 +193,21 @@ void EnttEditorController::Render()
 
     // render a list of components which are added to the entity (for editing these components)
     ImGui::Separator();
-    ImGui::Text("Entity ID:   %d", enttId);
-    ImGui::Text("Entity name: %s", enttName);
+    ImGui::Text("Entity ID:   %d", data.id);
+    ImGui::Text("Entity name: %s", data.name);
 
     
     // render view (editor control fields) for each added component
     const ImGuiTreeNodeFlags_ flags = ImGuiTreeNodeFlags_SpanFullWidth;
 
-    for (const eEnttComponentType type : selectedEnttData_.componentsTypes)
+    for (index i = 0; i < data.numAddedComponents; ++i)
     {
-        switch (type)
+        switch (data.addedComponents[i])
         {
             case NameComponent:
             {
                 if (ImGui::CollapsingHeader("Name", flags))
-                    ImGui::Text("Entity name: %s", enttName);
+                    ImGui::Text("Entity name: %s", data.name);
                 break;
             }
             case TransformComponent:
@@ -269,7 +274,7 @@ void EnttEditorController::Render()
             case AnimationComponent:
             {
                 // for animations we have to actively update some info
-                pAnimationController_->LoadEnttData(pFacade_, enttId);
+                pAnimationController_->LoadEnttData(pFacade_, data.id);
 
                 if (ImGui::CollapsingHeader("Animations", flags))
                     viewEnttAnimation_.Render(this, pAnimationController_->GetData());
@@ -315,8 +320,8 @@ void EnttEditorController::UpdateSelectedEnttWorld(const DirectX::XMMATRIX& worl
         }
         case ImGuizmo::OPERATION::SCALE:
         {
-            const float uniformScale = DirectX::XMVectorGetX(S);
-            CmdChangeFloat cmd(CHANGE_ENTITY_SCALE, uniformScale);
+            const float scale = DirectX::XMVectorGetX(S);
+            CmdChangeFloat cmd(CHANGE_ENTITY_SCALE, scale);
             ExecCmd(&cmd);
             break;
         }
@@ -340,12 +345,12 @@ void EnttEditorController::ExecCmd(const ICommand* pCmd)
     // check input args
     if (!pFacade_)
     {
-        LogErr(LOG, "your ptr to facade interface == nullptr (init it first!)");
+        LogErr(LOG, "ptr to FACADE == NULL (init it first!)");
         return;
     }
     if (!pCmd)
     {
-        LogErr(LOG, "input ptr to command == nullptr");
+        LogErr(LOG, "input ptr to command == NULL");
         return;
     }
     if (!selectedEnttData_.IsSelectedAnyEntt())
@@ -412,7 +417,7 @@ void EnttEditorController::ExecCmd(const ICommand* pCmd)
         }
         default:
         {
-            const char* enttName = pFacade_->GetEnttNameById(enttId);
+            const char* enttName = selectedEnttData_.name;
             LogErr(LOG, "unknown type of command (%d) for entt '%s' (%" PRIu32 ")", pCmd->type_, enttName, enttId);
             return;
         }
@@ -427,12 +432,12 @@ void EnttEditorController::UndoCmd(const ICommand* pCmd, const EntityID enttId)
     // check input args
     if (!pFacade_)
     {
-        LogErr(LOG, "UI facade ptr == nullptr (init it first!)");
+        LogErr(LOG, "ptr to FACADE == NULL (init it first!)");
         return;
     }
     if (!pCmd)
     {
-        LogErr(LOG, "command ptr == nullptr");
+        LogErr(LOG, "command ptr == NULL");
         return;
     }
     if (enttId == INVALID_ENTITY_ID)

@@ -13,99 +13,84 @@
 namespace ECS
 {
 
+// static array for internal purposes
 static cvector<index> s_Idxs;
 
+
+//---------------------------------------------------------
+// constructor
+//---------------------------------------------------------
 MaterialSystem::MaterialSystem(Material* pMaterialComponent, NameSystem* pNameSys)
     :
     pMaterialComponent_(pMaterialComponent),
     pNameSystem_(pNameSys)
 {
-    CAssert::True(pMaterialComponent != nullptr, "input ptr to the Material component == nullptr");
-    CAssert::True(pNameSys != nullptr,           "input ptr to the Name system == nullptr");
+    assert(pMaterialComponent);
+    assert(pNameSys);
 
     // setup default (invalid) material which has ID == 0 for invalid entity
     const cvector<MaterialID> materialsIDs(1, INVALID_MATERIAL_ID);
     const bool                isMeshBasedMaterials = true;
     MaterialData              matData(materialsIDs.data(), materialsIDs.size());
 
-    pMaterialComponent->enttsIDs.push_back(INVALID_ENTITY_ID);
+    pMaterialComponent->enttsIds.push_back(INVALID_ENTITY_ID);
     pMaterialComponent->data.push_back(std::move(matData));
 }
 
 //---------------------------------------------------------
-// Desc:   add own textures set to each input entity
+// Desc:   add own materials set to each input entity
 // Args:   - materialsIDs: arr of material IDs (each material ID will be related
 //                         to a single submesh of the entity)
 //         - numSubmeshes: how many meshes does input entity have
 //---------------------------------------------------------
 void MaterialSystem::AddRecord(
-    const EntityID enttID,
-    const MaterialID* materialsIDs,
+    const EntityID enttId,
+    const MaterialID* materialsIds,
     const size numSubmeshes)
 {
-
-    CAssert::True(enttID != INVALID_ENTITY_ID, "invalid entity");
-    CAssert::True(materialsIDs != nullptr,     "input ptr to materials IDs arr == nullptr");
-    CAssert::True(numSubmeshes > 0,            "input number of submeshes must be > 0");
-
+    assert(enttId != INVALID_ENTITY_ID);
+    assert(materialsIds);
+    assert(numSubmeshes);
 
     Material& comp = *pMaterialComponent_;
 
-    // if there is already a record with such entt ID
-    if (comp.enttsIDs.binary_search(enttID))
+    if (comp.enttsIds.binary_search(enttId))
     {
-        LogErr(LOG, "can't add record: there is already an entity by ID: %ld", enttID);
+        LogErr(LOG, "there is already an entity by ID: %" PRIu32, enttId);
         return;
     }
 
     // add a record (here we execute sorted insertion into the data arrays)
-    const index idx = comp.enttsIDs.get_insert_idx(enttID);
+    const index idx = comp.enttsIds.get_insert_idx(enttId);
 
-    comp.enttsIDs.insert_before(idx, enttID);
-    comp.data.insert_before(idx, MaterialData(materialsIDs, numSubmeshes));
+    comp.enttsIds.insert_before(idx, enttId);
+    comp.data.insert_before(idx, MaterialData(materialsIds, numSubmeshes));
 }
 
 //---------------------------------------------------------
 // Desc:   set a material (matID) for subset/mesh (enttSubmeshId) of entity (enttID)
 //---------------------------------------------------------
 void MaterialSystem::SetMaterial(
-    const EntityID enttID,
+    const EntityID enttId,
     const SubmeshID enttSubmeshId,
-    const MaterialID matID)
+    const MaterialID matId)
 {
     Material& comp = *pMaterialComponent_;
-    const index idx = comp.enttsIDs.get_idx(enttID);
-    cvector<MaterialID>& matsIds = comp.data[idx].materialsIds;
+    const cvector<EntityID>& ids = comp.enttsIds;
 
-    // if such entt doesn't have a material component (we have no such record)
-    if (comp.enttsIDs[idx] != enttID)
-    {
-        LogErr(LOG, "there is no entity by ID: %d", (int)enttID);
+    const index idx = GetIdx(enttId);
+    if (idx == 0)
         return;
-    }
- 
+
     // if input submesh id is invalid (is too big)
-    if ((vsize)enttSubmeshId >= matsIds.size())
+    if ((vsize)enttSubmeshId >= comp.data[idx].materialsIds.size())
     {
         LogErr(LOG, "input submesh id is invalid: %d", (int)enttSubmeshId);
         return;
     }
 
     // set new material id for a submesh
-    matsIds[enttSubmeshId] = matID;
-}
-
-//---------------------------------------------------------
-// Desc:   get arr of material Ids for entity by input ID
-//---------------------------------------------------------
-const MaterialData& MaterialSystem::GetDataByEnttId(const EntityID id) const
-{
-    const Material& comp = *pMaterialComponent_;
-    const index idx      = comp.enttsIDs.get_idx(id);
-    const bool exist     = (comp.enttsIDs[idx] == id);
-
-    // if there no data by input ID we return "invalid" data (by idx == 0)
-    return comp.data[idx * exist];
+    comp.data[idx].materialsIds[enttSubmeshId] = matId;
 }
 
 //---------------------------------------------------------
@@ -125,7 +110,7 @@ void MaterialSystem::GetDataByEnttsIds(
 
     const Material& comp = *pMaterialComponent_;
 
-    comp.enttsIDs.get_idxs(ids, numEntts, s_Idxs);
+    comp.enttsIds.get_idxs(ids, numEntts, s_Idxs);
 
 #if DEBUG || _DEBUG
     CheckEnttsHaveMaterialComponent(ids, s_Idxs.data(), numEntts);
@@ -155,7 +140,7 @@ void MaterialSystem::CheckEnttsHaveMaterialComponent(
     for (index i = 0; i < numEntts; ++i)
     {
         // if we have not the same ID
-        if (comp.enttsIDs[idxs[i]] != ids[i])
+        if (comp.enttsIds[idxs[i]] != ids[i])
         {
             LogErr(
                 LOG,

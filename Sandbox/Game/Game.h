@@ -79,7 +79,7 @@ public:
 private:
     void HandleGameEvents();
 
-    void InitWeapons();
+    void InitWeapons(const char* cfgFilepath);
     void InitWeapon(FILE* pFile, const char* line, Weapon& wpn);
     void InitSoundsStuff();
 

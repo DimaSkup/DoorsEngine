@@ -7,10 +7,11 @@
 // *********************************************************************************
 #pragma once
 
-#include <Types.h>
+#include <types.h>
 #include <log.h>
-#include <CAssert.h>
 #include <mem_helpers.h>
+
+#include <Render/d3dclass.h>
 
 #include <d3d11.h>
 #include <memory>   // for using std::construct_at
@@ -24,7 +25,11 @@ template <typename T>
 class VertexBuffer
 {
 public:
-    VertexBuffer() {}
+    VertexBuffer()
+    {
+    }
+
+    // ------------------------------------------
 
     ~VertexBuffer() 
     {
@@ -33,14 +38,15 @@ public:
 
     // ------------------------------------------
 
-    VertexBuffer(
-        ID3D11Device* pDevice,
-        const T* pVertices,
-        const int numVertices,
-        const bool isDynamic)
+    VertexBuffer(const T* vertices, const int numVertices, const bool isDynamic)
     {
-        CAssert::True((pVertices != nullptr) && (numVertices > 0), "wrong input data");
-        Initialize(pDevice, pVertices, numVertices, isDynamic);
+        if (!vertices || numVertices <= 0)
+        {
+            LogErr(LOG, "invalid input data");
+            return;
+        }
+       
+        Init(vertices, numVertices, isDynamic);
     }
 
     // ------------------------------------------
@@ -70,39 +76,24 @@ public:
     // restrict a copying of this class instance 
     // using the asignment operator or copy constructor
     // (for deep copy you have to use the CopyBuffer() method)
-    VertexBuffer(const VertexBuffer& obj) = delete;
+    VertexBuffer(const VertexBuffer& obj)            = delete;
     VertexBuffer& operator=(const VertexBuffer& obj) = delete;
 
     // ------------------------------------------
 
-    bool Initialize(
-        ID3D11Device* pDevice,
-        const T* vertices,
-        const int numVertices,
-        const bool isDynamic = false);
+    bool Init(const T* vertices, const int numVertices, const bool isDynamic = false);
 
-    // init empty buffer (while is dynamic by default) of size == numVertices 
-    bool InitializeEmpty(
-        ID3D11Device* pDevice,
-        const int numVertices);
+    // init an empty buffer (is dynamic by default) of size == numVertices 
+    bool InitEmpty(const int numVertices);
 
     // ------------------------------------------
 
-    bool UpdateDynamic(
-        ID3D11DeviceContext* pContext,
-        T* vertices,
-        const size count);
+    bool UpdateDynamic(T* vertices, const size count);
+    void CopyBuffer(const VertexBuffer& buffer);
 
     // ------------------------------------------
 
-    void CopyBuffer(
-        ID3D11Device* pDevice, 
-        ID3D11DeviceContext* pContext, 
-        const VertexBuffer& buffer);
-
-    // ------------------------------------------
-
-    inline void Shutdown()
+    inline void Shutdown(void)
     {
         SafeRelease(&pBuffer_);
         stride_ = 0;
@@ -111,27 +102,17 @@ public:
 
     // ------------------------------------------
 
-    // Public query API  
-    inline void GetBufferAndStride(ID3D11Buffer* pBuffer, UINT*& pStride)
-    {
-        pBuffer = pBuffer_;
-        pStride = &stride_;
-    }
-
-    inline UINT GetStride()                 const { return stride_; }
+    inline UINT        GetStride()          const { return stride_; }
     inline const UINT* GetStrideAddr()      const { return &stride_; }
 
-    inline int GetVertexCount()             const { return vertexCount_; }
+    inline int         GetVertexCount()     const { return vertexCount_; }
     inline D3D11_USAGE GetUsage()           const { return usageType_; }
 
     inline ID3D11Buffer* Get()              const { return pBuffer_; };     
     inline ID3D11Buffer* const* GetAddrOf() const { return &(pBuffer_); }
     
 private:
-    HRESULT InitializeHelper(
-        ID3D11Device* pDevice,
-        const D3D11_BUFFER_DESC& buffDesc,
-        const T* pVertices);
+    HRESULT InitHelper(const D3D11_BUFFER_DESC& buffDesc, const T* pVertices);
 
 private:
     ID3D11Buffer* pBuffer_ = nullptr;          // a pointer to the vertex buffer
@@ -149,24 +130,18 @@ private:
 // initialize a vertex buffer with input vertices data
 //---------------------------------------------------------
 template <typename T>
-bool VertexBuffer<T>::Initialize(
-    ID3D11Device* pDevice,
-    const T* pVertices,
+bool VertexBuffer<T>::Init(
+    const T* vertices,
     const int numVertices,
     const bool isDynamic)
 {
     // check input args
-    if (!pVertices)
+    if (!vertices || numVertices <= 0)
     {
-        LogErr(LOG,"input ptr to arr of vertices == nullptr");
+        LogErr(LOG, "invalid input data");
         return false;
     }
 
-    if (numVertices <= 0)
-    {
-        LogErr(LOG, "input number of vertices must be > 0");
-        return false;
-    }
         
     D3D11_BUFFER_DESC desc;
     ZeroMemory(&desc, sizeof(D3D11_BUFFER_DESC));
@@ -189,13 +164,12 @@ bool VertexBuffer<T>::Initialize(
     desc.StructureByteStride = 0;                            // the size, in bytes, of a single element stored in the structured buffer. A structure buffer is a buffer that stores elements of equal size
     desc.MiscFlags           = 0;
 
-    //Shutdown();
 
     // create a buffer using the description and initial vertices data
-    HRESULT hr = InitializeHelper(pDevice, desc, pVertices);
+    HRESULT hr = InitHelper(desc, vertices);
     if (FAILED(hr))
     {
-        LogErr("can't create a vertex buffer");
+        LogErr(LOG, "can't create VB");
         return false;
     }
 
@@ -208,12 +182,10 @@ bool VertexBuffer<T>::Initialize(
 }
 
 //---------------------------------------------------------
-// init empty buffer (while is dynamic by default) of size == numVertices
+// init an empty buffer (which is DYNAMIC by default) of size == numVertices
 //---------------------------------------------------------
 template <typename T>
-bool VertexBuffer<T>::InitializeEmpty(
-    ID3D11Device* pDevice,
-    const int numVertices)
+bool VertexBuffer<T>::InitEmpty(const int numVertices)
 {
     if (numVertices <= 0)
     {
@@ -231,11 +203,15 @@ bool VertexBuffer<T>::InitializeEmpty(
     desc.StructureByteStride = 0;                             // the size, in bytes, of a single element stored in the structured buffer. A structure buffer is a buffer that stores elements of equal size
     desc.MiscFlags           = 0;
 
-    // create a buffer using the description and initial vertices data
-    HRESULT hr = InitializeHelper(pDevice, desc, nullptr);
+
+    // if the vertex buffer has already been initialized before
+    SafeRelease(&pBuffer_);
+
+    // try to create a vertex buffer
+    HRESULT hr = Render::GetD3dDevice()->CreateBuffer(&desc, nullptr, &pBuffer_);
     if (FAILED(hr))
     {
-        LogErr(LOG, "can't create a vertex buffer");
+        LogErr(LOG, "can't create VB");
         return false;
     }
 
@@ -251,14 +227,13 @@ bool VertexBuffer<T>::InitializeEmpty(
 // update this DYNAMIC vertex buffer with new vertices
 //---------------------------------------------------------
 template <typename T>
-bool VertexBuffer<T>::UpdateDynamic(
-    ID3D11DeviceContext* pContext,
-    T* vertices,
-    const size count)
+bool VertexBuffer<T>::UpdateDynamic(T* vertices, const size count)
 {
-    assert(pBuffer_ != nullptr);
-    assert(vertexCount_ > 0);
-    assert(stride_ > 0);
+    if (!vertices || count <= 0)
+    {
+        LogErr(LOG, "invalid input data");
+        return false;
+    }
 
     // check input args
     if (usageType_ != D3D11_USAGE_DYNAMIC)
@@ -270,152 +245,137 @@ bool VertexBuffer<T>::UpdateDynamic(
                     "(your usage type: %s (%d))", usageTypeNames[usageType_], (int)usageType_);
         return false;
     }
-    if (!vertices)
-    {
-        LogErr(LOG, "input ptr to vertices arr == nullptr");
-        return false;
-    }
+
     if ((uint32)count > vertexCount_)
     {
-        LogErr(LOG, "vertex buffer overflow (buf limit: %d, input num vertices: %d)", (int)vertexCount_, (int)count);
+        LogErr(LOG, "VB overflow (buf limit: %zu, input num vertices: %zu)", vertexCount_, count);
         return false;
     }
 
     // map the buffer
     D3D11_MAPPED_SUBRESOURCE mappedResource;
-    const HRESULT hr = pContext->Map(pBuffer_, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+    ID3D11DeviceContext* pCtx = Render::GetD3dContext();
+
+    const HRESULT hr = pCtx->Map(pBuffer_, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
     if (FAILED(hr))
     {
-        LogErr(LOG, "failed to map the vertex buffer");
+        LogErr(LOG, "failed to map the VB");
         return false;
     }
 
     // copy new data into the buffer
     CopyMemory(mappedResource.pData, vertices, stride_ * count);
 
-    pContext->Unmap(pBuffer_, 0);
+    pCtx->Unmap(pBuffer_, 0);
 
     return true;
 } 
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// copy data from the inBuffer into the current one
+// and creates a new vertex buffer using this data;
+//---------------------------------------------------------
 template <typename T>
-void VertexBuffer<T>::CopyBuffer(
-    ID3D11Device* pDevice,
-    ID3D11DeviceContext* pContext,
-    const VertexBuffer& inBuffer)
+void VertexBuffer<T>::CopyBuffer(const VertexBuffer& buf)
 {
-    // copy data from the inBuffer into the current one
-    // and creates a new vertex buffer using this data;
-
-    CAssert::NotNullptr(pDevice, "a ptr to the device == nullptr");
-    CAssert::NotNullptr(pContext, "a ptr to the device context == nullptr");
-
-    ID3D11Buffer* pBuffer       = inBuffer.Get();
-    const UINT stride           = inBuffer.GetStride();
-    const size vertexCount      = inBuffer.GetVertexCount();
-    const D3D11_USAGE usageType = inBuffer.GetUsage();
+    ID3D11Buffer* pBuffer       = buf.Get();
+    const UINT stride           = buf.GetStride();
+    const size vertexCount      = buf.GetVertexCount();
+    const D3D11_USAGE usageType = buf.GetUsage();
 
     // check input params
-    CAssert::NotNullptr(pBuffer, "ptr to buffer == nullptr");
-    CAssert::True((vertexCount > 0) && (stride), "wrong input buffer's data");
+    if (!pBuffer || (vertexCount < 0) || (stride == 0))
+    {
+        LogErr(LOG, "invalid input buffer");
+        return;
+    }
 
-
+    ID3D11Device*            pDevice = Render::GetD3dDevice();
+    ID3D11DeviceContext*     pCtx    = Render::GetD3dContext();
     HRESULT                  hr = S_OK;
     D3D11_MAPPED_SUBRESOURCE mappedSubresource;
     D3D11_BUFFER_DESC        dstBufferDesc;
     ID3D11Buffer*            pStagingBuffer = nullptr;
     T*                       vertices       = nullptr;   // vertices for a dst buffer             
 
-    try
+
+    // ------------  CREATE A STAGING BUFFER AND COPY DATA INTO IT  ------------
+
+    // setup the staging buffer description
+    D3D11_BUFFER_DESC stagingBufferDesc;
+    ZeroMemory(&stagingBufferDesc, sizeof(D3D11_BUFFER_DESC));
+
+    stagingBufferDesc.Usage          = D3D11_USAGE_STAGING;
+    stagingBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+    stagingBufferDesc.ByteWidth      = stride * vertexCount;
+
+    // create a staging buffer for reading data from the anotherBuffer
+    hr = pDevice->CreateBuffer(&stagingBufferDesc, nullptr, &pStagingBuffer);
+    if (FAILED(hr))
     {
-        // ------------  CREATE A STAGING BUFFER AND COPY DATA INTO IT  ------------
-
-        // setup the staging buffer description
-        D3D11_BUFFER_DESC stagingBufferDesc;
-        ZeroMemory(&stagingBufferDesc, sizeof(D3D11_BUFFER_DESC));
-
-        stagingBufferDesc.Usage          = D3D11_USAGE_STAGING;
-        stagingBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-        stagingBufferDesc.ByteWidth      = stride * vertexCount;
-
-        // create a staging buffer for reading data from the anotherBuffer
-        hr = pDevice->CreateBuffer(&stagingBufferDesc, nullptr, &pStagingBuffer);
-        CAssert::NotFailed(hr, "can't create a staging buffer");
+        LogErr(LOG, "can't create a staging buffer");
+        return;
+    }
         
-        // copy the entire contents of the source resource to the destination 
-        // resource using the GPU (from the origin buffer into the statingBuffer)
-        pContext->CopyResource(pStagingBuffer, inBuffer.Get());
+    // copy the entire contents of the source resource to the destination 
+    // resource using the GPU (from the origin buffer into the statingBuffer)
+    pCtx->CopyResource(pStagingBuffer, pBuffer);
 
-        // map the staging buffer
-        hr = pContext->Map(pStagingBuffer, 0, D3D11_MAP_READ, 0, &mappedSubresource);
-        CAssert::NotFailed(hr, "can't map the staging buffer");
-
-        pContext->Unmap(pStagingBuffer, 0);
+    // map the staging buffer
+    hr = pCtx->Map(pStagingBuffer, 0, D3D11_MAP_READ, 0, &mappedSubresource);
+    if (FAILED(hr))
+    {
+        LogErr(LOG, "can't map the staging buffer");
+        pCtx->Unmap(pStagingBuffer, 0);
         SafeRelease(&pStagingBuffer);
+    }
+
+    pCtx->Unmap(pStagingBuffer, 0);
+    SafeRelease(&pStagingBuffer);
 
 
-        // ---------------  CREATE A DESTINATION Vertex BUFFER  ---------------
+    // ---------------  CREATE A DESTINATION VERTEX BUFFER  ---------------
 
-        // allocate memory for vertices of the dst buffer and fill it with data
-        vertices = new T[vertexCount];
-        CopyMemory(vertices, mappedSubresource.pData, stride * vertexCount);
+    // allocate memory for vertices of the dst buffer and fill it with data
+    vertices = NEW T[vertexCount];
+    if (!vertices)
+    {
+        LogErr(LOG, "can't alloc mem for vertices in VB");
+        return;
+    }
 
-        pBuffer->GetDesc(&dstBufferDesc);
+    CopyMemory(vertices, mappedSubresource.pData, stride * vertexCount);
+    pBuffer->GetDesc(&dstBufferDesc);
 
-        // create and initialize a new buffer with data
-        InitializeHelper(pDevice, dstBufferDesc, vertices);
+    // create and initialize a new buffer with data
+    InitHelper(dstBufferDesc, vertices);
 
-        SafeDeleteArr(vertices);
+    SafeDeleteArr(vertices);
     
-        // set params of this vertex buffer (DON'T COPY HERE A PTR TO THE ORIGIN BUFFER)
-        stride_      = stride;
-        vertexCount_ = vertexCount;
-        usageType_   = usageType;
-    }
-    catch (std::bad_alloc & e)
-    {
-        pContext->Unmap(pStagingBuffer, 0U);
-        SafeDeleteArr(vertices);
-        LogErr(e.what());
-        throw EngineException("can't allocate memory for vertices of buffer");
-    }
-    catch (EngineException & e)
-    {
-        pContext->Unmap(pStagingBuffer, 0U);
-        SafeDeleteArr(vertices);
-        LogErr(e);
-        throw EngineException("can't copy a vertex buffer");
-    }
+    // set params of this vertex buffer (DON'T COPY HERE A PTR TO THE ORIGIN BUFFER)
+    stride_      = stride;
+    vertexCount_ = vertexCount;
+    usageType_   = usageType;
 }
 
-
-// =================================================================================
-//                           PRIVATE FUNCTIONS (HELPERS)
-// =================================================================================
-
+//---------------------------------------------------------
+// initialize a vertex buffer of ANY type (usage)
+//---------------------------------------------------------
 template <typename T>
-HRESULT VertexBuffer<T>::InitializeHelper(
-    ID3D11Device* pDevice,
-    const D3D11_BUFFER_DESC & buffDesc,
-    const T* vertices)
+HRESULT VertexBuffer<T>::InitHelper(const D3D11_BUFFER_DESC& desc, const T* vertices)
 {
-    // initialize a vertex buffer of ANY type (usage)
-
-    D3D11_SUBRESOURCE_DATA vertexBufferData = {};
+    D3D11_SUBRESOURCE_DATA vbData = {};
 
     // fill in initial data 
-    vertexBufferData.pSysMem          = vertices;    // a pointer to a system memory array which contains the data to initialize the vertex buffer
-    vertexBufferData.SysMemPitch      = 0;           // not used for vertex buffers
-    vertexBufferData.SysMemSlicePitch = 0;           // not used for vertex buffers
+    vbData.pSysMem          = vertices;    // a pointer to a system memory array which contains the data to initialize the vertex buffer
+    vbData.SysMemPitch      = 0;           // not used for vertex buffers
+    vbData.SysMemSlicePitch = 0;           // not used for vertex buffers
 
     // if the vertex buffer has already been initialized before
     SafeRelease(&pBuffer_);
 
     // try to create a vertex buffer
-    return pDevice->CreateBuffer(&buffDesc, &vertexBufferData, &pBuffer_);
+    return Render::GetD3dDevice()->CreateBuffer(&desc, &vbData, &pBuffer_);
 }
 
-
-} // namespace Core
+} // namespace 

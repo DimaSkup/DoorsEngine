@@ -852,7 +852,7 @@ HRESULT DirectX::CaptureTexture(
             mdata.format = desc.Format;
             mdata.dimension = TEX_DIMENSION_TEXTURE1D;
 
-            hr = result.Initialize(mdata);
+            hr = result.Init(mdata);
             if (FAILED(hr))
                 break;
 
@@ -958,7 +958,7 @@ HRESULT DirectX::CaptureTexture(
             mdata.format = desc.Format;
             mdata.dimension = TEX_DIMENSION_TEXTURE2D;
 
-            hr = result.Initialize(mdata);
+            hr = result.Init(mdata);
             if (FAILED(hr))
                 break;
 
@@ -1011,7 +1011,7 @@ HRESULT DirectX::CaptureTexture(
             mdata.format = desc.Format;
             mdata.dimension = TEX_DIMENSION_TEXTURE3D;
 
-            hr = result.Initialize(mdata);
+            hr = result.Init(mdata);
             if (FAILED(hr))
                 break;
 

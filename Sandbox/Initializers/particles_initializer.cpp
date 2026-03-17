@@ -19,9 +19,10 @@
 #include "particles_initializer.h"
 #include <Render/debug_draw_manager.h>
 
+#include "quad_tree_attach_control.h"
+
 #pragma warning (disable : 4996)
 
-using namespace ECS;
 
 
 namespace Game
@@ -30,18 +31,13 @@ namespace Game
 //---------------------------------------------------------
 // forward declarations of some private helpers
 //---------------------------------------------------------
-eEmitterPropType GetEmitterPropType(const char* prop);
+ECS::eEmitterPropType GetEmitterPropType(const char* prop);
 
 void HandleEmitterProperty(
-    ParticleEmitter& emitter,
-    const eEmitterPropType prop,
+    ECS::EmitterData& data,
+    const ECS::eEmitterPropType prop,
     const char* buf,
     DirectX::BoundingBox& aabb);
-
-void PushEmitterForDbgRender(
-    const DirectX::XMFLOAT3& emitterPos,
-    const DirectX::XMFLOAT3& aabbCenter,
-    const DirectX::XMFLOAT3& aabbExtents);
 
 //---------------------------------------------------------
 // Desc:  load particle emitters data from file and create them
@@ -50,7 +46,7 @@ void PushEmitterForDbgRender(
 //        - enttMgr:   a ref to ECS entity manager
 // Ret:   true if everything is ok
 //---------------------------------------------------------
-bool ParticlesInitializer::Init(const char* configFilepath, EntityMgr& enttMgr)
+bool ParticlesInitializer::Init(const char* configFilepath, ECS::EntityMgr& enttMgr)
 {
     using namespace Core;
 
@@ -61,7 +57,6 @@ bool ParticlesInitializer::Init(const char* configFilepath, EntityMgr& enttMgr)
     }
 
 
-    FILE* pFile = nullptr;
     char buf[256];
     char emitterName[64];
     int  emitterIdx = 0;
@@ -75,7 +70,7 @@ bool ParticlesInitializer::Init(const char* configFilepath, EntityMgr& enttMgr)
     LogMsg(LOG, "initialize emitters from file: %s", configFilepath);
 
 
-    pFile = fopen(configFilepath, "r");
+    FILE* pFile = fopen(configFilepath, "r");
     if (!pFile)
     {
         LogErr(LOG, "can't open a particles file: %s", configFilepath);
@@ -107,9 +102,7 @@ bool ParticlesInitializer::Init(const char* configFilepath, EntityMgr& enttMgr)
         emitterIdx++;
     }
 
-
-    const TimePoint      end = GameTimer::GetTimePoint();
-    const TimeDurationMs dur = end - start;
+    const TimeDurationMs dur = GameTimer::GetTimePoint() - start;
 
     LogMsg(LOG, "all the PARTICLE emitters are initialized");
     SetConsoleColor(MAGENTA);
@@ -128,7 +121,7 @@ bool ParticlesInitializer::Init(const char* configFilepath, EntityMgr& enttMgr)
 // Args:    - pFile:   particles config file descriptor
 //---------------------------------------------------------
 void ParticlesInitializer::ReadAndCreateEmitter(
-    EntityMgr& enttMgr,
+    ECS::EntityMgr& enttMgr,
     FILE* pFile,
     const char* emitterName,
     const int emitterIdx)
@@ -146,9 +139,8 @@ void ParticlesInitializer::ReadAndCreateEmitter(
     const EntityID enttId = enttMgr.CreateEntity();
     enttMgr.AddParticleEmitterComponent(enttId);
 
-    ParticleEmitter& emitter = enttMgr.particleSys_.GetEmitter(enttId);
-    DirectX::BoundingBox aabb;
-
+    ECS::EmitterData& emitter = enttMgr.particleSys_.GetEmitterData(enttId);
+    DirectX::BoundingBox localBox;
 
     // read in common params
     LogMsg("\t[%d] create particle emitter: %s", emitterIdx, emitterName);
@@ -164,32 +156,47 @@ void ParticlesInitializer::ReadAndCreateEmitter(
         count = sscanf(buf, " %s", propName);
         assert(count == 1);
 
-        const eEmitterPropType propType = GetEmitterPropType(propName);
+        const ECS::eEmitterPropType propType = GetEmitterPropType(propName);
 
         // something went wrong so just move to the next property
-        if (propType == EMITTER_PROP_TYPE_NONE)
+        if (propType == ECS::EMITTER_PROP_TYPE_NONE)
             continue;
 
-        HandleEmitterProperty(emitter, propType, buf, aabb);
+        HandleEmitterProperty(emitter, propType, buf, localBox);
     }
 
-
+    // calc world bounding box
     DirectX::XMFLOAT3 pos;
     DirectX::XMStoreFloat3(&pos, emitter.position);
-    PushEmitterForDbgRender(pos, aabb.Center, aabb.Extents);
+
+    const DirectX::XMFLOAT3 worldBoxC =
+    {
+        localBox.Center.x+pos.x,
+        localBox.Center.y+pos.y,
+        localBox.Center.z+pos.z
+    };
+
+    const DirectX::BoundingBox worldBox = { worldBoxC, localBox.Extents };
+
 
     // setup the entity
     enttMgr.AddTransformComponent(enttId, pos);
     enttMgr.AddNameComponent(enttId, emitterName);
-    enttMgr.AddBoundingComponent(enttId, aabb);
+    enttMgr.AddBoundingComponent(enttId, localBox, worldBox);
+
+#if ATTACH_PARTICLE_EMITTER_TO_QUADTREE
+    enttMgr.AttachEnttToQuadTree(enttId);
+#endif
 }
 
 //---------------------------------------------------------
 // Desc:  define what generation type the emitter will have
 //        (what will be a source of particles?)
 //---------------------------------------------------------
-eEmitterSrcType GetEmitterSrcType(const char* type)
+ECS::eEmitterSrcType GetEmitterSrcType(const char* type)
 {
+    using namespace ECS;
+
     if (StrHelper::IsEmpty(type))
     {
         LogErr(LOG, "empty input str");
@@ -215,8 +222,10 @@ eEmitterSrcType GetEmitterSrcType(const char* type)
 //---------------------------------------------------------
 // Desc:  define a generation type for velocity direction
 //---------------------------------------------------------
-eVelocityDirInitType GetVelocityDirectionGenType(const char* type)
+ECS::eVelocityDirInitType GetVelocityDirectionGenType(const char* type)
 {
+    using namespace ECS;
+
     if (StrHelper::IsEmpty(type))
     {
         LogErr(LOG, "empty input str");
@@ -236,48 +245,31 @@ eVelocityDirInitType GetVelocityDirectionGenType(const char* type)
 //---------------------------------------------------------
 // Desc:  define what to do with a particle when it hit its emitter's AABB
 //---------------------------------------------------------
-eEventParticleHitBox GetEventParticleHitAABB(const char* eventType)
+ECS::eEventParticleHitBox GetEventParticleHitAABB(const char* eventType)
 {
     if (StrHelper::IsEmpty(eventType))
     {
         LogErr(LOG, "empty input str");
-        return EVENT_PARTICLE_HIT_BOX_DIE;
+        return ECS::EVENT_PARTICLE_HIT_BOX_DIE;
     }
 
     if (strcmp(eventType, "die") == 0)
-        return EVENT_PARTICLE_HIT_BOX_DIE;
+        return ECS::EVENT_PARTICLE_HIT_BOX_DIE;
 
     if (strcmp(eventType, "reflect") == 0)
-        return EVENT_PARTICLE_HIT_BOX_REFLECT;
+        return ECS::EVENT_PARTICLE_HIT_BOX_REFLECT;
 
     LogErr(LOG, "unknown particle's hit event type: %s", eventType);
-    return EVENT_PARTICLE_HIT_BOX_DIE;
-}
-
-//---------------------------------------------------------
-// Desc:  add a debug AABB of this emitter for rendering (when we turn on dbg rendering)
-//---------------------------------------------------------
-void PushEmitterForDbgRender(
-    const DirectX::XMFLOAT3& emitterPos,
-    const DirectX::XMFLOAT3& aabbCenter,
-    const DirectX::XMFLOAT3& aabbExtents)
-{
-    const DirectX::XMFLOAT3 minP(aabbCenter - aabbExtents + emitterPos);   // AABB's min point in world
-    const DirectX::XMFLOAT3 maxP(aabbCenter + aabbExtents + emitterPos);   // AABB's max point in world
-    const Vec3 yellow = Vec3(0, 1, 1);
-
-
-    Core::g_DebugDrawMgr.AddAABB(
-        Vec3(minP.x, minP.y, minP.z),
-        Vec3(maxP.x, maxP.y, maxP.z),
-        yellow);
+    return ECS::EVENT_PARTICLE_HIT_BOX_DIE;
 }
 
 //---------------------------------------------------------
 // Desc:  get a type of emitter's property by input string
 //---------------------------------------------------------
-eEmitterPropType GetEmitterPropType(const char* prop)
+ECS::eEmitterPropType GetEmitterPropType(const char* prop)
 {
+    using namespace ECS;
+
     assert(prop && prop[0] != '\0');
 
     switch (prop[0])
@@ -366,11 +358,13 @@ eEmitterPropType GetEmitterPropType(const char* prop)
 //        according to the property type
 //---------------------------------------------------------
 void HandleEmitterProperty(
-    ParticleEmitter& emitter,
-    const eEmitterPropType prop,
+    ECS::EmitterData& emitter,
+    const ECS::eEmitterPropType prop,
     const char* buf,
     DirectX::BoundingBox& aabb)
 {
+    using namespace ECS;
+
     switch (prop)
     {
         case EMITTER_MATERIAL:

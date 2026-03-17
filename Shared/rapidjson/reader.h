@@ -601,7 +601,7 @@ public:
         return Parse<kParseDefaultFlags>(is, handler);
     }
 
-    //! Initialize JSON text token-by-token parsing
+    //! Init JSON text token-by-token parsing
     /*!
      */
     void IterativeParseInit() {
@@ -2027,7 +2027,7 @@ private:
                 n = IterativeParsingMemberValueState;
             // Push current state.
             *stack_.template Push<SizeType>(1) = n;
-            // Initialize and push the member/element count.
+            // Init and push the member/element count.
             *stack_.template Push<SizeType>(1) = 0;
             // Call handler
             bool hr = (dst == IterativeParsingObjectInitialState) ? handler.StartObject() : handler.StartArray();

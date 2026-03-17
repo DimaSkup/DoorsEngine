@@ -201,9 +201,9 @@ void GpuProfiler::WaitForDataAndUpdate(const float gameTime)
     }
 
     // wait for data
-    ID3D11DeviceContext* pContext = Render::g_pContext;
+    ID3D11DeviceContext* pCtx = Render::g_pContext;
 
-    while (pContext->GetData(queriesTsDisjoint_[numFrameCollect_], NULL, 0, 0) == S_FALSE)
+    while (pCtx->GetData(queriesTsDisjoint_[numFrameCollect_], NULL, 0, 0) == S_FALSE)
     {
         //Sleep(1);
     }
@@ -212,7 +212,7 @@ void GpuProfiler::WaitForDataAndUpdate(const float gameTime)
     ++numFrameCollect_ &= 1;          // always be 0 or 1
 
     D3D11_QUERY_DATA_TIMESTAMP_DISJOINT tsDisjoint;
-    if (pContext->GetData(queriesTsDisjoint_[frame], &tsDisjoint, sizeof(tsDisjoint), 0) != S_OK)
+    if (pCtx->GetData(queriesTsDisjoint_[frame], &tsDisjoint, sizeof(tsDisjoint), 0) != S_OK)
     {
         //LogDbg(LOG, "can't retrieve timestamp disjoint query data");
         return;
@@ -227,7 +227,7 @@ void GpuProfiler::WaitForDataAndUpdate(const float gameTime)
 
     // get timestamps for each stage
     UINT64 tsPrev = 0;
-    if (pContext->GetData(queriesTs_[GTS_BeginFrame][frame], &tsPrev, sizeof(tsPrev), 0) != S_OK)
+    if (pCtx->GetData(queriesTs_[GTS_BeginFrame][frame], &tsPrev, sizeof(tsPrev), 0) != S_OK)
     {
         LogDbg(LOG, "can't retrieve timestamp query data for GTS %d", GTS_BeginFrame);
         return;
@@ -239,7 +239,7 @@ void GpuProfiler::WaitForDataAndUpdate(const float gameTime)
     for (eGTS gts = eGTS(GTS_BeginFrame + 1); gts < GTS_Max; gts = eGTS(gts + 1))
     {
         UINT64 ts = 0;
-        if (pContext->GetData(queriesTs_[gts][frame], &ts, sizeof(UINT64), 0) != S_OK)
+        if (pCtx->GetData(queriesTs_[gts][frame], &ts, sizeof(UINT64), 0) != S_OK)
         {
             LogDbg(LOG, "can't retrieve timestamp query data for GTS %d", gts);
             return;

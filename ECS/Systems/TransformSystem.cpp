@@ -81,7 +81,7 @@ void TransformSystem::GetPositions(
 
     for (int i = 0; const index idx : s_Idxs)
     {
-        XMFLOAT4& pos = comp.posAndUniformScale[idx];
+        XMFLOAT4& pos = comp.posAndScale[idx];
         outPositions[i++] = { pos.x, pos.y, pos.z };
     }
 }
@@ -132,7 +132,7 @@ void TransformSystem::GetUniformScales(
     outScales.resize(numEntts);
 
     for (int i = 0; const index idx : s_Idxs)
-        outScales[i++] = comp.posAndUniformScale[idx].w;   // uniform scale values (float) is packed into float4 in the w-component
+        outScales[i++] = comp.posAndScale[idx].w;   // uniform scale values (float) is packed into float4 in the w-component
 }
 
 //---------------------------------------------------------
@@ -161,7 +161,7 @@ void TransformSystem::GetPositionsAndDirections(
     // get positions and directions by idxs
     for (int i = 0; const index idx : s_Idxs)
     {
-        const XMFLOAT4& pos = comp.posAndUniformScale[idx];
+        const XMFLOAT4& pos = comp.posAndScale[idx];
         outPositions[i++] = { pos.x, pos.y, pos.z };
     }
 
@@ -182,7 +182,7 @@ void TransformSystem::GetPosAndDir(
 {
     const index idx = GetIdx(id);
     Transform& comp = *pTransform_;
-    XMFLOAT4& pos = comp.posAndUniformScale[idx];
+    XMFLOAT4& pos = comp.posAndScale[idx];
 
     outPos = { pos.x, pos.y, pos.z, 1.0f };
     outDir = comp.directions[idx];
@@ -192,7 +192,7 @@ void TransformSystem::GetPosAndDir(
 
 XMFLOAT3 TransformSystem::GetPosition(const EntityID id) const
 {
-    const XMFLOAT4& pos = pTransform_->posAndUniformScale[GetIdx(id)];
+    const XMFLOAT4& pos = pTransform_->posAndScale[GetIdx(id)];
     return XMFLOAT3(pos.x, pos.y, pos.z);
 }
 
@@ -200,7 +200,7 @@ XMFLOAT3 TransformSystem::GetPosition(const EntityID id) const
 
 XMFLOAT4 TransformSystem::GetPositionFloat4(const EntityID id) const
 {
-    XMFLOAT4 pos = pTransform_->posAndUniformScale[GetIdx(id)];
+    XMFLOAT4 pos = pTransform_->posAndScale[GetIdx(id)];
     pos.w = 1.0f;
     return pos;
 }
@@ -209,7 +209,7 @@ XMFLOAT4 TransformSystem::GetPositionFloat4(const EntityID id) const
 
 XMVECTOR TransformSystem::GetPositionVec(const EntityID id) const
 {
-    const XMFLOAT4& pos = pTransform_->posAndUniformScale[GetIdx(id)];
+    const XMFLOAT4& pos = pTransform_->posAndScale[GetIdx(id)];
     return XMVECTOR{ pos.x, pos.y, pos.z, 1 };
 }
 
@@ -245,7 +245,7 @@ const XMVECTOR TransformSystem::GetRotationQuat(const EntityID id) const
 
 const float TransformSystem::GetScale(const EntityID id) const
 {
-    return pTransform_->posAndUniformScale[GetIdx(id)].w;
+    return pTransform_->posAndScale[GetIdx(id)].w;
 }
 
 
@@ -313,7 +313,7 @@ bool TransformSystem::SetPositions(
     for (index i = 0; i < numEntts; ++i)
     {
         const index idx = s_Idxs[i];
-        XMFLOAT4& data = comp.posAndUniformScale[idx];
+        XMFLOAT4& data = comp.posAndScale[idx];
         const XMFLOAT3& pos = positions[i];
 
         // position is stored in x,y,z components (w-component stores the uniform scale so we don't change it)
@@ -322,12 +322,39 @@ bool TransformSystem::SetPositions(
         data.z = pos.z;
 
         // update world matrix
-        comp.worlds[idx].r[3] = XMVECTOR{ pos.x, pos.y, pos.z, 1.0f };
+        comp.worlds[idx].r[3] = { pos.x, pos.y, pos.z, 1 };
     }
 
     // update inverse world matrices
     for (const index idx : s_Idxs)
-        RecomputeInvWorldMatrixByIdx(idx);
+        RecalcInvWorldMatrixByIdx(idx);
+
+    return true;
+}
+
+//---------------------------------------------------------
+// Desc:  update position for entity by ID
+// Ret:   true if we managed to do it
+//---------------------------------------------------------
+bool TransformSystem::SetPosition(const EntityID id, float x, float y, float z)
+{
+    Transform& comp = *pTransform_;
+    const index idx = comp.ids.get_idx(id);
+
+    if (!comp.ids.is_valid_index(idx))
+        return false;
+
+    // update position
+    XMFLOAT4& data = comp.posAndScale[idx];
+
+    data.x = x;
+    data.y = y;
+    data.z = z;
+
+    // update world matrix and its inverse
+    comp.worlds[idx].r[3] = { x, y, z, 1 };
+
+    RecalcInvWorldMatrixByIdx(idx);
 
     return true;
 }
@@ -338,7 +365,7 @@ bool TransformSystem::SetPositions(
 //---------------------------------------------------------
 bool TransformSystem::SetPosition(const EntityID id, const XMFLOAT3& pos)
 {
-    return SetPositions(&id, 1, &pos);
+    return SetPosition(id, pos.x, pos.y, pos.z);
 }
 
 //---------------------------------------------------------
@@ -347,11 +374,11 @@ bool TransformSystem::SetPosition(const EntityID id, const XMFLOAT3& pos)
 bool TransformSystem::AdjustPositions(
     const EntityID* ids,
     const size numEntts,
-    const XMVECTOR& adjustBy)
+    const XMFLOAT3& offset)
 {
     if (!ids || numEntts == 0)
     {
-        LogErr(LOG, "input args are invalid");
+        LogErr(LOG, "invalid input args");
         return false;
     }
 
@@ -364,13 +391,11 @@ bool TransformSystem::AdjustPositions(
         return false;
 #endif
 
-    XMFLOAT3 offset;
-    XMStoreFloat3(&offset, adjustBy);
 
     // update positions by idxs
     for (const index idx : s_Idxs)
     {
-        XMFLOAT4& pos = comp.posAndUniformScale[idx];
+        XMFLOAT4& pos = comp.posAndScale[idx];
         pos.x += offset.x;
         pos.y += offset.y;
         pos.z += offset.z;
@@ -378,11 +403,16 @@ bool TransformSystem::AdjustPositions(
 
     // update worlds by idxs
     for (const index idx : s_Idxs)
-        comp.worlds[idx].r[3] += adjustBy;
+    {
+        float* pos = comp.worlds[idx].r[3].m128_f32;
+        pos[0] += offset.x;
+        pos[1] += offset.y;
+        pos[2] += offset.z;
+    }
 
     // update inverse worlds by idxs
     for (const index idx : s_Idxs)
-        RecomputeInvWorldMatrixByIdx(idx);
+        RecalcInvWorldMatrixByIdx(idx);
 
     return true;
 }
@@ -390,7 +420,7 @@ bool TransformSystem::AdjustPositions(
 //---------------------------------------------------------
 // adjust position of input entity by ID
 //---------------------------------------------------------
-bool TransformSystem::AdjustPosition(const EntityID id, const XMVECTOR& adjustBy)
+bool TransformSystem::AdjustPosition(const EntityID id, const XMFLOAT3& adjustBy)
 {
     return AdjustPositions(&id, 1, adjustBy);
 }
@@ -400,10 +430,9 @@ bool TransformSystem::AdjustPosition(const EntityID id, const XMVECTOR& adjustBy
 //---------------------------------------------------------
 bool TransformSystem::SetPositionVec(const EntityID id, const XMVECTOR& posVec)
 {
-    XMFLOAT3 pos;
-    XMStoreFloat3(&pos, posVec);
-
-    return SetPositions(&id, 1, &pos);
+    XMFLOAT3 p;
+    XMStoreFloat3(&p, posVec);
+    return SetPosition(id, p.x, p.y, p.z);
 }
 
 //---------------------------------------------------------
@@ -424,7 +453,7 @@ bool TransformSystem::SetDirection(const EntityID id, const XMVECTOR& direction)
 //---------------------------------------------------------
 // Desc:  set uniform scale for the entity by ID
 //---------------------------------------------------------
-bool TransformSystem::SetUniScale(const EntityID id, const float scale)
+bool TransformSystem::SetScale(const EntityID id, const float scale)
 {
     const index idx = GetIdx(id);
 
@@ -435,7 +464,7 @@ bool TransformSystem::SetUniScale(const EntityID id, const float scale)
     Transform& comp = *pTransform_;
 
     // we store uniform scale in the w-component
-    comp.posAndUniformScale[idx].w = scale;
+    comp.posAndScale[idx].w = scale;
 
     // recompute world matrix and inverse world matrix for this entity
     XMVECTOR S, R, T;
@@ -448,8 +477,7 @@ bool TransformSystem::SetUniScale(const EntityID id, const float scale)
         XMMatrixRotationQuaternion(R) *
         XMMatrixTranslationFromVector(T);
 
-    //RecomputeWorldMatrixByIdx(idx);
-    RecomputeInvWorldMatrixByIdx(idx);
+    RecalcInvWorldMatrixByIdx(idx);
 
     return true;
 }
@@ -490,7 +518,7 @@ bool TransformSystem::RotateLocalSpacesByQuat(
 {
     if (!ids)
     {
-        LogErr(LOG, "input ptr to the entities IDs arr == nullptr");
+        LogErr(LOG, "IDs arr == NULL");
         return false;
     }
 
@@ -517,7 +545,7 @@ bool TransformSystem::RotateLocalSpacesByQuat(
 
     // compute inverse matrices of updated worlds
     for (const index idx : s_Idxs)
-        RecomputeInvWorldMatrixByIdx(idx);
+        RecalcInvWorldMatrixByIdx(idx);
 
     return true;
 }
@@ -541,14 +569,14 @@ bool TransformSystem::RotateLocalSpaceByQuat(const EntityID id, const XMVECTOR& 
 
     // move world to <0,0,0>, rotate, and then move back to original pos
     const XMMATRIX R = XMMatrixRotationQuaternion(quat);
-    XMMATRIX& world = comp.worlds[idx];
-    const XMVECTOR tr = world.r[3];         // store translation
+    XMMATRIX&      W = comp.worlds[idx];
+    const XMVECTOR tr = W.r[3];         // store translation
 
-    world.r[3] = { 0,0,0,1 };               // now we have no translation
-    world *= R;                             // rotate world (so entt rotates around itself)
-    world.r[3] = tr;                        // move to original position
+    W.r[3] = { 0,0,0,1 };               // now we have no translation
+    W *= R;                             // rotate world (so entt rotates around itself)
+    W.r[3] = tr;                        // move to original position
 
-    RecomputeInvWorldMatrixByIdx(idx);
+    RecalcInvWorldMatrixByIdx(idx);
 
     return true;
 }
@@ -572,7 +600,7 @@ void TransformSystem::TransformWorld(const EntityID id, const XMMATRIX& transfor
 
     XMMATRIX& W = pTransform_->worlds[idx];
     W = DirectX::XMMatrixMultiply(W, transformation);
-    RecomputeInvWorldMatrixByIdx(idx);
+    RecalcInvWorldMatrixByIdx(idx);
 }
 
 //---------------------------------------------------------
@@ -684,7 +712,7 @@ bool TransformSystem::AddRecordsHelper(
     {
         const XMFLOAT3& p = positions[i];
         const float     s = uniformScales[i];
-        comp.posAndUniformScale.insert_before(idxs[i], { p.x, p.y, p.z, s });
+        comp.posAndScale.insert_before(idxs[i], { p.x, p.y, p.z, s });
     }
 
     // normalize all the input directions and store them into the component

@@ -67,7 +67,6 @@ void MeshGeometry::Shutdown()
 // Desc:   deep copy of data from the input mesh geometry obj
 //---------------------------------------------------------
 void MeshGeometry::Copy(
-    ID3D11Device* pDevice,
     const Vertex3D* vertices,
     const UINT* indices,
     const int numVertices,
@@ -75,13 +74,13 @@ void MeshGeometry::Copy(
     const MeshGeometry& mesh)
 {
     // I just want to be sure that it won't be a pain in my ass someday :)
-    CAssert::True(vertices != nullptr, "input ptr to vertices == nullptr");
-    CAssert::True(indices != nullptr,  "input ptr to indices == nullptr");
+    CAssert::True(vertices != nullptr, "input ptr to vertices == NULL");
+    CAssert::True(indices != nullptr,  "input ptr to indices == NULL ");
     CAssert::True(numVertices > 0,     "input number of vertices must be > 0");
     CAssert::True(numIndices > 0,      "input number of indices must be > 0");
 
-    InitVertexBuffer(pDevice, vertices, numVertices);
-    InitIndexBuffer(pDevice, indices, numIndices);
+    InitVertexBuffer(vertices, numVertices);
+    InitIndexBuffer(indices, numIndices);
     SetSubsets(mesh.subsets_, mesh.numSubsets_);
 }
 
@@ -145,34 +144,28 @@ void MeshGeometry::SetSubsets(const Subset* subsets, const int numSubsets)
 //---------------------------------------------------------
 // Desc:   initialize a vertex buffer with input data
 //---------------------------------------------------------
-void MeshGeometry::InitVertexBuffer(
-    ID3D11Device* pDevice,
-    const Vertex3D* vertices,
-    const int numVertices)
+void MeshGeometry::InitVertexBuffer(const Vertex3D* vertices, const int numVertices)
 {
     CAssert::True(vertices != nullptr, "input ptr to vertices arr == nullptr");
     CAssert::True(numVertices > 0,     "input number of vertices must be > 0");
 
     constexpr bool isDynamic = false;
     vb_.Shutdown();
-    vb_.Initialize(pDevice, vertices, numVertices, isDynamic);
+    vb_.Init(vertices, numVertices, isDynamic);
     vertexStride_ = sizeof(Vertex3D);
 }
 
 //---------------------------------------------------------
 // Desc:   initialize an index buffer with input data
 //---------------------------------------------------------
-void MeshGeometry::InitIndexBuffer(
-    ID3D11Device* pDevice,
-    const UINT* indices,
-    int numIndices)
+void MeshGeometry::InitIndexBuffer(const UINT* indices, int numIndices)
 {
     CAssert::True(indices != nullptr, "input ptr to indices arr == nullptr");
     CAssert::True(numIndices > 0,     "input number of indices must be > 0");
 
     constexpr bool isDynamic = false;
     ib_.Shutdown();
-    ib_.Initialize(pDevice, indices, numIndices, isDynamic);
+    ib_.Init(indices, numIndices, isDynamic);
 }
 
 //---------------------------------------------------------
@@ -288,7 +281,7 @@ bool MeshGeometry::CheckInputParamsForMaterialsSetting(
     }
     catch (EngineException& e)
     {
-        LogErr(e);
+        LogErr(LOG, e.what());
         return false;
     }
 }

@@ -8,21 +8,12 @@
 #pragma once
 
 #include <algorithm>
-#include <utility>
-#include <stdarg.h>
+#include <assert.h>
 
+constexpr float VECTOR_GROW_FACTOR = 1.5f;
 
-// this macro is used for the vassert() method
-#define CALLER_INFO "  FILE: \t%s\n  FUNC: \t%s()\n  LINE: \t%d\n  MSG: \t\t%s\n", __FILE__, __func__, __LINE__
-
-
-constexpr bool ENABLE_CHECK = true;
-
-
-// some typedefas
 using index = ptrdiff_t;
 using vsize = ptrdiff_t;
-static float growFactor_ = 1.5f;
 
 
 // =================================================================================
@@ -32,8 +23,8 @@ template<typename T>
 class cvector
 {
 private:
-    T* data_ = nullptr;
-    vsize size_ = 0;
+    T*    data_     = nullptr;
+    vsize size_     = 0;
     vsize capacity_ = 0;
 
 public:
@@ -52,8 +43,8 @@ public:
 
 
     // operators
-    inline       T& operator[](index i) { return data_[i]; }    // v[i] = x
-    inline const T& operator[](index i) const { return data_[i]; }    // x = v[i]
+    inline       T& operator[](index i)       { return data_[i]; }    // use case: v[i] = x
+    inline const T& operator[](index i) const { return data_[i]; }    // use case: x = v[i]
 
     bool        operator==(const cvector<T>& rhs) const;
     cvector<T>& operator=(const cvector<T>& rhs);
@@ -82,8 +73,8 @@ public:
     // setters
     void         push_back(const T& value);
     void         push_back(T&& rvalue);
-    inline void  pop_back() { if (size_ > 0) size_--; }
-    inline void  clear() { size_ = 0; };
+    inline void  pop_back()                { if (size_ > 0) size_--; }
+    inline void  clear()                   { size_ = 0; };
 
     void         shrink_to_fit();
     void         purge();
@@ -128,23 +119,6 @@ public:
     void resize(const vsize newSize, const T& value);
 
 private:
-    void vassert(
-        const bool condition,
-        const char* msg,
-        const char* format,
-        const char* fileName,
-        const char* className,
-        const char* funcName,
-        const int line) const;
-
-    void error_msg(
-        const char* msg,
-        const char* format,
-        const char* fileName,
-        const char* funcName,
-        const int line) const;
-
-
     void realloc_buffer_discard(const vsize newCapacity);
     void realloc_buffer(const vsize newCapacity);
 
@@ -153,28 +127,9 @@ private:
     inline vsize GetGrownCapacity(const vsize capacity)
     {
         // compute grown capacity: newCapacity = growFactor * capacity;
-        return (vsize)(ceil(growFactor_ * (float)capacity));
+        return (vsize)(ceil(VECTOR_GROW_FACTOR * (float)capacity));
     }
 };
-
-// =================================================================================
-
-template <typename T>
-void cvector<T>::error_msg(
-    const char* msg,
-    const char* format,
-    const char* fileName,
-    const char* funcName,
-    const int line) const
-{
-    const char* consoleRed = "\x1B[31m";
-    const char* consoleNorm = "\x1B[0m";
-
-    printf("%s\nERROR:\n", consoleRed);
-    printf(format, fileName, funcName, line, msg);
-    printf("%s", consoleNorm);
-}
-
 
 // =================================================================================
 //                          constructor, destructor
@@ -347,14 +302,7 @@ void cvector<T>::get_data_by_idxs(const cvector<index>& idxs, T* outData) const
     // out:  array of data elements by input indices
     // NOTE: it is supposed that idxs.size() == outData.size()
 
-    if constexpr (ENABLE_CHECK)
-    {
-        if (outData == nullptr)
-        {
-            error_msg("invalid input args", CALLER_INFO);
-            return;
-        }
-    }
+    assert(outData && "shit happens");
 
     for (int i = 0; index idx : idxs)
         outData[i++] = data_[idx];
@@ -371,14 +319,7 @@ void cvector<T>::shift_right(const index idx, const int num)
     // idx - start index of the original range
     // num - the number of positions to shift
 
-    if constexpr (ENABLE_CHECK)
-    {
-        if (!is_valid_index(idx) | (num <= 0))
-        {
-            error_msg("can't exec shift left", CALLER_INFO);
-            return;
-        }
-    }
+    assert(is_valid_index(idx) && num >= 0 && "can't exec shift right");
 
     // if our type is POD, or plain structure we use memmove
     if constexpr (std::is_standard_layout_v<T>)
@@ -404,15 +345,8 @@ inline void cvector<T>::shift_left(const index idx, const int num)
     // idx - start index of the original range
     // num - the number of positions to shift;
 
-    if constexpr (ENABLE_CHECK)
-    {
-        if (!is_valid_index(idx) | (num <= 0))
-        {
-            error_msg("can't exec shift left", CALLER_INFO);
-            return;
-        }
-    }
-  
+    assert(is_valid_index(idx) && num >= 0);
+
     std::shift_left(begin() + idx, end(), num);
 }
 
@@ -453,18 +387,11 @@ inline void cvector<T>::push_back(T&& rvalue)
 // ----------------------------------------------------
 
 template <typename T>
-inline void cvector<T>::erase(const vsize index)
+inline void cvector<T>::erase(const index idx)
 {
-    if constexpr (ENABLE_CHECK)
-    {
-        if ((index < 0) | (index >= size_))
-        {
-            error_msg("invalid input args", CALLER_INFO);
-            return;
-        }
-    }
+    assert(idx >= 0 && idx < size_);
 
-    for (vsize i = index; i < size_ - 1; ++i)
+    for (index i = idx; i < size_ - 1; ++i)
         data_[i] = std::move(data_[i + 1]);
 
     size_--;
@@ -510,14 +437,7 @@ void cvector<T>::get_insert_idxs(
     // get positions (indices) into array for sorted INSERTION;
     // is used together with insert_before() method
 
-    if constexpr (ENABLE_CHECK)
-    {
-        if ((values == nullptr) | (numValues < 0))
-        {
-            error_msg("invalid input args", CALLER_INFO);
-            return;
-        }
-    }
+    assert(values && numValues >= 0);
 
     const T* b = begin();
     const T* e = end();
@@ -536,14 +456,7 @@ void cvector<T>::insert_before(const vsize idx, const T& value)
     // so input value will be right at this idx and all the rest will shift right;
     // (for instance insert 1 at idx 1: [0 2 3] becomes [0 1 2 3]
 
-    if constexpr (ENABLE_CHECK)
-    {
-        if ((idx < 0) | (idx > size_))
-        {
-            error_msg("invalid input args", CALLER_INFO);
-            return;
-        }
-    }
+    assert(idx >= 0 && idx <= size_);
 
     if (capacity_ <= size_)
     {
@@ -569,14 +482,7 @@ void cvector<T>::insert_before(const vsize idx, T&& value)
     // so input value will be right at this idx and all the rest will shift right;
     // (for instance insert 1 at idx 1: [0 2 3] becomes [0 1 2 3]
 
-    if constexpr (ENABLE_CHECK)
-    {
-        if ((idx < 0) | (idx > size_))
-        {
-            error_msg("invalid input args", CALLER_INFO);
-            return;
-        }
-    }
+    assert(idx >= 0 && idx <= size_);
 
     if (capacity_ <= size_)
     {
@@ -686,14 +592,7 @@ inline void cvector<T>::get_idxs(
     // NOTE:  your (*this) cvector must be SORTED!
     // out:   an arr of idxs to the input values
 
-    if constexpr (ENABLE_CHECK)
-    {
-        if ((values == nullptr) | (numElems < 0))
-        {
-            error_msg("invalid input args", CALLER_INFO);
-            return;
-        }
-    }
+    assert(values && numElems >= 0);
    
     outIdxs.resize(numElems);
 
@@ -763,14 +662,7 @@ bool cvector<T>::binary_search(const T* values, const vsize numElems) const
     // NOTE: your (*this) cvector must be SORTED!
     // check if each value from the input raw array exists in the current cvector
 
-    if constexpr (ENABLE_CHECK)
-    {
-        if ((values == nullptr) | (numElems < 0))
-        {
-            error_msg("invalid input args", CALLER_INFO);
-            return false;
-        }
-    }
+    assert(values && numElems >= 0);
 
     bool isExist = true;
     const T* b = begin();
@@ -792,14 +684,7 @@ void cvector<T>::binary_search(const T* values, vsize numElems, cvector<bool>& f
     //
     // out: flags -- array of existing flags
 
-    if constexpr (ENABLE_CHECK)
-    {
-        if ((values == nullptr) | (numElems < 0))
-        {
-            error_msg("invalid input args", CALLER_INFO);
-            return;
-        }
-    }
+    assert(values && numElems >= 0);
 
     const T* b = begin();
     const T* e = end();
@@ -876,28 +761,6 @@ void cvector<T>::purge()
 // =================================================================================
 //                              private methods
 // =================================================================================
-template <typename T>
-void cvector<T>::vassert(
-    const bool condition,
-    const char* msg,
-    const char* format,
-    const char* fileName,
-    const char* className,
-    const char* funcName,
-    const int line) const
-{
-    if (!condition)
-    {
-        const char* consoleRed = "\x1B[31m";
-        const char* consoleNorm = "\x1B[0m";
-
-        printf("%s\nERROR:\n", consoleRed);
-        printf(format, fileName, className, funcName, line, msg);
-        printf("%s", consoleNorm);
-    }
-}
-
-// ----------------------------------------------------
 
 template <typename T>
 inline void cvector<T>::realloc_buffer_discard(const vsize newCapacity)
@@ -919,8 +782,8 @@ inline void cvector<T>::realloc_buffer_discard(const vsize newCapacity)
     }
     catch (const std::bad_alloc& e)
     {
-        error_msg(e.what(), CALLER_INFO);
-        error_msg("can't allocate memory for buffer", CALLER_INFO);
+        (void)e;
+        assert(0 && "can't realloc mem for array");
     }
 }
 
@@ -934,40 +797,35 @@ inline void cvector<T>::realloc_buffer(const vsize newCapacity)
 
     try
     {
-        // if we had any data before
-        if (data_)
+        // if we had any data before...
+        if (!data_)
         {
-            T* newData = new T[newCapacity]{};
+            data_     = new T[newCapacity]{};
+            capacity_ = newCapacity;
+            return;
+        }
 
-            // if we need to store less elements than before
-            if (newCapacity < size_)
-                size_ = newCapacity;
+        // ... we have some data
+        T* newData = new T[newCapacity]{};
+
+        // if we need to store less elements than before
+        if (newCapacity < size_)
+            size_ = newCapacity;
             
 
-            // TODO: test using memmove()
-            // 
-            // move necessary elements into the new buffer
-            for (vsize i = 0; i < size_; ++i)
-                newData[i] = std::move(data_[i]);
+        // move necessary elements into the new buffer
+        for (vsize i = 0; i < size_; ++i)
+            newData[i] = std::move(data_[i]);
 
-            //for (vsize i = 0; i < size_; ++i)
-            //    newData[i] = data_[i];
+        // release memory from the old buffer
+        delete[] data_;
 
-            // release memory from the old buffer
-            delete[] data_;
-
-            data_ = newData;
-            capacity_ = newCapacity;
-        }
-        else
-        {
-            data_ = new T[newCapacity]{};
-            capacity_ = newCapacity;
-        }
+        data_ = newData;
+        capacity_ = newCapacity;
     }
     catch (const std::bad_alloc& e)
     {
-        error_msg(e.what(), CALLER_INFO);
-        error_msg("can't allocate memory for buffer", CALLER_INFO);
+        (void)e;
+        assert(0 && "can't realloc mem for array");
     }
 }

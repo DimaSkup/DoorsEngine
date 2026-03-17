@@ -58,7 +58,7 @@
 				[ "TEXCOORD",            "f2" ]
 			]
 		},
-		
+	
 		{
 			"name": "Pos",
 			"per_vertex": [
@@ -89,14 +89,6 @@
 		},
 		
 		{
-			"name": "Sky",
-			"per_vertex": [
-				[ "POSITION",            "f3" ]
-			]
-		},
-		
-		
-		{
 			"name": "Position",
 			"per_vertex": [
 				[ "POSITION",            "f3" ]
@@ -114,21 +106,14 @@
 		},
 		
 		{
-			"name": "TerrainPos",
-			"per_vertex": [
-				[ "POSITION",            "f3" ]
-			]
-		},
-		
-		{
-			"name": "TerrainSimple",
+			"name": "Decal",
 			"per_vertex": [
 				[ "POSITION",            "f3" ],
 				[ "TEXCOORD",            "f2" ],
-				[ "NORMAL",              "f3" ]
+				[ "NORMAL",              "f3" ],
+				[ "TRANSLUCENCY",        "f1" ]
 			]
 		},
-		
 		
 		{
 			"name": "Font",
@@ -205,5 +190,3 @@
 		}
 	]
 }
-
-

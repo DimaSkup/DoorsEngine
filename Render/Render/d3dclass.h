@@ -11,6 +11,7 @@
 #include "r_states.h"
 #include <d3dcommon.h>
 
+
 namespace Render
 {
 
@@ -36,7 +37,7 @@ public:
     D3DClass& operator=(const D3DClass& obj) = delete;
         
 
-    bool Initialize(
+    bool Init(
         HWND hwnd, 
         const bool vsync, 
         const bool fullScreen, 
@@ -207,5 +208,19 @@ public:
 //==================================================================================
 extern ID3D11Device*        g_pDevice;
 extern ID3D11DeviceContext* g_pContext;
+
+
+//---------------------------------------------------------
+// a little cringe helpers to wrap getting of DX11 device and context
+//---------------------------------------------------------
+inline ID3D11Device* GetD3dDevice()
+{
+    return Render::g_pDevice;
+}
+
+inline ID3D11DeviceContext* GetD3dContext()
+{
+    return Render::g_pContext;
+}
 
 } // namespace Core

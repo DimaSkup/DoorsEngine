@@ -42,12 +42,13 @@ struct StatesGUI
     uint32 renderDbgCross               : 1 = true;
     uint32 renderDbgSphere              : 1 = true;
     uint32 renderDbgCircle              : 1 = true;
-    uint32 renderDbgAxes                : 1 = true;
+    uint32 renderDbgAxis                : 1 = true;
     uint32 renderDbgTriangle            : 1 = true;
     uint32 renderDbgAABB                : 1 = true;
     uint32 renderDbgOBB                 : 1 = true;
     uint32 renderDbgFrustum             : 1 = true;
     uint32 renderDbgTerrainAABB         : 1 = true;
+    uint32 renderDbgModelsWireframe     : 1 = true;
 
 
     float snapTranslationX = 0.1f;

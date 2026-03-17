@@ -39,8 +39,11 @@ SoundMgr::SoundMgr()
 SoundMgr::~SoundMgr()
 {
     Shutdown();
-    pDirectSound_->Shutdown();
-    SafeDelete(pDirectSound_);
+    if (pDirectSound_)
+    {
+        pDirectSound_->Shutdown();
+        SafeDelete(pDirectSound_);
+    }
 }
 
 //---------------------------------------------------------

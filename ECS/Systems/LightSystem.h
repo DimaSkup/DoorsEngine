@@ -22,7 +22,6 @@ public:
     LightSystem(const LightSystem& obj) = delete;
     LightSystem& operator=(const LightSystem& obj) = delete;
 
-
     //
     // Public creation API
     //
@@ -33,13 +32,9 @@ public:
     //
     // Public update API
     //
-    void Update           (const float deltaTime, const float totalGameTime);
-    void UpdateDirLights  (const float deltaTime, const float totalGameTime);
-    void UpdatePointLights(const float deltaTime, const float totalGameTime);
-    void UpdateFlashlight (const EntityID id, const XMFLOAT3& pos, const XMFLOAT3& dir);
 
     // get/set light active state
-    bool SetLightIsActive(const EntityID id, const bool state);
+    bool SetLightIsActive(const EntityID id, const bool onOff);
     bool IsLightActive   (const EntityID id);
     
     //
@@ -62,30 +57,20 @@ public:
     //
     // Public query API 
     //
-    inline index GetIdxByID(const EntityID id) const
-    {
-        // return valid idx if there is an entity by such ID;
-        // or return -1 if there is no such entity;
-        return pLightComponent_->ids.get_idx(id);
-    }
+    index GetIdxById        (const EntityID id) const;
+    index GetDirLightIdx    (const EntityID id) const;
+    index GetPointLightIdx  (const EntityID id) const;
+    index GetSpotLightIdx   (const EntityID id) const;
+  
+    bool IsLightSource      (const EntityID id) const;
+    bool IsDirLight         (const EntityID id) const;
+    bool IsPointLight       (const EntityID id) const;
+    bool IsSpotLight        (const EntityID id) const;
 
-    inline index GetIdxByID(const cvector<EntityID>& ids, const EntityID id) const
-    {
-        // return valid idx if there is an entity by such ID;
-        // or return -1 if there is no such entity;
-        const index idx = ids.get_idx(id);
-        return (ids[idx] == id) ? idx : -1;
-    }
-
-    inline bool IsLightSource(const EntityID id)        const { return pLightComponent_->ids.binary_search(id); }
-    inline bool IsDirLight   (const EntityID id)        const { return pLightComponent_->dirLights.ids.binary_search(id); }
-    inline bool IsPointLight (const EntityID id)        const { return pLightComponent_->pointLights.ids.binary_search(id); }
-    inline bool IsSpotLight  (const EntityID id)        const { return pLightComponent_->spotLights.ids.binary_search(id); }
-
-    inline DirLights&   GetDirLights()                  const { return pLightComponent_->dirLights; }
-    inline PointLights& GetPointLights()                const { return pLightComponent_->pointLights; }
-    inline SpotLights&  GetSpotLights()                 const { return pLightComponent_->spotLights; }
-    inline LightType    GetLightType(const EntityID id) const { return pLightComponent_->types[GetIdxByID(id)]; }
+    DirLights&   GetDirLights()                  const;
+    PointLights& GetPointLights()                const;
+    SpotLights&  GetSpotLights()                 const;
+    LightType    GetLightType(const EntityID id) const;
 
     // get data for multiple entities
     void GetPointLightsData(
@@ -102,9 +87,9 @@ public:
         cvector<XMFLOAT3>& outDirections) const;
 
     // get data for a single entity
-    bool GetDirectedLightData(const EntityID id, ECS::DirLight& outDirLight)     const;
-    bool GetPointLightData   (const EntityID id, ECS::PointLight& outPointLight) const;
-    bool GetSpotLightData    (const EntityID id, ECS::SpotLight& outSpotlight)   const;
+    bool GetDirectedLightData(const EntityID id, ECS::DirLight&   outData)  const;
+    bool GetPointLightData   (const EntityID id, ECS::PointLight& outData) const;
+    bool GetSpotLightData    (const EntityID id, ECS::SpotLight&  outData) const;
 
     bool GetPointLightsPositionAndRange(
         const EntityID* ids,
@@ -112,13 +97,127 @@ public:
         cvector<XMFLOAT3>& outPositions,
         cvector<float>& outRanges) const;
 
-    const size GetNumDirLights()   const { return pLightComponent_->dirLights.ids.size(); }
-    const size GetNumPointLights() const { return pLightComponent_->pointLights.ids.size(); }
-    const size GetNumSpotLights()  const { return pLightComponent_->spotLights.ids.size(); }
+    size GetNumDirLights()   const;
+    size GetNumPointLights() const;
+    size GetNumSpotLights()  const;
 
 private:
-    Light*           pLightComponent_ = nullptr;
+    Light*           pLightComp_ = nullptr;
     TransformSystem* pTransformSys_ = nullptr;
 };
 
-}; // namespace ECS
+
+//==================================================================================
+// inline functions
+//==================================================================================
+
+//---------------------------------------------------------
+// return valid idx if there is an entity by such ID;
+// or return -1 if there is no such entity;
+//---------------------------------------------------------
+inline index LightSystem::GetIdxById(const EntityID id) const
+{
+    const index idx = pLightComp_->ids.get_idx(id);
+
+    if (pLightComp_->ids.is_valid_index(idx))
+        return idx;
+
+    return -1;
+}
+
+//---------------------------------------------------------
+// get index of particular light type withing its specific structure
+//---------------------------------------------------------
+inline index GetIdxFromArrById(const cvector<EntityID>& ids, const EntityID id)
+{
+    const index idx = ids.get_idx(id);
+
+    if (ids.is_valid_index(idx))
+        return idx;
+
+    return -1;
+}
+
+inline index LightSystem::GetDirLightIdx(const EntityID id) const
+{
+    return GetIdxFromArrById(pLightComp_->dirLights.ids, id);
+}
+
+inline index LightSystem::GetPointLightIdx(const EntityID id) const
+{
+    return GetIdxFromArrById(pLightComp_->pointLights.ids, id);
+}
+
+inline index LightSystem::GetSpotLightIdx(const EntityID id) const
+{
+    return GetIdxFromArrById(pLightComp_->spotLights.ids, id);
+}
+
+//---------------------------------------------------------
+// return a counter of point light sources on the scene
+//---------------------------------------------------------
+inline size LightSystem::GetNumDirLights(void) const
+{
+    return pLightComp_->dirLights.ids.size();
+}
+
+inline size LightSystem::GetNumPointLights(void) const
+{
+    return pLightComp_->pointLights.ids.size();
+}
+
+inline size LightSystem::GetNumSpotLights(void) const
+{
+    return pLightComp_->spotLights.ids.size();
+}
+
+//---------------------------------------------------------
+// check if entity by id represents particular light type
+//---------------------------------------------------------
+inline bool LightSystem::IsLightSource(const EntityID id) const
+{
+    return pLightComp_->ids.binary_search(id);
+}
+
+inline bool LightSystem::IsDirLight(const EntityID id) const
+{
+    return pLightComp_->dirLights.ids.binary_search(id);
+}
+
+inline bool LightSystem::IsPointLight(const EntityID id) const
+{
+    return pLightComp_->pointLights.ids.binary_search(id);
+}
+
+inline bool LightSystem::IsSpotLight(const EntityID id) const
+{
+    return pLightComp_->spotLights.ids.binary_search(id);
+}
+
+//---------------------------------------------------------
+// return dataset of particular light type
+//---------------------------------------------------------
+inline DirLights& LightSystem::GetDirLights() const
+{
+    return pLightComp_->dirLights;
+}
+
+inline PointLights& LightSystem::GetPointLights() const
+{
+    return pLightComp_->pointLights;
+}
+
+inline SpotLights& LightSystem::GetSpotLights() const
+{
+    return pLightComp_->spotLights;
+}
+
+//---------------------------------------------------------
+// get light type of entity by id
+//---------------------------------------------------------
+inline LightType LightSystem::GetLightType(const EntityID id) const
+{
+    return pLightComp_->types[GetIdxById(id)];
+}
+
+}; // namespace

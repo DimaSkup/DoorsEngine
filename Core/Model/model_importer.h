@@ -9,19 +9,11 @@
 ////////////////////////////////////////////////////////////////////
 #pragma once
 
-#include <assimp/Importer.hpp>
-#include <assimp/postprocess.h>
-#include <assimp/scene.h>
-#include <assimp/material.h>
-
-#include <d3d11.h>
-
-
 namespace Core
 {
 
-// forward declaration
-class BasicModel;
+// forward declaration (pointer use only)
+class Model;
 
 //---------------------------------------------------------
 
@@ -30,7 +22,7 @@ class ModelImporter
 public:
     ModelImporter() {};
     
-    bool LoadFromFile(ID3D11Device* pDevice, BasicModel* pModel, const char* filePath);
+    bool LoadFromFile(Model* pModel, const char* filePath);
 };
 
 } // namespace Core

@@ -22,8 +22,6 @@ using index  = ptrdiff_t;
 using UINT   = unsigned int;
 
 using EntityID          = uint32_t;             // ECS entity ID
-using ComponentBitfield = uint32_t;             // ECS component bitfield
-
 
 using SentenceID        = uint32_t;             // UI sentence ID
 using SubmeshID         = uint16_t;             // entity/model submesh (subset) ID

@@ -6,17 +6,19 @@
 #include "engine_configs.h"
 #include <assert.h>
 
+#pragma warning (disable : 4996)
+
+
 namespace Core
 {
 
 EngineConfigs::EngineConfigs()
 {
-    const char* cfgPath = "data/settings.txt";
+    const char* cfgPath = "data/settings.cfg";
 
     if (!LoadSettingsFromFile(cfgPath))
     {
-        LogErr(LOG, "can't load settings/configs for the engine from file: %s", cfgPath);
-        exit(-1);
+        LogFatal(LOG, "can't load engine's settings/configs file: %s", cfgPath);
     }
 }
 
@@ -32,27 +34,30 @@ bool EngineConfigs::LoadSettingsFromFile(const char* path)
 {
     assert(path && path[0] != '\0');
 
-    // open file
-    FILE* pFile = nullptr;
-    if ((pFile = fopen(path, "r")) == nullptr)
+    FILE* pFile = fopen(path, "r");
+    if (!pFile)
     {
         LogErr(LOG, "can't open a configs file: %s", path);
         return false;
     }
 
-
-    constexpr int bufsize = 256;
-    char buf[bufsize]{ '\0' };
-    char key[bufsize]{ '\0' };
-    char val[bufsize]{ '\0' };
+    int count = 0;
+    char buf[256]{ '\0' };
+    char key[128]{ '\0' };
+    char val[128]{ '\0' };
 
     // read in all the pairs [setting_key => setting_value]
-    while (fgets(buf, bufsize, pFile))
+    while (fgets(buf, sizeof(buf), pFile))
     {
         if (buf[0] == '\n')
             continue;
 
-        sscanf(buf, "%s %s", key, val);
+        count = sscanf(buf, "%s %s", key, val);
+        assert(count == 2);
+
+        // skip comment
+        if (key[0] == '#')
+            continue;
 
         // try to insert a pair [key => value]; if we didn't manage to do it we throw an exception
         if (!settingsList_.insert({ key, val }).second) 
@@ -116,13 +121,10 @@ bool EngineConfigs::GetBool(const char* key) const
     const char* val = settingsList_.at(key).c_str();
 
     if (strcmp(val, "true") == 0)
-    {
         return true;
-    }
+
     else if (strcmp(val, "false") == 0)
-    {
         return false;
-    }
 
     LogErr(LOG, "we have some invalid value (%s) for setting by key: %s", val, key);
     return false;
@@ -137,12 +139,10 @@ const char* EngineConfigs::GetString(const char* key) const
 
     if (!settingsList_.contains(key))
     {
-        LogErr(LOG, "there is no string value by key: %s", key);
-        exit(-1);
+        LogFatal(LOG, "there is no string value by key: %s", key);
     }
 
     return settingsList_.at(key).c_str();
-   
 }
 
 //---------------------------------------------------------

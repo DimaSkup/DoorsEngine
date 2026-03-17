@@ -60,9 +60,8 @@ Shader::Shader(ID3D11Device* pDevice, const ShaderInitParams& params)
         SafeDelete(pVS_);
         SafeDelete(pGS_);
         SafeDelete(pPS_);
-        LogErr(e);
-        LogErr(LOG, "can't init shader '%s'", params.name);
-        exit(0);
+        LogErr(LOG, e.what());
+        LogFatal(LOG, "can't init shader '%s'", params.name);
     }
 }
 

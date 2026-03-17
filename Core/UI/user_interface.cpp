@@ -41,8 +41,7 @@ UserInterface::~UserInterface()
 // Args:   - dbgFontDataFilepath:  a path to datafile about debug font
 //         - dbgFontTexFilepath:   a path to texture file for debug font
 //---------------------------------------------------------
-void UserInterface::Initialize(
-    ID3D11Device* pDevice,
+void UserInterface::Init(
     IFacadeEngineToUI* pFacadeEngineToUI,
     const char* dbgFontDataFilepath,      
     const char* dbgFontTexName,
@@ -80,16 +79,28 @@ void UserInterface::Initialize(
         editorPanels_.Init(pFacadeEngineToUI_);
 
         // create text strings to show debug info onto the screen
-        LoadDebugInfoStringFromFile(pDevice, videoCardName, videoCardMemory);
+        char filePath[256]{ '\0' };
+        strcat(filePath, g_RelPathUIDataDir);
+        strcat(filePath, "ui_debug_info_strings.txt");
+        LoadDebugInfoStringFromFile(filePath);
 
-        textStorage_.Init(pDevice, &dbgFont01_);
+        // create some debug strings about the video card
+        sprintf(g_String, "%d MB", videoCardMemory);
+
+        const DirectX::XMFLOAT2 drawAt1 = ComputePosOnScreen({ 150, 10 });
+        const DirectX::XMFLOAT2 drawAt2 = ComputePosOnScreen({ 150, 30 });
+
+        textStorage_.AddDebugConstStr(videoCardName.c_str(), drawAt1.x, drawAt1.y);
+        textStorage_.AddDebugConstStr(g_String, drawAt2.x, drawAt2.y);
+
+        textStorage_.Init(&dbgFont01_);
         
 
         LogDbg(LOG, "USER INTERFACE is initialized");
     }
     catch (EngineException& e)
     {
-        LogErr(e, false);
+        LogErr(LOG, e.what());
         LogErr(LOG, "can't initialize the UserInterface");
     }
 }
@@ -97,21 +108,19 @@ void UserInterface::Initialize(
 //---------------------------------------------------------
 // Desc:   update the UI states
 //---------------------------------------------------------
-void UserInterface::Update(
-    ID3D11DeviceContext* pContext, 
-    const Core::SystemState& systemState)
+void UserInterface::Update(const Core::SystemState& sysState)
 {
     try
     {
-        pFacadeEngineToUI_->deltaTime = systemState.deltaTime;
+        pFacadeEngineToUI_->deltaTime = sysState.deltaTime;
 
         // update debug text only when we want to see it
-        if (systemState.isShowDbgInfo)
-            textStorage_.Update(pContext, systemState);
+        if (sysState.isShowDbgInfo)
+            textStorage_.Update(sysState);
     }
     catch (EngineException& e)
     {
-        LogErr(e);
+        LogErr(LOG, e.what());
         LogErr(LOG, "can't update the GUI");
     }
 }
@@ -142,19 +151,16 @@ void UserInterface::UndoEditorLastEvent()
 //        - drawAt: upper left corner of sentence (x and y position on the screen)
 // Ret:   identifier of created sentence
 //---------------------------------------------------------
-SentenceID UserInterface::AddConstStr(
-    ID3D11Device* pDevice,
-    const char* text,                         
-    const POINT& drawAt)
+SentenceID UserInterface::AddConstStr(const char* text, const POINT& drawAt)
 {
-    if (!text || text[0] == '\0')
+    if (StrHelper::IsEmpty(text))
     {
         LogErr(LOG, "input text is empty");
         return 0;
     }
 
     const DirectX::XMFLOAT2 pos = ComputePosOnScreen(drawAt);
-    SentenceID id = textStorage_.AddDebugConstStr(text, pos.x, pos.y);
+    const SentenceID         id = textStorage_.AddDebugConstStr(text, pos.x, pos.y);
 
     if (id == 0)
         LogErr(LOG, "can't create a const sentence: %s", text);
@@ -251,24 +257,21 @@ void UserInterface::HandleDebugDynamicStr(const char* buffer)
 // Desc:   load debug info strings params from the file and create these strings;
 //         and create some strings manually
 //---------------------------------------------------------
-void UserInterface::LoadDebugInfoStringFromFile(
-    ID3D11Device* pDevice,
-    const std::string& videoCardName,
-    const int videoCardMemory)
+void UserInterface::LoadDebugInfoStringFromFile(const char* filepath)
 {
-    // generate a path to the file
-    char filePath[256]{ '\0' };
-    strcat(filePath, g_RelPathUIDataDir);
-    strcat(filePath, "ui_debug_info_strings.txt");
-
-
-    FILE* pFile = fopen(filePath, "r+");
-    if (!pFile)
+    if (StrHelper::IsEmpty(filepath))
     {
-        LogErr(LOG, "can't open a file for reading debug strings: %s", filePath);
+        LogErr(LOG, "empty filepath");
         return;
     }
 
+
+    FILE* pFile = fopen(filepath, "r+");
+    if (!pFile)
+    {
+        LogErr(LOG, "can't open a file for reading debug strings: %s", filepath);
+        return;
+    }
 
     char buffer[64]{ '\0' };
     
@@ -290,16 +293,6 @@ void UserInterface::LoadDebugInfoStringFromFile(
     }
 
     fclose(pFile);
-
-
-    // create some debug strings about the video card
-    sprintf(g_String, "%d MB", videoCardMemory);
-
-    const DirectX::XMFLOAT2 drawAt1 = ComputePosOnScreen({ 150, 10 });
-    const DirectX::XMFLOAT2 drawAt2 = ComputePosOnScreen({ 150, 30 });
-
-    textStorage_.AddDebugConstStr(videoCardName.c_str(), drawAt1.x, drawAt1.y);
-    textStorage_.AddDebugConstStr(g_String, drawAt2.x, drawAt2.y);
 }
 
 
@@ -460,7 +453,6 @@ void UserInterface::RenderAndHandleGizmo(
 
     ImGuizmo::SetDrawlist();
     ImGuizmo::SetRect(0, 0, (float)sysState.wndWidth_, (float)sysState.wndHeight_);
-    
 
     const Vec3  p = pFacadeEngineToUI_->GetEnttPosition(selectedEntt);
     const float s = pFacadeEngineToUI_->GetEnttScale(selectedEntt);
@@ -538,6 +530,7 @@ void UserInterface::RenderDebugInfo(
     ID3D11Buffer*  pIB = nullptr;         // IB is common for both vertex buffers
     uint32         indexCounts[2]{ 0 };
     constexpr size numSentences = 2;      // we have only two text buffers for the whole debug text: one for const sentences, one for dynamic sentences
+    constexpr UINT stride = sizeof(Core::VertexFont);
 
     textStorage_.GetRenderingData(
         &vertexBuffers[0],                // vb: debug const text
@@ -547,18 +540,8 @@ void UserInterface::RenderDebugInfo(
         indexCounts[1]);                  // actual index count for debug dynamic text
 
     // render
-    render.RenderFont(
-        vertexBuffers,
-        pIB,
-        indexCounts,
-        numSentences,
-        sizeof(Core::VertexFont));
+    render.RenderFont(vertexBuffers, pIB, indexCounts, numSentences, stride);
 }
-
-
-// ====================================================================================
-//                                   Helpers
-// ====================================================================================
 
 //---------------------------------------------------------
 // in:  top left pos relatively to the top left corner of the screen
@@ -566,10 +549,14 @@ void UserInterface::RenderDebugInfo(
 //---------------------------------------------------------
 DirectX::XMFLOAT2 UserInterface::ComputePosOnScreen(const POINT& drawAt)
 {
+    const Render::D3DClass& d3d = Render::g_Render.GetD3D();
+    const int             halfW = d3d.GetWindowWidth()  >> 1;
+    const int             halfH = d3d.GetWindowHeight() >> 1;
+
     return
     {
-        (float)(-(windowWidth_  >> 1) + drawAt.x),   // posX
-        (float)(+(windowHeight_ >> 1) - drawAt.y),   // posY
+        (float)(-(halfW) + drawAt.x),   // posX
+        (float)(+(halfH) - drawAt.y),   // posY
     };
 }
 

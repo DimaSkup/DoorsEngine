@@ -7,7 +7,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
-#include <Types.h>
+#include <types.h>
 #include "../Mesh/mesh_gen_helper_types.h"
 
 
@@ -17,13 +17,15 @@ namespace Core
 class ModelsCreator
 {
 public:
-    ModelsCreator();
+    ModelsCreator() {};
 
     ModelID CreateFromDE3D  (const char* modelPath);
     ModelID ImportFromFile  (const char* modelPath);
 
     ModelID CreateSkyDome   (const float radius, const int sliceCount, const int stackCount);
     ModelID CreatePlane     (const float width = 1.0f, const float height = 1.0f);
+
+    ModelID CreatePlaneLod(const float planeW, const float planeH);
 
     ModelID CreateTreeLod1(
         const float planeWidth,
@@ -39,10 +41,6 @@ public:
     // creators for the specific types of models
     void    CreateSkyCube   (const float height);
     void    CreateSkySphere (const float radius, const int sliceCount, const int stackCount);
-    bool    CreateTerrain   (const char* configFilepath);
-
-private:
-    //void    ReadSkullMeshFromFile(BasicModel& model, const char* filepath);
 };
 
 } // namespace Core

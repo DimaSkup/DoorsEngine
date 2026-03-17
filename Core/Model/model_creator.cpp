@@ -7,44 +7,18 @@
 #include <CoreCommon/pch.h>
 #include "model_creator.h"
 
-// common stuff
-#include <Render/d3dclass.h>           // for using global pointers to DX11 device and context
-
 // models stuff
+#include "model_loader.h"
 #include "model_importer.h"
 #include "geometry_generator.h"
-#include "basic_model.h"
-#include "model_math.h"
-#include "model_loader.h"
-
-// terrain stuff
-#include "../Terrain/TerrainCreator.h"
+#include "model.h"
 
 // managers
 #include "../Model/model_mgr.h"
-#include "../Texture/texture_mgr.h"
-
-#include <Render/d3dclass.h>
-
-
-using namespace DirectX;
 
 
 namespace Core
 {
-//---------------------------------------------------------
-// a little cringe helper to wrap getting of DX11 device
-//---------------------------------------------------------
-static ID3D11Device* GetDevice()
-{
-    return Render::g_pDevice;
-}
-
-//---------------------------------------------------------
-
-ModelsCreator::ModelsCreator()
-{
-}
 
 //---------------------------------------------------------
 // Desc:   load model data from .de3d file and init this model
@@ -54,28 +28,27 @@ ModelID ModelsCreator::CreateFromDE3D(const char* modelPath)
     try
     {
         ModelLoader loader;
-        BasicModel model;
+        Model model;
 
         // load a model from file
-        const bool isLoaded = loader.Load(modelPath, &model);
-        if (!isLoaded)
+        if (!loader.Load(modelPath, &model))
         {
-            LogErr(LOG, "can't load model from file: %s", modelPath);
+            LogErr(LOG, "can't load model from a file: %s", modelPath);
             return INVALID_MODEL_ID;
         }
 
         // init vertex/index buffers
-        model.InitializeBuffers(GetDevice());
+        model.InitBuffers();
 
         // add model into the model manager
-        ModelID id = id = model.id_;
+        ModelID id = model.GetId();
         g_ModelMgr.AddModel(std::move(model));
 
         return id;
     }
     catch (EngineException& e)
     {
-        LogErr(e);
+        LogErr(LOG, e.what());
         LogErr(LOG, "can't load model by path: %s", modelPath);
         return INVALID_MODEL_ID;
     }
@@ -93,26 +66,23 @@ ModelID ModelsCreator::ImportFromFile(const char* path)
 {
     if (StrHelper::IsEmpty(path))
     {
-        LogErr(LOG, "input path is empty");
+        LogErr(LOG, "empty path");
         return INVALID_MODEL_ID;
     }
 
-    char          modelName[MAX_LEN_MODEL_NAME]{ '\0' };
     ModelImporter importer;
-    BasicModel&   model = g_ModelMgr.AddEmptyModel();
+    Model&   model = g_ModelMgr.AddEmptyModel();
     
-    FileSys::GetFileStem(path, modelName);
-    g_ModelMgr.SetModelName(model.id_, modelName);
+    FileSys::GetFileStem(path, g_String);
+    g_ModelMgr.SetModelName(model.GetId(), g_String);
 
-    model.type_ = MODEL_TYPE_Imported;
-
-    if (!importer.LoadFromFile(GetDevice(), &model, path))
+    if (!importer.LoadFromFile(&model, path))
     {
-        LogErr(LOG, "can't import model from file: %s", path);
+        LogErr(LOG, "can't import a model from file: %s", path);
         return INVALID_MODEL_ID;
     }
 
-    return model.id_;
+    return model.GetId();
 }
 
 //---------------------------------------------------------
@@ -121,54 +91,83 @@ ModelID ModelsCreator::ImportFromFile(const char* path)
 ModelID ModelsCreator::CreatePlane(const float width, const float height)
 {
     GeometryGenerator geoGen;
-    BasicModel& model = g_ModelMgr.AddEmptyModel();
+    Model& model = g_ModelMgr.AddEmptyModel();
+    const ModelID  id = model.GetId();
 
-    // generate mesh data for the model
+    // setup name
+    sprintf(g_String, "plane_%" PRIu32, id);
+    g_ModelMgr.SetModelName(id, g_String);
+
+    // generate geometry
     geoGen.GeneratePlane(width, height, model);
 
-    // initialize vb/ib
-    model.InitializeBuffers(GetDevice());
+    model.InitBuffers();
+    model.ComputeBoundings();
+    
+    return id;
+}
 
-    model.ComputeSubsetsAABB();
-    model.ComputeModelAABB();
+//---------------------------------------------------------
+// Desc:  generate a plane lod model (just a point for billboard)
+//        it may be used as a lod for trees, bushes, plants, etc.
+//---------------------------------------------------------
+ModelID ModelsCreator::CreatePlaneLod(const float planeW, const float planeH)
+{
+    GeometryGenerator geoGen;
+    Model& model = g_ModelMgr.AddEmptyModel();
+    const ModelID  id = model.GetId();
 
-    // setup name and type
-    sprintf(model.name_, "plane_%" PRIu32, model.GetID());
-    model.type_ = MODEL_TYPE_Plane;
+    // setup name
+    sprintf(g_String, "tree_lod1_%" PRIu32, id);
+    g_ModelMgr.SetModelName(id, g_String);
 
-    return model.id_;
+    // generate geometry and init vb/ib
+    geoGen.GeneratePlaneLod(model, planeW, planeH);
+    model.InitBuffers();
+
+    // manually setup boundings
+    const float halfW = 0.5f * planeW;
+
+    Vec3 minP{ -halfW, 0,      -halfW };
+    Vec3 maxP{ +halfW, planeH, +halfW };
+
+    Vec3 c = (maxP + minP) * 0.5f;   // center 
+    Vec3 e = (maxP - minP) * 0.5f;   // extents
+
+    DirectX::BoundingBox    bbox({c.x, c.y, c.z}, {e.x, e.y, e.z});
+    DirectX::BoundingSphere sphere(bbox.Center, Vec3Length(e));
+
+    model.SetModelBoundSphere(sphere);
+    model.SetModelAABB(bbox);
+    model.SetSubsetAABB(0, bbox);
+
+    return id;
 }
 
 //---------------------------------------------------------
 // Desc:  generate a "tree LOD1" model and store it into the model manager
 //---------------------------------------------------------
 ModelID ModelsCreator::CreateTreeLod1(
-    const float planeWidth,
-    const float planeHeight,
+    const float planeW,                   // width of the plane
+    const float planeH,                   // height of the plane
     const bool originAtBottom,
     const float rotateAroundX)
 {
     GeometryGenerator geoGen;
-    BasicModel& model = g_ModelMgr.AddEmptyModel();
-    const ModelID id = model.GetID();
+    Model& model = g_ModelMgr.AddEmptyModel();
+    const ModelID  id = model.GetId();
 
-    // generate mesh data for the model
-    geoGen.GenerateTreeLod1(model, planeWidth, planeHeight, originAtBottom, rotateAroundX);
+    // setup name
+    sprintf(g_String, "tree_lod1_%" PRIu32, id);
+    g_ModelMgr.SetModelName(id, g_String);
 
-    // initialize vb/ib
-    model.InitializeBuffers(GetDevice());
+    // generate geometry
+    geoGen.GenerateTreeLod1(model, planeW, planeH, originAtBottom, rotateAroundX);
 
-    model.ComputeSubsetsAABB();
-    model.ComputeModelAABB();
+    model.InitBuffers();
+    model.ComputeBoundings();
 
-    // setup name and type
-    char name[MAX_LEN_MODEL_NAME]{'\0'};
-    snprintf(name, MAX_LEN_MODEL_NAME, "tree_lod1_%" PRIu32, id);
-
-    g_ModelMgr.SetModelName(id, name);
-    model.type_ = MODEL_TYPE_Lod;
-
-    return model.id_;
+    return id;
 }
 
 //---------------------------------------------------------
@@ -177,26 +176,20 @@ ModelID ModelsCreator::CreateTreeLod1(
 ModelID ModelsCreator::CreateCube()
 {
     GeometryGenerator geoGen;
-    BasicModel& model = g_ModelMgr.AddEmptyModel();
-
-    model.type_ = MODEL_TYPE_Cube;
-
-    // generate mesh data for the model
-    geoGen.GenerateCube(model);
-
-    // initialize vb/ib
-    model.InitializeBuffers(GetDevice());
-
-    model.ComputeSubsetsAABB();
-    model.ComputeModelAABB();
+    Model& model = g_ModelMgr.AddEmptyModel();
+    const ModelID  id = model.GetId();
 
     // setup name
-    ModelID cubeId = model.GetID();
-    char modelName[MAX_LEN_MODEL_NAME]{'\0'};
-    sprintf(modelName, "cube_%d", (int)cubeId);
-    g_ModelMgr.SetModelName(cubeId, modelName);
+    sprintf(g_String, "cube_%" PRIu32, id);
+    g_ModelMgr.SetModelName(id, g_String);
 
-    return model.id_;
+    // generate geometry
+    geoGen.GenerateCube(model);
+
+    model.InitBuffers();
+    model.ComputeBoundings();
+
+    return id;
 }
 
 //---------------------------------------------------------
@@ -208,8 +201,7 @@ void ModelsCreator::CreateSkyCube(const float height)
     GeometryGenerator geoGen;
     SkyModel& sky = g_ModelMgr.GetSky();
 
-    geoGen.GenerateSkyBoxForCubeMap(GetDevice(), sky, height);
-
+    geoGen.GenerateSkyBoxForCubeMap(sky, height);
     sky.SetName("sky_cube");
 }
 
@@ -224,8 +216,7 @@ void ModelsCreator::CreateSkySphere(const float radius, const int sliceCount, co
     GeometryGenerator geoGen;
     SkyModel& sky = g_ModelMgr.GetSky();
 
-    geoGen.GenerateSkySphere(GetDevice(), sky, radius, sliceCount, stackCount);
-
+    geoGen.GenerateSkySphere(sky, radius, sliceCount, stackCount);
     sky.SetName("sky_sphere");
 }
 
@@ -241,15 +232,17 @@ ModelID ModelsCreator::CreateSkyDome(
     const int stackCount)
 {
     GeometryGenerator geoGen;
-    BasicModel& model = g_ModelMgr.AddEmptyModel();
+    Model& model = g_ModelMgr.AddEmptyModel();
+    const ModelID  id = model.GetId();
 
+    sprintf(g_String, "sky_dome_%" PRIu32, id);
+    g_ModelMgr.SetModelName(id, g_String);
+
+    // generate geometry and init vb/ib
     geoGen.GenerateSkyDome(radius, sliceCount, stackCount, model);
-    model.InitializeBuffers(GetDevice());
+    model.InitBuffers();
 
-    sprintf(model.name_, "sky_dome_%" PRIu32, model.GetID());
-    model.type_ = MODEL_TYPE_Sky;
-
-    return model.id_;
+    return id;
 }
 
 //---------------------------------------------------------
@@ -260,22 +253,27 @@ ModelID ModelsCreator::CreateSkyDome(
 ModelID ModelsCreator::CreateSphere(const MeshSphereParams& params)
 {
     GeometryGenerator geoGen;
-    BasicModel& model = g_ModelMgr.AddEmptyModel();
+    Model& model = g_ModelMgr.AddEmptyModel();
+    const ModelID  id = model.GetId();
 
+    // setup name
+    sprintf(g_String, "sphere_%" PRIu32, id);
+    g_ModelMgr.SetModelName(id, g_String);
+
+    // generate geometry and init vb/ib
     geoGen.GenerateSphere(params, model);
-    model.InitializeBuffers(GetDevice());
+    model.InitBuffers();
 
-    // setup the bounding box of the model
-    const float r = params.radius_;
-    DirectX::BoundingBox aabb({ 0,0,0 }, { r,r,r });
-    model.SetSubsetAABB(0, aabb);
-    model.SetModelAABB(aabb);
+    // manually setup boundings
+    DirectX::BoundingSphere sphere({ 0,0,0 }, params.radius);
+    DirectX::BoundingBox bbox;
+    DirectX::BoundingBox::CreateFromSphere(bbox, sphere);
 
-    // setup name and type
-    sprintf(model.name_, "sphere_%" PRIu32, model.GetID());
-    model.type_ = MODEL_TYPE_Sphere;
+    model.SetModelBoundSphere(sphere);
+    model.SetModelAABB(bbox);
+    model.SetSubsetAABB(0, bbox);
 
-    return model.id_;
+    return id;
 }
 
 //---------------------------------------------------------
@@ -287,22 +285,27 @@ ModelID ModelsCreator::CreateSphere(const MeshSphereParams& params)
 ModelID ModelsCreator::CreateGeoSphere(const MeshGeosphereParams& params)
 {
     GeometryGenerator geoGen;
-    BasicModel& model = g_ModelMgr.AddEmptyModel();
+    Model& model = g_ModelMgr.AddEmptyModel();
+    const ModelID  id = model.GetId();
 
-    geoGen.GenerateGeosphere(params.radius_, params.numSubdivisions_, model);
-    model.InitializeBuffers(GetDevice());
+    // setup name
+    sprintf(g_String, "geo_sphere_%" PRIu32, id);
+    g_ModelMgr.SetModelName(id, g_String);
 
-    // setup the bounding box of the model
-    const float r = params.radius_;
-    DirectX::BoundingBox aabb({ 0,0,0 }, { r, r, r });
-    model.SetSubsetAABB(0, aabb);
-    model.SetModelAABB(aabb);
+    // generate geometry and init vb/ib
+    geoGen.GenerateGeosphere(params.radius, params.numSubdivisions, model);
+    model.InitBuffers();
 
-    // setup name and type
-    sprintf(model.name_, "geo_sphere_%" PRIu32, model.GetID());
-    model.type_ = MODEL_TYPE_GeoSphere;
-    
-    return model.id_;
+    // manually setup boundings
+    DirectX::BoundingSphere sphere({ 0,0,0 }, params.radius);
+    DirectX::BoundingBox bbox;
+    DirectX::BoundingBox::CreateFromSphere(bbox, sphere);
+
+    model.SetModelBoundSphere(sphere);
+    model.SetModelAABB(bbox);
+    model.SetSubsetAABB(0, bbox);
+
+    return id;
 }
 
 //---------------------------------------------------------
@@ -314,34 +317,29 @@ ModelID ModelsCreator::CreateGeoSphere(const MeshGeosphereParams& params)
 ModelID ModelsCreator::CreateCylinder(const MeshCylinderParams& params)
 {
     GeometryGenerator geoGen;
-    BasicModel& model = g_ModelMgr.AddEmptyModel();
+    Model& model = g_ModelMgr.AddEmptyModel();
+    const ModelID  id = model.GetId();
 
+    // setup name
+    sprintf(g_String, "cylinder_%" PRIu32, id);
+    g_ModelMgr.SetModelName(id, g_String);
+
+    // generate geometry and init vb/ib
     geoGen.GenerateCylinder(params, model);
-    model.InitializeBuffers(GetDevice());
+    model.InitBuffers();
 
-    // setup the bounding box of the model
-    const float r = max(params.topRadius_, params.bottomRadius_);
-    const DirectX::XMFLOAT3 extents(r, 0.5f * params.height_, r);
-    const DirectX::BoundingBox aabb({ 0,0,0 }, extents);
+    // manually setup boundings
+    const float r = Max(params.topRadius, params.bottomRadius);
+    const Vec3  e = { r, 0.5f * params.height, r };     // extents
 
-    model.SetSubsetAABB(0, aabb);
-    model.SetModelAABB(aabb);
+    const DirectX::BoundingBox    box({ 0,0,0 }, { e.x, e.y, e.z });
+    const DirectX::BoundingSphere sphere(box.Center, Vec3Length(e));
 
-    // setup name and type
-    sprintf(model.name_, "cylinder_%" PRIu32, model.GetID());
-    model.type_ = MODEL_TYPE_Cylinder;
+    model.SetModelBoundSphere(sphere);
+    model.SetModelAABB(box);
+    model.SetSubsetAABB(0, box);
 
-    return model.id_;
+    return id;
 }
-
-//---------------------------------------------------------
-// Desc:   create and setup a terrain
-// Args:   - configFilepath:  path to a file with params for terrain
-//---------------------------------------------------------
-bool ModelsCreator::CreateTerrain(const char* configFilepath)
-{
-    return TerrainCreator::CreateTerrain(configFilepath);
-}
-
 
 } // namespace Core

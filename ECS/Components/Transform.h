@@ -19,7 +19,7 @@ __declspec(align(16)) struct Transform
     {
         // add invalid data; this data is returned when we ask for wrong entity
         ids.push_back(INVALID_ENTITY_ID);
-        posAndUniformScale.push_back(DirectX::XMFLOAT4{ NAN, NAN, NAN, NAN });
+        posAndScale.push_back(DirectX::XMFLOAT4{ NAN, NAN, NAN, NAN });
         directions.push_back(DirectX::XMVECTOR{ NAN, NAN, NAN, NAN });
 
 
@@ -27,15 +27,15 @@ __declspec(align(16)) struct Transform
         DirectX::XMMATRIX nanMatrix(nanArray.data());
 
         worlds.push_back(nanMatrix);
-        invWorlds.push_back(nanMatrix); // inverse world matrix
+        invWorlds.push_back(nanMatrix);
     }
 
 
     cvector<EntityID> ids;
     cvector<DirectX::XMMATRIX> worlds;
-    cvector<DirectX::XMMATRIX> invWorlds;           // inverse world matrices
-    cvector<DirectX::XMFLOAT4> posAndUniformScale;  // pos (x,y,z); uniform scale (w)
-    cvector<DirectX::XMVECTOR> directions;          // normalized direction vector
+    cvector<DirectX::XMMATRIX> invWorlds;    // inverse world matrices
+    cvector<DirectX::XMFLOAT4> posAndScale;  // pos (x,y,z); uniform scale (w)
+    cvector<DirectX::XMVECTOR> directions;   // normalized direction vector
 };
 
 }

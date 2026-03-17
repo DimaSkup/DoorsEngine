@@ -350,9 +350,9 @@ int AnimSkeleton::GetAnimationIdx(const char* animName) const
 //---------------------------------------------------------
 float AnimSkeleton::GetAnimationStartTime(const int animIdx) const
 {
-    if (animIdx < 0 || animIdx >= animations_.size())
+    if (animations_.is_valid_index(animIdx))
     {
-        LogErr("input animation idx is invalid (%d)", animIdx);
+        LogErr(LOG, "input animation idx is invalid (%d)", animIdx);
         return 0.0f;
     }
 
@@ -364,9 +364,9 @@ float AnimSkeleton::GetAnimationStartTime(const int animIdx) const
 //---------------------------------------------------------
 float AnimSkeleton::GetAnimationEndTime(const int animIdx) const
 {
-    if (animIdx < 0 || animIdx >= animations_.size())
+    if (animations_.is_valid_index(animIdx))
     {
-        LogErr("input animation idx is invalid (%d)", animIdx);
+        LogErr(LOG, "input animation idx is invalid (%d)", animIdx);
         return 0.0f;
     }
 
@@ -449,9 +449,9 @@ int AnimSkeleton::AddAnimation(const char* animName)
 //---------------------------------------------------------
 const char* AnimSkeleton::GetAnimationName(const int animIdx) const
 {
-    if (animIdx < 0 || animIdx >= animations_.size())
+    if (animations_.is_valid_index(animIdx))
     {
-        LogErr("input animation idx is invalid (%d), so return nullptr", animIdx);
+        LogErr(LOG, "input animation idx is invalid (%d), so return nullptr", animIdx);
         return nullptr;
     }
 
@@ -463,9 +463,9 @@ const char* AnimSkeleton::GetAnimationName(const int animIdx) const
 //---------------------------------------------------------
 void AnimSkeleton::SetAnimationName(const int animIdx, const char* newName)
 {
-    if (animIdx < 0 || animIdx >= animations_.size())
+    if (animations_.is_valid_index(animIdx))
     {
-        LogErr("input animation idx is invalid (%d)", animIdx);
+        LogErr(LOG, "input animation idx is invalid (%d)", animIdx);
         return;
     }
 

@@ -12,7 +12,7 @@
 #pragma once
 
 #include "../../Mesh/Vertex.h"
-#include <Types.h>
+#include <types.h>
 #include <d3d11.h>
 
 

@@ -208,6 +208,8 @@
     <FxCompile Include="hlsl\decalPS.hlsl" />
     <FxCompile Include="hlsl\shader_art_VS.hlsl" />
     <FxCompile Include="hlsl\shader_art_PS.hlsl" />
+    <FxCompile Include="hlsl\tree_lod_GS.hlsl" />
+    <FxCompile Include="hlsl\tree_lod2_GS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="hlsl\LightHelper.hlsli" />

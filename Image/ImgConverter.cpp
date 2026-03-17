@@ -2,8 +2,9 @@
 
 #include <CAssert.h>
 #include <log.h>
-#include <EngineException.h>
-#include <FileSystem.h>
+#include <engine_exception.h>
+#include <file_system.h>
+#include <math/math_helpers.h>
 #include <StrHelper.h>
 
 #pragma warning (disable : 4996)
@@ -18,22 +19,23 @@ namespace Img
 //---------------------------------------------------------
 bool ImgConverter::LoadFromFile(const char* filepath, ScratchImage& outImage)
 {
+    HRESULT hr = S_OK;
+    wchar_t wPath[128]{ L'\0' };
+    char    ext[8]{ '\0' };           // extension
+
+
+    // check input args
     if (StrHelper::IsEmpty(filepath))
     {
         LogErr(LOG, "there is no image/texture file: %s", filepath);
         return false;
     }
 
-    if (strlen(filepath) > 128)
+    if (strlen(filepath) > (sizeof(wPath)/2))
     {
         LogErr(LOG, "wstring buffer overflow");
         return false;
     }
-
-
-    HRESULT hr = S_OK;
-    wchar_t wPath[128]{L'\0'};
-    char    ext[8]{'\0'};           // extension
 
     StrHelper::StrToWide(filepath, wPath);
     FileSys::GetFileExt(filepath, ext);
@@ -45,7 +47,9 @@ bool ImgConverter::LoadFromFile(const char* filepath, ScratchImage& outImage)
     }
 
     // try to load a png/jpg/jpeg texture
-    else if ((strcmp(ext, ".png") == 0) || (strcmp(ext, ".jpg") == 0) || (strcmp(ext, ".jpeg") == 0))
+    else if ((strcmp(ext, ".png") == 0) ||
+             (strcmp(ext, ".jpg") == 0) ||
+             (strcmp(ext, ".jpeg") == 0))
     {
         hr = LoadFromWICFile(wPath, WIC_FLAGS_NONE, nullptr, outImage);
     }
@@ -68,16 +72,12 @@ bool ImgConverter::LoadFromFile(const char* filepath, ScratchImage& outImage)
 // --------------------------------------------------------
 // Desc:   create a ScratchImage loading data from
 //         the input texture resource
-// Args:   - pDevice:  a ptr to the DX11 device
-//         - pContext: a ptr to the DX11 device context
-//         - pTexture: a ptr to the DX11 resource (in this case - texture)
-//         - image:    output image
 // --------------------------------------------------------
 void ImgConverter::LoadFromMemory(
     ID3D11Device* pDevice,
     ID3D11DeviceContext* pContext,
-    ID3D11Resource* pTexture,
-    ScratchImage& image)
+    ID3D11Resource* pTexture,       // a ptr to the DX11 resource(in this case it is a texture)
+    ScratchImage& image)            // output image
 {
     HRESULT hr = CaptureTexture(pDevice, pContext, pTexture, image);
     CAssert::NotFailed(hr, "can't capture a texture");
@@ -128,7 +128,7 @@ HRESULT ImgConverter::CreateTexture2dEx(
 
         if (FAILED(hr))
         {
-            LogErr("can't generate mipmaps");
+            LogErr(LOG, "can't generate mipmaps");
             return hr;
         }
 
@@ -154,7 +154,7 @@ HRESULT ImgConverter::CreateTexture2dEx(
 #endif
 
         if (FAILED(hr))
-            LogErr("can't create texture from input raw data");
+            LogErr(LOG, "can't create texture from input raw data");
     }
 
     // else: we want to create an image without mipmaps
@@ -173,7 +173,7 @@ HRESULT ImgConverter::CreateTexture2dEx(
             ppOutResource);
 
         if (FAILED(hr))
-            LogErr("can't create texture from input raw data");
+            LogErr(LOG, "can't create texture from input raw data");
     }
 
     return hr;
@@ -205,8 +205,6 @@ void ImgConverter::Convert(
     const ConvertOptions& opts,
     ScratchImage& dstImage)
 {
-    
-
     const DXGI_FORMAT srcFormat = srcImage.GetMetadata().format;
 
     if (srcFormat == dstFormat) 
@@ -219,8 +217,8 @@ void ImgConverter::Convert(
 
     if (isSrcCompressed || isDstCompressed)
     {
-        sprintf(g_String, "can't handle compressed format (src or dst): %d => %d", srcFormat, dstFormat);
-        throw EngineException(g_String);
+        LogErr(LOG, "can't handle compressed format (src or dst): %d => %d", srcFormat, dstFormat);
+        return;
     }
 
     // uncompressed => uncompressed
@@ -230,7 +228,11 @@ void ImgConverter::Convert(
         srcImage.GetMetadata(),
         dstFormat,
         opts, dstImage);
-    CAssert::NotFailed(hr, "can't convert");
+
+    if (FAILED(hr))
+    {
+        LogErr(LOG, "can't convert image to another DXGI format");
+    }
 }
 
 //---------------------------------------------------------
@@ -248,14 +250,13 @@ void ImgConverter::Decompress(
 
     LogDbg(LOG, "decompress image (from -> to): %d => %d", srcFormat, dstFormat);
 
-
     const bool isSrcCompressed = DirectX::IsCompressed(srcFormat);
     const bool isDstCompressed = DirectX::IsCompressed(dstFormat);
 
     if (!isSrcCompressed || isDstCompressed)
     {
-        sprintf(g_String, "wrong format params: %d => %d", srcFormat, dstFormat);
-        throw EngineException(g_String);
+        LogErr(LOG, "wrong format params: %d => %d", srcFormat, dstFormat);
+        return;
     }
 
     // compressed => uncompressed
@@ -265,7 +266,11 @@ void ImgConverter::Decompress(
         srcImage.GetMetadata(),
         dstFormat, 
         dstImage);
-    CAssert::NotFailed(hr, "can't decompress");
+
+    if (FAILED(hr))
+    {
+        LogErr(LOG, "can't decompress image");
+    }
 }
 
 //---------------------------------------------------------
@@ -323,14 +328,6 @@ void ImgConverter::Compress(
 }
 
 //---------------------------------------------------------
-// Desc:  return true if input values is some power of two
-//---------------------------------------------------------
-constexpr bool ispow2(const size_t x) noexcept
-{
-    return ((x != 0) && !(x & (x - 1)));
-}
-
-//---------------------------------------------------------
 // Desc:  calculate number of possible mip maps by input width and height
 //---------------------------------------------------------
 size_t CountMips(size_t width, size_t height)
@@ -361,13 +358,12 @@ bool ImgConverter::CalcNumMipLevels(const ScratchImage& img, size_t& mipLevels)
     const size_t w = img.GetMetadata().width;
     const size_t h = img.GetMetadata().height;
 
-    if (!ispow2(w) || !ispow2(h))
+    if (!IS_POW2(w) || !IS_POW2(h))
         return false;
 
     mipLevels = CountMips(w, h);
     return true;
 }
-
 
 //---------------------------------------------------------
 // generate a full mipmaps chain for 2D textures
@@ -390,54 +386,49 @@ ScratchImage ImgConverter::GenMipMaps(
     CAssert::True(IsValid(metadata.format), "the format of input img is invalid");
     CAssert::True(!IsPlanar(metadata.format), "a planar format isn't supported");
 
-    // generate mip-maps if necessary
-    if (metadata.dimension == TEX_DIMENSION_TEXTURE2D)
-    {
-        size_t levels = 0;       //  0 indicates creating a full mipmap chain down to 1x1
-        ScratchImage mipChain;
-        HRESULT hr = S_OK;
-
-        // if input img is compressed we have to decompress it first;
-        // and then generate mipmaps for it
-        if (IsCompressed(metadata.format))
-        {
-            ScratchImage decompressedImage;
-
-            Decompress(srcImage, DXGI_FORMAT_R8G8B8A8_UNORM, decompressedImage);
-
-            hr = GenerateMipMaps(
-                decompressedImage.GetImages(),
-                decompressedImage.GetImageCount(),
-                decompressedImage.GetMetadata(),
-                filter,
-                levels,
-                mipChain);
-
-            CAssert::NotFailed(hr, "can't generate mipmaps");
-        }
-        // else input img is already uncompressed
-        else
-        {
-            hr = GenerateMipMaps(
-                srcImage.GetImages(),
-                srcImage.GetImageCount(),
-                metadata,
-                filter,
-                levels,
-                mipChain);
-
-            CAssert::NotFailed(hr, "can't generate mipmaps");
-        }
-
-        // return a generated mipChain
-        return mipChain;
-    }
-
-    // input src image already has mipmaps
-    else
+    if (metadata.dimension != TEX_DIMENSION_TEXTURE2D)
     {
         return ScratchImage(std::move(srcImage));
     }
+
+    size_t levels = 0;       //  0 indicates creating a full mipmap chain down to 1x1
+    ScratchImage mipChain;
+    HRESULT hr = S_OK;
+
+    // if input image is compressed...
+    if (IsCompressed(metadata.format))
+    {
+        ScratchImage decompressedImage;
+
+        Decompress(srcImage, DXGI_FORMAT_R8G8B8A8_UNORM, decompressedImage);
+
+        hr = GenerateMipMaps(
+            decompressedImage.GetImages(),
+            decompressedImage.GetImageCount(),
+            decompressedImage.GetMetadata(),
+            filter,
+            levels,
+            mipChain);
+
+        CAssert::NotFailed(hr, "can't generate mipmaps");
+    }
+
+    // input img is already uncompressed...
+    else
+    {
+        hr = GenerateMipMaps(
+            srcImage.GetImages(),
+            srcImage.GetImageCount(),
+            metadata,
+            filter,
+            levels,
+            mipChain);
+
+        CAssert::NotFailed(hr, "can't generate mipmaps");
+    }
+
+    // return a generated mipChain
+    return mipChain;
 }
 
 //---------------------------------------------------------
@@ -510,4 +501,4 @@ bool ImgConverter::SaveToFile(
     return true;
 }
 
-} // namespace ImgReader
+} // namespace

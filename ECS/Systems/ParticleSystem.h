@@ -14,10 +14,10 @@
 \**********************************************************************************/
 #pragma once
 
+#include <geometry/rect3d.h>
 #include "TransformSystem.h"
 #include "BoundingSystem.h"
 #include "../Components/ParticleEmitter.h"
-#include <geometry/rect_3d.h>
 
 namespace ECS
 {
@@ -25,48 +25,32 @@ namespace ECS
 class ParticleSystem
 {
 public:
-    ParticleSystem(TransformSystem* pTransformSys, BoundingSystem* pBoundSys);
+    ParticleSystem(
+        ParticleEmitter* pParticleComponent,
+        TransformSystem* pTransformSys,
+        BoundingSystem* pBoundSys);
+
     ~ParticleSystem() {}
 
     //-----------------------------------------------------
 
-    ParticleEmitter& AddEmitter     (const EntityID id);
-    void             Update         (const float deltaTime);
-    void             CreateParticles(const float gameTime);
+    void                      AddEmitter     (const EntityID id);
+    void                      Update         (const float dt);
 
-    ParticlesRenderData& GetParticlesToRender();
+    ParticlesRenderData&      GetParticlesToRender();
+    const cvector<Particle>&  GetParticlesOfEmitter(const EntityID id);
 
-    inline cvector<ParticleEmitter>& GetEmitters()
-    {
-        return emitters_;
-    }
+    const cvector<EntityID>&  GetAllEmitters() const;
+    const EmitterData&        GetEmitterData(const EntityID id) const;
+    EmitterData&              GetEmitterData(const EntityID id);
 
-    inline const cvector<Particle>& GetParticlesOfEmitter(const EntityID id)
-    {
-        const ParticleEmitter& emitter = GetEmitter(id);
-        return emitter.particles;
-    }
+    const XMFLOAT3            GetEmitterPos      (const EntityID id) const;
+    Rect3d                    GetEmitterLocalAABB(const EntityID id) const;
+    Rect3d                    GetEmitterWorldAABB(const EntityID id) const;
 
-    ParticleEmitter& GetEmitter(const EntityID id);
-    const ParticleEmitter& GetEmitter(const EntityID id) const;
+    void                      PushNewParticles(const EntityID id, const uint number);
 
-    Rect3d GetEmitterAABB(const EntityID id);
-    Rect3d GetEmitterLocalAABB(const EntityID id);
-
-    const XMFLOAT3 GetEmitterPos(const EntityID id);
-
-    void PushNewParticles(const EntityID id, const uint numNewParticles);
-
-#if 0
-    uint        GetSpawnRate    (const EntityID id) const;
-    MaterialID  GetMaterialId   (const EntityID id) const;
-    float       GetLifeDuration (const EntityID id) const;
-    float       GetMass         (const EntityID id) const;
-    float       GetSize         (const EntityID id) const;
-    Vec3        GetColor        (const EntityID id) const;
-    float       GetFriction     (const EntityID id) const;
-    Vec3        GetExternForces (const EntityID id) const;
-#endif
+    bool IsActive       (const EntityID id) const;
 
     void SetSpawnRate   (const EntityID id, const uint spawnRate);
     void SetMaterialId  (const EntityID id, const MaterialID matId);
@@ -79,31 +63,75 @@ public:
 
     void ResetNumSpawnedParticles(const EntityID id);
 
-
-    //-----------------------------------------------------
-    // check if we have any particle emitters
-    //-----------------------------------------------------
-    inline bool HasEmitters() const { return emitters_.size() > 0; }
-
 private:
-    void InitParticles(
-        const ParticleEmitter& emitter,
+    index GetEmitterIdx(const EntityID id) const;
+
+    void  CreateNewParticles(const float dt);
+
+    void SetupNewParticles(
+        const EntityID emitterId,
+        const EmitterData& initData,
         Particle* particles,
         const uint numParticles);
 
 public:
-    // update and render only particles of visible emitters
-    cvector<index>   visibleEmittersIdxs_;
+    // visible emitters
+    cvector<EntityID>   visEmitters_;
 
 private:
-    TransformSystem* pTransformSys_ = nullptr;
-    BoundingSystem*  pBoundingSys_  = nullptr;
+    ParticleEmitter*    pParticleComponent_ = nullptr;
+    TransformSystem*    pTransformSys_      = nullptr;
+    BoundingSystem*     pBoundingSys_       = nullptr;
 
-    // each system can have multiple emitters
-    // (for instance: fire system can have multiple flames at different positions)
-    cvector<ParticleEmitter> emitters_;
-
-    ParticlesRenderData      renderData_;
+    ParticlesRenderData renderData_;
 };
+
+//==================================================================================
+// inline functions
+//==================================================================================
+inline index ParticleSystem::GetEmitterIdx(const EntityID id) const
+{
+    const index idx = pParticleComponent_->ids.get_idx(id);
+
+    if (pParticleComponent_->ids.is_valid_index(idx))
+        return idx;
+
+    return 0;
+}
+
+inline const EmitterData& ParticleSystem::GetEmitterData(const EntityID id) const
+{
+    return pParticleComponent_->data[GetEmitterIdx(id)];
+}
+
+inline EmitterData& ParticleSystem::GetEmitterData(const EntityID id)
+{
+    return pParticleComponent_->data[GetEmitterIdx(id)];
+}
+
+inline const cvector<EntityID>& ParticleSystem::GetAllEmitters() const
+{
+    return pParticleComponent_->ids;
+}
+
+inline Rect3d ParticleSystem::GetEmitterLocalAABB(const EntityID id) const
+{
+    return pBoundingSys_->GetLocalBoxRect3d(id);
+}
+
+inline Rect3d ParticleSystem::GetEmitterWorldAABB(const EntityID id) const
+{
+    return pBoundingSys_->GetWorldBoxRect3d(id);
+}
+
+inline const cvector<Particle>& ParticleSystem::GetParticlesOfEmitter(const EntityID id)
+{
+    return GetEmitterData(id).particles;
+}
+
+inline bool ParticleSystem::IsActive(const EntityID id) const
+{
+    return GetEmitterData(id).isActive;
+}
 
 } // namespace 

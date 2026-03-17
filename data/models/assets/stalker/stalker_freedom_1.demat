@@ -1,0 +1,26 @@
+newmtl act_act_stalker_head_mask
+shader LightShader
+rs default
+bs default
+dss default
+Ka 0.00 0.00 0.00 1.00
+Kd 0.80 0.80 0.80 1.00
+Ks 0.80 0.80 0.80
+Kg 25.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff act/stalker_freedom_1_face
+tex_norm act/stalker_freedom_1_face_norm
+
+newmtl act_act_stalker_freedom_1
+shader LightShader
+rs default
+bs default
+dss default
+Ka 0.00 0.00 0.00 1.00
+Kd 0.80 0.80 0.80 1.00
+Ks 0.80 0.80 0.80
+Kg 25.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff act/stalker_freedom_1
+tex_norm act/stalker_freedom_1_norm
+

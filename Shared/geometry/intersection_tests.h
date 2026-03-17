@@ -19,10 +19,10 @@
 \**********************************************************************************/
 #pragma once
 
-#include <geometry/rect_3d.h>
+#include <geometry/rect3d.h>
 #include <geometry/sphere.h>
 #include <geometry/sphere_functions.h>
-#include <geometry/plane_3d.h>
+#include <geometry/plane3d.h>
 #include <math/math_helpers.h>
 
 
@@ -36,8 +36,8 @@ enum ePlaneClassifications
 
 
 //---------------------------------------------------------
-// Desc:   test if two input 3d rectangles intersects at all
-//         if so we write an intersection volume into the output result
+// Desc:   testing for intersection between two 3D rectangles,
+// Ret:    the resulting rectangle of intersection
 //---------------------------------------------------------
 inline bool IntersectRect3d(const Rect3d& a, const Rect3d& b, Rect3d& result)
 {
@@ -49,13 +49,40 @@ inline bool IntersectRect3d(const Rect3d& a, const Rect3d& b, Rect3d& result)
     result.y1 = Min(a.y1, b.y1);
     result.z1 = Min(a.z1, b.z1);
 
-    return (result.x0 <= result.x1 &&
-            result.y0 <= result.y1 &&
-            result.z0 <= result.z1);
+    return ((result.x0 <= result.x1) &&
+            (result.y0 <= result.y1) &&
+            (result.z0 <= result.z1));
 }
 
 //---------------------------------------------------------
-// Desc:   define intersection type btw input 3d rectangle and plane
+// Desc:   testing for intersection between two 3D rectangles,
+// Ret:    true if have any intersection
+//---------------------------------------------------------
+inline bool IntersectRect3d(const Rect3d& a, const Rect3d& b)
+{
+    return (Max(a.x0, b.x0) <= Min(a.x1, b.x1)) &&
+           (Max(a.y0, b.y0) <= Min(a.y1, b.y1)) &&
+           (Max(a.z0, b.z0) <= Min(a.z1, b.z1));
+}
+
+//---------------------------------------------------------
+// Desc:  testing for intersectin between a 3D sphere and a 3D plane
+//---------------------------------------------------------
+inline int PlaneClassify(const Sphere& sphere, const Plane3d& plane)
+{
+    float d = plane.SignedDistance(sphere.center);
+
+    if (fabs(d) < sphere.radius)
+        return PLANE_INTERSECT;
+
+    else if (d > 0)
+        return PLANE_FRONT;
+
+    return PLANE_BACK;
+}
+
+//---------------------------------------------------------
+// Desc:   define intersection type between input 3d rectangle and plane
 //         (rect can be completely in front, behind or be intersected by the plane)
 //---------------------------------------------------------
 inline int PlaneClassify(const Rect3d& rect, const Plane3d& plane)
@@ -108,26 +135,10 @@ inline int PlaneClassify(const Rect3d& rect, const Plane3d& plane)
     {
         return PLANE_INTERSECT;
     }
-    else if (dMin >= 0.0f)
+    else if (dMin > 0.0f)
     {
         return PLANE_FRONT;
     }
-
-    return PLANE_BACK;
-}
-
-//---------------------------------------------------------
-// Desc:   testing for intersection btw a 3D sphere and a 3D plane
-//---------------------------------------------------------
-inline int PlaneClassify(const Sphere& sphere, const Plane3d& plane)
-{
-    const float d = plane.SignedDistance(sphere.center);
-
-    if (fabs(d) < sphere.radius)
-        return PLANE_INTERSECT;
-
-    else if (d)
-        return PLANE_FRONT;
 
     return PLANE_BACK;
 }

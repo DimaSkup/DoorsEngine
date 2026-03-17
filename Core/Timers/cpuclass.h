@@ -20,7 +20,7 @@ public:
 	CpuClass(const CpuClass&);
 	~CpuClass();
 
-	void Initialize();
+	void Init();
 	void Shutdown();
 	void Update();
 	int GetCpuPercentage();

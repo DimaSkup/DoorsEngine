@@ -35,8 +35,7 @@ void SkyModel::Shutdown()
 //---------------------------------------------------------
 // Desc:   initialize vertex and index buffers with input data
 //---------------------------------------------------------
-bool SkyModel::InitializeBuffers(
-    ID3D11Device* pDevice,
+bool SkyModel::InitBuffers(
     const Vertex3DPos* vertices,
     const USHORT* indices,
     const int numVertices,
@@ -50,14 +49,14 @@ bool SkyModel::InitializeBuffers(
         CAssert::True(numIndices > 0,  "input number of indices must be > 0");
 
         constexpr bool isDynamic = false;
-        vb_.Initialize(pDevice, vertices, numVertices, isDynamic);
-        ib_.Initialize(pDevice, indices, numIndices, isDynamic);
+        vb_.Init(vertices, numVertices, isDynamic);
+        ib_.Init(indices, numIndices, isDynamic);
 
         return true;
     }
     catch (EngineException& e)
     {
-        LogErr(e);
+        LogErr(LOG, e.what());
         return false;
     }
 }

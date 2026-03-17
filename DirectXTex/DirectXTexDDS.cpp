@@ -2002,7 +2002,7 @@ HRESULT DirectX::LoadFromDDSMemoryEx(
             return E_FAIL;
     }
 
-    hr = image.Initialize(mdata);
+    hr = image.Init(mdata);
     if (FAILED(hr))
         return hr;
 
@@ -2189,7 +2189,7 @@ HRESULT DirectX::LoadFromDDSFileEx(
     if (remaining == 0)
         return E_FAIL;
 
-    hr = image.Initialize(mdata);
+    hr = image.Init(mdata);
     if (FAILED(hr))
         return hr;
 
@@ -2351,7 +2351,7 @@ HRESULT DirectX::SaveToDDSMemory(
 
     blob.Release();
 
-    hr = blob.Initialize(required);
+    hr = blob.Init(required);
     if (FAILED(hr))
         return hr;
 

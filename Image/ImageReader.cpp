@@ -5,8 +5,8 @@
 #include "ImageReader.h"
 
 #include <log.h>
-#include <EngineException.h>
-#include <FileSystem.h>
+#include <engine_exception.h>
+#include <file_system.h>
 #include <CAssert.h>
 #include <StrHelper.h>
 
@@ -67,9 +67,9 @@ bool ImageReader::LoadTextureFromFile(
 
         return true;
     }
-    catch (EngineException & e)
+    catch (EngineException& e)
     {
-        LogErr(e);
+        LogErr(LOG, e.what());
         LogErr(LOG, "can't load a texture from file: %s", inOutTexData.filePath);
         return false;
     }
@@ -87,8 +87,8 @@ bool ImageReader::LoadTextureFromMemory(
     try
     {
         CheckInputParams(outTexData);
-        CAssert::True(pData != nullptr, "input ptr to texture raw data");
-        CAssert::True(size > 0,         "input size of texture data must be > 0");
+        CAssert::True(pData != nullptr, "invalid ptr to data");
+        CAssert::True(size > 0,         "invalid input data size (must be > 0)");
 
         ID3D11DeviceContext* pContext = nullptr;
         pDevice->GetImmediateContext(&pContext);
@@ -115,8 +115,8 @@ bool ImageReader::LoadTextureFromMemory(
     }
     catch (EngineException& e)
     {
-        LogErr(e);
-        LogErr("can't load texture's data from memory");
+        LogErr(LOG, e.what());
+        LogErr(LOG, "can't load texture's data from memory");
         return false;
     }
 }

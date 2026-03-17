@@ -174,13 +174,13 @@
     <ClCompile Include="Engine\event_handler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Render\rnd_data_preparator.cpp">
+    <ClCompile Include="Render\r_data_preparator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Mesh\mesh_geometry.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Model\basic_model.cpp">
+    <ClCompile Include="Model\model.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Model\model_mgr.cpp">
@@ -255,7 +255,7 @@
     <ClCompile Include="CoreCommon\pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Terrain\TerrainGeomipmapped.cpp">
+    <ClCompile Include="Terrain\terrain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Terrain\TerrainLodMgr.cpp">
@@ -265,18 +265,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="UI\UICommon\gui_states.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="QuadTree\quad_tree_node.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="QuadTree\scene_object.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="QuadTree\quad_tree.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="QuadTree\quad_tree_rect.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Render\debug_draw_manager.cpp">
@@ -297,7 +285,7 @@
     <ClCompile Include="Model\grass_mgr.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Terrain\terrain_geomip_creator.cpp">
+    <ClCompile Include="Terrain\terrain_initializer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="UI\UICommon\FacadeEngineToUI.cpp">
@@ -355,6 +343,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="UI\Editor\EditorPanelElement\ui_r_states_controller.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Render\r_debug_draw.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -437,9 +428,6 @@
     <ClInclude Include="Model\model_creator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Model\model_importer_helpers.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Timers\game_timer.h">
       <Filter>Header Files\Timers</Filter>
     </ClInclude>
@@ -500,7 +488,7 @@
     <ClInclude Include="ECS_Entity\Utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Render\rnd_data_preparator.h">
+    <ClInclude Include="Render\r_data_preparator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Mesh\mesh_geometry.h">
@@ -509,7 +497,7 @@
     <ClInclude Include="Mesh\material.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Model\basic_model.h">
+    <ClInclude Include="Model\model.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Model\model_mgr.h">
@@ -689,13 +677,10 @@
     <ClInclude Include="CoreCommon\pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Terrain\TerrainGeomipmapped.h">
+    <ClInclude Include="Terrain\terrain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Terrain\TerrainCreator.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Terrain\terrain_geomip_creator.h">
+    <ClInclude Include="Terrain\terrain_initializer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Terrain\TerrainLodMgr.h">
@@ -708,18 +693,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\Editor\Entity\Controller\EnttParticlesController.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="QuadTree\quad_tree.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="QuadTree\quad_tree_node.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="QuadTree\scene_object.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="QuadTree\quad_tree_rect.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Render\debug_draw_manager.h">
@@ -792,6 +765,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\Editor\EditorPanelElement\ui_r_states_controller.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\r_debug_draw.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\UICommon\ui_common_types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

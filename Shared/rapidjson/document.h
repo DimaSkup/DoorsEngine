@@ -2398,7 +2398,7 @@ private:
         SetMembersPointer(lm);
     }
 
-    // Initialize this value as array with initial data, without calling destructor.
+    // Init this value as array with initial data, without calling destructor.
     void SetArrayRaw(GenericValue* values, SizeType count, Allocator& allocator) {
         data_.f.flags = kArrayFlag;
         if (count) {
@@ -2411,7 +2411,7 @@ private:
         data_.a.size = data_.a.capacity = count;
     }
 
-    //! Initialize this value as object with initial data, without calling destructor.
+    //! Init this value as object with initial data, without calling destructor.
     void SetObjectRaw(Member* members, SizeType count, Allocator& allocator) {
         data_.f.flags = kObjectFlag;
         if (count) {
@@ -2431,14 +2431,14 @@ private:
         data_.o.size = data_.o.capacity = count;
     }
 
-    //! Initialize this value as constant string, without calling destructor.
+    //! Init this value as constant string, without calling destructor.
     void SetStringRaw(StringRefType s) RAPIDJSON_NOEXCEPT {
         data_.f.flags = kConstStringFlag;
         SetStringPointer(s);
         data_.s.length = s.length;
     }
 
-    //! Initialize this value as copy string with initial data, without calling destructor.
+    //! Init this value as copy string with initial data, without calling destructor.
     void SetStringRaw(StringRefType s, Allocator& allocator) {
         Ch* str = 0;
         if (ShortString::Usable(s.length)) {

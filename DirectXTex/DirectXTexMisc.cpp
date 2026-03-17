@@ -656,7 +656,7 @@ HRESULT DirectX::TransformImage(
     if (metadata.IsVolumemap() && metadata.depth > UINT16_MAX)
         return E_INVALIDARG;
 
-    HRESULT hr = result.Initialize(metadata);
+    HRESULT hr = result.Init(metadata);
     if (FAILED(hr))
         return hr;
 

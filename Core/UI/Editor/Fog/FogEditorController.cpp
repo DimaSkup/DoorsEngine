@@ -13,13 +13,16 @@
 namespace UI
 {
 
-
-void FogEditorController::Initialize(IFacadeEngineToUI* pFacade)
+void FogEditorController::Init(IFacadeEngineToUI* pFacade)
 {
     // the facade interface is used to contact with the rest of the engine
-    CAssert::NotNullptr(pFacade, "ptr to the IFacadeEngineToUI interface == nullptr");
-    pFacade_ = pFacade;
+    if (!pFacade)
+    {
+        LogErr(LOG, "ptr to the IFacadeEngineToUI interface == nullptr");
+        return;
+    }
 
+    pFacade_ = pFacade;
 
     // initialize the fog editor model  
     ColorRGB fogColor;
@@ -27,25 +30,27 @@ void FogEditorController::Initialize(IFacadeEngineToUI* pFacade)
     float    fogRange = 100.0f;
     bool     fogEnabled = true;
 
-    if (pFacade_->GetFogData(fogColor, fogStart, fogRange, fogEnabled))
-        fogModel_.Update(fogColor, fogStart, fogRange, fogEnabled);
-    else
-        LogErr("can't gather data for the fog editor :(");
+    if (!pFacade_->GetFogData(fogColor, fogStart, fogRange, fogEnabled))
+    {
+        LogErr(LOG, "can't gather data for the fog editor :(");
+    }
+
+    fogModel_.Update(fogColor, fogStart, fogRange, fogEnabled);
 }
 
-///////////////////////////////////////////////////////////
-
+//---------------------------------------------------------
+// execute input command to change some property of the fog
+//---------------------------------------------------------
 void FogEditorController::ExecCmd(const ICommand* pCmd)
 {
     if (!pCmd)
     {
-        LogErr("input ptr to command == nullptr");
+        LogErr(LOG, "input ptr to command == nullptr");
         return;
     }
-
     if (!pFacade_)
     {
-        LogErr("ptr to the facade interface == nullptr (you should init it first!)");
+        LogErr(LOG, "ptr to the facade interface == nullptr (you should init it first!)");
         return;
     }
 
@@ -106,11 +111,11 @@ void FogEditorController::ExecCmd(const ICommand* pCmd)
     }
 }
 
-///////////////////////////////////////////////////////////
+//---------------------------------------------------------
 
 void FogEditorController::UndoCmd(const ICommand* pCmd, const EntityID id)
 {
-    assert(0 && "TODO: implement it dickhead!");
+    assert(0 && "TODO: implement it, dickhead!");
 }
 
 } // namespace UI

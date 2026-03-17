@@ -41,23 +41,25 @@ namespace ConstBufType
     {
         DirectX::XMFLOAT3 windDir   = { 0.707f, 0.0f, 0.707f };  // normalized direction of wind
         float windSpeed             = 1.0f;
-        float waveAmplitude         = 0.3f;   // control how far blades bend
-        float windStrength          = 2.0f;   // control how far blades bend
-        float turbulence            = 0.5f;   // adds jitter / small ripples (noise)
+        float waveAmplitude         = 0.3f;     // control how far blades bend
+        float windStrength          = 2.0f;     // control how far blades bend
+        float turbulence            = 0.5f;     // adds jitter / small ripples (noise)
         float gustDecay             = 0.5f;
         float gustPower             = 0.1f;      
-        float waveFrequency         = 0.5f;   // controls wavelength; higher = faster small waves
+        float waveFrequency         = 0.5f;     // controls wavelength; higher = faster small waves
         float bendScale             = 0.5f;
-        float swayDistance          = 30.0f;  // from us (camera) and to this distance the swaying is linearly goes down
-                                              // after this distance we see no swaying
+        float swayDistance          = 30.0f;    // from us (camera) and to this distance the swaying is linearly goes down
+                                                // after this distance we see no swaying
 
         DirectX::XMFLOAT3  fogColor = { 0.5f, 0.5f, 0.5f };
-        float              fogStart = 15.0f;                 // how far from camera the fog starts?
+        float              fogStart = 15.0f;                    // how far from camera the fog starts?
 
-        DirectX::XMFLOAT3  skyColorCenter = { 1,1,1 };       // near horizon
-        float              fogRange = 250.0f;          // how far from camera the object is fully fogged?
+        DirectX::XMFLOAT3  skyColorCenter = { 1,1,1 };          // near horizon
+        float              fogRange = 250.0f;                   // how far from camera the object is fully fogged?
 
-        DirectX::XMFLOAT3  skyColorApex = { 1,1,1 };       // top color
+        DirectX::XMFLOAT3  skyColorApex = { 1,1,1 };            // top color
+
+        int                fogEnabled = true;                   // turn on/off the fog effect     
     };
 
     // ----------------------------------------------------
@@ -184,7 +186,6 @@ namespace ConstBufType
     {
         // a structure for pixel shader data which is rarely changed
         int                debugType      = 0;               // (int type in shader) by default render as usual
-        int                fogEnabled       = true;          // turn on/off the fog effect     
         int                turnOnFlashLight = false;         // turn on/off the flashlight
         int                alphaClipping    = false;         // do we use alpha clipping?
     };

@@ -6206,7 +6206,7 @@ static void *stbi__psd_load(stbi__context *s, int *x, int *y, int *comp, int req
    if (!out) return stbi__errpuc("outofmem", "Out of memory");
    pixelCount = w*h;
 
-   // Initialize the data to zero.
+   // Init the data to zero.
    //memset( out, 0, pixelCount * 4 );
 
    // Finally, the image data.

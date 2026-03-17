@@ -73,8 +73,10 @@ HRESULT ShaderCompiler::CompileShaderFromFile(
     // If the shader failed to compile it should write something about the error
     if (pErrorMsgs != nullptr)
     {
-        MessageBoxA(0, (char*)pErrorMsgs->GetBufferPointer(), 0, 0);
-        LogErr((char*)(pErrorMsgs->GetBufferPointer()));
+        const char* errMsg = (const char*)pErrorMsgs->GetBufferPointer();
+
+        MessageBoxA(0, errMsg, 0, 0);
+        LogErr(LOG, errMsg);
 
         pErrorMsgs->Release();
         pErrorMsgs = nullptr;

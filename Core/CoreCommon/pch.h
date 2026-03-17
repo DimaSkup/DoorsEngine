@@ -15,22 +15,22 @@
 #include <stdlib.h>
 #include <inttypes.h>
 
-#include "RawFile.h"
+#include "raw_file.h"
 #include "log.h"
 #include "CAssert.h"
-#include "EngineException.h"
+#include "engine_exception.h"
 #include "mem_helpers.h"
 #include "StrHelper.h"
 #include "cvector.h"
 #include "Types.h"
-#include "FileSystem.h"
+#include "file_system.h"
 #include "FileSystemPaths.h"
 #include "math/math_helpers.h"
 #include "math/dx_math_helpers.h"
 
 #include <math/vec_functions.h>
-#include <geometry/plane_3d_functions.h>
-#include <geometry/rect_3d_functions.h>
+#include <geometry/plane3d_functions.h>
+#include <geometry/rect3d_functions.h>
 
 
 

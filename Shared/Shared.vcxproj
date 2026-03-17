@@ -40,15 +40,15 @@
     <ClInclude Include="math\math_constants.h" />
     <ClInclude Include="math\vec2.h" />
     <ClInclude Include="numeric_tools.h" />
-    <ClInclude Include="geometry\plane_3d.h" />
-    <ClInclude Include="geometry\plane_3d_functions.h" />
-    <ClInclude Include="geometry\rect_3d.h" />
-    <ClInclude Include="geometry\rect_3d_functions.h" />
+    <ClInclude Include="geometry\plane3d.h" />
+    <ClInclude Include="geometry\plane3d_functions.h" />
+    <ClInclude Include="geometry\rect3d.h" />
+    <ClInclude Include="geometry\rect3d_functions.h" />
     <ClInclude Include="geometry\sphere.h" />
     <ClInclude Include="geometry\sphere_functions.h" />
     <ClInclude Include="math\math_helpers.h" />
-    <ClInclude Include="EngineException.h" />
-    <ClInclude Include="FileSystem.h" />
+    <ClInclude Include="engine_exception.h" />
+    <ClInclude Include="file_system.h" />
     <ClInclude Include="FileSystemPaths.h" />
     <ClInclude Include="math\matrix.h" />
     <ClInclude Include="math\random.h" />
@@ -61,7 +61,7 @@
     <ClInclude Include="pack_color.h" />
     <ClInclude Include="post_fx_enum.h" />
     <ClInclude Include="post_fx_params_enum.h" />
-    <ClInclude Include="RawFile.h" />
+    <ClInclude Include="raw_file.h" />
     <ClInclude Include="ShellHelpers.h" />
     <ClInclude Include="StrHelper.h" />
     <ClInclude Include="SystemState.h" />
@@ -71,11 +71,14 @@
     <ClInclude Include="win_file_dialog.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="EngineException.cpp" />
+    <ClCompile Include="engine_exception.cpp" />
+    <ClCompile Include="file_system.cpp" />
     <ClCompile Include="geometry\frustum.cpp" />
     <ClCompile Include="Image.cpp" />
     <ClCompile Include="log.cpp" />
     <ClCompile Include="math\dx_math_helpers.cpp" />
+    <ClCompile Include="math\matrix.cpp" />
+    <ClCompile Include="raw_file.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

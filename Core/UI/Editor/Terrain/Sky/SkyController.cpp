@@ -27,7 +27,7 @@ SkyController::SkyController() : skyView_(this)
 // Args:   - pFacade: a virtual interface btw the GUI and engine (facade pattern)
 //                    which is used to contact with the rest of the engine's parts
 //---------------------------------------------------------
-void SkyController::Initialize(IFacadeEngineToUI* pFacade)
+void SkyController::Init(IFacadeEngineToUI* pFacade)
 {
     CAssert::NotNullptr(pFacade, "ptr to the facade == nullptr");
     pFacade_ = pFacade;
@@ -47,11 +47,10 @@ void SkyController::LoadSkyEnttData()
 
     const EntityID id = pFacade_->GetEnttIdByName("sky");
 
-    if (pFacade_->GetSkyData(id, center, apex, offset))
-        skyModel_.Init(id, center, apex, offset);
+    if (!pFacade_->GetSkyData(id, center, apex, offset))
+        LogErr(LOG, "can't gather data for the sky editor model for unknown reason");
 
-    else
-        LogErr("can't gather data for the sky editor model for unknown reason");
+    skyModel_.Init(id, center, apex, offset);
 }
 
 //---------------------------------------------------------

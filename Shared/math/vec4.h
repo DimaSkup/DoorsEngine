@@ -14,7 +14,7 @@
 \***************************************************************/
 #pragma once
 
-#include <math/math_helpers.h>
+#include "math_helpers.h"
 
 struct Vec4
 {
@@ -56,12 +56,10 @@ struct Vec4
     Vec4(Vec4&& v) noexcept :
         x(v.x), y(v.y), z(v.z), w(v.w) {}
     
-        
 
     //-----------------------------------------------------
     // operators
     //-----------------------------------------------------
-
     inline Vec4& operator = (const Vec4& v)
     {
         x = v.x;

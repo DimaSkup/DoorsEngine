@@ -5,12 +5,16 @@
 // =================================================================================
 #include "image.h"
 
+#include "mem_helpers.h"
+#include "log.h"
+#include "file_system.h"
+#include "raw_file.h"
+
+#include "math/math_helpers.h"
+
+#include <engine_exception.h>
 #include <stdexcept>
 
-#include "log.h"
-#include "FileSystem.h"
-#include "RawFile.h"
-#include "math/math_helpers.h"
 
 #pragma warning (disable : 4996)
 
@@ -136,8 +140,8 @@ bool Image::LoadData(const char* filename)
     }
     catch (std::bad_alloc& e)
     {
-        LogErr(e.what());
-        sprintf(g_String, "can't allocate the memory for image data: %s", filename);
+        LogErr(LOG, e.what());
+        sprintf(g_String, "can't alloc the memory for image data: %s", filename);
         throw EngineException(g_String);
     }
     catch (EngineException& e)
@@ -145,7 +149,7 @@ bool Image::LoadData(const char* filename)
         if (pFile)
             fclose(pFile);
 
-        LogErr(e);
+        LogErr(LOG, e.what());
         SafeDeleteArr(pixels_);
         return false;
     }
@@ -160,7 +164,7 @@ bool Image::Save(const char* filename)
     // check input params
     if (!filename || filename[0] == '\0')
     {
-        LogErr("input height map filename is empty");
+        LogErr(LOG, "empty filename");
         return false;
     }
 
@@ -246,10 +250,11 @@ bool Image::SaveBMP(const char* filename) const
     const int  paddingSize = (overFour == 0) ? 0 : 4-overFour ;
     const uint imageSize   = bytesInScanline * height_ + (height_ * paddingSize);
 
+
     // check input params
     if (!filename || filename[0] == '\0')
     {
-        LogErr("input filename is empty!");
+        LogErr(LOG, "empty filename");
         return false;
     }
 
@@ -399,7 +404,7 @@ bool Image::LoadRgbBMP(const char* filename)
     {
         if (!filename || filename[0] == '\0')
         {
-            LogErr(LOG, "input filename str is empty");
+            LogErr(LOG, "empty filename");
             return false;
         }
 
@@ -471,8 +476,8 @@ bool Image::LoadRgbBMP(const char* filename)
     }
     catch (std::bad_alloc& e)
     {
-        LogErr(e.what());
-        sprintf(g_String, "couldn't alloc memory for height data / height map image: %s", filename);
+        LogErr(LOG, e.what());
+        sprintf(g_String, "can't alloc memory for height data / height map image: %s", filename);
         throw EngineException(g_String);
     }
     catch (EngineException& e)
@@ -482,7 +487,7 @@ bool Image::LoadRgbBMP(const char* filename)
 
         SafeDeleteArr(bitmapImage);
         SafeDeleteArr(pixels_);
-        LogErr(e);
+        LogErr(LOG, e.what());
         return false;
     }
 }
@@ -504,7 +509,7 @@ bool Image::LoadGrayscaleBMP(const char* filename)
 
     if (!filename || filename[0] == '\0')
     {
-        LogErr(LOG, "input filename str is empty");
+        LogErr(LOG, "empty filename");
         return false;
     }
 
@@ -617,7 +622,7 @@ bool Image::LoadGrayscaleBMP(const char* filename)
 
         SafeDeleteArr(tmpImageBuf);
         SafeDeleteArr(pixels_);
-        LogErr(e);
+        LogErr(LOG, e.what());
         return false;
     }
 }
@@ -636,17 +641,16 @@ bool Image::LoadTGA(const char* filename)
 
     if (!filename || filename[0] == '\0')
     {
-        LogErr("filename is empty");
+        LogErr(LOG, "empty filename");
         return false;
     }
 
     pFile = fopen(filename, "rb");
     if (!pFile)
     {
-        LogErr(LOG, "can't open file for reading in binary mode: %s", filename);
+        LogErr(LOG, "can't open a file for reading in binary mode: %s", filename);
         return false;
     }
-
 
     try
     {
@@ -726,13 +730,13 @@ bool Image::LoadTGA(const char* filename)
     }
     catch (const std::bad_alloc& e)
     {
-        LogErr(e.what());
+        LogErr(LOG, e.what());
         sprintf(g_String, "can't allocate memory for the TGA image: %s", filename);
         throw EngineException(g_String);
     }
     catch (EngineException& e)
     {
-        LogErr(e);
+        LogErr(LOG, e.what());
         fclose(pFile);
         SafeDeleteArr(pixelsData);
         SafeDeleteArr(pixels_);

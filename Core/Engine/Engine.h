@@ -15,14 +15,12 @@
 #include "../Input/inputmanager.h"
 #include "../Input/keyboard.h"
 #include "../Input/mouse.h"
-//#include "../Input/inputcodes.h"
 
 // cpu/times
 //#include "../Timers/cpuclass.h"
 #include "../Timers/game_timer.h"
 
 // graphics stuff
-
 #include "../Mesh/material_mgr.h"
 #include "../Render/CGraphics.h"
 
@@ -73,9 +71,9 @@ public:
     void RenderFrame();                    // do all the rendering onto the screen
     void RenderInEditorMode();
     void RenderInGameMode();
-    void RenderUI(UI::UserInterface* pUI, Render::CRender* pRender);
+    void RenderUI();
 
-    void SwitchGpuMetricsCollection(const bool state);
+    void SwitchGpuMetricsCollection(const bool onOff);
 
     // switch game/editor mode (we will use this flag to define if we need to switch)
     inline void                 SwitchEngineMode()       { switchEngineMode_ = true; }
@@ -105,26 +103,31 @@ public:
     virtual void EventKeyboard            (HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
     virtual void EventMouse               (HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 
-    
+
+    //
+    // temp!!!
+    //
+    inline void SwitchQuadTree() { graphics_.SwitchQuadTree(); }
+
 
 private:
-    void HandleEditorEventKeyboard(void);
-    void HandleEditorEventMouse(void);
+    void HandleEditorEventKeyboard();
+    void HandleEditorEventMouse();
 
-    void TurnOnEditorMode(void);
-    void TurnOnGameMode(void);
+    void TurnOnEditorMode();
+    void TurnOnGameMode();
 
 private:
     HWND      hwnd_         = NULL;             // main window handle
     HINSTANCE hInstance_    = NULL;             // application instance handle
 
-    bool      isFullscreen_     = false;
-    bool      isPaused_         = false;        // defines if the engine/game is currently paused
-    bool      isExit_           = false;        // are we going to exit?
-    bool      isMinimized_      = false;        // is the window minimized?
-    bool      isMaximized_      = true;         // is the window maximized?
-    bool      isResizing_       = false;        // are we resizing the window?
-    bool      switchEngineMode_ = false;        // a flag to define if we want to switch btw game/editor mode
+    uint32    isFullscreen_     : 1 = false;
+    uint32    isPaused_         : 1 = false;    // defines if the engine/game is currently paused
+    uint32    isExit_           : 1 = false;    // are we going to exit?
+    uint32    isMinimized_      : 1 = false;    // is the window minimized?
+    uint32    isMaximized_      : 1 = true;     // is the window maximized?
+    uint32    isResizing_       : 1 = false;    // are we resizing the window?
+    uint32    switchEngineMode_ : 1 = false;    // a flag to define if we want to switch btw game/editor mode
 
     float     deltaTime_        = 0.0f;         // the time since the previous frame
 
@@ -154,10 +157,5 @@ private:
     UINT clientWidth_   = 0;
     UINT clientHeight_ = 0;
 };
-
-//==================================================================================
-// Global instance of the engine (I don't care)
-//==================================================================================
-//extern Engine g_Engine;
 
 } // namespace Core

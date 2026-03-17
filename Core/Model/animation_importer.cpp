@@ -334,12 +334,11 @@ void LoadSingleBone(
 //---------------------------------------------------------
 void InitSkeletonBonesVB(AnimSkeleton& skeleton)
 {
-    ID3D11Device*         pDevice         = Render::g_pDevice;
     const VertexBoneData* bonesWeights    = skeleton.vertexToBones.data();
     const int             numBonesWeights = (int)skeleton.vertexToBones.size();
     const bool            isDynamicVB     = false;
 
-    if (!skeleton.bonesVB_.Initialize(pDevice, bonesWeights, numBonesWeights, isDynamicVB))
+    if (!skeleton.bonesVB_.Init(bonesWeights, numBonesWeights, isDynamicVB))
     {
         LogErr(LOG, "can't init bones VB for skeleton: %s", skeleton.GetName());
     }
@@ -370,9 +369,6 @@ void AddAnimationsToSkeleton(
     {
         LoadAnimation(pScene, pScene->mAnimations[animIdx], animIdx, skeleton);
     }
-
-    //if (strcmp(skeleton.name_, "ak_74_hud") == 0)
-    //    skeleton.DumpAnimations();
 }
 
 //---------------------------------------------------------

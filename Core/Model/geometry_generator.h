@@ -11,8 +11,8 @@
 #include "../Model/sky_model.h"
 #include "../Mesh/mesh_gen_helper_types.h"
 #include "../Mesh/material.h"
-#include "../Model/basic_model.h"
-#include "../Terrain/TerrainGeomipmapped.h"
+#include "../Model/model.h"
+#include "../Terrain/terrain.h"
 
 
 namespace Core
@@ -35,29 +35,29 @@ private:
 public:
     GeometryGenerator() {};
 
+    void GeneratePlaneLod(Model& model, const float planeW, const float planeH);
+
+    bool GenerateGrass(Model& model, const float planeW, const float planeH);
+
     void GenerateTreeLod1(
-        BasicModel& model,
+        Model& model,
         const float planeWidth,
         const float planeHeight,
         const bool originAtBottom,
         const float rotateAroundX);
 
-    void GenerateCube(BasicModel& model);
+    void GenerateCube(Model& model);
 
-    void GenerateSkyBoxForCubeMap(ID3D11Device* pDevice, SkyModel& sky, const float height);
-    void GenerateSkyBoxForAtlasTex(BasicModel& model, const float height);
+    void GenerateSkyBoxForCubeMap(SkyModel& sky, const float height);
+    void GenerateSkyBoxForAtlasTex(Model& model, const float height);
 
     void GenerateSkySphere(
-        ID3D11Device* pDevice,
         SkyModel& sky,
         const float radius,
         const int sliceCount,
         const int stackCount);
 
-    void GeneratePlane(
-        const float width,
-        const float height,
-        BasicModel& model);
+    void GeneratePlane(const float width, const float height, Model& model);
 
     void GenerateTerrainFlatGrid(
         const int widht,
@@ -73,26 +73,21 @@ public:
         const float height,
         const float baseWidth,
         const float baseDepth,
-        BasicModel& model);
+        Model& model);
 
-    void GenerateCylinder(
-        const MeshCylinderParams& params,
-        BasicModel& model);
-
-    void GenerateSphere(
-        const MeshSphereParams& params,
-        BasicModel& model);
+    void GenerateCylinder(const MeshCylinderParams& params, Model& model);
+    void GenerateSphere  (const MeshSphereParams& params, Model& model);
 
     void GenerateSkyDome(
         const float radius,
         const int sliceCount,
         const int stackCount,
-        BasicModel& model);
+        Model& model);
 
     void GenerateGeosphere(
         const float radius,
         int numSubdivisions,
-        BasicModel& model);
+        Model& model);
 
     void ComputeAABB(
         const Vertex3D* vertices,
@@ -113,33 +108,33 @@ public:
 private:
     // helper functions for a cube creation
     void SetupCubeVerticesPositions(DirectX::XMFLOAT3* positions);
-    void SetupCubeFacesNormals(DirectX::XMFLOAT3* facesNormals);
+    void SetupCubeFacesNormals     (DirectX::XMFLOAT3* facesNormals);
 
     // cylinder private creation API 
     // (BuildCylinderStacks, BuildCylinderTopCap, BuildCylinderBottomCap)
     void BuildCylinderStacks(
         const MeshCylinderParams& params,
         CylinderTempData& tempData,
-        BasicModel& model);
+        Model& model);
 
     void BuildCylinderTopCap(
         const MeshCylinderParams& params,
         CylinderTempData& tempData,
-        BasicModel& model);
+        Model& model);
 
     void BuildCylinderBottomCap(
         const MeshCylinderParams& params,
         CylinderTempData& tempData,
-        BasicModel& model);
+        Model& model);
 
     void BuildCylinderCapRingVertices(
         const MeshCylinderParams& params,
         const bool isTopCap,
         CylinderTempData& tempData,
-        BasicModel& model);
+        Model& model);
 
     // helper function for a geosphere creation
-    void Subdivide(BasicModel& model);
+    void SubdivideGeoSphere(Model& model);
 };
 
 } // namespace Core

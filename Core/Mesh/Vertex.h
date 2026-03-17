@@ -21,7 +21,7 @@ struct VertexFont
     // (the VertexFont structure must match both in the FontClass and TextStore)
     //
 
-    VertexFont() : position(0, 0), texture(0, 0) {}
+    VertexFont() {}
 
     VertexFont(const DirectX::XMFLOAT2& pos, DirectX::XMFLOAT2& tex)
         : position(pos), texture(tex) {}
@@ -49,8 +49,9 @@ struct BillboardSprite
 
 struct VertexGrass
 {
-    DirectX::XMFLOAT3 pos       = {0,0,0};
-    DirectX::XMFLOAT2 size;
+    DirectX::XMFLOAT3 pos  = { 0,0,0 };
+    DirectX::XMFLOAT2 tex0 = { 0,0 };
+    DirectX::XMFLOAT2 tex1 = { 1,1 };
 };
 
 // =================================================================================
@@ -81,6 +82,21 @@ struct VertexPosTex
 {
     DirectX::XMFLOAT3 pos;
     DirectX::XMFLOAT2 tex;
+};
+
+// =================================================================================
+
+struct VertexDecal3D
+{
+    DirectX::XMFLOAT3 pos;
+    DirectX::XMFLOAT2 tex;
+    DirectX::XMFLOAT3 normal;
+    float translucency;
+
+    //DirectX::XMFLOAT3 pos;
+    //float             texU;      // texture's u-coordinate
+    //DirectX::XMFLOAT3 normal; 
+    //float             texV;      // texture's v-coordinate
 };
 
 // =================================================================================

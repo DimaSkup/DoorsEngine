@@ -347,7 +347,7 @@ HRESULT DirectX::ComputeNormalMap(
 
     TexMetadata mdata2 = metadata;
     mdata2.format = format;
-    HRESULT hr = normalMaps.Initialize(mdata2);
+    HRESULT hr = normalMaps.Init(mdata2);
     if (FAILED(hr))
         return hr;
 

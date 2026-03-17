@@ -217,7 +217,7 @@ if not exist "$(SolutionDir)build\$(IntDir)data\materials.demat"                
 if not exist "$(SolutionDir)build\$(IntDir)data\models.demdl"                      xcopy /Y /f "$(SolutionDir)data\models.demdl"                 "$(SolutionDir)build\$(IntDir)data\"
 if not exist "$(SolutionDir)build\$(IntDir)data\nature.cfg"                             xcopy /Y /f "$(SolutionDir)data\nature.cfg"                         "$(SolutionDir)build\$(IntDir)data\"
 if not exist "$(SolutionDir)build\$(IntDir)data\player.cfg"                              xcopy /Y /f "$(SolutionDir)data\player.cfg"                          "$(SolutionDir)build\$(IntDir)data\"
-if not exist "$(SolutionDir)build\$(IntDir)data\settings.txt"                            xcopy /Y /f "$(SolutionDir)data\settings.txt"                        "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\settings.cfg"                            xcopy /Y /f "$(SolutionDir)data\settings.cfg"                        "$(SolutionDir)build\$(IntDir)data\"
 if not exist "$(SolutionDir)build\$(IntDir)data\sky.cfg"                                   xcopy /Y /f "$(SolutionDir)data\sky.cfg"                               "$(SolutionDir)build\$(IntDir)data\"
 if not exist "$(SolutionDir)build\$(IntDir)data\sky_plane.cfg"                       xcopy /Y /f "$(SolutionDir)data\sky_plane.cfg"                    "$(SolutionDir)build\$(IntDir)data\"
 if not exist "$(SolutionDir)build\$(IntDir)data\weapon.cfg"                          xcopy /Y /f "$(SolutionDir)data\weapon.cfg"                       "$(SolutionDir)build\$(IntDir)data\"
@@ -366,7 +366,7 @@ if not exist "$(SolutionDir)build\$(IntDir)data\materials.demat"                
 if not exist "$(SolutionDir)build\$(IntDir)data\models.demdl"                      xcopy /Y /f "$(SolutionDir)data\models.demdl"                 "$(SolutionDir)build\$(IntDir)data\"
 if not exist "$(SolutionDir)build\$(IntDir)data\nature.cfg"                             xcopy /Y /f "$(SolutionDir)data\nature.cfg"                         "$(SolutionDir)build\$(IntDir)data\"
 if not exist "$(SolutionDir)build\$(IntDir)data\player.cfg"                              xcopy /Y /f "$(SolutionDir)data\player.cfg"                          "$(SolutionDir)build\$(IntDir)data\"
-if not exist "$(SolutionDir)build\$(IntDir)data\settings.txt"                            xcopy /Y /f "$(SolutionDir)data\settings.txt"                        "$(SolutionDir)build\$(IntDir)data\"
+if not exist "$(SolutionDir)build\$(IntDir)data\settings.cfg"                            xcopy /Y /f "$(SolutionDir)data\settings.cfg"                        "$(SolutionDir)build\$(IntDir)data\"
 if not exist "$(SolutionDir)build\$(IntDir)data\sky.cfg"                                   xcopy /Y /f "$(SolutionDir)data\sky.cfg"                               "$(SolutionDir)build\$(IntDir)data\"
 if not exist "$(SolutionDir)build\$(IntDir)data\sky_plane.cfg"                       xcopy /Y /f "$(SolutionDir)data\sky_plane.cfg"                    "$(SolutionDir)build\$(IntDir)data\"
 if not exist "$(SolutionDir)build\$(IntDir)data\weapon.cfg"                          xcopy /Y /f "$(SolutionDir)data\weapon.cfg"                       "$(SolutionDir)build\$(IntDir)data\"
@@ -433,7 +433,7 @@ if not exist "$(SolutionDir)build\$(IntDir)data\shaders\input_layouts.json" xcop
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Mesh\mesh_geometry.cpp" />
-    <ClCompile Include="Model\basic_model.cpp" />
+    <ClCompile Include="Model\model.cpp" />
     <ClCompile Include="Model\model_importer.cpp" />
     <ClCompile Include="Model\model_math.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
@@ -445,37 +445,17 @@ if not exist "$(SolutionDir)build\$(IntDir)data\shaders\input_layouts.json" xcop
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CoreCommon/pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <ClCompile Include="Model\sky_plane.cpp" />
-    <ClCompile Include="QuadTree\quad_tree.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="QuadTree\quad_tree_node.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CoreCommon/pch.h</PrecompiledHeaderFile>
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CoreCommon/pch.h</PrecompiledHeaderFile>
-    </ClCompile>
-    <ClCompile Include="QuadTree\quad_tree_rect.cpp" />
-    <ClCompile Include="QuadTree\scene_object.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="Render\debug_draw_manager.cpp" />
+    <ClCompile Include="Render\r_debug_draw.cpp" />
     <ClCompile Include="Sound\direct_sound.cpp" />
     <ClCompile Include="Sound\sound.cpp" />
     <ClCompile Include="Sound\sound_mgr.cpp" />
     <ClCompile Include="Terrain\TerrainBase.cpp" />
-    <ClCompile Include="Terrain\TerrainGeomipmapped.cpp" />
+    <ClCompile Include="Terrain\terrain.cpp" />
     <ClCompile Include="Terrain\TerrainLodMgr.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Terrain\terrain_geomip_creator.cpp" />
+    <ClCompile Include="Terrain\terrain_initializer.cpp" />
     <ClCompile Include="Texture\texture_mgr.cpp" />
     <ClCompile Include="Input\keyboard.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
@@ -486,7 +466,7 @@ if not exist "$(SolutionDir)build\$(IntDir)data\shaders\input_layouts.json" xcop
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Render\rnd_data_preparator.cpp">
+    <ClCompile Include="Render\r_data_preparator.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -604,7 +584,6 @@ if not exist "$(SolutionDir)build\$(IntDir)data\shaders\input_layouts.json" xcop
     <ClInclude Include="Model\model_loader.h" />
     <ClInclude Include="Model\sky_plane.h" />
     <ClInclude Include="Model\vertices_splitter.h" />
-    <ClInclude Include="QuadTree\quad_tree.h" />
     <ClInclude Include="ImGuizmo\ImGuizmo.h" />
     <ClInclude Include="ImGui\backends\imgui_impl_dx11.h" />
     <ClInclude Include="ImGui\backends\imgui_impl_win32.h" />
@@ -627,24 +606,20 @@ if not exist "$(SolutionDir)build\$(IntDir)data\shaders\input_layouts.json" xcop
     <ClInclude Include="Input\keyboard_event.h" />
     <ClInclude Include="Mesh\material_mgr.h" />
     <ClInclude Include="Mesh\vertex3d_terrain.h" />
-    <ClInclude Include="QuadTree\quad_tree_node.h" />
-    <ClInclude Include="QuadTree\quad_tree_rect.h" />
-    <ClInclude Include="QuadTree\scene_object.h" />
     <ClInclude Include="Render\debug_draw_manager.h" />
+    <ClInclude Include="Render\r_debug_draw.h" />
     <ClInclude Include="Sound\direct_sound.h" />
     <ClInclude Include="Sound\sound.h" />
     <ClInclude Include="Sound\sound_mgr.h" />
-    <ClInclude Include="Terrain\TerrainCreator.h" />
     <ClInclude Include="Model\geometry_generator.h" />
     <ClInclude Include="Mesh\mesh_geometry.h" />
     <ClInclude Include="Mesh\mesh_gen_helper_types.h" />
     <ClInclude Include="Model\model_exporter.h" />
-    <ClInclude Include="Model\model_importer_helpers.h" />
     <ClInclude Include="Model\model_creator.h" />
     <ClInclude Include="Model\sky_model.h" />
     <ClInclude Include="Terrain\TerrainBase.h" />
-    <ClInclude Include="Terrain\terrain_geomip_creator.h" />
-    <ClInclude Include="Terrain\TerrainGeomipmapped.h" />
+    <ClInclude Include="Terrain\terrain_initializer.h" />
+    <ClInclude Include="Terrain\terrain.h" />
     <ClInclude Include="Terrain\TerrainLodMgr.h" />
     <ClInclude Include="Texture\texture_type_names.h" />
     <ClInclude Include="UI\Editor\Debug\rnd_dbg_type_switcher.h" />
@@ -690,7 +665,7 @@ if not exist "$(SolutionDir)build\$(IntDir)data\shaders\input_layouts.json" xcop
     <ClInclude Include="Texture\enum_texture_types.h" />
     <ClInclude Include="Engine\engine_configs.h" />
     <ClInclude Include="Mesh\material.h" />
-    <ClInclude Include="Model\basic_model.h" />
+    <ClInclude Include="Model\model.h" />
     <ClInclude Include="Mesh\index_buffer.h" />
     <ClInclude Include="Model\model_importer.h" />
     <ClInclude Include="Model\model_math.h" />
@@ -699,7 +674,7 @@ if not exist "$(SolutionDir)build\$(IntDir)data\shaders\input_layouts.json" xcop
     <ClInclude Include="Render\Color.h" />
     <ClInclude Include="Input\keyboard.h" />
     <ClInclude Include="Texture\texture.h" />
-    <ClInclude Include="Render\rnd_data_preparator.h" />
+    <ClInclude Include="Render\r_data_preparator.h" />
     <ClInclude Include="Render\frame_buffer.h" />
     <ClInclude Include="CoreCommon\system_state.h" />
     <ClInclude Include="Timers\cpuclass.h" />
@@ -713,6 +688,7 @@ if not exist "$(SolutionDir)build\$(IntDir)data\shaders\input_layouts.json" xcop
     <ClInclude Include="Mesh\vertex.h" />
     <ClInclude Include="Mesh\vertex_buffer.h" />
     <ClInclude Include="UI\UICommon\mat_data_container.h" />
+    <ClInclude Include="UI\UICommon\ui_common_types.h" />
     <ClInclude Include="UI\user_interface.h" />
     <ClInclude Include="Window\render_window.h" />
     <ClInclude Include="Engine\engine.h" />

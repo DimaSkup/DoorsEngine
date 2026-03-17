@@ -963,7 +963,7 @@ float RenderStates::GetRsParamFloat(const RsID id, const eRsParamType type) cons
     }
 
     if (type == RS_DEPTH_BIAS_CLAMP)
-        return rsParams_[id].depthBias;
+        return (float)rsParams_[id].depthBias;
 
     if (type == RS_SLOPE_SCALED_DEPTH_BIAS)
         return rsParams_[id].slopeScaledDepthBias;

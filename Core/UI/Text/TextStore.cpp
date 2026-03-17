@@ -10,7 +10,7 @@
 namespace UI
 {
 
-// static
+// is used to generate an ID for each new sentence
 SentenceID TextStore::staticID_ = 0;
 
 //---------------------------------------------------------
@@ -31,31 +31,25 @@ TextStore::~TextStore()
 // =================================================================================
 void TextStore::SetFont(FontClass* pFont)
 {
-    if (pFont == nullptr)
+    if (!pFont)
     {
-        LogErr(LOG, "can't set another font: input ptr to font == nullptr");
+        LogErr(LOG, "input ptr to font == NULL");
         return;
     }
 
     pFont_ = pFont;
-    needUpdConstVB_ = true;
+    bUpdateConstVB_ = true;
 }
 
 //---------------------------------------------------------
 // Desc:  initialize the text storage
 //        (build text vertices and create vertex/index buffers)
 //---------------------------------------------------------
-bool TextStore::Init(ID3D11Device* pDevice, FontClass* pFont)
+bool TextStore::Init(FontClass* pFont)
 {
-    if (pDevice == nullptr)
+    if (!pFont)
     {
-        LogErr(LOG, "can't init text storage: input ptr to DX11 device == nullptr");
-        return false;
-    }
-
-    if (pFont == nullptr)
-    {
-        LogErr(LOG, "can't init text storage: input ptr to font == nullptr");
+        LogErr(LOG, "input ptr to font == NULL");
         return false;
     }
 
@@ -69,26 +63,25 @@ bool TextStore::Init(ID3D11Device* pDevice, FontClass* pFont)
 
 
     // init a vertex buffer for const sentences   
-    RebuildConstVB(pDevice);
+    RebuildConstVB();
 
 
     // init a vertex buffer for dynamic sentences
     const cvector<Core::VertexFont> vertices(vbSize);
 
-    if (!vbDbgDynText_.Initialize(pDevice, vertices.data(), vbSize, isDynamicVB))
+    if (!vbDbgDynText_.Init(vertices.data(), vbSize, isDynamicVB))
     {
-        LogErr(LOG, "can't create a dynamic vertex buffer for debug text");
+        LogErr(LOG, "can't create a dynamic VB for debug (dynamic) text");
         return false;
     }
-
 
     // init an common index buffer for sentences
     const cvector<UINT> indices(ibSize, 0);
     pFont->BuildIndexArray(indices.data(), ibSize);
     
-    if (!ib_.Initialize(pDevice, indices.data(), ibSize, isDynamicIB))
+    if (!ib_.Init(indices.data(), ibSize, isDynamicIB))
     {
-        LogErr(LOG, "can't create an index buffer for debug (dynamic) text");
+        LogErr(LOG, "can't create an IB for debug (dynamic) text");
         return false;
     }
 
@@ -100,30 +93,25 @@ bool TextStore::Init(ID3D11Device* pDevice, FontClass* pFont)
 //         so we rebuild vertices for all the const strings
 //         and update the related vertex buffer
 //---------------------------------------------------------
-void TextStore::RebuildConstVB(ID3D11Device* pDevice)
+void TextStore::RebuildConstVB()
 {
-    if (!pDevice)
-    {
-        LogErr(LOG, "can't rebuild VB for const sentences: input ptr to DX11 device == nullptr");
-        return;
-    }
+    const bool                isDynamicVB = false;
+    constexpr size            vertsPerChar = 4;             // number of vertices per each character
+    index                     vOffset = 0;                  // offset in the buf of raw vertices
+    cvector<Core::VertexFont> verticesArr(MAX_NUM_VERTICES_IN_DBG_TEXT);
+    Core::VertexFont*         vertices = verticesArr.data();
 
-    constexpr size vertsPerChar = 4;
-    index vOffset = 0;                  // offset in the buf of raw vertices
+    memset(vertices, 0, MAX_NUM_VERTICES_IN_DBG_TEXT * sizeof(Core::VertexFont));
 
-    Core::VertexFont rawVertices[MAX_NUM_VERTICES_IN_DBG_TEXT];
-    memset(rawVertices, 0, sizeof(rawVertices));
-
-
+    // for each sentence
     for (index idx = 0; idx < numDbgConstStr_; ++idx)
     {
         const DbgConstSentence& sentence = dbgConstSentences_[idx];
-        const size len              = (size)strlen(sentence.text);
-        const size numVertices      = len * vertsPerChar;
+        const size           numVertices = strlen(sentence.text) * vertsPerChar;
 
         // rebuild vertices for this sentence
         pFont_->BuildVertexArray(
-            rawVertices + vOffset,
+            vertices + vOffset,
             numVertices,
             sentence.text,
             sentence.drawAtX,
@@ -131,7 +119,7 @@ void TextStore::RebuildConstVB(ID3D11Device* pDevice)
         
         if (vOffset + numVertices >= MAX_NUM_VERTICES_IN_DBG_TEXT)
         {
-            LogErr(LOG, "too much vertices for the vertex buffer of debug const sentences");
+            LogErr(LOG, "VB overflow");
             idx = numDbgConstStr_;   // go out from the for-loop
         }
 
@@ -144,11 +132,9 @@ void TextStore::RebuildConstVB(ID3D11Device* pDevice)
     // REinit a VB for const sentences
     vbDbgConstText_.Shutdown();
 
-    const bool isDynamic = false;
-    if (!vbDbgConstText_.Initialize(pDevice, rawVertices, (int)vOffset, !isDynamic))
+    if (!vbDbgConstText_.Init(vertices, (int)vOffset, isDynamicVB))
     {
-        LogErr(LOG, "can't create a const vertex buffer for debug text");
-        return;
+        LogFatal(LOG, "can't create a VB for debug const text");
     }
 }
 
@@ -156,20 +142,20 @@ void TextStore::RebuildConstVB(ID3D11Device* pDevice)
 // Desc:  rebuild vertices for updated dynamic strings
 //        and also update the vertex buffer with these new vertices
 //---------------------------------------------------------
-void TextStore::RebuildDynVB(ID3D11DeviceContext* pContext)
+void TextStore::RebuildDynVB()
 {
-    constexpr size vertsPerChar = 4;
-    index vOffset = 0;                    // offset in the buf of raw vertices
+    constexpr size            vertsPerChar = 4;      // number of vertices per each character
+    index                     vOffset = 0;           // offset in the buf of raw vertices
+    cvector<Core::VertexFont> verticesArr(MAX_NUM_VERTICES_IN_DBG_TEXT);
+    Core::VertexFont*         vertices = verticesArr.data();
 
-    Core::VertexFont vertices[MAX_NUM_VERTICES_IN_DBG_TEXT];
-    memset(vertices, 0, sizeof(vertices));
+    memset(vertices, 0, MAX_NUM_VERTICES_IN_DBG_TEXT * sizeof(Core::VertexFont));
 
+    // for each sentence
     for (index idx = 0; idx < numDbgDynStr_; ++idx)
     {
-        // number of vertices for the current sentence
         const DbgDynamicSentence& sentence = dbgDynSentences_[idx];
-        const size len                     = (size)strlen(sentence.text);
-        const size numVertices             = len * vertsPerChar;
+        const size             numVertices = strlen(sentence.text) * vertsPerChar;
 
         // rebuild vertices for this sentence
         pFont_->BuildVertexArray(
@@ -181,7 +167,7 @@ void TextStore::RebuildDynVB(ID3D11DeviceContext* pContext)
 
         if (vOffset + numVertices >= MAX_NUM_VERTICES_IN_DBG_TEXT)
         {
-            LogErr(LOG, "too much vertices for the vertex buffer of debug const sentences");
+            LogErr(LOG, "VB overflow");
             idx = numDbgConstStr_;   // go out from the for-loop
         }
 
@@ -191,7 +177,7 @@ void TextStore::RebuildDynVB(ID3D11DeviceContext* pContext)
     // compute actual number of indices (vOffset / vertices_per_sym * indices_per_sym)
     numIndicesDbgDynText_ = (uint)(vOffset / 4 * 6);
 
-    vbDbgDynText_.UpdateDynamic(pContext, vertices, vOffset);
+    vbDbgDynText_.UpdateDynamic(vertices, vOffset);
 }
 
 //---------------------------------------------------------
@@ -206,7 +192,7 @@ SentenceID TextStore::AddDebugConstStr(
 {
     if (StrHelper::IsEmpty(text) || strlen(text) >= MAX_SENTENCE_LEN)
     {
-        LogErr(LOG, "input text is invalid (empty or too big (max: %d))", MAX_SENTENCE_LEN);
+        LogErr(LOG, "input text is invalid (empty or too long (max_len: %d))", MAX_SENTENCE_LEN);
         return 0;
     }
 
@@ -215,7 +201,7 @@ SentenceID TextStore::AddDebugConstStr(
     ++numDbgConstStr_;
 
     // when Update we will rebuild the vertex buffer for const strings
-    needUpdConstVB_ = true;
+    bUpdateConstVB_ = true;
 
     // save text
     DbgConstSentence& sentence = dbgConstSentences_[idx];
@@ -299,21 +285,16 @@ void TextStore::GetRenderingData(
 //---------------------------------------------------------
 // Desc:   update the content of the dynamic text
 //---------------------------------------------------------
-void TextStore::Update(
-    ID3D11DeviceContext* pContext,
-    const Core::SystemState& sysState)
+void TextStore::Update(const Core::SystemState& sysState)
 {
     UpdateDynDbgText(sysState);
-    RebuildDynVB(pContext);
+    RebuildDynVB();
 
     // if we have added a new const string
-    if (needUpdConstVB_)
+    if (bUpdateConstVB_)
     {
-        ID3D11Device* pDevice = nullptr;
-        pContext->GetDevice(&pDevice);
-        RebuildConstVB(pDevice);
-
-        needUpdConstVB_ = false;
+        RebuildConstVB();
+        bUpdateConstVB_ = false;
     }
 }
 
@@ -322,7 +303,8 @@ void TextStore::Update(
 //---------------------------------------------------------
 void TextStore::UpdateStrByKey(const char* key, const char* fmt, const float val)
 {
-    assert(key && fmt && "input key or format == nullptr");
+    assert(!StrHelper::IsEmpty(key));
+    assert(!StrHelper::IsEmpty(fmt));
 
     if (char* str = GetDynStr(key))
         snprintf(str, MAX_SENTENCE_LEN, fmt, val);
@@ -332,7 +314,8 @@ void TextStore::UpdateStrByKey(const char* key, const char* fmt, const float val
 
 void TextStore::UpdateStrByKey(const char* key, const char* fmt, const int val)
 {
-    assert(key && fmt && "input key or format == nullptr");
+    assert(!StrHelper::IsEmpty(key));
+    assert(!StrHelper::IsEmpty(fmt));
 
     if (char* str = GetDynStr(key))
         snprintf(str, MAX_SENTENCE_LEN, fmt, val);
@@ -342,7 +325,8 @@ void TextStore::UpdateStrByKey(const char* key, const char* fmt, const int val)
 
 void TextStore::UpdateStrByKey(const char* key, const char* fmt, const uint32 val)
 {
-    assert(key && fmt && "input key or format == nullptr");
+    assert(!StrHelper::IsEmpty(key));
+    assert(!StrHelper::IsEmpty(fmt));
 
     if (char* str = GetDynStr(key))
         snprintf(str, MAX_SENTENCE_LEN, fmt, val);
@@ -355,7 +339,7 @@ void TextStore::UpdateStrByKey(const char* key, const char* fmt, const uint32 va
 //---------------------------------------------------------
 void TextStore::UpdateDynTiming(const char* key, const float avgTiming)
 {
-    assert(key != nullptr);
+    assert(!StrHelper::IsEmpty(key));
 
     if (char* str = GetDynStr(key))
         snprintf(str, MAX_SENTENCE_LEN, "%05.2f ms", avgTiming);
@@ -366,7 +350,7 @@ void TextStore::UpdateDynTiming(const char* key, const float avgTiming)
 //-----------------------------------------------------
 inline char* TextStore::GetDynStr(const char* key)
 {
-    assert(key && key[0] != '\0');
+    assert(!StrHelper::IsEmpty(key));
 
     for (index i = 0; i < numDbgDynStr_; ++i)
     {
@@ -383,7 +367,7 @@ inline char* TextStore::GetDynStr(const char* key)
 //-----------------------------------------------------
 inline index TextStore::GetDynStrIdx(const char* key)
 {
-    assert(key && key[0] != '\0');
+    assert(!StrHelper::IsEmpty(key));
 
     for (index i = 0; i < numDbgDynStr_; ++i)
     {

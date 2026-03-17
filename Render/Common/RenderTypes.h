@@ -144,16 +144,27 @@ struct PerFrameData
 class InstancesBuf
 {
 public:
-    DirectX::XMMATRIX* worlds_    = nullptr;  
-    MaterialColors*    materials_ = nullptr;  // material color data (ambient/diffuse/specular/reflection/etc.)
+    DirectX::XMMATRIX* worlds_;  
+    MaterialColors*    materials_;   // material color data (ambient/diffuse/specular/reflection/etc.)
 
 private:
-    int                capacity_ = 0;               // how many elements we can put into this buffer
-    int                size_ = 0;                   // the current number of data elements
+    int                capacity_;    // how many elements we can put into this buffer
+    int                size_;        // the current number of data elements
+
 
 public:
-    InstancesBuf()  {}
-    ~InstancesBuf() { Shutdown(); }
+    InstancesBuf() :
+        worlds_(nullptr),
+        materials_(nullptr),
+        capacity_(0),
+        size_(0)
+    {
+    }
+
+    ~InstancesBuf()
+    {
+        Shutdown();
+    }
 
     // ---------------------------------------------------
 
@@ -169,14 +180,14 @@ public:
 
     void Resize(const int newSize)
     {
+        if (newSize < 0)
+        {
+            LogErr(LOG, "wrong value of a new size: %d", newSize);
+            return;
+        }
+
         try
         {
-            if (newSize < 0)
-            {
-                sprintf(g_String, "wrong value of new size: %d", newSize);
-                throw EngineException(g_String);
-            }
-
             // if we need a reallocation (or just do nothing if we have enough memory)
             if (newSize > capacity_)
             {
@@ -194,14 +205,14 @@ public:
         catch (const std::bad_alloc& e)
         {
             Shutdown();
-            LogErr(e.what());
-            LogErr("can't allocate memory for the instanced transient data buffer");
+            LogErr(LOG, e.what());
+            LogErr(LOG, "can't alloc mem for the instanced transient data buffer");
         }
         catch (EngineException& e)
         {
             Shutdown();
-            LogErr(e);
-            LogErr("can't setup instanced transient data buffer");
+            LogErr(LOG, e.what());
+            LogErr(LOG, "can't setup instanced transient data buffer");
         }
     }
 
@@ -218,10 +229,10 @@ struct Subset
     // for debugging
     char    name[MAX_LEN_MESH_NAME] {'\0'};
 
-    uint32  vertexStart = 0;                             // start pos of vertex in the common buffer
-    uint32  vertexCount = 0;                             // how many vertices this subset has
-    uint32  indexStart = 0;                              // start pos of index in the common buffer
-    uint32  indexCount = 0;                              // how many indices this subset has
+    uint32  vertexStart = 0;        // start pos of vertex in the common buffer
+    uint32  vertexCount = 0;        // how many vertices this subset has
+    uint32  indexStart = 0;         // start pos of index in the common buffer
+    uint32  indexCount = 0;         // how many indices this subset has
 };
 
 //---------------------------------------------------------
@@ -231,25 +242,43 @@ struct Subset
 //---------------------------------------------------------
 struct InstanceBatch
 {
-    ShaderID               shaderId     = 0;
-    ModelID                modelId      = INVALID_MODEL_ID;
-    SubmeshID              subsetId     = UINT16_MAX;
-    uint32                 numInstances = 1;             // how many times this instance will be rendered (at different positions)
-    UINT                   vertexStride = 0;             // size in bytes of a single vertex
+    InstanceBatch() :
+        primTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST),
+        shaderId(0),
+        modelId(INVALID_MODEL_ID),
+        subsetId(UINT16_MAX),
+        numInstances(1),
+        vertexStride(0),
+        pVB(nullptr),
+        pIB(nullptr),
+        rsId(0),
+        bsId(0),
+        dssId(0),
+        alphaClip(false)
+    {
+        memset(name, 0, sizeof(name));
+    }
 
-    ID3D11Buffer*          pVB = nullptr;                // vertex buffer
-    ID3D11Buffer*          pIB = nullptr;                // index buffer
-    Subset                 subset;                       // mesh metadata
-    SRV*                   textures[NUM_TEXTURE_TYPES];  // textures of this material
+    D3D11_PRIMITIVE_TOPOLOGY primTopology;
+    ShaderID                 shaderId;                      // which shader to use
+    ModelID                  modelId;                       // which model to use
+    SubmeshID                subsetId;                      // index of model's mesh to use 
+    uint32                   numInstances;                  // how many times this geometry will be rendered as different instances
+    UINT                     vertexStride;                  // size in bytes of a single vertex
 
-    // debug data
-    char                   name[32]{ '\0' };
+    ID3D11Buffer*            pVB;                           // vertex buffer
+    ID3D11Buffer*            pIB;                           // index buffer
+    Subset                   subset;                        // mesh metadata
+    SRV*                     textures[NUM_TEXTURE_TYPES];
 
     // render states
-    RsID          rsId = 0;
-    BsID           bsId = 0;
-    DssID    dssId = 0;
-    bool                   alphaClip = false;
+    RsID  rsId;
+    BsID  bsId;
+    DssID dssId;
+    bool  alphaClip;
+
+    // debug data
+    char name[32];
 };
 
 //---------------------------------------------------------
@@ -279,8 +308,6 @@ struct TerrainInstance
     UINT           vertexStride  = 0;
     ID3D11Buffer*  pVB           = nullptr;
     ID3D11Buffer*  pIB           = nullptr;
-    //SRV*           skyBoxTexture = nullptr;
-    //SRV*           textures[NUM_TEXTURE_TYPES]{nullptr};
     MaterialColors matColors;
     bool           wantDebug = false;
 };

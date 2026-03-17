@@ -19,7 +19,7 @@
 namespace Core
 {
 
-class BasicModel;
+class Model;
 
 //---------------------------------------------------------
 
@@ -29,7 +29,7 @@ public:
     ModelExporter();
 
     bool ExportIntoDE3D(
-        const BasicModel* pModel,
+        const Model* pModel,
         const char* targetDir,
         const char* targetName);
 };

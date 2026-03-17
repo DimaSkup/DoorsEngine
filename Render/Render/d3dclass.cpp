@@ -33,8 +33,7 @@ D3DClass::D3DClass()
 {
     if (D3DClass::pInstance_ != nullptr)
     {
-        LogErr(LOG, "you can't create more than only one instance of the D3DClass");
-        exit(0);
+        LogFatal(LOG, "you can't create more than only one instance of the D3DClass");
     }
 
     D3DClass::pInstance_ = this;
@@ -50,7 +49,7 @@ D3DClass::~D3DClass()
 // Desc:   initialize all the DirectX11 stuff, some common params, depth-stencil, etc.
 // Ret:    true if we managed to initialize
 //---------------------------------------------------------
-bool D3DClass::Initialize(
+bool D3DClass::Init(
     HWND hwnd, 
     const bool vsyncEnabled,
     const bool fullScreen,
@@ -65,8 +64,7 @@ bool D3DClass::Initialize(
         // check if we have any available IDXGI adapter
         if (adaptersReader_.GetNumAdapters() <= 1)
         {
-            LogDbg(LOG, "can't find any IDXGI adapter");
-            exit(0);
+            LogFatal(LOG, "can't find any IDXGI adapter");
         }
 
         // set adapter idx (if there is any discrete graphics adapter we use this discrete adapter as primary)
@@ -88,11 +86,9 @@ bool D3DClass::Initialize(
             RECT clientRect;
 
             //Retrieves the client area of the window, which tells us its renderable width and height
-            bool result = GetClientRect(hwnd, &clientRect);
-            if (!result)
+            if (!GetClientRect(hwnd, &clientRect))
             {
-                LogErr(LOG, "can't get the client rectangle params");
-                exit(0);
+                LogFatal(LOG, "can't get the client rectangle params");
             }
         
             wndWidth_  = clientRect.right - clientRect.left;
@@ -125,8 +121,8 @@ bool D3DClass::Initialize(
     }
     catch (EngineException& e)
     {
-        LogErr(e, true);
         Shutdown();
+        LogErr(LOG, e.what());
         return false;
     }
 
@@ -257,20 +253,17 @@ void D3DClass::InitDirectX(
         // check input args
         if ((wndWidth == 0) || (wndHeight == 0))
         {
-            LogErr(LOG, "wrong window dimensions (%u x %u)", wndWidth, wndHeight);
-            exit(0);
+            LogFatal(LOG, "wrong window dimensions (%u x %u)", wndWidth, wndHeight);
         }
 
         if (nearZ <= 0)
         {
-            LogErr(LOG, "near plane can't be <= 0 (your value: %f)", nearZ);
-            exit(0);
+            LogFatal(LOG, "near plane can't be <= 0 (your value: %f)", nearZ);
         }
 
         if (farZ <= nearZ)
         {
-            LogErr(LOG, "far plane can't be <= near plane (far: %f; near: %f)", farZ, nearZ);
-            exit(0);
+            LogFatal(LOG, "far plane can't be <= near plane (far: %f; near: %f)", farZ, nearZ);
         }
 
         // create the Direct3D 11 device and context
@@ -286,7 +279,7 @@ void D3DClass::InitDirectX(
     }
     catch (EngineException& e)
     {
-        LogErr(e, true);
+        LogErr(LOG, e.what());
         throw EngineException("can't initialize DirectX stuff");
     }
 }
@@ -331,22 +324,19 @@ void D3DClass::InitDevice()
 
     if (FAILED(hr))
     {
-        LogErr(LOG, "failed to create DX11 device");
-        exit(0);
+        LogFatal(LOG, "failed to create DX11 device");
     }
 
     if (actualFeatureLevel < D3D_FEATURE_LEVEL_10_0)
     {
-        LogErr(LOG, "the engine supports Direct3D Feature Level >= 10_0 (your level is %u; look at D3D_FEATURE_LEVEL enum)", (UINT)actualFeatureLevel);
-        exit(0);
+        LogFatal(LOG, "the engine supports Direct3D Feature Level >= 10_0 (your level is %u; look at D3D_FEATURE_LEVEL enum)", (UINT)actualFeatureLevel);
     }
 
     // now that we have a created device, we can check the quality level support for 4X MSAA.
     hr = pDevice_->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, 4, &m4xMsaaQuality_);
     if (FAILED(hr))
     {
-        LogErr(LOG, "the multisample quality level number must be > 0");
-        exit(0);
+        LogFatal(LOG, "the multisample quality level number must be > 0");
     }
 
     // also initialize the global pointers to device and device context
@@ -417,8 +407,8 @@ bool D3DClass::ResizeSwapChain(HWND hwnd, const UINT width, const UINT height)
     }
     catch (EngineException& e)
     {
-        LogErr(e, true);
         Shutdown();
+        LogErr(LOG, e.what());
         return false;
     }
 
@@ -465,8 +455,7 @@ void D3DClass::SetAntiAliasingType(const uint8 type)
             HRESULT hr = pDevice_->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, 4, &m4xMsaaQuality_);
             if (FAILED(hr))
             {
-                LogErr(LOG, "the multisample quality level number must be > 0");
-                exit(0);
+                LogFatal(LOG, "the multisample quality level number must be > 0");
             }
 
             break;
@@ -521,43 +510,39 @@ void D3DClass::InitSwapChain(HWND hwnd, const int width, const int height)
 
     // for creation of the swap chain we have to use the IDXGIFactory instance that was
     // used to create the device
-    IDXGIDevice* pDxgiDevice = nullptr;
+    IDXGIDevice* pDxgiDevice   = nullptr;
+    IDXGIAdapter* pDxgiAdapter = nullptr;
+    IDXGIFactory* pDxgiFactory = nullptr;
+
     hr = pDevice_->QueryInterface(__uuidof(IDXGIDevice), (void**)&pDxgiDevice);
     if (FAILED(hr))
     {
-        LogErr(LOG, "can't get the interface of DXGI Device");
-        exit(0);
+        LogFatal(LOG, "can't get the interface of DXGI Device");
     }
 
-    IDXGIAdapter* pDxgiAdapter = nullptr;
     hr = pDxgiDevice->GetParent(__uuidof(IDXGIAdapter), (void**)&pDxgiAdapter);
     if (FAILED(hr))
     {
-        LogErr(LOG, "can't get the interface of DXGI Adapter");
-        exit(0);
+        LogFatal(LOG, "can't get the interface of DXGI Adapter");
     }
 
     // finally go the IDXGIFactory interface
-    IDXGIFactory* pDxgiFactory = nullptr;
     hr = pDxgiAdapter->GetParent(__uuidof(IDXGIFactory), (void**)&pDxgiFactory);
     if (FAILED(hr))
     {
-        LogErr(LOG, "can't get the interface of DXGI Factory");
-        exit(0);
+        LogFatal(LOG, "can't get the interface of DXGI Factory");
     }
 
     // Create the swap chain
     hr = pDxgiFactory->CreateSwapChain(pDevice_, &sd, &pSwapChain_);
     if (FAILED(hr))
     {
-        LogErr(LOG, "can't create a swap chain");
-        exit(0);
+        LogFatal(LOG, "can't create a swap chain");
     }
 
     if (!pSwapChain_)
     {
-        LogErr(LOG, "something went wrong during creation of the swap chain because swap chaing ptr == NULL");
-        exit(0);
+        LogFatal(LOG, "something went wrong during creation of the swap chain because swap chaing ptr == NULL");
     }
 
     // release our acquired COM interfaces (because we are done with them)
@@ -572,39 +557,39 @@ void D3DClass::InitSwapChain(HWND hwnd, const int width, const int height)
 void D3DClass::InitRenderTargetView(const UINT width, const UINT height)
 {
     HRESULT hr = S_OK;
-        
-    // obtain a ptr to the swap chain's back buffer which we will use as a render target
     ID3D11Texture2D* pBackBuffer = nullptr;
+    UINT qualityLevels = 0;
+
+
+    // obtain a ptr to the swap chain's back buffer which we will use as a render target
     hr = pSwapChain_->GetBuffer(0, __uuidof(ID3D11Texture2D), (VOID**)&pBackBuffer);
     if (FAILED(hr))
     {
-        LogErr(LOG, "can't get a buffer from the swap chain");
-        exit(0);
+        LogFatal(LOG, "can't get a buffer from the swap chain");
     }
 
     // create a render target view 
-    if (pBackBuffer)
+    if (!pBackBuffer)
     {
-        hr = pDevice_->CreateRenderTargetView(pBackBuffer, nullptr, &pSwapChainRTV_);
-        if (FAILED(hr))
-        {
-            LogErr(LOG, "can't create a render target view");
-            Shutdown();
-            exit(0);
-        }
+        LogFatal(LOG, "can't get a ptr to the back buffer of the swap chain");
+    }
+
+    hr = pDevice_->CreateRenderTargetView(pBackBuffer, nullptr, &pSwapChainRTV_);
+    if (FAILED(hr))
+    {
+        Shutdown();
+        LogFatal(LOG, "can't create a render target view");
     }
 
     SafeRelease(&pBackBuffer);
 
     //-----------------------------------------------------
 
-    UINT qualityLevels = 0;
     hr = pDevice_->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, 4, &qualityLevels);
     if (FAILED(hr))
     {
-        LogErr(LOG, "can't get multisample quality levels");
         Shutdown();
-        exit(0);
+        LogFatal(LOG, "can't get multisample quality levels");
     }
 
     // create MSAA render target
@@ -624,9 +609,8 @@ void D3DClass::InitRenderTargetView(const UINT width, const UINT height)
     hr = pDevice_->CreateTexture2D(&desc, nullptr, &pMSAAColorTex_);
     if (FAILED(hr))
     {
-        LogErr(LOG, "can't create MSAA color texture");
         Shutdown();
-        exit(0);
+        LogFatal(LOG, "can't create MSAA color texture");
     }
 
     D3D11_RENDER_TARGET_VIEW_DESC rtvMsDesc = {};
@@ -636,20 +620,19 @@ void D3DClass::InitRenderTargetView(const UINT width, const UINT height)
     hr = pDevice_->CreateRenderTargetView(pMSAAColorTex_, &rtvMsDesc, &pMSAARTV_);
     if (FAILED(hr))
     {
-        LogErr(LOG, "can't create MSAA render target");
         Shutdown();
-        exit(0);
+        LogFatal(LOG, "can't create MSAA render target");
     }
 
     D3D11_SHADER_RESOURCE_VIEW_DESC srvMsDesc = {};
     srvMsDesc.Format = desc.Format;
     srvMsDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMS;
+
     hr = pDevice_->CreateShaderResourceView(pMSAAColorTex_, &srvMsDesc, &pMSAASRV_);
     if (FAILED(hr))
     {
-        LogErr(LOG, "can't create MSAA SRV");
         Shutdown();
-        exit(0);
+        LogFatal(LOG, "can't create MSAA SRV");
     }
 
     //-----------------------------------------------------
@@ -673,9 +656,8 @@ void D3DClass::InitRenderTargetView(const UINT width, const UINT height)
         hr = pDevice_->CreateTexture2D(&desc, nullptr, &postFxsPassTex_[i]);
         if (FAILED(hr))
         {
-            LogErr(LOG, "can't create a texture for post effects (%d)", i);
             Shutdown();
-            exit(0);
+            LogFatal(LOG, "can't create a texture for post effects (%d)", i);
         }
 
         // create render target view (RTV)
@@ -686,9 +668,8 @@ void D3DClass::InitRenderTargetView(const UINT width, const UINT height)
         hr = pDevice_->CreateRenderTargetView(postFxsPassTex_[i], &rtvDesc, &postFxsPassRTV_[i]);
         if (FAILED(hr))
         {
-            LogErr(LOG, "can't create render target (RTV) for post effects (%d)", i);
             Shutdown();
-            exit(0);
+            LogFatal(LOG, "can't create render target (RTV) for post effects (%d)", i);
         }
 
         // create shader resource view (SRV)
@@ -701,9 +682,8 @@ void D3DClass::InitRenderTargetView(const UINT width, const UINT height)
         hr = pDevice_->CreateShaderResourceView(postFxsPassTex_[i], &srvDesc, &postFxsPassSRV_[i]);
         if (FAILED(hr))
         {
-            LogErr(LOG, "can't create shader resource view (SRV) for post effects (%d)", i);
             Shutdown();
-            exit(0);
+            LogFatal(LOG, "can't create shader resource view (SRV) for post effects (%d)", i);
         }
     } // for
 }
@@ -731,10 +711,8 @@ void D3DClass::InitDepthStencil(const UINT width, const UINT height)
     }
     catch (EngineException& e)
     {
-        LogErr(e, true);
         Shutdown();
-        exit(0);
-        throw EngineException("can't initialize some of the depth/stencil elements");
+        LogFatal(LOG, e.what());
     }
 }
 
@@ -891,9 +869,8 @@ void D3DClass::InitDepthPrepassTargets(
     HRESULT hr = pDevice_->CreateTexture2D(&desc, nullptr, &pNormalDepthTex_);
     if (FAILED(hr))
     {
-        LogErr(LOG, "can't create the normal/depth texture");
         Shutdown();
-        exit(0);
+        LogFatal(LOG, "can't create the normal/depth texture");
     }
 
      // create render target view (RTV)
@@ -907,11 +884,9 @@ void D3DClass::InitDepthPrepassTargets(
     hr = pDevice_->CreateRenderTargetView(pNormalDepthTex_, &rtvDesc, &pNormalDepthRTV_);
     if (FAILED(hr))
     {
-        LogErr(LOG, "can't create render target (RTV) for normal/depth");
         Shutdown();
-        exit(0);
+        LogFatal(LOG, "can't create render target (RTV) for normal/depth");
     }
-
 
 
     // create shader resource view (SRV)
@@ -927,9 +902,8 @@ void D3DClass::InitDepthPrepassTargets(
     hr = pDevice_->CreateShaderResourceView(pNormalDepthTex_, &srvDesc, &pNormalDepthSRV_);
     if (FAILED(hr))
     {
-        LogErr(LOG, "can't create shader resource view (SRV) for normal/depth");
         Shutdown();
-        exit(0);
+        LogFatal(LOG, "can't create shader resource view (SRV) for normal/depth");
     }
 }
 
@@ -1023,11 +997,13 @@ bool D3DClass::ToggleFullscreen(HWND hwnd, bool isFullscreen)
     }
     catch (EngineException& e)
     {
-        LogErr(e);
+        LogErr(LOG, e.what());
         LogErr(LOG, "error during switching WINDOWED/FULL_SCREEN mode");
         return false;
     }
 }
+
+//---------------------------------------------------------
 
 void D3DClass::ReleaseTargets()
 {

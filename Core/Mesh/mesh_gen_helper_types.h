@@ -7,16 +7,6 @@
 
 struct MeshGeometryParams {};
 
-struct MeshWavesParams : public MeshGeometryParams
-{
-	float spatialStep;
-	float timeStep;
-	float speed;
-	float damping;
-	int numRows;
-	int numColumns;
-};
-
 ///////////////////////////////////////////////////////////
 
 struct MeshCylinderParams : public MeshGeometryParams
@@ -24,23 +14,23 @@ struct MeshCylinderParams : public MeshGeometryParams
 	MeshCylinderParams() {}
 
 	MeshCylinderParams(
-		float bottomRadius,
-		float topRadius,
-		float height,
-		int numSlices,
-		int numStacks) 
+		float _bottomRadius,
+		float _topRadius,
+		float _height,
+		int _numSlices,
+		int _numStacks)
 		:
-		bottomRadius_(bottomRadius),
-		topRadius_(topRadius),
-		height_(height),
-		sliceCount_(numSlices),
-		stackCount_(numStacks) {}
+		bottomRadius(_bottomRadius),
+		topRadius(_topRadius),
+		height(_height),
+		sliceCount(_numSlices),
+		stackCount(_numStacks) {}
 
-	float bottomRadius_ = 0.5f;
-	float topRadius_ = 0.3f;
-	float height_ = 3;
-	int sliceCount_ = 10;
-	int stackCount_ = 10;
+	float bottomRadius = 0.5f;
+	float topRadius    = 0.3f;
+	float height       = 3;
+	int   sliceCount   = 10;
+	int   stackCount   = 10;
 };
 
 ///////////////////////////////////////////////////////////
@@ -49,12 +39,12 @@ struct MeshSphereParams : public MeshGeometryParams
 {
 	MeshSphereParams() {}
 
-	MeshSphereParams(float radius, int sliceCount, int stackCount)
-		: radius_(radius), sliceCount_(sliceCount),	stackCount_(stackCount) {}
+	MeshSphereParams(float _radius, int _sliceCount, int _stackCount)
+		: radius(_radius), sliceCount(_sliceCount),	stackCount(_stackCount) {}
 
-	float radius_ = 0.5f;
-	int sliceCount_ = 10;
-	int stackCount_ = 10;
+	float radius     = 0.5f;
+	int   sliceCount = 10;
+	int   stackCount = 10;
 };
 
 ///////////////////////////////////////////////////////////
@@ -63,11 +53,11 @@ struct MeshGeosphereParams : public MeshGeometryParams
 {
 	MeshGeosphereParams() {}
 
-	MeshGeosphereParams(float radius, int numSubdivisions)
-		: radius_(radius), numSubdivisions_(numSubdivisions) {}
+	MeshGeosphereParams(float _radius, int _numSubdivisions)
+		: radius(_radius), numSubdivisions(_numSubdivisions) {}
 
-	float radius_ = 1.0f;
-	int numSubdivisions_ = 10;   // defatization level
+	float radius = 1.0f;
+	int numSubdivisions = 10;   // defatization level
 };
 
 ///////////////////////////////////////////////////////////

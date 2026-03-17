@@ -18,16 +18,18 @@
 struct CameraParams
 {
     // position in world
-    float posX          = 0.0f;;
-    float posY          = 0.0f;;
-    float posZ          = 0.0f;;
+    float posX;
+    float posY;
+    float posZ;
 
-    float fov           = 0.0f;
-    float aspectRatio   = 0.0f;
-    float nearZ         = 0.0f;
-    float farZ          = 0.0f;
+    // camera params
+    float fov;
+    float aspect;
+    float zn;       // dist to near clipping plane (by Z-axis)
+    float zf;       // dist to far clipping plane (by Z-axis)
 
-    // view and projection matrix
-    float view[16]{ 0 };
-    float proj[16]{ 0 };
+    // view, inverse view, and projection matrix
+    float view[16];
+    float invView[16];
+    float proj[16];
 };

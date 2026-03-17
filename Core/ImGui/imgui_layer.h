@@ -18,7 +18,7 @@ class ImGuiLayer
 public:
 	ImGuiLayer();
 
-	bool Initialize(HWND hwnd, ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
+	bool Init(HWND hwnd, ID3D11Device* pDevice, ID3D11DeviceContext* pCtx);
 	void Shutdown();
 
 	void Begin();
@@ -27,15 +27,13 @@ public:
 	void SetDarkThemeColors();
 	void SetDefaultThemeColors();
 
-	ImVec4 GetBackgroundColor() const { return mainBgColor_; }
-
-	ImGuiContext* GetContext() { return pImGuiContext_; }
+	inline ImVec4        GetBgColor() const { return mainBgColor_; }
+	inline ImGuiContext* GetContext()       { return pImGuiContext_; }
 
 private:
 	// we use this color to set ImGui background color when rendering
 	// because after rendering we have to reset ImGui windowBgColor
-	ImVec4 mainBgColor_ = { 0,0,0,1 };  
-
+	ImVec4        mainBgColor_ = { 0,0,0,1 };  
 	ImGuiContext* pImGuiContext_ = nullptr;
 };
 

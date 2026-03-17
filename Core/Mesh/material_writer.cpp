@@ -154,7 +154,7 @@ void WriteTextures(FILE* pFile, const Material& mat)
             }
         }
 
-        Texture& tex = g_TextureMgr.GetTexByID(mat.texIds[i]);
+        Texture& tex = g_TextureMgr.GetTexById(mat.texIds[i]);
         fprintf(pFile, "%s.dds\n", tex.GetName().c_str());
     }
 }

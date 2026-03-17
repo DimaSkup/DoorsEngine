@@ -2643,7 +2643,7 @@ HRESULT DirectX::Internal::ConvertFromR32G32B32A32(
 
     TexMetadata mdata2 = metadata;
     mdata2.format = format;
-    HRESULT hr = result.Initialize(mdata2);
+    HRESULT hr = result.Init(mdata2);
     if (FAILED(hr))
         return hr;
 
@@ -5229,7 +5229,7 @@ HRESULT DirectX::ConvertEx(
 
     TexMetadata mdata2 = metadata;
     mdata2.format = format;
-    HRESULT hr = result.Initialize(mdata2);
+    HRESULT hr = result.Init(mdata2);
     if (FAILED(hr))
         return hr;
 
@@ -5466,7 +5466,7 @@ HRESULT DirectX::ConvertToSinglePlane(
 
     TexMetadata mdata2 = metadata;
     mdata2.format = format;
-    HRESULT hr = result.Initialize(mdata2);
+    HRESULT hr = result.Init(mdata2);
     if (FAILED(hr))
         return hr;
 

@@ -36,9 +36,13 @@ public:
     void Render(bool* pOpen);
 
 private:
+    void DrawNumFramesSelector();
+
+private:
     IFacadeEngineToUI* pFacade_ = nullptr;
 
-    int   selectedModelIdx_      = -1;
+    uint  frames_                = 16;      // by default make a texture atlas with 16 views
+    int   selectedModelIdx_      = -1;      // make screenshoot of this model
     bool  renderModelsNamesList_ = false;
 
 };

@@ -27,7 +27,7 @@ TexID TextureMgr::lastTexID_ = 0;
 TextureMgr::TextureMgr()
 {
     // reserve some memory ahead
-    const size reserve = 128;
+    const size reserve = 256;
 
     ids_.reserve(reserve);
     names_.reserve(reserve);
@@ -54,12 +54,16 @@ void TextureMgr::PrintDump() const
 
     for (int i = 0; i < (int)ids_.size(); ++i)
     {
+        const TexID id   = ids_[i];
+        const char* name = names_[i].c_str();
+        
         // [idx]: (id: ID) Name: tex_name)
-        printf("[%d]: (id: %6" PRIu32 ") Name:%-32s\n", i, ids_[i], names_[i].c_str());
+        printf("[%d]: (id: %6" PRIu32 ") Name:%-32s\n", i, id, name);
     }
 
     printf("\n");
 }
+
 
 // =================================================================================
 // Public API: initialization/adding/loading/creation
@@ -93,7 +97,6 @@ bool TextureMgr::Init(const char* texturesCfg)
         LogErr(LOG, "can't open config for textures: %s", texturesCfg);
         exit(0);
     }
-
     
 
     // skip comments block
@@ -159,7 +162,7 @@ bool TextureMgr::Init(const char* texturesCfg)
 
 //-----------------------------------------------------
 // Desc:  check that input texture name is unique
-//        (so we currently don't have a texture with such name)
+//        (to prevent names duplication)
 //-----------------------------------------------------
 bool TextureMgr::IsTexNameUnique(const char* texName) const
 {
@@ -169,15 +172,15 @@ bool TextureMgr::IsTexNameUnique(const char* texName) const
         return false;
     }
 
-    bool unique = true;
+    bool bUnique = true;
 
     // check all the names
     for (const std::string& name : names_)
     {
-        unique &= (strcmp(name.c_str(), texName) != 0);
+        bUnique &= (strcmp(name.c_str(), texName) != 0);
     }
 
-    return unique;
+    return bUnique;
 }
 
 // --------------------------------------------------------
@@ -195,9 +198,13 @@ void ConvertInto32bits(
     const int bpp,
     cvector<uint8>& outData)
 {
+    assert(data != nullptr);
+    
     const uint bytesPerPixel = 4;
     const uint numPixels     = width * height;
     const uint sizeInBytes   = numPixels * bytesPerPixel;
+    int i1 = 0;
+    int i2 = 0;
 
     // alloc memory for the output 32 bits image data
     outData.resize(sizeInBytes, 0);
@@ -205,7 +212,7 @@ void ConvertInto32bits(
     // convert 24 bits => 32 bits
     if (bpp == 24)
     {
-        for (int i = 0, i1 = 0, i2 = 0; i < (int)numPixels; i++, i1 = i * 4, i2 = i * 3)
+        for (int i = 0; i < (int)numPixels; i++, i1 = i * 4, i2 = i * 3)
         {
             // convert from RGB to RGBA
             outData[i1 + 0] = data[i2 + 0];        // R
@@ -217,7 +224,7 @@ void ConvertInto32bits(
     // convert 8 bits => 32 bits (it will be a grayscale image)
     else if (bpp == 8)
     {
-        for (int i = 0, i1 = 0, i2 = 0; i < (int)numPixels; i++, i1 = i * 4, i2++)
+        for (int i = 0; i < (int)numPixels; i++, i1 = i * 4, i2++)
         {
             // convert from RGB to RGBA
             outData[i1 + 0] = data[i2 + 0];        // R
@@ -263,8 +270,8 @@ TexID TextureMgr::CreateTextureFromRawData(
         // if we want to create mipmaps
         if (mipMapped)
         {
-            CAssert::True(IsPow2(width),  "input width must be a power of 2");
-            CAssert::True(IsPow2(height), "input height must be a power of 2");
+            CAssert::True(IS_POW2(width),  "input width must be a power of 2");
+            CAssert::True(IS_POW2(height), "input height must be a power of 2");
         }
         // create a texture with only one mipmap
         else
@@ -274,14 +281,14 @@ TexID TextureMgr::CreateTextureFromRawData(
         }
 
 
-        // we already have a 32 bits image
         if (bpp == 32)
         {
+            // we already have a 32 bits image
             initData = (uint8*)data;
         }
-        // we need to convert from 8 or 24 bits into 32 bits image data
         else
         {
+            // we need to convert from 8 or 24 bits into 32 bits image data
             ConvertInto32bits(data, width, height, bpp, convertedData);
             initData = convertedData.data();
         }
@@ -289,18 +296,18 @@ TexID TextureMgr::CreateTextureFromRawData(
         // create a DirectX texture
         Texture texture(name, initData, width, height, mipMapped);
 
-        // move texture into the textures manager and return an ID of the texture
+        // move texture into the textures manager and return an ID of this texture
         return Add(name, std::move(texture));
     }
     catch (std::bad_alloc& e)
     {
-        LogErr(e.what());
-        LogErr(LOG, "can't allocate memory for the texture: %s", name);
+        LogErr(LOG, e.what());
+        LogErr(LOG, "can't alloc mem for the texture: %s", name);
         return INVALID_TEX_ID;
     }
     catch (EngineException& e)
     {
-        LogErr(e);
+        LogErr(LOG, e.what());
         return INVALID_TEX_ID;
     }
 }
@@ -333,19 +340,19 @@ void TextureMgr::RecreateTextureFromRawData(
         // check input params
         CAssert::True(!StrHelper::IsEmpty(name),          "input name is empty");
         CAssert::True(data,                               "input ptr to image data array == nullptr");
-        CAssert::True(IsPow2(width),                      "input width must be a power of 2");
-        CAssert::True(IsPow2(height),                     "input height must be a power of 2");
+        CAssert::True(IS_POW2(width),                     "input width must be a power of 2");
+        CAssert::True(IS_POW2(height),                    "input height must be a power of 2");
         CAssert::True(bpp == 8 || bpp == 24 || bpp == 32, "input number of bits per pixel must be equal to 24 or 32");
-
-
-        // we already have a 32 bits image
+        
         if (bpp == 32)
         {
+            // we already have a 32 bits image
             initData = (uint8*)data;
         }
-        // we need to convert from 8 or 24 bits into 32 bits image data
+        
         else
         {
+            // we need to convert from 8 or 24 bits into 32 bits image data
             ConvertInto32bits(data, width, height, bpp, convertedData);
             initData = convertedData.data();
         }
@@ -355,29 +362,30 @@ void TextureMgr::RecreateTextureFromRawData(
         const TexID id      = GetTexIdByName(texName);
         const index idx     = ids_.get_idx(id);
 
-        if (!IsIdxValid(idx) || idx == 0)
+        if (!ids_.is_valid_index(idx) || idx == 0)
         {
-            LogErr(LOG, "there is no texture by name '%s' in the texture manager", texName);
+            LogErr(LOG, "no texture by name '%s' in the texture manager", texName);
+            return;
         }
 
         // init texture with raw data
-        if (!inOutTex.Initialize(name, initData, width, height, mipMapped))
+        if (!inOutTex.Init(name, initData, width, height, mipMapped))
         {
-            sprintf(g_String, "can't initialize texture: %s", name);
-            throw EngineException(g_String);
+            LogErr(LOG, "can't init texture: %s", name);
+            return;
         }
 
         // update shader resource view by this texture
-        shaderResourceViews_[idx] = inOutTex.GetTextureResourceView();
+        shaderResourceViews_[idx] = inOutTex.GetResourceView();
     }
     catch (std::bad_alloc& e)
     {
-        LogErr(e.what());
-        LogErr(LOG, "can't allocate memory for the terrain texture: %s", name);
+        LogErr(LOG, e.what());
+        LogErr(LOG, "can't alloc mem for the terrain texture: %s", name);
     }
     catch (EngineException& e)
     {
-        LogErr(e);
+        LogErr(LOG, e.what());
     }
 }
 
@@ -390,15 +398,15 @@ void TextureMgr::SetTexName(const TexID id, const char* inName)
 {
     if (StrHelper::IsEmpty(inName))
     {
-        LogErr(LOG, "input name is empty");
+        LogErr(LOG, "empty name");
         return;
     }
 
     const index idx = ids_.get_idx(id);
 
-    if (!IsIdxValid(idx))
+    if (!ids_.is_valid_index(id))
     {
-        LogErr(LOG, "there is no texture by ID: %" PRIu32, id);
+        LogErr(LOG, "no texture by ID: %" PRIu32, id);
         return;
     }
 
@@ -421,7 +429,7 @@ TexID TextureMgr::Add(const char* name, Texture&& tex)
 {
     if (StrHelper::IsEmpty(name))
     {
-        LogErr(LOG, "input texture name is empty");
+        LogErr(LOG, "empty name");
         return INVALID_TEX_ID;
     }
 
@@ -433,47 +441,16 @@ TexID TextureMgr::Add(const char* name, Texture&& tex)
 
 
     // else we add a new texture
-    id = GenID();
+    id = GenId();
 
+    // store texture into the manager
     ids_.push_back(id);
     names_.push_back(name);
-
     textures_.push_back(std::move(tex));
-    shaderResourceViews_.push_back(textures_.back().GetTextureResourceView());
+    shaderResourceViews_.push_back(textures_.back().GetResourceView());
 
     return id;
 }
-
-
-#if 0
-//---------------------------------------------------------
-// Desc:  load a texture from file and create a texture resource with it
-// Args:  - dirPath:     a directory with textures relatively to the project working directory
-//        - texturePath: path to texture relatively to the dirPath
-// Ret:   an ID to the loaded texture
-//---------------------------------------------------------
-TexID TextureMgr::LoadFromFile(const char* dirPath, const char* texturePath)
-{
-    // check input params
-    if (StrHelper::IsEmpty(dirPath))
-    {
-        LogErr("input path to directory is empty!");
-        return INVALID_TEX_ID;
-    }
-
-    if (StrHelper::IsEmpty(texturePath))
-    {
-        LogErr("input path to texture is empty!");
-        return INVALID_TEX_ID;
-    }
-
-    // create a full path to the texture (relatively to the project working directory) and load this texture
-    memset(g_String, 0, LOG_BUF_SIZE);
-    strcat(g_String, dirPath);
-    strcat(g_String, texturePath);
-    return LoadFromFile(g_String);
-}
-#endif
 
 //---------------------------------------------------------
 // Desc:  load a texture from file and create a texture resource with it
@@ -485,30 +462,31 @@ TexID TextureMgr::LoadFromFile(const char* name, const char* path)
 {
     if (StrHelper::IsEmpty(name))
     {
-        LogErr(LOG, "name is empty");
+        LogErr(LOG, "empty name");
         return INVALID_TEX_ID;
     }
     if (StrHelper::IsEmpty(path))
     {
-        LogErr(LOG, "path is empty");
+        LogErr(LOG, "empty path");
         return INVALID_TEX_ID;
     }
 
-  
+
     // if there is already a texture by such name...
     TexID id = GetTexIdByName(name);
     if (id != 0)
         return id;
 
-
     // ... or create a new one
     Texture tex(path, name);
 
-    id = GenID();
+    id = GenId();
+    
+    // store texture into the manager
     ids_.push_back(id);
     names_.push_back(name);
     textures_.push_back(std::move(tex));
-    shaderResourceViews_.push_back(textures_.back().GetTextureResourceView());
+    shaderResourceViews_.push_back(textures_.back().GetResourceView());
         
     return id;	
 }
@@ -523,16 +501,16 @@ bool TextureMgr::ReloadFromFile(const TexID id, const char* path)
 {
     if (StrHelper::IsEmpty(path))
     {
-        LogErr(LOG, "input path to texture is empty!");
+        LogErr(LOG, "empty path");
         return false;
     }
 
     // find an index to texture data and check if it is valid
     const index idx = ids_.get_idx(id);
         
-    if (!IsIdxValid(idx))
+    if (!ids_.is_valid_index(idx))
     {
-        LogErr(LOG, "there is no texture by id: %" PRIu32, id);
+        LogErr(LOG, "no texture by id: %" PRIu32, id);
         return false;
     }
 
@@ -551,7 +529,7 @@ bool TextureMgr::ReloadFromFile(const TexID id, const char* path)
 
     // update data
     names_[idx] = name;
-    shaderResourceViews_[idx] = tex.GetTextureResourceView();
+    shaderResourceViews_[idx] = tex.GetResourceView();
 
     return true;
 }
@@ -579,18 +557,18 @@ TexID TextureMgr::CreateCubeMap(const char* name, const CubeMapInitParams& param
         return INVALID_TEX_ID;
     }
 
-    id = GenID();
+    id = GenId();
 
     // store cubemap into the manager
     ids_.push_back(id);
     names_.push_back(name);
     textures_.push_back(std::move(cubeMap));
-    shaderResourceViews_.push_back(textures_.back().GetTextureResourceView());
+    shaderResourceViews_.push_back(textures_.back().GetResourceView());
 
     return id;
 }
 
-///////////////////////////////////////////////////////////
+//---------------------------------------------------------
 
 TexID TextureMgr::LoadTextureArray(
     const char* name,
@@ -614,20 +592,20 @@ TexID TextureMgr::LoadTextureArray(
         // create a texture array object
         Texture texArr(name, texturePaths, (int)numTextures, format);
 
-        const TexID id = GenID();
+        const TexID id = GenId();
 
-        // store data into the texture manager
+        // store texture into the manager
         ids_.push_back(id);
         names_.push_back(texArr.GetName());
-        shaderResourceViews_.push_back(texArr.GetTextureResourceView());
+        shaderResourceViews_.push_back(texArr.GetResourceView());
         textures_.push_back(std::move(texArr));
 
         return id;
     }
     catch (EngineException& e)
     {
-        LogErr(e, true);
-        LogErr("can't create texture 2D array");
+        LogErr(LOG, e.what());
+        LogErr(LOG, "can't create a texture 2D array");
         return INVALID_TEX_ID;
     }
 }
@@ -651,42 +629,6 @@ TexID TextureMgr::CreateWithColor(const Color& color)
 }
 
 //---------------------------------------------------------
-// Desc:  return a texture by input id or return an unloaded texture
-//        (id: 0) if there is no texture by such ID
-//---------------------------------------------------------
-Texture& TextureMgr::GetTexByID(const TexID id)
-{
-    const index idx = ids_.get_idx(id);
-
-    if (IsIdxValid(idx))
-        return textures_[idx];
-
-    return textures_[INVALID_TEX_ID];
-}
-
-//---------------------------------------------------------
-// Desc:  return a ptr to the texture by ID or nullptr if there is no such a texture
-//---------------------------------------------------------
-Texture* TextureMgr::GetTexPtrByID(const TexID id)
-{
-    const index idx = ids_.get_idx(id);
-
-    if (IsIdxValid(idx))
-        return &textures_[idx];
-
-    return &textures_[INVALID_TEX_ID];
-}
-
-//---------------------------------------------------------
-// Desc:   return a ref to the texture by name
-//         or nullptr if there is no such a texture
-//---------------------------------------------------------
-Texture& TextureMgr::GetTexByName(const char* name)
-{
-    return *GetTexPtrByName(name);
-}
-
-//---------------------------------------------------------
 // Desc:   return a ptr to the texture by name
 //         or nullptr if there is no such a texture
 //---------------------------------------------------------
@@ -694,13 +636,13 @@ Texture* TextureMgr::GetTexPtrByName(const char* name)
 {
     if (StrHelper::IsEmpty(name))
     {
-        LogErr(LOG, "input name of texture is empty!");
-        return nullptr;
+        LogErr(LOG, "empty name");
+        return &textures_[INVALID_TEX_ID];
     }
 
     const index idx = names_.find(name);
 
-    if (IsIdxValid(idx))
+    if (textures_.is_valid_index(idx))
         return &textures_[idx];
 
     return &textures_[INVALID_TEX_ID];
@@ -714,7 +656,7 @@ TexID TextureMgr::GetTexIdByName(const char* name)
 {
     if (StrHelper::IsEmpty(name))
     {
-        LogErr(LOG, "input name is empty!");
+        LogErr(LOG, "empty name");
         return INVALID_TEX_ID;
     }
 
@@ -725,30 +667,6 @@ TexID TextureMgr::GetTexIdByName(const char* name)
     }
 
     return INVALID_TEX_ID;
-}
-
-//---------------------------------------------------------
-// Desc:   return a texture ID by input idx; if idx is invalid we return 0
-//---------------------------------------------------------
-TexID TextureMgr::GetTexIdByIdx(const index idx) const
-{
-    if (IsIdxValid(idx))
-        return ids_[idx];
-
-    return INVALID_TEX_ID;
-}
-
-//---------------------------------------------------------
-// Desc:   get shader resource view of texture by input ID
-//---------------------------------------------------------
-ID3D11ShaderResourceView* TextureMgr::GetTexViewsById(const TexID texId)
-{
-    const index idx = ids_.get_idx(texId);
-
-    if (IsIdxValid(idx))
-        return shaderResourceViews_[idx];
-
-    return shaderResourceViews_[INVALID_TEX_ID];
 }
 
 //---------------------------------------------------------
@@ -766,10 +684,10 @@ void TextureMgr::GetTexViewsByIds(
 {
     if (texIds == nullptr)
     {
-        LogErr(LOG, "input ptr to textures IDs arr == nullptr");
+        LogErr(LOG, "input tex IDs arr == nullptr");
         return;
     }
-    if (numTex == 0)
+    if (numTex <= 0)
     {
         LogErr(LOG, "input number of textures must be > 0");
         return;
@@ -779,16 +697,19 @@ void TextureMgr::GetTexViewsByIds(
 
     ids_.get_idxs(texIds, numTex, tempIdxs_);
 
+#if _DEBUG || DEBUG
     // check idxs
     for (const index idx : tempIdxs_)
-        assert(IsIdxValid(idx));
+        assert(shaderResourceViews_.is_valid_index(idx));
+#endif
 
     for (int i = 0; const index idx : tempIdxs_)
         outSRVs[i++] = shaderResourceViews_[idx];
 }
 
 //---------------------------------------------------------
-
+// array of names for each texture type
+//---------------------------------------------------------
 static const char* s_TexTypesNames[] =
 {
     "NONE",
@@ -814,6 +735,8 @@ static const char* s_TexTypesNames[] =
     "CLEARCOAT",
     "TRANSMISSION"
 };
+
+//---------------------------------------------------------
 
 const char** TextureMgr::GetTexTypesNames() const
 {

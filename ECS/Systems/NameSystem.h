@@ -35,12 +35,6 @@ public:
     bool IsUnique(const char* name) const;
 
 private:
-    inline bool IsIdxValid(const index idx) const
-    {
-        return (idx >= 0 && idx < pNameComponent_->ids_.size());
-    }
-
-private:
     Name* pNameComponent_ = nullptr;
 };
 

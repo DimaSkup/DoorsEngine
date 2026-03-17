@@ -11,6 +11,8 @@
 #include <imgui.h>
 #include <UICommon/IFacadeEngineToUI.h>
 
+#pragma warning (disable : 4996)
+
 
 namespace UI
 {
@@ -28,8 +30,8 @@ void EditorPanels::Init(IFacadeEngineToUI* pFacade)
     pFacade_ = pFacade;
 
     enttEditorController_.Init(pFacade_);
-    fogEditorController_.Initialize(pFacade_);
-    skyEditorController_.Initialize(pFacade_);
+    fogEditorController_.Init(pFacade_);
+    skyEditorController_.Init(pFacade_);
 
     texturesBrowser_.Init(pFacade_);
     materialsBrowser_.Init(pFacade_);
@@ -196,15 +198,19 @@ void EditorPanels::RenderEntitiesListWnd(Core::SystemState& sysState)
         const EntityID currSelectedEnttId = enttEditorController_.GetSelectedEnttID();
         constexpr ImGuiSelectableFlags_ flags = ImGuiSelectableFlags_AllowDoubleClick;
 
+        char buf[64];
+
         // render selectable menu with entts names
         for (index i = 0; i < numAllEntts; ++i)
         {
-            const char* name = enttsNames_[i].c_str();
-            bool isSelected  = (enttsIds[i] == currSelectedEnttId);
+            const EntityID id = enttsIds[i];
+            const char* name  = enttsNames_[i].c_str();
+            bool isSelected   = (enttsIds[i] == currSelectedEnttId);
+
+            sprintf(buf, "[%" PRIu32 "]: %s", id, name);
             
-            if (ImGui::Selectable(name, isSelected, flags))
+            if (ImGui::Selectable(buf, isSelected, flags))
             {
-                const EntityID id = enttsIds[i];
                 sysState.pickedEnttID_ = id;                 // set this ID into the system state
                 enttEditorController_.SetSelectedEntt(id);   // and update the editor to show data of this entt
 
@@ -221,7 +227,6 @@ void EditorPanels::RenderEntitiesListWnd(Core::SystemState& sysState)
     ImGui::End();
     g_GuiStates.showWndEnttsList = showWndEnttsList;
 }
-
 
 //---------------------------------------------------------
 // Desc:  a little helper for showing checkboxes to turn on/off debug shapes rendering
@@ -247,54 +252,62 @@ void RenderDbgShapesControl(IFacadeEngineToUI* pFacade)
 {
     if (ImGui::TreeNode("Debug shapes"))
     {
-        bool rndDbgShapes      = g_GuiStates.renderDbgShapes;
-        bool rndDbgLines       = g_GuiStates.renderDbgLines;
-        bool rndDbgCross       = g_GuiStates.renderDbgCross;
-        bool rndDbgSphere      = g_GuiStates.renderDbgSphere;
-        bool rndDbgCircle      = g_GuiStates.renderDbgCircle;
+        bool bRender            = g_GuiStates.renderDbgShapes;
+        bool bRenderLines       = g_GuiStates.renderDbgLines;
+        bool bRenderCross       = g_GuiStates.renderDbgCross;
+        bool bRenderSphere      = g_GuiStates.renderDbgSphere;
+        bool bRenderCircle      = g_GuiStates.renderDbgCircle;
 
-        bool rndDbgAxes        = g_GuiStates.renderDbgAxes;
-        bool rndDbgTriangle    = g_GuiStates.renderDbgTriangle;
-        bool rndDbgAABB        = g_GuiStates.renderDbgAABB;
-        bool rndDbgOBB         = g_GuiStates.renderDbgOBB;
-        bool rndDbgFrustum     = g_GuiStates.renderDbgFrustum;
-        bool rndDbgTerrainAABB = g_GuiStates.renderDbgTerrainAABB;
+        bool bRenderAxis        = g_GuiStates.renderDbgAxis;
+        bool bRenderTriangle    = g_GuiStates.renderDbgTriangle;
+        bool bRenderAABB        = g_GuiStates.renderDbgAABB;
+        bool bRenderOBB         = g_GuiStates.renderDbgOBB;
+        bool bRenderFrustum     = g_GuiStates.renderDbgFrustum;
+        bool bRenderTerrainAABB = g_GuiStates.renderDbgTerrainAABB;
+        bool bRenderModelsWire  = g_GuiStates.renderDbgModelsWireframe;
 
-        if (CheckboxDbgShape(pFacade, "Draw debug shapes", RENDER_DBG_SHAPES, rndDbgShapes))
-            g_GuiStates.renderDbgShapes = rndDbgShapes;
+        if (CheckboxDbgShape(pFacade, "Draw debug shapes", R_DBG_SHAPES, bRender))
+            g_GuiStates.renderDbgShapes = bRender;
 
         ImGui::Separator();
 
-        if (CheckboxDbgShape(pFacade, "lines", RENDER_DBG_SHAPES_LINE, rndDbgLines))
-            g_GuiStates.renderDbgLines = rndDbgShapes;
+        // disable all the other checkboxes if rendering is turned off at all
+        ImGui::BeginDisabled(!bRender);
 
-        if (CheckboxDbgShape(pFacade, "cross", RENDER_DBG_SHAPES_CROSS, rndDbgCross))
-            g_GuiStates.renderDbgCross = rndDbgCross;
+        if (CheckboxDbgShape(pFacade, "lines", R_DBG_SHAPES_LINE, bRenderLines))
+            g_GuiStates.renderDbgLines = bRenderLines;
 
-        if (CheckboxDbgShape(pFacade, "sphere", RENDER_DBG_SHAPES_SPHERE, rndDbgSphere))
-            g_GuiStates.renderDbgSphere = rndDbgSphere;
+        if (CheckboxDbgShape(pFacade, "cross", R_DBG_SHAPES_CROSS, bRenderCross))
+            g_GuiStates.renderDbgCross = bRenderCross;
 
-        if (CheckboxDbgShape(pFacade, "circle", RENDER_DBG_SHAPES_CIRCLE, rndDbgCircle))
-            g_GuiStates.renderDbgCircle = rndDbgCircle;
+        if (CheckboxDbgShape(pFacade, "sphere", R_DBG_SHAPES_SPHERE, bRenderSphere))
+            g_GuiStates.renderDbgSphere = bRenderSphere;
 
-        if (CheckboxDbgShape(pFacade, "axes", RENDER_DBG_SHAPES_AXES, rndDbgAxes))
-            g_GuiStates.renderDbgAxes = rndDbgAxes;
+        if (CheckboxDbgShape(pFacade, "circle", R_DBG_SHAPES_CIRCLE, bRenderCircle))
+            g_GuiStates.renderDbgCircle = bRenderCircle;
 
-        if (CheckboxDbgShape(pFacade, "triangle", RENDER_DBG_SHAPES_TRIANGLE, rndDbgTriangle))
-            g_GuiStates.renderDbgTriangle = rndDbgTriangle;
+        if (CheckboxDbgShape(pFacade, "axis", R_DBG_SHAPES_AXIS, bRenderAxis))
+            g_GuiStates.renderDbgAxis = bRenderAxis;
 
-        if (CheckboxDbgShape(pFacade, "AABB", RENDER_DBG_SHAPES_AABB, rndDbgAABB))
-            g_GuiStates.renderDbgAABB = rndDbgAABB;
+        if (CheckboxDbgShape(pFacade, "triangle", R_DBG_SHAPES_TRIANGLE, bRenderTriangle))
+            g_GuiStates.renderDbgTriangle = bRenderTriangle;
 
-        if (CheckboxDbgShape(pFacade, "OBB", RENDER_DBG_SHAPES_OBB, rndDbgOBB))
-            g_GuiStates.renderDbgOBB = rndDbgOBB;
+        if (CheckboxDbgShape(pFacade, "AABB", R_DBG_SHAPES_AABB, bRenderAABB))
+            g_GuiStates.renderDbgAABB = bRenderAABB;
 
-        if (CheckboxDbgShape(pFacade, "frustum", RENDER_DBG_SHAPES_FRUSTUM, rndDbgFrustum))
-            g_GuiStates.renderDbgFrustum = rndDbgFrustum;
+        if (CheckboxDbgShape(pFacade, "OBB", R_DBG_SHAPES_OBB, bRenderOBB))
+            g_GuiStates.renderDbgOBB = bRenderOBB;
 
-        if (CheckboxDbgShape(pFacade, "terrain AABB", RENDER_DBG_SHAPES_TERRAIN_AABB, rndDbgTerrainAABB))
-            g_GuiStates.renderDbgTerrainAABB = rndDbgTerrainAABB;
+        if (CheckboxDbgShape(pFacade, "frustum", R_DBG_SHAPES_FRUSTUM, bRenderFrustum))
+            g_GuiStates.renderDbgFrustum = bRenderFrustum;
 
+        if (CheckboxDbgShape(pFacade, "terrain AABB", R_DBG_SHAPES_TERRAIN_AABB, bRenderTerrainAABB))
+            g_GuiStates.renderDbgTerrainAABB = bRenderTerrainAABB;
+
+        if (CheckboxDbgShape(pFacade, "models wireframe", R_DBG_SHAPES_MODELS_WIRE, bRenderModelsWire))
+            g_GuiStates.renderDbgModelsWireframe = bRenderModelsWire;
+
+        ImGui::EndDisabled();
         ImGui::TreePop();
     }
 }

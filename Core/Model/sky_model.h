@@ -34,8 +34,7 @@ public:
 
 
     // initialize vb/ib with input data
-    bool InitializeBuffers(
-        ID3D11Device* pDevice,
+    bool InitBuffers(
         const Vertex3DPos* vertices,
         const USHORT* indices,
         const int numVertices,

@@ -868,7 +868,7 @@ namespace
         assert(mdata.height == baseImages[0].height);
         assert(mdata.format == baseImages[0].format);
 
-        HRESULT hr = mipChain.Initialize(mdata);
+        HRESULT hr = mipChain.Init(mdata);
         if (FAILED(hr))
             return hr;
 
@@ -3110,7 +3110,7 @@ HRESULT DirectX::GenerateMipMaps(
                     // Case 1: Base image format is supported by Windows Imaging Component
                     TexMetadata mdata2 = metadata;
                     mdata2.mipLevels = levels;
-                    hr = mipChain.Initialize(mdata2);
+                    hr = mipChain.Init(mdata2);
                     if (FAILED(hr))
                         return hr;
 
@@ -3135,7 +3135,7 @@ HRESULT DirectX::GenerateMipMaps(
                     mdata2.mipLevels = levels;
                     mdata2.format = DXGI_FORMAT_R32G32B32A32_FLOAT;
                     ScratchImage tMipChain;
-                    hr = tMipChain.Initialize(mdata2);
+                    hr = tMipChain.Init(mdata2);
                     if (FAILED(hr))
                         return hr;
 

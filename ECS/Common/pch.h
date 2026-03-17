@@ -12,14 +12,16 @@
 
 #include "log.h"
 #include "CAssert.h"
-#include "EngineException.h"
+#include "engine_exception.h"
 #include "mem_helpers.h"
 #include "StrHelper.h"
 #include "cvector.h"
-#include "Types.h"
+#include "types.h"
 #include "UtilsFilesystem.h"
 #include "ECSTypes.h"
 #include "math/math_helpers.h"
+
+#include <geometry/rect3d_functions.h>
 
 #pragma warning (disable : 4996)
 

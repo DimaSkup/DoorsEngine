@@ -22,7 +22,7 @@ class SkyController : public IEditorController
 public:
 	SkyController();
 
-	void Initialize(IFacadeEngineToUI* pFacade);
+	void Init(IFacadeEngineToUI* pFacade);
 	void LoadSkyEnttData();
 
     // execute command and store this change into the events history

@@ -1,81 +1,108 @@
-#pragma once
+/**********************************************************************************\
 
-//#include <cstdlib>
+    ******     ******    ******   ******    ********
+    **    **  **    **  **    **  **    **  **    **
+    **    **  **    **  **    **  **    **  **
+    **    **  **    **  **    **  **    **  ********
+    **    **  **    **  **    **  ******          **
+    **    **  **    **  **    **  **  ***   **    **
+    ******     ******    ******   **    **  ********
+
+    Filename: dx_math_helpers.h
+    Desc:     different helpers to make works with DirectXMath a bit easier
+\**********************************************************************************/
+#pragma once
 #include <DirectXMath.h>
-//#include <cstdint>
-//#include "math_helpers.h"
 #include "random.h"
 
 
 namespace DirectX
 {
-	static bool operator==(const XMFLOAT3& lhs, const XMFLOAT3& rhs)
-	{
-		return (lhs.x == rhs.x) && (lhs.y == rhs.y) && (lhs.z == rhs.z);
-	}
+    //---------------------------------------------------------
+    // Desc:  helpers for work with DX quaternions
+    //---------------------------------------------------------
+    inline XMVECTOR QuatRotAxis(const XMVECTOR& axis, const float angle)
+    {
+        return DirectX::XMQuaternionRotationAxis(axis, angle);
+    }
 
-	static bool operator==(const XMFLOAT4& lhs, const XMFLOAT4& rhs)
-	{
-		return (lhs.x == rhs.x) && (lhs.y == rhs.y) && (lhs.z == rhs.z) && (lhs.w == rhs.w);
-	}
+    inline XMVECTOR QuatMul(const XMVECTOR& q1, const XMVECTOR& q2)
+    {
+        return DirectX::XMQuaternionMultiply(q1, q2);
+    }
 
-	static XMFLOAT4 operator*= (XMFLOAT4& lhs, const float scalar)
-	{
-		return { lhs.x * scalar, lhs.y * scalar, lhs.z * scalar, lhs.w * scalar };
-	}
+    inline XMVECTOR QuatMul(const XMVECTOR& q1, const XMVECTOR& q2, const XMVECTOR& q3)
+    {
+        return DirectX::XMQuaternionMultiply(DirectX::XMQuaternionMultiply(q1, q2), q3);
+    }
 
-	static XMFLOAT4 operator* (XMFLOAT4 lhs, const float scalar)
-	{
-		return { lhs.x * scalar, lhs.y * scalar, lhs.z * scalar, lhs.w * scalar };
-	}
 
-	static bool operator==(const XMVECTOR& lhs, const XMVECTOR& rhs)
-	{
-		// define if two input XMVECTORs are equal
+    //-----------------------------------------------------
+    // operators reload
+    //-----------------------------------------------------
+    static bool operator==(const XMFLOAT3& lhs, const XMFLOAT3& rhs)
+    {
+        return (lhs.x == rhs.x) && (lhs.y == rhs.y) && (lhs.z == rhs.z);
+    }
 
-		const float* vec = XMVectorEqual(lhs, rhs).m128_f32;
-		return (vec[0] && vec[1] && vec[2] && vec[3]);
-	}
+    static bool operator==(const XMFLOAT4& lhs, const XMFLOAT4& rhs)
+    {
+        return (lhs.x == rhs.x) && (lhs.y == rhs.y) && (lhs.z == rhs.z) && (lhs.w == rhs.w);
+    }
+
+    static XMFLOAT4 operator*= (XMFLOAT4& lhs, const float scalar)
+    {
+        return { lhs.x * scalar, lhs.y * scalar, lhs.z * scalar, lhs.w * scalar };
+    }
+
+    static XMFLOAT4 operator* (XMFLOAT4 lhs, const float scalar)
+    {
+        return { lhs.x * scalar, lhs.y * scalar, lhs.z * scalar, lhs.w * scalar };
+    }
+
+    static bool operator==(const XMVECTOR& lhs, const XMVECTOR& rhs)
+    {
+        const float* vec = XMVectorEqual(lhs, rhs).m128_f32;
+        return (vec[0] && vec[1] && vec[2] && vec[3]);
+    }
 
     static bool operator != (const XMVECTOR& v1, const XMVECTOR& v2)
     {
         return !(v1 == v2);
     }
 
-	static bool operator==(const XMMATRIX& lhs, const XMMATRIX& rhs)
-	{
-		// define if two input 4x4 matrices are equal
+    static bool operator==(const XMMATRIX& lhs, const XMMATRIX& rhs)
+    {
+        // define if two input 4x4 matrices are equal
+        return (lhs.r[0] == rhs.r[0]) &&
+               (lhs.r[1] == rhs.r[1]) &&
+               (lhs.r[2] == rhs.r[2]) &&
+               (lhs.r[3] == rhs.r[3]);
+    }
 
-		return (lhs.r[0] == rhs.r[0]) &&
-			   (lhs.r[1] == rhs.r[1]) &&
-			   (lhs.r[2] == rhs.r[2]) &&
-			   (lhs.r[3] == rhs.r[3]);
-	}
-
-	static bool operator !=(const XMMATRIX& lhs, const XMMATRIX& rhs)
-	{
-		return !(lhs == rhs);
-	}
+    static bool operator !=(const XMMATRIX& lhs, const XMMATRIX& rhs)
+    {
+        return !(lhs == rhs);
+    }
 
     static XMFLOAT3 operator + (const XMFLOAT3& lhs, const XMFLOAT3& rhs)
     {
         return XMFLOAT3(lhs.x+rhs.x, lhs.y+rhs.y, lhs.z+rhs.z);
     }
 
-    // subtract rhs from lhs
     static XMFLOAT3 operator - (const XMFLOAT3& lhs, const XMFLOAT3& rhs)
     {
         return XMFLOAT3(lhs.x-rhs.x, lhs.y-rhs.y, lhs.z-rhs.z);
     }
 
-	static XMFLOAT3& operator+=(XMFLOAT3& lhs, const XMFLOAT3& rhs)
-	{
-		lhs.x += rhs.x;
-		lhs.y += rhs.y;
-		lhs.z += rhs.z;
+    static XMFLOAT3& operator+=(XMFLOAT3& lhs, const XMFLOAT3& rhs)
+    {
+        lhs.x += rhs.x;
+        lhs.y += rhs.y;
+        lhs.z += rhs.z;
 
-		return lhs;
-	}
+        return lhs;
+    }
 
     static void operator+=(XMFLOAT3& lhs, const XMVECTOR& rhs)
     {
@@ -125,91 +152,34 @@ namespace DirectX
         n.z *= invLen;
     }
 
-	static XMFLOAT3 XMFloat3Normalize(const XMFLOAT3& n)
-	{
-		const float invLen = 1.0f / sqrtf(n.x*n.x + n.y*n.y + n.z*n.z);
-		return XMFLOAT3(n.x * invLen, n.y * invLen, n.z * invLen);
-	}
+    static XMFLOAT3 XMFloat3Normalize(const XMFLOAT3& n)
+    {
+        const float invLen = 1.0f / sqrtf(n.x*n.x + n.y*n.y + n.z*n.z);
+        return XMFLOAT3(n.x * invLen, n.y * invLen, n.z * invLen);
+    }
 
-	class CompareXMVECTOR
-	{
-	public:
-		CompareXMVECTOR() {}
+#if 0
+    class CompareXMVECTOR
+    {
+    public:
+        CompareXMVECTOR() {}
 
-		bool operator()(const XMVECTOR& lhs, const XMVECTOR& rhs) const
-		{
-			const float* vec = XMVectorEqual(lhs, rhs).m128_f32;
-			return (vec[0] && vec[1] && vec[2] && vec[3]);
-		}
-	};
+        bool operator()(const XMVECTOR& lhs, const XMVECTOR& rhs) const
+        {
+            const float* vec = XMVectorEqual(lhs, rhs).m128_f32;
+            return (vec[0] && vec[1] && vec[2] && vec[3]);
+        }
+    };
+#endif
 };
 
 
 class MathHelper
 {
-	using UINT = unsigned int;
-
 public:
-	static const float Infinity;
-	static const float Pi;
+    static float AngleFromXY(const float x, const float y);
 
+    static DirectX::XMFLOAT3 QuatToRollPitchYaw(const DirectX::XMVECTOR quaternion);
 
-
-    // ----------------------------------------------------
-    inline static DirectX::XMFLOAT3 RandColorRGB()
-    {
-        // returns a random color as XMFLOAT3 (RGB)
-        return { RandF(), RandF(), RandF() };
-    }
-    // ----------------------------------------------------
-    inline static DirectX::XMFLOAT4 RandColorRGBA()
-    {
-        // returns a random color as XMFLOAT4 (RGBA);
-        // note: alpha value == 1.0f by default
-        return{ RandF(), RandF(), RandF(), 1.0f };
-    }
-
-	// ----------------------------------------------------
-	// inline template methods to generate random XM-value
-
-	template<typename T>
-	inline static T RandXM();
-	// ----------------------------------------------------
-	template<>
-	inline static DirectX::XMFLOAT2 RandXM<DirectX::XMFLOAT2>()
-	{
-		return{ RandF(), RandF() };
-	}
-	// ----------------------------------------------------
-	template<>
-	inline static DirectX::XMFLOAT3 RandXM<DirectX::XMFLOAT3>()
-	{
-		return{ RandF(), RandF(), RandF() };
-	}
-	// ----------------------------------------------------
-	template<>
-	inline static DirectX::XMFLOAT4 RandXM<DirectX::XMFLOAT4>()
-	{
-		return{ RandF(), RandF(), RandF(), RandF() };
-	}
-	// ----------------------------------------------------
-	template<>
-	inline static DirectX::XMVECTOR RandXM<DirectX::XMVECTOR>()
-	{
-		return{ RandF(), RandF(), RandF(), RandF() };
-	}
-
-
-
-	
-	// ----------------------------------------------------
-
-	static float AngleFromXY(const float x, const float y);
-
-	// return pitch/yaw/roll packed into FLOAT3
-	static DirectX::XMFLOAT3 QuatToRollPitchYaw(const DirectX::XMVECTOR quaternion);
-
-
-	// ----------------------------------------------------
-	static const DirectX::XMMATRIX InverseTranspose(const DirectX::CXMMATRIX& M);
+    static DirectX::XMMATRIX InverseTranspose(const DirectX::CXMMATRIX& M);
 };

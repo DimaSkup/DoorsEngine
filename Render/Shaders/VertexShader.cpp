@@ -103,9 +103,11 @@ bool VertexShader::CompileFromFile(
     const D3D11_INPUT_ELEMENT_DESC* layoutDesc,
     const UINT layoutElemNum)
 {
-    if (StrHelper::IsEmpty(shaderPath) || StrHelper::IsEmpty(funcName) || StrHelper::IsEmpty(shaderModel))
+    if (StrHelper::IsEmpty(shaderPath) ||
+        StrHelper::IsEmpty(funcName)   ||
+        StrHelper::IsEmpty(shaderModel))
     {
-        LogErr("input arguments are invalid: some path is empty");
+        LogErr(LOG, "input arguments are invalid: some path is empty");
         return false;
     }
 

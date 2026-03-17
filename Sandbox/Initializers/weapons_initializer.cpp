@@ -28,11 +28,11 @@ namespace Game
 //---------------------------------------------------------
 // forward declaration of private helpers
 //---------------------------------------------------------
-void InitWeapon(FILE* pFile, const char* line, Weapon& wpn, ECS::EntityMgr* pEnttMgr);
-void SetWeaponType(const char* buf, Weapon& wpn);
-void SetWeaponEntity(const char* buf, Weapon& wpn, ECS::EntityMgr* pEnttMgr);
-void BindWeaponSkeleton(const char* buf, Weapon& wpn);
-void BindWeaponSound(const char* buf, Weapon& wpn);
+void InitWeapon         (FILE* pFile, const char* line, Weapon& wpn, ECS::EntityMgr* pEnttMgr);
+void SetWeaponType      (const char* buf, Weapon& wpn);
+void SetWeaponEntity    (const char* buf, Weapon& wpn, ECS::EntityMgr* pEnttMgr);
+void BindWeaponSkeleton (const char* buf, Weapon& wpn);
+void BindWeaponSound    (const char* buf, Weapon& wpn);
 void BindWeaponAnimation(const char* buf, Weapon& wpn);
 
 //---------------------------------------------------------
@@ -55,8 +55,7 @@ void WeaponsInitializer::Init(
     FILE* pFile = fopen(weaponsCfgFile, "r");
     if (!pFile)
     {
-        LogErr(LOG, "can't open file: %s", weaponsCfgFile);
-        exit(0);
+        LogFatal(LOG, "can't open file: %s", weaponsCfgFile);
     }
 
     playerWeapons.reserve(9);
@@ -87,9 +86,9 @@ void WeaponsInitializer::Init(
     // create event handlers for some sounds so we will be able to know when
     // sound is over, or it is currently playing
     //
-    Weapon& currWeapon = playerWeapons[0];
-    Core::Sound* pSound = Core::g_SoundMgr.GetSound(currWeapon.soundIds[WPN_SOUND_TYPE_SHOOT]);
     
+    //const SoundID currWpnSoundId = playerWeapons[0].soundIds[WPN_SOUND_TYPE_SHOOT];
+    //Core::Sound* pSound = Core::g_SoundMgr.GetSound(currWpnSoundId);
 }
 
 //---------------------------------------------------------
@@ -219,7 +218,6 @@ void BindWeaponSkeleton(const char* buf, Weapon& wpn)
 
     wpn.pSkeleton = &Core::g_AnimationMgr.GetSkeleton(skeletonId);
 }
-
 
 //---------------------------------------------------------
 

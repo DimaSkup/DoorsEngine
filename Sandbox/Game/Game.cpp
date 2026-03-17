@@ -14,7 +14,7 @@
 #include <Sound/sound_mgr.h>
 #include <Sound/sound.h>
 
-#include "../Initializers/GameInitializer.h"
+#include "../Initializers/game_initializer.h"
 #include "../Initializers/weapons_initializer.h"
 
 using namespace Core;
@@ -37,20 +37,14 @@ bool Game::Init(
     const Core::EngineConfigs& configs)
 {
     if (!pEngine)
-    {
-        LogErr(LOG, "a ptr to engine == nullptr");
-        exit(0);
-    }
+        LogFatal(LOG, "a ptr to engine == NULL");
+
     if (!pEnttMgr)
-    {
-        LogErr(LOG, "a ptr to entity manager == nullptr");
-        exit(0);
-    }
+        LogFatal(LOG, "a ptr to entity manager == NULL");
+
     if (!pRender)
-    {
-        LogErr(LOG, "a ptr to render == nullptr");
-        exit(0);
-    }
+        LogFatal(LOG, "a ptr to render == NULL");
+
 
     pEngine_  = pEngine;
     pEnttMgr_ = pEnttMgr;
@@ -70,11 +64,10 @@ bool Game::Init(
 
 
     // create and init scene elements
-    if (!gameInit.InitModelEntities(*pEnttMgr, *pRender, &configs))
+    if (!gameInit.InitEntities(*pEnttMgr, *pRender, configs))
     {
-        LogErr(LOG, "can't initialize models");
+        LogErr(LOG, "can't initialize entities");
     }
-
 
     //-----------------------------------------------------
 
@@ -118,30 +111,31 @@ bool Game::Init(
     if (configs.GetBool("START_IN_GAME_MODE"))
     {
         const EntityID cameraId = nameSys.GetIdByName("game_camera");
-        graphics.SetCurrentCamera(cameraId);
+        graphics.SetActiveCamera(cameraId);
     }
     else
     {
         const EntityID cameraId = nameSys.GetIdByName("editor_camera");
-        graphics.SetCurrentCamera(cameraId);
+        graphics.SetActiveCamera(cameraId);
     }
     
-
     //-----------------------------------------------------
 
     const char* particlesFilepath = "data/particles/particles.cfg";
+    const char* grassFilepath     = "data/grass.cfg";
     const char* lightsFilepath    = "data/light.dentt";
 
     gameInit.InitParticles(particlesFilepath, *pEnttMgr);
-    gameInit.InitLightEntities(lightsFilepath, *pEnttMgr);
-    gameInit.InitPlayer(d3d.GetDevice(), pEnttMgr, &configs);
+    gameInit.InitGrass    (grassFilepath, *pEnttMgr);
+    gameInit.InitLights   (lightsFilepath, *pEnttMgr);
+    gameInit.InitPlayer   (*pEnttMgr, configs);
 
 
     // get id of rain entity which is always over the player
     rainEnttId_ = nameSys.GetIdByName("rain_over_player");
     assert(rainEnttId_ != INVALID_ENTITY_ID);
 
-    InitWeapons();
+    InitWeapons("data/weapon.cfg");
     InitSoundsStuff();
 
     StartFootstepSequence(100);   // prevent lagging when we move player for the first time
@@ -160,18 +154,14 @@ bool Game::Init(
     return true;
 }
 
-
 //---------------------------------------------------------
 
-void Game::InitWeapons()
+void Game::InitWeapons(const char* cfgFilepath)
 {
-    printf("\n");
     LogMsg(LOG, "initialize weapons:");
 
-    const char* weaponCfgFile = "data/weapon.cfg";
-
     WeaponsInitializer initializer;
-    initializer.Init(weaponCfgFile, pEnttMgr_, weapons_);
+    initializer.Init(cfgFilepath, pEnttMgr_, weapons_);
 
     //
     // setup initial weapon
@@ -192,14 +182,10 @@ void Game::InitWeapons()
 //---------------------------------------------------------
 bool Game::Update(const float dt, const float gameTime)
 {
-   
-
     // update timings
     deltaTime_ = dt;
     gameTime_ = gameTime;
 
-    // generate particles
-    pEnttMgr_->particleSys_.CreateParticles(dt);
 
     if (!pEngine_->IsGameMode())
         return true;
@@ -219,9 +205,8 @@ bool Game::Update(const float dt, const float gameTime)
 
         thunderTimer = 0;
         thunderSoundIdx++;
-        thunderSoundIdx %= 4;
+        thunderSoundIdx &= 3;   // idx % 4
     }
-
 
     currActTime_ += dt;
 
@@ -248,8 +233,6 @@ bool Game::Update(const float dt, const float gameTime)
         StartAnimWeaponIdle();
     }
 
-    //printf("curr: %.3f    end: %.3f    dt: %.3f\n", currActTime_, endActTime_, dt);
-
     gameEventsList_.Reset();
 
     UpdateFootstepsSound(dt);
@@ -257,7 +240,6 @@ bool Game::Update(const float dt, const float gameTime)
 
     HandleGameEventKeyboard();
     HandleGameEventMouse(dt);
-
     HandleGameEvents();
 
     UpdateRainPos();
@@ -283,6 +265,13 @@ void Game::HandleGameEventKeyboard()
     {
         switch (code)
         {
+            case KEY_TAB:
+            {
+                if (!keyboard.WasPressedBefore(KEY_TAB))
+                    pEngine_->SwitchQuadTree();
+                break;
+            }
+
             case VK_ESCAPE:
             {
                 // if we pressed the ESC button we exit from the application
@@ -726,6 +715,10 @@ void Game::UpdateRainPos()
 {
     const DirectX::XMFLOAT3 p = pEnttMgr_->playerSys_.GetPosition();
     pEnttMgr_->PushEvent(ECS::EventTranslate(rainEnttId_, p.x, p.y, p.z));
+
+    const DirectX::XMFLOAT3 pos = pEnttMgr_->transformSys_.GetPosition(rainEnttId_);
+
+    //printf("rain pos: %.2f %.2f %.2f\n", pos.x, pos.y, pos.z);
 }
 
 //---------------------------------------------------------
@@ -771,7 +764,6 @@ void Game::InitSoundsStuff()
     pNotifyStep->SetNotificationPositions(1, &notify);
     pNotifyStep->Release();
 }
-
 
 
 //**********************************************************************************
@@ -894,17 +886,18 @@ void Game::HandleBulletHit(const IntersectionData& data)
     const EntityID           wpnId = pEnttMgr_->playerSys_.GetActiveWeapon();
     const DirectX::XMFLOAT3 relPos = pEnttMgr_->hierarchySys_.GetRelativePos(wpnId);
 
-    const Vec3 rayOrig = { data.rayOrigX, data.rayOrigY, data.rayOrigZ };
-    const Vec3 fromPos = { rayOrig.x + relPos.x, rayOrig.y + relPos.y, rayOrig.z + relPos.z };
+    const Vec3 rayOrig   = { data.rayOrigX, data.rayOrigY, data.rayOrigZ };
+    const Vec3 fromPos   = { rayOrig.x + relPos.x, rayOrig.y + relPos.y, rayOrig.z + relPos.z };
     const Vec3 intersect = { data.px, data.py, data.pz };
-    const Vec3 red = { 1, 0, 0 };
+    const Vec3 magenta   = { 1, 0, 1 };
 
-    g_DebugDrawMgr.AddLine(fromPos, intersect, red);
+    if (g_DebugDrawMgr.IsRenderable())
+        g_DebugDrawMgr.AddLine(fromPos, intersect, magenta);
 
     SetConsoleColor(YELLOW);
 
+#if 0
     const char* enttName = pEnttMgr_->nameSys_.GetNameById(data.enttId);
-
 
     printf("hitEntt (id: %d  '%s'   rayO: %.2f %.2f %.2f   rayI: %.2f %.2f %.2f   N: %.2f %.2f %.2f)\n",
         (int)data.enttId,
@@ -912,49 +905,81 @@ void Game::HandleBulletHit(const IntersectionData& data)
         rayOrig.x, rayOrig.y, rayOrig.z,
         intersect.x, intersect.y, intersect.z,
         data.nx, data.ny, data.nz);
+#endif
 
-    const EntityID emitter0Id = pEnttMgr_->nameSys_.GetIdByName("shot_splash_0");
-    const EntityID emitter1Id = pEnttMgr_->nameSys_.GetIdByName("shot_splash_1");
-    const EntityID emitter2Id = pEnttMgr_->nameSys_.GetIdByName("shot_splash_2");
-    const EntityID emitterIdSmoke = pEnttMgr_->nameSys_.GetIdByName("shot_splash_smoke");
+    //
+    // generate some particles as a response of bullet hit
+    //
+    ECS::NameSystem&      nameSys     = pEnttMgr_->nameSys_;
+    ECS::TransformSystem& transSys    = pEnttMgr_->transformSys_;
+    ECS::ParticleSystem&  particleSys = pEnttMgr_->particleSys_;
+    ECS::BoundingSystem&  boundSys    = pEnttMgr_->boundingSys_;
 
 
-    using namespace DirectX;
+    const EntityID emitShotSplash0Id = nameSys.GetIdByName("shot_splash_0");
+    const EntityID emitShotSplash1Id = nameSys.GetIdByName("shot_splash_1");
+    const EntityID emitShotSplash2Id = nameSys.GetIdByName("shot_splash_2");
+    const EntityID emitSplashSmokeId = nameSys.GetIdByName("shot_splash_smoke");
+
+    // relocate particle emitters
+    const DirectX::XMFLOAT3 p = { intersect.x, intersect.y, intersect.z };
+
+#if 0
+    pEnttMgr_->PushEvent(ECS::EventTranslate(emitShotSplash0Id, p.x, p.y, p.z));
+    pEnttMgr_->PushEvent(ECS::EventTranslate(emitShotSplash1Id, p.x, p.y, p.z));
+    pEnttMgr_->PushEvent(ECS::EventTranslate(emitShotSplash2Id, p.x, p.y, p.z));
+    pEnttMgr_->PushEvent(ECS::EventTranslate(emitSplashSmokeId, p.x, p.y, p.z));
+
+#else
+    transSys.SetPosition(emitShotSplash0Id, p);
+    transSys.SetPosition(emitShotSplash1Id, p);
+    transSys.SetPosition(emitShotSplash2Id, p);
+    transSys.SetPosition(emitSplashSmokeId, p);
+
+    boundSys.TranslateWorldBoundings(emitShotSplash0Id);
+    boundSys.TranslateWorldBoundings(emitShotSplash1Id);
+    boundSys.TranslateWorldBoundings(emitShotSplash2Id);
+    boundSys.TranslateWorldBoundings(emitSplashSmokeId);
+
+    pEnttMgr_->UpdateQuadTreeMembership(emitShotSplash0Id);
+    pEnttMgr_->UpdateQuadTreeMembership(emitShotSplash1Id);
+    pEnttMgr_->UpdateQuadTreeMembership(emitShotSplash2Id);
+    pEnttMgr_->UpdateQuadTreeMembership(emitSplashSmokeId);
+#endif
+
+    // generate new particles 
+    const ECS::EmitterData& emitter0 = particleSys.GetEmitterData(emitShotSplash0Id);
+    const ECS::EmitterData& emitter1 = particleSys.GetEmitterData(emitShotSplash1Id);
+    const ECS::EmitterData& emitter2 = particleSys.GetEmitterData(emitShotSplash2Id);
+    const ECS::EmitterData& emitter3 = particleSys.GetEmitterData(emitSplashSmokeId);
     
-    const XMFLOAT3 emitterNewPos = { intersect.x, intersect.y, intersect.z };
+    particleSys.PushNewParticles(emitShotSplash0Id, emitter0.spawnRate);
+    particleSys.PushNewParticles(emitShotSplash1Id, emitter1.spawnRate);
+    particleSys.PushNewParticles(emitShotSplash2Id, emitter2.spawnRate);
+    particleSys.PushNewParticles(emitSplashSmokeId, emitter3.spawnRate);
 
-    pEnttMgr_->transformSys_.SetPosition(emitter0Id, emitterNewPos);
-    pEnttMgr_->transformSys_.SetPosition(emitter1Id, emitterNewPos);
-    pEnttMgr_->transformSys_.SetPosition(emitter2Id, emitterNewPos);
-    pEnttMgr_->transformSys_.SetPosition(emitterIdSmoke, emitterNewPos);
-
-
-
-    Vec3 norm = { data.nx, data.ny, data.nz };
-
-
-    ECS::ParticleSystem& sys = pEnttMgr_->particleSys_;
-    const ECS::ParticleEmitter& emitter0 = sys.GetEmitter(emitter0Id);
-    const ECS::ParticleEmitter& emitter1 = sys.GetEmitter(emitter1Id);
-    const ECS::ParticleEmitter& emitter2 = sys.GetEmitter(emitter2Id);
-    const ECS::ParticleEmitter& emitter3 = sys.GetEmitter(emitterIdSmoke);
-    
-    //sys.SetExternForces(splashEmitterId, newForces.x, newForces.y, newForces.z);
-    sys.PushNewParticles(emitter0Id, emitter0.spawnRate);
-    sys.PushNewParticles(emitter1Id, emitter1.spawnRate);
-    sys.PushNewParticles(emitter2Id, emitter2.spawnRate);
-    sys.PushNewParticles(emitterIdSmoke, emitter3.spawnRate);
-
-    Vec3 smokeExtForces = (norm *= 0.0001);
-    sys.SetExternForces(emitterIdSmoke, smokeExtForces.x, smokeExtForces.y, smokeExtForces.z);
+    // particles go along the normal vector of the surface (where bullet hit)
+    const Vec3 decalNormal    = { data.nx, data.ny, data.nz };
+    const Vec3 smokeExtForces = (decalNormal * 0.0001f);
+    particleSys.SetExternForces(emitSplashSmokeId, smokeExtForces.x, smokeExtForces.y, smokeExtForces.z);
 
     // calc decal direction
-    Vec3 v0 = { data.vx1, data.vy1, data.vz1 };
-    Vec3 decalDir = v0 - intersect;
+    const Vec3 v0 = { data.vx1, data.vy1, data.vz1 };
+    const Vec3 decalTangent = v0 - intersect;
 
-    printf("decal dir: %.2f %.2f %.2f\n", decalDir.x, decalDir.y, decalDir.z);
+    //printf("decal dir: %.2f %.2f %.2f\n", decalTangent.x, decalTangent.y, decalTangent.z);
 
-    g_ModelMgr.PushDecalToRender(intersect, decalDir, norm, 0.1f, 0.1f);
+    const float decalWidth       = 0.1f;
+    const float decalHeight      = 0.1f;
+    const float decalLifeTimeSec = 30.0f;
+
+    g_ModelMgr.AddDecal3D(
+        intersect,          // center of decal
+        decalTangent,
+        decalNormal,
+        decalWidth,
+        decalHeight,
+        decalLifeTimeSec);
 
     SetConsoleColor(RESET);
 }
@@ -977,20 +1002,20 @@ void Game::HandleEventWeaponSingleShot()
 
     Mouse& mouse = pEngine_->GetMouse();
 
-    // shotgun throws multiple bullets at once so handle it in a separate way...
+    // handle shooting with shotgun separately
     if (wpn.type == WPN_TYPE_SHOTGUN)
     {
         int mouseX = mouse.GetPosX();
         int mouseY = mouse.GetPosY();
         int numBullets = 10;
 
-        // m
+        // generate random angle for each shotgun's bullet and test collision
         for (int i = 0; i < numBullets; ++i)
         {
             IntersectionData data;
 
-            int offsetX = (rand() % 100 - 50);
-            int offsetY = (rand() % 100 - 50);
+            int offsetX = (rand() & 63 - 32);
+            int offsetY = (rand() & 63 - 32);
 
             bool hasIntersection = pEngine_->GetGraphicsClass().GetRayIntersectionData(
                 mouseX + offsetX,
@@ -998,14 +1023,12 @@ void Game::HandleEventWeaponSingleShot()
                 data);
 
             if (!hasIntersection)
-                return;
+                continue;
 
             HandleBulletHit(data);
         }
-
         return;
     }
-
 
     
     IntersectionData data;
@@ -1190,5 +1213,41 @@ void Game::StartAnimWeaponIdle()
         animEndTime,
         ECS::ANIM_PLAY_LOOP);
 }
+
+#if 0
+void LightSystem::UpdateDirLights(
+    const float deltaTime,
+    const float totalGameTime)
+{
+    // circle sun light over the land surface
+
+    DirLights& dirLights = GetDirLights();
+
+    DirectX::XMFLOAT3 dir;
+    dir.x = 30.0f * cosf(0.2f * totalGameTime);
+    dir.y = -0.57735f;
+    dir.z = 30.0f * sinf(0.2f * totalGameTime);
+
+    for (index idx = 0; idx < GetNumDirLights(); ++idx)
+    {
+        SetDirLightProp(dirLights.ids[idx], ECS::LightProp::DIRECTION, dir);
+    }
+}
+
+///////////////////////////////////////////////////////////
+
+void LightSystem::UpdatePointLights(const float deltaTime, const float totalGameTime)
+{
+    // update point light props (position, color, etc.)
+
+    PointLights& pointLights = GetPointLights();
+
+    float x = 30.0f * cosf(0.2f * totalGameTime);
+    float y = 3;
+    float z = 30.0f * sinf(0.2f * totalGameTime);
+
+    SetPointLightProp(pointLights.ids[0], LightProp::POSITION, { x, y, z, 1.0f });
+}
+#endif
 
 } // namespace

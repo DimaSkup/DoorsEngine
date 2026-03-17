@@ -19,23 +19,23 @@
 
 namespace UI
 {
-// forward declaration
+
+// forward declaration (pointer use only)
 class IFacadeEngineToUI;
 
 
 class UserInterface
 {
 public:
-	UserInterface();
-	~UserInterface();
+    UserInterface();
+    ~UserInterface();
 
 private:  // restrict a copying of this class instance
-	UserInterface(const UserInterface & obj);    
-	UserInterface & operator=(const UserInterface & obj);
+    UserInterface(const UserInterface & obj);    
+    UserInterface & operator=(const UserInterface & obj);
 
 public:
-    void Initialize(
-        ID3D11Device* pDevice,
+    void Init(
         IFacadeEngineToUI* pFacadeEngineToUI,
         const char* dbgFontDataFilepath,
         const char* dbgFontTexName,
@@ -46,28 +46,23 @@ public:
         const UINT videoCardMemory,
         const std::string& videoCardName);
 
-	void Update(
-		ID3D11DeviceContext* pContext, 
-		const Core::SystemState& systemState);
+    void Update(const Core::SystemState& systemState);
 
-	void UndoEditorLastEvent();
+    void UndoEditorLastEvent();
 
-	// Public rendering API
-	void RenderGameUI(Render::CRender& render, Core::SystemState& systemState);
+    // Public rendering API
+    void RenderGameUI(Render::CRender& render, Core::SystemState& systemState);
 
-	void RenderEditor(Core::SystemState& systemState);
-	void RenderSceneWnd(Core::SystemState& systemState);
+    void RenderEditor  (Core::SystemState& systemState);
+    void RenderSceneWnd(Core::SystemState& systemState);
     void RenderAndHandleGizmo(const EntityID selectedEntt, Core::SystemState& sysState);
 
-	
-    inline IFacadeEngineToUI* GetFacade() const { return pFacadeEngineToUI_; }
-	inline bool IsSceneWndHovered()       const { return isSceneWndHovered_; }
+    
+    IFacadeEngineToUI* GetFacade() const;
+    bool IsSceneWndHovered()       const;
 
-	// Public modification API
-    SentenceID AddConstStr(
-        ID3D11Device* pDevice,
-        const char* text,
-        const POINT& drawAt);
+    // Public modification API
+    SentenceID AddConstStr(const char* text, const POINT& drawAt);
 
     SentenceID AddDynamicStr(
         const char* key,
@@ -75,52 +70,92 @@ public:
         const POINT& drawAt,
         const uint maxStrLen);
 
-	inline void SetSelectedEntt(const uint32_t entityID)       { editorPanels_.enttEditorController_.SetSelectedEntt(entityID); }
-	inline uint32_t GetSelectedEntt()                    const { return editorPanels_.enttEditorController_.GetSelectedEnttID(); }
+    void     SetSelectedEntt(const EntityID id);
+    EntityID GetSelectedEntt(void) const;
 
-	// gizmo stuff
-	inline void SetGizmoOperation(const int op)                { g_GuiStates.gizmoOperation = op; }
-	inline void SetGizmoClicked(const bool isClicked)          { g_GuiStates.isGizmoClicked = isClicked;}
-	inline bool IsGizmoHovered()                         const { return g_GuiStates.isGizmoHovered; }
-	inline void UseSnapping(const bool use)                    { g_GuiStates.useSnapping = use;}
+    // gizmo stuff
+    bool IsGizmoHovered   (void) const;
+    void SetGizmoOperation(const int op);
+    void SetGizmoClicked  (const bool isClicked);
+    void UseSnapping      (const bool use);
 
 private:
-	void LoadDebugInfoStringFromFile(
-		ID3D11Device* pDevice,
-		const std::string& videoCardName,
-		const int videoCardMemory);
+    void LoadDebugInfoStringFromFile(const char* filepath);
 
     void HandleDebugConstStr  (const char* buffer);
     void HandleDebugDynamicStr(const char* buffer);
 
-	
-	// debug info for the game mode
-	void RenderDebugInfo(
-        Render::CRender& render,
-		const Core::SystemState& sysState);
+    
+    // debug info for the game mode
+    void RenderDebugInfo(Render::CRender& render, const Core::SystemState& sysState);
 
-	DirectX::XMFLOAT2 ComputePosOnScreen(const POINT& drawAt);
+    DirectX::XMFLOAT2 ComputePosOnScreen(const POINT& drawAt);
 
 private:
-	int                windowWidth_ = 800;
-	int                windowHeight_ = 600;
+    int                windowWidth_ = 800;
+    int                windowHeight_ = 600;
 
+    FontClass          dbgFont01_;        // represents a font style
+    FontClass          gameFont01_;       // represents a font style
+    TextStore          textStorage_;      // constains strings with debug data: fps, position/rotation, etc.
+    
+    // editor main parts
+    MainMenuBar        editorMainMenuBar_;
+    EditorPanels       editorPanels_;
 
-	FontClass          dbgFont01_;        // represents a font style
-	FontClass          gameFont01_;       // represents a font style
-	TextStore          textStorage_;      // constains strings with debug data: fps, position/rotation, etc.
-	
-	// editor main parts
-	MainMenuBar        editorMainMenuBar_;
-	EditorPanels       editorPanels_;
-
-	// a facade interface which are used by UI to contact with some engine's parts 
-	IFacadeEngineToUI* pFacadeEngineToUI_ = nullptr;
+    // a facade interface which are used by UI to contact with some engine's parts 
+    IFacadeEngineToUI* pFacadeEngineToUI_ = nullptr;
 
     ImportModelWndData* pImportModelWndData_ = nullptr;
 
-	bool               isNeedToRecomputeGUI_ = true;     // defines if we need to recompute GUI elements positions/sizes for the next frame
-	bool               isSceneWndHovered_ = false;       // is currently scene windows is hovered by mouse
+    bool               isNeedToRecomputeGUI_ = true;     // defines if we need to recompute GUI elements positions/sizes for the next frame
+    bool               isSceneWndHovered_ = false;       // is currently scene windows is hovered by mouse
 };
 
-} // namespace UI
+//==================================================================================
+// inline functions
+//==================================================================================
+
+inline IFacadeEngineToUI* UserInterface::GetFacade() const
+{
+    return pFacadeEngineToUI_;
+}
+
+inline bool UserInterface::IsSceneWndHovered() const
+{
+    return isSceneWndHovered_;
+}
+
+inline void UserInterface::SetSelectedEntt(const EntityID id)
+{
+    editorPanels_.enttEditorController_.SetSelectedEntt(id);
+}
+
+inline EntityID UserInterface::GetSelectedEntt() const
+{
+    return editorPanels_.enttEditorController_.GetSelectedEnttID();
+}
+
+// gizmo stuff
+inline void UserInterface::SetGizmoOperation(const int op)
+{
+    g_GuiStates.gizmoOperation = op;
+}
+
+inline void UserInterface::SetGizmoClicked(const bool isClicked)
+{
+    g_GuiStates.isGizmoClicked = isClicked;
+}
+
+inline bool UserInterface::IsGizmoHovered() const
+{
+    return g_GuiStates.isGizmoHovered;
+}
+
+inline void UserInterface::UseSnapping(const bool onOff)
+{
+    g_GuiStates.useSnapping = onOff;
+}
+
+} // namespace
+

@@ -17,7 +17,7 @@
 
 #include <CoreCommon/pch.h>
 #include "model_exporter.h"
-#include "basic_model.h"
+#include "model.h"
 
 #include "../Texture/enum_texture_types.h"
 #include <ImgConverter.h>
@@ -34,22 +34,13 @@ namespace Core
 //---------------------------------------------------------
 // forward declarations of helpers
 //---------------------------------------------------------
-void WriteHeader        (FILE* pFile, const BasicModel* pModel, const char* targetName);
-void WriteMaterials     (ID3D11Device* pDevice, FILE* pFile, const BasicModel* pModel, const char* matFilePath);
-void WriteSubsetsData   (FILE* pFile, const BasicModel* pModel);
-void WriteAABBs         (FILE* pFile, const BasicModel* pModel);
+void WriteHeader        (FILE* pFile, const Model* pModel, const char* targetName);
+void WriteMaterials     (FILE* pFile, const Model* pModel, const char* matFilePath);
+void WriteSubsetsData   (FILE* pFile, const Model* pModel);
+void WriteAABBs         (FILE* pFile, const Model* pModel);
 void WriteVertices      (FILE* pFile, const Vertex3D* vertices, const int numVertices);
 void WriteIndices       (FILE* pFile, const UINT* indices, const int numIndices);
-void StoreTextures      (const BasicModel* pModel, ID3D11Device* pDevice, const char* targetDir);
-
-
-//---------------------------------------------------------
-// a little cringe helper to wrap getting of DX11 device
-//---------------------------------------------------------
-static ID3D11Device* GetDevice()
-{
-    return Render::g_pDevice;
-}
+void StoreTextures      (const Model* pModel, const char* targetDir);
 
 //---------------------------------------------------------
 // Desc:   default constructor
@@ -69,14 +60,14 @@ ModelExporter::ModelExporter()
 //         - targetName:  a name for .de3d and .demat files
 //---------------------------------------------------------
 bool ModelExporter::ExportIntoDE3D(
-    const BasicModel* pModel,
+    const Model* pModel,
     const char* targetDir,
     const char* targetName)
 {
     // check input args
     if (!pModel)
     {
-        LogErr(LOG, "input ptr to model == nullptr");
+        LogErr(LOG, "ptr to model == NULL");
         return false;
     }
     if (!targetDir || targetDir[0] == '\0')
@@ -121,15 +112,16 @@ bool ModelExporter::ExportIntoDE3D(
         return false;
     }
 
-    LogMsg(LOG, "export model into .de3d: %s", pModel->name_);
+    LogMsg(LOG, "export model into .de3d: %s", pModel->GetName());
 
-    WriteHeader(pFile, pModel, targetName);
-    WriteMaterials(GetDevice(), pFile, pModel, materialFilePath);
+    WriteHeader     (pFile, pModel, targetName);
+    WriteMaterials  (pFile, pModel, materialFilePath);
     WriteSubsetsData(pFile, pModel);
-    WriteAABBs(pFile, pModel);
-    WriteVertices(pFile, pModel->vertices_, pModel->numVertices_);
-    WriteIndices(pFile, pModel->indices_, pModel->numIndices_);
-    StoreTextures(pModel, GetDevice(), relTargetDir);
+    WriteAABBs      (pFile, pModel);
+
+    WriteVertices   (pFile, pModel->GetVertices(), pModel->GetNumVertices());
+    WriteIndices    (pFile,  pModel->GetIndices(), pModel->GetNumIndices());
+    StoreTextures   (pModel, relTargetDir);
 
     LogMsg(LOG, "model is converted into .de3d: %s", targetName);
     fclose(pFile);
@@ -140,39 +132,31 @@ bool ModelExporter::ExportIntoDE3D(
 // =================================================================================
 //                               PRIVATE HELPERS
 // =================================================================================
-void WriteHeader(FILE* pFile, const BasicModel* pModel, const char* targetName)
+void WriteHeader(FILE* pFile, const Model* pModel, const char* targetName)
 {
-    assert(pFile != nullptr);
-    assert(pModel != nullptr);
-    assert(targetName && (targetName[0] != '\0'));
+    assert(pFile);
+    assert(pModel);
+    assert(!StrHelper::IsEmpty(targetName));
 
     fprintf(pFile, "***************Header***************\n");
     fprintf(pFile, "Name: %s\n",       targetName);
-    fprintf(pFile, "Meshes: %d\n",     pModel->numSubsets_);
-    fprintf(pFile, "Vertices: %d\n",   pModel->numVertices_);
-    fprintf(pFile, "Indices: %d\n",    pModel->numIndices_);
-    fprintf(pFile, "Bones: %d\n",      pModel->numBones_);
-    fprintf(pFile, "AnimClips: %d\n",  pModel->numAnimClips_);
+    fprintf(pFile, "Meshes: %d\n",     pModel->GetNumSubsets());
+    fprintf(pFile, "Vertices: %d\n",   pModel->GetNumVertices());
+    fprintf(pFile, "Indices: %d\n",    pModel->GetNumIndices());
     fprintf(pFile, "\n");
 }
 
 //---------------------------------------------------------
 // Desc:   write metadata about model's materials
 //---------------------------------------------------------
-void WriteMaterials(
-    ID3D11Device* pDevice,
-    FILE* pFile,
-    const BasicModel* pModel,
-    const char* matFilePath)
+void WriteMaterials(FILE* pFile, const Model* pModel, const char* matFilePath)
 {
-    assert(pDevice != nullptr);
-    assert(pFile != nullptr);
-    assert(pModel != nullptr);
-    assert(matFilePath && (matFilePath[0] != '\0'));
+    assert(pFile);
+    assert(pModel);
+    assert(!StrHelper::IsEmpty(matFilePath));
 
-
-    const Subset* subsets = pModel->meshes_.subsets_;
-    const int numSubsets = (int)pModel->meshes_.numSubsets_;
+    const Subset* subsets = pModel->GetSubsets();
+    const int  numSubsets = pModel->GetNumSubsets();
 
     char fileName[64]{ '\0' };
     FileSys::GetFileName(matFilePath, fileName);
@@ -187,7 +171,6 @@ void WriteMaterials(
 
     for (int i = 0; i < numSubsets; ++i)
     {
-        const MaterialID matId = subsets[i].materialId;
         materials[i] = g_MaterialMgr.GetMatById(subsets[i].materialId);
 
         fprintf(pFile, "Subset%d_MatName: %s\n", i, materials[i].name);
@@ -195,7 +178,7 @@ void WriteMaterials(
     fprintf(pFile, "\n");
 
 
-    // store materials into file
+    // store materials of the model into a separate file
     MaterialWriter matWriter;
     matWriter.Write(materials.data(), numSubsets, matFilePath);
 }
@@ -203,13 +186,13 @@ void WriteMaterials(
 //---------------------------------------------------------
 // Desc:   write data of each model's subset (mesh)
 //---------------------------------------------------------
-void WriteSubsetsData(FILE* pFile, const BasicModel* pModel)
+void WriteSubsetsData(FILE* pFile, const Model* pModel)
 {
-    assert(pFile != nullptr);
-    assert(pModel != nullptr);
+    assert(pFile);
+    assert(pModel);
 
-    const Subset* subsets = pModel->meshes_.subsets_;
-    const int numSubsets = (int)pModel->meshes_.numSubsets_;
+    const Subset* subsets = pModel->GetSubsets();
+    const int  numSubsets = pModel->GetNumSubsets();
 
     fprintf(pFile, "***************SubsetsData*******************\n");
 
@@ -250,21 +233,24 @@ inline void WriteAABB(FILE* pFile, const DirectX::XMFLOAT3& c, const DirectX::XM
 //---------------------------------------------------------
 // Desc:  write data about AABB of the whole model and each model's subset
 //---------------------------------------------------------
-void WriteAABBs(FILE* pFile, const BasicModel* pModel)
+void WriteAABBs(FILE* pFile, const Model* pModel)
 {
-    assert(pFile != nullptr);
-    assert(pModel != nullptr);
+    assert(pFile);
+    assert(pModel);
+
+    const DirectX::BoundingBox& modelAABB    = pModel->GetModelAABB();
+    const DirectX::BoundingBox* subsetsAABBs = pModel->GetSubsetsAABB();
 
     fprintf(pFile, "***************AABB(center,extents)*******************\n");
 
     // write AABB of the whole model (in local space)
     fprintf(pFile, "Model:    ");
-    WriteAABB(pFile, pModel->modelAABB_.Center, pModel->modelAABB_.Extents);
+    WriteAABB(pFile, modelAABB.Center, modelAABB.Extents);
 
-    for (int i = 0; i < pModel->numSubsets_; ++i)
+    for (int i = 0; i < pModel->GetNumSubsets(); ++i)
     {
         fprintf(pFile, "Subset_%d: ", i);
-        WriteAABB(pFile, pModel->subsetsAABB_[i].Center, pModel->subsetsAABB_[i].Extents);
+        WriteAABB(pFile, subsetsAABBs[i].Center, subsetsAABBs[i].Extents);
     }
 
     fprintf(pFile, "\n");
@@ -288,8 +274,9 @@ void WriteVertices(FILE* pFile, const Vertex3D* vertices, const int numVertices)
 //---------------------------------------------------------
 void WriteIndices(FILE* pFile, const UINT* indices, const int numIndices)
 {
-    assert(pFile != nullptr);
-    assert(indices && (numIndices > 0));
+    assert(pFile);
+    assert(indices);
+    assert(numIndices > 0);
 
     fprintf(pFile, "***************Indices**********************\n");
     fwrite((void*)indices, sizeof(UINT), numIndices, pFile);
@@ -324,12 +311,11 @@ bool IsNeedRewriteTexture(const fs::path& texFullpath, const DXGI_FORMAT targetF
 // 3. load texture from memory and process it
 // 4. write a texture into the .dds file
 //---------------------------------------------------------
-void WriteTextureIntoFile(
-    const fs::path& texFullPath,
-    ID3D11Device* pDevice,
-    ID3D11DeviceContext* pContext,
-    ID3D11Resource* pTexResource)
+void WriteTextureIntoFile(const fs::path& texFullPath, ID3D11Resource* pTexResource)
 {
+    assert(!texFullPath.empty());
+    assert(pTexResource);
+
     using namespace DirectX;
 
     // target image params
@@ -354,7 +340,13 @@ void WriteTextureIntoFile(
     const char* path = pathStr.c_str();
     size_t mipLevels = 0;
 
-    converter.LoadFromMemory(pDevice, pContext, pTexResource, srcImage);
+
+    // load a texture data from VRAM into srcImage
+    converter.LoadFromMemory(
+        Render::GetD3dDevice(),
+        Render::GetD3dContext(),
+        pTexResource,
+        srcImage);
 
     if (srcImage.GetMetadata().width == 1 || srcImage.GetMetadata().height == 1)
     {
@@ -362,10 +354,10 @@ void WriteTextureIntoFile(
         return;
     }
 
-    const bool canGenerateMips  = converter.CalcNumMipLevels(srcImage, mipLevels);
-    const bool needGenerateMips = srcImage.GetMetadata().mipLevels != mipLevels;
+    const bool bCanGenerateMips  = converter.CalcNumMipLevels(srcImage, mipLevels);
+    const bool bNeedGenerateMips = srcImage.GetMetadata().mipLevels != mipLevels;
 
-    if (needGenerateMips && canGenerateMips)
+    if (bNeedGenerateMips && bCanGenerateMips)
     {
         // generate mip maps, compress/decompress, save into .dds file
         const ScratchImage mipChain(converter.GenMipMaps(srcImage, filter));
@@ -373,6 +365,9 @@ void WriteTextureIntoFile(
 
         if (converter.SaveToFile(dstImage, DDS_FLAGS_NONE, texFullPath))
             LogMsg(LOG, "texture is saved: %s", path);
+        else
+            LogErr(LOG, "can't save a texture into file: %s", path);
+
         return;
     }
 
@@ -385,28 +380,23 @@ void WriteTextureIntoFile(
 
         if (converter.SaveToFile(dstImage, DDS_FLAGS_NONE, texFullPath))
             LogMsg(LOG, "texture is saved: %s", path);
+        else
+            LogErr(LOG, "can't save a texture into file: %s", path);
     }
 }
 
 //---------------------------------------------------------
 // Desc:   store all the model's textures as DDS files (with mipmaps, etc)
 //---------------------------------------------------------
-void StoreTextures(
-    const BasicModel* pModel,
-    ID3D11Device* pDevice,
-    const char* targetDir)
+void StoreTextures(const Model* pModel, const char* targetDir)
 {
-    assert(pModel != nullptr);
-    assert(pDevice != nullptr);
+    assert(pModel);
     assert(targetDir && targetDir[0] != '\0');
 
-    ID3D11DeviceContext* pContext = nullptr;
-    pDevice->GetImmediateContext(&pContext);
-
-    const Subset*   subsets = pModel->meshes_.subsets_;
+    const Subset* subsets = pModel->GetSubsets();
 
     // go through each subset
-    for (int i = 0; i < pModel->numSubsets_; ++i)
+    for (int i = 0; i < pModel->GetNumSubsets(); ++i)
     {
         const Material& mat = g_MaterialMgr.GetMatById(subsets[i].materialId);
         const TexID* texIds = mat.texIds;
@@ -417,14 +407,14 @@ void StoreTextures(
             if (texIds[texIdx] == INVALID_TEX_ID)
                 continue;
 
-            Texture& tex = g_TextureMgr.GetTexByID(texIds[texIdx]);
+            Texture& tex = g_TextureMgr.GetTexById(texIds[texIdx]);
 
             char texPath[256]{'\0'};
             strcat(texPath, targetDir);
             strcat(texPath, tex.GetName().c_str());
             strcat(texPath, ".dds");
 
-            WriteTextureIntoFile(texPath, pDevice, pContext, tex.GetResource());
+            WriteTextureIntoFile(texPath, tex.GetResource());
         }
     }
 }

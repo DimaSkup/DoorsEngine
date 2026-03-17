@@ -15,7 +15,6 @@
 #include "../../Mesh/vertex_buffer.h"
 #include "../../Mesh/index_buffer.h"
 
-#include <types.h>
 #include <cvector.h>
 #include <CoreCommon/system_state.h>
 
@@ -50,7 +49,7 @@ public:
 
     // ---------------------------------------------
 
-    bool Init(ID3D11Device* pDevice, FontClass* pFont);
+    bool Init   (FontClass* pFont);
     void SetFont(FontClass* pFont);
 
     SentenceID AddDebugConstStr(
@@ -72,13 +71,11 @@ public:
         uint32& outConstIndexCount,    // index count for debug const sentences
         uint32& outDynamicIndexCount); // index count for debug dynamic sentences
 
-    void Update(
-        ID3D11DeviceContext* pContext,
-        const Core::SystemState& systemState);
+    void Update(const Core::SystemState& systemState);
 
 private:
-    void RebuildConstVB(ID3D11Device* pDevice);
-    void RebuildDynVB  (ID3D11DeviceContext* pContext);
+    void RebuildConstVB();
+    void RebuildDynVB();
 
     void UpdateDynDbgText(const Core::SystemState& sysState);
 
@@ -97,7 +94,6 @@ private:
     // return an index of dynamic string by input semantic key
     //-----------------------------------------------------
     index GetDynStrIdx(const char* key);
-
 
 private:
     struct SentenceKey
@@ -147,7 +143,7 @@ private:
     uint numIndicesDbgConstText_   = 0;
     uint numIndicesDbgDynText_ = 0;
 
-    bool needUpdConstVB_ = false;
+    bool bUpdateConstVB_ = false;
 };
 
 } // namespace UI

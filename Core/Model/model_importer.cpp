@@ -13,14 +13,20 @@
 #include "../Mesh/material_mgr.h"
 #include "../Texture/texture_mgr.h"
 
-#include "basic_model.h"
+#include <Timers/game_timer.h>
+
+#include "model.h"
 #include "model_math.h"
-#include "model_importer_helpers.h"
 #include "vertices_splitter.h"
 #include "animation_importer.h"
 
-using namespace DirectX;
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+#include <assimp/scene.h>
+#include <assimp/material.h>
 
+
+using namespace DirectX;
 
 namespace Core
 {
@@ -29,15 +35,13 @@ namespace Core
 static cvector<Subset>  s_Subsets;
 static cvector<RawMesh> s_Meshes;
 
-
 //---------------------------------------------------------
 // forward declarations of helper functions
 //---------------------------------------------------------
 bool InitFromScene(
-    ID3D11Device* pDevice,
     const aiScene* pScene,
     const char* filename,
-    BasicModel& model);
+    Model& model);
 
 void CalcNumVerticesAndIndices(
     const aiScene* pScene,
@@ -45,14 +49,12 @@ void CalcNumVerticesAndIndices(
     int& outNumIndices);
 
 void ProcessNode(
-    ID3D11Device* pDevice,
     int& subsetIdx,
     const aiNode* pNode,
     const aiScene* pScene,
     const char* filePath);
 
 void ProcessMesh(
-    ID3D11Device* pDevice,
     const int subsetIdx,
     const aiMesh* pMesh,
     const aiScene* pScene,
@@ -63,7 +65,6 @@ void LoadMaterialColorsData(
     Material& mat);
 
 void LoadMaterialTextures(
-    ID3D11Device* pDevice,
     TexID* texIDs,
     const aiMaterial* pMaterial,
     const Subset& subset,
@@ -74,6 +75,13 @@ void GetVerticesIndicesOfMesh(
     const aiMesh* pMesh,
     const int subsetIdx);
 
+TexStoreType DetermineTexStoreType(
+    const aiScene* pScene,
+    const aiMaterial* pMaterial,
+    const UINT index,
+    const aiTextureType textureType);
+
+UINT GetIndexOfEmbeddedCompressedTexture(aiString* pStr);
 
 //---------------------------------------------------------
 // flags to control ASSIMP's import process
@@ -92,49 +100,45 @@ void GetVerticesIndicesOfMesh(
 // Desc:   import a new model from the file of type .blend, .fbx, .3ds, .obj, .m3d, etc.
 //         (load geometry, load textures and material properties)
 //----------------------------------------------------------------------------------
-bool ModelImporter::LoadFromFile(
-    ID3D11Device* pDevice,
-    BasicModel* pModel,
-    const char* filePath)
+bool ModelImporter::LoadFromFile(Model* pModel, const char* filePath)
 {
+    if (!pModel)
+    {
+        LogErr(LOG, "ptr to model == NULL");
+        return false;
+    }
     if (StrHelper::IsEmpty(filePath))
     {
-        LogErr(LOG, "can't load file: input path is empty!");
+        LogErr(LOG, "empty path");
         return false;
     }
 
     LogMsg(LOG, "import model from file: %s", filePath);
 
 
-    // compute duration of importing process
-    auto importStart = std::chrono::steady_clock::now();
-
-    BasicModel& model = *pModel;
     Assimp::Importer importer;
-
     const aiScene* pScene = importer.ReadFile(filePath, ASSIMP_LOAD_FLAGS);
-
 
     // failed for some reason
     if (pScene == nullptr)
     {
         LogErr(LOG, "can't read a model from file: %s", filePath);
-        LogErr(LOG, "Error parsing '%s': %s", filePath, importer.GetErrorString());
+        LogErr(LOG, "error parsing '%s': %s", filePath, importer.GetErrorString());
 
         char fileExt[8]{ '\0' };
         FileSys::GetFileExt(filePath, fileExt);
 
         if (strcmp(fileExt, ".fbx") == 0)
-            LogErr(LOG, "DUDE, maybe your fbx is in text format, if so convert it into binary form");
+            LogErr(LOG, "DUDE, maybe your fbx is in text (ASCII) format, if so convert it into a binary form");
 
         return false;
     }
 
 
-    bool ret = InitFromScene(pDevice, pScene, filePath, model);
+    bool ret = InitFromScene(pScene, filePath, *pModel);
 
     if (ret)
-        LogMsg(LOG, "model '%s' is imported from file: %s", model.name_, filePath);
+        LogMsg(LOG, "model '%s' is imported from file: %s", pModel->GetName(), filePath);
     else
         LogErr(LOG, "didn't manage to import model: %s", filePath);
 
@@ -150,16 +154,15 @@ bool ModelImporter::LoadFromFile(
 //---------------------------------------------------------
 // Desc:  init all the model's data loading it from assimp scene
 //---------------------------------------------------------
-bool InitFromScene(
-    ID3D11Device* pDevice,
-    const aiScene* pScene,
-    const char* filePath,
-    BasicModel& model)
+bool InitFromScene(const aiScene* pScene, const char* filePath, Model& model)
 {
+    assert(pScene);
+    assert(!StrHelper::IsEmpty(filePath));
+
     if (pScene->HasAnimations())
     {
         AnimationImporter animImporter;
-        animImporter.LoadSkeletonAnimations(pScene, model.name_);
+        animImporter.LoadSkeletonAnimations(pScene, model.GetName());
         //animImporter.PrintNodesHierarchy(pScene, false);
     }
 
@@ -178,22 +181,23 @@ bool InitFromScene(
 
     // load all the meshes/materials/textures/etc.
     ProcessNode(
-        pDevice,
         subsetIdx,
         pScene->mRootNode,
         pScene,
         filePath);
 
-
     //
     // now our vertices/indices/subsets are prepared so
     // allocate memory for it in the model
     //
-    if (!model.AllocateMemory(numVertices, numIndices, numMeshes))
+    if (!model.AllocMem(numVertices, numIndices, numMeshes))
     {
         LogErr(LOG, "can't alloc memory for model");
         return false;
     }
+
+    Vertex3D* vertices = model.GetVertices();
+    UINT*      indices = model.GetIndices();
 
     // index to vertex/index in the model
     index vIdx = 0;
@@ -213,14 +217,13 @@ bool InitFromScene(
 
         for (uint j = 0; j < s_Subsets[i].vertexCount; ++j, ++vIdx)
         {
-            Vertex3D& v   = model.vertices_[vIdx];
             const Vec3& p = mesh.positions[j];
             const Vec3& n = mesh.normals[j];
             const Vec2& t = mesh.uvs[j];
 
-            v.position = { p.x, p.y, p.z };
-            v.texture  = { t.u, t.v };
-            v.normal   = { n.x, n.y, n.z };
+            vertices[vIdx].position = { p.x, p.y, p.z };
+            vertices[vIdx].texture  = { t.u, t.v };
+            vertices[vIdx].normal   = { n.x, n.y, n.z };
         }
     }
 
@@ -237,37 +240,37 @@ bool InitFromScene(
             return false;
         }
 
-        memcpy(model.indices_ + iIdx, mesh.indices.data(), sizeof(UINT) * numIdxs0);
+        memcpy(indices + iIdx, mesh.indices.data(), sizeof(UINT) * numIdxs0);
         iIdx += s_Subsets[i].indexCount;
     }
 
     // setup subsets (meshes metadata) of model
+    Subset* subsets = model.GetSubsets();
+
     for (int i = 0; i < numMeshes; ++i)
-    {
-        model.meshes_.subsets_[i] = s_Subsets[i];
-    }
+        subsets[i] = s_Subsets[i];
 
 
-    // go through each mesh of model and calculate per-vertex tangents
+    // go through each mesh of model and calculate per-vertex normals and tangents
     ModelMath math;
 
     for (int i = 0; i < numMeshes; ++i)
     {
-        const Subset& subset = model.meshes_.subsets_[i];
-        Vertex3D* vertices   = &model.vertices_[subset.vertexStart];
-        const UINT* indices  = &model.indices_[subset.indexStart];
+        const Subset& subset = subsets[i];
+        Vertex3D* verts      = &vertices[subset.vertexStart];
+        const UINT* idxs     = &indices[subset.indexStart];
         int numMeshVert      = subset.vertexCount;
         int numMeshIdxs      = subset.indexCount;
 
-        math.CalcNormals(vertices, indices, numMeshVert, numMeshIdxs);
-        math.CalcTangents(vertices, indices, numMeshVert, numMeshIdxs);
+        math.CalcNormals(verts, idxs, numMeshVert, numMeshIdxs);
+        math.CalcTangents(verts, idxs, numMeshVert, numMeshIdxs);
     }
 
     // initialize vb/ib
-    model.InitializeBuffers(pDevice);
+    model.InitBuffers();
 
-    model.ComputeSubsetsAABB();
-    model.ComputeModelAABB();
+    // compute local boundings
+    model.ComputeBoundings();
 
     // release memory from temp meshes
     s_Meshes.purge();
@@ -285,6 +288,8 @@ void CalcNumVerticesAndIndices(
     int& numVertices,
     int& numIndices)
 {
+    assert(pScene);
+
     for (index i = 0; i < s_Meshes.size(); i++)
     {
         aiMesh* pMesh = pScene->mMeshes[i];
@@ -306,25 +311,23 @@ void CalcNumVerticesAndIndices(
 //        created mesh is pushed into the input model
 //---------------------------------------------------------
 void ProcessNode(
-    ID3D11Device* pDevice,
     int& subsetIdx,
     const aiNode* pNode,
     const aiScene* pScene,
     const char* filePath)                            // full path to the model
 {
+    assert(pNode);
+    assert(pScene);
 
     //const XMMATRIX nodeTransformMatrix = XMMATRIX(&pNode->mTransformation.a1) * parentTransformMatrix;
 
     // go through all the meshes in the current model's node
     for (UINT i = 0; i < pNode->mNumMeshes; i++)
     {
-        aiMesh* pMesh = pScene->mMeshes[pNode->mMeshes[i]];
-
         // handle this mesh and push it into the model's meshes array
         ProcessMesh(
-            pDevice,
             subsetIdx,
-            pMesh,
+            pScene->mMeshes[pNode->mMeshes[i]],
             pScene,
             filePath);
 
@@ -335,7 +338,6 @@ void ProcessNode(
     for (UINT i = 0; i < pNode->mNumChildren; i++)
     {
         ProcessNode(
-            pDevice,
             subsetIdx,
             pNode->mChildren[i],
             pScene,
@@ -346,17 +348,15 @@ void ProcessNode(
 //---------------------------------------------------------
 // Desc:  generate a proper name for material
 // Out:   - name:  store here a generated name
-//---------------------------------------------------------
-inline void HandleMaterialName(aiMaterial* pMat, const char* filePath, const int meshIdx, char* name)
+void HandleMaterialName(aiMaterial* pMat, const char* filePath, const int meshIdx, char* name)
 {
     assert(pMat && name);
     strncpy(name, pMat->GetName().C_Str(), MAX_LEN_MAT_NAME - 1);
 
-
     // if for some reason our name is empty we generate it
     if (StrHelper::IsEmpty(name))
     {
-        char filename[64]{ '\0' };
+        char filename[MAX_LEN_MAT_NAME]{ '\0' };
         FileSys::GetFileName(filePath, filename);
 
         snprintf(name, MAX_LEN_MAT_NAME, "%s_mat_%d", filename, meshIdx);
@@ -374,7 +374,6 @@ inline void HandleMaterialName(aiMaterial* pMat, const char* filePath, const int
 // Desc:   load mesh stuff (geometry/textures/materials)
 //---------------------------------------------------------
 void ProcessMesh(
-    ID3D11Device* pDevice,
     const int subsetIdx,
     const aiMesh* pMesh,                       // the current mesh of the model
     const aiScene* pScene,                     // a ptr to the scene of this model type
@@ -399,7 +398,7 @@ void ProcessMesh(
 
     GetVerticesIndicesOfMesh(pMesh, subsetIdx);
 
-    LoadMaterialTextures(pDevice, material.texIds, pAiMat, subset, pScene, filePath);
+    LoadMaterialTextures(material.texIds, pAiMat, subset, pScene, filePath);
 }
 
 //---------------------------------------------------------
@@ -443,7 +442,6 @@ void LoadMaterialColorsData(
 // Desc:   load all the available textures for this mesh by its material data (from aiMaterial)
 //---------------------------------------------------------
 void LoadMaterialTextures(
-    ID3D11Device* pDevice,
     TexID* texIDs,
     const aiMaterial* pMaterial,
     const Subset& subset,
@@ -646,6 +644,84 @@ void GetVerticesIndicesOfMesh(
 #endif
 
     s_Subsets[subsetIdx].id = (uint16)subsetIdx;
+}
+
+//---------------------------------------------------------
+// determine the type of texture storage by input material and texture type
+//---------------------------------------------------------
+TexStoreType DetermineTexStoreType(
+    const aiScene* pScene,
+    const aiMaterial* pMaterial,
+    const UINT index,
+    const aiTextureType textureType)
+{
+    assert(pScene);
+    assert(pMaterial);
+
+    if (pMaterial->GetTextureCount(textureType) == 0)
+        return TexStoreType::None;
+
+    // get path to the texture
+    aiString path;
+    pMaterial->GetTexture(textureType, index, &path);
+
+    // ---------------------------------------------
+
+    // check if texture is an embedded indexed texture by seeing if the file path is an index #
+    if (path.C_Str()[0] == '*')
+    {
+        if (pScene->mTextures[0]->mHeight != 0)
+        {
+            LogErr(LOG, "SUPPORT DOES NOT EXIST YET FOR INDEXED NON COMPRESSES TEXTURES");
+            return TexStoreType::EmbeddedIndexNonCompressed;
+        }
+
+        return TexStoreType::EmbeddedIndexCompressed;
+    }
+
+    // ---------------------------------------------
+
+    // check if texture is an embedded texture but not indexed (path will be the texture's name instead of #)
+    if (const aiTexture* pTex = pScene->GetEmbeddedTexture(path.C_Str()))
+    {
+        if (pTex->mHeight != 0)
+        {
+            LogErr(LOG, "SUPPORT DOES NOT EXIST YET FOR EMBEDDED NON COMPRESSES TEXTURES");
+            return TexStoreType::EmbeddedNonCompressed;
+        }
+
+        return TexStoreType::EmbeddedCompressed;
+
+    }
+
+    // ---------------------------------------------
+
+    // lastly check if texture is stored on the disk
+    // (just check for '.' before the extension)
+    if (strchr(path.C_Str(), '.') != NULL)
+    {
+        return TexStoreType::Disk;
+    }
+
+    // ---------------------------------------------
+
+    // no texture exists
+    return TexStoreType::None;
+}
+
+//---------------------------------------------------------
+// return an index of the embedded compressed texture by path pStr
+//---------------------------------------------------------
+UINT GetIndexOfEmbeddedCompressedTexture(aiString* pStr)
+{
+    assert(pStr);
+
+    // assert that path is "*0", "*1", or something like that
+    if (!(pStr->length >= 2))
+        return 0;
+
+    // return an index
+    return (UINT)atoi(&pStr->C_Str()[1]);
 }
 
 } // namespace Core

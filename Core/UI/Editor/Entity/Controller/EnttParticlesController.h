@@ -23,7 +23,7 @@ class EnttParticlesController
 public:
     EnttParticlesController() {};
 
-    void Initialize(IFacadeEngineToUI* pFacade);
+    void Init(IFacadeEngineToUI* pFacade);
     void LoadEnttData(const EntityID id);
 
     void ExecCmd(const ICommand* pCmd, const EntityID id);

@@ -13,10 +13,10 @@
 #include <texture_mgr.h>
 #include <material_mgr.h>
 #include <model_mgr.h>
-#include <basic_model.h>
+#include <model.h>
 
-#include <Types.h>
-#include <FileSystem.h>
+#include <types.h>
+#include <file_system.h>
 #include <FileSystemPaths.h>
 #include <StrHelper.h>
 

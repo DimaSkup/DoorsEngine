@@ -23,13 +23,13 @@ ImGuiLayer::ImGuiLayer()
 {
 }
 
-///////////////////////////////////////////////////////////
+//---------------------------------------------------------
 
-bool ImGuiLayer::Initialize(
-    HWND hwnd,
-    ID3D11Device* pDevice,
-    ID3D11DeviceContext* pContext)
+bool ImGuiLayer::Init(HWND hwnd, ID3D11Device* pDevice, ID3D11DeviceContext* pCtx)
 {
+    assert(pDevice);
+    assert(pCtx);
+
     // setup Dear ImGui context
     IMGUI_CHECKVERSION();
     pImGuiContext_ = ImGui::CreateContext();
@@ -46,7 +46,7 @@ bool ImGuiLayer::Initialize(
     ImFont* pFont = io.Fonts->AddFontFromFileTTF(pathFont, fontSize);
     if (!pFont)
     {
-        LogErr(LOG, "can't load a font from file: %s", "data/ui/arial.ttf");
+        LogErr(LOG, "can't load a font from file: %s", pathFont);
         return false;
     }
 
@@ -55,7 +55,6 @@ bool ImGuiLayer::Initialize(
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
-
 
     SetDefaultThemeColors();
 
@@ -77,26 +76,26 @@ bool ImGuiLayer::Initialize(
 
     // setup platform/renderer backeds
     ImGui_ImplWin32_Init(hwnd);
-    ImGui_ImplDX11_Init(pDevice, pContext);
+    ImGui_ImplDX11_Init(pDevice, pCtx);
 
     RECT winRect;
     GetWindowRect(hwnd, &winRect);
 
     ImGuiViewport* pViewport = ImGui::GetMainViewport();
 
-    ImVec2 wndPos = { 0,0 }; //{ (float)winRect.left, (float)winRect.top };
-    ImVec2 wndSize = { (float)(winRect.right - winRect.left), (float)(winRect.bottom - winRect.top) };
+    ImVec2 wndPos        = { 0,0 }; //{ (float)winRect.left, (float)winRect.top };
+    ImVec2 wndSize      = { (float)(winRect.right - winRect.left), (float)(winRect.bottom - winRect.top) };
 
-    pViewport->Pos = wndPos;
-    pViewport->WorkPos = wndPos;
+    pViewport->Pos      = wndPos;
+    pViewport->WorkPos  = wndPos;
 
-    pViewport->Size = wndSize;
+    pViewport->Size     = wndSize;
     pViewport->WorkSize = wndSize;
 
     return true;
 }
 
-///////////////////////////////////////////////////////////
+//---------------------------------------------------------
 
 void ImGuiLayer::Shutdown()
 {
@@ -106,7 +105,7 @@ void ImGuiLayer::Shutdown()
     ImGui::DestroyContext();
 }
 
-///////////////////////////////////////////////////////////
+//---------------------------------------------------------
 
 void ImGuiLayer::Begin()
 {
@@ -129,13 +128,15 @@ void ImGuiLayer::Begin()
     static ImGuiDockNode*      pSceneNode      = nullptr;
 
     // setup the dockspace wnd style
-    ImGuiWindowFlags wndFlags = 0;
     ImGui::SetNextWindowPos(viewport->WorkPos);
     ImGui::SetNextWindowSize(viewport->WorkSize);
     ImGui::SetNextWindowViewport(viewport->ID);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-    wndFlags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+
+    ImGuiWindowFlags wndFlags = 0;
+    wndFlags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
+    wndFlags |= ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
     wndFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 
 
@@ -145,7 +146,6 @@ void ImGuiLayer::Begin()
     {
         wndFlags |= ImGuiWindowFlags_NoTitleBar;
     }
-
 
     // push this style since we want to disable padding
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
@@ -194,7 +194,7 @@ void ImGuiLayer::Begin()
     }
 }
 
-///////////////////////////////////////////////////////////
+//---------------------------------------------------------
 
 void ImGuiLayer::End()
 {
@@ -202,7 +202,7 @@ void ImGuiLayer::End()
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 }
 
-///////////////////////////////////////////////////////////
+//---------------------------------------------------------
 
 void ImGuiLayer::SetDarkThemeColors()
 {
@@ -212,14 +212,7 @@ void ImGuiLayer::SetDarkThemeColors()
     assert(0 && "TODO: IMPELEMNT IT DICKHEAD");
 }
 
-///////////////////////////////////////////////////////////
-
-ImVec4 operator-(const ImVec4& v1, float s)
-{
-    return ImVec4{ v1.x - s, v1.y - s, v1.z - s, 1.0f };
-}
-
-///////////////////////////////////////////////////////////
+//---------------------------------------------------------
 
 void ImGuiLayer::SetDefaultThemeColors()
 {

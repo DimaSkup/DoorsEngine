@@ -407,12 +407,11 @@ void InitSkeletonBonesVB(AnimSkeleton* pSkeleton)
 {
     assert(pSkeleton);
 
-    ID3D11Device*         pDevice         = Render::g_pDevice;
     const VertexBoneData* bonesWeights    = pSkeleton->vertexToBones.data();
     const int             numBonesWeights = (int)pSkeleton->vertexToBones.size();
     const bool            isDynamicVB     = false;
 
-    if (!pSkeleton->bonesVB_.Initialize(pDevice, bonesWeights, numBonesWeights, isDynamicVB))
+    if (!pSkeleton->bonesVB_.Init(bonesWeights, numBonesWeights, isDynamicVB))
     {
         LogErr(LOG, "can't init bones VB for skeleton: %s", pSkeleton->GetName());
     }

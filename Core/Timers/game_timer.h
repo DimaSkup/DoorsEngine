@@ -9,14 +9,15 @@
 #pragma once
 #include <chrono>
 
-namespace Core
-{
 //---------------------------------------------------------
 // some typedefs to get timings
 //---------------------------------------------------------
 using TimeDurationMs = std::chrono::duration<float, std::milli>;
 using TimePoint      = std::chrono::steady_clock::time_point;
 
+
+namespace Core
+{
 
 //---------------------------------------------------------
 // class:  GameTimer
@@ -30,7 +31,7 @@ public:
     float GetGameTime()  const;
     float GetDeltaTime() const;
 
-    static TimePoint GetTimePoint();
+    static ::TimePoint GetTimePoint();
 
     void Reset();  // is called before message loop
     void Start();  // is called when unpaused

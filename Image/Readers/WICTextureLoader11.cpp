@@ -941,7 +941,7 @@ HRESULT DirectX::CreateWICTextureFromMemoryEx(
     if (FAILED(hr))
         return hr;
 
-    // Initialize WIC
+    // Init WIC
     ComPtr<IWICBitmapDecoder> decoder;
     hr = pWIC->CreateDecoderFromStream(stream.Get(), nullptr, WICDecodeMetadataCacheOnDemand, decoder.GetAddressOf());
     if (FAILED(hr))
@@ -1065,7 +1065,7 @@ HRESULT DirectX::CreateWICTextureFromFileEx(
     if (!pWIC)
         return E_NOINTERFACE;
 
-    // Initialize WIC
+    // Init WIC
     ComPtr<IWICBitmapDecoder> decoder;
     HRESULT hr = pWIC->CreateDecoderFromFilename(fileName,
         nullptr,

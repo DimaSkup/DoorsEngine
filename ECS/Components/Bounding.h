@@ -6,47 +6,40 @@
 // =================================================================================
 #pragma once
 
-#include <Types.h>
+#include <types.h>
 #include <cvector.h>
 #include <DirectXCollision.h>
 
 namespace ECS
 {
 
-//
+// =================================================================================
 // HELPER DATA TYPES
-//
-enum BoundingType
-{
-    BOUND_SPHERE,
-    BOUND_BOX,
-};
+// =================================================================================
 
-// ----------------------------------------------
-
-struct BoundingData
+struct BoundData
 {
-    BoundingData()
+    BoundData()
     {
     }
 
-    BoundingData(
-        const BoundingType inType,
-        const DirectX::BoundingSphere& inSphere,
-        const DirectX::BoundingBox& inAABB)
+    BoundData(
+        const DirectX::BoundingBox& _localBox,
+        const DirectX::BoundingBox& _worldBox,
+        const DirectX::BoundingSphere& _localSphere,
+        const DirectX::BoundingSphere& _worldSphere)
         :
-        mainType(inType),
-        sphere(inSphere),
-        aabb(inAABB)
+        localBox(_localBox),
+        worldBox(_worldBox),
+        localSphere(_localSphere),
+        worldSphere(_worldSphere)
     {
     }
 
-    // of the whole entity
-    BoundingType mainType = BOUND_BOX;
-
-    // around the whole entity
-    DirectX::BoundingSphere sphere = { XMFLOAT3(0,0,0), 1 };
-    DirectX::BoundingBox    aabb   = { sphere.Center, XMFLOAT3(1.732f, 1.732f, 1.732f) };   // sqrt(3)
+    DirectX::BoundingBox    localBox;
+    DirectX::BoundingBox    worldBox;
+    DirectX::BoundingSphere localSphere;
+    DirectX::BoundingSphere worldSphere;
 }; 
 
 
@@ -55,12 +48,15 @@ struct BoundingData
 // =================================================================================
 struct Bounding
 {
-    // Bounding Box:
-    // center  - center of the box / sphere; 
-    // extents - Distance from the center to each side OR radius of the sphere
+    Bounding()
+    {
+        // add "invalid" bounding shape
+        ids.push_back(INVALID_ENTITY_ID);
+        data.push_back(BoundData());
+    }
 
-    cvector<EntityID>     ids;
-    cvector<BoundingData> data;
+    cvector<EntityID>  ids;
+    cvector<BoundData> data;
 };
 
 

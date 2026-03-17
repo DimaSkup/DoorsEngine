@@ -7,6 +7,7 @@
 #pragma once
 
 #include <post_fx_enum.h>
+#include <camera_params.h>
 #include <geometry/frustum.h>
 
 // engine stuff
@@ -14,10 +15,12 @@
 #include "../Engine/engine_configs.h"
 
 // render stuff
+#include "../Mesh/material.h"
+#include "../Mesh/material_mgr.h"
 #include "Render/d3dclass.h"            // from Render module
 #include "Render/CRender.h"             // from Render module
 
-#include "rnd_data_preparator.h"
+#include "r_data_preparator.h"
 #include "frame_buffer.h"               // for rendering to some particular texture
 
 // ECS
@@ -25,6 +28,11 @@
 
 #include <DirectXCollision.h>
 
+//-----------------------------------------------------
+// forward declaration (pointer use only)
+//-----------------------------------------------------
+class Matrix;
+class Frustum;
 
 namespace Core
 {
@@ -32,15 +40,18 @@ namespace Core
 //-----------------------------------------------------
 // forward declaration (pointer use only)
 //-----------------------------------------------------
-struct Material;
-class BasicModel;
+class Model;
 
 //-----------------------------------------------------
 
 class CGraphics
 {
-
 public:
+
+    //
+    // internal structures + enums
+    //
+
     enum eTextureSlots
     {
         TEX_SLOT_DEPTH       = 10,     // resolved (non-MSAA) texture with depth values
@@ -68,8 +79,6 @@ public:
 
         NUM_GEOM_TYPES,
     };
-
-   
 
     //-----------------------------------------------------
     // a container for rendering statistic for the current frame
@@ -116,7 +125,9 @@ public:
         NUM_MODEL_PREVIEW_PARAMS,
     };
 
-
+    //---------------------------------------------------------
+    // params for model previewer or models screenshot tool
+    //---------------------------------------------------------
     struct ModelPreviewRenderParams
     {
         // currently selected model for rendering
@@ -161,25 +172,28 @@ public:
     void BindRender(Render::CRender* pRender);
     void BindECS   (ECS::EntityMgr* pEnttMgr);
 
+    //---------------------------------
     // collision:  ray/entities tests
+    //---------------------------------
     bool GetRayIntersectionData(const int sx, const int sy, IntersectionData& outData);
     int  TestEnttSelection     (const int sx, const int sy);
 
 
-    // ------------------------------------
+    //---------------------------------
     // render related methods
-
-    void FrustumCullingEntts      (SystemState& sysState);
-    void FrustumCullingParticles  (SystemState& sysState, const Frustum& worldFrustum);
-    void FrustumCullingPointLights(SystemState& sysState, const Frustum& worldFrustum);
+    //---------------------------------
+    void GetWorldFrustum          (const EntityID camId, Frustum& outFrustum, CameraParams& params);
+    void FrustumCullingEntts      (const Frustum& worldFrustum);
+    void FrustumCullingParticles  (const Frustum& worldFrustum);
+    void FrustumCullingPointLights(const Frustum& worldFrustum);
 
     void ClearRenderingDataBeforeFrame();
     void Render3D();
     void RenderDecals();
 
-    //
+    //---------------------------------
     // material binding
-    //
+    //---------------------------------
     void BindMaterial      (const Material& mat);
     void BindMaterialById  (const MaterialID matId);
 
@@ -197,10 +211,9 @@ public:
         const DssID dssId,
         ID3D11ShaderResourceView* const* texViews);
 
-
-    //
+    //---------------------------------
     // rendering into frame buffers
-    //
+    //---------------------------------
     bool InitMatBigIconFrameBuf(const uint width, const uint height);
 
     bool InitMatIconFrameBuffers(
@@ -216,29 +229,27 @@ public:
 
     bool RenderMaterialsIcons();
 
-
-
-    // ---------------------------------------
-    // INLINE GETTERS/SETTERS
-
+    //---------------------------------
+    // inline getters/setters
+    //---------------------------------
     inline void SetAntiAliasingType(const uint8 type)               { GetD3D().SetAntiAliasingType(type); }
     inline uint8 GetAntiAliasingType()                        const { return (uint8)(GetD3D().GetAntiAliasingType()); }
 
-    inline void     SetCurrentCamera(const EntityID cameraID)       { currCameraID_ = cameraID; }
-    inline EntityID GetCurrentCamera()                        const { return currCameraID_; }
+    inline void     SetActiveCamera(const EntityID id)              { currCameraId_ = id; }
+    inline EntityID GetActiveCamera()                         const { return currCameraId_; }
    
-    inline void EnableDepthPrepass(const bool state)                { enableDepthPrepass_ = state; }
+    inline void EnableDepthPrepass(const bool onOff)                { enableDepthPrepass_ = onOff; }
     inline bool IsEnabledDepthPrepass()                       const { return enableDepthPrepass_; }
 
-    inline void EnableDepthVisualize(const bool state)              { visualizeDepth_ = state;}
+    inline void EnableDepthVisualize(const bool onOff)              { visualizeDepth_ = onOff;}
     inline bool IsEnabledDepthVisualize()                     const { return visualizeDepth_; }
 
     inline bool IsEnabledPostFxPass()                         const { return enablePostFXs_ && (numPostFxsInQueue_ != 0); }
 
-    //-----------------------------------------------------
+    //---------------------------------
     // post effects
-    //-----------------------------------------------------
-    inline void EnablePostFxs(const bool state)                     { enablePostFXs_ = state; }     // turn on/off using of post effects
+    //---------------------------------
+    inline void EnablePostFxs(const bool onOff)                     { enablePostFXs_ = onOff; }     // turn on/off using of post effects
     inline bool IsPostFxsEnabled()                            const { return enablePostFXs_; }      // is using of post effects enabled?
     inline const ePostFxType* GetPostFxsQueue()               const { return postFxsQueue_; }       // return a ptr to queue of currently used post effects
     inline uint8 GetNumUsedPostFxs()                          const { return numPostFxsInQueue_; }  // return a number of currenly used post effects
@@ -247,23 +258,18 @@ public:
     void RemovePostFx(const uint8 orderNum);
 
 
-    //-------------------------------------------
+    //---------------------------------
     // model preview configuration (for model editor, or model screenshot tool)
-    //-------------------------------------------
+    //---------------------------------
     bool InitModelFrameBuf(const uint width, const uint height);
     bool RenderModelIntoFrameBuf();
 
     void  SetModelPreviewParam(const uint8 param, const float val);
     float GetModelPreviewParam(const uint8 param) const;
 
-    inline ID3D11ShaderResourceView* GetModelFrameBufView() const
-    {
-        if (pModelFrameBuf_ != nullptr)
-            return pModelFrameBuf_->GetSRV();
+    ID3D11ShaderResourceView* GetModelFrameBufView() const;
 
-        return nullptr;
-    }
-
+    void SwitchQuadTree();
 
 private:
 
@@ -271,22 +277,35 @@ private:
     inline ID3D11Device*        GetDevice()  const { return pRender_->GetDevice(); }
     inline ID3D11DeviceContext* GetContext() const { return pRender_->GetContext(); }
 
-    // --- updating state
-    void UpdateHelper             (const float deltaTime, const float gameTime);
-    void UpdateParticlesVB        ();
-    void UpdateShadersDataPerFrame(const float deltaTime, const float gameTime);
+    //---------------------------------
+    // updating state
+    //---------------------------------
+    void UpdateParticlesVB        (void);
+    void UpdateShadersDataPerFrame(const float dt, const float gameTime);
     void AddFrustumToRender       (const EntityID camId);
     void PrepareRenderInstances   (const DirectX::XMFLOAT3& cameraPos);
     void SetupLightsForFrame      (Render::PerFrameData& perFrameData);
-    
-    // --- rendering stages
+
+    void ResetRenderStats       (void);
+    void UpdatePlayerPos        (void);
+    void UpdateCamera           (void);
+    void GatherCameraParams     (const EntityID camId, CameraParams& outParams);
+    void Push2dSpritesToRender  (void);
+
+    void AddDebugShapesToRender (void);
+
+    //---------------------------------
+    // rendering stages
+    //---------------------------------
     void ResetBeforeRendering();
     void ResetRenderStatesToDefault();
     void DepthPrepass();
     void ColorLightPass();
     void PostFxPass();
 
-    // --- rendering stage: depth pre-pass
+    //---------------------------------
+    // rendering stage: depth pre-pass
+    //---------------------------------
     void TerrainDepthPrepass();
 
     void DepthPrepassInstanceGroup(
@@ -294,7 +313,9 @@ private:
         const eGeomType geomType,
         UINT& startInstanceLocation);
 
-    // --- rendering stage: color pass
+    //---------------------------------
+    // rendering stage: color pass
+    //---------------------------------
     void RenderSkinnedModel(const EntityID enttId);
     void RenderGrass();
 
@@ -307,17 +328,17 @@ private:
     void RenderSkyClouds();
     void RenderSkyDome();
 
-    void RenderTerrainGeomip();
+    void RenderTerrain();
     void RenderPlayerWeapon();
     void RenderDebugShapes();
     void VisualizeDepthBuffer();
     void RenderPostFxOnePass();
     void RenderPostFxMultiplePass();
 
-
+    //---------------------------------
     // collision helpers:  ray/entities tests
+    //---------------------------------
     void RayEnttTest(
-        ECS::EntityMgr& enttMgr,
         const EntityID enttId,
         const DirectX::XMVECTOR& rayOrigW,
         const DirectX::XMVECTOR& rayDirW,
@@ -327,7 +348,7 @@ private:
         DirectX::XMVECTOR& outRayDirL);
 
     bool RayModelTest(
-        const BasicModel* pModel,
+        const Model* pModel,
         const DirectX::XMVECTOR& rayOrigin,
         const DirectX::XMVECTOR& rayDir,
         float& tmin,
@@ -344,33 +365,32 @@ private:
 public:
     RenderStat rndStat_;
 
-    DirectX::XMMATRIX WVO_            = DirectX::XMMatrixIdentity();  // main_world * baseView * ortho
-    DirectX::XMMATRIX viewProj_       = DirectX::XMMatrixIdentity();  // view * projection
+    DirectX::XMMATRIX       WVO_            = DirectX::XMMatrixIdentity();  // main_world * baseView * ortho
+    DirectX::XMMATRIX       viewProj_       = DirectX::XMMatrixIdentity();  // view * projection
 
-    DirectX::XMMATRIX worldMatrix_    = DirectX::XMMatrixIdentity();  // main_world
-    DirectX::XMMATRIX baseViewMatrix_ = DirectX::XMMatrixIdentity();  // for UI rendering
-    DirectX::XMMATRIX orthoMatrix_    = DirectX::XMMatrixIdentity();  // for UI rendering
+    DirectX::XMMATRIX       worldMatrix_    = DirectX::XMMatrixIdentity();  // main_world
+    DirectX::XMMATRIX       baseViewMatrix_ = DirectX::XMMatrixIdentity();  // for UI rendering
+    DirectX::XMMATRIX       orthoMatrix_    = DirectX::XMMatrixIdentity();  // for UI rendering
 
-    SystemState* pSysState_ = nullptr;                                
+    SystemState*            pSysState_      = nullptr;                                
 
-    cvector<DirectX::BoundingFrustum> frustums_;
-    
-    RenderDataPreparator  prep_;
-    FrameBuffer           frameBuffer_;                           // for rendering to some texture
-    EntityID              currCameraID_ = 0;
+    RenderDataPreparator    prep_;
+    FrameBuffer             frameBuffer_;                         // for rendering to some texture
+    EntityID                currCameraId_   = 0;
     
     FrameBuffer                         materialBigIconFrameBuf_;
     FrameBuffer*                        pModelFrameBuf_ = nullptr;
     cvector<FrameBuffer>                materialsFrameBuffers_;   // frame buffers which are used to render materials icons (for editor's material browser)
     cvector<ID3D11ShaderResourceView*>  texturesBuf_;             // to avoid reallocation each time we use this shared buffer
 
-    Render::CRender* pRender_ = nullptr;
-    ECS::EntityMgr* pEnttMgr_ = nullptr;
+    Render::CRender*        pRender_  = nullptr;
+    ECS::EntityMgr*         pEnttMgr_ = nullptr;
 
 private:
     bool enableDepthPrepass_  = false;
     bool visualizeDepth_      = false;
     bool enablePostFXs_       = false;
+    bool bUseQuadTree_        = false;
 
     float gameTime_ = 0;
 
@@ -380,5 +400,68 @@ private:
     // for model preview
     ModelPreviewRenderParams modelPreviewRndParams_;
 };
+
+
+//==================================================================================
+// inline functions
+//==================================================================================
+
+//---------------------------------------------------------
+// Desc:   clear rendering data from the previous frame / instances set
+//---------------------------------------------------------
+inline void CGraphics::ClearRenderingDataBeforeFrame()
+{
+    pRender_->dataStorage_.Clear();
+}
+
+//---------------------------------------------------------
+// Desc:  bind input material (textures + render states) 
+//---------------------------------------------------------
+inline void CGraphics::BindMaterial(const Material& mat)
+{
+    BindMaterial(mat.alphaClip, mat.rsId, mat.bsId, mat.dssId, mat.texIds);
+}
+
+//---------------------------------------------------------
+// Desc:  bind a material (textures + render states) by input ID
+//---------------------------------------------------------
+inline void CGraphics::BindMaterialById(const MaterialID matId)
+{
+    const Material& mat = g_MaterialMgr.GetMatById(matId);
+    BindMaterial(mat.alphaClip, mat.rsId, mat.bsId, mat.dssId, mat.texIds);
+}
+
+//---------------------------------------------------------
+// Desc:  reset textures and render states so we will be able
+//        to setup it properly for rendering
+//---------------------------------------------------------
+inline void CGraphics::ResetBeforeRendering()
+{
+    BindMaterialById(0);
+}
+
+//---------------------------------------------------------
+// Desc:  texture surface of model's preview
+//        (from the model viewer or models screenshot tool)
+//---------------------------------------------------------
+inline ID3D11ShaderResourceView* CGraphics::GetModelFrameBufView() const
+{
+    if (pModelFrameBuf_)
+        return pModelFrameBuf_->GetSRV();
+
+    return nullptr;
+}
+
+//---------------------------------------------------------
+// enabled/disable using a quad tree for entities culling
+//---------------------------------------------------------
+inline void CGraphics::SwitchQuadTree()
+{
+    bUseQuadTree_ = !bUseQuadTree_;
+    if (bUseQuadTree_)
+        printf("switch to: QUAD TREE\n");
+    else
+        printf("switch to: BASIC CULL\n");
+}
 
 } // namespace Core

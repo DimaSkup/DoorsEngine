@@ -765,7 +765,7 @@ HRESULT DirectX::CompressEx(
 
     TexMetadata mdata2 = metadata;
     mdata2.format = format;
-    HRESULT hr = cImages.Initialize(mdata2);
+    HRESULT hr = cImages.Init(mdata2);
     if (FAILED(hr))
         return hr;
 
@@ -933,7 +933,7 @@ HRESULT DirectX::Decompress(
 
     TexMetadata mdata2 = metadata;
     mdata2.format = format;
-    HRESULT hr = images.Initialize(mdata2);
+    HRESULT hr = images.Init(mdata2);
     if (FAILED(hr))
         return hr;
 

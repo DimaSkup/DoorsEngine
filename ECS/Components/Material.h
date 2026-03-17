@@ -25,7 +25,7 @@ struct MaterialData
 
     MaterialData(const MaterialID* ids, const size numMaterials)
     {
-        assert((ids != nullptr) && (numMaterials > 0) && "invalid input data");
+        assert(ids && numMaterials > 0);
 
         materialsIds.resize(numMaterials);
         std::copy(ids, ids + numMaterials, materialsIds.begin());
@@ -39,7 +39,7 @@ struct MaterialData
 //---------------------------------------------------------
 struct Material
 {
-    cvector<EntityID>     enttsIDs;
+    cvector<EntityID>     enttsIds;
     cvector<MaterialData> data;
 };
 

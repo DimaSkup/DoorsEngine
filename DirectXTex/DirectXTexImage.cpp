@@ -297,7 +297,7 @@ ScratchImage& ScratchImage::operator= (ScratchImage&& moveFrom) noexcept
 // Methods
 //-------------------------------------------------------------------------------------
 _Use_decl_annotations_
-HRESULT ScratchImage::Initialize(const TexMetadata& mdata, CP_FLAGS flags) noexcept
+HRESULT ScratchImage::Init(const TexMetadata& mdata, CP_FLAGS flags) noexcept
 {
     if (!IsValid(mdata.format))
         return E_INVALIDARG;

@@ -57,12 +57,13 @@ public:
 
 
     // SET position/direction/uniform_scale
-    bool AdjustPositions(const EntityID* ids, const size numEntts, const XMVECTOR& adjustBy);
-    bool AdjustPosition (const EntityID id, const XMVECTOR& adjustBy);
+    bool AdjustPositions(const EntityID* ids, const size numEntts, const XMFLOAT3& adjustBy);
+    bool AdjustPosition (const EntityID id, const XMFLOAT3& offset);
     bool SetPositionVec (const EntityID id, const XMVECTOR& pos);
+    bool SetPosition    (const EntityID id, float x, float y, float z);
     bool SetPosition    (const EntityID id, const XMFLOAT3& pos);
-    bool SetDirection   (const EntityID id, const XMVECTOR& direction);
-    bool SetUniScale    (const EntityID id, const float uniformScale);
+    bool SetDirection   (const EntityID id, const XMVECTOR& dir);
+    bool SetScale       (const EntityID id, const float scale);
 
     bool SetPositions(const EntityID* ids, const size numEntts, const XMFLOAT3* positions);
 
@@ -97,36 +98,44 @@ private:
 
     index GetIdx(const EntityID id) const;
 
-#if 0
-    //-----------------------------------------------------
-    // Desc:  recompute world matrix for the entity by array idx
-    //-----------------------------------------------------
-    inline void RecomputeWorldMatrixByIdx(const index idx)
-    {
-        assert((idx > 0) && (idx < pTransform_->ids.size()) && "input idx is invalid");
-
-        pTransform_->worlds[idx] =
-            GetMatScaling(pTransform_->posAndUniformScale[idx].w) *
-            GetMatRotation(pTransform_->directions[idx]) *
-            GetMatTranslation(pTransform_->posAndUniformScale[idx]);
-    }
-#endif
-
-    //-----------------------------------------------------
-    // Desc:  recompute inverse world matrix based on world by array idx;
-    // NOTE:  expects the world matrix to be computed already!!!
-    //-----------------------------------------------------
-    inline void RecomputeInvWorldMatrixByIdx(const index idx)
-    {
-        pTransform_->invWorlds[idx] = DirectX::XMMatrixInverse(nullptr, pTransform_->worlds[idx]);
-    }
-
-    inline XMMATRIX GetMatTranslation(const XMFLOAT4& pos)    const { return DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z); }
-    inline XMMATRIX GetMatRotation(const XMVECTOR& direction) const { return DirectX::XMMatrixRotationQuaternion(direction); }
-    inline XMMATRIX GetMatScaling(const float uScale)         const { return DirectX::XMMatrixScaling(uScale, uScale, uScale); }
+    void     RecalcInvWorldMatrixByIdx(const index idx);
+    XMMATRIX GetMatTranslation        (const XMFLOAT4& pos) const;
+    XMMATRIX GetMatRotation           (const XMVECTOR& rotQuat) const;
+    XMMATRIX GetMatScaling            (const float scale) const;
 
 private:
     Transform* pTransform_ = nullptr;   // a ptr to the Transform component
 };
+
+//==================================================================================
+// inline functions
+//==================================================================================
+
+//-----------------------------------------------------
+// Desc:  recompute inverse world matrix based on world by array idx;
+// NOTE:  expects the world matrix to be computed already!!!
+//-----------------------------------------------------
+inline void TransformSystem::RecalcInvWorldMatrixByIdx(const index idx)
+{
+    pTransform_->invWorlds[idx] = DirectX::XMMatrixInverse(nullptr, pTransform_->worlds[idx]);
+}
+
+//-----------------------------------------------------
+// get matrices
+//-----------------------------------------------------
+inline XMMATRIX TransformSystem::GetMatTranslation(const XMFLOAT4& pos) const
+{
+    return DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
+}
+
+inline XMMATRIX TransformSystem::GetMatRotation(const XMVECTOR& direction) const
+{
+    return DirectX::XMMatrixRotationQuaternion(direction);
+}
+
+inline XMMATRIX TransformSystem::GetMatScaling(const float uScale) const
+{
+    return DirectX::XMMatrixScaling(uScale, uScale, uScale);
+}
 
 }
