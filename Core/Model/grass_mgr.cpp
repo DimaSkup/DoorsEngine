@@ -40,7 +40,7 @@ GrassMgr g_GrassMgr;
 void CheckInitParams(const GrassFieldInitParams& params);
 void CalcFieldXZBoundings(GrassField& field, const GrassFieldInitParams& params);
 void CreateCells(GrassField& field, const GrassFieldInitParams& params);
-void ÑalcFieldYBoundings(GrassField& field);
+void CalcFieldYBoundings(GrassField& field);
 
 void PushGrassInstancesInCell(
     GrassCell& cell,
@@ -111,7 +111,7 @@ bool GrassMgr::AddGrassField(const GrassFieldInitParams& params)
 
     CreateCells(field, params);
 
-    ÑalcFieldYBoundings(field);
+    CalcFieldYBoundings(field);
 
     InitBuffers(field);
     
@@ -469,7 +469,7 @@ void PushGrassInstancesInCell(
 // go for each grass instance and use its position to define
 // min and max height of grass field's bounding box 
 //---------------------------------------------------------
-void ÑalcFieldYBoundings(GrassField& field)
+void CalcFieldYBoundings(GrassField& field)
 {
     float minY = FLT_MAX;
     float maxY = FLT_MIN;
