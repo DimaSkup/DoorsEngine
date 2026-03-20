@@ -221,9 +221,9 @@ bool InitFromScene(const aiScene* pScene, const char* filePath, Model& model)
             const Vec3& n = mesh.normals[j];
             const Vec2& t = mesh.uvs[j];
 
-            vertices[vIdx].position = { p.x, p.y, p.z };
-            vertices[vIdx].texture  = { t.u, t.v };
-            vertices[vIdx].normal   = { n.x, n.y, n.z };
+            vertices[vIdx].pos  = { p.x, p.y, p.z };
+            vertices[vIdx].tex  = { t.u, t.v };
+            vertices[vIdx].norm = { n.x, n.y, n.z };
         }
     }
 

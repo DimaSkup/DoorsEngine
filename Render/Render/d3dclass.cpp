@@ -5,6 +5,7 @@
 #include "../Common/pch.h"
 #include "d3dclass.h"
 
+#include <cvector.h>
 
 #pragma warning (disable : 4996)
 
@@ -15,6 +16,18 @@ extern "C"
     __declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
     __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 }
+
+void PrintHRESULT(HRESULT hr)
+{
+    _com_error err(hr);
+    char errMsg[512];
+
+    memset(errMsg, 0, sizeof(errMsg));
+    StrHelper::ToStr(err.ErrorMessage(), errMsg);
+
+    LogErr(LOG, "HRESULT: 0x%08X - %s\n\n", hr, errMsg);
+}
+
 
 namespace Render
 {
@@ -60,12 +73,6 @@ bool D3DClass::Init(
     try
     {
         LogDbg(LOG, "D3DClass start of initialization");
-
-        // check if we have any available IDXGI adapter
-        if (adaptersReader_.GetNumAdapters() <= 1)
-        {
-            LogFatal(LOG, "can't find any IDXGI adapter");
-        }
 
         // set adapter idx (if there is any discrete graphics adapter we use this discrete adapter as primary)
         displayAdapterIndex_ = 0;
@@ -192,15 +199,21 @@ void D3DClass::GetVideoCardInfo(
     const int maxCardNameSize,
     int& outMemorySize)
 {
-    // get adapter's data
-    AdapterData* data = adaptersReader_.GetAdapterDataByIdx(displayAdapterIndex_);
-    DXGI_ADAPTER_DESC adapterDesc = data->description_;
+    assert(outCardName);
+
+    cvector<IDXGIAdapter*> adapters;
+    AdapterReader::EnumerateAdapters(adapters);
+    IDXGIAdapter* pAdapter = AdapterReader::FindAnySuitableAdapter(adapters);
+
+    // get data of current adapter
+    DXGI_ADAPTER_DESC desc;
+    pAdapter->GetDesc(&desc);
 
     // store the dedicated video card memory in megabytes and store its name
-    constexpr UINT bytesInMegabyte = 1024 * 1024;
+    constexpr UINT bytesInMb = 1024 * 1024;
 
-    StrHelper::ToStr(adapterDesc.Description, outCardName);
-    outMemorySize = (int)(adapterDesc.DedicatedVideoMemory / bytesInMegabyte);
+    StrHelper::ToStr(desc.Description, outCardName);
+    outMemorySize = (int)(desc.DedicatedVideoMemory / bytesInMb);
 
     // print info about GPU into the console and log file
     SetConsoleColor(GREEN);
@@ -283,6 +296,60 @@ void D3DClass::InitDirectX(
         throw EngineException("can't initialize DirectX stuff");
     }
 }
+#if 0
+cvector<IDXGIAdapter*> EnumerateAdapters(void)
+{
+    IDXGIAdapter* pAdapter;
+    cvector<IDXGIAdapter*> vAdapters;
+    IDXGIFactory* pFactory = NULL;
+
+    // Create a DXGIFactory object.
+    HRESULT hr = CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&pFactory);
+
+    if (FAILED(hr))
+    {
+        PrintHRESULT(hr);
+        return vAdapters;
+    }
+
+    for (UINT i = 0;
+        pFactory->EnumAdapters(i, &pAdapter) != DXGI_ERROR_NOT_FOUND;
+        ++i)
+    {
+        vAdapters.push_back(pAdapter);
+    }
+
+    if (pFactory)
+    {
+        pFactory->Release();
+    }
+
+    return vAdapters;
+}
+
+IDXGIAdapter* FindAnySuitableAdapter(const cvector<IDXGIAdapter*>& adapters)
+{
+    int lastMemorySize = 0;
+    int index = -1;
+
+    for (int i = 0; i < adapters.size(); i++)
+    {
+        DXGI_ADAPTER_DESC desc;
+        adapters[i]->GetDesc(&desc);
+
+        if (desc.DedicatedVideoMemory > lastMemorySize)
+        {
+            lastMemorySize = (int)desc.DedicatedVideoMemory;
+            index = i;
+        }
+    }
+
+    if (index != -1 && index <= adapters.size())
+        return adapters[index];
+
+    return nullptr;
+}
+#endif
 
 //---------------------------------------------------------
 // Desc:  initialize DirectX11 device and device context;
@@ -290,6 +357,73 @@ void D3DClass::InitDirectX(
 //---------------------------------------------------------
 void D3DClass::InitDevice()
 {
+    UINT createDeviceFlags = 0;
+
+#if defined(DEBUG) || defined(_DEBUG)
+    createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
+
+    cvector<IDXGIAdapter*> adapters;
+    AdapterReader::EnumerateAdapters(adapters);
+
+    IDXGIAdapter* pAdapter = AdapterReader::FindAnySuitableAdapter(adapters);
+
+#if 0
+    cvector<IDXGIAdapter*> adapters = EnumerateAdapters();
+    IDXGIAdapter* pAdapter = FindAnySuitableAdapter(adapters);
+#endif
+
+    D3D_FEATURE_LEVEL featureLevels[] =
+    {
+        D3D_FEATURE_LEVEL_11_0,
+        D3D_FEATURE_LEVEL_10_1,
+        D3D_FEATURE_LEVEL_10_0,
+        D3D_FEATURE_LEVEL_9_3,
+        D3D_FEATURE_LEVEL_9_2,
+        D3D_FEATURE_LEVEL_9_1
+    };
+
+    D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_9_1;
+    UINT          numFeatureLevels = ARRAYSIZE(featureLevels);
+
+#if 0
+    HRESULT hr = D3D11CreateDevice(
+        pAdapter,
+        D3D_DRIVER_TYPE_UNKNOWN,
+        (HMODULE)0,                        // So
+        0,
+        FeatureLevels,
+        numFeatureLevels,
+        D3D11_SDK_VERSION,
+        &pDevice_,
+        &featureLevel,
+        &pContext_);
+#endif
+
+    HRESULT hr = D3D11CreateDevice(
+        pAdapter,                         // adapter (null for default)
+        D3D_DRIVER_TYPE_UNKNOWN,          // driver type
+        (HMODULE)0,                       // software rasterizer (0 for hardware)
+        createDeviceFlags,                                // flags
+        featureLevels,                    // arr of feature levels to try
+        numFeatureLevels,                 // number of feature levels in the arr
+        D3D11_SDK_VERSION,                // SDK version
+        &pDevice_,                        // pointer to the device
+        &featureLevel,              // pointer to the actual feature level created
+        &pContext_);                      // pointer to the immediate context
+
+    // clear
+    for (int i = 0; i < adapters.size(); i++)
+        adapters[i]->Release();
+
+
+
+
+
+
+
+
+#if 0
     D3D_FEATURE_LEVEL actualFeatureLevel;
     UINT createDeviceFlags = 0;
 
@@ -307,12 +441,45 @@ void D3DClass::InitDevice()
         D3D_FEATURE_LEVEL_9_1
     };
 
-    const UINT numFeatureLevels = ARRAYSIZE(featureLevels);
+    const D3D_DRIVER_TYPE devTypeArray[] =
+    {
+        D3D_DRIVER_TYPE_HARDWARE,
+        D3D_DRIVER_TYPE_WARP,
+        D3D_DRIVER_TYPE_REFERENCE
+    };
+
+    const UINT numFeatureLevels  = ARRAYSIZE(featureLevels);
+    const UINT devTypeArrayCount = ARRAYSIZE(devTypeArray);
+
+
     IDXGIAdapter* pAdapter = adaptersReader_.GetDXGIAdapterByIdx(displayAdapterIndex_);
 
+    if (!pAdapter)
+    {
+        LogFatal(LOG, "invalid adapter by index %zu", displayAdapterIndex_);
+    }
+
+
+    D3D_FEATURE_LEVEL  FeatureLevelsRequested = D3D_FEATURE_LEVEL_11_0;
+    UINT               numLevelsRequested = 1;
+    D3D_FEATURE_LEVEL  FeatureLevelsSupported;
+
     HRESULT hr = D3D11CreateDevice(
-        pAdapter,                         // adapter (null for default)
-        D3D_DRIVER_TYPE_UNKNOWN,          // driver type
+        NULL,
+        D3D_DRIVER_TYPE_HARDWARE,
+        NULL,
+        0,
+        &FeatureLevelsRequested,
+        1,
+        D3D11_SDK_VERSION,
+        &pDevice_,
+        &FeatureLevelsSupported,
+        &pContext_);
+
+#if 0
+    HRESULT hr = D3D11CreateDevice(
+        nullptr,                          // adapter (null for default)
+        D3D_DRIVER_TYPE_HARDWARE,         // driver type
         nullptr,                          // software rasterizer (nullptr for hardware)
         createDeviceFlags,                // flags
         featureLevels,                    // arr of feature levels to try
@@ -321,21 +488,24 @@ void D3DClass::InitDevice()
         &pDevice_,                        // pointer to the device
         &actualFeatureLevel,              // pointer to the actual feature level created
         &pContext_);                      // pointer to the immediate context
-
+#endif
+#endif
     if (FAILED(hr))
     {
+        PrintHRESULT(hr);
         LogFatal(LOG, "failed to create DX11 device");
     }
 
-    if (actualFeatureLevel < D3D_FEATURE_LEVEL_10_0)
+    if (featureLevel < D3D_FEATURE_LEVEL_10_0)
     {
-        LogFatal(LOG, "the engine supports Direct3D Feature Level >= 10_0 (your level is %u; look at D3D_FEATURE_LEVEL enum)", (UINT)actualFeatureLevel);
+        LogFatal(LOG, "the engine supports Direct3D Feature Level >= 10_0 (your level is %u; look at D3D_FEATURE_LEVEL enum)", (UINT)featureLevel);
     }
 
     // now that we have a created device, we can check the quality level support for 4X MSAA.
     hr = pDevice_->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, 4, &m4xMsaaQuality_);
     if (FAILED(hr))
     {
+        PrintHRESULT(hr);
         LogFatal(LOG, "the multisample quality level number must be > 0");
     }
 
@@ -392,6 +562,7 @@ bool D3DClass::ResizeSwapChain(HWND hwnd, const UINT width, const UINT height)
             DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH);
         if (FAILED(hr))
         {
+            PrintHRESULT(hr);
             LogErr(LOG, "can't resize swap chain's buffers");
         }
 
@@ -452,9 +623,13 @@ void D3DClass::SetAntiAliasingType(const uint8 type)
         {
             enable4xMsaa_ = true;
 
-            HRESULT hr = pDevice_->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, 4, &m4xMsaaQuality_);
+            const DXGI_FORMAT fmt = DXGI_FORMAT_R8G8B8A8_UNORM;
+            const UINT numSamples = 4;
+
+            HRESULT hr = pDevice_->CheckMultisampleQualityLevels(fmt, numSamples, &m4xMsaaQuality_);
             if (FAILED(hr))
             {
+                PrintHRESULT(hr);
                 LogFatal(LOG, "the multisample quality level number must be > 0");
             }
 
@@ -517,12 +692,14 @@ void D3DClass::InitSwapChain(HWND hwnd, const int width, const int height)
     hr = pDevice_->QueryInterface(__uuidof(IDXGIDevice), (void**)&pDxgiDevice);
     if (FAILED(hr))
     {
+        PrintHRESULT(hr);
         LogFatal(LOG, "can't get the interface of DXGI Device");
     }
 
     hr = pDxgiDevice->GetParent(__uuidof(IDXGIAdapter), (void**)&pDxgiAdapter);
     if (FAILED(hr))
     {
+        PrintHRESULT(hr);
         LogFatal(LOG, "can't get the interface of DXGI Adapter");
     }
 
@@ -530,6 +707,7 @@ void D3DClass::InitSwapChain(HWND hwnd, const int width, const int height)
     hr = pDxgiAdapter->GetParent(__uuidof(IDXGIFactory), (void**)&pDxgiFactory);
     if (FAILED(hr))
     {
+        PrintHRESULT(hr);
         LogFatal(LOG, "can't get the interface of DXGI Factory");
     }
 
@@ -537,11 +715,13 @@ void D3DClass::InitSwapChain(HWND hwnd, const int width, const int height)
     hr = pDxgiFactory->CreateSwapChain(pDevice_, &sd, &pSwapChain_);
     if (FAILED(hr))
     {
+        PrintHRESULT(hr);
         LogFatal(LOG, "can't create a swap chain");
     }
 
     if (!pSwapChain_)
     {
+        PrintHRESULT(hr);
         LogFatal(LOG, "something went wrong during creation of the swap chain because swap chaing ptr == NULL");
     }
 
@@ -565,6 +745,7 @@ void D3DClass::InitRenderTargetView(const UINT width, const UINT height)
     hr = pSwapChain_->GetBuffer(0, __uuidof(ID3D11Texture2D), (VOID**)&pBackBuffer);
     if (FAILED(hr))
     {
+        PrintHRESULT(hr);
         LogFatal(LOG, "can't get a buffer from the swap chain");
     }
 
@@ -577,6 +758,7 @@ void D3DClass::InitRenderTargetView(const UINT width, const UINT height)
     hr = pDevice_->CreateRenderTargetView(pBackBuffer, nullptr, &pSwapChainRTV_);
     if (FAILED(hr))
     {
+        PrintHRESULT(hr);
         Shutdown();
         LogFatal(LOG, "can't create a render target view");
     }
@@ -588,6 +770,7 @@ void D3DClass::InitRenderTargetView(const UINT width, const UINT height)
     hr = pDevice_->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, 4, &qualityLevels);
     if (FAILED(hr))
     {
+        PrintHRESULT(hr);
         Shutdown();
         LogFatal(LOG, "can't get multisample quality levels");
     }
@@ -609,6 +792,7 @@ void D3DClass::InitRenderTargetView(const UINT width, const UINT height)
     hr = pDevice_->CreateTexture2D(&desc, nullptr, &pMSAAColorTex_);
     if (FAILED(hr))
     {
+        PrintHRESULT(hr);
         Shutdown();
         LogFatal(LOG, "can't create MSAA color texture");
     }
@@ -620,6 +804,7 @@ void D3DClass::InitRenderTargetView(const UINT width, const UINT height)
     hr = pDevice_->CreateRenderTargetView(pMSAAColorTex_, &rtvMsDesc, &pMSAARTV_);
     if (FAILED(hr))
     {
+        PrintHRESULT(hr);
         Shutdown();
         LogFatal(LOG, "can't create MSAA render target");
     }
@@ -631,6 +816,7 @@ void D3DClass::InitRenderTargetView(const UINT width, const UINT height)
     hr = pDevice_->CreateShaderResourceView(pMSAAColorTex_, &srvMsDesc, &pMSAASRV_);
     if (FAILED(hr))
     {
+        PrintHRESULT(hr);
         Shutdown();
         LogFatal(LOG, "can't create MSAA SRV");
     }
@@ -656,6 +842,7 @@ void D3DClass::InitRenderTargetView(const UINT width, const UINT height)
         hr = pDevice_->CreateTexture2D(&desc, nullptr, &postFxsPassTex_[i]);
         if (FAILED(hr))
         {
+            PrintHRESULT(hr);
             Shutdown();
             LogFatal(LOG, "can't create a texture for post effects (%d)", i);
         }
@@ -668,6 +855,7 @@ void D3DClass::InitRenderTargetView(const UINT width, const UINT height)
         hr = pDevice_->CreateRenderTargetView(postFxsPassTex_[i], &rtvDesc, &postFxsPassRTV_[i]);
         if (FAILED(hr))
         {
+            PrintHRESULT(hr);
             Shutdown();
             LogFatal(LOG, "can't create render target (RTV) for post effects (%d)", i);
         }
@@ -682,6 +870,7 @@ void D3DClass::InitRenderTargetView(const UINT width, const UINT height)
         hr = pDevice_->CreateShaderResourceView(postFxsPassTex_[i], &srvDesc, &postFxsPassSRV_[i]);
         if (FAILED(hr))
         {
+            PrintHRESULT(hr);
             Shutdown();
             LogFatal(LOG, "can't create shader resource view (SRV) for post effects (%d)", i);
         }
@@ -752,7 +941,11 @@ void D3DClass::InitDepthStencilTexBuf(
 
     // Create the depth/stencil buffer
     HRESULT hr = pDevice_->CreateTexture2D(&desc, nullptr, &pDepthStencilBuffer_);
-    CAssert::NotFailed(hr, "can't create the depth stencil buffer");
+    if (FAILED(hr))
+    {
+        PrintHRESULT(hr);
+        LogErr(LOG, "can't create a depth stencil buffer");
+    }
 } 
 
 //---------------------------------------------------------
@@ -772,7 +965,11 @@ void D3DClass::InitDepthStencilView()
         dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
 
     HRESULT hr = pDevice_->CreateDepthStencilView(pDepthStencilBuffer_, &dsvDesc, &pDepthStencilView_);
-    CAssert::NotFailed(hr, "can't create a depth stencil view");
+    if (FAILED(hr))
+    {
+        PrintHRESULT(hr);
+        LogErr(LOG, "can't create a depth stencil view");
+    }
 }
 
 //---------------------------------------------------------
@@ -792,7 +989,11 @@ void D3DClass::InitDepthStencilSRV(const UINT mipLevels)
         srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMS;
 
     HRESULT hr = pDevice_->CreateShaderResourceView(pDepthStencilBuffer_, &srvDesc, &pDepthSRV_);
-    CAssert::NotFailed(hr, "can't create a shader resource view for depth buffer");
+    if (FAILED(hr))
+    {
+        PrintHRESULT(hr);
+        LogErr(LOG, "can't create a shader resource view for depth buffer");
+    }
 }
 
 //---------------------------------------------------------
@@ -819,7 +1020,12 @@ void D3DClass::InitDepthResolvedTexture(
     texDesc.BindFlags          = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
 
     hr = pDevice_->CreateTexture2D(&texDesc, nullptr, &pResolvedDepthTex_);
-    CAssert::NotFailed(hr, "can't create a resolved depth texture");
+    if (FAILED(hr))
+    {
+        PrintHRESULT(hr);
+        LogErr(LOG, "can't create a resolved depth texture");
+        return;
+    }
 
     // create a shader view for resolved depth texture
     D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -828,7 +1034,12 @@ void D3DClass::InitDepthResolvedTexture(
     srvDesc.ViewDimension       = D3D11_SRV_DIMENSION_TEXTURE2D;
 
     hr = pDevice_->CreateShaderResourceView(pResolvedDepthTex_, &srvDesc, &pResolvedDepthSRV_);
-    CAssert::NotFailed(hr, "can't create a resolved depth shader resource view");
+    if (FAILED(hr))
+    {
+        PrintHRESULT(hr);
+        LogErr(LOG, "can't create a resolved depth shader resource view");
+        return;
+    }
 }
 
 //---------------------------------------------------------
@@ -869,6 +1080,7 @@ void D3DClass::InitDepthPrepassTargets(
     HRESULT hr = pDevice_->CreateTexture2D(&desc, nullptr, &pNormalDepthTex_);
     if (FAILED(hr))
     {
+        PrintHRESULT(hr);
         Shutdown();
         LogFatal(LOG, "can't create the normal/depth texture");
     }
@@ -884,6 +1096,7 @@ void D3DClass::InitDepthPrepassTargets(
     hr = pDevice_->CreateRenderTargetView(pNormalDepthTex_, &rtvDesc, &pNormalDepthRTV_);
     if (FAILED(hr))
     {
+        PrintHRESULT(hr);
         Shutdown();
         LogFatal(LOG, "can't create render target (RTV) for normal/depth");
     }
@@ -902,6 +1115,7 @@ void D3DClass::InitDepthPrepassTargets(
     hr = pDevice_->CreateShaderResourceView(pNormalDepthTex_, &srvDesc, &pNormalDepthSRV_);
     if (FAILED(hr))
     {
+        PrintHRESULT(hr);
         Shutdown();
         LogFatal(LOG, "can't create shader resource view (SRV) for normal/depth");
     }
@@ -934,48 +1148,51 @@ void D3DClass::SetupViewportParams(
 //---------------------------------------------------------
 // Desc:   switch btw windowed/fullscreen modes
 //---------------------------------------------------------
-bool D3DClass::ToggleFullscreen(HWND hwnd, bool isFullscreen)
+bool D3DClass::ToggleFullscreen(HWND hwnd, bool bFullscreen)
 {
     try
     {
-        LogDbg(LOG, "ToggleFullscreen(): %s", (isFullscreen) ? "true" : "false");
+        LogDbg(LOG, "switch to: %s", (bFullscreen) ? "fullscreen" : "windowed");
 
-        fullScreen_ = isFullscreen;
+        HRESULT hr = S_OK;
+        DXGI_MODE_DESC mode;
+        ZeroMemory(&mode, sizeof(DXGI_MODE_DESC));
+
+        fullScreen_ = bFullscreen;
+
 
         // turn on the fullscreen mode
-        if (isFullscreen)
+        if (bFullscreen)
         {
             // store the current window size in windowed mode 
             // so we can restore it when go back from fullscreen to windowed mode
             windowedModeWidth_ = wndWidth_;
             windowedModeHeight_ = wndHeight_;
 
-            HRESULT        hr = S_OK;
-            DXGI_MODE_DESC mode;
-            ZeroMemory(&mode, sizeof(DXGI_MODE_DESC));
-
             // currently we get the maximum monitor dimensions for the fullscreen
             mode.Width  = GetSystemMetrics(SM_CXSCREEN);
             mode.Height = GetSystemMetrics(SM_CYSCREEN);
 
 
-            
             hr = pSwapChain_->ResizeTarget(&mode);
-            CAssert::NotFailed(hr, "can't resize a target during switching of the fullscreen mode");
+            if (FAILED(hr))
+            {
+                PrintHRESULT(hr);
+                throw EngineException("can't resize a target during switching of the fullscreen mode");
+            }
 
             hr = pSwapChain_->SetFullscreenState(TRUE, nullptr);
-            CAssert::NotFailed(hr, "can't set full screen state");
-
-            // another one for good luck
-            //hr = pSwapChain_->ResizeTarget(&mode);
-            //CAssert::NotFailed(hr, "can't resize a target during switching of the fullscreen mode");
-
-            // resize the swapchain and related parts to the chosen solution
-            //ResizeSwapChain(hwnd, mode.Width, mode.Height);
+            if (FAILED(hr))
+            {
+                PrintHRESULT(hr);
+                throw EngineException("can't setup a full screen state for the swap chain (to fullscreen)");
+            }
         }
+
         // switch to WINDOWED mode
         else
         {
+
             DXGI_MODE_DESC mode;
             ZeroMemory(&mode, sizeof(DXGI_MODE_DESC));
 
@@ -983,14 +1200,19 @@ bool D3DClass::ToggleFullscreen(HWND hwnd, bool isFullscreen)
             mode.Width  = windowedModeWidth_;
             mode.Height = windowedModeHeight_;
 
-            HRESULT hr = pSwapChain_->SetFullscreenState(FALSE, nullptr);
-            CAssert::NotFailed(hr, "can't switch to WINDOWED mode");
+            hr= pSwapChain_->SetFullscreenState(FALSE, nullptr);
+            if (FAILED(hr))
+            {
+                PrintHRESULT(hr);
+                throw EngineException("can't setup a full screen state for the swap chain (to windowed)");
+            }
 
             hr = pSwapChain_->ResizeTarget(&mode);
-            CAssert::NotFailed(hr, "can't resize a target during switching of the fullscreen mode");
-
-            // resize the swapchain and related parts to the chosen solution
-            //ResizeSwapChain(hwnd, mode.Width, mode.Height);
+            if (FAILED(hr))
+            {
+                PrintHRESULT(hr);
+                throw EngineException("can't resize a target during switching of the windowed mode");
+            }
         }
 
         return true;
@@ -1065,4 +1287,4 @@ void D3DClass::ReleaseDepthPrepassTargets()
     SafeRelease(&pNormalDepthSRV_);
 }
 
-} // namespace Core
+} // namespace

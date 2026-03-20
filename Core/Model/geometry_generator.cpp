@@ -29,14 +29,24 @@ namespace Core
 //
 // Args:  - s, c:  sine and cosine
 //---------------------------------------------------------
-inline XMFLOAT3 RotateVecAroundY(const XMFLOAT3 vec, const float s, const float c)
+inline XMFLOAT3 RotateVecAroundY(const XMFLOAT3 v, const float s, const float c)
 {
-    return XMFLOAT3 { c*vec.x - s*vec.z, vec.y, s*vec.x + c*vec.z };
+    return XMFLOAT3 { c*v.x - s*v.z, v.y, s*v.x + c*v.z };
 }
 
-inline XMFLOAT3 RotateVecAroundX(const XMFLOAT3 vec, const float s, const float c)
+inline XMFLOAT3 RotateVecAroundX(const XMFLOAT3 v, const float s, const float c)
 {
-    return XMFLOAT3 { vec.x, c*vec.y - s*vec.z, s*vec.y + c*vec.z };
+    return XMFLOAT3 { v.x, c*v.y - s*v.z, s*v.y + c*v.z };
+}
+
+inline XMFLOAT3 RotateVecAroundY(const XMFLOAT3 v, const float angleInRad)
+{
+    return RotateVecAroundY(v, sinf(angleInRad), cosf(angleInRad));
+}
+
+inline XMFLOAT3 RotateVecAroundX(const XMFLOAT3 v, const float angleInRad)
+{
+    return RotateVecAroundX(v, sinf(angleInRad), cosf(angleInRad));
 }
 
 //---------------------------------------------------------
@@ -56,9 +66,9 @@ void GeometryGenerator::GeneratePlaneLod(
     Vertex3D& v = *model.GetVertices();
 
     // origin is always at the bottom so encode lod side into the position
-    v.position.x = planeW;
-    v.position.y = planeH;
-    v.position.z = 0;
+    v.pos.x = planeW;
+    v.pos.y = planeH;
+    v.pos.z = 0;
 
 
     // setup only one index
@@ -100,23 +110,33 @@ bool GeometryGenerator::GenerateGrass(
     }
 
 
-    const float hw = (float)planeWidth  * 0.5f; // half width
-    const float hh = (float)planeHeight * 0.5f; // half height
+    const float hw = planeWidth  * 0.5f;        // half width
+    const float hh = planeHeight * 0.5f;        // half height
 
     // 3 planes (4 vertices per each plane)
-    Vertex3D planes[3][4];
+    Vertex3D planes[numPlanes][vertsPerPlane];
+    memset(planes, 0, sizeof(Vertex3D) * numVertices);
 
     // setup positions for plane 0 (front clockwise; imagine we loot at +Z direction)
-    const XMFLOAT3 pos0 = { -hw, -hh, 0 };      // bottom left
-    const XMFLOAT3 pos1 = { -hw, +hh, 0 };      // top left
-    const XMFLOAT3 pos2 = { +hw, +hh, 0 };      // top right
-    const XMFLOAT3 pos3 = { +hw, -hh, 0 };      // bottom right
+    const XMFLOAT3 p0 = { -hw, -hh, 0 };      // bottom left
+    const XMFLOAT3 p1 = { -hw, +hh, 0 };      // top left
+    const XMFLOAT3 p2 = { +hw, +hh, 0 };      // top right
+    const XMFLOAT3 p3 = { +hw, -hh, 0 };      // bottom right
 
-    const XMFLOAT3 normal = { 0,0,-1 };         // is the same for each point of a plane
-    const XMFLOAT3 tangent = { 1,0,0 };
+    XMFLOAT3 normal = { 0,0,-1 };         // is the same for each point of a plane
+    XMFLOAT3 tangent = { 1,0,0 };
+
+    const float angleX = DEG_TO_RAD(-30);
+
+    normal = RotateVecAroundX(normal, angleX);
+    tangent = RotateVecAroundX(tangent, angleX);
 
     const uint angleStep = 360 / numPlanes;
 
+    const XMFLOAT3 pos0 = p0;
+    const XMFLOAT3 pos1 = RotateVecAroundX(p1, angleX);
+    const XMFLOAT3 pos2 = RotateVecAroundX(p2, angleX);
+    const XMFLOAT3 pos3 = p3;
 
     // setup vertices for all the planes
     for (uint i = 0; i < numPlanes; ++i)
@@ -129,35 +149,36 @@ bool GeometryGenerator::GenerateGrass(
         const XMFLOAT3 T = RotateVecAroundY(tangent, sinY, cosY);
 
         // setup normal vectors
-        planes[i][0].normal = N;
-        planes[i][1].normal = N;
-        planes[i][2].normal = N;
-        planes[i][3].normal = N;
+        planes[i][0].norm = N;
+        planes[i][1].norm = N;
+        planes[i][2].norm = N;
+        planes[i][3].norm = N;
 
         // setup tangent vectors
-        planes[i][0].tangent = { T.x, T.y, T.z, 1 };
-        planes[i][1].tangent = { T.x, T.y, T.z, 1 };
-        planes[i][2].tangent = { T.x, T.y, T.z, 1 };
-        planes[i][3].tangent = { T.x, T.y, T.z, 1 };
+        planes[i][0].tang = { T.x, T.y, T.z, 1 };
+        planes[i][1].tang = { T.x, T.y, T.z, 1 };
+        planes[i][2].tang = { T.x, T.y, T.z, 1 };
+        planes[i][3].tang = { T.x, T.y, T.z, 1 };
 
         // setup positions
-        planes[i][0].position = RotateVecAroundY(pos0, sinY, cosY);
-        planes[i][1].position = RotateVecAroundY(pos1, sinY, cosY);
-        planes[i][2].position = RotateVecAroundY(pos2, sinY, cosY);
-        planes[i][3].position = RotateVecAroundY(pos3, sinY, cosY);
+        planes[i][0].pos = RotateVecAroundY(pos0, sinY, cosY);
+        planes[i][1].pos = RotateVecAroundY(pos1, sinY, cosY);
+        planes[i][2].pos = RotateVecAroundY(pos2, sinY, cosY);
+        planes[i][3].pos = RotateVecAroundY(pos3, sinY, cosY);
 
         // offset grass grass origin to be in 0 by Y 
-        planes[i][0].position.y += hh;
-        planes[i][1].position.y += hh;
-        planes[i][2].position.y += hh;
-        planes[i][3].position.y += hh;
+        planes[i][0].pos.y += hh;
+        planes[i][1].pos.y += hh;
+        planes[i][2].pos.y += hh;
+        planes[i][3].pos.y += hh;
 
         // setup textures
-        planes[i][0].texture = { 0, 1 };
-        planes[i][1].texture = { 0, 0 };
-        planes[i][2].texture = { 1, 0 };
-        planes[i][3].texture = { 1, 1 };
+        planes[i][0].tex = { 0, 1 };
+        planes[i][1].tex = { 0, 0 };
+        planes[i][2].tex = { 0.25, 0 };
+        planes[i][3].tex = { 0.25, 1 };
     }
+
 
     const UINT indices[numIndices] =
     {
@@ -171,6 +192,8 @@ bool GeometryGenerator::GenerateGrass(
     model.CopyIndices(indices, numIndices);
 
     model.GetMeshes().SetSubsetName(0, "grass_mesh");
+
+    return true;
 }
 
 
@@ -217,8 +240,8 @@ void GeometryGenerator::GenerateTreeLod1(
         return;
     }
 
-    const float hw = (float)planeWidth  * 0.5f; // half width
-    const float hh = (float)planeHeight * 0.5f; // half height
+    const float hw = planeWidth  * 0.5f;        // half width
+    const float hh = planeHeight * 0.5f;        // half height
 
     // 8 planes (4 vertices per each plane)
     Vertex3D planes[8][4];
@@ -248,58 +271,57 @@ void GeometryGenerator::GenerateTreeLod1(
         const float sinY     = sinf(angleY);
         const float cosY     = cosf(angleY);
 
-        XMFLOAT3 norm;
-        XMFLOAT3 tang;
+        XMFLOAT3 N, T;
 
         // rotate around Y-axis
-        norm = RotateVecAroundY(normal,  sinY, cosY);
-        tang = RotateVecAroundY(tangent, sinY, cosY);
+        N = RotateVecAroundY(normal,  sinY, cosY);
+        T = RotateVecAroundY(tangent, sinY, cosY);
 
         // rotate around X-axis
-        norm = RotateVecAroundX(norm, sinX, cosX);
-        tang = RotateVecAroundX(tang, sinX, cosX);
+        N = RotateVecAroundX(N, sinX, cosX);
+        T = RotateVecAroundX(T, sinX, cosX);
 
 
         // setup normal vectors
-        planes[i][0].normal = norm;
-        planes[i][1].normal = norm;
-        planes[i][2].normal = norm;
-        planes[i][3].normal = norm;
+        planes[i][0].norm = N;
+        planes[i][1].norm = N;
+        planes[i][2].norm = N;
+        planes[i][3].norm = N;
 
         // setup tangent vectors
-        planes[i][0].tangent = { tang.x, tang.y, tang.z, 1.0f };
-        planes[i][1].tangent = { tang.x, tang.y, tang.z, 1.0f };
-        planes[i][2].tangent = { tang.x, tang.y, tang.z, 1.0f };
-        planes[i][3].tangent = { tang.x, tang.y, tang.z, 1.0f };
+        planes[i][0].tang = { T.x, T.y, T.z, 1 };
+        planes[i][1].tang = { T.x, T.y, T.z, 1 };
+        planes[i][2].tang = { T.x, T.y, T.z, 1 };
+        planes[i][3].tang = { T.x, T.y, T.z, 1 };
 
         // setup positions (and add a little offset along normal vector to prevent Z-fighting)
-        planes[i][0].position = RotateVecAroundY(pos0, sinY, cosY);
-        planes[i][1].position = RotateVecAroundY(pos1, sinY, cosY);
-        planes[i][2].position = RotateVecAroundY(pos2, sinY, cosY);
-        planes[i][3].position = RotateVecAroundY(pos3, sinY, cosY);
+        planes[i][0].pos = RotateVecAroundY(pos0, sinY, cosY);
+        planes[i][1].pos = RotateVecAroundY(pos1, sinY, cosY);
+        planes[i][2].pos = RotateVecAroundY(pos2, sinY, cosY);
+        planes[i][3].pos = RotateVecAroundY(pos3, sinY, cosY);
 
         if (originAtBottom)
         {
-            planes[i][0].position.y += hh;
-            planes[i][1].position.y += hh;
-            planes[i][2].position.y += hh;
-            planes[i][3].position.y += hh;
+            planes[i][0].pos.y += hh;
+            planes[i][1].pos.y += hh;
+            planes[i][2].pos.y += hh;
+            planes[i][3].pos.y += hh;
         }
 
-        planes[i][0].position = RotateVecAroundX(planes[i][0].position, sinX, cosX);
-        planes[i][1].position = RotateVecAroundX(planes[i][1].position, sinX, cosX);
-        planes[i][2].position = RotateVecAroundX(planes[i][2].position, sinX, cosX);
-        planes[i][3].position = RotateVecAroundX(planes[i][3].position, sinX, cosX);
+        planes[i][0].pos = RotateVecAroundX(planes[i][0].pos, sinX, cosX);
+        planes[i][1].pos = RotateVecAroundX(planes[i][1].pos, sinX, cosX);
+        planes[i][2].pos = RotateVecAroundX(planes[i][2].pos, sinX, cosX);
+        planes[i][3].pos = RotateVecAroundX(planes[i][3].pos, sinX, cosX);
 
 
         // setup textures
         const float texLeft  = texOffsetX * i;
         const float texRight = texLeft + texOffsetX;
 
-        planes[i][0].texture = { texLeft,  1.0f };
-        planes[i][1].texture = { texLeft,  0.0f };
-        planes[i][2].texture = { texRight, 0.0f };
-        planes[i][3].texture = { texRight, 1.0f };
+        planes[i][0].tex = { texLeft,  1.0f };
+        planes[i][1].tex = { texLeft,  0.0f };
+        planes[i][2].tex = { texRight, 0.0f };
+        planes[i][3].tex = { texRight, 1.0f };
     }
 
     const UINT indices[48] =
@@ -643,22 +665,22 @@ void GeometryGenerator::GeneratePlane(
     Vertex3D* vertices = model.GetVertices();
 
     // top left / bottom right
-    vertices[0].position = { -halfWidth, +halfHeight,  0 };
-    vertices[1].position = { +halfWidth, -halfHeight,  0 };
+    vertices[0].pos = { -halfWidth, +halfHeight,  0 };
+    vertices[1].pos = { +halfWidth, -halfHeight,  0 };
 
     // bottom left / top right
-    vertices[2].position = { -halfWidth, -halfHeight,  0 };
-    vertices[3].position = { +halfWidth, +halfHeight,  0 };
+    vertices[2].pos = { -halfWidth, -halfHeight,  0 };
+    vertices[3].pos = { +halfWidth, +halfHeight,  0 };
 
     // setup the texture coords of each vertex
-    vertices[0].texture = { 0, 0 };
-    vertices[1].texture = { 1, 1 };
-    vertices[2].texture = { 0, 1 };
-    vertices[3].texture = { 1, 0 };
+    vertices[0].tex = { 0, 0 };
+    vertices[1].tex = { 1, 1 };
+    vertices[2].tex = { 0, 1 };
+    vertices[3].tex = { 1, 0 };
 
     // setup the normal vectors
     for (int i = 0; i < numVertices; ++i)
-        vertices[i].normal = {0,0,-1};
+        vertices[i].norm = {0,0,-1};
 
     // setup the indices
     const UINT indicesData[numIndices] = { 0, 1, 2, 0, 3, 1 };
@@ -767,10 +789,10 @@ void BuildFlatGridVertices(
             {
                 Vertex3D& vertex = vertices[lineIdx + j];
 
-                vertex.position = { j * dx - halfWidth, 0.0f, z };
-                vertex.texture  = { j * du, tv };
-                vertex.normal   = { 0, 1, 0 };
-                vertex.tangent  = { 1, 0, 0, 1 };
+                vertex.pos  = { j * dx - halfWidth, 0.0f, z };
+                vertex.tex  = { j * du, tv };
+                vertex.norm = { 0, 1, 0 };
+                vertex.tang = { 1, 0, 0, 1 };
             }
         }
     }
@@ -895,8 +917,8 @@ void GeometryGenerator::GeneratePyramid(
     // create a tip vertex 
     Vertex3D tipVertex;
 
-    tipVertex.position = { 0, height, 0 };
-    tipVertex.texture = { 0.5f, 0 };   // upper center of texture
+    tipVertex.pos = { 0, height, 0 };
+    tipVertex.tex = { 0.5f, 0 };   // upper center of texture
 
     // -------------------------------------------------- //
 
@@ -914,31 +936,31 @@ void GeometryGenerator::GeneratePyramid(
 
     // first side
     vertices[0] = tipVertex;
-    vertices[1].position = basePositions[0];
-    vertices[2].position = basePositions[1];
+    vertices[1].pos = basePositions[0];
+    vertices[2].pos = basePositions[1];
 
     // second side
     vertices[3] = tipVertex;
-    vertices[4].position = basePositions[1];
-    vertices[5].position = basePositions[2];
+    vertices[4].pos = basePositions[1];
+    vertices[5].pos = basePositions[2];
 
     // third side
     vertices[6] = tipVertex;
-    vertices[7].position = basePositions[2];
-    vertices[8].position = basePositions[3];
+    vertices[7].pos = basePositions[2];
+    vertices[8].pos = basePositions[3];
 
     // fourth side
     vertices[9] = tipVertex;
-    vertices[10].position = basePositions[3];
-    vertices[11].position = basePositions[0];
+    vertices[10].pos = basePositions[3];
+    vertices[11].pos = basePositions[0];
 
     // -------------------------------------------------- //
 
     // set texture coords and colors for vertices of the pyramid's sides
     for (int idx = 0; idx < verticesOfSides; idx += 3)
     {
-        vertices[idx + 1].texture = { 0, 1 };   // bottom left of texture
-        vertices[idx + 2].texture = { 1, 1 };   // bottom right of texture
+        vertices[idx + 1].tex = { 0, 1 };   // bottom left of texture
+        vertices[idx + 2].tex = { 1, 1 };   // bottom right of texture
     }
 
     // bottom
@@ -946,9 +968,9 @@ void GeometryGenerator::GeneratePyramid(
 
     for (int v_idx = verticesOfSides, data_idx = 0; v_idx < numVertices; ++v_idx, ++data_idx)
     {
-        vertices[v_idx].position = basePositions[data_idx];
-        vertices[v_idx].texture  = bottomTexCoords[data_idx];
-        vertices[v_idx].normal   = { 0, -1, 0 };               // bottom normal vector
+        vertices[v_idx].pos  = basePositions[data_idx];
+        vertices[v_idx].tex  = bottomTexCoords[data_idx];
+        vertices[v_idx].norm = { 0, -1, 0 };               // bottom normal vector
     }
 
     //
@@ -1111,16 +1133,16 @@ void BuildSphereVertices(
         // make vertices for this ring
         for (int j = 0; j < sliceCount+1; ++j)
         {
-            vertices[idx].position = { r * thetaCos[j], y, r * thetaSin[j] };
-            vertices[idx].texture = { tu[j], tv };
+            vertices[idx].pos = { r * thetaCos[j], y, r * thetaSin[j] };
+            vertices[idx].tex = { tu[j], tv };
 
             ++idx;
         }
     }
 
     // make the lowest vertex of the sphere
-    vertices[idx].position = { 0, -radius, 0 };
-    vertices[idx].texture = { 0.5f, 1.0f };
+    vertices[idx].pos = { 0, -radius, 0 };
+    vertices[idx].tex = { 0.5f, 1.0f };
     ++idx;
 
     // ------------------------------------------
@@ -1130,8 +1152,8 @@ void BuildSphereVertices(
     for (int i = 0; i < numVertices; ++i)
     {
         Vertex3D& v = vertices[i];
-        const XMVECTOR normVec = DirectX::XMVector3Normalize({ v.position.x, v.position.y, v.position.z });
-        DirectX::XMStoreFloat3(&v.normal, normVec);
+        const XMVECTOR vecNorm = DirectX::XMVector3Normalize({ v.pos.x, v.pos.y, v.pos.z });
+        DirectX::XMStoreFloat3(&v.norm, vecNorm);
     }
 }
 
@@ -1244,8 +1266,8 @@ void GeometryGenerator::GenerateSkyDome(
     Vertex3D topVertex; 
     Vertex3D bottomVertex; 
 
-    topVertex.position    = { 0.0f, +radius, 0.0f };
-    bottomVertex.position = { 0.0f, -radius, 0.0f };
+    topVertex.pos    = { 0.0f, +radius, 0.0f };
+    bottomVertex.pos = { 0.0f, -radius, 0.0f };
 
     const float phiStep   = XM_PIDIV2  / stackCount;  // vertical
     const float thetaStep = XM_2PI / sliceCount;      // horizontal
@@ -1283,11 +1305,11 @@ void GeometryGenerator::GenerateSkyDome(
             Vertex3D& v = vertices[vIdx++];
             verticesCount++;
 
-            v.position.x = radius * sinPhi * cosf(theta);
-            v.position.y = radius * cosPhi;
-            v.position.z = radius * sinPhi * sinf(theta);
+            v.pos.x = radius * sinPhi * cosf(theta);
+            v.pos.y = radius * cosPhi;
+            v.pos.z = radius * sinPhi * sinf(theta);
 
-            v.texture = {
+            v.tex= {
                 j * du,                 // tu
                 (float)(i+1) * dv       // tv
             };
@@ -1404,7 +1426,7 @@ void GeometryGenerator::GenerateGeosphere(
 
     // setup vertices positions
     for (int i = 0; i < numVertices; ++i)
-        vertices[i].position = pos[i];
+        vertices[i].pos = pos[i];
 
     // setup indices data
     model.CopyIndices(indicesData, numIndices);
@@ -1418,14 +1440,14 @@ void GeometryGenerator::GenerateGeosphere(
     // project vertices onto the sphere and scale
     for (int i = 0; i < model.GetNumVertices(); ++i)
     {
-        XMFLOAT3& pos = vertices[i].position;
+        XMFLOAT3& pos = vertices[i].pos;
 
         // project onto unit sphere
         const XMVECTOR N = DirectX::XMLoadFloat3(&pos);
         const XMVECTOR n = DirectX::XMVector3Normalize(N);
 
         // store the normal vector
-        XMStoreFloat3(&vertices[i].normal, n);
+        XMStoreFloat3(&vertices[i].norm, n);
 
         // compute and store position of vertex
         XMStoreFloat3(&pos, DirectX::XMVectorScale(n, radius));
@@ -1434,15 +1456,15 @@ void GeometryGenerator::GenerateGeosphere(
         const float theta = MathHelper::AngleFromXY(pos.x, pos.z);
         const float phi = acosf(pos.y * invRadius);
 
-        vertices[i].texture.x = theta * DirectX::XM_1DIV2PI;
-        vertices[i].texture.y = phi   * DirectX::XM_1DIVPI;
+        vertices[i].tex.x = theta * DirectX::XM_1DIV2PI;
+        vertices[i].tex.y = phi   * DirectX::XM_1DIVPI;
 
         // partial derivative of P with respect to theta
         const float tangX = radius * sinf(phi);
         const XMVECTOR T = { -tangX * sinf(theta), 0, +tangX * cosf(theta) };
 
         // normalize the tangent
-        XMStoreFloat4(&vertices[i].tangent, DirectX::XMVector4Normalize(T));
+        XMStoreFloat4(&vertices[i].tang, DirectX::XMVector4Normalize(T));
     }
 }
 
@@ -1461,7 +1483,7 @@ void GeometryGenerator::ComputeAABB(
 
     for (int i = 0; i < numVertices; ++i)
     {
-        XMVECTOR P = XMLoadFloat3(&vertices[i].position);
+        XMVECTOR P = XMLoadFloat3(&vertices[i].pos);
         vMin = DirectX::XMVectorMin(vMin, P);
         vMax = DirectX::XMVectorMax(vMax, P);
     }
@@ -1684,10 +1706,10 @@ void GeometryGenerator::BuildCylinderStacks(
             const float c = tempData.thetaCosines[j];
             const float s = tempData.thetaSines[j];
 
-            vertex.position = DirectX::XMFLOAT3(r*c, y, r*s);
+            vertex.pos = DirectX::XMFLOAT3(r*c, y, r*s);
 
-            vertex.texture.x = tempData.tu[j];
-            vertex.texture.y = tv;
+            vertex.tex.x = tempData.tu[j];
+            vertex.tex.y = tv;
 
             // Cylinder can be parametrized as follows, where we introduce v parameter
             // that does in the same direction as the v tex-coord so that the bitangent
@@ -1709,16 +1731,16 @@ void GeometryGenerator::BuildCylinderStacks(
             // dz/dv = (r0-r1)*sin(t)
 
             // set tangent is unit length, and set the binormal
-            vertex.tangent = { -s, 0.0f, c, 1.0f };
+            vertex.tang = { -s, 0.0f, c, 1.0f };
 
             //const float dr = bottomRadius - topRadius;
             const XMFLOAT3 binormal = { -dr * c, -params.height, -dr * s };
 
             // compute the normal vector
-            const DirectX::XMVECTOR T = DirectX::XMLoadFloat4(&vertex.tangent);
+            const DirectX::XMVECTOR T = DirectX::XMLoadFloat4(&vertex.tang);
             const DirectX::XMVECTOR B = DirectX::XMLoadFloat3(&binormal);
             const DirectX::XMVECTOR N = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(T, B));
-            DirectX::XMStoreFloat3(&vertex.normal, N);
+            DirectX::XMStoreFloat3(&vertex.norm, N);
         }
     }
 
@@ -1811,10 +1833,10 @@ void GeometryGenerator::BuildCylinderCapRingVertices(
         // make a vertex of the cap
         Vertex3D& v = vertices[vertexIdx++];
 
-        v.position = { posX, posY, posZ };
-        v.texture  = { tu, tv };
-        v.normal   = { 0, normalY, 0 };
-        v.tangent  = { 1, 0, 0, 1 };
+        v.pos  = { posX, posY, posZ };
+        v.tex  = { tu, tv };
+        v.norm = { 0, normalY, 0 };
+        v.tang = { 1, 0, 0, 1 };
     }
 
     // cap center vertex
@@ -1952,20 +1974,20 @@ void GeometryGenerator::SubdivideGeoSphere(Model& model)
 
         // For subdivision, we just care about the position component. We derive the other
         // vertex components in GenerateGeosphereMesh.
-        m0.position = XMFLOAT3(
-            0.5f * (v0.position.x + v1.position.x),
-            0.5f * (v0.position.y + v1.position.y),
-            0.5f * (v0.position.z + v1.position.z));
+        m0.pos = XMFLOAT3(
+            0.5f * (v0.pos.x + v1.pos.x),
+            0.5f * (v0.pos.y + v1.pos.y),
+            0.5f * (v0.pos.z + v1.pos.z));
 
-        m1.position = XMFLOAT3(
-            0.5f * (v1.position.x + v2.position.x),
-            0.5f * (v1.position.y + v2.position.y),
-            0.5f * (v1.position.z + v2.position.z));
+        m1.pos = XMFLOAT3(
+            0.5f * (v1.pos.x + v2.pos.x),
+            0.5f * (v1.pos.y + v2.pos.y),
+            0.5f * (v1.pos.z + v2.pos.z));
 
-        m2.position = XMFLOAT3(
-            0.5f * (v0.position.x + v2.position.x),
-            0.5f * (v0.position.y + v2.position.y),
-            0.5f * (v0.position.z + v2.position.z));
+        m2.pos = XMFLOAT3(
+            0.5f * (v0.pos.x + v2.pos.x),
+            0.5f * (v0.pos.y + v2.pos.y),
+            0.5f * (v0.pos.z + v2.pos.z));
 
         //
         // add new indices

@@ -5,9 +5,9 @@ dss skyDome
 
 newmtl grass_0
 shader GrassShader
+Ka 0.78 0.78 0.78 1.0
 Kd 0.82 0.82 0.82 1.0
-Kd 0.82 0.82 0.82 1.0
-tex_diff plants/grass01
+tex_diff plants/grass00
 alpha_clip 1
 rs rs_grass
 

@@ -49,9 +49,9 @@ struct BillboardSprite
 
 struct VertexGrass
 {
-    DirectX::XMFLOAT3 pos  = { 0,0,0 };
-    DirectX::XMFLOAT2 tex0 = { 0,0 };
-    DirectX::XMFLOAT2 tex1 = { 1,1 };
+    DirectX::XMFLOAT3 pos    = { 0,0,0 };
+    DirectX::XMFLOAT2 tex    = { 0,0 };
+    DirectX::XMFLOAT3 normal = { 0,0,0 };
 };
 
 // =================================================================================
@@ -148,10 +148,10 @@ public:
         DirectX::XMFLOAT4&& tang = { 0,0,0,1 });
 
 public:
-    DirectX::XMFLOAT3 position;
-    DirectX::XMFLOAT2 texture;
-    DirectX::XMFLOAT3 normal;
-    DirectX::XMFLOAT4 tangent;
+    DirectX::XMFLOAT3 pos;
+    DirectX::XMFLOAT2 tex;
+    DirectX::XMFLOAT3 norm;
+    DirectX::XMFLOAT4 tang;
 };
 
 } // namespace Core

@@ -13,10 +13,10 @@ namespace Core
 {
 
 Vertex3D::Vertex3D() :
-	position(0.0f, 0.0f, 0.0f),
-	texture(0.0f, 0.0f),
-	normal(0.0f, 0.0f, 0.0f),
-	tangent(0.0f, 0.0f, 0.0f, 1.0f)
+	pos(0, 0, 0),
+	tex(0, 0),
+	norm(0, 0, 0),
+	tang(0, 0, 0, 1)
 {
 	// default constructor
 }
@@ -24,10 +24,10 @@ Vertex3D::Vertex3D() :
 ///////////////////////////////////////////////////////////
 
 Vertex3D::Vertex3D(const Vertex3D& rhs)	:
-	position(rhs.position),
-	texture(rhs.texture),
-	normal(rhs.normal),
-	tangent(rhs.tangent)
+	pos(rhs.pos),
+	tex(rhs.tex),
+	norm(rhs.norm),
+	tang(rhs.tang)
 {
 	// copy constructor
 }
@@ -46,10 +46,10 @@ Vertex3D& Vertex3D::operator=(const Vertex3D& rhs)
 ///////////////////////////////////////////////////////////
 
 Vertex3D::Vertex3D(Vertex3D&& rhs) noexcept :
-	position(rhs.position),
-	texture(rhs.texture),
-	normal(rhs.normal),
-	tangent(rhs.tangent)
+	pos(rhs.pos),
+	tex(rhs.tex),
+	norm(rhs.norm),
+	tang(rhs.tang)
 {
 	// move constructor
 }
@@ -81,10 +81,10 @@ Vertex3D::Vertex3D(
     const float tangZ,
     const float tangHandedness)
 	:
-	position { px, py, pz },
-	texture { texX, texY },
-	normal { nx, ny, nz },
-	tangent { tangX, tangY, tangZ, tangHandedness }
+	pos { px, py, pz },
+	tex { texX, texY },
+	norm { nx, ny, nz },
+	tang { tangX, tangY, tangZ, tangHandedness }
 {
 	// a constructor with raw input params
 }
@@ -97,10 +97,10 @@ Vertex3D::Vertex3D(
 	const DirectX::XMFLOAT3& nor,
 	const DirectX::XMFLOAT4& tang)
 	:
-	position(pos),
-	texture(tex),
-	normal(nor),
-	tangent(tang)
+	pos(pos),
+	tex(tex),
+	norm(nor),
+	tang(tang)
 {
 	// a constructor with XM-type input params
 }
@@ -111,10 +111,10 @@ Vertex3D::Vertex3D(
 	DirectX::XMFLOAT3&& nor,
 	DirectX::XMFLOAT4&& tang)
 	:
-	position(pos),
-	texture(tex),
-	normal(nor),
-	tangent(tang)
+	pos(pos),
+	tex(tex),
+	norm(nor),
+	tang(tang)
 {
 }
 

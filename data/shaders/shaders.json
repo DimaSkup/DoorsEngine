@@ -1,6 +1,6 @@
 {
 	"params": {
-	    "runtime_compilation":       true,
+	    "runtime_compilation":       false,
 		"shader_model":              "4_1",
 		"dir_path_to_precompiled":   "data/shaders/cso/",
 		"dir_path_to_hlsl":          "data/shaders/hlsl/"
@@ -41,7 +41,6 @@
 			"id":            4,
 			"name":          "GrassShader",
 			"vs":            "grassVS",
-			"gs":            "grassGS",
 			"ps":            "grassPS",
 			"input_layout":  "VertexGrass"
 		},

@@ -25,9 +25,9 @@ struct PS_IN
 {
     float4 posH     : SV_POSITION;
     float3 posW     : POSITION;
-    float  texU     : TEXCOORD0;
+    float2 tex      : TEXCOORD;
     float3 normal   : NORMAL;
-    float  texV     : TEXCOORD1;
+    float3 fogColor : COLOR;
 };
 
 //---------------------------------------------------------
@@ -132,23 +132,32 @@ void ComputePoint(
 //--------------------------------
 float4 PS(PS_IN pin) : SV_TARGET
 {
-    float4 skyBottomColor = gCubeMap.Sample(gSkySampler, float3(0,-490, 0));
-    float4 texColor = gTextures[1].Sample(gBasicSampler, float2(pin.texU, pin.texV));
-
-
+   
+    const float4 texDiff = gTextures[1].Sample(gBasicSampler, pin.tex);
+    
     // execute alpha clipping
-    clip(texColor.a - 0.1f);
+    clip(texDiff.a - 0.6f);
+	
+	//if (texDiff.r < 0.2 && texDiff.g < 0.2 && texDiff.b < 0.2)
+	//	discard;
 
-    // a vector in the world space from vertex to eye pos
+    
+      // a vector in the world space from vertex to eye pos
     float3 toEyeW = gCamPosW - pin.posW;
 
     // compute the distance to the eye from this surface point
     float distToEye = length(toEyeW);
+	
+	
 
-    // normalize
-    toEyeW /= distToEye;
+    float3 normal = pin.normal;
 
-
+    if (dot(toEyeW, normal) <= 0)
+        normal *= -1;
+ 
+  //return float4(normal, 1.0);
+    
+  
     // --------------------  LIGHT   --------------------
 
     // start with a sum of zero
@@ -171,7 +180,7 @@ float4 PS(PS_IN pin) : SV_TARGET
     ComputeDirLight(
         material,
         gDirLights[0],
-        pin.normal,
+        normal,
         toEyeW,
         1.0f,             // specular map value
         A, D, S);
@@ -180,24 +189,24 @@ float4 PS(PS_IN pin) : SV_TARGET
     diffuse += D;
     spec += S;
 
-	// sum the light contribution from each point light source
+    
+    // sum the light contribution from each point light source
     for (i = 0; i < gCurrNumPointLights; ++i)
     {
-		 ComputePoint(
-			material,
-			gPointLights[i],
-			pin.posW,
-			pin.normal,
-			toEyeW,
-			1.0f,             // specular map value
-			A, D, S);
+         ComputePoint(
+            material,
+            gPointLights[i],
+            pin.posW,
+            normal,
+            toEyeW,
+            1.0f,             // specular map value
+            A, D, S);
 
-		ambient += A;
-		diffuse += D;
-		spec += S;
+        ambient += A;
+        diffuse += D;
+        spec += S;
     }
    
-
 
     // compute light from the flashlight
     if (gTurnOnFlashLight)
@@ -223,7 +232,7 @@ float4 PS(PS_IN pin) : SV_TARGET
             material,
             gSpotLights[i],
             pin.posW,
-            pin.normal,
+            normal,
             toEyeW,
             1.0f,             // specular map value
             A, D, S);
@@ -234,26 +243,25 @@ float4 PS(PS_IN pin) : SV_TARGET
     }
 
     // compute light contribution
-    float4 color = texColor * (ambient + diffuse) + spec;
+    float4 color = texDiff * (ambient + diffuse) + spec;
 
-    // ------------------------------------------
+        // ------------------------------------------
 
     // make grass darker when closer to the ground
-    float topColor    = 1.0;
+    float topColor = 1.0;
     float bottomColor = 0.5;
-    color *= lerp(topColor, bottomColor, pin.texV);
-    color.a = texColor.a;
+    color *= lerp(topColor, bottomColor, pin.tex.y);
+    color.a = texDiff.a;
 
     // ------------------------------------------
 
     if (gFogEnabled)
     {
         // blend sky pixel color with fixed fog color
-        float4 fogColor = skyBottomColor * float4(gFixedFogColor, 1.0f) + 0.1f;
         float fogLerp = saturate((distToEye - gFogStart) / gFogRange);
 
         // blend the fog color and the lit color
-        color = lerp(color, fogColor, fogLerp);
+        color = lerp(color, float4(pin.fogColor, 1.0), fogLerp);
     }
 
     return color;

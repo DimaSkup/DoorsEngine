@@ -21,7 +21,7 @@ void ModelMath::CalcNormals(
 {
     // reset all normals
     for (int i = 0; i < numVertices; ++i)
-        vertices[i].normal = { 0,0,0 };
+        vertices[i].norm = { 0,0,0 };
 
     // for each triangle
     for (int i = 0; i < numIndices; i += 3)
@@ -30,20 +30,20 @@ void ModelMath::CalcNormals(
         const UINT i1 = indices[i + 1];
         const UINT i2 = indices[i + 2];
 
-        const XMVECTOR pos0 = DirectX::XMLoadFloat3(&vertices[i0].position);
-        const XMVECTOR pos1 = DirectX::XMLoadFloat3(&vertices[i1].position);
-        const XMVECTOR pos2 = DirectX::XMLoadFloat3(&vertices[i2].position);
+        const XMVECTOR pos0 = DirectX::XMLoadFloat3(&vertices[i0].pos);
+        const XMVECTOR pos1 = DirectX::XMLoadFloat3(&vertices[i1].pos);
+        const XMVECTOR pos2 = DirectX::XMLoadFloat3(&vertices[i2].pos);
 
         const XMVECTOR normal = XMVector3Cross(pos1 - pos0, pos2 - pos0);
 
-        vertices[i0].normal += normal;
-        vertices[i1].normal += normal;
-        vertices[i2].normal += normal;
+        vertices[i0].norm += normal;
+        vertices[i1].norm += normal;
+        vertices[i2].norm += normal;
     }
 
     // normalize all the vertex normals
     for (int i = 0; i < numVertices; ++i)
-        XMFloat3Normalize(vertices[i].normal);
+        XMFloat3Normalize(vertices[i].norm);
 }
 
 //---------------------------------------------------------
@@ -83,13 +83,13 @@ void ModelMath::CalcTangents(
         const Vertex3D& v2 = vertices[i2];
         const Vertex3D& v3 = vertices[i3];
 
-        const XMFLOAT3& p1 = v1.position;
-        const XMFLOAT3& p2 = v2.position;
-        const XMFLOAT3& p3 = v3.position;
+        const XMFLOAT3& p1 = v1.pos;
+        const XMFLOAT3& p2 = v2.pos;
+        const XMFLOAT3& p3 = v3.pos;
 
-        const XMFLOAT2& w1 = v1.texture;
-        const XMFLOAT2& w2 = v2.texture;
-        const XMFLOAT2& w3 = v3.texture;
+        const XMFLOAT2& w1 = v1.tex;
+        const XMFLOAT2& w2 = v2.tex;
+        const XMFLOAT2& w3 = v3.tex;
 
 
         float x1 = p2.x - p1.x;
@@ -125,17 +125,17 @@ void ModelMath::CalcTangents(
     {
         Vertex3D& v = vertices[i];
 
-        const Vec3  n(&v.normal.x);
+        const Vec3  n(&v.norm.x);
         const Vec3& t = tangs[i];
 
         // Gram-Schmidt orthogonalize
         const Vec3 T = Vec3Normalize(t - n * Vec3Dot(n,t));
 
-        v.tangent = { T.x, T.y, T.z, 1.0f };
+        v.tang= { T.x, T.y, T.z, 1.0f };
 
         // calc handedness
         if (Vec3Dot(Vec3Cross(n, t), bitangs[i]) < 0.0f)
-            v.tangent.w = -1.0f;
+            v.tang.w = -1.0f;
     }
 
     SafeDeleteArr(tangs);

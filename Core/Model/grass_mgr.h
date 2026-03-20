@@ -135,6 +135,8 @@ public:
 
     bool AddGrassField(const GrassFieldInitParams& params);
 
+    const GrassField& GetGrassField(const uint index) const;
+
 private:
     cvector<GrassField> grassFields_;
 
@@ -148,5 +150,12 @@ private:
 // GLOBAL instance of the grass manager
 //---------------------------------------------------------
 extern GrassMgr g_GrassMgr;
+
+//---------------------------------------------------------
+inline const GrassField& GrassMgr::GetGrassField(const uint index) const
+{
+    assert(index < grassFields_.size());
+    return grassFields_[index];
+}
 
 } // namespace

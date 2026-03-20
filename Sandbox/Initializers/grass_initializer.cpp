@@ -225,8 +225,17 @@ void ReadGrassFieldParams(
         count = sscanf(buf, "%s", key);
         assert(count == 1);
 
-        if (strcmp(key, "model") == 0)
-            ReadStrParam(buf, outData.modelName);
+        if (strcmp(key, "channel_0_model") == 0)
+            ReadStrParam(buf, outData.modelNames[0]);
+
+        else if (strcmp(key, "channel_1_model") == 0)
+            ReadStrParam(buf, outData.modelNames[1]);
+
+        else if (strcmp(key, "channel_2_model") == 0)
+            ReadStrParam(buf, outData.modelNames[2]);
+
+        else if (strcmp(key, "channel_3_model") == 0)
+            ReadStrParam(buf, outData.modelNames[3]);
 
         else if (strcmp(key, "material") == 0)
             ReadStrParam(buf, outData.materialName);

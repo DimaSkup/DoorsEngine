@@ -1035,7 +1035,7 @@ void CGraphics::ColorLightPass()
     g_GpuProfiler.Timestamp(GTS_RenderScene_Weapon);
     
     // render grass
-    //RenderGrass();
+    RenderGrass();
     g_GpuProfiler.Timestamp(GTS_RenderScene_Grass);
 
     // render masked geometry: tree branches, bushes, etc.
@@ -1411,7 +1411,58 @@ void CGraphics::RenderDecals()
 void CGraphics::RenderGrass()
 {
     //assert(0 && "FIXME");
-    pRender_->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+    //pRender_->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+
+    //ResetBeforeRendering();
+    pRender_->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    // bind material
+    const Material& mat = g_MaterialMgr.GetMatByName("grass_0");
+    BindMaterial(mat);
+    pRender_->UpdateCbMaterialColors(mat.ambient, mat.diffuse, mat.specular, mat.reflect);
+
+    const GrassField& field = g_GrassMgr.GetGrassField(0);
+
+    // render each cell
+    for (index i = 0; i < field.cells.size(); ++i)
+    {
+        const VertexBuffer<VertexGrass>& vb = field.cells[i].vb;
+        const IndexBuffer<UINT>&         ib = field.cells[i].ib;
+
+        pRender_->BindVB(vb.GetAddrOf(), vb.GetStride(), 0);
+        pRender_->BindIB(ib.Get(), DXGI_FORMAT_R32_UINT);
+
+        pRender_->BindShaderByName("GrassShader");
+        pRender_->DrawIndexed(ib.GetIndexCount(), 0, 0);
+    }
+
+#if 0
+    // bind material
+    const Material& mat = g_MaterialMgr.GetMatByName("grass_1");
+    BindMaterial(mat);
+    pRender_->UpdateCbMaterialColors(mat.ambient, mat.diffuse, mat.specular, mat.reflect);
+
+    const GrassField& field = g_GrassMgr.GetGrassField(1);
+
+    // render each cell
+    for (index i = 0; i < field.cells.size(); ++i)
+    {
+        const VertexBuffer<VertexGrass>& vb = field.cells[i].vb;
+        const IndexBuffer<UINT>& ib = field.cells[i].ib;
+
+        pRender_->BindVB(vb.GetAddrOf(), vb.GetStride(), 0);
+        pRender_->BindIB(ib.Get(), DXGI_FORMAT_R32_UINT);
+
+        pRender_->BindShaderByName("GrassShader");
+        pRender_->DrawIndexed(ib.GetIndexCount(), 0, 0);
+    }
+#endif
+
+
+
+
+
+
 #if 0
     assert(pRender_);
     Render::CRender* pRender = pRender_;
@@ -2678,9 +2729,9 @@ bool CGraphics::RayModelTest(
         const UINT i2 = indices[i*3 + 2];
 
         // vertices for this triangle
-        const XMVECTOR v0 = XMLoadFloat3(&vertices[i0].position);
-        const XMVECTOR v1 = XMLoadFloat3(&vertices[i1].position);
-        const XMVECTOR v2 = XMLoadFloat3(&vertices[i2].position);
+        const XMVECTOR v0 = XMLoadFloat3(&vertices[i0].pos);
+        const XMVECTOR v1 = XMLoadFloat3(&vertices[i1].pos);
+        const XMVECTOR v2 = XMLoadFloat3(&vertices[i2].pos);
 
         // we have to iterate over all the triangle in order 
         // to find the nearest intersection
@@ -2736,9 +2787,9 @@ void CGraphics::GatherIntersectionData(
 
     // vertices positions in local space
     const XMVECTOR posL[3] = {
-        XMLoadFloat3(&v0.position),
-        XMLoadFloat3(&v1.position),
-        XMLoadFloat3(&v2.position)
+        XMLoadFloat3(&v0.pos),
+        XMLoadFloat3(&v1.pos),
+        XMLoadFloat3(&v2.pos)
     };
 
     // vertices positions in world space
@@ -2891,9 +2942,9 @@ int CGraphics::TestEnttSelection(const int sx, const int sy)
             const UINT i2 = indices[i*3 + 2];
 
             // vertices for this triangle
-            const XMVECTOR v0 = XMLoadFloat3(&verts[i0].position);
-            const XMVECTOR v1 = XMLoadFloat3(&verts[i1].position);
-            const XMVECTOR v2 = XMLoadFloat3(&verts[i2].position);
+            const XMVECTOR v0 = XMLoadFloat3(&verts[i0].pos);
+            const XMVECTOR v1 = XMLoadFloat3(&verts[i1].pos);
+            const XMVECTOR v2 = XMLoadFloat3(&verts[i2].pos);
 
             float t = 0.0f;
 

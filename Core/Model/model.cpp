@@ -353,7 +353,7 @@ void Model::ComputeSubsetsAABB()
         // go through each vertex of this subset (mesh)
         for (uint32 v = 0; v < subset.vertexCount; ++v)
         {
-            XMVECTOR P = XMLoadFloat3(&vertices[v].position);
+            XMVECTOR P = XMLoadFloat3(&vertices[v].pos);
             vMin = XMVectorMin(vMin, P);
             vMax = XMVectorMax(vMax, P);
         }

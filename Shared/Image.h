@@ -179,6 +179,8 @@ public:
     inline uint   GetBPP()    const { return bpp_; }      // get the number of bits per pixel
     inline uint   GetID()     const { return id_; }       // get the identifying of ID of texture
 
+    inline bool   IsLoaded()  const { return isLoaded_; } // find out if the texture has been loaded or not
+
 
     // ----------------------------------------------------
     // inline setters
@@ -189,7 +191,6 @@ public:
     inline void   SetWidth(const uint width)   { width_ = width; }
     inline void   SetHeight(const uint height) { height_ = height; }
     inline void   SetBPP(const uint bpp)       { bpp_ = bpp; }
-    inline bool   IsLoaded()  const            { return isLoaded_; } // find out if the texture has been loaded or not
     
 
 private:

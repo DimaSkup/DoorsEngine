@@ -43,13 +43,17 @@ bool DDS_ImageReader::LoadTextureFromFile(
     // check input args
     if (StrHelper::IsEmpty(filePath))
     {
-        LogErr(LOG, "can't load dds tex from file: input path is empty");
+        LogErr(LOG, "empty filepath");
         return false;
     }
-
-    if (*ppTexture || *ppTextureView)
+    if (*ppTexture)
     {
-        LogErr(LOG, "can't load dds tex from file: input tex resource or tex view points to some data, you have to release it first!");
+        LogErr(LOG, "input texture resource already contains some data: you HAVE TO release it first!");
+        return false;
+    }
+    if (*ppTextureView)
+    {
+        LogErr(LOG, "input shader resource view already contains some data: you HAVE TO release it first!");
         return false;
     }
 
@@ -58,14 +62,11 @@ bool DDS_ImageReader::LoadTextureFromFile(
     D3DX11_IMAGE_LOAD_INFO loadInfo;
     loadInfo.MipLevels = 0;              // max level of mipmaps           
 
-    wchar_t wStr[256]{ L'\0' };
-    StrHelper::StrToWide(filePath, wStr);
-
 
     // create a shader resource view from the texture file
-    hr = D3DX11CreateShaderResourceViewFromFile(
+    hr = D3DX11CreateShaderResourceViewFromFileA(
         pDevice,
-        wStr,                 // src file path
+        filePath,             // src file path
         &loadInfo,            // ptr load info
         nullptr,              // ptr pump
         ppTextureView,        // pp shader resource view
@@ -82,7 +83,7 @@ bool DDS_ImageReader::LoadTextureFromFile(
 
     // load information about the texture
     D3DX11_IMAGE_INFO imageInfo;
-    hr = D3DX11GetImageInfoFromFile(wStr, nullptr, &imageInfo, nullptr);
+    hr = D3DX11GetImageInfoFromFileA(filePath, nullptr, &imageInfo, nullptr);
 
     if (FAILED(hr))
     {

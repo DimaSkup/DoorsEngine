@@ -71,20 +71,21 @@
 		},
 		
 		{
+			"name": "VertexGrass",
+			"per_vertex": [
+				[ "POSITION",            "f3" ],
+				[ "TEXCOORD",            "f2" ],
+				[ "NORMAL",              "f3" ]
+			]
+		},
+		
+		{
 			"name": "Vertex3d",
 			"per_vertex": [
 				[ "POSITION",            "f3" ],
 				[ "TEXCOORD",            "f2" ],
 				[ "NORMAL",              "f3" ],
 				[ "TANGENT",             "f4" ]
-			]
-		},
-		
-		{
-			"name": "VertexGrass",
-			"per_vertex": [
-				[ "POSITION",            "f3" ],
-				[ "SIZE",                "f2" ]
 			]
 		},
 		

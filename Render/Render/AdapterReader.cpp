@@ -4,119 +4,134 @@
 #include "../Common/pch.h"
 #include "AdapterReader.h"
 
-
 namespace Render
 {
 
 //---------------------------------------------------------
-// Desc:   empty constructor
-//         - create DXGI factory
-//         - enumerate adapters
-//         - enumerate outputs of each adapter
+// forward declaration of private helpers
 //---------------------------------------------------------
-AdapterReader::AdapterReader()
+void PrintAdapterInfo(IDXGIAdapter* pAdapter);
+void PrintHRESULT(HRESULT hr);
+
+//---------------------------------------------------------
+// enumerate each available video adapter and push its ptr into output array
+//---------------------------------------------------------
+void AdapterReader::EnumerateAdapters(cvector<IDXGIAdapter*>& outAdapters)
 {
-    int idx = 0;
     IDXGIFactory* pFactory = nullptr;
     IDXGIAdapter* pAdapter = nullptr;
-    IDXGIOutput*  pOutput  = nullptr;
 
-    // Create a DXGI Factory
+    outAdapters.clear();
+
+    // Create a DXGI Factory object
     HRESULT hr = CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&pFactory);
     if (FAILED(hr))
     {
+        PrintHRESULT(hr);
         LogErr(LOG, "can't create the DXGI Factory");
-        exit(0);
+        SafeRelease(&pFactory);
     }
 
-    // go through all the available graphics adapters and get a ptr to it and get data
-    while (SUCCEEDED(pFactory->EnumAdapters(idx, &pAdapter)))
+    SetConsoleColor(YELLOW);
+    LogMsg("\n");
+    LogMsg("Video adapters list:");
+
+    // enumerate each available video adapter
+    for (UINT i = 0;
+        pFactory->EnumAdapters(i, &pAdapter) != DXGI_ERROR_NOT_FOUND;
+        ++i)
     {
-        adaptersData_[idx] = AdapterData(pAdapter);
-        numAdapters_++;
-        idx++;
+        outAdapters.push_back(pAdapter);
+        PrintAdapterInfo(pAdapter);
     }
 
-    // enumerate outputs for each available graphics adapter
-    for (int idx = 0, outputIdx = 0; idx < numAdapters_; ++idx)
+    SafeRelease(&pFactory);
+}
+
+//---------------------------------------------------------
+//---------------------------------------------------------
+IDXGIAdapter* AdapterReader::FindAnySuitableAdapter(const cvector<IDXGIAdapter*>& adapters)
+{
+    int lastMemorySize = 0;
+    int index = -1;
+
+    for (int i = 0; i < adapters.size(); i++)
     {
-        pAdapter = adaptersData_[idx].pAdapter_;
+        DXGI_ADAPTER_DESC desc;
+        adapters[i]->GetDesc(&desc);
 
-        // enumerate the outputs for this adapter
-        pAdapter->EnumOutputs(0, &adaptersData_[idx].pOutput_);
+        if (desc.DedicatedVideoMemory > lastMemorySize)
+        {
+            lastMemorySize = (int)desc.DedicatedVideoMemory;
+            index = i;
+        }
     }
+
+    if (index != -1 && index <= adapters.size())
+        return adapters[index];
+
+    return nullptr;
 }
 
 //---------------------------------------------------------
 // Desc:  a constructor: stores a pointer to IDXGI adapter and its description
 //---------------------------------------------------------
-AdapterData::AdapterData(IDXGIAdapter* pAdapter)
-    : pAdapter_(pAdapter)
+void PrintAdapterInfo(IDXGIAdapter* pAdapter)
 {
     if (!pAdapter)
     {
-        LogErr(LOG, "input ptr to adapter == nullptr");
+        LogErr(LOG, "ptr to adapter == NULL");
         return;
     }
 
-    HRESULT hr = pAdapter->GetDesc(&description_);
+    HRESULT hr = S_OK;
+    DXGI_ADAPTER_DESC desc;
+
+    hr = pAdapter->GetDesc(&desc);
     if (FAILED(hr))
     {
+        PrintHRESULT(hr);
         LogErr(LOG, "failed to get description for IDXGIAdapter");
         return;
     }
+
+    char adapterDesc[128];
+    memset(adapterDesc, 0, sizeof(adapterDesc));
+
+    StrHelper::ToStr(desc.Description, adapterDesc);
+
+    SetConsoleColor(GREEN);
+    LogMsg("\n");
+
+    // common info
+    LogMsg("Adapter:        %s", adapterDesc);
+    LogMsg("VendorId:       %zu", desc.VendorId);
+    LogMsg("DeviceId:       %zu", desc.DeviceId);
+    LogMsg("Sub sys id:     %zu", desc.SubSysId);
+
+    // memory info
+    constexpr ULONG bytesInMB = 1048576;
+
+    LogMsg("Video mem:      %lu bytes;  %lu MB", desc.DedicatedVideoMemory,  desc.DedicatedVideoMemory  / bytesInMB);
+    LogMsg("Sys mem:        %lu bytes;  %lu MB", desc.DedicatedSystemMemory, desc.DedicatedSystemMemory / bytesInMB);
+    LogMsg("Shared sysmem:  %lu bytes;  %lu MB", desc.SharedSystemMemory,    desc.SharedSystemMemory    / bytesInMB);
+
+    LogMsg("\n");
+    SetConsoleColor(RESET);
 }
 
 //---------------------------------------------------------
-// Desc:   just destructor
+// if HRESULT isn't S_OK we call this func and print hr error code
 //---------------------------------------------------------
-AdapterReader::~AdapterReader()
+void PrintHRESULT(HRESULT hr)
 {
-    Shutdown();
-}
+    _com_error err(hr);
+    char errMsg[512];
 
-//---------------------------------------------------------
-// Desc:   return a ptr to adapter data by input index
-//---------------------------------------------------------
-AdapterData* AdapterReader::GetAdapterDataByIdx(const int idx)
-{
-    if ((idx < 0) || (idx >= numAdapters_))
-    {
-        LogErr(LOG, "input index is wrong (%d), but expected to be in range [0; %d)", idx, numAdapters_);
-        return nullptr;
-    }
+    memset(errMsg, 0, sizeof(errMsg));
+    StrHelper::ToStr(err.ErrorMessage(), errMsg);
 
-    return adaptersData_ + idx;
-}
-
-//---------------------------------------------------------
-// Desc:   return a ptr to adapter by input index
-//---------------------------------------------------------
-IDXGIAdapter* AdapterReader::GetDXGIAdapterByIdx(const int idx)
-{
-    if ((idx < 0) || (idx >= numAdapters_))
-    {
-        LogErr(LOG, "input index is wrong (%d), but expected to be in range [0; %d)", idx, numAdapters_);
-        return nullptr;
-    }
-
-    return adaptersData_[idx].pAdapter_;
-}
-
-//---------------------------------------------------------
-// Desc:   go through each element of the array of adapters data
-//         and release the adapters interface pointers
-//---------------------------------------------------------
-void AdapterReader::Shutdown()
-{
-
-    for (int i = 0; i < numAdapters_; ++i)
-    {
-        AdapterData& data = adaptersData_[i];
-
-        SafeRelease(&data.pAdapter_);
-        SafeRelease(&data.pOutput_);
-    }
+    LogErr(LOG, "HRESULT: 0x%08X - %s\n\n", hr, errMsg);
 }
 
 } // namespace
