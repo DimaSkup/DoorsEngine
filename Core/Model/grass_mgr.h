@@ -126,6 +126,14 @@ struct GrassField
 
 //---------------------------------------------------------
 
+struct VisibleGrassCell
+{
+    uint16 fieldIdx = 0;      // this cell is related to a field by index
+    uint16 cellIdx  = 0;      // cell's index
+};
+
+//---------------------------------------------------------
+
 class GrassMgr
 {
 public:
@@ -136,12 +144,12 @@ public:
     bool AddGrassField(const GrassFieldInitParams& params);
 
     const GrassField& GetGrassField(const uint index) const;
+    const cvector<VisibleGrassCell>& GetVisibleCells() const;
 
 private:
     cvector<GrassField> grassFields_;
 
-    cvector<uint32>     visPatchesIdxs_;
-    cvector<Sphere>     boundSpheres_;
+    cvector<VisibleGrassCell> visCells_;
 
     float grassRange_ = 0;
 };
@@ -152,10 +160,20 @@ private:
 extern GrassMgr g_GrassMgr;
 
 //---------------------------------------------------------
+// return a grass field by index
+//---------------------------------------------------------
 inline const GrassField& GrassMgr::GetGrassField(const uint index) const
 {
     assert(index < grassFields_.size());
     return grassFields_[index];
+}
+
+//---------------------------------------------------------
+// return an array of data about currently visible grass cells
+//---------------------------------------------------------
+inline const cvector<VisibleGrassCell>& GrassMgr::GetVisibleCells() const
+{
+    return visCells_;
 }
 
 } // namespace

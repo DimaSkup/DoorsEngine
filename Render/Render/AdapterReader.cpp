@@ -70,6 +70,13 @@ IDXGIAdapter* AdapterReader::FindAnySuitableAdapter(const cvector<IDXGIAdapter*>
     if (index != -1 && index <= adapters.size())
         return adapters[index];
 
+
+    if (adapters.size() > 0)
+    {
+        LogMsg(LOG, "manually choose the first video adapter from the list");
+        return adapters[0];
+    }
+
     return nullptr;
 }
 

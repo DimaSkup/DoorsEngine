@@ -4,7 +4,6 @@
 // ================================================================================
 #include "../Common/pch.h"
 #include "d3dclass.h"
-
 #include <cvector.h>
 
 #pragma warning (disable : 4996)
@@ -201,19 +200,11 @@ void D3DClass::GetVideoCardInfo(
 {
     assert(outCardName);
 
-    cvector<IDXGIAdapter*> adapters;
-    AdapterReader::EnumerateAdapters(adapters);
-    IDXGIAdapter* pAdapter = AdapterReader::FindAnySuitableAdapter(adapters);
-
-    // get data of current adapter
-    DXGI_ADAPTER_DESC desc;
-    pAdapter->GetDesc(&desc);
-
     // store the dedicated video card memory in megabytes and store its name
     constexpr UINT bytesInMb = 1024 * 1024;
 
-    StrHelper::ToStr(desc.Description, outCardName);
-    outMemorySize = (int)(desc.DedicatedVideoMemory / bytesInMb);
+    StrHelper::ToStr(adapterDesc_.Description, outCardName);
+    outMemorySize = (int)(adapterDesc_.DedicatedVideoMemory / bytesInMb);
 
     // print info about GPU into the console and log file
     SetConsoleColor(GREEN);
@@ -221,6 +212,7 @@ void D3DClass::GetVideoCardInfo(
     LogMsg("Video card name: %s", outCardName);
     LogMsg("Video memory: %d MB", outMemorySize);
     SetConsoleColor(RESET);
+
 }
 
 //---------------------------------------------------------
@@ -296,60 +288,6 @@ void D3DClass::InitDirectX(
         throw EngineException("can't initialize DirectX stuff");
     }
 }
-#if 0
-cvector<IDXGIAdapter*> EnumerateAdapters(void)
-{
-    IDXGIAdapter* pAdapter;
-    cvector<IDXGIAdapter*> vAdapters;
-    IDXGIFactory* pFactory = NULL;
-
-    // Create a DXGIFactory object.
-    HRESULT hr = CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&pFactory);
-
-    if (FAILED(hr))
-    {
-        PrintHRESULT(hr);
-        return vAdapters;
-    }
-
-    for (UINT i = 0;
-        pFactory->EnumAdapters(i, &pAdapter) != DXGI_ERROR_NOT_FOUND;
-        ++i)
-    {
-        vAdapters.push_back(pAdapter);
-    }
-
-    if (pFactory)
-    {
-        pFactory->Release();
-    }
-
-    return vAdapters;
-}
-
-IDXGIAdapter* FindAnySuitableAdapter(const cvector<IDXGIAdapter*>& adapters)
-{
-    int lastMemorySize = 0;
-    int index = -1;
-
-    for (int i = 0; i < adapters.size(); i++)
-    {
-        DXGI_ADAPTER_DESC desc;
-        adapters[i]->GetDesc(&desc);
-
-        if (desc.DedicatedVideoMemory > lastMemorySize)
-        {
-            lastMemorySize = (int)desc.DedicatedVideoMemory;
-            index = i;
-        }
-    }
-
-    if (index != -1 && index <= adapters.size())
-        return adapters[index];
-
-    return nullptr;
-}
-#endif
 
 //---------------------------------------------------------
 // Desc:  initialize DirectX11 device and device context;
@@ -363,15 +301,22 @@ void D3DClass::InitDevice()
     createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
+    // enumerate and select a video adapter
     cvector<IDXGIAdapter*> adapters;
     AdapterReader::EnumerateAdapters(adapters);
-
     IDXGIAdapter* pAdapter = AdapterReader::FindAnySuitableAdapter(adapters);
 
-#if 0
-    cvector<IDXGIAdapter*> adapters = EnumerateAdapters();
-    IDXGIAdapter* pAdapter = FindAnySuitableAdapter(adapters);
-#endif
+    // get description of chosen adapter
+    ZeroMemory(&adapterDesc_, sizeof(adapterDesc_));
+    pAdapter->GetDesc(&adapterDesc_);
+
+    // print a name of the chosen adapter
+    char desc[128];
+    memset(desc, 0, sizeof(desc));
+    StrHelper::ToStr(adapterDesc_.Description, desc);
+
+    LogMsg("%sChosenAdapter: %s%s\n", YELLOW, desc, RESET);
+    
 
     D3D_FEATURE_LEVEL featureLevels[] =
     {
@@ -386,20 +331,7 @@ void D3DClass::InitDevice()
     D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_9_1;
     UINT          numFeatureLevels = ARRAYSIZE(featureLevels);
 
-#if 0
-    HRESULT hr = D3D11CreateDevice(
-        pAdapter,
-        D3D_DRIVER_TYPE_UNKNOWN,
-        (HMODULE)0,                        // So
-        0,
-        FeatureLevels,
-        numFeatureLevels,
-        D3D11_SDK_VERSION,
-        &pDevice_,
-        &featureLevel,
-        &pContext_);
-#endif
-
+#if 1
     HRESULT hr = D3D11CreateDevice(
         pAdapter,                         // adapter (null for default)
         D3D_DRIVER_TYPE_UNKNOWN,          // driver type
@@ -411,85 +343,26 @@ void D3DClass::InitDevice()
         &pDevice_,                        // pointer to the device
         &featureLevel,              // pointer to the actual feature level created
         &pContext_);                      // pointer to the immediate context
+#else
+
+    HRESULT hr = D3D11CreateDevice(
+        nullptr,                          // adapter (null for default)
+        D3D_DRIVER_TYPE_HARDWARE,         // driver type
+        (HMODULE)0,                       // software rasterizer (0 for hardware)
+        createDeviceFlags,                                // flags
+        featureLevels,                    // arr of feature levels to try
+        numFeatureLevels,                 // number of feature levels in the arr
+        D3D11_SDK_VERSION,                // SDK version
+        &pDevice_,                        // pointer to the device
+        &featureLevel,                    // pointer to the actual feature level created
+        &pContext_);                      // pointer to the immediate context
+
+#endif
 
     // clear
     for (int i = 0; i < adapters.size(); i++)
         adapters[i]->Release();
 
-
-
-
-
-
-
-
-#if 0
-    D3D_FEATURE_LEVEL actualFeatureLevel;
-    UINT createDeviceFlags = 0;
-
-#if defined(DEBUG) || defined(_DEBUG)
-    createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
-#endif
-
-    const D3D_FEATURE_LEVEL featureLevels[] = {
-        D3D_FEATURE_LEVEL_11_1,
-        D3D_FEATURE_LEVEL_11_0,
-        D3D_FEATURE_LEVEL_10_1,
-        D3D_FEATURE_LEVEL_10_0,
-        D3D_FEATURE_LEVEL_9_3,
-        D3D_FEATURE_LEVEL_9_2,
-        D3D_FEATURE_LEVEL_9_1
-    };
-
-    const D3D_DRIVER_TYPE devTypeArray[] =
-    {
-        D3D_DRIVER_TYPE_HARDWARE,
-        D3D_DRIVER_TYPE_WARP,
-        D3D_DRIVER_TYPE_REFERENCE
-    };
-
-    const UINT numFeatureLevels  = ARRAYSIZE(featureLevels);
-    const UINT devTypeArrayCount = ARRAYSIZE(devTypeArray);
-
-
-    IDXGIAdapter* pAdapter = adaptersReader_.GetDXGIAdapterByIdx(displayAdapterIndex_);
-
-    if (!pAdapter)
-    {
-        LogFatal(LOG, "invalid adapter by index %zu", displayAdapterIndex_);
-    }
-
-
-    D3D_FEATURE_LEVEL  FeatureLevelsRequested = D3D_FEATURE_LEVEL_11_0;
-    UINT               numLevelsRequested = 1;
-    D3D_FEATURE_LEVEL  FeatureLevelsSupported;
-
-    HRESULT hr = D3D11CreateDevice(
-        NULL,
-        D3D_DRIVER_TYPE_HARDWARE,
-        NULL,
-        0,
-        &FeatureLevelsRequested,
-        1,
-        D3D11_SDK_VERSION,
-        &pDevice_,
-        &FeatureLevelsSupported,
-        &pContext_);
-
-#if 0
-    HRESULT hr = D3D11CreateDevice(
-        nullptr,                          // adapter (null for default)
-        D3D_DRIVER_TYPE_HARDWARE,         // driver type
-        nullptr,                          // software rasterizer (nullptr for hardware)
-        createDeviceFlags,                // flags
-        featureLevels,                    // arr of feature levels to try
-        numFeatureLevels,                 // number of feature levels in the arr
-        D3D11_SDK_VERSION,                // SDK version
-        &pDevice_,                        // pointer to the device
-        &actualFeatureLevel,              // pointer to the actual feature level created
-        &pContext_);                      // pointer to the immediate context
-#endif
-#endif
     if (FAILED(hr))
     {
         PrintHRESULT(hr);
@@ -529,8 +402,6 @@ bool D3DClass::ResizeSwapChain(HWND hwnd, const UINT width, const UINT height)
         if (pSwapChain_ == nullptr)
             return true;
 
-        HRESULT hr = S_OK;
-        ID3D11DeviceContext* pContext = GetDeviceContext();
 
         printf("resize swap chain: %d x %d\n", (int)width, (int)height);
 
@@ -546,17 +417,17 @@ bool D3DClass::ResizeSwapChain(HWND hwnd, const UINT width, const UINT height)
 
         // 1. Clear render targets from device context
         //    crear the previous window size specific context
-        pContext->OMSetRenderTargets(0, 0, 0);
+        pContext_->OMSetRenderTargets(0, 0, 0);
 
         // 2. Release rendering target and all the related stuff
         ReleaseTargets();
 
-        pContext->Flush();
+        pContext_->Flush();
 
         // 3. Resize buffer:
         //    Preserve the existing buffer count and format.
         //    Automatically choose the width and height to match the client rect for HWNDs.
-        hr = pSwapChain_->ResizeBuffers(
+        HRESULT hr = pSwapChain_->ResizeBuffers(
             0, 0, 0,
             DXGI_FORMAT_UNKNOWN,
             DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH);

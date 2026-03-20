@@ -367,6 +367,7 @@ void CGraphics::Update(const float deltaTime, const float gameTime)
     // update visibility of grass patches
     g_GrassMgr.Update(&camParams, &worldFrustum);
 
+
     // update clouds positions
     skyPlane.Update(deltaTime);
 
@@ -1424,10 +1425,15 @@ void CGraphics::RenderGrass()
     const GrassField& field = g_GrassMgr.GetGrassField(0);
 
     // render each cell
-    for (index i = 0; i < field.cells.size(); ++i)
+
+    const cvector<VisibleGrassCell>& visCells = g_GrassMgr.GetVisibleCells();
+
+    for (index i = 0; i < visCells.size(); ++i)
     {
-        const VertexBuffer<VertexGrass>& vb = field.cells[i].vb;
-        const IndexBuffer<UINT>&         ib = field.cells[i].ib;
+        uint16 cellIdx = visCells[i].cellIdx;
+
+        const VertexBuffer<VertexGrass>& vb = field.cells[cellIdx].vb;
+        const IndexBuffer<UINT>&         ib = field.cells[cellIdx].ib;
 
         pRender_->BindVB(vb.GetAddrOf(), vb.GetStride(), 0);
         pRender_->BindIB(ib.Get(), DXGI_FORMAT_R32_UINT);

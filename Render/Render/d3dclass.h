@@ -200,6 +200,9 @@ public:
     bool enable4xMsaa_          = false;   // use 4X MSAA?
     UINT m4xMsaaQuality_        = 0;       // 4X MSAA quality level
     UINT displayAdapterIndex_   = 0;       // set adapter idx (if there is any discrete graphics adapter we use this discrete adapter as primary)
+
+    
+    DXGI_ADAPTER_DESC adapterDesc_;       // description of the chosen video adapter
 };
 
 

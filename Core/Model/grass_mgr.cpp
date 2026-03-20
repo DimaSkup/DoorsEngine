@@ -507,10 +507,6 @@ void InitBuffers(GrassField& field)
 //---------------------------------------------------------
 void GrassMgr::Update(const CameraParams* pCamParams, Frustum* pWorldFrustum)
 {
-
-#if 0
-    sizeof(GrassField);
-
     assert(pCamParams);
     assert(pWorldFrustum);
 
@@ -521,27 +517,34 @@ void GrassMgr::Update(const CameraParams* pCamParams, Frustum* pWorldFrustum)
     const float grassRange = grassRange_;
     const Vec3 camPos = { cam.posX, cam.posY, cam.posZ };
 
+    visCells_.clear();
 
-    for (uint32 idx = 0; idx < (uint32)patches_.size(); ++idx)
+    const GrassField& field = grassFields_[0];
+
+    for (uint16 i = 0; i < (uint16)field.cells.size(); ++i)
     {
         // check if the patch is in the grass visibility range
-        Sphere& sph = boundSpheres_[idx];
-        const float distToPatchCenter = Vec3Length(camPos - sph.center) - sph.radius;
+        const Rect3d& worldBox = field.cellsWorldBoxes[i];
 
-        if (distToPatchCenter > grassRange)
+        const Vec3 boxCenter = { worldBox.MidX(), worldBox.MidY(), worldBox.MidZ() };
+
+        const float distToCenter = Vec3Length(camPos - worldBox.MidPoint()) - Vec3Length(worldBox.Extents());
+
+        // if cell is out of visibility range we don't render it
+        if (distToCenter > grassRange)
             continue;
 
         // check if patch is in view frustum
-        if (!pWorldFrustum->TestSphere(boundSpheres_[idx]))
+        if (!pWorldFrustum->TestRect(worldBox))
             continue;
 
-        visPatchesIdxs_[numVisPatches] = idx;
+        VisibleGrassCell visData;
+        visData.fieldIdx = 0;
+        visData.cellIdx = i;
+
+        visCells_.push_back(visData);
         ++numVisPatches;
     }
-
-    visPatchesIdxs_.resize(numVisPatches);
-
-#endif
 }
 #if 0
 //---------------------------------------------------------
