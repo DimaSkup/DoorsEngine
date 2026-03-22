@@ -63,6 +63,8 @@ public:
         const size numModels,
         cvector<const Model*>& outModels);
 
+    bool                            HasModelByName  (const char* name);
+
     Model&                          GetModelById    (const ModelID id);
     Model&                          GetModelByName  (const char* name);
     ModelID                         GetModelIdByName(const char* name);

@@ -15,6 +15,7 @@
 #include <Model/model_creator.h>
 #include <Model/model_exporter.h>
 #include <Model/animation_mgr.h>
+#include <Model/grass_mgr.h>
 #include <ImgConverter.h>
 
 #pragma warning (disable : 4996)
@@ -2110,7 +2111,13 @@ bool FacadeEngineToUI::SetGrassDistFullSize(const float dist)
 
 bool FacadeEngineToUI::SetGrassDistVisible(const float dist)
 {
-    return pRender_->SetGrassDistVisible(dist);
+    if (pRender_->SetGrassDistVisible(dist))
+    {
+        g_GrassMgr.SetGrassVisibilityRange(dist);
+        return true;
+    }
+
+    return false;
 }
 
 // =============================================================================

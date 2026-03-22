@@ -79,7 +79,9 @@ public:
     void         shrink_to_fit();
     void         purge();
     void         erase(const vsize index);
-    inline void  assign(std::initializer_list<T> il) { assign(il.begin(), il.end()); };
+    void         assign(std::initializer_list<T> il);
+
+    void         fill_zeros();
 
     // get index(or indices) for sorted insertion / insertion
     index get_insert_idx(const ptrdiff_t value) const;
@@ -395,6 +397,23 @@ inline void cvector<T>::erase(const index idx)
         data_[i] = std::move(data_[i + 1]);
 
     size_--;
+}
+
+// ----------------------------------------------------
+
+template <typename T>
+inline void cvector<T>::assign(std::initializer_list<T> il)
+{
+    assign(il.begin(), il.end());
+}
+
+// ----------------------------------------------------
+// fill data array with zeros
+// ----------------------------------------------------
+template <typename T>
+inline void cvector<T>::fill_zeros()
+{
+    memset(data_, 0, sizeof(T) * size_);
 }
 
 // ----------------------------------------------------

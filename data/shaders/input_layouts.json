@@ -1,4 +1,23 @@
 {
+	"_comment": [
+		{
+			"float_point_types": [
+				["f1 - vec1 - DXGI_FORMAT_R32_FLOAT"],
+				["f2 - vec2 - DXGI_FORMAT_R32G32_FLOAT"],
+				["f3 - vec3 - DXGI_FORMAT_R32G32B32_FLOAT"],
+				["f4 - vec4 - DXGI_FORMAT_R32G32B32A32_FLOAT"],
+				["f16 - 16 floats - for matrix"]
+			]
+		},
+		{
+			"unsigned_types": [
+				["r32     - for DXGI_FORMAT_R32_UINT"],
+				["un32    - for DXGI_FORMAT_R8G8B8A8_UNORM"],
+				["u32     - for DXGI_FORMAT_R8G8B8A8_UINT"],
+				["rgba32u - for DXGI_FORMAT_R32G32B32A32_UINT"]
+			]
+		}
+	],
 	"layouts": [
 		{
 			"name": "None"
@@ -15,6 +34,21 @@
 			"per_instance": [
 				[ "WORLD",               "f16" ],
 				[ "MATERIAL",            "f16" ]
+			]
+		},
+		
+		{
+			"name": "GrassInstance",
+			"per_vertex": [
+				[ "POSITION",            "f3" ],
+				[ "TEXCOORD",            "f2" ],
+				[ "NORMAL",              "f3" ],
+				[ "TANGENT",             "f4" ]
+			],
+			"per_instance": [
+				[ "WORLD_POS",    "f3" ],
+				[ "TEX_COLUMN",  "r32"],
+				[ "TEX_ROW",     "r32"]
 			]
 		},
 		

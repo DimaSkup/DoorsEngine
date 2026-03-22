@@ -130,6 +130,10 @@ public:
     int             GetNumIndices()  const;
     int             GetNumSubsets()  const;
 
+    const VertexBuffer<Vertex3D>& GetVB() const;
+    const IndexBuffer<UINT>&      GetIB() const;
+
+
     D3D11_PRIMITIVE_TOPOLOGY GetPrimTopology() const;
 
     MeshGeometry& GetMeshes();
@@ -224,6 +228,20 @@ inline const Subset*    Model::GetSubsets()        const { return meshes_.subset
 inline bool             Model::HasLods()           const { return numLods_ != 0; }
 inline uint8            Model::GetNumLods()        const { return numLods_; }
 
+
+
+//---------------------------------------------------------
+// inline functions
+//---------------------------------------------------------
+inline const VertexBuffer<Vertex3D>& Model::GetVB(void) const
+{
+    return meshes_.vb_;
+}
+
+inline const IndexBuffer<UINT>& Model::GetIB(void) const
+{
+    return meshes_.ib_;
+}
 
 inline MeshGeometry& Model::GetMeshes()
 {

@@ -20,19 +20,21 @@
 #include <Mesh/vertex_buffer.h>
 #include <Mesh/index_buffer.h>
 #include <geometry/rect3d.h>
-#include <geometry/sphere.h>
 
-
-// forward declarations
+// forward declarations for global scope (pointer use only)
 class Frustum;
-struct CameraParams;
-struct GrassChannel;
-struct GrassCell;
 
 
 namespace Core
 {
 
+// forward declarations for Core namespace (pointer use only)
+class Model;
+
+
+//---------------------------------------------------------
+// params for initialization of a new grass field
+//---------------------------------------------------------
 struct GrassFieldInitParams
 {
     char name[MAX_LEN_MODEL_NAME];            // name of grass field
@@ -56,48 +58,34 @@ struct GrassFieldInitParams
 
     float grassMinHeight;
     float grassMaxHeight;
+
+    float channelProbability[4];
 };
 
 //---------------------------------------------------------
+// data of a single grass instance (is used for instancing)
 //---------------------------------------------------------
 struct GrassInstance
 {
     Vec3 pos;
-    Vec2 tex0;
-    Vec2 tex1;
-    float rotY;    // rotation around Y-axis
-    float height; 
+    int texColumn;
+    int texRow;
 };
 
 //---------------------------------------------------------
-// each grass cell of grass field has its own VB/IB and set of grass vertices
+// grass cell is an element of grass field (we usually have multiple cells per field)
 //---------------------------------------------------------
-class GrassCell
+struct GrassCell
 {
-public:
-    cvector<GrassInstance>    grassInstances;
+    cvector<GrassInstance> grassInstances;     // CPU-side grass instances
 
-    cvector<VertexGrass>      vertices;
-    cvector<UINT>             indices;
-
-    VertexBuffer<VertexGrass> vb;
-    IndexBuffer<UINT>         ib;
+    // channels metadata (NOTE: not required to use all 4)
+    uint32 channelStart[4];              // index where instances begins for particular channel
+    uint32 channelInstanceCount[4];      // how many instances related to particular channel
 };
 
 //---------------------------------------------------------
-// each grass channel (a column from diffuse texture) of a grass field
-// has its own set of grass cells
-//---------------------------------------------------------
-struct GrassChannel
-{
-    ModelID modelId;                 // what geometry to use as a grass instance for this particular channel
-};
-
-
-//---------------------------------------------------------
-// a signle field of grass, each fields can have up to 16 different
-// types of grass instances
-// so if we want more we can create several grass fields
+// a signle field of grass
 //---------------------------------------------------------
 struct GrassField
 {
@@ -108,50 +96,69 @@ struct GrassField
 
     Rect3d      worldBox;                   // field position and size in 3d space
 
-    uint8 cellsByX;                         // how many times we divide the field along X and Z axis
-    uint8 cellsByZ;
-
-    uint8 texSlots;                         // how many texture cells (columns) we have in a row of texture atlas
-    uint8 texRows;                          // how many rows we have in a texture atlas
-
-    uint8 numChannels;                      // the same as number of texture slots
-
-    cvector<GrassCell> cells;               // grass sectors of this field
+  
+    cvector<GrassCell> cells;               // grass sectors
     cvector<Rect3d>    cellsWorldBoxes;     // world AABB of each cell
-    GrassChannel       channels[4];         // for each field we may have up to 4 grass channels
+    ModelID            grassModelId[4];
 
-    float grassMinHeight;
-    float grassMaxHeight;
+    
+    float              grassMinHeight;
+    float              grassMaxHeight;
+
+    uint8              cellsByX;            // number of cells by X-axis
+    uint8              cellsByZ;            // number of cells by Z-axis
+
+    uint8              texSlots;            // how many texture cells (columns) we have in a row of texture atlas
+    uint8              texRows;             // how many rows we have in a texture atlas
+
+    uint8              numChannels;         // the same as number of texture slots
+
+    uint32             numInstPerChannel[4];
+    bool               bGeneratedModel[4];  // is model for channel (by index 0-3) generated?
+
+    float              channelProbability[4];
+
+
+    ID3D11Buffer* pInstancedBuf = nullptr;   // GPU-side buffer for all the visible grass instances
+    uint32 instancesBufCounts[4];               // number of instances per channel (in the instanced buffer)
 };
 
 //---------------------------------------------------------
-
+// data about visible grass cells (index of its field and index of cell by itself)
+//---------------------------------------------------------
 struct VisibleGrassCell
 {
-    uint16 fieldIdx = 0;      // this cell is related to a field by index
-    uint16 cellIdx  = 0;      // cell's index
+    uint16 fieldIdx = 0;
+    uint16 cellIdx  = 0;
 };
 
 //---------------------------------------------------------
-
+// class name:  GrassMgr
+//---------------------------------------------------------
 class GrassMgr
 {
 public:
     GrassMgr() {}
 
-    void Update(const CameraParams* pCamParams, Frustum* pFrustum);
+    void Update(const Vec3 cameraPos, const Frustum* pFrustum);
 
     bool AddGrassField(const GrassFieldInitParams& params);
 
-    const GrassField& GetGrassField(const uint index) const;
-    const cvector<VisibleGrassCell>& GetVisibleCells() const;
+    void SetGrassVisibilityRange(const float range);
+
+    const GrassField&                GetGrassField(const uint index) const;
+    const cvector<VisibleGrassCell>& GetVisibleCells()               const;
+
+private:
+    void CalcVisibleGrass(const Vec3 camPos, const Frustum* pWorldFrustum);
+    void UpdateGrassInstancedBuf();
 
 private:
     cvector<GrassField> grassFields_;
 
     cvector<VisibleGrassCell> visCells_;
 
-    float grassRange_ = 0;
+    float grassVisRange_ = 0;
 };
 
 //---------------------------------------------------------
@@ -175,5 +182,6 @@ inline const cvector<VisibleGrassCell>& GrassMgr::GetVisibleCells() const
 {
     return visCells_;
 }
+
 
 } // namespace

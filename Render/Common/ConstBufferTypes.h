@@ -59,6 +59,9 @@ namespace ConstBufType
 
         DirectX::XMFLOAT3  skyColorApex = { 1,1,1 };            // top color
 
+        float distGrassFullSize = 0;    // range from camera where grass is full sized
+        float distGrassVisible = 40;    // grass visibility range
+
         int                fogEnabled = true;                   // turn on/off the fog effect     
     };
 
@@ -215,16 +218,6 @@ namespace ConstBufType
         DirectX::XMFLOAT3 cameraPosW;
         float time = 0;
     };
-
-    struct GrassParams
-    {
-        float distGrassFullSize = 0;    // distance around camera where grass planes are in full size
-        float distGrassVisible  = 40;   // after this distance we don't see any grass planes
-        float pad0 = NAN;
-        float pad1 = NAN;
-    };
-
-
 };
 
 

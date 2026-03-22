@@ -365,7 +365,8 @@ void CGraphics::Update(const float deltaTime, const float gameTime)
     g_ModelMgr.GetTerrain().Update(camParams, worldFrustum, distFogged);
 
     // update visibility of grass patches
-    g_GrassMgr.Update(&camParams, &worldFrustum);
+    Vec3 camPos = { camParams.posX, camParams.posY, camParams.posZ };
+    g_GrassMgr.Update(camPos, &worldFrustum);
 
 
     // update clouds positions
@@ -1411,77 +1412,59 @@ void CGraphics::RenderDecals()
 //---------------------------------------------------------
 void CGraphics::RenderGrass()
 {
-    //assert(0 && "FIXME");
-    //pRender_->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 
-    //ResetBeforeRendering();
     pRender_->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    // bind material
+    ModelID grassModelId              = INVALID_MODEL_ID;
+    Model*  pGrass                    = nullptr;
+    UINT    startInstanceLocation     = 0;
+
+    const VertexBuffer<Vertex3D>* pVB = nullptr;
+    const IndexBuffer<UINT>*      pIB = nullptr;
+    const GrassField&           field = g_GrassMgr.GetGrassField(0);
+
+
+
+    // bind one shader for the whole field
+    pRender_->BindShaderByName("GrassShaderInstance");
+
+    // bind material for the whole field
     const Material& mat = g_MaterialMgr.GetMatByName("grass_0");
     BindMaterial(mat);
-    pRender_->UpdateCbMaterialColors(mat.ambient, mat.diffuse, mat.specular, mat.reflect);
+    //pRender_->UpdateCbMaterialColors(mat.ambient, mat.diffuse, mat.specular, mat.reflect);
 
-    const GrassField& field = g_GrassMgr.GetGrassField(0);
 
-    // render each cell
-
-    const cvector<VisibleGrassCell>& visCells = g_GrassMgr.GetVisibleCells();
-
-    for (index i = 0; i < visCells.size(); ++i)
+    // render each channel of the grass field
+    for (int ch = 0; ch < field.numChannels; ++ch)
     {
-        uint16 cellIdx = visCells[i].cellIdx;
+        // if we need to change geometry (grass model) for this channel
+        if (grassModelId != field.grassModelId[ch])
+        {
+            grassModelId = field.grassModelId[ch];
+            pGrass       = &g_ModelMgr.GetModelById(grassModelId);
 
-        const VertexBuffer<VertexGrass>& vb = field.cells[cellIdx].vb;
-        const IndexBuffer<UINT>&         ib = field.cells[cellIdx].ib;
+            pVB = &pGrass->GetVB();
+            pIB = &pGrass->GetIB();
 
-        pRender_->BindVB(vb.GetAddrOf(), vb.GetStride(), 0);
-        pRender_->BindIB(ib.Get(), DXGI_FORMAT_R32_UINT);
+            // bind VB/IB and instanced buf
+            ID3D11Buffer* const vbs[2] = { pVB->Get(), field.pInstancedBuf };
+            const UINT      strides[2] = { pVB->GetStride(), sizeof(GrassInstance) };
+            const UINT      offsets[2] = { 0, 0 };
 
-        pRender_->BindShaderByName("GrassShader");
-        pRender_->DrawIndexed(ib.GetIndexCount(), 0, 0);
+            pRender_->BindVBs(0, 2, vbs, strides, offsets);
+            pRender_->BindIB(pIB->Get(), DXGI_FORMAT_R32_UINT);
+        }
+
+        pRender_->DrawIndexedInstanced(
+            pIB->GetIndexCount(),
+            field.instancesBufCounts[ch],        // instances count
+            0, 0,                               // index and ertex start
+            startInstanceLocation);             // where start getting instances data
+
+        startInstanceLocation += field.instancesBufCounts[ch];
     }
 
 #if 0
-    // bind material
-    const Material& mat = g_MaterialMgr.GetMatByName("grass_1");
-    BindMaterial(mat);
-    pRender_->UpdateCbMaterialColors(mat.ambient, mat.diffuse, mat.specular, mat.reflect);
-
-    const GrassField& field = g_GrassMgr.GetGrassField(1);
-
-    // render each cell
-    for (index i = 0; i < field.cells.size(); ++i)
-    {
-        const VertexBuffer<VertexGrass>& vb = field.cells[i].vb;
-        const IndexBuffer<UINT>& ib = field.cells[i].ib;
-
-        pRender_->BindVB(vb.GetAddrOf(), vb.GetStride(), 0);
-        pRender_->BindIB(ib.Get(), DXGI_FORMAT_R32_UINT);
-
-        pRender_->BindShaderByName("GrassShader");
-        pRender_->DrawIndexed(ib.GetIndexCount(), 0, 0);
-    }
-#endif
-
-
-
-
-
-
-#if 0
-    assert(pRender_);
-    Render::CRender* pRender = pRender_;
-
-
-    // bind shader and material
-    const Material& mat = g_MaterialMgr.GetMatByName("grass_0");
-
-    pRender->BindShaderById(mat.shaderId);
-    pRender->UpdateCbMaterialColors(mat.ambient, mat.diffuse, mat.specular, mat.reflect);
-    BindMaterial(mat);
-
-
     // render each visible grass patch
     int numGrassVertices = 0;
     int numDrawCalls = 0;

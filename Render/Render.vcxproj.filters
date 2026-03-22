@@ -210,6 +210,8 @@
     <FxCompile Include="hlsl\shader_art_PS.hlsl" />
     <FxCompile Include="hlsl\tree_lod_GS.hlsl" />
     <FxCompile Include="hlsl\tree_lod2_GS.hlsl" />
+    <FxCompile Include="hlsl\grass_instance_VS.hlsl" />
+    <FxCompile Include="hlsl\grass_instance_PS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="hlsl\LightHelper.hlsli" />

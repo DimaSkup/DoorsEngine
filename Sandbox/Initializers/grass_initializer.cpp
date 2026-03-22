@@ -94,7 +94,7 @@ bool GrassInitializer::Init(const char* filepath, ECS::EntityMgr& enttMgr)
             assert(params.grassDistFullSize >= 0);
             assert(params.grassDistVisible >= params.grassDistFullSize);
 
-            //Core::g_GrassMgr.SetGrassRange(params.grassDistVisible);
+            Core::g_GrassMgr.SetGrassVisibilityRange((float)params.grassDistVisible);
         }
         else if (strncmp(buf, "grass_field", 11) == 0)
         {
@@ -293,57 +293,5 @@ void ReadGrassFieldParams(
     LogMsg("\tgrass count:   %d", outData.grassCount);
     LogMsg("\tdensity mask:  %s", outData.densityMask);
 }
-
-
-
-//---------------------------------------------------------
-//---------------------------------------------------------
-void CreateGrassField(const Core::GrassField& data)
-{
-#if 0
-    LogDbg(LOG, "generage grass instances");
-
-    assert(data.fieldSizeX > 0);
-    assert(data.fieldSizeX == data.fieldSizeY);
-    assert(data.stepCellDivide > 0);
-    assert(data.textureSlots > 0 && data.textureSlots <= 4);
-    assert(data.textureRows > 0 && data.textureRows <= 4);
-    assert(data.grassCount >= 0);
-
-    bool bDensityMap = false;
-
-    // each grass instance in the field will have height relatively to terrain
-    const Core::Terrain& terrain = Core::g_ModelMgr.GetTerrain();
-    const int iTerrainSize = terrain.GetTerrainLength() - 1;
-    const int fTerrainSize = (float)iTerrainSize;
-
-    assert()
-
-    cvector<Core::VertexGrass> grassVertices(data.grassCount);
-
-    // generate random positions
-    for (Core::VertexGrass& grass : grassVertices)
-    {
-        grass.pos.x = RandF(0, fTerrainSize);
-        grass.pos.z = RandF(0, fTerrainSize);
-        grass.pos.y = terrain.GetScaledInterpolatedHeightAtPoint(grass.pos.x, grass.pos.z);
-
-        grass.size.x = RandF(0.75f, 1.0f);
-        grass.size.y = grass.size.x;
-
-        // regenerate position/height if we got at area with no/low nature density
-        while (terrain.GetNatureDensityAtPoint(grass.pos.x, grass.pos.z) < 1)
-        {
-            grass.pos.x = RandF(0, fTerrainSize);
-            grass.pos.z = RandF(0, fTerrainSize);
-            grass.pos.y = terrain.GetScaledInterpolatedHeightAtPoint(grass.pos.x, grass.pos.z);
-        }
-    }
-
-    Core::g_GrassMgr.Init(terrain.GetPatchSize(), terrain.GetNumPatchesPerSide());
-    Core::g_GrassMgr.AddGrassVertices(grassVertices);
-#endif
-}
-
 
 } // namespace

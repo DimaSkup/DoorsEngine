@@ -25,6 +25,9 @@ cbuffer cbWeather : register(b12)
     float  gFogRange;            // how far from camera the object is fully fogged?
 
     float3 gSkyColorApex;        // top color
+	
+	float gDistGrassFullSize;        // range from camera where grass is full sized
+    float gDistGrassVisible;         // grass visibility range
 
     int    gFogEnabled;          // turn on/off the fog effect
 }

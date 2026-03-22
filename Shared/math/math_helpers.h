@@ -35,6 +35,10 @@
 
 //-----------------------------------------------------
 
+float FastDistance3D(const float x, const float y, const float z);
+
+//-----------------------------------------------------
+
 // only for integers
 inline int FastClamp(int x, int lo, int hi)
 {

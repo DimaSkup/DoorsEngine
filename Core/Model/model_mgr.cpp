@@ -349,6 +349,27 @@ ModelID ModelMgr::GetModelIdByName(const char* name)
 }
 
 //---------------------------------------------------------
+// Desc:  check if we have any model by input name
+//---------------------------------------------------------
+bool ModelMgr::HasModelByName(const char* name)
+{
+    if (StrHelper::IsEmpty(name))
+    {
+        LogErr(LOG, "empty name");
+        return false;
+    }
+
+    bool bHasModel = false;
+
+    for (index i = 0; i < names_.size(); ++i)
+    {
+        bHasModel |= (strcmp(names_[i].name, name) == 0);
+    }
+
+    return bHasModel;
+}
+
+//---------------------------------------------------------
 // Desc:   fill in the input array with names of the assets from the storage
 //---------------------------------------------------------
 void ModelMgr::GetModelsNamesList(cvector<ModelName>& names)

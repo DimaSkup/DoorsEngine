@@ -10,15 +10,6 @@
 
 
 //--------------------------------
-// CONSTANT BUFFERS
-//--------------------------------
-cbuffer cbGrass: register(b0)
-{
-    float gDistGrassFullSize;        // from camera and to this distance grass planes are in full size
-    float gDistGrassVisible;         // after this distance we don't see any grass planes
-}
-
-//--------------------------------
 // TYPEDEFS
 //--------------------------------
 struct GS_IN

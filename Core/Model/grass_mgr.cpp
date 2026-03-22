@@ -16,13 +16,15 @@
 #include <CoreCommon/pch.h>
 #include "grass_mgr.h"
 #include <Render/d3dclass.h>
+#include <Render/CRender.h>
 #include <geometry/frustum.h>
-#include <camera_params.h>
-#include <set>
+
+#include <Timers/game_timer.h>
 
 #include <Mesh/material_mgr.h>
 #include <Model/model_mgr.h>
-#include <Model/geometry_generator.h>
+#include <Model/model_creator.h>
+
 
 
 namespace Core
@@ -41,15 +43,6 @@ void CheckInitParams(const GrassFieldInitParams& params);
 void CalcFieldXZBoundings(GrassField& field, const GrassFieldInitParams& params);
 void CreateCells(GrassField& field, const GrassFieldInitParams& params);
 void ÑalcFieldYBoundings(GrassField& field);
-
-void PushGrassInstancesInCell(
-    GrassCell& cell,
-    const int numInstances,
-    int& instanceIdx,
-    Model& grassModel,
-    const int channel,
-    const int numChannels,
-    const int numTexRows);
 
 void InitBuffers(GrassField& field);
 
@@ -84,23 +77,14 @@ bool GrassMgr::AddGrassField(const GrassFieldInitParams& params)
 
     field.numChannels = field.texSlots;
 
-    // get model id for each channel of grass field
-    for (uint8 i = 0; i < field.numChannels; i++)
-    {
-        ModelID&    modelId   = field.channels[i].modelId;
-        const char* modelName = params.modelNames[i];
-
-        assert(!StrHelper::IsEmpty(modelName));
-
-        modelId = g_ModelMgr.GetModelIdByName(modelName);
-        if (modelId == INVALID_MODEL_ID)
-        {
-            LogErr(LOG, "no model (%s) to use for grass field (%s), channel (%d)", modelName, field.name, (int)i);
-        }
-    }
+    // TEMP: hardcoded probabilities
+    field.channelProbability[0] = 1.0f;
+    field.channelProbability[1] = 1.0f;
+    field.channelProbability[2] = 1.0f;
+    field.channelProbability[3] = 1.0f;
     
 
-    // get material
+    // get material for the whole field
     field.matId = g_MaterialMgr.GetMatIdByName(params.materialName);
     if (field.matId == INVALID_MATERIAL_ID)
     {
@@ -134,6 +118,11 @@ void CheckInitParams(const GrassFieldInitParams& params)
     assert(!StrHelper::IsEmpty(params.materialName));
     assert(!StrHelper::IsEmpty(params.densityMask));
 
+    assert(!StrHelper::IsEmpty(params.modelNames[0]));
+    assert(!StrHelper::IsEmpty(params.modelNames[1]));
+    assert(!StrHelper::IsEmpty(params.modelNames[2]));
+    assert(!StrHelper::IsEmpty(params.modelNames[3]));
+
     assert(strlen(params.name)        < MAX_LEN_MODEL_NAME);
     assert(strlen(params.densityMask) < sizeof(GrassField::densityMask));
 
@@ -163,6 +152,11 @@ void CheckInitParams(const GrassFieldInitParams& params)
 
     assert(params.grassMinHeight > 0);
     assert(params.grassMaxHeight > params.grassMinHeight);
+
+    assert(params.channelProbability[0] >= 0.0f);
+    assert(params.channelProbability[1] >= 0.0f);
+    assert(params.channelProbability[2] >= 0.0f);
+    assert(params.channelProbability[3] >= 0.0f);
 }
 
 
@@ -172,10 +166,10 @@ void CheckInitParams(const GrassFieldInitParams& params)
 void CalcFieldXZBoundings(GrassField& field, const GrassFieldInitParams& params)
 {
     // compute field's boundings in world
-    float minX = (params.centerX - params.sizeX / 2);
-    float minZ = (params.centerZ - params.sizeZ / 2);
-    float maxX = (params.centerX + params.sizeX / 2);
-    float maxZ = (params.centerZ + params.sizeZ / 2);
+    float minX = (float)(params.centerX - params.sizeX / 2);
+    float minZ = (float)(params.centerZ - params.sizeZ / 2);
+    float maxX = (float)(params.centerX + params.sizeX / 2);
+    float maxZ = (float)(params.centerZ + params.sizeZ / 2);
 
     const Rect3d& terrainWorldBox = g_ModelMgr.GetTerrain().GetAABB();
     const Vec3    terrainMinP     = terrainWorldBox.MinPoint();
@@ -219,16 +213,115 @@ void CalcFieldXZBoundings(GrassField& field, const GrassFieldInitParams& params)
 }
 
 
+//---------------------------------------------------------
+// Desc:  if any channel of grass field requires generated grass model
+//        we will generate it
+//---------------------------------------------------------
+void GenGrassModels(const GrassField& field, const GrassFieldInitParams& params)
+{
+    bool bNeedGenGrassModel = false;
 
+    // check if we need to generate a grass model at all
+    for (int i = 0; i < field.numChannels; ++i)
+    {
+        bNeedGenGrassModel |= (strcmp(params.modelNames[i], "generated") == 0);
+    }
+
+    if (!bNeedGenGrassModel)
+        return;
+
+
+    bool bHasGenGrassModel = g_ModelMgr.HasModelByName("generated_grass");
+
+    if (bNeedGenGrassModel && !bHasGenGrassModel)
+    {
+        const float planeW = 1.0f;
+        const float planeH = 1.0f;
+
+        ModelsCreator creator;
+        creator.CreateGrassModel(planeW, planeH);
+    }
+}
+
+//---------------------------------------------------------
+// Desc:  setup model for each channel of grass field according to input params
+//---------------------------------------------------------
+void SetupModelsForGrassChannels(GrassField& field, const GrassFieldInitParams& params)
+{
+    for (int i = 0; i < field.numChannels; ++i)
+    {
+        // if we want to use generated grass geometry...
+        if (strcmp(params.modelNames[i], "generated") == 0)
+        {
+            field.grassModelId[i]    = g_ModelMgr.GetModelIdByName("generated_grass");
+            field.bGeneratedModel[i] = true;
+        }
+
+        // use some specific model...
+        else
+        {
+            field.grassModelId[i]    = g_ModelMgr.GetModelIdByName(params.modelNames[i]);
+            field.bGeneratedModel[i] = false;
+        }
+    }
+}
+
+//---------------------------------------------------------
+// Desc:  compute axis-aligned bounding box of each
+//        particular cell of input grass field
+//---------------------------------------------------------
+void CalcGrassCellsBoundings(GrassField& field)
+{
+    const int numCells = field.cellsByX * field.cellsByZ;
+
+    const float cellBoxSizeX = field.worldBox.SizeX() / (float)field.cellsByX;
+    const float cellBoxSizeZ = field.worldBox.SizeZ() / (float)field.cellsByZ;
+
+    // go through each cell and calc boundings...
+    for (int i = 0; i < numCells; ++i)
+    {
+        int cellRow = (i / field.cellsByZ);
+        int cellCol = (i % field.cellsByX);
+
+        const float minX = field.worldBox.x0 + (cellCol * cellBoxSizeX);
+        const float maxX = minX + cellBoxSizeX;
+
+        const float minZ = field.worldBox.z0 + (cellRow * cellBoxSizeZ);
+        const float maxZ = minZ + cellBoxSizeZ;
+
+        // NOTE: Y-boundaries we recalc later, it will be based on height
+        //       of lowest and highest position of grass instances (of this cell)
+        field.cellsWorldBoxes[i] = Rect3d(minX, maxX, 0, 200, minZ, maxZ);
+    }
+}
+
+//---------------------------------------------------------
+// calc instances count per each channel
+//---------------------------------------------------------
+void CalcNumInstancesPerChannel(GrassField& field)
+{
+    float channelsSumProbability = 0;
+  
+    for (int ch = 0; ch < field.numChannels; ++ch)
+        channelsSumProbability += field.channelProbability[ch];
+
+    for (int ch = 0; ch < field.numChannels; ++ch)
+    {
+        const float factor = field.channelProbability[ch] / channelsSumProbability;
+        field.numInstPerChannel[ch] = (uint32)(factor * (float)field.grassCount);
+    }
+}
 
 //---------------------------------------------------------
 //---------------------------------------------------------
-void CreateCells(GrassField& field, const GrassFieldInitParams& params)
+void GenerateGrassInstances(GrassField& field, cvector<GrassInstance>& outGrass)
 {
     const Terrain& terrain = g_ModelMgr.GetTerrain();
-
-
     Image densityMap;
+    Image* densityMaps[4]{ nullptr };
+
+
+    // load density maps for this field
     densityMap.LoadGrayscaleBMP(field.densityMask);
 
     if (!densityMap.IsLoaded())
@@ -237,233 +330,232 @@ void CreateCells(GrassField& field, const GrassFieldInitParams& params)
         return;
     }
 
+    // density map per channel
+    densityMaps[0] = &densityMap;
+    densityMaps[1] = &densityMap;
+    densityMaps[2] = &densityMap;
+    densityMaps[3] = &densityMap;
 
-    uint densityMapWidth = densityMap.GetWidth();
-    uint densityMapHeight = densityMap.GetHeight();
 
-    
-
-    // create cells and its boundings
-    int numCells = field.cellsByX * field.cellsByZ;
-    field.cells.resize(numCells);
-    field.cellsWorldBoxes.resize(numCells);
-  
-
-    // generate grass instances:
-    // place each grass instance in random position within the grass field
-    cvector<GrassInstance> grassItems(field.grassCount);
-
+    //
+    // calc random position for each instance
+    // (currently instances are grouped by channels)
+    //
     const float worldBoxInvDX = 1.0f / (field.worldBox.x1 - field.worldBox.x0);
     const float worldBoxInvDZ = 1.0f / (field.worldBox.z1 - field.worldBox.z0);
 
-    for (GrassInstance& grass : grassItems)
-    {
-        uint8 density = 0;
+    uint32 grassIdx = 0;
+    outGrass.resize(field.grassCount);
 
-        while (density < 1)
+    for (int ch = 0; ch < field.numChannels; ++ch)
+    {
+        // each channel has its own density map
+        const Image& currDensityMap   = *densityMaps[ch];
+        const uint   densityMapWidth  = currDensityMap.GetWidth();
+        const uint   densityMapHeight = currDensityMap.GetHeight();
+
+
+        for (uint i = 0; i < field.numInstPerChannel[ch]; ++i)
         {
-            grass.pos.x = RandF(field.worldBox.x0, field.worldBox.x1);
-            grass.pos.z = RandF(field.worldBox.z0, field.worldBox.z1);
+            Vec3 pos;
+            uint8 density = 0;
 
-            // scale grass position to image space
-            const float x = (grass.pos.x - field.worldBox.x0) * worldBoxInvDX;
-            const float y = (grass.pos.z - field.worldBox.z0) * worldBoxInvDZ;
-
-            const uint px = x * densityMapWidth;
-            const uint py = densityMapHeight - y * densityMapHeight;
-
-            density = densityMap.GetPixelGray(px, py);
-        }
-       
-        grass.pos.y = terrain.GetScaledInterpolatedHeightAtPoint(grass.pos.x, grass.pos.z);
-    }
-
-    // setup height for each grass instance
-    for (GrassInstance& grass : grassItems)
-    {
-        grass.height = RandF(field.grassMinHeight, field.grassMaxHeight);
-    }
-
-    // calc world boundings of each cell
-    const float cellBoxSizeX = field.worldBox.SizeX() / (float)field.cellsByX;
-    const float cellBoxSizeZ = field.worldBox.SizeZ() / (float)field.cellsByZ;
-
-    for (int i = 0; i < numCells; ++i)
-    {
-        int row = (i / field.cellsByZ);
-        int col = (i % field.cellsByX);
-
-        const float minX = field.worldBox.x0 + (col * cellBoxSizeX);
-        const float maxX = minX + cellBoxSizeX;
-
-        const float minZ = field.worldBox.z0 + (row * cellBoxSizeZ);
-        const float maxZ = minZ + cellBoxSizeZ;
-
-        // NOTE: Y-boundaries we calc later, it will be based on height
-        // of lowest and highest position of grass instances
-        field.cellsWorldBoxes[i] = Rect3d(minX, maxX, 0, terrain.GetAABB().y1 + 1, minZ, maxZ);
-    }
-
-
-    // group grass instances into its cells
-    for (int cellIdx = 0; const Rect3d& worldBox : field.cellsWorldBoxes)
-    {
-        GrassCell& cell = field.cells[cellIdx++];
-
-        // go through each grass instance
-        for (GrassInstance& grass : grassItems)
-        {
-            if (worldBox.IsPointInRect(grass.pos))
+            while (density < 1)
             {
-                cell.grassInstances.push_back(grass);
+                // random horizontal position
+                pos.x = RandF(field.worldBox.x0, field.worldBox.x1);
+                pos.z = RandF(field.worldBox.z0, field.worldBox.z1);
+
+                // calc pixel coord for density map
+                const float x = (pos.x - field.worldBox.x0) * worldBoxInvDX;
+                const float y = (pos.z - field.worldBox.z0) * worldBoxInvDZ;
+
+                const uint px = (uint)(x * densityMapWidth);
+                const uint py = densityMapHeight - (uint)(y * densityMapHeight);
+
+                density = currDensityMap.GetPixelGray(px, py);
+            }
+
+            // get instance height according to terrain
+            pos.y = terrain.GetScaledInterpolatedHeightAtPoint(pos.x, pos.z);
+
+            outGrass[grassIdx++].pos = pos;
+        }
+    }
+
+    //
+    // setup texture coords for each instance of each cell according to channel
+    //
+    grassIdx = 0;
+
+    for (int ch = 0; ch < field.numChannels; ++ch)
+    {
+        bool bGeneratedModel = field.bGeneratedModel[ch];
+        uint32 numInst = field.numInstPerChannel[ch];
+
+        // if a model for this channel is generated we need to setup
+        // for each instance its row and column on texture atlas
+        if (bGeneratedModel)
+        {
+            // setup each instance related to current channel
+            for (uint32 i = 0; i < numInst; ++i)
+            {
+                GrassInstance& grass = outGrass[grassIdx++];
+
+                grass.texColumn = ch;                  // is the same as channel index
+                grass.texRow    = (int)RandUint(0, 4);
+            }
+        }
+
+        // we use some specific model for this channel...
+        else
+        {
+            // setup each instance related to current channel
+            for (uint32 i = 0; i < numInst; ++i)
+            {
+                GrassInstance& grass = outGrass[grassIdx++];
+
+                // set that we will use own tex coords of the model
+                grass.texColumn = -1;
+                grass.texRow    = -1;
             }
         }
     }
 
-    //
-    // setup vertices for each cell
-    //
-    GeometryGenerator geomGen;
-    Model grassModel;
-    geomGen.GenerateGrass(grassModel, 1, 1);
-    //geomGen.GenerateTreeLod1(grassModel, 1, 1, true, 0);
-
-   
-    // setup vertices for each channel of each cell
-    for (GrassCell& cell : field.cells)
-    {
-
-        const size numInstances = cell.grassInstances.size();
-        const size numVerticesInModel = grassModel.GetNumVertices();
-        const size numIndicesInModel = grassModel.GetNumIndices();
-
-        if (numInstances == 0)
-            continue;
-
-        int instanceIdx = 0;
-
-        const size numVerticesInCell = numInstances * grassModel.GetNumVertices();
-        const size numIndicesInCell = numInstances * grassModel.GetNumIndices();
-
-        cell.vertices.reserve(numVerticesInCell);
-        cell.indices.reserve(numIndicesInCell);
-
-        for (int channel = 0; channel < field.numChannels; ++channel)
-        {
-            // currently we spread grass instances equally between each channel
-            const int numInstForChannel = numInstances / field.numChannels;
-
-            PushGrassInstancesInCell(
-                cell,
-                numInstForChannel,
-                instanceIdx,
-                grassModel,
-                channel,
-                field.numChannels,
-                field.texRows);
-        }
-    }
-}
-
-//---------------------------------------------------------
-//---------------------------------------------------------
-void PushGrassInstancesInCell(
-    GrassCell& cell,
-    const int numInstances,
-    int& instanceIdx,
-    Model& grassModel,
-    const int channel,          // index of the current channel [0-3]
-    const int numChannels,      // num all possible channels for this cell [1-4]
-    const int numTexRows)
-{
-    assert(numInstances > 0);
-    assert(instanceIdx > -1);
-    assert(grassModel.GetVertices() != nullptr);
-    assert(grassModel.GetIndices() != nullptr);
-
-    assert(numChannels > 0 && numChannels <= 4);
-    assert(channel >= 0    && channel < numChannels);
-    assert(numTexRows > 0 && numTexRows <= 4);
-    
-
-    const float tu = 1.0f / (float)numChannels;
-    const float tv = 1.0f / (float)numTexRows;
-
-    const float tu0 = tu * channel;
-    const float tu1 = tu0 + tu;
-
-    
-
-    const Vertex3D* modelVerts = grassModel.GetVertices();
-    const UINT*     modelIndices  = grassModel.GetIndices();
-
-    const int numVerts = grassModel.GetNumVertices();
-    const int numIndices = grassModel.GetNumIndices();
-
-
-    for (int i = 0; i < numInstances; ++i, ++instanceIdx)
-    {
-        GrassInstance& inst = cell.grassInstances[instanceIdx];
-
-        UINT baseIdx = (UINT)cell.vertices.size();
-
-        const uint texRow = RandUint(0, 4);
-        assert(texRow < 4);
-
-        // push model's each vertex into vertices array of the grass cell
-        for (int vIdx = 0; vIdx < numVerts; ++vIdx)
-        {
-            const Vertex3D& inVert = modelVerts[vIdx];
-
-            cell.vertices.push_back(VertexGrass());
-            VertexGrass&   outVert = cell.vertices.back();
-
-            // setup position
-            outVert.pos.x = inVert.pos.x + inst.pos.x;
-            outVert.pos.y = inVert.pos.y + inst.pos.y;
-            outVert.pos.z = inVert.pos.z + inst.pos.z;
-
-            // if original tex coord == 0 (left edge of the texture image)
-            if (inVert.tex.x < EPSILON_E5)
-                outVert.tex.x = tu0;
-            else
-                outVert.tex.x = tu1;
-
-
-          
-            // if upper edge of the texture image
-            if (inVert.tex.y < EPSILON_E5)
-                outVert.tex.y = tv * texRow;
-            else
-                outVert.tex.y = tv * texRow + tv;
-
-            outVert.normal = inVert.norm;
-            
-            //printf("v[%d]: %.2f %.2f %.2f\n", vIdx, v.pos.x, v.pos.y, v.pos.z);
-        }
-        //printf("\n");
-
-        // push indices for this grass instance
-       
-
-        for (index i = 0; i < numIndices; ++i)
-        {
-            cell.indices.push_back(baseIdx + modelIndices[i]);
-          //  printf("%zu ", cell.indices.back());
-        }
-       // printf("\n");
-       // exit(0);
-    }
-
 #if 0
-    printf("indices:\n");
-    for (int i = 0; i < 36; ++i)
-        printf("%zu ", cell.indices[i]);
-    printf("\n");
-    exit(0);
+    //
+    // setup random rotation (in radians) around Y-axis (vertical)
+    //
+    for (GrassInstance& grass : outGrass)
+        grass.rotY = DEG_TO_RAD(RandUint(0, 360));
+
+    //
+    // setup random height
+    //
+    for (GrassInstance& grass : outGrass)
+        grass.height = RandF(field.grassMinHeight, field.grassMaxHeight);
 #endif
 }
 
+//---------------------------------------------------------
+// group grass instances into its cells
+//---------------------------------------------------------
+void GroupGrassInstancesByCells(GrassField& field, const cvector<GrassInstance>& grassInstances)
+{
+    const vsize numCells = field.cells.size();
+
+    int channel = 0;
+    uint32 idx = 0;
+
+    for (const GrassInstance& grass : grassInstances)
+    {
+        // if we need to switch to the next channel
+        if (idx >= field.numInstPerChannel[channel])
+        {
+            channel++;
+            idx = 0;
+        }
+
+        const Vec3& p = grass.pos;
+
+        for (index cellIdx = 0; cellIdx < numCells; ++cellIdx)
+        {
+            const Rect3d& box = field.cellsWorldBoxes[cellIdx];
+
+            const bool bInBox = (p.x >= box.x0) && (p.x <= box.x1) &&
+                                (p.z >= box.z0) && (p.z <= box.z1);
+
+            if (!bInBox)
+                continue;
+
+            // bind instance to cell
+            field.cells[cellIdx].grassInstances.push_back(grass);
+            field.cells[cellIdx].channelInstanceCount[channel]++;
+
+            cellIdx = numCells;
+        }
+
+        idx++;
+    }
+
+    assert(channel == 3);
+
+    // setup instances start index of each channel
+    for (GrassCell& cell : field.cells)
+        cell.channelStart[0] = 0;
+
+    for (int ch = 1; ch < field.numChannels; ++ch)
+    {
+        for (GrassCell& cell : field.cells)
+        {
+            uint32 prevStart = cell.channelStart[ch - 1];
+            uint32 prevCount = cell.channelInstanceCount[ch - 1];
+
+            cell.channelStart[ch] = prevStart + prevCount;
+        }
+    }
+
+    //
+    // check yourself
+    //
+    for (const GrassCell& cell : field.cells)
+    {
+        uint32 start = 0;
+
+        // >= 0 because cells aren't required to have any grass instances at all
+        assert(cell.grassInstances.size() >= 0);
+
+        // the first channel is required
+        assert(cell.channelStart[0] == 0);
+        start += cell.channelInstanceCount[0];
+
+        // check the rest of channels
+        for (int ch = 1; ch < field.numChannels; ++ch)
+        {
+            assert(cell.channelStart[ch] == start);
+            start += cell.channelInstanceCount[ch];
+        }
+    }
+}
+
+//---------------------------------------------------------
+//---------------------------------------------------------
+void CreateCells(GrassField& field, const GrassFieldInitParams& params)
+{
+    const TimePoint start    = GameTimer::GetTimePoint();
+    const Terrain&  terrain  = g_ModelMgr.GetTerrain();
+    const int       numCells = field.cellsByX * field.cellsByZ;
+
+    cvector<GrassInstance> grassItems(field.grassCount);
+
+
+    // alloc memory for cells and its boundings
+    field.cells.resize(numCells);
+    field.cellsWorldBoxes.resize(numCells);
+
+    // fill memory with zeros
+    field.cells.fill_zeros();
+    field.cellsWorldBoxes.fill_zeros();
+
+    // generate grass models if necessary
+    GenGrassModels(field, params);
+
+    SetupModelsForGrassChannels(field, params);
+
+    CalcGrassCellsBoundings   (field);
+    CalcNumInstancesPerChannel(field);
+
+    GenerateGrassInstances    (field, grassItems);
+    GroupGrassInstancesByCells(field, grassItems);
+
+
+    // print log about duration of cells generation
+    TimePoint end = GameTimer::GetTimePoint();
+    TimeDurationMs dur = end - start;
+    SetConsoleColor(MAGENTA);
+    LogMsg("grass cells generation took: %.2f sec", dur.count() / 1000.0f);
+    SetConsoleColor(RESET);
+}
 
 //---------------------------------------------------------
 // go for each grass instance and use its position to define
@@ -474,222 +566,214 @@ void ÑalcFieldYBoundings(GrassField& field)
     float minY = FLT_MAX;
     float maxY = FLT_MIN;
 
- 
-    for (int i = 0; i < field.grassCount; ++i)
+    // calc Y-boundings of each cell
+    for (index i = 0; i < field.cells.size(); ++i)
     {
-        minY = 0;
-        maxY = 200;
+        const GrassCell& cell = field.cells[i];
+
+        // min/max height is based on position of the lowest/highest grass instance
+        for (const GrassInstance& grass : cell.grassInstances)
+        {
+            minY = Min(minY, grass.pos.y);
+            maxY = Max(maxY, grass.pos.y);
+        }
+
+        // set Y-boundings
+        field.cellsWorldBoxes[i].y0 = minY;
+        field.cellsWorldBoxes[i].y1 = maxY;
+
+        minY = FLT_MAX;
+        maxY = FLT_MIN;
     }
 
-    assert(minY >= 0);
+
+    // calc Y-bounding of the whole field is based on lowest/highest cell
+    minY = FLT_MAX;
+    maxY = FLT_MIN;
+
+    for (const Rect3d& box : field.cellsWorldBoxes)
+    {
+        minY = Min(minY, box.y0);
+        maxY = Max(maxY, box.y1);
+    }
 
     field.worldBox.y0 = minY;
     field.worldBox.y1 = maxY;
-}
 
 
+    //
+    // check yourself
+    //
+    assert(field.worldBox.x0 >= 0);
+    assert(field.worldBox.y0 >= 0);
+    assert(field.worldBox.z0 >= 0);
 
-//---------------------------------------------------------
-// initialize VB/IB for each cell of input grass field
-//---------------------------------------------------------
-void InitBuffers(GrassField& field)
-{
-    for (GrassCell& cell : field.cells)
+    assert(field.worldBox.x0 < field.worldBox.x1);
+    assert(field.worldBox.y0 < field.worldBox.y1);
+    assert(field.worldBox.z0 < field.worldBox.z1);
+
+    // check world box of each cell
+    for (const Rect3d& box : field.cellsWorldBoxes)
     {
-        cell.vb.Init(cell.vertices.data(), cell.vertices.size(), false);
-        cell.ib.Init(cell.indices.data(), cell.indices.size(), false);
+        assert(box.x0 >= 0);
+        assert(box.y0 >= 0);
+        assert(box.z0 >= 0);
+
+        assert(box.x0 < box.x1);
+        assert(box.y0 <= box.y1);   // NOTE: minY can == maxY when there are no grass instances in the cell
+        assert(box.z0 < box.z1);
     }
 }
 
 //---------------------------------------------------------
-// Desc:   make frustum test for each grass patch
-//         if it is visible we will render it later
+// create instances buffer for the input grass field
 //---------------------------------------------------------
-void GrassMgr::Update(const CameraParams* pCamParams, Frustum* pWorldFrustum)
+void InitBuffers(GrassField& field)
 {
-    assert(pCamParams);
+    HRESULT hr = S_OK;
+    ID3D11Device* pDevice = Render::GetD3dDevice();
+
+    D3D11_BUFFER_DESC desc;
+    memset(&desc, 0, sizeof(desc));
+
+    // setup buffer's description
+    desc.Usage               = D3D11_USAGE_DYNAMIC;
+    desc.ByteWidth           = (UINT)(sizeof(GrassInstance) * field.grassCount);
+    desc.BindFlags           = D3D11_BIND_VERTEX_BUFFER;
+    desc.CPUAccessFlags      = D3D11_CPU_ACCESS_WRITE;
+    desc.MiscFlags           = 0;
+    desc.StructureByteStride = 0;
+
+    hr = pDevice->CreateBuffer(&desc, nullptr, &field.pInstancedBuf);
+    if (FAILED(hr))
+    {
+        LogErr(LOG, "can't create an instanced buffer for grass field: %s", field.name);
+    }
+
+    LogMsg(LOG, "instances buffer for grass field (%s) is initialized successfully!", field.name);
+}
+
+//---------------------------------------------------------
+// Args:  - camPos:         position of camera in world
+//        - pWorldFrustum:  camera's frustum in world space
+//---------------------------------------------------------
+void GrassMgr::Update(const Vec3 camPos, const Frustum* pWorldFrustum)
+{
     assert(pWorldFrustum);
 
-    vsize numVisPatches = 0;
-    const CameraParams& cam = *pCamParams;
+    // reset some rendering data
+    for (GrassField& field : grassFields_)
+    {
+        field.instancesBufCounts[0] = 0;
+        field.instancesBufCounts[1] = 0;
+        field.instancesBufCounts[2] = 0;
+        field.instancesBufCounts[3] = 0;
+    }
+   
+    CalcVisibleGrass(camPos, pWorldFrustum);
 
-    //const float sqrGrassRange = SQR(grassRange_);
-    const float grassRange = grassRange_;
-    const Vec3 camPos = { cam.posX, cam.posY, cam.posZ };
+    UpdateGrassInstancedBuf();
+}
+
+//---------------------------------------------------------
+// Desc:   calculate which grass fields and its grass cells are currently visible
+//---------------------------------------------------------
+void GrassMgr::CalcVisibleGrass(const Vec3 camPos, const Frustum* pWorldFrustum)
+{
+    assert(grassVisRange_ > 0);
+
+    const float grassVisRange = grassVisRange_;
+    const GrassField& field = grassFields_[0];
 
     visCells_.clear();
 
-    const GrassField& field = grassFields_[0];
 
-    for (uint16 i = 0; i < (uint16)field.cells.size(); ++i)
+    for (index i = 0; i < field.cells.size(); ++i)
     {
         // check if the patch is in the grass visibility range
-        const Rect3d& worldBox = field.cellsWorldBoxes[i];
+        const Rect3d& box = field.cellsWorldBoxes[i];
 
-        const Vec3 boxCenter = { worldBox.MidX(), worldBox.MidY(), worldBox.MidZ() };
+        const Vec3 toEye = camPos - box.MidPoint();
+        const Vec3 ext = box.Extents();
 
-        const float distToCenter = Vec3Length(camPos - worldBox.MidPoint()) - Vec3Length(worldBox.Extents());
+        const float distToCam = FastDistance3D(toEye.x, toEye.y, toEye.z);
+        const float boxRadius = FastDistance3D(ext.x, ext.y, ext.z);
+
+        //const float distToCenter = Vec3Length(camPos - box.MidPoint()) - Vec3Length();
+        const float distToCenter = distToCam - boxRadius;
 
         // if cell is out of visibility range we don't render it
-        if (distToCenter > grassRange)
+        if (distToCenter > grassVisRange)
             continue;
 
         // check if patch is in view frustum
-        if (!pWorldFrustum->TestRect(worldBox))
+        if (!pWorldFrustum->TestRect(box))
             continue;
 
         VisibleGrassCell visData;
         visData.fieldIdx = 0;
-        visData.cellIdx = i;
+        visData.cellIdx  = (uint16)i;
 
         visCells_.push_back(visData);
-        ++numVisPatches;
     }
 }
-#if 0
+
 //---------------------------------------------------------
-// Desc:   add a bunch of new grass vertices (central point of each grass instance),
-//         separate them by its related grass patches (sectors),
-//         and update vertex buffers for these patches
 //---------------------------------------------------------
-void GrassMgr::AddGrassVertices(const cvector<VertexGrass>& newVertices)
+void GrassMgr::UpdateGrassInstancedBuf()
 {
-    if (newVertices.size() == 0)
-        return;
+    ID3D11DeviceContext* pCtx = Render::GetD3dContext();
+    D3D11_MAPPED_SUBRESOURCE mappedData;
 
-    const float invPatchSize    = 1.0f / patchSize_;
-    const int numPatchesPerSide = numPatchesPerSide_;
+    GrassField& field = grassFields_[0];
+    ID3D11Buffer* pBuf = field.pInstancedBuf;
 
-    std::set<int> updatedPatchIdxs;
-
-    for (const VertexGrass& v : newVertices)
+    // map the instanced buffer to wrote into it
+    HRESULT hr = pCtx->Map(pBuf, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData);
+    if (FAILED(hr))
     {
-        // compute patch index
-        const int px  = (int)(v.pos.x * invPatchSize);
-        const int pz  = (int)(v.pos.z * invPatchSize);
-        const int idx = (pz * numPatchesPerSide) + px;
-
-        patches_[idx].vertices.push_back(v);
-        updatedPatchIdxs.insert(idx);
-    }
-
-    // use only necessary memory
-    for (int i : updatedPatchIdxs)
-        patches_[i].vertices.shrink_to_fit();
-
-    for (int i : updatedPatchIdxs)
-        UpdateBoundingsForPatch(i);
-
-    for (int i : updatedPatchIdxs)
-        RebuildVB(i);
-}
-
-//---------------------------------------------------------
-// Desc:   add a single grass vertex (central point of the instance)
-//         put it into related grass patch (sector) and update vertex buffer
-//---------------------------------------------------------
-void GrassMgr::AddGrassVertex(const VertexGrass& vertex)
-{
-    assert(0 && "TODO ?");
-}
-
-//---------------------------------------------------------
-// Desc:   setup grass visibility distance
-//         (when grass patch is farther we don't render it
-//          even if it is in the view frustum)
-//---------------------------------------------------------
-void GrassMgr::SetGrassVisibilityDist(const float range)
-{
-    if (range < 0.0f)
-    {
-        LogErr(LOG, "can't setup a grass visibility distance: input values is < 0");
+        Render::CRender::PrintHRESULT(hr);
+        LogErr(LOG, "can't map the instance buffer for grass field: %s", field.name);
         return;
     }
 
-    grassRange_ = range;
-}
+    GrassInstance* data = (GrassInstance*)mappedData.pData;
 
-//---------------------------------------------------------
-// Desc:   go through each patch and check if we need to rebuild relative
-//         vertex buffer (for instance we do it when initialize the scene or
-//         when add/remove grass in the editor)
-// Args:   - idx:   an index of patch which we will updated
-//---------------------------------------------------------
-void GrassMgr::RebuildVB(const int idx)
-{
-    constexpr bool isDynamic = true;
-
-    const size numVertices        = patches_[idx].vertices.size();
-    VertexGrass* vertices         = patches_[idx].vertices.data();
-    VertexBuffer<VertexGrass>& vb = patches_[idx].vb;
-
-    vb.Shutdown();
-
-    if (!vb.Init(Render::g_pDevice, vertices, (int)numVertices, isDynamic))
+    // write data
+    for (uint32 i = 0, ch = 0; ch < (uint32)field.numChannels; ++ch)
     {
-        LogErr(LOG, "can't rebuild a grass vertex buffer: %d", idx);
-        exit(0);
-    }
-}
-//---------------------------------------------------------
-// Desc:   return a grass patch (sector) by input index
-//---------------------------------------------------------
-const GrassPatch& GrassMgr::GetPatchByIdx(const uint32 idx)
-{
-    assert(idx < patches_.size());
-    return patches_[idx];
-}
+        // go through each visible cell
+        for (const VisibleGrassCell& visCell : visCells_)
+        {
+            const GrassCell& cell = field.cells[visCell.cellIdx];
+            const uint32 baseIdx = cell.channelStart[ch];
+            const uint32 numInst = cell.channelInstanceCount[ch];
 
-//---------------------------------------------------------
-// Desc:   return a vertex buffer by input index of grass patch
-//---------------------------------------------------------
-VertexBuffer<VertexGrass>& GrassMgr::GetVertexBufByIdx(const uint32 idx)
-{
-    assert(idx < patches_.size());
-    return patches_[idx].vb;
-}
+            // push data related only to the current channel
+            for (uint32 instanceIdx = 0; instanceIdx < numInst; ++instanceIdx)
+            {
+                assert(i < field.grassCount);
+                data[i++] = cell.grassInstances[baseIdx + instanceIdx];
 
-//---------------------------------------------------------
-// Desc:   return an array of vertices by input index of grass patch
-//---------------------------------------------------------
-cvector<VertexGrass>& GrassMgr::GetVerticesByIdx(const uint32 idx)
-{
-    assert(idx < patches_.size());
-    return patches_[idx].vertices;
-}
-
-//---------------------------------------------------------
-// Desc:   recompute bounding shapes (box + sphere) for grass patch by index
-//---------------------------------------------------------
-void GrassMgr::UpdateBoundingsForPatch(const int i)
-{
-    assert(i < (int)patches_.size());
-
-    Vec3 minPoint = { +FLT_MAX, +FLT_MAX, +FLT_MAX };
-    Vec3 maxPoint = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
-
-    // define min and max point for this patch
-    for (const VertexGrass& v : patches_[i].vertices)
-    {
-        minPoint.x = min(v.pos.x, minPoint.x);
-        minPoint.y = min(v.pos.y, minPoint.y);
-        minPoint.z = min(v.pos.z, minPoint.z);
-
-        maxPoint.x = max(v.pos.x, maxPoint.x);
-        maxPoint.y = max(v.pos.y, maxPoint.y);
-        maxPoint.z = max(v.pos.z, maxPoint.z);
+                // increate a instances number of this channel to render
+                field.instancesBufCounts[ch]++;
+            }
+        }
     }
 
-    // setup bounding box and bounding sphere
-    const Vec3 center       = (maxPoint + minPoint) * 0.5f;
-    boundSpheres_[i].radius = Vec3Length(maxPoint - center);
-    boundSpheres_[i].center = center;
-
-    aabbs_[i] = {
-        minPoint.x, maxPoint.x,
-        minPoint.y, maxPoint.y,
-        minPoint.z, maxPoint.z };
+    // unmap the buffer
+    pCtx->Unmap(field.pInstancedBuf, 0);
 }
-#endif
+
+//---------------------------------------------------------
+// Desc:  setup radius around camera where grass is visible;
+//        after this radius we don't render any grass
+//---------------------------------------------------------
+void GrassMgr::SetGrassVisibilityRange(const float range)
+{
+    assert(range > 0);
+    grassVisRange_ = range;
+}
+
 
 } // namespace

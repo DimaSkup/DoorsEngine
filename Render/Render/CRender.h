@@ -50,11 +50,12 @@ struct InitParams
 
     MaterialColors    terrainMatColors;
 
+    float             nearZ = 0.01f;
+    float             farZ = 100.0f;
+
     bool              vsyncEnabled    = false;
     bool              fullscreen      = true;
     bool              enable4xMSAA    = false;
-    float             nearZ           = 0.01f;
-    float             farZ            = 100.0f;
 };
 
 //---------------------------------------------------------
@@ -82,6 +83,7 @@ public:
     inline ID3D11Device*        GetDevice()       { return Render::g_pDevice; }
     inline ID3D11DeviceContext* GetContext()      { return Render::g_pContext; }
 
+    static void PrintHRESULT(HRESULT hr);
 
     // ================================================================================
     //                                   Updating 
@@ -111,9 +113,9 @@ public:
     void BindVBs(
         const UINT startSlot,
         const UINT numBuffers,
-        ID3D11Buffer* const* ppVBs,
-        const UINT stride,
-        const UINT offset);
+        ID3D11Buffer* const* vbs,
+        const UINT* strides,
+        const UINT* offsets);
 
     void BindIB(ID3D11Buffer* pIB, const DXGI_FORMAT format);
 
@@ -130,10 +132,33 @@ public:
 
     void Draw                (const UINT vertexCount, const UINT startVertexLocation);
     void DrawIndexed         (const UINT indexCount, const UINT startIndexLocation, const UINT baseVertexLocation);
+
+    void DrawIndexedInstanced(
+        const UINT indexCount,
+        const UINT numInstances,
+        const UINT indexStart,
+        const UINT vertexStart,
+        const UINT startInstanceLocation);
+
     void DrawIndexedInstanced(const InstanceBatch& batch, UINT& instanceLocation);
+
+    //----------------------------
 
     void PushSpriteToRender(const Render::Sprite2D& sprite);
     void Render2dSprites();
+
+    void RenderInstances(
+        ID3D11Buffer* pVB,
+        ID3D11Buffer* pIB,
+        ID3D11Buffer* pInstancedBuf,
+        const UINT vertexStride,
+        const UINT instanceStride,
+        const DXGI_FORMAT ibFormat,
+        const UINT indexCount,
+        const UINT numInstances,
+        const UINT indexStart,
+        const UINT vertexStart,
+        const UINT startInstanceLocation);
 
     void RenderInstances(
         const InstanceBatch& instances,
@@ -251,8 +276,8 @@ public:
     float GetPostFxParam(const uint16 postFxParamIdx);
 
     // GRASS
-    inline float GetGrassDistFullSize() const { return cbgsGrassParams_.data.distGrassFullSize; }
-    inline float GetGrassDistVisible()  const { return cbgsGrassParams_.data.distGrassVisible; }
+    inline float GetGrassDistFullSize() const { return cbWeather_.data.distGrassFullSize; }
+    inline float GetGrassDistVisible()  const { return cbWeather_.data.distGrassVisible; }
 
     bool SetGrassDistFullSize(const float dist);
     bool SetGrassDistVisible(const float dist);
@@ -276,7 +301,7 @@ public:
 
     ID3D11DeviceContext*                            pContext_         = nullptr;
     ID3D11Buffer*                                   pInstancedBuffer_ = nullptr;
-    cvector<ConstBufType::InstancedData>            instancedData_;    // instances common buffer
+    //cvector<ConstBufType::InstancedData>            instancedData_;    // instances common buffer
 
     // common const buffers
     ConstantBuffer<ConstBufType::ViewProj>          cbViewProj_;
@@ -292,9 +317,6 @@ public:
     ConstantBuffer<ConstBufType::WorldInvTranspose> cbvsWorldInvTranspose_;
     ConstantBuffer<ConstBufType::Skinned>           cbvsSkinned_;
     ConstantBuffer<ConstBufType::Sprite>            cbvsSprite_;
-
-    // const buffers for geometry shaders
-    ConstantBuffer<ConstBufType::GrassParams>       cbgsGrassParams_;
 
     // const buffers for pixel shaders
     ConstantBuffer<ConstBufType::cbpsPerFrame>            cbpsPerFrame_;
@@ -351,19 +373,23 @@ inline void CRender::BindVB(ID3D11Buffer* const* ppVB, const UINT stride, const 
 //-----------------------------------------------------
 // bind input vertex buffer at particular start slot
 //-----------------------------------------------------
-inline void CRender::BindVB(const UINT startSlot, ID3D11Buffer* const* ppVB, const UINT stride, const UINT offset)
+inline void CRender::BindVB(
+    const UINT startSlot,
+    ID3D11Buffer* const* vb,
+    const UINT stride,
+    const UINT offset)
 {
-    GetContext()->IASetVertexBuffers(startSlot, 1, ppVB, &stride, &offset);
+    GetContext()->IASetVertexBuffers(startSlot, 1, vb, &stride, &offset);
 }
 
 inline void CRender::BindVBs(
     const UINT startSlot,
     const UINT numBuffers,
-    ID3D11Buffer* const* ppVBs,
-    const UINT stride,
-    const UINT offset)
+    ID3D11Buffer* const* vbs,
+    const UINT* strides,
+    const UINT* offsets)
 {
-    GetContext()->IASetVertexBuffers(startSlot, numBuffers, ppVBs, &stride, &offset);
+    GetContext()->IASetVertexBuffers(startSlot, numBuffers, vbs, strides, offsets);
 }
 
 inline void CRender::BindIB(ID3D11Buffer* pIB, const DXGI_FORMAT format)
@@ -405,6 +431,9 @@ inline void CRender::DrawIndexed(
     GetContext()->DrawIndexed(indexCount, startIndexLocation, baseVertexLocation);
 }
 
+//-----------------------------------------------------
+// draw instances by input batch starting from instanceLocation
+//-----------------------------------------------------
 inline void CRender::DrawIndexedInstanced(const InstanceBatch& batch, UINT& instanceLocation)
 {
     GetContext()->DrawIndexedInstanced(
@@ -416,6 +445,24 @@ inline void CRender::DrawIndexedInstanced(const InstanceBatch& batch, UINT& inst
 
     // stride idx in the instances buffer
     instanceLocation += (UINT)batch.numInstances;
+}
+
+//-----------------------------------------------------
+// wrapper over DX11 DrawIndexedInstanced method
+//-----------------------------------------------------
+inline void CRender::DrawIndexedInstanced(
+    const UINT indexCount,
+    const UINT numInstances,
+    const UINT indexStart,
+    const UINT vertexStart,
+    const UINT startInstanceLocation)
+{
+    GetContext()->DrawIndexedInstanced(
+        indexCount,
+        numInstances,
+        indexStart,
+        vertexStart,
+        startInstanceLocation);
 }
 
 }; // namespace Render

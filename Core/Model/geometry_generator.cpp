@@ -175,8 +175,8 @@ bool GeometryGenerator::GenerateGrass(
         // setup textures
         planes[i][0].tex = { 0, 1 };
         planes[i][1].tex = { 0, 0 };
-        planes[i][2].tex = { 0.25, 0 };
-        planes[i][3].tex = { 0.25, 1 };
+        planes[i][2].tex = { 1, 0 };
+        planes[i][3].tex = { 1, 1 };
     }
 
 

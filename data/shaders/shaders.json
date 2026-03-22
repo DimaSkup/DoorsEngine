@@ -420,6 +420,13 @@
 			"vs":             "shader_art_VS",
 			"ps":             "shader_art_PS",
 			"input_layout":   "Basic"
+		},
+		{
+			"id":            58,
+			"name":          "GrassShaderInstance",
+			"vs":            "grass_instance_VS",
+			"ps":            "grass_instance_PS",
+			"input_layout":  "GrassInstance"
 		}
 	]
 }

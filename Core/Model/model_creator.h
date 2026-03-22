@@ -25,6 +25,8 @@ public:
     ModelID CreateSkyDome   (const float radius, const int sliceCount, const int stackCount);
     ModelID CreatePlane     (const float width = 1.0f, const float height = 1.0f);
 
+    ModelID CreateGrassModel(const float planeW, const float planeH);
+
     ModelID CreatePlaneLod(const float planeW, const float planeH);
 
     ModelID CreateTreeLod1(

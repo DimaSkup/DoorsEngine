@@ -108,14 +108,49 @@ ModelID ModelsCreator::CreatePlane(const float width, const float height)
 }
 
 //---------------------------------------------------------
+// Desc:  create a model which will serve us as a generated grass
+//---------------------------------------------------------
+ModelID ModelsCreator::CreateGrassModel(const float planeW, const float planeH)
+{
+    GeometryGenerator geoGen;
+    Model&    model = g_ModelMgr.AddEmptyModel();
+    const ModelID  id = model.GetId();
+
+    // setup name
+    g_ModelMgr.SetModelName(id, "generated_grass");
+
+    // generate geometry and init vb/ib
+    geoGen.GenerateGrass(model, planeW, planeH);
+    model.InitBuffers();
+
+    // manually setup boundings
+    const float halfW = 0.5f * planeW;
+
+    Vec3 minP{ -halfW, 0,      -halfW };
+    Vec3 maxP{ +halfW, planeH, +halfW };
+
+    Vec3 c = (maxP + minP) * 0.5f;   // center 
+    Vec3 e = (maxP - minP) * 0.5f;   // extents
+
+    DirectX::BoundingBox    bbox({c.x, c.y, c.z}, {e.x, e.y, e.z});
+    DirectX::BoundingSphere sphere(bbox.Center, Vec3Length(e));
+
+    model.SetModelBoundSphere(sphere);
+    model.SetModelAABB(bbox);
+    model.SetSubsetAABB(0, bbox);
+
+    return id;
+}
+
+//---------------------------------------------------------
 // Desc:  generate a plane lod model (just a point for billboard)
 //        it may be used as a lod for trees, bushes, plants, etc.
 //---------------------------------------------------------
 ModelID ModelsCreator::CreatePlaneLod(const float planeW, const float planeH)
 {
     GeometryGenerator geoGen;
-    Model& model = g_ModelMgr.AddEmptyModel();
-    const ModelID  id = model.GetId();
+    Model&     model = g_ModelMgr.AddEmptyModel();
+    const ModelID id = model.GetId();
 
     // setup name
     sprintf(g_String, "tree_lod1_%" PRIu32, id);
@@ -154,8 +189,8 @@ ModelID ModelsCreator::CreateTreeLod1(
     const float rotateAroundX)
 {
     GeometryGenerator geoGen;
-    Model& model = g_ModelMgr.AddEmptyModel();
-    const ModelID  id = model.GetId();
+    Model&     model = g_ModelMgr.AddEmptyModel();
+    const ModelID id = model.GetId();
 
     // setup name
     sprintf(g_String, "tree_lod1_%" PRIu32, id);
@@ -176,8 +211,8 @@ ModelID ModelsCreator::CreateTreeLod1(
 ModelID ModelsCreator::CreateCube()
 {
     GeometryGenerator geoGen;
-    Model& model = g_ModelMgr.AddEmptyModel();
-    const ModelID  id = model.GetId();
+    Model&     model = g_ModelMgr.AddEmptyModel();
+    const ModelID id = model.GetId();
 
     // setup name
     sprintf(g_String, "cube_%" PRIu32, id);

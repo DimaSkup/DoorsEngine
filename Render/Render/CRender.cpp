@@ -151,10 +151,7 @@ bool CRender::InitConstBuffers(const InitParams& params)
 
         // INIT CONST BUFFERS FOR GEOMETRY SHADERS ------------------
 
-        hr = cbgsGrassParams_.Init(pDevice);
-        CAssert::NotFailed(hr, "can't init a const buffer (grass params; for GS)");
 
-      
 
         // INIT CONST BUFFERS FOR PIXEL SHADERS ---------------------
 
@@ -297,8 +294,6 @@ bool CRender::InitConstBuffers(const InitParams& params)
         cbvsSkinned_.ApplyChanges(pCtx);
         cbvsSprite_.ApplyChanges(pCtx);
 
-        cbgsGrassParams_.ApplyChanges(pCtx);
-
         cbpsPerFrame_.ApplyChanges(pCtx);
         cbpsRareChanged_.ApplyChanges(pCtx);
         cbpsTerrainMaterial_.ApplyChanges(pCtx);
@@ -333,7 +328,7 @@ bool CRender::InitConstBuffers(const InitParams& params)
         // const buffers for geometry shaders
         ID3D11Buffer* gsCBs[] =
         {
-            cbgsGrassParams_.Get(),                 // slot_0: parameters for grass rendering
+            nullptr,                                // slot_0:
             nullptr,                                // slot_1:
             nullptr,                                // slot_2:
             nullptr,                                // slot_3:
@@ -411,7 +406,7 @@ bool CRender::InitInstancesBuffer()
         return false;
     }
 
-    LogMsg(LOG, "all the const buffers are initialized");
+    LogMsg(LOG, "instances buffer for entities is initialized successfully!");
     return true;
 }
 
@@ -551,6 +546,20 @@ bool CRender::ShadersHotReload()
     return pShaderMgr_->HotReload(GetDevice());
 }
 
+//---------------------------------------------------------
+// Desc:  call it to print out a code of HRESULT
+//---------------------------------------------------------
+void CRender::PrintHRESULT(HRESULT hr)
+{
+    _com_error err(hr);
+    char errMsg[512];
+
+    memset(errMsg, 0, sizeof(errMsg));
+    StrHelper::ToStr(err.ErrorMessage(), errMsg);
+
+    LogErr(LOG, "HRESULT: 0x%08X - %s\n\n", hr, errMsg);
+}
+
 
 // =================================================================================
 //                               updating methods
@@ -653,6 +662,41 @@ void CRender::UpdateInstancedBuffer(
 // =================================================================================
 //                               rendering methods
 // =================================================================================
+
+void CRender::RenderInstances(
+    ID3D11Buffer* pVB,
+    ID3D11Buffer* pIB,
+    ID3D11Buffer* pInstancedBuf,
+    const UINT vertexStride,
+    const UINT instanceStride,
+    const DXGI_FORMAT ibFormat,
+    const UINT indexCount,
+    const UINT numInstances,
+    const UINT indexStart,
+    const UINT vertexStart,
+    const UINT startInstanceLocation)
+{
+    assert(pVB);
+    assert(pIB);
+    assert(pInstancedBuf);
+    assert(vertexStride > 0);
+    assert(instanceStride > 0);
+
+    ID3D11Buffer* const vbs[2] = { pVB, pInstancedBuf };
+    const UINT strides[2] = { vertexStride, instanceStride };
+    const UINT offsets[2] = { 0, 0 };
+
+    ID3D11DeviceContext* pCtx = GetContext();
+    pCtx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
+    pCtx->IASetIndexBuffer(pIB, ibFormat, 0);
+
+    pCtx->DrawIndexedInstanced(
+        indexCount,
+        numInstances,
+        indexStart,
+        vertexStart,
+        startInstanceLocation);
+}
 
 //---------------------------------------------------------
 // Desc:    render input instances batch onto the screen
@@ -849,16 +893,14 @@ void CRender::UpdateCbDirLightsCount(const uint numOfLights)
 //---------------------------------------------------------
 bool CRender::SetGrassDistFullSize(const float dist)
 {
-    const float distVisible = cbgsGrassParams_.data.distGrassVisible;
-
-    if ((dist < 0) || (dist > distVisible))
+    if ((dist < 0) || (dist > cbWeather_.data.distGrassVisible))
     {
-        LogErr(LOG, "can't set distance for full sized grass (input dist == %f; must be <= %f)", dist, distVisible);
+        LogErr(LOG, "can't set distance for full sized grass (input dist == %f; must be <= %f)", dist, cbWeather_.data.distGrassVisible);
         return false;
     }
 
-    cbgsGrassParams_.data.distGrassFullSize = dist;
-    cbgsGrassParams_.ApplyChanges(GetContext());
+    cbWeather_.data.distGrassFullSize = dist;
+    cbWeather_.ApplyChanges(GetContext());
     return true;
 }
 
@@ -867,16 +909,14 @@ bool CRender::SetGrassDistFullSize(const float dist)
 //---------------------------------------------------------
 bool CRender::SetGrassDistVisible(const float dist)
 {
-    const float distFullSize = cbgsGrassParams_.data.distGrassFullSize;
-
-    if ((dist < 0) || (dist < distFullSize))
+    if ((dist < 0) || (dist < cbWeather_.data.distGrassFullSize))
     {
-        LogErr(LOG, "can't set grass visibility distance (input dist == %f; must be >= %f)", dist, distFullSize);
+        LogErr(LOG, "can't set grass visibility distance (input dist == %f; must be >= %f)", dist, cbWeather_.data.distGrassFullSize);
         return false;
     }
 
-    cbgsGrassParams_.data.distGrassVisible = dist;
-    cbgsGrassParams_.ApplyChanges(GetContext());
+    cbWeather_.data.distGrassVisible = dist;
+    cbWeather_.ApplyChanges(GetContext());
     return true;
 }
 
