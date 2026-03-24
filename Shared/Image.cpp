@@ -232,11 +232,10 @@ bool Image::SaveRawAsGrayBmp(
 }
 
 // --------------------------------------------------------
-// Desc:   save the current image info to a file.
-//         this method only supports the BMP format
-// Args:   - filename: the filename of the file to be saved
+// Desc:   save the current image info to a BMP file.
+// Args:   - filename:  where to save
 // --------------------------------------------------------
-bool Image::SaveBMP(const char* filename) const
+bool Image::SaveBMP(const char* filepath) const
 {
     BMPFileHeader  bitmapFileHeader;
     BMPInfoHeader  bitmapInfoHeader;
@@ -252,17 +251,17 @@ bool Image::SaveBMP(const char* filename) const
 
 
     // check input params
-    if (!filename || filename[0] == '\0')
+    if (!filepath || filepath[0] == '\0')
     {
         LogErr(LOG, "empty filename");
         return false;
     }
 
     // open a file that we can write to
-    FILE* pFile = fopen(filename, "wb");
+    FILE* pFile = fopen(filepath, "wb");
     if (!pFile)
     {
-        LogErr(LOG, "can't open a file to save BMP image: %s", filename);
+        LogErr(LOG, "can't open a file to save BMP image: %s", filepath);
         return false;
     }
 
@@ -398,7 +397,7 @@ bool Image::LoadRgbBMP(const char* filename)
     size_t           retCode = 0;
     BMPFileHeader    fileHeader;
     BMPInfoHeader    infoHeader;
-    uint8_t*         bitmapImage = nullptr;
+    //uint8_t*         bitmapImage = nullptr;
 
     try
     {
@@ -449,10 +448,11 @@ bool Image::LoadRgbBMP(const char* filename)
         const int imageSize = (int)infoHeader.sizeImage;
 
         // move to the beginning of the bitmap data
-        fseek(pFile, fileHeader.offBits, SEEK_SET);
+        FILE* data = pFile;
+        fseek(data, fileHeader.offBits, SEEK_SET);
 
         // read in the bitmap image data
-        retCode = fread(pixels_, 1, imageSize, pFile);
+        retCode = fread(pixels_, 1, imageSize, data);
         if (retCode != imageSize)
         {
             sprintf(g_String, "can't read the bitmap image data: %s", filename);
@@ -470,14 +470,14 @@ bool Image::LoadRgbBMP(const char* filename)
         fclose(pFile);
 
         // release temp buffer for image data
-        SafeDeleteArr(bitmapImage);
+        //SafeDeleteArr(bitmapImage);
 
         return true;
     }
     catch (std::bad_alloc& e)
     {
         LogErr(LOG, e.what());
-        sprintf(g_String, "can't alloc memory for height data / height map image: %s", filename);
+        sprintf(g_String, "can't alloc mem for RBG bmp image: %s", filename);
         throw EngineException(g_String);
     }
     catch (EngineException& e)
@@ -485,7 +485,7 @@ bool Image::LoadRgbBMP(const char* filename)
         if (pFile)
             fclose(pFile);
 
-        SafeDeleteArr(bitmapImage);
+        //SafeDeleteArr(bitmapImage);
         SafeDeleteArr(pixels_);
         LogErr(LOG, e.what());
         return false;
@@ -592,7 +592,7 @@ bool Image::LoadGrayscaleBMP(const char* filename)
             //const int rowIdx = (width * (height - 1 - j));
 
             // from top to bottom
-            const int rowIdx = j * width;
+            const int rowIdx = (height - 1 - j) * width;
 
             for (int i = 0; i < width; ++i)
             {

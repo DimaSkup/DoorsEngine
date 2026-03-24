@@ -29,25 +29,26 @@ namespace Core
 //
 // Args:  - s, c:  sine and cosine
 //---------------------------------------------------------
-inline XMFLOAT3 RotateVecAroundY(const XMFLOAT3 v, const float s, const float c)
+inline XMFLOAT3 RotateVec3AroundY(const XMFLOAT3 v, const float s, const float c)
 {
     return XMFLOAT3 { c*v.x - s*v.z, v.y, s*v.x + c*v.z };
 }
 
-inline XMFLOAT3 RotateVecAroundX(const XMFLOAT3 v, const float s, const float c)
+inline XMFLOAT3 RotateVec3AroundX(const XMFLOAT3 v, const float s, const float c)
 {
     return XMFLOAT3 { v.x, c*v.y - s*v.z, s*v.y + c*v.z };
 }
 
-inline XMFLOAT3 RotateVecAroundY(const XMFLOAT3 v, const float angleInRad)
+inline XMFLOAT3 RotateVec3AroundY(const XMFLOAT3 v, const float angleInRad)
 {
-    return RotateVecAroundY(v, sinf(angleInRad), cosf(angleInRad));
+    return RotateVec3AroundY(v, sinf(angleInRad), cosf(angleInRad));
 }
 
-inline XMFLOAT3 RotateVecAroundX(const XMFLOAT3 v, const float angleInRad)
+inline XMFLOAT3 RotateVec3AroundX(const XMFLOAT3 v, const float angleInRad)
 {
-    return RotateVecAroundX(v, sinf(angleInRad), cosf(angleInRad));
+    return RotateVec3AroundX(v, sinf(angleInRad), cosf(angleInRad));
 }
+
 
 //---------------------------------------------------------
 // Desc:  setup a model which will serve us as a lod;
@@ -77,6 +78,21 @@ void GeometryGenerator::GeneratePlaneLod(
 
     // setup subset (mesh) data, here we have only one subset
     model.GetMeshes().SetSubsetName(0, "plane_lod_mesh");
+}
+
+//---------------------------------------------------------
+//---------------------------------------------------------
+XMFLOAT3 CalcNormalVec(
+    const XMFLOAT3& v0,
+    const XMFLOAT3& v1,
+    const XMFLOAT3& v2)
+{
+    Vec3 e1 = { v1.x-v0.x, v1.y-v0.y, v1.z-v0.z };
+    Vec3 e2 = { v2.x-v0.x, v2.y-v0.y, v2.z-v0.z };
+
+    Vec3 n = Vec3Normalize(Vec3Cross(e1, e2));
+
+    return XMFLOAT3{ n.x, n.y, n.z };
 }
 
 //---------------------------------------------------------
@@ -123,54 +139,38 @@ bool GeometryGenerator::GenerateGrass(
     const XMFLOAT3 p2 = { +hw, +hh, 0 };      // top right
     const XMFLOAT3 p3 = { +hw, -hh, 0 };      // bottom right
 
-    XMFLOAT3 normal = { 0,0,-1 };         // is the same for each point of a plane
-    XMFLOAT3 tangent = { 1,0,0 };
-
-    const float angleX = DEG_TO_RAD(-30);
-
-    normal = RotateVecAroundX(normal, angleX);
-    tangent = RotateVecAroundX(tangent, angleX);
-
-    const uint angleStep = 360 / numPlanes;
-
+    // slightly incline
     const XMFLOAT3 pos0 = p0;
-    const XMFLOAT3 pos1 = RotateVecAroundX(p1, angleX);
-    const XMFLOAT3 pos2 = RotateVecAroundX(p2, angleX);
+    const XMFLOAT3 pos1 = RotateVec3AroundX(p1, DEG_TO_RAD(-30));
+    const XMFLOAT3 pos2 = RotateVec3AroundX(p2, DEG_TO_RAD(-30));
     const XMFLOAT3 pos3 = p3;
 
     // setup vertices for all the planes
     for (uint i = 0; i < numPlanes; ++i)
     {
+        const uint angleStep = 360 / numPlanes;
         const float sinY = sinf(DEG_TO_RAD(i * angleStep));
         const float cosY = cosf(DEG_TO_RAD(i * angleStep));
 
-        // rotate around Y-axis
-        const XMFLOAT3 N = RotateVecAroundY(normal,  sinY, cosY);
-        const XMFLOAT3 T = RotateVecAroundY(tangent, sinY, cosY);
-
-        // setup normal vectors
-        planes[i][0].norm = N;
-        planes[i][1].norm = N;
-        planes[i][2].norm = N;
-        planes[i][3].norm = N;
-
-        // setup tangent vectors
-        planes[i][0].tang = { T.x, T.y, T.z, 1 };
-        planes[i][1].tang = { T.x, T.y, T.z, 1 };
-        planes[i][2].tang = { T.x, T.y, T.z, 1 };
-        planes[i][3].tang = { T.x, T.y, T.z, 1 };
-
         // setup positions
-        planes[i][0].pos = RotateVecAroundY(pos0, sinY, cosY);
-        planes[i][1].pos = RotateVecAroundY(pos1, sinY, cosY);
-        planes[i][2].pos = RotateVecAroundY(pos2, sinY, cosY);
-        planes[i][3].pos = RotateVecAroundY(pos3, sinY, cosY);
+        planes[i][0].pos = RotateVec3AroundY(pos0, sinY, cosY);
+        planes[i][1].pos = RotateVec3AroundY(pos1, sinY, cosY);
+        planes[i][2].pos = RotateVec3AroundY(pos2, sinY, cosY);
+        planes[i][3].pos = RotateVec3AroundY(pos3, sinY, cosY);
 
         // offset grass grass origin to be in 0 by Y 
         planes[i][0].pos.y += hh;
         planes[i][1].pos.y += hh;
         planes[i][2].pos.y += hh;
         planes[i][3].pos.y += hh;
+
+        const XMFLOAT3 N = CalcNormalVec(planes[i][0].pos, planes[i][1].pos, planes[i][2].pos);
+
+        // setup normal vectors
+        planes[i][0].norm = N;
+        planes[i][1].norm = N;
+        planes[i][2].norm = N;
+        planes[i][3].norm = N;
 
         // setup textures
         planes[i][0].tex = { 0, 1 };
@@ -274,12 +274,12 @@ void GeometryGenerator::GenerateTreeLod1(
         XMFLOAT3 N, T;
 
         // rotate around Y-axis
-        N = RotateVecAroundY(normal,  sinY, cosY);
-        T = RotateVecAroundY(tangent, sinY, cosY);
+        N = RotateVec3AroundY(normal,  sinY, cosY);
+        T = RotateVec3AroundY(tangent, sinY, cosY);
 
         // rotate around X-axis
-        N = RotateVecAroundX(N, sinX, cosX);
-        T = RotateVecAroundX(T, sinX, cosX);
+        N = RotateVec3AroundX(N, sinX, cosX);
+        T = RotateVec3AroundX(T, sinX, cosX);
 
 
         // setup normal vectors
@@ -295,10 +295,10 @@ void GeometryGenerator::GenerateTreeLod1(
         planes[i][3].tang = { T.x, T.y, T.z, 1 };
 
         // setup positions (and add a little offset along normal vector to prevent Z-fighting)
-        planes[i][0].pos = RotateVecAroundY(pos0, sinY, cosY);
-        planes[i][1].pos = RotateVecAroundY(pos1, sinY, cosY);
-        planes[i][2].pos = RotateVecAroundY(pos2, sinY, cosY);
-        planes[i][3].pos = RotateVecAroundY(pos3, sinY, cosY);
+        planes[i][0].pos = RotateVec3AroundY(pos0, sinY, cosY);
+        planes[i][1].pos = RotateVec3AroundY(pos1, sinY, cosY);
+        planes[i][2].pos = RotateVec3AroundY(pos2, sinY, cosY);
+        planes[i][3].pos = RotateVec3AroundY(pos3, sinY, cosY);
 
         if (originAtBottom)
         {
@@ -308,10 +308,10 @@ void GeometryGenerator::GenerateTreeLod1(
             planes[i][3].pos.y += hh;
         }
 
-        planes[i][0].pos = RotateVecAroundX(planes[i][0].pos, sinX, cosX);
-        planes[i][1].pos = RotateVecAroundX(planes[i][1].pos, sinX, cosX);
-        planes[i][2].pos = RotateVecAroundX(planes[i][2].pos, sinX, cosX);
-        planes[i][3].pos = RotateVecAroundX(planes[i][3].pos, sinX, cosX);
+        planes[i][0].pos = RotateVec3AroundX(planes[i][0].pos, sinX, cosX);
+        planes[i][1].pos = RotateVec3AroundX(planes[i][1].pos, sinX, cosX);
+        planes[i][2].pos = RotateVec3AroundX(planes[i][2].pos, sinX, cosX);
+        planes[i][3].pos = RotateVec3AroundX(planes[i][3].pos, sinX, cosX);
 
 
         // setup textures

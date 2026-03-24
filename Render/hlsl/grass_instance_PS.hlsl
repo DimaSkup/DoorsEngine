@@ -12,36 +12,34 @@
 //--------------------------------
 // GLOBALS
 //--------------------------------
-TextureCube gCubeMap : register(t0);
-Texture2D gTextures[22] : register(t100);
+TextureCube  gCubeMap         : register(t0);
+Texture2D    gTextures[22]    : register(t100);
 
-SamplerState gBasicSampler : register(s0);
-SamplerState gSkySampler : register(s1);
+SamplerState gBasicSampler    : register(s0);
+SamplerState gSkySampler      : register(s1);
 
 //--------------------------------
 // TYPEDEFS
 //--------------------------------
 struct PS_IN
 {
-    float4 posH     : SV_POSITION;
-    float3 posW     : POSITION;
-    float2 tex      : TEXCOORD;
-    float3 normal   : NORMAL;
-    float3 fogColor : COLOR;
+    float4 posH        : SV_POSITION;
+    float3 posW : POSITION0;
+	float3 posL : POSITION1;
+    float2 tex         : TEXCOORD;
+    float3 normal      : NORMAL;
+    float3 fogColor    : COLOR;
+	bool   isFrontFace : SV_IsFrontFace;
 };
 
 //---------------------------------------------------------
 // for grass we have to compute directed light contibution in a specific way
 //---------------------------------------------------------
-void ComputeDirLight(
-    Material mat,
+void ComputeDirL(
     DirectionalLight L,
     float3 normal,
-    float3 toEye,
-    float specularPower,
     out float4 ambient,
-    out float4 diffuse,
-    out float4 spec)
+    out float4 diffuse)
 {
     // this HLSL function outputs the lit color of a point given a material, directional 
     // light source, surface normal, and the unit vector from the surface being lit to the eye
@@ -49,14 +47,12 @@ void ComputeDirLight(
     // initialize outputs
     ambient = 0;
     diffuse = 0;
-    spec = 0;
-
 
     // the light vector aims opposite the direction the light rays travel
     float3 lightVec = -L.direction;
 
     // add ambient term
-    ambient = mat.ambient * L.ambient;
+    ambient = gAmbient * L.ambient;
 
     // use Lambert's cosine law to define a magnitude of the light intensity
     float diffuseFactor = dot(lightVec, normal);
@@ -65,65 +61,53 @@ void ComputeDirLight(
     [flatten]
     if (diffuseFactor > 0.0f)
     {
-        float3 R = reflect(lightVec, normal);
-        float specFactor = pow(saturate(dot(R, toEye)), mat.specular.w);
-
-        diffuse = diffuseFactor * mat.diffuse * L.diffuse;
-        spec = specFactor * mat.specular * L.specular;
+        diffuse = diffuseFactor * (gDiffuse * L.diffuse);
     }
     else
     {
-        diffuse = (-1.0 * diffuseFactor) * mat.diffuse * L.diffuse;
+        diffuse = 0.5 * (gDiffuse * L.diffuse);
     }
 }
 
 //---------------------------------------------------------
 // for grass we have to compute point light contibution in a specific way
 //---------------------------------------------------------
-void ComputePoint(
-    Material mat,
+void ComputePointL(
     PointLight L,
-    float3 pos, // position of the vertex
+    float3 pos,          // position of the vertex
     float3 normal,
-    float3 toEye,
-    float3 specularMap,
     out float4 ambient,
-    out float4 diffuse,
-    out float4 spec)
+    out float4 diffuse)
 {
     // initialize output
     ambient = 0;
     diffuse = 0;
-    spec = 0;
 
     float3 lightVec = L.position - pos;
 
     float d = length(lightVec);
     lightVec /= d;
 
-    ambient = mat.ambient * L.ambient;
+    ambient = gAmbient * L.ambient;
 
     float diffuseFactor = dot(lightVec, normal);
 
+	[flatten]
     if (diffuseFactor > 0.0f)
     {
-        float3 v = reflect(-lightVec, normal);
-        float specFactor = pow(max(dot(v, toEye), 0.0f), mat.specular.w);
-
-        diffuse = diffuseFactor * mat.diffuse * L.diffuse;
-        spec = specFactor * mat.specular * L.specular;
+        diffuse = diffuseFactor * (gDiffuse * L.diffuse);
     }
+	
     // light up the backface of the grass plane
     else
     {
-        diffuse = mat.diffuse * L.diffuse * 0.6f;
+        diffuse = 0.5 * (gDiffuse * L.diffuse);
     }
 
-    float att = 1.0f / dot(L.att, float3(1.0f, d, d * d));
+    float att = 1.0 / dot(L.att, float3(1.0, d, d*d));
 
     diffuse *= att;
     ambient *= att;
-    spec *= att;
 }
 
 
@@ -136,123 +120,119 @@ float4 PS(PS_IN pin) : SV_TARGET
     
     // execute alpha clipping
     clip(texDiff.a - 0.6f);
-	
-	return texDiff;
 
-    // a vector in the world space from vertex to eye pos
-    float3 toEyeW = gCamPosW - pin.posW;
-
-    // compute the distance to the eye from this surface point
-    float distToEye = length(toEyeW);
-	
 	float3 normal = normalize(pin.normal);
 	
-	// if (dot(toEyeW, normal) >= 0)
-    //    normal *= -1;
+	 if (!pin.isFrontFace)
+        normal = -normal;
+
 	
     // --------------------  LIGHT   --------------------
 
+	// a vector in the world space from vertex to eye pos
+	float3 toEyeW = gCamPosW - pin.posW;
+
+	// compute the distance to the eye from this surface point
+	const float distToEye = length(toEyeW);
+		
+	// normalize
+	toEyeW /= distToEye;
+	
     // start with a sum of zero
     float4 ambient = 0;
     float4 diffuse = 0;
-    float4 spec = 0;
 
     // sum the light contribution from each light source (ambient, diffuse, specular)
     float4 A, D, S;
-
-    Material material;
-    material.ambient = gAmbient;
-    material.diffuse = gDiffuse;
-    material.specular = gSpecular; // w-component is a specular power (glossiness)
-    material.reflect = gReflect;
-
+	
     int i = 0;
-
-    // sum the light contribution from each directional light source
-    ComputeDirLight(
-        material,
-        gDirLights[0],
-        normal,
-        toEyeW,
-        1.0f, // specular map value
-        A, D, S);
+	
+    // calc light from directed light sources
+    ComputeDirL(gDirLights[0], normal, A, D);
 
     ambient += A;
     diffuse += D;
-    spec += S;
 
     
-    // sum the light contribution from each point light source
+    // calc light from point light sources
     for (i = 0; i < gCurrNumPointLights; ++i)
     {
-        ComputePoint(
-            material,
-            gPointLights[i],
-            pin.posW,
-            normal,
-            toEyeW,
-            1.0f, // specular map value
-            A, D, S);
+        ComputePointL(gPointLights[i], pin.posW, normal, A, D);
 
         ambient += A;
         diffuse += D;
-        spec += S;
     }
    
-
-    // compute light from the flashlight
-    if (gTurnOnFlashLight)
+  
+    // compute light from the flashlight / spotlights
+    if (gTurnOnFlashLight || gCurrNumSpotLights > 1)
     {
-        ComputeSpotLight(
-            material,
-            gSpotLights[0],
-            pin.posW,
-            normal,
-            toEyeW,
-            1.0f, // specular map value
-            A, D, S);
-
-        ambient += A;
-        diffuse += D;
-        spec += S;
+		Material mat;
+		mat.ambient  = gAmbient;
+		mat.diffuse  = gDiffuse;
+		mat.specular = gSpecular;
+		mat.reflect  = gReflect;
+		
+		const float specStrength = 1.0;
+		
+		if (gTurnOnFlashLight)
+		{
+			ComputeSpotLight(
+				mat,
+				gSpotLights[0],
+				pin.posW,
+				normal,
+				toEyeW,
+				specStrength,
+				A, D, S);	
+			
+			ambient += A;
+			diffuse += D;
+		}
+			
+		// sum the light contribution from each spot light source
+		for (i = 1; i < gCurrNumSpotLights; ++i)
+		{
+			ComputeSpotLight(
+				mat,
+				gSpotLights[0],
+				pin.posW,
+				normal,
+				toEyeW,
+				specStrength,
+				A, D, S);	
+			
+			ambient += A;
+			diffuse += D;
+		}
     }
-
-    // sum the light contribution from each spot light source
-    for (i = 1; i < gCurrNumSpotLights; ++i)
-    {
-        ComputeSpotLight(
-            material,
-            gSpotLights[i],
-            pin.posW,
-            normal,
-            toEyeW,
-            1.0f, // specular map value
-            A, D, S);
-
-        ambient += A;
-        diffuse += D;
-        spec += S;
-    }
-
-	//return ambient + diffuse;
 	
-    // compute light contribution
-    float4 color = texDiff * (ambient + diffuse) + spec;
+    // compute final contribution from light sources
+    float4 light = (ambient + diffuse);
+
+	
+	// ------------------------------------------
+
+	// make a light gradient (to make better shading)
+	const float vertexDotSun  = dot(-pin.posL, gDirLights[0].direction);
+	const float lightGradient = lerp(0.5, 1.0, vertexDotSun);
 
 	// ------------------------------------------
 
     // make grass darker when closer to the ground
-    float topColor = 1.0;
+    float topColor    = 1.0;
     float bottomColor = 0.5;
-    color *= lerp(topColor, bottomColor, pin.tex.y);
-    color.a = texDiff.a;
+    light *= lerp(topColor, bottomColor, pin.tex.y);
+    light.a = texDiff.a;
+	
+	float4 color = texDiff * saturate(lightGradient * light);
 
     // ------------------------------------------
 
     if (gFogEnabled)
-    {
-        // blend sky pixel color with fixed fog color
-        float fogLerp = saturate((distToEye - gFogStart) / gFogRange);
+    {		
+        // fog intensity
+        const float fogLerp = saturate((distToEye - gFogStart) / gFogRange);
 
         // blend the fog color and the lit color
         color = lerp(color, float4(pin.fogColor, 1.0), fogLerp);

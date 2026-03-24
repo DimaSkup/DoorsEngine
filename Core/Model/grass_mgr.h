@@ -21,6 +21,8 @@
 #include <Mesh/index_buffer.h>
 #include <geometry/rect3d.h>
 
+#define NUM_GRASS_CHANNELS 4
+
 // forward declarations for global scope (pointer use only)
 class Frustum;
 
@@ -38,9 +40,12 @@ class Model;
 struct GrassFieldInitParams
 {
     char name[MAX_LEN_MODEL_NAME];            // name of grass field
-    char modelNames[4][MAX_LEN_MODEL_NAME];   // model for grass channels (columns of the texture atlas)
+
+    // models for grass channels (each channel can have its own model)
+    char modelNames[NUM_GRASS_CHANNELS][MAX_LEN_MODEL_NAME]; 
 
     char materialName[MAX_LEN_MAT_NAME];      // material for the whole grass field
+
     char densityMask[64];                     // grass density mask for the whole grass field
 
     int centerX;                // center of the grass field in world
@@ -59,7 +64,7 @@ struct GrassFieldInitParams
     float grassMinHeight;
     float grassMaxHeight;
 
-    float channelProbability[4];
+    float channelProbability[NUM_GRASS_CHANNELS];
 };
 
 //---------------------------------------------------------
@@ -77,11 +82,11 @@ struct GrassInstance
 //---------------------------------------------------------
 struct GrassCell
 {
-    cvector<GrassInstance> grassInstances;     // CPU-side grass instances
+    cvector<GrassInstance> grassInstances;                  // CPU-side grass instances
 
     // channels metadata (NOTE: not required to use all 4)
-    uint32 channelStart[4];              // index where instances begins for particular channel
-    uint32 channelInstanceCount[4];      // how many instances related to particular channel
+    uint32 channelStart[NUM_GRASS_CHANNELS];            // index where instances begins for particular channel
+    uint32 channelInstanceCount[NUM_GRASS_CHANNELS];    // how many instances related to particular channel
 };
 
 //---------------------------------------------------------
@@ -99,7 +104,7 @@ struct GrassField
   
     cvector<GrassCell> cells;               // grass sectors
     cvector<Rect3d>    cellsWorldBoxes;     // world AABB of each cell
-    ModelID            grassModelId[4];
+    ModelID            grassModelId[NUM_GRASS_CHANNELS];
 
     
     float              grassMinHeight;
@@ -113,14 +118,14 @@ struct GrassField
 
     uint8              numChannels;         // the same as number of texture slots
 
-    uint32             numInstPerChannel[4];
-    bool               bGeneratedModel[4];  // is model for channel (by index 0-3) generated?
+    uint32             numInstPerChannel[NUM_GRASS_CHANNELS];
+    bool               bGeneratedModel[NUM_GRASS_CHANNELS];  // is model for channel (by index 0-3) generated?
 
-    float              channelProbability[4];
+    float              channelProbability[NUM_GRASS_CHANNELS];
 
 
-    ID3D11Buffer* pInstancedBuf = nullptr;   // GPU-side buffer for all the visible grass instances
-    uint32 instancesBufCounts[4];               // number of instances per channel (in the instanced buffer)
+    ID3D11Buffer* pInstancedBuf = nullptr;          // GPU-side buffer for all the visible grass instances
+    uint32 instancesBufCounts[NUM_GRASS_CHANNELS];  // number of instances per channel (in the instanced buffer)
 };
 
 //---------------------------------------------------------

@@ -1431,7 +1431,7 @@ void CGraphics::RenderGrass()
     // bind material for the whole field
     const Material& mat = g_MaterialMgr.GetMatByName("grass_0");
     BindMaterial(mat);
-    //pRender_->UpdateCbMaterialColors(mat.ambient, mat.diffuse, mat.specular, mat.reflect);
+    pRender_->UpdateCbMaterialColors(mat.ambient, mat.diffuse, mat.specular, mat.reflect);
 
 
     // render each channel of the grass field
@@ -1463,6 +1463,15 @@ void CGraphics::RenderGrass()
 
         startInstanceLocation += field.instancesBufCounts[ch];
     }
+
+    uint numRenderedInstances = 0;
+
+    for (int ch = 0; ch < field.numChannels; ++ch)
+    {
+        numRenderedInstances += field.instancesBufCounts[ch];
+    }
+
+    //printf("num grass: %u\n", numRenderedInstances);
 
 #if 0
     // render each visible grass patch

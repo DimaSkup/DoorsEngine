@@ -1472,7 +1472,7 @@ uint8 TerrainBase::GetNatureDensityAtPoint(const float x, const float z) const
 
     const float ratio  = (float)mapSize / (float)terrainLength_;
     const int   texelX = (int)(x * ratio);
-    const int   texelY = (int)(mapSize - z * ratio);
+    const int   texelY = (int)(z * ratio);
 
     return natureDensityMap_.GetPixelGray(texelX, texelY);
 }

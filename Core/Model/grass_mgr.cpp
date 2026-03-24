@@ -47,6 +47,21 @@ void CalcFieldYBoundings(GrassField& field);
 void InitBuffers(GrassField& field);
 
 
+void PrintDumpCellInstances(const GrassCell& cell, const index cellIdx)
+{
+    SetConsoleColor(CYAN);
+    printf("Dump instances of cell_%tu:\n", cellIdx);
+
+    for (index i = 0; i < cell.grassInstances.size(); ++i)
+    {
+        const Vec3& p = cell.grassInstances[i].pos;
+        printf("instance[%tu]:   pos(%.2f %.2f %.2f)\n", i, p.x, p.y, p.z);
+    }
+    printf("\n");
+    SetConsoleColor(RESET);
+}
+
+
 //---------------------------------------------------------
 // create a new grass field based on input params
 //---------------------------------------------------------
@@ -75,14 +90,13 @@ bool GrassMgr::AddGrassField(const GrassFieldInitParams& params)
     field.grassMinHeight = params.grassMinHeight;
     field.grassMaxHeight = params.grassMaxHeight;
 
-    field.numChannels = field.texSlots;
+    field.channelProbability[0] = params.channelProbability[0];
+    field.channelProbability[1] = params.channelProbability[1];
+    field.channelProbability[2] = params.channelProbability[2];
+    field.channelProbability[3] = params.channelProbability[3];
 
-    // TEMP: hardcoded probabilities
-    field.channelProbability[0] = 1.0f;
-    field.channelProbability[1] = 1.0f;
-    field.channelProbability[2] = 1.0f;
-    field.channelProbability[3] = 1.0f;
-    
+
+    field.numChannels = field.texSlots;
 
     // get material for the whole field
     field.matId = g_MaterialMgr.GetMatIdByName(params.materialName);
@@ -123,6 +137,7 @@ void CheckInitParams(const GrassFieldInitParams& params)
     assert(!StrHelper::IsEmpty(params.modelNames[2]));
     assert(!StrHelper::IsEmpty(params.modelNames[3]));
 
+  
     assert(strlen(params.name)        < MAX_LEN_MODEL_NAME);
     assert(strlen(params.densityMask) < sizeof(GrassField::densityMask));
 
@@ -145,8 +160,8 @@ void CheckInitParams(const GrassFieldInitParams& params)
     assert(params.sizeX % params.cellsByX == 0);
     assert(params.sizeZ % params.cellsByZ == 0);
 
-    assert(params.texSlots > 0 && params.texSlots <= 4);
-    assert(params.texRows  > 0 && params.texSlots <= 4);
+    assert(params.texSlots > 0 && params.texSlots <= NUM_GRASS_CHANNELS);
+    assert(params.texRows  > 0 && params.texSlots <= NUM_GRASS_CHANNELS);
 
     assert(params.grassCount > 0);
 
@@ -310,6 +325,21 @@ void CalcNumInstancesPerChannel(GrassField& field)
         const float factor = field.channelProbability[ch] / channelsSumProbability;
         field.numInstPerChannel[ch] = (uint32)(factor * (float)field.grassCount);
     }
+
+    int sumNumInstances =
+        field.numInstPerChannel[0] +
+        field.numInstPerChannel[1] +
+        field.numInstPerChannel[2] +
+        field.numInstPerChannel[3];
+
+    // a bit HACKY: make a little correction to make sure that
+    // we have a proper number of instances over all the channels
+    int correction = (int)field.grassCount - sumNumInstances;
+
+    sumNumInstances += correction;
+    field.numInstPerChannel[0] += correction;
+
+    assert(sumNumInstances == field.grassCount);
 }
 
 //---------------------------------------------------------
@@ -318,7 +348,7 @@ void GenerateGrassInstances(GrassField& field, cvector<GrassInstance>& outGrass)
 {
     const Terrain& terrain = g_ModelMgr.GetTerrain();
     Image densityMap;
-    Image* densityMaps[4]{ nullptr };
+    Image* densityMaps[NUM_GRASS_CHANNELS]{ nullptr };
 
 
     // load density maps for this field
@@ -336,6 +366,8 @@ void GenerateGrassInstances(GrassField& field, cvector<GrassInstance>& outGrass)
     densityMaps[2] = &densityMap;
     densityMaps[3] = &densityMap;
 
+    const uint   densityMapWidth = densityMap.GetWidth();
+    const uint   densityMapHeight = densityMap.GetHeight();
 
     //
     // calc random position for each instance
@@ -351,15 +383,19 @@ void GenerateGrassInstances(GrassField& field, cvector<GrassInstance>& outGrass)
     {
         // each channel has its own density map
         const Image& currDensityMap   = *densityMaps[ch];
-        const uint   densityMapWidth  = currDensityMap.GetWidth();
-        const uint   densityMapHeight = currDensityMap.GetHeight();
+        
 
 
         for (uint i = 0; i < field.numInstPerChannel[ch]; ++i)
         {
             Vec3 pos;
-            uint8 density = 0;
 
+            uint8 density = 0;
+            uint8 r = 0;
+            uint8 g = 0;
+            uint8 b = 0;
+
+            // if we need to regenerate position for this instance
             while (density < 1)
             {
                 // random horizontal position
@@ -371,13 +407,27 @@ void GenerateGrassInstances(GrassField& field, cvector<GrassInstance>& outGrass)
                 const float y = (pos.z - field.worldBox.z0) * worldBoxInvDZ;
 
                 const uint px = (uint)(x * densityMapWidth);
-                const uint py = densityMapHeight - (uint)(y * densityMapHeight);
+                const uint py = (uint)(y * densityMapHeight);
 
-                density = currDensityMap.GetPixelGray(px, py);
+#if 0
+                currDensityMap.GetColor(px, py, r, g, b);
+
+
+                if (ch == 0)        density = r;
+                else if (ch == 1)   density = g;
+                else if (ch == 2)   density = b;
+                else if (ch == 3)   density = r | g | b;
+#endif
+
+                density = densityMap.GetPixelGray(px, py);
             }
 
             // get instance height according to terrain
             pos.y = terrain.GetScaledInterpolatedHeightAtPoint(pos.x, pos.z);
+
+            assert(pos.x >= 0);
+            assert(pos.y >= 0);
+            assert(pos.z >= 0);
 
             outGrass[grassIdx++].pos = pos;
         }
@@ -403,7 +453,7 @@ void GenerateGrassInstances(GrassField& field, cvector<GrassInstance>& outGrass)
                 GrassInstance& grass = outGrass[grassIdx++];
 
                 grass.texColumn = ch;                  // is the same as channel index
-                grass.texRow    = (int)RandUint(0, 4);
+                grass.texRow    = (int)RandUint(0, field.texRows);
             }
         }
 
@@ -447,13 +497,20 @@ void GroupGrassInstancesByCells(GrassField& field, const cvector<GrassInstance>&
     int channel = 0;
     uint32 idx = 0;
 
+    for (GrassCell& cell : field.cells)
+        cell.grassInstances.clear();
+
+   // PrintDumpCellInstances(field.cells[1], 1);
+
+
     for (const GrassInstance& grass : grassInstances)
     {
         // if we need to switch to the next channel
         if (idx >= field.numInstPerChannel[channel])
         {
-            channel++;
             idx = 0;
+            channel++;
+            assert(channel < field.numChannels);
         }
 
         const Vec3& p = grass.pos;
@@ -468,6 +525,7 @@ void GroupGrassInstancesByCells(GrassField& field, const cvector<GrassInstance>&
             if (!bInBox)
                 continue;
 
+           
             // bind instance to cell
             field.cells[cellIdx].grassInstances.push_back(grass);
             field.cells[cellIdx].channelInstanceCount[channel]++;
@@ -477,8 +535,6 @@ void GroupGrassInstancesByCells(GrassField& field, const cvector<GrassInstance>&
 
         idx++;
     }
-
-    assert(channel == 3);
 
     // setup instances start index of each channel
     for (GrassCell& cell : field.cells)
@@ -579,8 +635,16 @@ void CalcFieldYBoundings(GrassField& field)
         }
 
         // set Y-boundings
-        field.cellsWorldBoxes[i].y0 = minY;
-        field.cellsWorldBoxes[i].y1 = maxY;
+        if (cell.grassInstances.size() > 0)
+        {
+            field.cellsWorldBoxes[i].y0 = minY;
+            field.cellsWorldBoxes[i].y1 = maxY;
+        }
+        else
+        {
+            field.cellsWorldBoxes[i].y0 = 0;
+            field.cellsWorldBoxes[i].y1 = 0;
+        }
 
         minY = FLT_MAX;
         maxY = FLT_MIN;
@@ -591,7 +655,7 @@ void CalcFieldYBoundings(GrassField& field)
     minY = FLT_MAX;
     maxY = FLT_MIN;
 
-    for (const Rect3d& box : field.cellsWorldBoxes)
+    for (int i = 0; const Rect3d& box : field.cellsWorldBoxes)
     {
         minY = Min(minY, box.y0);
         maxY = Max(maxY, box.y1);

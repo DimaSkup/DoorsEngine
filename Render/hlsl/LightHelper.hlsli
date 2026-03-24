@@ -312,9 +312,9 @@ void ComputePointLightFoliage(
     // point being lit to the eye
 
     // initialize output
-    ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
-    diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);
-    spec = float4(0.0f, 0.0f, 0.0f, 0.0f);
+    ambient = 0;
+    diffuse = 0;
+    spec    = 0;
 
     float3 lightVec = L.position - pos;
 
@@ -347,7 +347,7 @@ void ComputePointLightFoliage(
 
     diffuse *= att;
     ambient *= att;
-    spec *= att;
+    spec    *= att;
 }
 
 ///////////////////////////////////////
@@ -369,9 +369,9 @@ void ComputeSpotLight(
     // point being lit to the eye
 
     // initialize outputs
-    ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
-    diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);
-    spec    = float4(0.0f, 0.0f, 0.0f, 0.0f);
+    ambient = 0;
+    diffuse = 0;
+    spec    = 0;
     
     // the vector from the surface to the light
     float3 lightVec = L.position - pos;

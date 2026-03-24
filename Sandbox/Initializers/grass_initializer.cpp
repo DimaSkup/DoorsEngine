@@ -225,6 +225,8 @@ void ReadGrassFieldParams(
         count = sscanf(buf, "%s", key);
         assert(count == 1);
 
+
+        // read in models per each grass channel
         if (strcmp(key, "channel_0_model") == 0)
             ReadStrParam(buf, outData.modelNames[0]);
 
@@ -237,6 +239,20 @@ void ReadGrassFieldParams(
         else if (strcmp(key, "channel_3_model") == 0)
             ReadStrParam(buf, outData.modelNames[3]);
 
+        // read in appearing probability factor per each grass channel
+        else if (strcmp(key, "channel_0_probability") == 0)
+            ReadFloatParam(buf, outData.channelProbability[0]);
+
+        else if (strcmp(key, "channel_1_probability") == 0)
+            ReadFloatParam(buf, outData.channelProbability[1]);
+
+        else if (strcmp(key, "channel_2_probability") == 0)
+            ReadFloatParam(buf, outData.channelProbability[2]);
+
+        else if (strcmp(key, "channel_3_probability") == 0)
+            ReadFloatParam(buf, outData.channelProbability[3]);
+
+        // read in params of the whole field
         else if (strcmp(key, "material") == 0)
             ReadStrParam(buf, outData.materialName);
 
