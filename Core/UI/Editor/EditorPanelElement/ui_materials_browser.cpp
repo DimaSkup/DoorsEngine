@@ -308,7 +308,7 @@ void UIMaterialsBrowser::GetMaterialDataByIdx(const int matIdx)
 
     const MaterialID matId = pFacade_->GetMaterialIdByIdx(matIdx);
 
-    if (matId == INVALID_MATERIAL_ID)
+    if (matId == INVALID_MAT_ID)
     {
         LogErr(LOG, "can't get material id by index: %d", matIdx);
         return;

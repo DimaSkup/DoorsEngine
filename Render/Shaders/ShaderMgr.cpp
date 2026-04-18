@@ -313,18 +313,26 @@ void ShaderMgr::BindBuffers(
 //---------------------------------------------------------
 void ShaderMgr::BindShader(ID3D11DeviceContext* pContext, Shader* pShader)
 {
+    static GeometryShader* pPrevGS = nullptr;
+
     if (pShader)
     {
         pContext->VSSetShader     (pShader->GetVS()->GetShader(), nullptr, 0);
         pContext->IASetInputLayout(pShader->GetVS()->GetInputLayout());
         pContext->PSSetShader     (pShader->GetPS()->GetShader(), nullptr, 0);
 
-        // if we have a geometry shader we bind it
-        if (pShader->GetGS())
-        {
-            pContext->GSSetShader(pShader->GetGS()->GetShader(), nullptr, 0);
-        }
+        GeometryShader* pGS = pShader->GetGS();
 
+        if (pPrevGS == pGS)
+            return;
+
+        pPrevGS = pGS;
+
+        // if we have a geometry shader we bind it
+        if (pGS)
+        {
+            pContext->GSSetShader(pGS->GetShader(), nullptr, 0);
+        }
         // unbind any geometry shaders for sure
         else
         {
@@ -373,37 +381,6 @@ void ShaderMgr::DepthPrePassBindShader(ID3D11DeviceContext* pContext, Shader* pS
             pContext->GSSetShader(nullptr, nullptr, 0);
         }
     }
-}
-
-//---------------------------------------------------------
-// Desc:  draw indexed vertices
-// NOTE:  all the neccessary preparations must be done before it
-//        - materials must be bound (setup render states + bound textures)
-//        - InputAssembler stage must be configured (bind buffers, input layouts, etc)
-//        - all the shaders must be bound
-//---------------------------------------------------------
-void ShaderMgr::Render(ID3D11DeviceContext* pContext, const UINT indexCount)
-{
-    pContext->DrawIndexed(indexCount, 0, 0);
-}
-
-//---------------------------------------------------------
-// Desc:   render instances starting from startInstanceLocation
-//         in the instances buffer
-//---------------------------------------------------------
-void ShaderMgr::Render(
-    ID3D11DeviceContext* pContext,
-    const InstanceBatch& instances,
-    const UINT startInstanceLocation)
-{
-    const Subset& subset = instances.subset;
-
-    pContext->DrawIndexedInstanced(
-        subset.indexCount,
-        instances.numInstances,
-        subset.indexStart,
-        subset.vertexStart,
-        startInstanceLocation);
 }
 
 //---------------------------------------------------------

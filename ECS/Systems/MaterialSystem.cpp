@@ -29,11 +29,11 @@ MaterialSystem::MaterialSystem(Material* pMaterialComponent, NameSystem* pNameSy
     assert(pNameSys);
 
     // setup default (invalid) material which has ID == 0 for invalid entity
-    const cvector<MaterialID> materialsIDs(1, INVALID_MATERIAL_ID);
+    const cvector<MaterialID> materialsIDs(1, INVALID_MAT_ID);
     const bool                isMeshBasedMaterials = true;
     MaterialData              matData(materialsIDs.data(), materialsIDs.size());
 
-    pMaterialComponent->enttsIds.push_back(INVALID_ENTITY_ID);
+    pMaterialComponent->enttsIds.push_back(INVALID_ENTT_ID);
     pMaterialComponent->data.push_back(std::move(matData));
 }
 
@@ -48,7 +48,7 @@ void MaterialSystem::AddRecord(
     const MaterialID* materialsIds,
     const size numSubmeshes)
 {
-    assert(enttId != INVALID_ENTITY_ID);
+    assert(enttId != INVALID_ENTT_ID);
     assert(materialsIds);
     assert(numSubmeshes);
 

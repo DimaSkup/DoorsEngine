@@ -36,6 +36,21 @@ namespace ConstBufType
 
     // ----------------------------------------------------
 
+    struct Grass
+    {
+        // range from camera where grass is full sized
+        float distGrassFullSize = 0;    
+
+        // grass visibility range
+        float distGrassVisible = 40;    
+
+        // how many texture columns/rows we have on a grass atlas
+        float numTexColumns = 1;        
+        float numTexRows    = 1;        
+    };
+
+    // ----------------------------------------------------
+
     // container for different weather params (is used in different shader stages: VS, GS)
     struct Weather
     {
@@ -59,9 +74,7 @@ namespace ConstBufType
 
         DirectX::XMFLOAT3  skyColorApex = { 1,1,1 };            // top color
 
-        float distGrassFullSize = 0;    // range from camera where grass is full sized
-        float distGrassVisible = 40;    // grass visibility range
-
+      
         int                fogEnabled = true;                   // turn on/off the fog effect     
     };
 

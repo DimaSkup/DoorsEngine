@@ -70,7 +70,7 @@ bool SoundMgr::Init(const char* filename, const HWND& hwnd)
     LogMsg("---------------------------------------------------------");
 
 
-    const TimePoint start = GameTimer::GetTimePoint();
+    const TimePoint start = GetTimePoint();
     char buf[512];
     char soundName[MAX_LEN_SOUND_NAME];
     char soundPath[256];
@@ -125,9 +125,7 @@ bool SoundMgr::Init(const char* filename, const HWND& hwnd)
         LogMsg("\tsound is loaded: %s", soundName);
     }
 
-
-    const TimePoint      end = GameTimer::GetTimePoint();
-    const TimeDurationMs dur = end - start;
+    const TimeDurationMs dur = GetTimePoint() - start;
 
     SetConsoleColor(MAGENTA);
     LogMsg("--------------------------------------");

@@ -1,0 +1,270 @@
+newmtl sky_mat_01
+shader SkyDomeShader
+rs skyDome
+dss skyDome
+
+newmtl sky_plane_clouds
+shader SkyCloudShader
+tex_0 sky/cloud01
+tex_1 sky/cloud02
+bs transparent
+
+newmtl act_arm_perchatka_hud
+shader PlayerWeaponShader
+Ka 0.40 0.40 0.40 1.00
+Kd 0.80 0.80 0.80 1.00
+Ks 0.10 0.10 0.10
+Kg 25.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff act/arm_1
+
+newmtl grass_0
+shader GrassShader
+Ka 0.85 0.85 0.85 1.0
+Kd 0.82 0.82 0.82 1.0
+tex_diff plants/grass00
+alpha_clip 1
+rs rs_grass
+
+newmtl grass_1
+shader GrassShader
+Ka 0.68 0.82 0.93 1.0
+Kd 0.82 0.82 0.82 1.0
+tex_diff plants/grass01
+alpha_clip 1
+rs rs_grass
+
+newmtl grass_2
+shader GrassShader
+Ka 0.78 0.78 0.78 1.0
+Kd 0.82 0.82 0.82 1.0
+tex_diff plants/grass02
+alpha_clip 1
+rs rs_grass
+
+newmtl brick_01
+shader LightShader
+Ka 0.4 0.4 0.4 1.0
+Kd 0.8 0.8 0.8 1.0
+Kg 1.0
+Kr 0.0 0.0 0.0 1.0
+tex_diff brick/brick01d
+tex_norm brick/brick01n
+
+newmtl brick_blend_add
+shader LightShader
+Ka 0.4 0.4 0.4 1.0
+Kd 0.8 0.8 0.8 1.0
+Kg 1.0
+Kr 0.0 0.0 0.0 1.0
+tex_diff brick/brick01d
+tex_norm brick/brick01n
+bs additive
+
+newmtl brick_blend_sub
+shader LightShader
+Ka 0.4 0.4 0.4 1.0
+Kd 0.8 0.8 0.8 1.0
+Kg 1.0
+Kr 0.0 0.0 0.0 1.0
+tex_diff brick/brick01d
+tex_norm brick/brick01n
+bs sub
+
+newmtl brick_blend_mul
+shader LightShader
+Ka 0.4 0.4 0.4 1.0
+Kd 0.8 0.8 0.8 1.0
+Kg 1.0
+Kr 0.0 0.0 0.0 1.0
+tex_diff brick/brick01d
+tex_norm brick/brick01n
+bs mul
+
+newmtl brick_blend_transparent
+shader LightShader
+Ka 0.4 0.4 0.4 1.0
+Kd 0.8 0.8 0.8 1.0
+Kg 1.0
+Kr 0.0 0.0 0.0 1.0
+tex_diff brick/brick01d
+tex_norm brick/brick01n
+bs transparent
+
+newmtl mirror
+shader MetallicShader
+Kr 1.0 1.0 1.0 1.0
+tex_diff random/gray
+
+newmtl cat
+shader LightShader
+tex_diff random/cat
+tex_norm blankNRM
+
+newmtl wood_crate_1
+shader LightShader
+tex_diff wood/crate01
+tex_norm blankNRM
+
+newmtl wood_crate_2
+shader LightShader
+tex_diff wood/crate02
+tex_norm blankNRM
+
+newmtl box01
+shader LightShader
+Ka 0.20 0.20 0.20 1.0
+Kd 0.90 0.90 0.90 1.0
+Ks 0.14 0.14 0.14
+Kg 1.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff wood/box01d
+tex_norm wood/box01n
+
+newmtl wirefence
+shader LightShader
+tex_diff mtl/wirefence
+alpha_clip 1
+
+newmtl shodan
+shader ShaderArt
+tex_diff random/shodan
+tex_norm blankNRM
+
+newmtl ground04
+shader LightShader
+Ka 0.3 0.3 0.3 1.0
+Kd 0.5 0.5 0.5 1.0 
+Kg 1.0
+Kr 0.0 0.0 0.0 1.0
+tex_diff grnd/ground04
+tex_norm blankNRM
+
+newmtl gigachad
+shader LightShader
+Ka 0.3 0.3 0.3 1.0
+Kd 0.5 0.5 0.5 1.0 
+Kg 1.0
+Kr 0.0 0.0 0.0 1.0
+tex_diff random/gigachad
+
+newmtl tree_pine_lod_1
+shader TreeLod1Shader
+alpha_clip 1
+Ka 0.39 0.39 0.39 1.00
+Kd 0.45 0.45 0.45 1.00
+Ks 0.00 0.00 0.00
+Kg 1.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff lods/pine_diff
+tex_norm lods/pine_norm
+
+newmtl tree_pine_lod_2
+shader TreeLod2Shader
+Ka 0.39 0.39 0.39 1.00
+Kd 0.45 0.45 0.45 1.00
+Ks 0.00 0.00 0.00
+Kg 1.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff  lods/pine_diff
+tex_norm  lods/pine_norm
+tex_light lods/lod2_lightmap
+alpha_clip 1
+
+newmtl tree_spruce_lod_1
+shader TreeLod1Shader
+alpha_clip 1
+Ka 1.00 1.00 1.00 1.00
+Kd 1.00 1.00 1.00 1.00
+Ks 0.00 0.00 0.00
+Kg 1.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff  lods/spruce_diff
+tex_norm  lods/spruce_norm
+
+newmtl tree_spruce_lod_2
+shader TreeLod2Shader
+Ka 1.00 1.00 1.00 1.00
+Kd 1.00 1.00 1.00 1.00
+Ks 0.00 0.00 0.00
+Kg 10.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff lods/spruce_diff
+tex_norm lods/spruce_norm
+tex_light lods/lod2_lightmap
+alpha_clip 1
+
+newmtl rainMat0
+shader ParticleShader
+tex_diff fx/rain
+bs particles
+dss rain
+
+newmtl smokeMat0
+shader ParticleShader
+tex_diff particle/smoke01
+bs particles
+dss particles
+
+newmtl smokeMat1
+shader ParticleShader
+tex_diff particle/smoke05
+bs particles
+dss particles
+
+newmtl smokeMat2
+shader ParticleShader
+tex_diff particle/smoke08
+bs particles
+dss particles
+
+newmtl sparkMat0
+shader ParticleShader
+tex_diff particle/spark05
+bs additive
+dss particles
+
+newmtl sparkMat1
+shader ParticleShader
+tex_diff particle/spark06
+bs additive
+dss particles
+
+newmtl pfx_smokePuffs1
+shader ParticleShader
+tex_diff pfx/pfx_smokePuffs1
+bs transparent
+dss decals
+
+newmtl fragments0
+shader ParticleShader
+tex_diff pfx/pfx_stonedebris2
+bs transparent
+dss particles
+
+newmtl fragments1
+shader ParticleShader
+tex_diff pfx/pfx_stonedebris3
+bs transparent
+dss particles
+
+newmtl flameMat
+shader ParticleShader
+tex_diff fx/flame0
+bs particles
+dss particles
+
+newmtl flareMat
+shader ParticleShader
+tex_diff flare/flare01
+bs particles
+dss particles
+
+newmtl wallmark
+shader DecalShader
+Ka 0.33 0.33 0.33 1.00
+Kd 0.50 0.50 0.50 1.00
+tex_diff wallmark/default
+rs decals
+bs transparent
+dss decals

@@ -37,7 +37,7 @@ struct Sprite
     {
         // push data which will serve us as "invalid"
         // (we will receive it in cases when try to get data by wrong ID or name)
-        ids.push_back(INVALID_ENTITY_ID);
+        ids.push_back(INVALID_ENTT_ID);
         data.push_back(SpriteData());
     }
 

@@ -60,6 +60,9 @@ enum eEnttComponentType
     AnimationComponent,         // for model skinning
     SpriteComponent,            // 2D sprite
 
+    WeaponComponent,            // weapon data
+    TriggerComponent,
+
     // NOT IMPLEMENTED YET
     AIComponent,
     HealthComponent,

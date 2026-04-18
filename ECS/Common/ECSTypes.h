@@ -6,18 +6,8 @@
 // *********************************************************************************
 #pragma once
 
-#include <DirectXMath.h>
-
 namespace ECS
 {
-
-// Common typedefs
-using UINT          = unsigned int;
-using XMFLOAT2      = DirectX::XMFLOAT2;
-using XMFLOAT3      = DirectX::XMFLOAT3;
-using XMFLOAT4      = DirectX::XMFLOAT4;
-using XMVECTOR      = DirectX::XMVECTOR;
-using XMMATRIX      = DirectX::XMMATRIX;
 
 
 // for detailed (I hope) description of each component
@@ -41,6 +31,9 @@ enum eComponentType
     InventoryComponent,         // inventory of entity
     AnimationComponent,         // for model skinning
     SpriteComponent,            // 2D sprite
+
+    WeaponComponent,
+    TriggerComponent,
 
     // NOT IMPLEMENTED YET
     AIComponent,

@@ -5,6 +5,7 @@
 // Created:      22.04.24
 // =================================================================================
 #pragma once
+#include <DirectXMath.h>
 
 namespace ECS
 {
@@ -39,15 +40,34 @@ struct PlayerData
 
     float pitch             = 0.0f;
     float yaw               = 0.0f;
-    float jumpOffset        = 0.0f;     // current height over the land (when in jump)
+    float jumpOffset        = 0.0f;         // current height over the land (when in jump)
     float jumpMaxHeight     = 1.0f;
     float minVerticalOffset = 0;
     float offsetOverTerrain = 1;
 
-    EntityID activeWeaponId = INVALID_ENTITY_ID;
-    uint64 playerStates_ = 0;
+    float currActTime = 0;                  // time passed since the start of player's animation (handls, weapon, etc.)
+    float endActTime  = 0;                  // duration of the current player's animation
+
+    float shotTimer = 0;                    // time passed since the start of shot
+    float stepTimer = 0;
+
+    float currStepInterval = 0.5f;
+    float stepIntervalWalk = 0.5f;
+    float stepIntervalRun = 0.1f;
+
+    AnimationID currAnimId = 0;
+
+    EntityID activeWeaponId = INVALID_ENTT_ID;
+    uint64 playerStates = 0;
 
     DirectX::XMVECTOR rightVec = { 1,0,0 };
+
+    SoundID soundStepL = 0;
+    SoundID soundStepR = 0;
+
+    bool soundStepL_Playing = false;
+    bool soundStepR_Played = false;
+    bool soundShotPlaying = false;
 };
 
 

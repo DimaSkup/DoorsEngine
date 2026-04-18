@@ -2,7 +2,6 @@
 // Filename: Log.cpp
 // =================================================================================
 #include "log.h"
-#include "file_system.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -33,6 +32,33 @@ static LogStorage         s_LogStorage;
 void SetConsoleColor(const char* keyColor)
 {
     printf("%s", keyColor);
+}
+
+//-----------------------------------------------------
+// return relative path from the project root
+//-----------------------------------------------------
+void GetPathFromProjRoot(const char* fullPath, char* outPath)
+{
+    if ((!fullPath) || (fullPath[0] == '\0'))
+    {
+        LogErr(LOG, "empty path");
+        return;
+    }
+
+    if (!outPath)
+    {
+        LogErr(LOG, "in-out path == nullptr");
+        return;
+    }
+
+    const char* found = strstr(fullPath, "DoorsEngine\\");
+
+    // if we found the substring we copy all the text after "DoorsEngine\"
+    if (found != nullptr)
+        strcpy(outPath, found + strlen("DoorsEngine\\"));
+
+    else
+        outPath[0] = '\0';
 }
 
 //---------------------------------------------------------
@@ -312,7 +338,7 @@ void LogMsg(
     vsnprintf(buf, sizeof(buf), format, args);
 
     // get a relative path to the caller's file
-    FileSys::GetPathFromProjRoot(fullFilePath, fileName);
+    GetPathFromProjRoot(fullFilePath, fileName);
 
     // print a message into the console and log file
     SetConsoleColor(GREEN);
@@ -342,7 +368,7 @@ void LogDbg(
     vsnprintf(buf, sizeof(buf), format, args);
 
     // get a relative path to the caller's file
-    FileSys::GetPathFromProjRoot(fullFilePath, fileName);
+    GetPathFromProjRoot(fullFilePath, fileName);
 
     // print a message into the console and log file
     SetConsoleColor(RESET);
@@ -372,7 +398,7 @@ void LogErr(
     vsnprintf(buf, sizeof(buf), format, args);
 
     // get a relative path to the caller's file
-    FileSys::GetPathFromProjRoot(fullFilePath, fileName);
+    GetPathFromProjRoot(fullFilePath, fileName);
 
     const time_t time = clock();
     const char*  fmt =
@@ -421,7 +447,7 @@ void LogFatal(
     vsnprintf(buf, sizeof(buf), format, args);
 
     // get a relative path to the caller's file
-    FileSys::GetPathFromProjRoot(fullFilePath, fileName);
+    GetPathFromProjRoot(fullFilePath, fileName);
 
     const time_t time = clock();
     const char* fmt =

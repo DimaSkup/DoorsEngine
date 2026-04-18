@@ -14,7 +14,6 @@
     Created:  21.01.2025  by DimaSkup
 \**********************************************************************************/
 #include "../Common/pch.h"
-#include <Timers/game_timer.h>
 #include <parse_helpers.h>              // helpers for parsing string buffers, or reading data from file
 #include "particles_initializer.h"
 #include <Render/debug_draw_manager.h>
@@ -46,34 +45,26 @@ void HandleEmitterProperty(
 //        - enttMgr:   a ref to ECS entity manager
 // Ret:   true if everything is ok
 //---------------------------------------------------------
-bool ParticlesInitializer::Init(const char* configFilepath, ECS::EntityMgr& enttMgr)
+bool ParticlesInitializer::Init(const char* cfgFilepath, ECS::EntityMgr& enttMgr)
 {
-    using namespace Core;
-
-    if (StrHelper::IsEmpty(configFilepath))
+    if (StrHelper::IsEmpty(cfgFilepath))
     {
         LogErr(LOG, "empty filepath");
         return false;
     }
+
+    LogMsg(LOG, "initialize emitters from file: %s", cfgFilepath);
 
 
     char buf[256];
     char emitterName[64];
     int  emitterIdx = 0;
     int  count = 0;
-    const TimePoint start = GameTimer::GetTimePoint();
-
-    SetConsoleColor(YELLOW);
-    LogMsg("---------------------------------------------------------");
-    LogMsg("            INITIALIZATION: PARTICLE EMITTERS            ");
-    LogMsg("---------------------------------------------------------");
-    LogMsg(LOG, "initialize emitters from file: %s", configFilepath);
-
-
-    FILE* pFile = fopen(configFilepath, "r");
+   
+    FILE* pFile = fopen(cfgFilepath, "r");
     if (!pFile)
     {
-        LogErr(LOG, "can't open a particles file: %s", configFilepath);
+        LogErr(LOG, "can't open a particles file: %s", cfgFilepath);
         return false;
     }
 
@@ -101,16 +92,6 @@ bool ParticlesInitializer::Init(const char* configFilepath, ECS::EntityMgr& entt
         ReadAndCreateEmitter(enttMgr, pFile, emitterName, emitterIdx);
         emitterIdx++;
     }
-
-    const TimeDurationMs dur = GameTimer::GetTimePoint() - start;
-
-    LogMsg(LOG, "all the PARTICLE emitters are initialized");
-    SetConsoleColor(MAGENTA);
-    LogMsg("--------------------------------------");
-    LogMsg("Init of particles took: %.3f ms", dur.count());
-    LogMsg("--------------------------------------\n");
-    SetConsoleColor(RESET);
-
 
     fclose(pFile);
     return true;
@@ -147,6 +128,7 @@ void ParticlesInitializer::ReadAndCreateEmitter(
 
     while (readProps && fgets(buf, sizeof(buf), pFile))
     {
+        // if we finished reading declaration of this emitter
         if (buf[0] == '}')
         {
             readProps = false;
@@ -247,20 +229,22 @@ ECS::eVelocityDirInitType GetVelocityDirectionGenType(const char* type)
 //---------------------------------------------------------
 ECS::eEventParticleHitBox GetEventParticleHitAABB(const char* eventType)
 {
+    using namespace ECS;
+
     if (StrHelper::IsEmpty(eventType))
     {
         LogErr(LOG, "empty input str");
-        return ECS::EVENT_PARTICLE_HIT_BOX_DIE;
+        return EVENT_PARTICLE_HIT_BOX_DIE;
     }
 
     if (strcmp(eventType, "die") == 0)
-        return ECS::EVENT_PARTICLE_HIT_BOX_DIE;
+        return EVENT_PARTICLE_HIT_BOX_DIE;
 
     if (strcmp(eventType, "reflect") == 0)
-        return ECS::EVENT_PARTICLE_HIT_BOX_REFLECT;
+        return EVENT_PARTICLE_HIT_BOX_REFLECT;
 
     LogErr(LOG, "unknown particle's hit event type: %s", eventType);
-    return ECS::EVENT_PARTICLE_HIT_BOX_DIE;
+    return EVENT_PARTICLE_HIT_BOX_DIE;
 }
 
 //---------------------------------------------------------

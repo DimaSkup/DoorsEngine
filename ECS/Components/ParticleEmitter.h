@@ -93,7 +93,7 @@ struct Particle
     int frameRandOffset = 0;
 
     float alpha = 0;                        // current alpha value (transparency) of the particle
-    float ageMs = 0;                        // Life span in milliseconds(!!!). This is how long the particle will live
+    float ageMs = 0;                        // how long the particle will live
 };
 
 //-----------------------------------------------
@@ -129,7 +129,7 @@ struct ParticlesRenderData
 
 struct EmitterData
 {
-     MaterialID       materialId = INVALID_MATERIAL_ID;
+     MaterialID       materialId = INVALID_MAT_ID;
 
     // alive particles
     cvector<Particle> particles;                            
@@ -177,7 +177,7 @@ struct ParticleEmitter
 {
     ParticleEmitter()
     {
-        ids.push_back(INVALID_ENTITY_ID);
+        ids.push_back(INVALID_ENTT_ID);
         data.push_back(EmitterData());
     }
 

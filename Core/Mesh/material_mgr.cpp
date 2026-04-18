@@ -60,7 +60,7 @@ MaterialMgr::~MaterialMgr()
 //---------------------------------------------------------
 bool MaterialMgr::Init()
 {
-    ids_.push_back(INVALID_MATERIAL_ID);
+    ids_.push_back(INVALID_MAT_ID);
     materials_.push_back(Material("invalid"));
 
     // currently there must be only one material
@@ -91,7 +91,7 @@ Material& MaterialMgr::AddMaterial(const char* matName)
     if (!matName || matName[0] == '\0')
     {
         LogErr(LOG, "can't add a new empty material: input name is empty");
-        return materials_[INVALID_MATERIAL_ID];
+        return materials_[INVALID_MAT_ID];
     }
 
     // generate a new id
@@ -116,10 +116,10 @@ Material& MaterialMgr::AddMaterial(const char* matName)
 MaterialID MaterialMgr::AddMaterial(const Material& material)
 {
     // check if input material has unique name
-    if (GetMatIdByName(material.name) != INVALID_MATERIAL_ID)
+    if (GetMatIdByName(material.name) != INVALID_MAT_ID)
     {
         LogErr(LOG, "can't add a new empty material: input name must be unique: %s", material.name);
-        return INVALID_MATERIAL_ID;
+        return INVALID_MAT_ID;
     }
 
     // generate id
@@ -170,7 +170,7 @@ bool MaterialMgr::SetMatTexture(
 {
     Material& mat = GetMatById(matId);
 
-    if (mat.id == INVALID_MATERIAL_ID)
+    if (mat.id == INVALID_MAT_ID)
         return false;
 
     //if (texId == INVALID_TEX_ID)
@@ -195,7 +195,7 @@ bool MaterialMgr::SetMatColorData(
 {
     Material& mat = GetMatById(id);
 
-    if (mat.id == INVALID_MATERIAL_ID)
+    if (mat.id == INVALID_MAT_ID)
         return false;
 
     mat.ambient  = ambient;
@@ -230,7 +230,7 @@ Material& MaterialMgr::GetMatByName(const char* name)
     if (StrHelper::IsEmpty(name))
     {
         LogErr(LOG, "input name is empty");
-        return materials_[INVALID_MATERIAL_ID];
+        return materials_[INVALID_MAT_ID];
     }
 
     // find a material by name
@@ -241,7 +241,7 @@ Material& MaterialMgr::GetMatByName(const char* name)
     }
 
     LogErr(LOG, "there is no material by name: %s", name);
-    return materials_[INVALID_MATERIAL_ID];
+    return materials_[INVALID_MAT_ID];
 }
 
 //---------------------------------------------------------
@@ -288,7 +288,7 @@ MaterialID MaterialMgr::GetMatIdByName(const char* name) const
     if (StrHelper::IsEmpty(name))
     {
         LogErr(LOG, "input name is empty");
-        return INVALID_MATERIAL_ID;
+        return INVALID_MAT_ID;
     }
 
     for (index i = 0; i < materials_.size(); ++i)
@@ -297,7 +297,7 @@ MaterialID MaterialMgr::GetMatIdByName(const char* name) const
             return ids_[i];
     }
 
-    return INVALID_MATERIAL_ID;
+    return INVALID_MAT_ID;
 }
 
 //---------------------------------------------------------

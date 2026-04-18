@@ -136,7 +136,6 @@
     <FxCompile Include="hlsl\terrain_high_lod_PS.hlsl" />
     <FxCompile Include="hlsl\terrain_high_lod_VS.hlsl" />
     <FxCompile Include="hlsl\grassVS.hlsl" />
-    <FxCompile Include="hlsl\grassGS.hlsl" />
     <FxCompile Include="hlsl\grassPS.hlsl" />
     <FxCompile Include="hlsl\debugLinePS.hlsl" />
     <FxCompile Include="hlsl\debugLineVS.hlsl" />
@@ -146,8 +145,8 @@
     <FxCompile Include="hlsl\foliagePS.hlsl" />
     <FxCompile Include="hlsl\metallicPS.hlsl" />
     <FxCompile Include="hlsl\metallicVS.hlsl" />
-    <FxCompile Include="hlsl\woodPS.hlsl" />
-    <FxCompile Include="hlsl\woodVS.hlsl" />
+    <FxCompile Include="hlsl\wood_PS.hlsl" />
+    <FxCompile Include="hlsl\wood_branch_VS.hlsl" />
     <FxCompile Include="hlsl\skyCloudVS.hlsl" />
     <FxCompile Include="hlsl\skyCloudPS.hlsl" />
     <FxCompile Include="hlsl\fullscreenQuadVS.hlsl" />
@@ -208,10 +207,13 @@
     <FxCompile Include="hlsl\decalPS.hlsl" />
     <FxCompile Include="hlsl\shader_art_VS.hlsl" />
     <FxCompile Include="hlsl\shader_art_PS.hlsl" />
-    <FxCompile Include="hlsl\tree_lod_GS.hlsl" />
     <FxCompile Include="hlsl\tree_lod2_GS.hlsl" />
     <FxCompile Include="hlsl\grass_instance_VS.hlsl" />
     <FxCompile Include="hlsl\grass_instance_PS.hlsl" />
+    <FxCompile Include="hlsl\tree_lod1_GS.hlsl" />
+    <FxCompile Include="hlsl\player_weapon_VS.hlsl" />
+    <FxCompile Include="hlsl\player_weapon_PS.hlsl" />
+    <FxCompile Include="hlsl\wood_VS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="hlsl\LightHelper.hlsli" />
@@ -241,5 +243,6 @@
     <None Include="hlsl\color.hlsli" />
     <None Include="hlsl\const_buffers\cbvs_skinned.hlsli" />
     <None Include="hlsl\const_buffers\cbvs_sprite.hlsli" />
+    <None Include="hlsl\const_buffers\cb_grass.hlsli" />
   </ItemGroup>
 </Project>

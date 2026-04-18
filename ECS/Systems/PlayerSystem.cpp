@@ -17,15 +17,30 @@ static cvector<EntityID> s_Ids;
 PlayerSystem::PlayerSystem(
     TransformSystem* pTransformSys,
     CameraSystem*    pCameraSys,
-    HierarchySystem* pHierarchySys)
+    HierarchySystem* pHierarchySys,
+    WeaponSystem*    pWeaponSys)
     :
     pTransformSys_(pTransformSys),
     pCameraSys_(pCameraSys),
-    pHierarchySys_(pHierarchySys)
+    pHierarchySys_(pHierarchySys),
+    pWeaponSys_(pWeaponSys),
+    playerID_(INVALID_ENTT_ID),
+    numWeapons_(0)
 {
-    CAssert::True(pTransformSys != nullptr, "input ptr to transform system == nullptr");
-    CAssert::True(pCameraSys    != nullptr, "input ptr to camera system == nullptr");
-    CAssert::True(pHierarchySys != nullptr, "input ptr to camera system == nullptr");
+    try
+    {
+        CAssert::True(pTransformSys, "input ptr to transform system == NULL");
+        CAssert::True(pCameraSys,    "input ptr to camera system == NULL");
+        CAssert::True(pHierarchySys, "input ptr to hierarchy system == NULL");
+        CAssert::True(pWeaponSys,    "input ptr to weapon system == NULL");
+
+        for (int i = 0; i < MAX_NUM_PLAYER_WEAPONS; ++i)
+            weaponsIds_[i] = INVALID_ENTT_ID;
+    }
+    catch (EngineException& e)
+    {
+        LogFatal(LOG, e.what());
+    }
 }
 
 //---------------------------------------------------------
@@ -34,7 +49,7 @@ PlayerSystem::PlayerSystem(
 //---------------------------------------------------------
 void PlayerSystem::Update(const float deltaTime)
 {
-    const uint64 states   = data_.playerStates_;
+    const uint64 states   = data_.playerStates;
     const int speedMul    = 1 + 9 * IsFreeFlyMode();  // move faster if we are in free fly
     const float speed     = GetSpeed() * deltaTime * speedMul;
     float horizontalSpeed = 0;
@@ -169,11 +184,11 @@ void PlayerSystem::Update(const float deltaTime)
         const float posY = playerPos.y + childRelPos.y;
         const float posZ = playerPos.z + childRelPos.z;
 
-        pTransformSys_->SetPosition(childID, { posX, posY, posZ });
+        pTransformSys_->SetPosition(childID, posX, posY, posZ);
     }
 
     // reset all the movement states
-    data_.playerStates_ &= ~(GetFlagsMove());
+    data_.playerStates &= ~(GetFlagsMove());
 }
 
 //---------------------------------------------------------
@@ -182,7 +197,7 @@ void PlayerSystem::Update(const float deltaTime)
 //---------------------------------------------------------
 void PlayerSystem::Move(ePlayerState state)
 {
-    data_.playerStates_ |= state;
+    data_.playerStates |= state;
 }
 
 //---------------------------------------------------------
@@ -192,11 +207,11 @@ void PlayerSystem::SetFreeFlyMode(const bool mode)
 {
     // turn on
     if (mode)
-        data_.playerStates_ |= FREE_FLY;
+        data_.playerStates |= FREE_FLY;
 
     // turn off
     else
-        data_.playerStates_ &= ~(FREE_FLY);
+        data_.playerStates &= ~(FREE_FLY);
 }
 
 //---------------------------------------------------------
@@ -206,11 +221,11 @@ void PlayerSystem::SwitchFlashLight(const bool state)
 {
     // turn on
     if (state)
-        data_.playerStates_ |= TURNED_FLASHLIGHT;
+        data_.playerStates |= TURNED_FLASHLIGHT;
 
     // turn off
     else
-        data_.playerStates_ &= ~(TURNED_FLASHLIGHT);
+        data_.playerStates &= ~(TURNED_FLASHLIGHT);
 }
 
 //---------------------------------------------------------
@@ -220,14 +235,14 @@ void PlayerSystem::SetIsRunning(const bool running)
 {
     if (running)
     {
-        data_.playerStates_ |= RUN;
-        data_.playerStates_ &= ~(WALK | CRAWL | IDLE);
+        data_.playerStates |= RUN;
+        data_.playerStates &= ~(WALK | CRAWL | IDLE);
         SetCurrentSpeed(data_.speedRun);
     }
     else
     {
-        data_.playerStates_ |= WALK;
-        data_.playerStates_ &= ~(RUN | CRAWL | IDLE);
+        data_.playerStates |= WALK;
+        data_.playerStates &= ~(RUN | CRAWL | IDLE);
         SetCurrentSpeed(data_.speedWalk);
     }
 }
@@ -236,8 +251,8 @@ void PlayerSystem::SetIsRunning(const bool running)
 
 void PlayerSystem::SetIsWalking(void)
 {
-    data_.playerStates_ |= WALK;
-    data_.playerStates_ &= ~(RUN | CRAWL | IDLE);
+    data_.playerStates |= WALK;
+    data_.playerStates &= ~(RUN | CRAWL | IDLE);
     SetCurrentSpeed(data_.speedWalk);
 }
 
@@ -246,9 +261,9 @@ void PlayerSystem::SetIsWalking(void)
 void PlayerSystem::SetIsReloading(const bool reloading)
 {
     if (reloading)
-        data_.playerStates_ |= RELOADING;
+        data_.playerStates |= RELOADING;
     else
-        data_.playerStates_ &= ~(RELOADING);
+        data_.playerStates &= ~(RELOADING);
 }
 
 //---------------------------------------------------------
@@ -256,16 +271,16 @@ void PlayerSystem::SetIsReloading(const bool reloading)
 void PlayerSystem::SetIsShooting(const bool shooting)
 {
     if (shooting && !IsReloading())
-        data_.playerStates_ |= SHOOT;
+        data_.playerStates |= SHOOT;
     else
-        data_.playerStates_ &= ~(SHOOT);
+        data_.playerStates &= ~(SHOOT);
 }
 
 //---------------------------------------------------------
 
 void PlayerSystem::SetIsIdle(void)
 {
-    data_.playerStates_ |= IDLE;
+    data_.playerStates |= IDLE;
 }
 
 // =================================================================================
@@ -372,6 +387,35 @@ void PlayerSystem::RotateY(float angle)
     // adjust rotation of the player and its each child
     s_Ids.push_back(playerId);
     pTransformSys_->RotateLocalSpacesByQuat(s_Ids.data(), s_Ids.size(), rotQuat);
+}
+
+//---------------------------------------------------------
+// set/get a weapon by particular slot
+//---------------------------------------------------------
+void PlayerSystem::BindWeapon(const uint slot, const EntityID wpnId)
+{
+    if (wpnId == INVALID_ENTT_ID)
+    {
+        LogErr(LOG, "invalid weapon to bind by slot: %u", slot);
+        return;
+    }
+    if (slot >= MAX_NUM_PLAYER_WEAPONS)
+    {
+        LogErr(LOG, "invalid slot to bind weapon (slot: %u, wpn_id: %d)", slot, (int)wpnId);
+        return;
+    }
+
+    weaponsIds_[slot] = wpnId;
+}
+
+//---------------------------------------------------------
+
+EntityID PlayerSystem::GetWeapon(const uint slot)
+{
+    if (slot >= MAX_NUM_PLAYER_WEAPONS)
+        return INVALID_ENTT_ID;
+
+    return weaponsIds_[slot];
 }
 
 }; // namespace ECS

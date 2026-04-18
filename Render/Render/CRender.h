@@ -9,6 +9,7 @@
 
 #include <enum_rnd_debug_type.h>
 #include <enum_weather_params.h>
+#include <post_fx_enum.h>
 
 #include "../Common/ConstBufferTypes.h"
 #include "../Common/RenderTypes.h"
@@ -34,6 +35,16 @@ class ShaderMgr;
 // constants
 //---------------------------------------------------------
 constexpr int MAX_NUM_2D_SPRITES = 32;
+
+//---------------------------------------------------------
+// numbers of texture slots for specific purposes
+//---------------------------------------------------------
+enum eTextureSlots
+{
+    TEX_SLOT_DEPTH          = 10,           // resolved (non-MSAA) texture with depth values
+    TEX_SLOT_DEPTH_MSAA     = 11,           // 4xMSAA texture with depth values
+    TEX_SLOT_POST_FX_SRC    = 12,           // source texture for our post process pass
+};
 
 //---------------------------------------------------------
 // Desc:  this struct contains init params for the rendering
@@ -79,6 +90,7 @@ public:
     bool ShadersHotReload();
 
     inline D3DClass&            GetD3D()          { return d3d_; }
+    inline const D3DClass&      GetD3D() const    { return d3d_; }
     inline RenderStates&        GetRenderStates() { return d3d_.renderStates_; }
     inline ID3D11Device*        GetDevice()       { return Render::g_pDevice; }
     inline ID3D11DeviceContext* GetContext()      { return Render::g_pContext; }
@@ -121,6 +133,9 @@ public:
 
     void BindShaderById(const ShaderID id);
     void BindShaderByName(const char* shaderName);
+
+    void BindPostFxShader(const ePostFxType fxType);
+
    
     void SetPrimTopology(const D3D_PRIMITIVE_TOPOLOGY type);
 
@@ -141,6 +156,8 @@ public:
         const UINT startInstanceLocation);
 
     void DrawIndexedInstanced(const InstanceBatch& batch, UINT& instanceLocation);
+
+    void VisualizeDepthBuffer();
 
     //----------------------------
 
@@ -168,10 +185,6 @@ public:
         const InstanceBatch& instances,
         const UINT startInstanceLocation);
 
-    void RenderSkyDome(
-        const SkyInstance& sky,
-        const DirectX::XMMATRIX& worldViewProj);
-
     void RenderFont(
         ID3D11Buffer* const* vertexBuffers,
         ID3D11Buffer* pIndexBuffer,
@@ -179,6 +192,10 @@ public:
         const size numVertexBuffers,
         const UINT fontVertexStride);
 
+    void RenderPostFxOnePass(const ePostFxType pfxType);
+    void RenderPostFxs(const ePostFxType* pfxTypes, const uint8 numPfxsToRender);
+
+    void RenderFXAA();
 
     // ================================================================================
     //                                   Getters
@@ -194,11 +211,42 @@ public:
     void     GetArrShadersIds   (cvector<ShaderID>& outIds) const;
     void     GetArrShadersNames (cvector<ShaderName>& outNames) const;
     ShaderID GetShaderIdByName  (const char* shaderName) const;
+    const char* GetShaderNameById(const ShaderID id) const;
+
+    bool IsEnabledFXAA() const;
+    bool IsEnabledMSAA() const;
 
 
     // ================================================================================
     //                                   Setters
     // ================================================================================
+    void SetRenderTargets(
+        const UINT numViews,
+        ID3D11RenderTargetView* const* ppRTVs,
+        ID3D11DepthStencilView* pDSV);
+
+    void ClearRenderTargets(const UINT numViews, ID3D11RenderTargetView* const* ppRTVs);
+
+    void SetRenderTargetsForPostFX();
+
+    void SetRenderStates(
+        const bool alphaClip,
+        const RsID rasterStateId,
+        const BsID blendStateId,
+        const DssID depthStencilStateId);
+
+    void SetTexturesVS(
+        const UINT startSlot,
+        const UINT numViews,
+        ID3D11ShaderResourceView* const* ppSRVs);
+
+    void SetTexturesPS(
+        const UINT startSlot,
+        const UINT numViews,
+        ID3D11ShaderResourceView* const* ppSRVs);
+
+
+
     void SetFogEnabled          (const bool state);
     void SetFogStart            (const float start);
     void SetFogRange            (const float range);
@@ -276,11 +324,13 @@ public:
     float GetPostFxParam(const uint16 postFxParamIdx);
 
     // GRASS
-    inline float GetGrassDistFullSize() const { return cbWeather_.data.distGrassFullSize; }
-    inline float GetGrassDistVisible()  const { return cbWeather_.data.distGrassVisible; }
+    inline float GetGrassDistFullSize() const { return cbGrass_.data.distGrassFullSize; }
+    inline float GetGrassDistVisible()  const { return cbGrass_.data.distGrassVisible; }
 
     bool SetGrassDistFullSize(const float dist);
     bool SetGrassDistVisible(const float dist);
+
+    void SetGrassTexRowsCols(const uint cols, const uint rows);
 
 private:
     bool InitConstBuffers(const InitParams& params);
@@ -309,6 +359,7 @@ public:
     ConstantBuffer<ConstBufType::CameraParams>      cbCamera_;
     ConstantBuffer<ConstBufType::Weather>           cbWeather_;
     ConstantBuffer<ConstBufType::Debug>             cbDebug_;
+    ConstantBuffer<ConstBufType::Grass>             cbGrass_;
 
     // const buffers for vertex shaders
     ConstantBuffer<ConstBufType::WorldAndViewProj>  cbvsWorldAndViewProj_;
@@ -382,6 +433,8 @@ inline void CRender::BindVB(
     GetContext()->IASetVertexBuffers(startSlot, 1, vb, &stride, &offset);
 }
 
+//-----------------------------------------------------
+
 inline void CRender::BindVBs(
     const UINT startSlot,
     const UINT numBuffers,
@@ -392,10 +445,14 @@ inline void CRender::BindVBs(
     GetContext()->IASetVertexBuffers(startSlot, numBuffers, vbs, strides, offsets);
 }
 
+//-----------------------------------------------------
+
 inline void CRender::BindIB(ID3D11Buffer* pIB, const DXGI_FORMAT format)
 {
     GetContext()->IASetIndexBuffer(pIB, format, 0);
 }
+
+//-----------------------------------------------------
 
 inline void CRender::SetPrimTopology(const D3D_PRIMITIVE_TOPOLOGY type)
 {
@@ -464,5 +521,20 @@ inline void CRender::DrawIndexedInstanced(
         vertexStart,
         startInstanceLocation);
 }
+
+//---------------------------------------------------------
+// is enabled anti-aliasing: FXAA or MSAA ?
+//---------------------------------------------------------
+inline bool CRender::IsEnabledFXAA() const
+{
+    return GetD3D().IsEnabledFXAA();
+}
+
+inline bool CRender::IsEnabledMSAA() const
+{
+    return GetD3D().IsEnabled4xMSAA();
+}
+
+
 
 }; // namespace Render

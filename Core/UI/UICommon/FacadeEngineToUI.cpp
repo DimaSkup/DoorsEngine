@@ -804,7 +804,7 @@ bool FacadeEngineToUI::SetSkyOffset(const Vec3& offset)
     // if we found the sky entity we change its offset
     if (id != 0)
     {
-        return pEnttMgr_->transformSys_.SetPosition(id, { offset.x, offset.y, offset.z });
+        return pEnttMgr_->transformSys_.SetPosition(id, offset.x, offset.y, offset.z);
     }
 
     LogErr(LOG, "there is no entity by such a name: sky");
@@ -1471,7 +1471,7 @@ uint FacadeEngineToUI::GetMaterialRenderStateId(
 {
     const Material& mat = g_MaterialMgr.GetMatById(id);
 
-    if (mat.id == INVALID_MATERIAL_ID)
+    if (mat.id == INVALID_MAT_ID)
     {
         LogErr(LOG, "invalid material id: %d", (int)id);
         return 0;
@@ -1496,7 +1496,7 @@ bool FacadeEngineToUI::SetMaterialRenderState(const RenderStateSetup& params)
 {
     Material& mat = g_MaterialMgr.GetMatById(params.matId);
 
-    if (mat.id == INVALID_MATERIAL_ID)
+    if (mat.id == INVALID_MAT_ID)
     {
         LogErr(LOG, "no material by id: %d", (int)mat.id);
         return false;
@@ -1581,7 +1581,7 @@ bool FacadeEngineToUI::SetTerrainMaterialColors(
     const char*    matName = "terrain_mat";
     const MaterialID matId = g_MaterialMgr.GetMatIdByName(matName);
 
-    if (matId == INVALID_MATERIAL_ID)
+    if (matId == INVALID_MAT_ID)
     {
         LogErr(LOG, "no material by name: %s", matName);
         return false;
@@ -2200,6 +2200,34 @@ void FacadeEngineToUI::EnableDepthPrepass(const bool state)
 bool FacadeEngineToUI::IsEnabledDepthPrepass() const
 {
     return pGraphics_->IsEnabledDepthPrepass();
+}
+
+//---------------------------------------------------------
+// Desc:  enable/disable fullscreen when we are in the game mode
+// Desc:  check if we fullscreen is turned on for the game mode
+//---------------------------------------------------------
+void FacadeEngineToUI::SetFullscreenInGameMode(const bool state)
+{
+    pEngine_->SetFullscreenInGameMode(state);
+}
+
+bool FacadeEngineToUI::IsFullscreenInGameMode(void) const
+{
+    return pEngine_->IsFullscreenInGameMode();
+}
+
+//---------------------------------------------------------
+// 1. turn on/off locking of the frustum culling for the scene camera
+// 2. is frustum culling is locked?
+//---------------------------------------------------------
+void FacadeEngineToUI::LockFrustumCulling(const bool onOff)
+{
+    pEngine_->LockFrustumCulling(onOff);
+}
+
+bool FacadeEngineToUI::IsLockedFrustumCulling(void) const
+{
+    return pEngine_->IsLockedFrustumCulling();
 }
 
 //---------------------------------------------------------

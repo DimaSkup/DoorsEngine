@@ -6,21 +6,23 @@
 #include <Engine/engine.h>
 #include <Engine/engine_configs.h>
 #include <Model/animation_helper.h>
-#include "../Types/weapon_types.h"
+#include "event_mgr.h"
+
 
 
 namespace Game
 {
 
+#if 0
 enum eGameEventType
 {
     NONE,
     PLAYER_SWITCH_WEAPON,
     PLAYER_RELOAD_WEAPON,
-    PLAYER_SINGLE_SHOT,
-    PLAYER_MULTIPLE_SHOTS,
+    PLAYER_SINGLE_SHOT,           // we clicked shooting only once
+    PLAYER_MULTIPLE_SHOTS,        // we holding down "shooting" button
     PLAYER_RUN,
-    PLAYER_SWITCH_FLASHLIGHT,
+    PLAYER_TOGGLE_FLASHLIGHT,     // turn on/off the flashlight
 };
 
 // =================================================================================
@@ -50,12 +52,16 @@ struct GameEventsList
     GameEvent events[16];
     int numEvents = 0;     // for the current frame
 };
-
+#endif
 
 //**********************************************************************************
 
 class Game
 {
+private:
+    EventMgr eventMgr_;
+
+
 public:
     Game() {}
     ~Game();
@@ -73,48 +79,17 @@ public:
     void HandleGameEventKeyboard();
     void HandlePlayerActions(const eKeyCodes code);
     
-
-    void SwitchFlashLight(ECS::EntityMgr& mgr, Render::CRender& render);
-
 private:
     void HandleGameEvents();
-
-    void InitWeapons(const char* cfgFilepath);
-    void InitWeapon(FILE* pFile, const char* line, Weapon& wpn);
     void InitSoundsStuff();
 
-    void UpdateMovementRelatedStuff();
-
-    void StartFootstepSequence(const float dt);
-    void UpdateFootstepsSound(const float dt);
-
+    void UpdatePlayerFootstepsSound(const float dt);
     void UpdateRainbowAnomaly();
     void UpdateRainPos();
-
     void UpdateShootSound(const float dt);
-    void StartPlayShootSound();
-
-    inline Weapon& GetCurrentWeapon() { return weapons_[currWeaponIdx_]; }
-
-    // events handlers
-    void HandleEventWeaponSwitch(const int newWeaponIdx);
-    void HandleEventWeaponReload();
-    void HandleEventWeaponSingleShot();
-    void HandleEventWeaponMultipleShots();
-
-    void HandleBulletHit(const IntersectionData& data);
-
-    // weapon/hands animations switching
-    void StartAnimWeaponDraw();
-    void StartAnimWeaponReload();
-    void StartAnimWeaponShoot();
-    void StartAnimWeaponRun();
-    void StartAnimWeaponIdle();
-
-
 
 private:
-    GameEventsList gameEventsList_;
+   // GameEventsList gameEventsList_;
 
     Core::Engine*    pEngine_    = nullptr;
     ECS::EntityMgr*  pEnttMgr_   = nullptr;
@@ -126,14 +101,9 @@ private:
     //
     // player's weapons and related stuff
     //
-    cvector<Weapon> weapons_;
-
     Core::AnimSkeleton* pSkeleton_ = nullptr;   // skeleton of the player's current hud (hands + weapon)
 
-    float shootTimer_ = 0;                      // time passed since the start of shot
-    float shootInterval_ = 0.374994f;           // within this interval we aren't able to make a new shot
-    float currActTime_ = 0;                     // time passed since the start of player's animation (handls, weapon, etc.)
-    float endActTime_ = 0;                      // duration of the current player's animation
+    
 
     int         currWeaponIdx_ = 0;
     EntityID    currWeaponEnttId_ = 0;
@@ -145,14 +115,7 @@ private:
     HANDLE eventStepLDone = nullptr;
 
     bool rainSoundIsPlaying_    = false;
-    bool soundStepL_Playing     = false;
-    bool soundStepR_Played      = false;
-    bool soundShootIsPlaying_   = false;
 
-    float stepTimer_        = 0;
-    float currStepInterval_ = 0.5f;
-    float stepIntervalWalk_ = 0.5f;
-    float stepIntervalRun_  = 0.1f;
 
 
     // rain over player
@@ -163,8 +126,7 @@ private:
 
     SoundID thunderSoundIds_[4] = {0};
     SoundID rainSoundId_ = 0;
-    SoundID actorStepL_ = 0;
-    SoundID actorStepR_ = 0;
+
 };
 
 } // namespace

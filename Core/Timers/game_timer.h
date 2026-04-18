@@ -15,6 +15,14 @@
 using TimeDurationMs = std::chrono::duration<float, std::milli>;
 using TimePoint      = std::chrono::steady_clock::time_point;
 
+//---------------------------------------------------------
+// Desc:  get current point of time (aka timestamp)
+//---------------------------------------------------------
+inline TimePoint GetTimePoint()
+{
+    return std::chrono::steady_clock::now();
+}
+
 
 namespace Core
 {
@@ -30,8 +38,6 @@ public:
     // get time in seconds
     float GetGameTime()  const;
     float GetDeltaTime() const;
-
-    static ::TimePoint GetTimePoint();
 
     void Reset();  // is called before message loop
     void Start();  // is called when unpaused
@@ -57,14 +63,6 @@ private:
 inline float GameTimer::GetDeltaTime() const
 {
     return (float)deltaTime_;
-}
-
-//---------------------------------------------------------
-// Desc:  get current point of time (aka timestamp)
-//---------------------------------------------------------
-inline TimePoint GameTimer::GetTimePoint()
-{
-    return std::chrono::steady_clock::now();
 }
 
 }

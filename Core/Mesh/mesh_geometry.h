@@ -26,7 +26,7 @@ struct Subset
     uint32     indexStart = 0;                          // start pos of index in the common buffer
     uint32     indexCount = 0;                          // how many indices this subset has
     char       name[MAX_LEN_MESH_NAME]{ '\0' };         // each subset must have its own name
-    MaterialID materialId = INVALID_MATERIAL_ID;        // an ID to the related material (multiple meshes/subset of the model can have the same material so we just can use the same ID)
+    MaterialID materialId = INVALID_MAT_ID;        // an ID to the related material (multiple meshes/subset of the model can have the same material so we just can use the same ID)
     uint16     id = -1;                                 // subset ID
 };
 

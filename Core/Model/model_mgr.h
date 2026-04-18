@@ -21,7 +21,7 @@ namespace Core
 {
 
 constexpr uint NUM_VERTS_PER_DECAL = 4;
-constexpr uint MAX_NUM_DECALS = 128;
+constexpr uint MAX_NUM_DECALS = 512;
 
 // 3D decal
 struct Decal3D

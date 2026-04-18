@@ -36,8 +36,8 @@ struct EntityDataAndPos
         subsetId(inSubsetId) {}
 
 
-    EntityID   enttId = INVALID_ENTITY_ID;
-    MaterialID matId = INVALID_MATERIAL_ID;
+    EntityID   enttId = INVALID_ENTT_ID;
+    MaterialID matId = INVALID_MAT_ID;
     ModelID    modelId = INVALID_MODEL_ID;
     SubmeshID  subsetId = 0;
     float      sqrDistToCamera = 0;
@@ -415,7 +415,7 @@ void SortByDistance(const XMFLOAT3& camPos, cvector<EntityModelMesh>& data)
 {
     const vsize numElems = data.size();
 
-    s_TempEnttsIds.resize(numElems, INVALID_ENTITY_ID);
+    s_TempEnttsIds.resize(numElems, INVALID_ENTT_ID);
     s_TempData.resize(numElems);
     s_Positions.resize(numElems);
 
@@ -738,7 +738,7 @@ void RenderDataPreparator::PrepareInstancesWorldMatrices(
 //---------------------------------------------------------
 void RenderDataPreparator::GroupEnttsByGeomTypes(const vsize numRenderItems)
 {
-    MaterialID                      matId = INVALID_MATERIAL_ID;
+    MaterialID                      matId = INVALID_MAT_ID;
     const Material*                  pMat = &g_MaterialMgr.GetMatById(matId);
     const Render::RenderStates& rndStates = Render::g_Render.GetRenderStates();
 

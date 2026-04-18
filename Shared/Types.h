@@ -1,5 +1,5 @@
 // *********************************************************************************
-// Filename:     Types.h
+// Filename:     types.h
 // Description:  contains some common typedefs and constants for the engine
 // 
 // Created:      10.07.24
@@ -41,14 +41,17 @@ using RsID              = uint16_t;         // rasterizer state id
 using BsID              = uint16_t;         // blending state id
 using DssID             = uint16_t;         // depth-stencil state id
 
+using EventID           = uint16_t;
+
 // common constants
-constexpr EntityID   INVALID_ENTITY_ID      = 0;
+constexpr EntityID   INVALID_ENTT_ID        = 0;
 constexpr ModelID    INVALID_MODEL_ID       = 0;
-constexpr MaterialID INVALID_MATERIAL_ID    = 0;
+constexpr MaterialID INVALID_MAT_ID         = 0;        // invalid material id
 constexpr TexID      INVALID_TEX_ID         = 0;        // invalid texture id
 constexpr ShaderID   INVALID_SHADER_ID      = 0;
 constexpr SoundID    INVALID_SOUND_ID       = 0;
 constexpr size       NUM_TEXTURE_TYPES      = 21;       // limit of textures per mesh
+constexpr EventID    INVALID_EVENT_ID       = 0;
 
 constexpr int        MAX_LEN_MESH_NAME      = 32;       // max length for a model subset's (mesh) name
 constexpr int        MAX_LEN_ENTT_NAME      = 32;
@@ -59,6 +62,7 @@ constexpr int        MAX_LEN_SHADER_NAME    = 32;
 constexpr int        MAX_LEN_SKY_MODEL_NAME = 16;
 constexpr int        MAX_LEN_SOUND_NAME     = 32;
 constexpr int        MAX_LEN_RND_STATE_NAME = 16;
+constexpr int        MAX_LEN_EVENT_NAME     = 32;
 
 constexpr int        MAX_NUM_POST_EFFECTS = 8;          // maximal number of post effects that can be applied at the same time
 
@@ -90,6 +94,11 @@ struct SoundName
 struct RenderStateName
 {
     char name[MAX_LEN_RND_STATE_NAME]{ '\0' };
+};
+
+struct EventName
+{
+    char name[MAX_LEN_EVENT_NAME]{ '\0' };
 };
 
 
@@ -134,8 +143,8 @@ struct EntityModelMesh
         subsetId(inMeshId) {}
 
 
-    EntityID   enttId   = INVALID_ENTITY_ID;
-    MaterialID matId    = INVALID_MATERIAL_ID;
+    EntityID   enttId   = INVALID_ENTT_ID;
+    MaterialID matId    = INVALID_MAT_ID;
     ModelID    modelId  = INVALID_MODEL_ID;
     SubmeshID  subsetId = 0;
 };
@@ -150,6 +159,7 @@ struct IntersectionData
     uint triangleIdx = 0;                   // intersected triangle (its index)
 
     float rayOrigX, rayOrigY, rayOrigZ;     // ray origin
+    float distToIntersect;                  // distance to the intersection point
     
     float vx0, vy0, vz0;                    // intersected triangle endpoints positions (in world space)
     float vx1, vy1, vz1;

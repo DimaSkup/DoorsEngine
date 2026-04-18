@@ -23,9 +23,8 @@
 namespace UI
 {
 
-// forward declaration
+// forward declaration (pointer use only)
 class IFacadeEngineToUI;
-
 
 class DebugControl
 {

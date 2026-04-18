@@ -73,7 +73,7 @@ bool TextureMgr::Init(const char* texturesCfg)
 {
     assert(texturesCfg && texturesCfg[0] != '\0');
 
-    const TimePoint start = GameTimer::GetTimePoint();
+    const TimePoint start = GetTimePoint();
     FILE* pFile = nullptr;
     char buf[256]{ '\0' };
     char name[MAX_LEN_TEX_NAME];
@@ -146,8 +146,7 @@ bool TextureMgr::Init(const char* texturesCfg)
         texCountAll++;
     }
 
-    const TimePoint      end = GameTimer::GetTimePoint();
-    const TimeDurationMs dur = end - start;
+    const TimeDurationMs dur = GetTimePoint() - start;
 
     SetConsoleColor(MAGENTA);
     LogMsg("--------------------------------------");

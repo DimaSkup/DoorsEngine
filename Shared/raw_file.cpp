@@ -1,5 +1,4 @@
 #include "raw_file.h"
-#include "mem_helpers.h"
 #include "log.h"
 #include <stdint.h>
 #include <stdio.h>
@@ -13,7 +12,7 @@
 //         - numBytes: size of the raw data (number of bytes)
 // Ret:    true if the file was successfully saved
 // --------------------------------------------------------
-bool SaveRAW(const char* filename, const uint8* data, const int numBytes)
+bool SaveFileRAW(const char* filename, const uint8_t* data, const int numBytes)
 {
     // check input args
     if (!filename || filename[0] == '\0')
@@ -37,7 +36,8 @@ bool SaveRAW(const char* filename, const uint8* data, const int numBytes)
     FILE* pFile = fopen(filename, "wb");
     if (!pFile)
     {
-        LogErr(LOG, "can't open file: %s", filename);
+        LogErr(LOG, "can't open file to write in binary: %s", filename);
+        fclose(pFile);
         return false;
     }
 
@@ -45,13 +45,14 @@ bool SaveRAW(const char* filename, const uint8* data, const int numBytes)
     if (fwrite(data, 1, numBytes, pFile) != numBytes)
     {
         LogErr(LOG, "can't write raw data into file: %s", filename);
+        fclose(pFile);
         return false;
     }
 
-    fclose(pFile);
 
     // great success!
     LogMsg(LOG, "Saved RAW file: %s", filename);
+    fclose(pFile);
     return true;
 }
 
@@ -62,7 +63,7 @@ bool SaveRAW(const char* filename, const uint8* data, const int numBytes)
 //         - outSize:  output size of the file
 // Ret:    true if we successfully loaded the file
 // --------------------------------------------------------
-bool LoadRAW(const char* filename, uint8** outData, int& outSize)
+bool LoadFileRAW(const char* filename, uint8_t** outData, int& outSize)
 {
     // check input params
     if (!filename || filename[0] == '\0')
@@ -80,7 +81,11 @@ bool LoadRAW(const char* filename, uint8** outData, int& outSize)
     }
 
     // release memory from prev data (if we have any)
-    SafeDeleteArr(*outData);
+    if (*outData)
+    {
+        delete[](*outData);
+        *outData = nullptr;
+    }
 
     // define file size
     fseek(pFile, 0, SEEK_END);
@@ -88,23 +93,23 @@ bool LoadRAW(const char* filename, uint8** outData, int& outSize)
     fseek(pFile, 0, SEEK_SET);
 
     // allocate the memory for our data
-    *outData = new uint8[outSize]{ 0 };
+    *outData = new uint8_t[outSize]{ 0 };
 
     // read in the file content
     size_t res = fread(*outData, 1, outSize, pFile);
     if (res != outSize)
     {
         LogErr(LOG, "can't read in data from the file: %s", filename);
-
         fclose(pFile);
-        SafeDeleteArr(*outData);
+
+        if (*outData) { delete[](*outData); *outData = nullptr; }
+
         return false;
     }
 
-    // close the file
-    fclose(pFile);
 
     // great success!
     LogMsg(LOG, "Loaded RAW file: %s", filename);
+    fclose(pFile);
     return true;
 }

@@ -6,6 +6,12 @@
 namespace ECS
 {
 
+using DirectX::XMFLOAT3;
+using DirectX::XMVECTOR;
+
+//---------------------------------------------------------
+// Desc:  constructor, setup pointers to used components and systems
+//---------------------------------------------------------
 HierarchySystem::HierarchySystem(
     Hierarchy* pHierarchyComponent,
     TransformSystem* pTransformSys)

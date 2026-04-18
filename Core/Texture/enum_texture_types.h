@@ -1,6 +1,6 @@
 // ********************************************************************************
 // Filename:    TextureTypes.h
-// Description: enumeration of textures types
+// Description: enumeration of textures types, and declaration some helper structures
 // 
 // Created:     05.06.24
 // ********************************************************************************
@@ -58,4 +58,33 @@ enum eTexType
 
     // how many texture types we have
     NUM_TYPES,
+};
+
+enum class TexStoreType
+{
+    Invalid,
+    None,
+    EmbeddedIndexCompressed,
+    EmbeddedIndexNonCompressed,
+    EmbeddedCompressed,
+    EmbeddedNonCompressed,
+    Disk
+};
+
+//---------------------------------------------------------
+// params needed for cubemap texture initialization
+//---------------------------------------------------------
+struct CubeMapInitParams
+{
+    // path to directory with textures for cubemap
+    char directory[64]{ '\0' };
+
+    // filename for each cubemap side:
+    //    0 - positive X
+    //    1 - negative X
+    //    2 - positive Y
+    //    3 - negative Y
+    //    4 - positive Z
+    //    5 - negative Z
+    char texNames[6][32]{ '\0' };
 };

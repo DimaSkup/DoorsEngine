@@ -248,7 +248,7 @@ bool VertexBuffer<T>::UpdateDynamic(T* vertices, const size count)
 
     if ((uint32)count > vertexCount_)
     {
-        LogErr(LOG, "VB overflow (buf limit: %zu, input num vertices: %zu)", vertexCount_, count);
+        LogErr(LOG, "VB overflow (buf limit: %u, input num vertices: %zu)", vertexCount_, count);
         return false;
     }
 

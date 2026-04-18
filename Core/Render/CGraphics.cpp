@@ -28,8 +28,12 @@ using namespace DirectX;
 using namespace Render;
 
 
+
 namespace Core
 {
+
+// bind textures for scene geometry starting from this textures slot
+#define TEX_START_SLOT 100U
 
 // container for the light sources temp data during update process
 struct LightTempData
@@ -135,7 +139,6 @@ void CGraphics::AddDebugShapesToRender(void)
 {
     const Vec3 lightBlue(0, 1, 1);
     const Vec3 yellow(1, 1, 0);
-    const Vec3 red(1, 0, 0);
     const Vec3 orange(1, 0.5f, 0.125f);
 
     const ECS::BoundingSystem& boundSys  = pEnttMgr_->boundingSys_;
@@ -229,8 +232,14 @@ void CGraphics::Update(const float deltaTime, const float gameTime)
     float          distFogged = 0;
     Terrain&       terrain    = g_ModelMgr.GetTerrain();
 
-    //const EntityID camId = currCameraId_;
-    const EntityID camId = pEnttMgr_->nameSys_.GetIdByName("game_camera");
+    EntityID camId = INVALID_ENTT_ID;
+
+    // if frustum culling is locked we show in the editor only
+    // scene parts which are visible by the game camera
+    if (!bLockFrustumCull_)
+        camId = currCameraId_;
+    else
+        camId = pEnttMgr_->nameSys_.GetIdByName("game_camera");
 
     ResetRenderStats();
     UpdateCamera();
@@ -324,34 +333,13 @@ void CGraphics::Update(const float deltaTime, const float gameTime)
             visEmitters[i] = visEmitters.back();
             visEmitters.pop_back();
         }
-
-
-#if 0
-
-    printf("objects are visible: ");
-    while (pObj)
-    {
-        printf("%d ", pObj->GetId());
-        pObj = pObj->GetNextSearchLink();
-    }
-    printf("   (%f)\n", gameTime);
-
-#endif
-
     }
     else
     {
-
-
         // perform frustum culling on all of our currently loaded entities
         FrustumCullingEntts(worldFrustum);
         FrustumCullingParticles(worldFrustum);
         FrustumCullingPointLights(worldFrustum);
-
-       // const size numAllEntts = pEnttMgr_->GetNumAllEntts();
-        //const int numFrustumTest = worldFrustum.GetNumTests();
-
-        //printf("tests: %d / %d\n", numFrustumTest, numAllEntts);
     }
 
 
@@ -359,7 +347,8 @@ void CGraphics::Update(const float deltaTime, const float gameTime)
     if (pRender_->IsFogEnabled())
         distFogged = pRender_->GetDistFogged();
     else
-        distFogged = 1000000;
+        distFogged = FLT_MAX;
+
 
     // update LOD and visibility for each terrain's patch
     g_ModelMgr.GetTerrain().Update(camParams, worldFrustum, distFogged);
@@ -418,7 +407,7 @@ void CGraphics::Render3D()
     if (!visualizeDepth_)
         ColorLightPass();
 
-    //PostFxPass();
+    PostFxPass();
     g_GpuProfiler.Timestamp(GTS_RenderScene_PostFX);
 
     // calc frame stats
@@ -499,6 +488,7 @@ void CGraphics::Shutdown()
 // =================================================================================
 
 //---------------------------------------------------------
+// reset all the counters related to the rendering process
 //---------------------------------------------------------
 void CGraphics::ResetRenderStats(void)
 {
@@ -530,12 +520,15 @@ void CGraphics::UpdatePlayerPos(void)
 
     ECS::PlayerSystem& player = pEnttMgr_->playerSys_;
     XMFLOAT3        playerPos = player.GetPosition();
-    Terrain&    terrain = g_ModelMgr.GetTerrain();
+    Terrain&          terrain = g_ModelMgr.GetTerrain();
     const float   terrainSize = (float)terrain.heightMap_.GetWidth();
 
     // force the player to be always in world
     playerPos.x = clampf(playerPos.x, 0, terrainSize - 1);
     playerPos.z = clampf(playerPos.z, 0, terrainSize - 1);
+
+    //EntityID gameCamId = pEnttMgr_->nameSys_.GetIdByName("game_camera");
+    //assert(gameCamId != INVALID_ENTITY_ID);
 
     if (!player.IsFreeFlyMode())
     {
@@ -893,71 +886,8 @@ void CGraphics::BindMaterial(
     ID3D11ShaderResourceView* texViews[NUM_TEXTURE_TYPES]{ nullptr };
     g_TextureMgr.GetTexViewsByIds(texIds, NUM_TEXTURE_TYPES, texViews);
 
-    BindMaterial(alphaClip, rsId, bsId, dssId, texViews);
-}
-
-//---------------------------------------------------------
-// Desc:   setup rendering states according to input material params
-// Args:   - texViews:              textures to bind
-//---------------------------------------------------------
-void CGraphics::BindMaterial(
-    const bool alphaClip,
-    const RsID rsId,
-    const BsID bsId,
-    const DssID dssId,
-    ID3D11ShaderResourceView* const* texViews)
-{
-    if (!texViews)
-    {
-        LogErr(LOG, "input arr of textures IDs == nullptr");
-        return;
-    }
-
-    static bool  prevAlphaClip = 0;
-    static RsID  prevRsId = 0;
-    static BsID  prevBsId = 0;
-    static DssID prevDssId = 0;
-
-    // bind textures of this material
-    GetContext()->PSSetShaderResources(100U, NUM_TEXTURE_TYPES, texViews);
-
-    // check if we need to switch render states
-    if (prevAlphaClip == alphaClip &&
-        prevRsId == rsId &&
-        prevBsId == bsId &&
-        prevDssId == dssId)
-        return;
-
- 
-    Render::RenderStates& renderStates = pRender_->GetRenderStates();
-
-    // switch alpha clipping if need...
-    if (prevAlphaClip != alphaClip)
-    {
-        pRender_->SwitchAlphaClipping(alphaClip);
-        prevAlphaClip = alphaClip;
-    }
-
-    // switch raster state (fill mode, cull mode, etc.) if need...
-    if (prevRsId != rsId)
-    {
-        renderStates.SetRs(rsId);
-        prevRsId = rsId;
-    }
-
-    // switch blending state if need...
-    if (prevBsId != bsId)
-    {
-        renderStates.SetBs(bsId);
-        prevBsId = bsId;
-    }
-
-    // switch depth-stencil state if need...
-    if (prevDssId != dssId)
-    {
-        renderStates.SetDss(dssId, 0);
-        prevDssId = dssId;
-    }
+    pRender_->SetTexturesPS(TEX_START_SLOT, NUM_TEXTURE_TYPES, texViews);
+    pRender_->SetRenderStates(alphaClip, rsId, bsId, dssId);
 }
 
 //---------------------------------------------------------
@@ -969,8 +899,7 @@ void CGraphics::BindMaterial(
 //---------------------------------------------------------
 void CGraphics::DepthPrepass()
 {
-    ID3D11DeviceContext* pCtx = pRender_->GetContext();
-    Render::D3DClass&    d3d  = pRender_->GetD3D();
+    Render::D3DClass& d3d = pRender_->GetD3D();
 
     UINT startInstanceLocation = 0;
     const Render::RenderDataStorage& storage = pRender_->dataStorage_;
@@ -982,7 +911,7 @@ void CGraphics::DepthPrepass()
     pRender_->ResetRenderStates();
 
     // only depth writing
-    pCtx->OMSetRenderTargets(0, nullptr, d3d.pDepthStencilView_);
+    pRender_->SetRenderTargets(0, nullptr, d3d.pDepthStencilView_);
 
     // render masked geometry: tree branches, bushes, etc.
     pRender_->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -995,7 +924,7 @@ void CGraphics::DepthPrepass()
     TerrainDepthPrepass();
 
     // bind back a swap chain's RTV
-    pCtx->OMSetRenderTargets(1, &d3d.pSwapChainRTV_, d3d.pDepthStencilView_);
+    pRender_->SetRenderTargets(1, &d3d.pSwapChainRTV_, d3d.pDepthStencilView_);
 }
 
 //---------------------------------------------------------
@@ -1009,22 +938,7 @@ void CGraphics::ColorLightPass()
     // for post effects we have to render into another (non default) render target
     if (IsEnabledPostFxPass() || pRender_->GetD3D().IsEnabledFXAA())
     {
-        Render::D3DClass& d3d = pRender_->GetD3D();
-        ID3D11RenderTargetView* pRTV = nullptr;
-        const float clearColor[4] = { 1,1,1,1 };
-
-        // for MSAA we need to bind sufficient render target view (RTV)
-        if (d3d.IsEnabled4xMSAA())
-            pRTV = d3d.pMSAARTV_;
-
-        // bind non-MSAA render target
-        else
-            pRTV = d3d.postFxsPassRTV_[0];
-
-        assert(pRTV && "for post process: RTV tex == nullptr");
-
-        pRender_->GetContext()->OMSetRenderTargets(1, &pRTV, d3d.pDepthStencilView_);
-        pRender_->GetContext()->ClearRenderTargetView(pRTV, clearColor);
+        pRender_->SetRenderTargetsForPostFX();
     }
 
 
@@ -1051,7 +965,7 @@ void CGraphics::ColorLightPass()
 
     // render each animated entity separately
     pRender_->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-#if 1
+
     const ECS::RenderSystem& renderSys = pEnttMgr_->renderSys_;
 
     for (const EntityID id : pEnttMgr_->animationSys_.GetEnttsIds())
@@ -1059,7 +973,6 @@ void CGraphics::ColorLightPass()
         if (renderSys.HasEntity(id))
             RenderSkinnedModel(id);
     }
-#endif
     g_GpuProfiler.Timestamp(GTS_RenderScene_SkinnedModels);
 
 
@@ -1075,7 +988,7 @@ void CGraphics::ColorLightPass()
     RenderSkyDome();
     g_GpuProfiler.Timestamp(GTS_RenderScene_Sky);
 
-    //RenderSkyClouds();
+    RenderSkyClouds();
     g_GpuProfiler.Timestamp(GTS_RenderScene_SkyPlane);
 
     // render blended geometry (but not transparent)
@@ -1102,36 +1015,20 @@ void CGraphics::ColorLightPass()
 //---------------------------------------------------------
 void CGraphics::PostFxPass()
 {
+    pRender_->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
     if (visualizeDepth_)
     {
         // reset raster state, blend state, depth-stencil state to default
         pRender_->ResetRenderStates();
-        VisualizeDepthBuffer();
+        pRender_->VisualizeDepthBuffer();
         return;
     }
 
-    Render::D3DClass&     d3d = GetD3D();
-    ID3D11DeviceContext* pCtx = GetContext();
-
     // FXAA is a kind of post-effects
-    if (d3d.IsEnabledFXAA())
+    if (pRender_->IsEnabledFXAA())
     {
-        // reset raster state, blend state, depth-stencil state to default
-        pRender_->ResetRenderStates();
-
-        assert(d3d.pSwapChainRTV_     && "swap chain RTV is wrong");
-        assert(d3d.postFxsPassSRV_[0] && "resolved SRV is wrong");
-
-        // bind dst render target (+ unbind depth stencil view) and src shader resource view 
-        pCtx->OMSetRenderTargets(1, &d3d.pSwapChainRTV_, nullptr);
-        pCtx->PSSetShaderResources(TEX_SLOT_POST_FX_SRC, 1, &d3d.postFxsPassSRV_[0]);
-
-        pRender_->BindShaderByName("FXAA");
-        pCtx->Draw(3, 0);
-
-        // bind depth stencil view back
-        pCtx->OMSetRenderTargets(1, &d3d.pSwapChainRTV_, d3d.pDepthStencilView_);
-
+        pRender_->RenderFXAA();
         return;
     }
 
@@ -1142,20 +1039,18 @@ void CGraphics::PostFxPass()
     // reset raster state, blend state, depth-stencil state to default
     pRender_->ResetRenderStates();
 
-    if (d3d.IsEnabled4xMSAA())
+    if (pRender_->IsEnabledMSAA())
     {
+        Render::D3DClass& d3d = GetD3D();
+        ID3D11DeviceContext* pCtx = GetContext();
+
         // resolve MSAA -> single-sample (non MSAA)
         assert(d3d.postFxsPassTex_[0] && "resolved tex is wrong");
         assert(d3d.pMSAAColorTex_     && "MSAA color tex is wrong");
         pCtx->ResolveSubresource(d3d.postFxsPassTex_[0], 0, d3d.pMSAAColorTex_, 0, DXGI_FORMAT_R8G8B8A8_UNORM);
     }
 
-
-    // we have only one post process pass
-    if (numPostFxsInQueue_ == 1)
-        RenderPostFxOnePass();
-    else
-        RenderPostFxMultiplePass();
+    pRender_->RenderPostFxs(postFxsQueue_, numPostFxsInQueue_);
 }
 
 //---------------------------------------------------------
@@ -1387,24 +1282,128 @@ void CGraphics::RenderDecals()
 {
     Render::CRender* pRender = pRender_;
 
+    const uint32 numDecals = g_ModelMgr.GetNumDecals();
+
+    if (numDecals == 0)
+        return;
+
     pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    //BindMaterialById(0);
+
+    // bind material
     pRender->BindShaderByName("DecalShader");
-    BindMaterialById(0);
+    const Material& mat = g_MaterialMgr.GetMatByName("wallmark");
+    BindMaterial(mat);
+    pRender->UpdateCbMaterialColors(mat.ambient, mat.diffuse, mat.specular, mat.reflect);
 
     // update params which we will use to generate a 2D sprite (in geometry shader)
     const VertexBuffer<VertexDecal3D>& vb = g_ModelMgr.GetDecalsVB();
     const IndexBuffer<uint16>&         ib = g_ModelMgr.GetDecalsIB();
 
-    const Material& mat = g_MaterialMgr.GetMatByName("wallmark");
-    BindMaterial(mat);
-    pRender->UpdateCbMaterialColors(mat.ambient, mat.diffuse, mat.specular, mat.reflect);
-
     pRender->BindVB(vb.GetAddrOf(), vb.GetStride(), 0);
     pRender->BindIB(ib.Get(), DXGI_FORMAT_R16_UINT);
 
     // render each decal
-    for (uint32 i = 0; i < g_ModelMgr.GetNumDecals(); ++i)
+    for (uint32 i = 0; i < numDecals; ++i)
         pRender->DrawIndexed(ib.GetIndexCount(), 0, i * NUM_VERTS_PER_DECAL);
+}
+
+//---------------------------------------------------------
+//---------------------------------------------------------
+void BindModelGrassFieldChannel(
+    ModelID& currModelId,
+    Render::CRender* pRender,
+    Model** ppGrass,
+    const GrassField& field,
+    const int channel,
+    UINT& indexCount)
+{
+    currModelId = field.grassModelId[channel];
+    Model& grass = g_ModelMgr.GetModelById(currModelId);
+
+    *ppGrass = &grass;
+
+    const VertexBuffer<Vertex3D>* pVB = &grass.GetVB();
+    const IndexBuffer<UINT>*      pIB = &grass.GetIB();
+
+    // bind VB/IB and instanced buf
+    ID3D11Buffer* const vbs[2] = { pVB->Get(), field.pInstancedBuf };
+    const UINT      strides[2] = { pVB->GetStride(), sizeof(GrassInstance) };
+    const UINT      offsets[2] = { 0, 0 };
+
+    pRender->BindVBs(0, 2, vbs, strides, offsets);
+    pRender->BindIB(pIB->Get(), DXGI_FORMAT_R32_UINT);
+
+    indexCount = pIB->GetIndexCount();
+}
+
+//---------------------------------------------------------
+// Desc:  render grass instances for a grass field by input index
+//---------------------------------------------------------
+void CGraphics::RenderGrassField(const vsize fieldIdx)
+{
+    assert(fieldIdx < g_GrassMgr.GetNumGrassFields());
+
+    // render stats counters
+    UINT numDrawnVerts     = 0;
+    UINT numDrawnTris      = 0;
+    UINT numDrawnInstances = 0;
+    UINT numDrawCalls      = 0;
+
+    UINT indexCount = 0;
+
+    ModelID currGrassModelId = INVALID_MODEL_ID;
+    UINT    startInstanceLocation = 0;
+    Model*  pGrass = nullptr;
+    
+    const GrassField& field = g_GrassMgr.GetGrassField(fieldIdx);
+
+
+    // bind one shader for the whole field
+    pRender_->BindShaderByName("GrassShaderInstance");
+
+    // bind material for the whole field
+    const Material& mat = g_MaterialMgr.GetMatById(field.matId);
+    BindMaterial(mat);
+    pRender_->UpdateCbMaterialColors(mat.ambient, mat.diffuse, mat.specular, mat.reflect);
+
+    // set how many billboard images we have horizontally and vertically for this field
+    pRender_->SetGrassTexRowsCols(field.texSlots, field.texRows);
+
+
+    // render each channel of the grass field
+    for (int ch = 0; ch < field.numChannels; ++ch)
+    {
+        // if we need to change geometry (grass model) for this channel
+        if (currGrassModelId != field.grassModelId[ch])
+        {
+            BindModelGrassFieldChannel(currGrassModelId, pRender_, &pGrass, field, ch, indexCount);
+        }
+
+        // draw geometry
+        const uint32 numInstances = field.instancesBufCounts[ch];
+
+        pRender_->DrawIndexedInstanced(
+            indexCount,
+            numInstances,
+            0, 0,                               // index and vertex start
+            startInstanceLocation);             
+
+        startInstanceLocation += numInstances;
+
+        numDrawnVerts     += pGrass->GetVB().GetVertexCount();
+        numDrawnTris      += indexCount / 3;
+        numDrawnInstances += numInstances;
+        numDrawCalls++;
+    }
+
+
+    // calc render stats
+    rndStat_.numDrawnVerts[GEOM_TYPE_GRASS]     += numDrawnVerts * numDrawnInstances;
+    rndStat_.numDrawnTris[GEOM_TYPE_GRASS]      += numDrawnTris * numDrawnInstances;
+
+    rndStat_.numDrawnInstances[GEOM_TYPE_GRASS] += numDrawnInstances;
+    rndStat_.numDrawCalls[GEOM_TYPE_GRASS]      += numDrawCalls;
 }
 
 //---------------------------------------------------------
@@ -1412,98 +1411,10 @@ void CGraphics::RenderDecals()
 //---------------------------------------------------------
 void CGraphics::RenderGrass()
 {
-
     pRender_->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    ModelID grassModelId              = INVALID_MODEL_ID;
-    Model*  pGrass                    = nullptr;
-    UINT    startInstanceLocation     = 0;
-
-    const VertexBuffer<Vertex3D>* pVB = nullptr;
-    const IndexBuffer<UINT>*      pIB = nullptr;
-    const GrassField&           field = g_GrassMgr.GetGrassField(0);
-
-
-
-    // bind one shader for the whole field
-    pRender_->BindShaderByName("GrassShaderInstance");
-
-    // bind material for the whole field
-    const Material& mat = g_MaterialMgr.GetMatByName("grass_0");
-    BindMaterial(mat);
-    pRender_->UpdateCbMaterialColors(mat.ambient, mat.diffuse, mat.specular, mat.reflect);
-
-
-    // render each channel of the grass field
-    for (int ch = 0; ch < field.numChannels; ++ch)
-    {
-        // if we need to change geometry (grass model) for this channel
-        if (grassModelId != field.grassModelId[ch])
-        {
-            grassModelId = field.grassModelId[ch];
-            pGrass       = &g_ModelMgr.GetModelById(grassModelId);
-
-            pVB = &pGrass->GetVB();
-            pIB = &pGrass->GetIB();
-
-            // bind VB/IB and instanced buf
-            ID3D11Buffer* const vbs[2] = { pVB->Get(), field.pInstancedBuf };
-            const UINT      strides[2] = { pVB->GetStride(), sizeof(GrassInstance) };
-            const UINT      offsets[2] = { 0, 0 };
-
-            pRender_->BindVBs(0, 2, vbs, strides, offsets);
-            pRender_->BindIB(pIB->Get(), DXGI_FORMAT_R32_UINT);
-        }
-
-        pRender_->DrawIndexedInstanced(
-            pIB->GetIndexCount(),
-            field.instancesBufCounts[ch],        // instances count
-            0, 0,                               // index and ertex start
-            startInstanceLocation);             // where start getting instances data
-
-        startInstanceLocation += field.instancesBufCounts[ch];
-    }
-
-    uint numRenderedInstances = 0;
-
-    for (int ch = 0; ch < field.numChannels; ++ch)
-    {
-        numRenderedInstances += field.instancesBufCounts[ch];
-    }
-
-    //printf("num grass: %u\n", numRenderedInstances);
-
-#if 0
-    // render each visible grass patch
-    int numGrassVertices = 0;
-    int numDrawCalls = 0;
-
-    for (const uint32 idx : g_GrassMgr.GetVisPatchesIdxs())
-    {
-        const VertexBuffer<VertexGrass>& vb = g_GrassMgr.GetVertexBufByIdx(idx);
-        const int                  numVerts = vb.GetVertexCount();
-
-        // if no grass instances in this vb...
-        if (numVerts <= 0)
-            continue;
-     
-        pRender->BindVB(vb.GetAddrOf(), vb.GetStride(), 0);
-        pRender->Draw(numVerts, 0U);
-
-        numGrassVertices += numVerts * 12;
-        numDrawCalls++;
-    }
-
-    // calc render stats
-    rndStat_.numDrawnVerts[GEOM_TYPE_GRASS] += numGrassVertices;
-    rndStat_.numDrawnTris [GEOM_TYPE_GRASS] += numGrassVertices * 6;   // from one grass vertex we create 3 grass plane (6 triangles) 
-
-    rndStat_.numDrawnInstances[GEOM_TYPE_GRASS] += numGrassVertices;
-    rndStat_.numDrawCalls     [GEOM_TYPE_GRASS] += numDrawCalls;
-
-#endif
-
-    
+    for (const VisibleGrassField& visField : g_GrassMgr.GetVisibleFields())
+        RenderGrassField(visField.fieldIdx);
 }
 
 //---------------------------------------------------------
@@ -1551,24 +1462,11 @@ void CGraphics::RenderInstanceGroups(
     uint32 numDrawnInstances = 0;
     uint32 numDrawCalls = 0;
 
-#if 0
-    if (geomType == GEOM_TYPE_OPAQUE)
-        PrintDumpInstancesBatches("opaque", instanceBatches);
-    else if (geomType == GEOM_TYPE_MASKED)
-        PrintDumpInstancesBatches("masked", instanceBatches);
-    else if (geomType == GEOM_TYPE_BLENDED)
-        PrintDumpInstancesBatches("blended", instanceBatches);
-#endif
-#if 0
-    if (geomType == GEOM_TYPE_MASKED)
-        pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-    else
-        pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-#endif
-
+    // render each batch of instances
     for (const Render::InstanceBatch& batch : instanceBatches)
     {
-        BindMaterial(batch.alphaClip, batch.rsId, batch.bsId, batch.dssId, batch.textures);
+        pRender->SetRenderStates(batch.alphaClip, batch.rsId, batch.bsId, batch.dssId);
+        pRender->SetTexturesPS(TEX_START_SLOT, NUM_TEXTURE_TYPES, batch.textures);
 
         pRender->RenderInstances(batch, startInstanceLocation);
 
@@ -1633,7 +1531,7 @@ void CGraphics::DepthPrepassInstanceGroup(
 void CGraphics::RenderPlayerWeapon()
 {
     pRender_->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    RenderSkinnedModel(pEnttMgr_->playerSys_.GetActiveWeapon());
+    RenderSkinnedModel(pEnttMgr_->playerSys_.GetActiveWeaponId());
 }
 
 //---------------------------------------------------------
@@ -1669,9 +1567,9 @@ void CGraphics::RenderSkinnedModel(const EntityID enttId)
     }
 
     // prepare model's instance
-    const ModelID       modelId = enttMgr.modelSys_.GetModelIdRelatedToEntt(enttId);
-    const Model&   model   = g_ModelMgr.GetModelById(modelId);
-    const MeshGeometry& meshes  = model.GetMeshes();
+    const ModelID      modelId = enttMgr.modelSys_.GetModelIdRelatedToEntt(enttId);
+    const Model&         model = g_ModelMgr.GetModelById(modelId);
+    const MeshGeometry& meshes = model.GetMeshes();
 
     const XMVECTOR quatRotZ = QuatRotAxis({ 0,0,1 }, +PIDIV2/2);
     const XMVECTOR quatRotY = QuatRotAxis({ 0,1,0 }, -PIDIV2);
@@ -1702,7 +1600,6 @@ void CGraphics::RenderSkinnedModel(const EntityID enttId)
 
     // bind a shader, prepare AI for rendering
     pRender->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    pRender->BindShaderByName("SkinnedMeshShader");
     pRender->BindIB(meshes.ib_.Get(), DXGI_FORMAT_R32_UINT);
 
     const UINT stride0 = sizeof(Vertex3D);
@@ -1716,8 +1613,7 @@ void CGraphics::RenderSkinnedModel(const EntityID enttId)
     const UINT  strides[2] = { stride0, stride1 };
     const UINT  offsets[2] = { offset0, offset1 };
 
-    ID3D11DeviceContext* pCtx = pRender->GetContext();
-    pCtx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
+    pRender->BindVBs(0, 2, vbs, strides, offsets);
 
     //---------------------------------
 
@@ -1728,10 +1624,11 @@ void CGraphics::RenderSkinnedModel(const EntityID enttId)
         const Subset& mesh  = meshes.subsets_[i];
         const Material& mat = g_MaterialMgr.GetMatById(mesh.materialId);
 
+        pRender->BindShaderById(mat.shaderId);
         BindMaterial(mat);
         pRender->UpdateCbMaterialColors(mat.ambient, mat.diffuse, mat.specular, mat.reflect);
 
-        pCtx->DrawIndexed(mesh.indexCount, mesh.indexStart, mesh.vertexStart);
+        pRender->DrawIndexed(mesh.indexCount, mesh.indexStart, mesh.vertexStart);
     }
 }
 
@@ -1748,15 +1645,15 @@ void CGraphics::RenderParticles()
     if (numParticles == 0)
         return;
 
-    pRender_->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+    render.SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 
     // for particles we bind only vertex buffer
     const VertexBuffer<BillboardSprite>& vb = g_ModelMgr.GetBillboardsBuffer();
     render.BindVB(vb.GetAddrOf(), vb.GetStride(), 0);
 
     // go through particles emitters and render its particles
-    int numDrawnVertices = 0;
-    int numDrawCalls = 0;
+    UINT numDrawnParticles = 0;
+    UINT numDrawCalls = 0;
 
     // render each type of particles separately
     for (index i = 0; i < particlesData.materialIds.size(); ++i)
@@ -1767,14 +1664,14 @@ void CGraphics::RenderParticles()
 
         render.Draw(particlesData.numInstances[i], particlesData.baseInstance[i]);
 
-        numDrawnVertices += (particlesData.numInstances[i] * 4);
+        numDrawnParticles += particlesData.numInstances[i];
         numDrawCalls++;
     }
 
     // calc some render states
-    rndStat_.numDrawnVerts[GEOM_TYPE_PARTICLE]     = numDrawnVertices * 4;    // each particle vertex become a billboard quad of 4 vertices
-    rndStat_.numDrawnTris[GEOM_TYPE_PARTICLE]      = numDrawnVertices * 2;    // each particle consists of 2 triangles (one quad)
-    rndStat_.numDrawnInstances[GEOM_TYPE_PARTICLE] = numParticles;            // how many separate particles we have rendered
+    rndStat_.numDrawnVerts[GEOM_TYPE_PARTICLE]     = numDrawnParticles * 4;    // each particle vertex become a billboard quad of 4 vertices
+    rndStat_.numDrawnTris[GEOM_TYPE_PARTICLE]      = numDrawnParticles * 2;    // each particle consists of 2 triangles (one quad)
+    rndStat_.numDrawnInstances[GEOM_TYPE_PARTICLE] = numParticles;             // how many separate particles we have rendered
     rndStat_.numDrawCalls[GEOM_TYPE_PARTICLE]      = numDrawCalls;
 }
 
@@ -1787,7 +1684,7 @@ void CGraphics::RenderSkyDome()
     const EntityID skyEnttId = pEnttMgr_->nameSys_.GetIdByName("sky");
 
     // if we haven't any sky entity
-    if (skyEnttId == INVALID_ENTITY_ID)
+    if (skyEnttId == INVALID_ENTT_ID)
         return;
 
     const SkyModel& sky = g_ModelMgr.GetSky();
@@ -1797,21 +1694,29 @@ void CGraphics::RenderSkyDome()
     instance.pVB          = sky.GetVB().Get();
     instance.pIB          = sky.GetIB().Get();
     instance.indexCount   = sky.GetNumIndices();
-    //instance.colorCenter  = sky.GetColorCenter();
-    //instance.colorApex    = sky.GetColorApex();
 
-    // setup IA and bind sky material
+    // setup IA
     pRender_->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    BindMaterialById(sky.GetMaterialId());
+
+    // bind sky material
+    const Material& mat = g_MaterialMgr.GetMatById(sky.GetMaterialId());
+    pRender_->BindShaderById(mat.shaderId);
+    pRender_->SetRenderStates(mat.alphaClip, mat.rsId, mat.bsId, mat.dssId);
 
     // compute a worldViewProj matrix for the sky instance
     const XMFLOAT3 skyOffset     = pEnttMgr_->transformSys_.GetPosition(skyEnttId);
     const XMFLOAT3 eyePos        = pEnttMgr_->cameraSys_.GetPos(currCameraId_);
     const XMFLOAT3 tr            = skyOffset + eyePos;
     const XMMATRIX world         = DirectX::XMMatrixTranslation(tr.x, tr.y, tr.z);
-    const XMMATRIX worldViewProj = DirectX::XMMatrixTranspose(world * viewProj_);
+    const XMMATRIX WVP           = DirectX::XMMatrixTranspose(world * viewProj_);
 
-    pRender_->RenderSkyDome(instance, worldViewProj);
+    // prepare input assembler (IA) and update const buffers
+    pRender_->BindVB(&instance.pVB, instance.vertexStride, 0);
+    pRender_->BindIB(instance.pIB, DXGI_FORMAT_R16_UINT);
+    pRender_->UpdateCbWorldViewProj(WVP);
+
+    // bind shader and render sky
+    pRender_->DrawIndexed(instance.indexCount, 0, 0);
 
     // calc render stats
     rndStat_.numDrawnVerts[GEOM_TYPE_SKY] = sky.GetNumVertices();
@@ -1833,8 +1738,10 @@ void CGraphics::RenderSkyClouds()
     // bind buffers, material, and shader
     pRender_->BindVB(vb.GetAddrOf(), vb.GetStride(), 0);
     pRender_->BindIB(ib.Get(), DXGI_FORMAT_R16_UINT);
-    pRender_->BindShaderByName("SkyCloudShader");
-    BindMaterialById(skyPlane.GetMaterialId());
+
+    Material& mat = g_MaterialMgr.GetMatById(skyPlane.GetMaterialId());
+    pRender_->BindShaderById(mat.shaderId);
+    BindMaterial(mat);
 
     // render
     GetContext()->DrawIndexed(skyPlane.GetNumIndices(), 0, 0);
@@ -1939,16 +1846,17 @@ void CGraphics::RenderTerrain()
     Terrain&    terrain = g_ModelMgr.GetTerrain();
     const Material& mat = g_MaterialMgr.GetMatById(terrain.materialID_);
 
-    // bind materials
-    BindMaterial(mat);
+    // manually bind terrain's material
+    ID3D11ShaderResourceView* texViews[NUM_TEXTURE_TYPES]{ nullptr };
+    g_TextureMgr.GetTexViewsByIds(mat.texIds, NUM_TEXTURE_TYPES, texViews);
+
+    // bind textures to VS as well (because we need to sample terrain's splat map in some vertex shaders)
+    pRender_->SetTexturesVS(TEX_START_SLOT, NUM_TEXTURE_TYPES, texViews);
+    pRender_->SetTexturesPS(TEX_START_SLOT, NUM_TEXTURE_TYPES, texViews);
+
+    pRender_->SetRenderStates(mat.alphaClip, mat.rsId, mat.bsId, mat.dssId);
     pRender_->UpdateCbMaterialColors(mat.ambient, mat.diffuse, mat.specular, mat.reflect);
     pRender_->SetPrimTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-    // bind textures to VS (because we need to sample terrain's splat map in some VS)
-    ID3D11ShaderResourceView* texViews[NUM_TEXTURE_TYPES]{ nullptr };
-
-    g_TextureMgr.GetTexViewsByIds(mat.texIds, NUM_TEXTURE_TYPES, texViews);
-    pRender_->GetContext()->VSSetShaderResources(100U, NUM_TEXTURE_TYPES, texViews);
 
     // bind buffers
     pRender_->BindVB(terrain.GetVbAddr(), terrain.GetVertexStride(), 0);
@@ -2000,168 +1908,6 @@ void CGraphics::RenderDebugShapes()
 
     DbgShapeRender renderer;
     renderer.Render(pRender_, pSysState_->isGameMode);
-}
-
-//---------------------------------------------------------
-// Desc:  bind a shader according to the input post effect's type
-//---------------------------------------------------------
-void BindPostFxShader(Render::CRender* pRender, const ePostFxType fxType)
-{
-    assert(pRender);
-
-    switch (fxType)
-    {
-        case POST_FX_VISUALIZE_DEPTH:
-            pRender->BindShaderByName("DepthResolveShader");
-            pRender->GetContext()->Draw(3, 0);
-            pRender->BindShaderByName("VisualizeDepthShader");
-            break;
-
-        case POST_FX_GRAYSCALE:
-        case POST_FX_INVERT_COLORS:
-        case POST_FX_BRIGHT_CONTRAST_ADJ:
-        case POST_FX_SEPIA:
-        case POST_FX_CHROMATIC_ABERRATION:
-        case POST_FX_COLOR_TINT:
-        case POST_FX_VIGNETTE_EFFECT:
-        case POST_FX_BLOOM_BRIGHT_EXTRACT:
-        case POST_FX_EDGE_DETECTION:
-        case POST_FX_POSTERIZATION:
-        case POST_FX_FILM_GRAIN:
-        case POST_FX_CRT_SCANLINES:
-        case POST_FX_PIXELATION:
-        case POST_FX_COLOR_SHIFT:
-        case POST_FX_NEGATIVE_GLOW:
-        case POST_FX_THERMAL_VISION:
-        case POST_FX_NIGHT_VISION:
-        case POST_FX_HEAT_DISTORTION:
-        case POST_FX_SHOCKWAVE_DISTORTION:
-        case POST_FX_FROST_GLASS_BLUR:
-        case POST_FX_OLD_TV_DISTORTION:
-        case POST_FX_COLOR_SPLIT:
-        case POST_FX_RADIAL_BLUR:
-        case POST_FX_SWIRL_DISTORTION:
-        case POST_FX_GLITCH:
-        case POST_FX_DITHERING_ORDERED:
-        {
-            const char* shaderName = g_PostFxShaderName[fxType];
-            pRender->BindShaderByName(shaderName);
-            break;
-        }
-
-        // gaussian blur we do in 2 passes
-        case POST_FX_GAUSSIAN_BLUR:
-        {
-            const char* shaderName = g_PostFxShaderName[fxType];
-            pRender->BindShaderByName(shaderName);
-            break;
-        }
-
-        //-----------------------------------
-
-        default:
-            LogErr(LOG, "wrong post effect type (maybe you add a new postFx but forgot to add a new case here?): %d", (int)fxType);
-            return;
-    }
-}
-
-//---------------------------------------------------------
-// Desc:  if we have only one post effect in the post process passes queue we
-//        can render it directly into the swap chain's RTV
-//---------------------------------------------------------
-void CGraphics::RenderPostFxOnePass()
-{
-    Render::D3DClass&    d3d = GetD3D();
-    ID3D11DeviceContext* pCtx = GetContext();
-
-    // bind dst render target and src shader resource view
-    assert(d3d.pSwapChainRTV_     && "swap chain RTV is wrong");
-    assert(d3d.postFxsPassSRV_[0] && "resolved SRV is wrong");
-
-    pCtx->OMSetRenderTargets(1, &d3d.pSwapChainRTV_, nullptr);
-    pCtx->PSSetShaderResources(TEX_SLOT_POST_FX_SRC, 1, &d3d.postFxsPassSRV_[0]);
-
-    BindPostFxShader(pRender_, postFxsQueue_[0]);
-    pCtx->Draw(3, 0);
-
-    // bind a depth stencil view back
-    pCtx->OMSetRenderTargets(1, &d3d.pSwapChainRTV_, d3d.pDepthStencilView_);
-}
-
-//---------------------------------------------------------
-// Desc:  when we have multiple post process passes we have to flip btw
-//        two render targets each time when render a pass;
-//        for the final pass we do rendering into the swap chain't RTV
-//---------------------------------------------------------
-void CGraphics::RenderPostFxMultiplePass()
-{
-    Render::D3DClass&    d3d  = GetD3D();
-    ID3D11DeviceContext* pCtx = GetContext();
-
-    pCtx->OMSetRenderTargets(1, &d3d.postFxsPassRTV_[1], nullptr);
-    pCtx->PSSetShaderResources(TEX_SLOT_POST_FX_SRC, 1, &d3d.postFxsPassSRV_[0]);
-
-    int i = 0;
-    int lastDstIdx = 0;
-
-    for (i = 0; i < numPostFxsInQueue_ - 1; ++i)
-    {
-        // by this index we will get a source SRV for the last post process pass
-        lastDstIdx = (i % 2 == 0);
-
-        BindPostFxShader(pRender_, postFxsQueue_[i]);
-        pCtx->Draw(3, 0);
-
-        // flip render targets and shader resource views
-        // (one target becomes a dst, and another becomes a src)
-        const int nextTargetIdx = (i % 2 != 0);
-        const int nextSrcIdx    = (i % 2 == 0);
-
-        pCtx->OMSetRenderTargets(1, &d3d.postFxsPassRTV_[nextTargetIdx], nullptr);
-        pCtx->PSSetShaderResources(TEX_SLOT_POST_FX_SRC, 1, &d3d.postFxsPassSRV_[nextSrcIdx]);
-    }
-
-    // final pass we render directly into swap chain's RTV
-    BindPostFxShader(pRender_, postFxsQueue_[i]);
-    pCtx->OMSetRenderTargets(1, &d3d.pSwapChainRTV_, nullptr);
-    pCtx->PSSetShaderResources(TEX_SLOT_POST_FX_SRC, 1, &d3d.postFxsPassSRV_[lastDstIdx]);
-    pCtx->Draw(3, 0);
-
-    // bind depth stencil back
-    pCtx->OMSetRenderTargets(1, &d3d.pSwapChainRTV_, d3d.pDepthStencilView_);
-}
-
-//---------------------------------------------------------
-// Desc:   visualize values from the depth buffer (we do it after usual rendering)
-//---------------------------------------------------------
-void CGraphics::VisualizeDepthBuffer()
-{
-    Render::D3DClass&    d3d      = GetD3D();
-    ID3D11DeviceContext* pCtx = GetContext();
-
-    // unbind depth before depth visualization
-    d3d.UnbindDepthBuffer();
-
-    if (d3d.IsEnabled4xMSAA())
-    {
-        ID3D11ShaderResourceView* pDepthMSAASRV = d3d.GetDepthSRV();
-        pCtx->PSSetShaderResources(TEX_SLOT_DEPTH_MSAA, 1, &pDepthMSAASRV);
-
-        pRender_->BindShaderByName("DepthResolveShader");
-        pCtx->Draw(3, 0);
-    }
-    else
-    {
-        // setup depth SRV
-        ID3D11ShaderResourceView* pDepthSRV = d3d.GetDepthSRV();
-        pCtx->PSSetShaderResources(TEX_SLOT_DEPTH, 1, &pDepthSRV);
-
-        pRender_->BindShaderByName("VisualizeDepthShader");
-        pCtx->Draw(3, 0);
-    }
-
-    // after rendering we bind depth buffer again
-    d3d.BindDepthBuffer();
 }
 
 //---------------------------------------------------------
@@ -2291,6 +2037,19 @@ void CGraphics::SetupLightsForFrame(Render::PerFrameData& outData)
 //==================================================================================
 
 //---------------------------------------------------------
+// Desc:  is post fx by input type currently enabled?
+//---------------------------------------------------------
+bool CGraphics::IsPostFxEnabled(const ePostFxType type) const
+{
+    bool bEnabled = false;
+
+    for (uint8 i = 0; i < numPostFxsInQueue_; ++i)
+        bEnabled |= (postFxsQueue_[i] == type);
+
+    return bEnabled;
+}
+
+//---------------------------------------------------------
 // Desc:  push a new post fx at the end of post effects rendering queue
 //---------------------------------------------------------
 void CGraphics::PushPostFx(const ePostFxType type)
@@ -2315,6 +2074,18 @@ void CGraphics::PushPostFx(const ePostFxType type)
 }
 
 //---------------------------------------------------------
+// Desc:  remove post fx of particular type from the post-effect queue
+//---------------------------------------------------------
+void CGraphics::RemovePostFx(const ePostFxType type)
+{
+    for (uint8 i = 0; i < numPostFxsInQueue_; ++i)
+    {
+        if (postFxsQueue_[i] == type)
+            RemovePostFx(i);
+    }
+}
+
+//---------------------------------------------------------
 // Desc:  remove post fx by input order number from the post-effects queue
 //---------------------------------------------------------
 void CGraphics::RemovePostFx(const uint8 orderNum)
@@ -2325,10 +2096,11 @@ void CGraphics::RemovePostFx(const uint8 orderNum)
     }
 
     // shirt left
-    for (int i = (int)orderNum; i < numPostFxsInQueue_-1; ++i)
+    for (int i = (int)orderNum; i < numPostFxsInQueue_; ++i)
         postFxsQueue_[i] = postFxsQueue_[i + 1];
 
-    numPostFxsInQueue_--;
+    //postFxsQueue_[numPostFxsInQueue_-1] = ePostFxType(-1);  // remove last
+    numPostFxsInQueue_--;                                   // decrease counter
 }
 
 //---------------------------------------------------------
@@ -2389,7 +2161,7 @@ bool CGraphics::RenderModelIntoFrameBuf()
         return false;
     }
 
-    Render::CRender* pRender  = pRender_;
+    Render::CRender* pRender = pRender_;
 
     // reset render states to prevent rendering bugs
     pRender->ResetRenderStates();
@@ -2591,44 +2363,23 @@ float CGraphics::GetModelPreviewParam(const uint8 param) const
 //
 // Out:   - outData:  output container for calculated intersection data
 //---------------------------------------------------------
-bool CGraphics::GetRayIntersectionData(
-    const int sx,
-    const int sy,
-    IntersectionData& outData)
+bool CGraphics::TestRayIntersectEntts(
+    const DirectX::XMVECTOR& rayOrigW,
+    const DirectX::XMVECTOR& rayDirW,
+    IntersectionData& outData) const
 {
     using namespace DirectX;
 
-    // reset output data
-    memset(&outData, 0, sizeof(outData));
-
     ECS::EntityMgr& enttMgr   = *pEnttMgr_;
     const EntityID  playerId  = enttMgr.nameSys_.GetIdByName("player");
-
-    const ECS::CameraSystem& camSys = enttMgr.cameraSys_;
-
-    const XMFLOAT3  camPos  = camSys.GetPos(currCameraId_);
-    const XMMATRIX& proj    = camSys.GetProj(currCameraId_);
-    const XMMATRIX& invView = camSys.GetInverseView(currCameraId_);
-
-    const float xndc = (+2.0f * sx / GetD3D().GetWindowWidth()  - 1.0f);
-    const float yndc = (-2.0f * sy / GetD3D().GetWindowHeight() + 1.0f);
-
-    // compute picking ray in view space
-    const float vx = xndc / proj.r[0].m128_f32[0];
-    const float vy = yndc / proj.r[1].m128_f32[1];
-    const XMVECTOR rayDirV = { vx, vy, 1, 0 };
-
-    // ray definition (origin, direction) in world space...
-    XMVECTOR rayOrigW = { camPos.x, camPos.y, camPos.z, 1 };
-    XMVECTOR rayDirW  = XMVector3Normalize(XMVector3TransformNormal(rayDirV, invView));     // supposed to take a vec (w == 0)
 
     // ...and in local space
     XMVECTOR rayOrigL = {0,0,0};
     XMVECTOR rayDirL  = {0,0,1};
 
-
     // the distance along the ray where the intersection occurs
     float tmin = FLT_MAX;  
+
 
     // go through each visible entt and check if we have an intersection with it
     for (const EntityID enttId : enttMgr.renderSys_.GetAllVisibleEntts())
@@ -2674,10 +2425,10 @@ void CGraphics::RayEnttTest(
     float& tmin,
     IntersectionData& outData,
     XMVECTOR& outRayOrigL,
-    XMVECTOR& outRayDirL)
+    XMVECTOR& outRayDirL) const
 {
-    const ModelID    modelId = pEnttMgr_->modelSys_.GetModelIdRelatedToEntt(enttId);
-    const Model&  model = g_ModelMgr.GetModelById(modelId);
+    const ModelID modelId = pEnttMgr_->modelSys_.GetModelIdRelatedToEntt(enttId);
+    const Model&    model = g_ModelMgr.GetModelById(modelId);
 
     // transform ray to model's local space
     const XMMATRIX& invWorld = pEnttMgr_->transformSys_.GetInvWorld(enttId);
@@ -2710,7 +2461,7 @@ bool CGraphics::RayModelTest(
     const XMVECTOR& rayOrigin,
     const XMVECTOR& rayDir,
     float& tmin,
-    uint& intersectedTriangleIdx)
+    uint& intersectedTriangleIdx) const
 {
     assert(pModel);
 
@@ -2764,7 +2515,7 @@ void CGraphics::GatherIntersectionData(
     const XMVECTOR rayOrigW,
     const XMVECTOR rayDirW,
     const float t,
-    IntersectionData& outData)
+    IntersectionData& outData) const
 {
     const Model& model = g_ModelMgr.GetModelById(outData.modelId);
     const Vertex3D*   verts = model.GetVertices();
@@ -2822,7 +2573,7 @@ void CGraphics::GatherIntersectionData(
     XMFLOAT3 intersect;
     XMStoreFloat3(&intersect, intersectPW);
 
-    // store ray origin...
+    // store origin of the ray (in world space)
     XMFLOAT3 rayOrig;
     XMStoreFloat3(&rayOrig, rayOrigW);
 
@@ -2830,10 +2581,15 @@ void CGraphics::GatherIntersectionData(
     outData.rayOrigY = rayOrig.y;
     outData.rayOrigZ = rayOrig.z;
 
-    // ...intersection point 
+    // store intersection point (in world space)
     outData.px = intersect.x;
     outData.py = intersect.y;
     outData.pz = intersect.z;
+
+    // calc and store a distance to the intersection point
+    outData.distToIntersect = sqrtf(SQR(rayOrig.x - intersect.x) +
+                                    SQR(rayOrig.y - intersect.y) +
+                                    SQR(rayOrig.z - intersect.z));
 
     // ...and normal vec of intersected triangle (in world space)
     Vec3 normal = CalcNormalVec(pos0, pos1, pos2);
@@ -2872,7 +2628,7 @@ void CGraphics::GatherIntersectionData(
 //---------------------------------------------------------
 // check if we have any entity by input screen coords;
 // 
-// in:   screen pixel coords
+// in:   sx, sy:  screen pixel coords
 // out:  0  - there is no entity, we didn't select any
 //       ID - we selected some entity so return its ID
 //---------------------------------------------------------

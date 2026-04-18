@@ -24,15 +24,15 @@ public:
     void SetParent(const EntityID childID, const EntityID parentID);
 
     void UpdateRelativePos(const EntityID childID);
-    void SetRelativePos(const EntityID childId, const XMFLOAT3& newRelPos);
-    void SetRelativePos(const EntityID childId, const XMVECTOR& newRelPos);
+    void SetRelativePos(const EntityID childId, const DirectX::XMFLOAT3& newRelPos);
+    void SetRelativePos(const EntityID childId, const DirectX::XMVECTOR& newRelPos);
 
-    XMFLOAT3 GetRelativePos(const EntityID childID) const;
+    DirectX::XMFLOAT3 GetRelativePos(const EntityID childID) const;
 
     void GetRelativePositions(
         const EntityID* ids,
         const size numEntts,
-        XMFLOAT3* outPositions) const;
+        DirectX::XMFLOAT3* outPositions) const;
 
     //---------------------------------------------------------
     // Desc:  return a flag to define if enitity has any children

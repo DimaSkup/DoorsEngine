@@ -60,6 +60,22 @@ inline Rect3d::Rect3d(const Rect3d& src) :
 // c - box center
 // e - box extents
 //---------------------------------------------------------
+inline Rect3d::Rect3d(const Vec3& c, const Vec3& e)
+{
+    x0 = c.x - e.x;
+    x1 = c.x + e.x;
+
+    y0 = c.y - e.y;
+    y1 = c.y + e.y;
+
+    z0 = c.z - e.z;
+    z1 = c.z + e.z;
+}
+
+//---------------------------------------------------------
+// c - box center
+// e - box extents
+//---------------------------------------------------------
 inline Rect3d::Rect3d(Vec3&& c, Vec3&& e)
 {
     x0 = c.x - e.x;

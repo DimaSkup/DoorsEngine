@@ -52,12 +52,13 @@ bool EngineConfigs::LoadSettingsFromFile(const char* path)
         if (buf[0] == '\n')
             continue;
 
+        // skip comment
+        if (buf[0] == ';')
+            continue;
+
+
         count = sscanf(buf, "%s %s", key, val);
         assert(count == 2);
-
-        // skip comment
-        if (key[0] == '#')
-            continue;
 
         // try to insert a pair [key => value]; if we didn't manage to do it we throw an exception
         if (!settingsList_.insert({ key, val }).second) 
@@ -81,7 +82,7 @@ int EngineConfigs::GetInt(const char* key) const
 
     if (!settingsList_.contains(key))
     {
-        LogErr(LOG, "there is no integer value by key: %s", key);
+        LogErr(LOG, "no integer value by key: %s", key);
         return 0;
     }
 
@@ -98,7 +99,7 @@ float EngineConfigs::GetFloat(const char* key) const
 
     if (!settingsList_.contains(key))
     {
-        LogErr(LOG, "there is no float value by key: %s", key);
+        LogErr(LOG, "no float value by key: %s", key);
         return 0;
     }
 
@@ -114,7 +115,7 @@ bool EngineConfigs::GetBool(const char* key) const
 
     if (!settingsList_.contains(key))
     {
-        LogErr(LOG, "there is no boolean value by key: %s", key);
+        LogErr(LOG, "no boolean value by key: %s", key);
         return false;
     }
 
@@ -139,7 +140,7 @@ const char* EngineConfigs::GetString(const char* key) const
 
     if (!settingsList_.contains(key))
     {
-        LogFatal(LOG, "there is no string value by key: %s", key);
+        LogFatal(LOG, "no string value by key: %s", key);
     }
 
     return settingsList_.at(key).c_str();
@@ -154,13 +155,13 @@ void EngineConfigs::UpdateSettingByKey(const char* key, const std::string& val)
 
     if (val.empty())
     {
-        LogErr(LOG, "can't update setting by key (%s): input value is empty", key);
+        LogErr(LOG, "input value is empty", key);
         return;
     }
 
     if (!settingsList_.contains(key))
     {
-        LogErr(LOG, "there is no setting by key: %s", key);
+        LogErr(LOG, "no setting by key: %s", key);
         return;
     }
 

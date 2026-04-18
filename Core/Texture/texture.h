@@ -16,35 +16,6 @@
 namespace Core
 {
 
-enum class TexStoreType
-{
-    Invalid,
-    None,
-    EmbeddedIndexCompressed,
-    EmbeddedIndexNonCompressed,
-    EmbeddedCompressed,
-    EmbeddedNonCompressed,
-    Disk
-};
-
-//---------------------------------------------------------
-// params needed for cubemap texture initialization
-//---------------------------------------------------------
-struct CubeMapInitParams
-{
-    // path to directory with textures for cubemap
-    char directory[64]{'\0'};
-
-    // 6 textures, max 32 chars for each name:
-    //    0 - positive X
-    //    1 - negative X
-    //    2 - positive Y
-    //    3 - negative Y
-    //    4 - positive Z
-    //    5 - negative Z
-    char texNames[6][32]{'\0'};
-};
-
 //---------------------------------------------------------
 // Texture class
 //---------------------------------------------------------

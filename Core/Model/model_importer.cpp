@@ -385,7 +385,7 @@ void ProcessMesh(
     aiMaterial* pAiMat = pScene->mMaterials[pMesh->mMaterialIndex];
 
     char matName[MAX_LEN_MAT_NAME]{ '\0' };
-    HandleMaterialName(pAiMat, filePath, subsetIdx, matName);
+    //HandleMaterialName(pAiMat, filePath, subsetIdx, matName);
 
         
     // create a new material in the material manager
@@ -394,11 +394,11 @@ void ProcessMesh(
     strncpy(subset.name, pMesh->mName.C_Str(), MAX_LEN_MESH_NAME);
     subset.materialId   = material.id;
 
-    LoadMaterialColorsData(pAiMat, material);
+    //LoadMaterialColorsData(pAiMat, material);
 
     GetVerticesIndicesOfMesh(pMesh, subsetIdx);
 
-    LoadMaterialTextures(material.texIds, pAiMat, subset, pScene, filePath);
+    //LoadMaterialTextures(material.texIds, pAiMat, subset, pScene, filePath);
 }
 
 //---------------------------------------------------------
@@ -638,6 +638,11 @@ void GetVerticesIndicesOfMesh(
         modifiedMesh.uvs,
         modifiedMesh.indices);
 #else
+
+    if (subsetIdx >= s_Meshes.size())
+        return;
+
+    assert(subsetIdx < s_Meshes.size());
 
     InitMeshGeometry(pMesh, s_Meshes[subsetIdx]);
 

@@ -9,6 +9,17 @@
 namespace Core
 {
 
+//---------------------------------------------------------
+// default constructor
+//---------------------------------------------------------
+TerrainLodMgr::TerrainLodMgr() :
+    numPatchesPerSide_(0),
+    maxLOD_(0),
+    patchSize_(17),
+    map_(nullptr)
+{
+    memset(regions_, 0, sizeof(regions_));
+}
 
 //---------------------------------------------------------
 // Desc:   prepare the lod manager to do its stuff

@@ -46,7 +46,8 @@ EntityMgr::EntityMgr() :
     boundingSys_     { &bounding_, &transformSys_ },
     cameraSys_       { &camera_, &transformSys_ },
     hierarchySys_    { &hierarchy_, &transformSys_ },
-    playerSys_       { &transformSys_, &cameraSys_, &hierarchySys_ },
+    weaponSys_       { &weapons_ },
+    playerSys_       { &transformSys_, &cameraSys_, &hierarchySys_, &weaponSys_ },
     particleSys_     { &particleEmitter_, &transformSys_, &boundingSys_ },
     inventorySys_    { &inventory_ },
     animationSys_    { &animations_ },
@@ -83,6 +84,9 @@ EntityMgr::EntityMgr() :
         { AnimationComponent,           "Animation" },
         { SpriteComponent,              "Sprite" },
 
+        { WeaponComponent,              "Weapon component" },
+        { TriggerComponent,             "Trigger component" },
+
         { AIComponent,                  "AI component" },
         { HealthComponent,              "Health component" },
         { DamageComponent,              "Damage component" },
@@ -97,7 +101,7 @@ EntityMgr::EntityMgr() :
         LogFatal(LOG, "you must assign enough names for components!!!");
 
     // add "invalid" entity with ID == 0
-    ids_.push_back(INVALID_ENTITY_ID);
+    ids_.push_back(INVALID_ENTT_ID);
     componentFlags_.push_back(0);
 
     sceneObjectsIds_.push_back(0);
@@ -190,7 +194,7 @@ EntityID EntityMgr::CreateEntity(const char* enttName)
     if (StrHelper::IsEmpty(enttName))
     {
         LogErr(LOG, "empty name");
-        return INVALID_ENTITY_ID;
+        return INVALID_ENTT_ID;
     }
 
     const EntityID id = CreateEntity();
@@ -259,8 +263,8 @@ void EntityMgr::Update(const float gameTime, const float dt)
                 hierarchySys_.GetChildrenArr(e.enttID, s_Ids);
                 s_Ids.push_back(e.enttID);
 
-                const XMFLOAT3 prevPos  = transformSys_.GetPosition(e.enttID);
-                const XMFLOAT3 adjustBy = { e.x-prevPos.x, e.y-prevPos.y, e.z-prevPos.z };
+                const DirectX::XMFLOAT3 prevPos  = transformSys_.GetPosition(e.enttID);
+                const DirectX::XMFLOAT3 adjustBy = { e.x-prevPos.x, e.y-prevPos.y, e.z-prevPos.z };
 
                 // adjust position for entt and all its children
                 transformSys_.AdjustPositions(s_Ids.data(), s_Ids.size(), adjustBy);
@@ -300,41 +304,6 @@ void EntityMgr::Update(const float gameTime, const float dt)
             case EVENT_PLAYER_RUN:              // set the player is running or not
             {
                 playerSys_.SetIsRunning(e.x);
-                break;
-            }
-            case EVENT_PLAYER_JUMP:
-            {
-                playerSys_.Move(ePlayerState::JUMP);
-                break;
-            }
-            case EVENT_PLAYER_MOVE_FORWARD:
-            {
-                playerSys_.Move(ePlayerState::MOVE_FORWARD);
-                break;
-            }
-            case EVENT_PLAYER_MOVE_BACK:
-            {
-                playerSys_.Move(ePlayerState::MOVE_BACK);
-                break;
-            }
-            case EVENT_PLAYER_MOVE_RIGHT:
-            {
-                playerSys_.Move(ePlayerState::MOVE_RIGHT);
-                break;
-            }
-            case EVENT_PLAYER_MOVE_LEFT:
-            {
-                playerSys_.Move(ePlayerState::MOVE_LEFT);
-                break;
-            }
-            case EVENT_PLAYER_MOVE_UP:
-            {
-                playerSys_.Move(ePlayerState::MOVE_UP);
-                break;
-            }
-            case EVENT_PLAYER_MOVE_DOWN:
-            {
-                playerSys_.Move(ePlayerState::MOVE_DOWN);
                 break;
             }
         }
@@ -547,8 +516,8 @@ void EntityMgr::AddNameComponent(
 //---------------------------------------------------------
 void EntityMgr::AddTransformComponent(
     const EntityID& enttId,
-    const XMFLOAT3& position,
-    const XMVECTOR& direction,
+    const DirectX::XMFLOAT3& position,
+    const DirectX::XMVECTOR& direction,
     const float scale)
 {
     constexpr size numEntts = 1;
@@ -566,8 +535,8 @@ void EntityMgr::AddTransformComponent(
 void EntityMgr::AddTransformComponent(
     const EntityID* ids,
     const size numEntts,
-    const XMFLOAT3* positions,
-    const XMVECTOR* directions,
+    const DirectX::XMFLOAT3* positions,
+    const DirectX::XMVECTOR* directions,
     const float* scales)
 {
     try
@@ -587,8 +556,8 @@ void EntityMgr::AddTransformComponent(
 //---------------------------------------------------------
 void EntityMgr::AddMoveComponent(
     const EntityID& id,
-    const XMFLOAT3& translation,
-    const XMVECTOR& rotationQuat,
+    const DirectX::XMFLOAT3& translation,
+    const DirectX::XMVECTOR& rotationQuat,
     const float uniformScaleFactor)
 {
     AddMoveComponent(&id, &translation, &rotationQuat, &uniformScaleFactor, 1);
@@ -600,8 +569,8 @@ void EntityMgr::AddMoveComponent(
 //---------------------------------------------------------
 void EntityMgr::AddMoveComponent(
     const EntityID* ids,
-    const XMFLOAT3* translations,
-    const XMVECTOR* rotationQuats,
+    const DirectX::XMFLOAT3* translations,
+    const DirectX::XMVECTOR* rotationQuats,
     const float* uniformScaleFactors,
     const size numEntts)
 {
@@ -937,6 +906,28 @@ void EntityMgr::AddSpriteComponent(
     }
 
     SetEnttHasComponent(enttId, SpriteComponent);
+}
+
+//---------------------------------------------------------
+// Desc:  add WEAPON component to entity by id
+// Args:  id      - entity identifier
+//        wpnData - weapon parameters
+//---------------------------------------------------------
+void EntityMgr::AddWeaponComponent(const EntityID id, const Weapon& wpnData)
+{
+    if (!CheckEnttExist(id) && id != INVALID_ENTT_ID)
+    {
+        LogErr(LOG, GetErrMsgFailedAddComponent("WEAPON", id).c_str());
+        return;
+    }
+
+    if (!weaponSys_.AddRecord(id, wpnData))
+    {
+        LogErr(LOG, "can't add a WEAPON component for entt: %" PRIu32, id);
+        return;
+    }
+
+    SetEnttHasComponent(id, WeaponComponent);
 }
 
 

@@ -24,7 +24,7 @@
 #include <geometry/sphere_functions.h>
 #include <geometry/plane3d.h>
 #include <math/math_helpers.h>
-
+#include <math/vec_functions.h>
 
 
 enum ePlaneClassifications
@@ -141,4 +141,103 @@ inline int PlaneClassify(const Rect3d& rect, const Plane3d& plane)
     }
 
     return PLANE_BACK;
+}
+
+//---------------------------------------------------------
+// Desc:  test if input spheres intersect each other
+//---------------------------------------------------------
+inline bool IntersectSphereSphere(const Sphere& a, const Sphere& b)
+{
+    Vec3 distVec;
+    Vec3Sub(a.center, b.center, distVec);
+
+    const float distSqr      = Vec3Dot(distVec, distVec);
+    const float radiusSqrSum = SQR(a.radius) + SQR(b.radius);
+
+    return (distSqr < radiusSqrSum);
+}
+
+//---------------------------------------------------------
+// Desc:  test if input sphere and AABB intersect each other
+//---------------------------------------------------------
+inline bool IntersectRectSphere(const Rect3d& rect, const Sphere& sphere)
+{
+    // left/right
+    bool bInByX = (rect.x0 < (sphere.center.x + sphere.radius)) &&
+                  (rect.x1 > (sphere.center.x - sphere.radius));
+
+    bool bInByY = (rect.y0 < (sphere.center.y + sphere.radius)) &&
+                  (rect.y1 > (sphere.center.y - sphere.radius));
+
+    bool bInByZ = (rect.z0 < (sphere.center.z + sphere.radius)) &&
+                  (rect.z1 > (sphere.center.z - sphere.radius));
+
+    return bInByX && bInByY && bInByZ;
+}
+
+//---------------------------------------------------------
+// Desc:  just test if we have any intersection between the ray and sphere
+// Ret:   true if have an intersection
+//---------------------------------------------------------
+inline bool IntersectRaySphere(
+    const Sphere& sphere,
+    const Vec3& rayOrig,
+    const Vec3& rayDir,
+    float& t)
+{
+    // substitute ray into sphere -> quadration equation in t:
+    //                  a*t*t + bt + c = 0
+
+    Vec3 oc = rayOrig - sphere.center;
+
+    float a = Vec3Dot(rayDir, rayDir);
+    float b = 2.0f * Vec3Dot(oc, rayDir);
+    float c = Vec3Dot(oc, oc) - SQR(sphere.radius);
+
+    float discriminant = b*b - 4*a*c;
+
+    if (discriminant < 0)
+        return false;
+
+    float sqrtD = sqrtf(discriminant);
+
+    float t1 = (-b - sqrtD) / (2.0f * a);
+    float t2 = (-b + sqrtD) / (2.0f * a);
+
+    // return the closest positive intersection
+    if (t1 > 0) return t1;
+    if (t2 > 0) return t2;
+
+    // both intersections are behind the ray
+    return false;
+
+
+#if 0
+    Vec3 oc = rayOrig - sphere.center;
+    float c = Vec3Dot(oc, oc) - SQR(sphere.radius);
+
+    // we're inside the sphere
+    if (c < 0.0f)
+    {
+        t = 0;
+        return true;
+    }
+
+    float halfB = Vec3Dot(oc, rayDir);
+
+    if (halfB > 0.0f)
+        return false;
+
+    // rays are assumed to be normalized so no need to calc a 
+    const float a = 1.0f;  // dot(rayDir, rayDir)
+
+    float discriminant = SQR(halfB) - (4.0f*a*c);
+
+    if (discriminant < 0.0f)
+        return false;
+
+    t = (-halfB - sqrtf(discriminant));
+
+    return (t >= 0.0f);
+#endif
 }

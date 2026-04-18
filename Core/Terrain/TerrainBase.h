@@ -186,7 +186,7 @@ public:
     void ClearMemoryFromMaps(void );
 
     bool LoadSetupFile       (const char* filename, TerrainConfig& outConfigs);
-    bool LoadHeightMap       (const char* filename, const int size);
+    bool LoadHeightMap       (const char* filename);
     bool LoadTextureMap      (const char* filename);
     bool LoadNatureDensityMap(const char* filename);
 
@@ -216,7 +216,7 @@ public:
     inline void SetHeightScale(const float scale) { heightScale_ = scale; }
 
     // Set the true height value at the given point
-    inline void SetHeightAtPoint(const uint8_t height, const int x, const int z)
+    inline void SetHeightAtPoint(const uint8 height, const int x, const int z)
     {
         heightMap_.SetPixelGray(height, x, z);
     }
@@ -226,9 +226,12 @@ public:
     // Args:  x,z: which height value to retrieve
     // Ret:   uchar value: the true height at the give point
     // ----------------------------------------------------
-    inline uint8_t GetTrueHeightAtPoint(const int x, const int z) const
+    inline uint8 GetTrueHeightAtPoint(const int x, const int z) const
     {
-        return heightMap_.GetPixelGray(x, z);
+        // flip vertically
+        const uint y = heightMap_.GetHeight() - z;
+
+        return heightMap_.GetPixelGray(x, y);
     }
 
     // ----------------------------------------------------
@@ -241,34 +244,11 @@ public:
         return heightScale_ * (float)GetTrueHeightAtPoint(x, z);
     }
 
-    // ----------------------------------------------------
-    // Desc:   compute scaled height of terrain at given point (x,z)
-    //         using bilinear interpolation
-    // Args:   x, z:      our position
-    // Ret:    float val: actual height at point (x,z)
-    // ----------------------------------------------------
-    inline float GetScaledInterpolatedHeightAtPoint(const float x, const float z) const
-    {
-        // make camera offset by Y-axis to be at fixed height over the terrain
-        int posX = (int)(floorf(x));
-        int posZ = (int)(floorf(z));
+    // compute scaled height of terrain at given point (x,z) using bilinear interpolation
+    float GetScaledInterpolatedHeightAtPoint(const float x, const float z) const;
 
-        float h1 = GetScaledHeightAtPoint(posX,   posZ);     //   3------4
-        float h2 = GetScaledHeightAtPoint(posX+1, posZ);     //   |      |
-        float h3 = GetScaledHeightAtPoint(posX,   posZ+1);   //   |      |
-        float h4 = GetScaledHeightAtPoint(posX+1, posZ+1);   //   1------2
-
-        // interpolation parameters
-        float tx = x - posX;
-        float tz = z - posZ;
-
-        // bilinear interpolation
-        float h12 = h1 + tx * (h2-h1);
-        float h34 = h3 + tx * (h4-h3);
-
-        // return terrain height at point (x,z)
-        return h12 + tz * (h34-h12);
-    }
+    // return an angle in radians between normal vector of terrain's surface quad and Y-axis
+    float GetSlopeAngleAtPoint(const float x, const float z) const;
 
     // ----------------------------------------------------
 
@@ -298,10 +278,10 @@ public:
     // load/unload a texture map for the terrain
     //--------------------------------------------------------------
     inline bool LoadTexture (const char* filename)
-    {   return texture_.LoadData(filename);   }
+    {   return texture_.Load(filename);   }
 
     inline void UnloadTexture()
-    {   texture_.Unload();  }
+    {   texture_.Shutdown();  }
 
     //--------------------------------------------------------------
     // load/unload a detail map (which is used to add realism to the terrain)
@@ -309,17 +289,17 @@ public:
     //inline bool LoadDetailMap(const char* filename)
     //{   return detailMap_.LoadData(filename);   }
 
-    inline void UnloadDetailMap(void)
-    {   detailMap_.Unload();   }
+    //inline void UnloadDetailMap(void)
+    //{   detailMap_.Shutdown();   }
 
     //--------------------------------------------------------------
     // load/unload a single tile for the texture generation
     //--------------------------------------------------------------
     inline bool LoadTile(const eTileTypes tileType, const char* filename)
-    {   return tiles_.textureTiles[tileType].LoadData(filename);   }
+    {   return tiles_.textureTiles[tileType].Load(filename);   }
 
     inline void UnloadTile(const eTileTypes tileType)
-    {   tiles_.textureTiles[tileType].Unload();   }
+    {   tiles_.textureTiles[tileType].Shutdown();   }
 
     //--------------------------------------------------------------
     // Unload all tiles which were used for the texture generation

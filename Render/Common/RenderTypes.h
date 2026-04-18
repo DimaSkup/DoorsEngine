@@ -290,8 +290,8 @@ struct SkyInstance
     UINT              vertexStride = 0;             // size in bytes of a single vertex
     ID3D11Buffer*     pVB = nullptr;                // vertex buffer
     ID3D11Buffer*     pIB = nullptr;                // index buffer
-    uint32            renderStates;                 // a bitfield about render states of the current material
-    SRV*              texSRVs[NUM_TEXTURE_TYPES];   // textures arr
+    //uint32            renderStates;                 // a bitfield about render states of the current material
+    //SRV*              texSRVs[NUM_TEXTURE_TYPES];   // textures arr
     DirectX::XMFLOAT3 colorCenter;                  // horizon sky color (for gradient)
     DirectX::XMFLOAT3 colorApex;                    // top sky color (for gradient)
 };

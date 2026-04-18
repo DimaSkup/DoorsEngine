@@ -6,10 +6,10 @@
 // =================================================================================
 #pragma once
 
-#include "types.h"
+#include <stdint.h>
 
 // save input data into RAW file
-bool SaveRAW(const char* filename, const uint8* data, const int numBytes);
+bool SaveFileRAW(const char* filename, const uint8_t* data, const int numBytes);
 
 // load data from RAW file
-bool LoadRAW(const char* filename, uint8** outData, int& outSize);
+bool LoadFileRAW(const char* filename, uint8_t** outData, int& outSize);

@@ -1,0 +1,9 @@
+newmtl power_line80m_damaged_mat
+shader LightShader
+Ka 0.70 0.70 0.70 1.00
+Kd 0.70 0.70 0.70 1.00
+Ks 1.00 1.00 1.00
+Kg 32.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff power_line/cables_diff
+tex_norm blankNRM

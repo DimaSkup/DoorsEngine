@@ -224,7 +224,7 @@ void MeshGeometry::SetMaterialForSubset(const SubsetID subsetId, const MaterialI
         return;
     }
 
-    if (matID == INVALID_MATERIAL_ID)
+    if (matID == INVALID_MAT_ID)
     {
         LogErr(LOG, "input ID to material is invalid (is equal 0)");
         return;
@@ -275,7 +275,7 @@ bool MeshGeometry::CheckInputParamsForMaterialsSetting(
 
         // check input materials IDs
         for (index i = 0; i < count; ++i)
-            isValid &= (materialsIDs[i] != INVALID_MATERIAL_ID);
+            isValid &= (materialsIDs[i] != INVALID_MAT_ID);
 
         return isValid;
     }

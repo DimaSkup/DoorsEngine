@@ -146,9 +146,15 @@ bool TerrainInitHeight(Terrain& terrain, const TerrainConfig& terrainCfg)
     // load a height map from the file
     else
     {
-        if (!terrain.LoadHeightMap(terrainCfg.pathHeightMap, terrainCfg.terrainLength))
+        if (!terrain.LoadHeightMap(terrainCfg.pathHeightMap))
         {
             LogErr(LOG, "can't load a height map for terrain: %s", terrainCfg.pathHeightMap);
+            return false;
+        }
+
+        if (terrain.heightMap_.GetWidth() != terrainCfg.terrainLength)
+        {
+            LogErr(LOG, "dimensions of height map must == terrain's length (but %u != %d)", terrain.heightMap_.GetWidth(), terrainCfg.terrainLength);
             return false;
         }
     }
@@ -188,7 +194,7 @@ bool TerrainInitTileMap(Terrain& terrain, const TerrainConfig& terrainCfg)
 
         const TexID tileMapTexId = g_TextureMgr.CreateTextureFromRawData(
             "terrain_tile_map",
-            terrain.texture_.GetData(),
+            terrain.texture_.GetPixels(),
             terrain.texture_.GetWidth(),
             terrain.texture_.GetHeight(),
             terrain.texture_.GetBPP(),
@@ -197,7 +203,7 @@ bool TerrainInitTileMap(Terrain& terrain, const TerrainConfig& terrainCfg)
         if (tileMapTexId)
         {
             LogDbg(LOG, "terrain_tile_map texture is created");
-            terrain.texture_.SetID(tileMapTexId);
+            terrain.texture_.SetId(tileMapTexId);
         }
         else
         {
@@ -318,7 +324,7 @@ bool TerrainInitDetailMap(Terrain& terrain, const char* texName)
     const Texture& tex = g_TextureMgr.GetTexById(texId);
 
     // set params of texture
-    terrain.detailMap_.SetID(texId);
+    terrain.detailMap_.SetId(texId);
     terrain.detailMap_.SetWidth(tex.GetWidth());
     terrain.detailMap_.SetHeight(tex.GetHeight());
     terrain.detailMap_.SetBPP(32);

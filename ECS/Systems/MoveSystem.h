@@ -32,8 +32,8 @@ public:
 
     void AddRecords(
         const EntityID* ids,
-        const XMFLOAT3* translations,
-        const XMVECTOR* rotationQuats,
+        const DirectX::XMFLOAT3* translations,
+        const DirectX::XMVECTOR* rotationQuats,
         const float* uniformScaleFactors,
         const size numEntts);
 

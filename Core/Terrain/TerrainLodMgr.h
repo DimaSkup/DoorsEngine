@@ -39,6 +39,7 @@ public:
     };
 
 public:
+    TerrainLodMgr();
     ~TerrainLodMgr() { Release(); }
 
     int  Init(const int patchSize, const int numPatchesPerSide);
@@ -54,41 +55,13 @@ public:
         cvector<int>& midDetailedPatches,
         cvector<int>& lowDetailedPatches);
 
-
     void PrintMap() const;
 
-    //-----------------------------------------------------
-    // Desc:   get patch's LOD metadata by its idx
-    //-----------------------------------------------------
-    inline const PatchLod& GetPatchLodInfo(const int idx) const
-    {   return map_[idx];   }
+    const PatchLod& GetPatchLodInfo(const int idx) const;
+    const PatchLod& GetPatchLodInfo(const int patchX, const int patchZ) const;
 
-    //-----------------------------------------------------
-    // Desc:   get patch's LOD metadata by its idx along X and Z-axis
-    // Args:   - patchX:  index by X-axis (not position)
-    //         - patchZ:  index by Z-axis (not position)
-    //-----------------------------------------------------
-    inline const PatchLod& GetPatchLodInfo(const int patchX, const int patchZ) const
-    {   return map_[(patchZ * numPatchesPerSide_) + patchX];    }
-
-    //-----------------------------------------------------
-    // Desc:   get a size of patch along X and Z-axis (patch is a square)
-    //-----------------------------------------------------
-    inline int GetPatchSize() const
-    {   return patchSize_;  }
-
-    //-----------------------------------------------------
-    // Desc:   return a distance from the camera where LOD starts
-    //-----------------------------------------------------
-    inline int GetDistanceToLOD(const int lod) const
-    {
-        if ((lod < 0) || (lod > maxLOD_))
-            return -1;
-
-        return regions_[lod];
-    }
-
-    //-----------------------------------------------------
+    int GetPatchSize() const;
+    int GetDistanceToLOD(const int lod) const;
 
     bool SetDistanceToLOD(const int lod, const int dist);
 
@@ -117,40 +90,91 @@ private:
 
     void CalcNeighborsLods(cvector<int>& patchesIdxs);
 
-    //---------------------------------------------------------
-    // Desc:  return a LOD number by input distance
-    //        (longer distance gives us higher LOD number)
-    //---------------------------------------------------------
-    inline int GetLodByDistance(float distance) const 
-    {
-        for (int lod = 0; lod <= maxLOD_; ++lod)
-        {
-            if (distance < regions_[lod])
-                return lod;
-        }
-        return maxLOD_;
-    }
-
-    inline int GetLodByDistanceSqr(const int distSqr) const
-    {
-        for (int lod = 0; lod <= maxLOD_; ++lod)
-        {
-            if (distSqr < (regions_[lod]*regions_[lod]))
-                return lod;
-        }
-        return maxLOD_;
-    }
+    int GetLodByDistance  (float distance)     const;
+    int GetLodByDistanceSqr(const int distSqr) const;
+    
     
 public:
     // number of patches quads along X and Z-axis
     // (for instance: number == 256 + 1 (terrain width) / 16 + 1 (patch size))
-    int       numPatchesPerSide_ = 0;
+    int numPatchesPerSide_;
 
-    int       maxLOD_ = 0;                // the number of LODs for this terrain's patches
-    int       patchSize_ = 17;            // size (by X and Z-axis) of a single patch
+    // the number of LODs for this terrain's patches
+    int maxLOD_;
 
-    PatchLod* map_     = nullptr;         
-    int       regions_[8]{0};             // distance from the camera where LOD starts
+    // size (number of vertices by X and Z-axis) of a single patch
+    int patchSize_;
+
+    PatchLod* map_;
+
+    // distance from the camera where LOD starts
+    int regions_[8];
 };
 
-} // namespace Core
+
+//==================================================================================
+// INLINE FUNCTIONS
+//==================================================================================
+
+//-----------------------------------------------------
+// Desc:   get patch's LOD metadata by its idx
+//-----------------------------------------------------
+inline const TerrainLodMgr::PatchLod& TerrainLodMgr::GetPatchLodInfo(const int idx) const
+{
+    return map_[idx];
+}
+
+//-----------------------------------------------------
+// Desc:   get patch's LOD metadata by its idx along X and Z-axis
+// Args:   - patchX:  index by X-axis (not position)
+//         - patchZ:  index by Z-axis (not position)
+//-----------------------------------------------------
+inline const TerrainLodMgr::PatchLod& TerrainLodMgr::GetPatchLodInfo(const int patchX, const int patchZ) const
+{
+    return map_[(patchZ * numPatchesPerSide_) + patchX];
+}
+
+//-----------------------------------------------------
+// Desc:   get a size of patch along X and Z-axis (patch is a square)
+//-----------------------------------------------------
+inline int TerrainLodMgr::GetPatchSize() const
+{
+    return patchSize_;
+}
+
+//-----------------------------------------------------
+// Desc:   return a distance from the camera where LOD starts
+//-----------------------------------------------------
+inline int TerrainLodMgr::GetDistanceToLOD(const int lod) const
+{
+    if ((lod < 0) || (lod > maxLOD_))
+        return -1;
+
+    return regions_[lod];
+}
+
+//---------------------------------------------------------
+  // Desc:  return a LOD number by input distance
+  //        (longer distance gives us higher LOD number)
+  //---------------------------------------------------------
+inline int TerrainLodMgr::GetLodByDistance(float distance) const
+{
+    for (int lod = 0; lod <= maxLOD_; ++lod)
+    {
+        if (distance < regions_[lod])
+            return lod;
+    }
+    return maxLOD_;
+}
+
+inline int TerrainLodMgr::GetLodByDistanceSqr(const int distSqr) const
+{
+    for (int lod = 0; lod <= maxLOD_; ++lod)
+    {
+        if (distSqr < (regions_[lod] * regions_[lod]))
+            return lod;
+    }
+    return maxLOD_;
+}
+
+} // namespace

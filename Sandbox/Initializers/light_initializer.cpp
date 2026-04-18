@@ -5,48 +5,78 @@
 
 #include "quad_tree_attach_control.h"
 
-using DirectX::XMFLOAT3;
-using DirectX::XMFLOAT4;
-using DirectX::XMVECTOR;
 
 namespace Game
 {
 
+using DirectX::XMFLOAT3;
+using DirectX::XMFLOAT4;
+using DirectX::XMVECTOR;
+
 //---------------------------------------------------------
 // Helper structure for light sources initialization
 //---------------------------------------------------------
-struct LightSrcInitParams
+struct LightInitParams
 {
-    char enttName[MAX_LEN_ENTT_NAME]{'\0'};
-    char parentEnttName[MAX_LEN_ENTT_NAME]{'\0'};
-    char archetype[32]{'\0'};
+    char lightType[32];
+    char enttName[MAX_LEN_ENTT_NAME];
+    char parentEnttName[MAX_LEN_ENTT_NAME];
 
-    ECS::LightType  lightType = ECS::NUM_LIGHT_TYPES;
-    XMFLOAT3        pos       = { 0,0,0 };            // position
-    XMFLOAT3        dir       = { 0,0,0 };            // direction
-    XMFLOAT4        dirQuat   = { 0,0,0,1 };          // direction quaternion
-    int             isActive  = true;                 // 0 - inactive, 1 - active
+    XMFLOAT3 pos;               // position
+    XMFLOAT3 dir;               // direction (for directed lights)
+    XMFLOAT4 rotQuat;           // rotation quaternion
+    int      bActive;           // 0 - inactive, 1 - active light source
+
+    // color props
+    XMFLOAT4 ambient;
+    XMFLOAT4 diffuse;
+    XMFLOAT4 specular;
+
+    XMFLOAT3 attenuation;
+    float    range;
+    float    spotFallof;
 
     void Reset()
     {
-        memset(enttName, '\0', MAX_LEN_ENTT_NAME);
-        memset(parentEnttName, '\0', MAX_LEN_ENTT_NAME);
-        memset(archetype, '\0', 32);
+        memset(lightType, 0, sizeof(lightType));
+        memset(enttName, 0, sizeof(enttName));
+        memset(parentEnttName, 0, sizeof(parentEnttName));
 
-        pos = { 0,0,0 };
-        dir = { 0,0,0 };
-        dirQuat = { 0,0,0,1 };
-        lightType = ECS::NUM_LIGHT_TYPES;
-        isActive = true;
+        pos      = { 0,0,0 };
+        dir      = { 0,0,1 };
+        rotQuat  = { 0,0,0,1 };
+        bActive  = true;
+
+        ambient  = { 0,0,0,1 };
+        diffuse  = { 0,0,0,1 };
+        specular = { 0,0,0,1 };
     }
 };
 
 //---------------------------------------------------------
 // forward declaration of private helpers
 //---------------------------------------------------------
-void InitDirectedLightEntt(ECS::EntityMgr& mgr, FILE* pFile, LightSrcInitParams& params);
-void InitPointLightEntt   (ECS::EntityMgr& mgr, FILE* pFile, LightSrcInitParams& params);
-void InitSpotlightEntt    (ECS::EntityMgr& mgr, FILE* pFile, LightSrcInitParams& params);
+void ReadParamsFromFile     (FILE* pFile, LightInitParams& initParams);
+
+void CreateDirectedLightEntt(ECS::EntityMgr& mgr, LightInitParams& params);
+void CreatePointLightEntt   (ECS::EntityMgr& mgr, LightInitParams& params);
+void CreateSpotlightEntt    (ECS::EntityMgr& mgr, LightInitParams& params);
+
+
+//---------------------------------------------------------
+// extract color (RGBA) from input str buffer
+//---------------------------------------------------------
+void ReadColor(const char* buf, XMFLOAT4& c)
+{
+    assert(buf && buf[0] != '\0');
+
+    char key[32];
+    int count = sscanf(buf, "%s %f %f %f %f", key, &c.x, &c.y, &c.z, &c.w);
+    if (count != 5)
+    {
+        LogErr(LOG, "failed to parse a str with light prop: %s", buf);
+    }
+}
 
 //---------------------------------------------------------
 // Desc:  load light entities params from file and create these entities
@@ -54,57 +84,82 @@ void InitSpotlightEntt    (ECS::EntityMgr& mgr, FILE* pFile, LightSrcInitParams&
 //---------------------------------------------------------
 bool LightInitializer::Init(const char* filepath, ECS::EntityMgr& mgr)
 {
-    LogMsg(LOG, "Initialize light entities");
-
     if (StrHelper::IsEmpty(filepath))
     {
         LogErr(LOG, "empty filename");
         return false;
     }
 
-    FILE* pFile = fopen(filepath, "r");
+    LogMsg(LOG, "Initialize light entities from file: %s", filepath);
+
+
+    int count = 0;
+    FILE* pFile = nullptr;
+    char buf[128];
+
+    LightInitParams initParams;
+    initParams.Reset();
+
+
+    // open file for reading
+    pFile = fopen(filepath, "r");
     if (!pFile)
     {
         LogErr(LOG, "can't open a file: %s", filepath);
         return false;
     }
 
-    char buf[128]{'\0'};
-    LightSrcInitParams initParams;
-
+    // read in declarations of light entities
     while (fgets(buf, sizeof(buf), pFile))
     {
-        // we always expect declaration of new entity after reading a line
-        if (buf[0] != 'n')
+        if (buf[0] == '\n')
+            continue;
+
+        // skip comment
+        if (buf[0] == ';')
+            continue;
+
+
+        // read in a type of the light source and its name
+        count = sscanf(buf, "%s \"%s", initParams.lightType, initParams.enttName);
+
+        if (count != 2)
         {
-            LogErr(LOG, "buffer doesn't contain declaration of newentt: %s", buf);
-            LogErr(LOG, "interrupt creation of light sources");
-            return false;
+            LogErr(LOG, "can't parse a string with light declaration: %s", buf);
+            LogErr(LOG, "skip creation of the light source");
+
+            // skip this declaration
+            do {
+                fgets(buf, sizeof(buf), pFile);
+            } while (buf[0] != '}');
+
+            continue;
         }
 
-        // read in a name and light type for a new entity
-        char typeName[32]{ '\0' };
-        ReadStr    (buf,   "newentt %s", initParams.enttName);
-        ReadFileStr(pFile, "type", typeName);
+        // skip last quote (") symbol from the entity name
+        initParams.enttName[strlen(initParams.enttName) - 1] = '\0';
 
-
-        if (typeName[0] == 'd')
-            InitDirectedLightEntt(mgr, pFile, initParams);
-
-        else if (typeName[0] == 'p')
-            InitPointLightEntt(mgr, pFile, initParams);
-
-        else if (typeName[0] == 's')
-            InitSpotlightEntt(mgr, pFile, initParams);
-
+        // create a light source according to its type
+        if (initParams.lightType[0] == 'd')
+        {
+            ReadParamsFromFile(pFile, initParams);
+            CreateDirectedLightEntt(mgr, initParams);
+        }
+        else if (initParams.lightType[0] == 'p')
+        {
+            ReadParamsFromFile(pFile, initParams);
+            CreatePointLightEntt(mgr, initParams);
+        }
+        else if (initParams.lightType[0] == 's')
+        {
+            ReadParamsFromFile(pFile, initParams);
+            CreateSpotlightEntt(mgr, initParams);
+        }
         else
-        {
-            LogErr(LOG, "uknown type of light: %s", typeName);
-            LogErr(LOG, "interrupt creation of light sources");
-            return false;
-        }
+            LogErr(LOG, "unknown light type: %s", initParams.lightType);
 
-        // after all reset initial params for the following entity
+
+        // reset initial params for the following entity
         initParams.Reset();
 
     } // while fgets
@@ -113,30 +168,84 @@ bool LightInitializer::Init(const char* filepath, ECS::EntityMgr& mgr)
     return true;
 }
 
-
 //---------------------------------------------------------
-// Desc:  read params from file, create and setup a new directed light entity
+// Desc:  read in parameters of a light source from file
+//        and store them into output argument (params)
 //---------------------------------------------------------
-void InitDirectedLightEntt(ECS::EntityMgr& mgr, FILE* pFile, LightSrcInitParams& params)
+void ReadParamsFromFile(FILE* pFile, LightInitParams& params)
 {
     assert(pFile);
-    printf("\tinit directed light: %s\n", params.enttName);
+
+    int count = 0;
+    char buf[128];
+    char key[32];
+
+    memset(buf, 0, sizeof(buf));
+    memset(key, 0, sizeof(key));
+
+
+    while (fgets(buf, sizeof(buf), pFile))
+    {
+        // if the end of the light declaration
+        if (buf[0] == '}')
+            return;
+
+        // get a property key
+        count = sscanf(buf, "%s", key);
+        assert(count == 1);
+
+        // read in a property according to the key
+        if (strcmp(key, "pos") == 0)
+            ReadFloat3(buf+1, "pos %f %f %f", &params.pos.x);
+
+        else if (strcmp(key, "rot_quat") == 0)
+            ReadFloat4(buf+1, "rot_quat %f %f %f %f", &params.rotQuat.x);
+
+        else if (strcmp(key, "direction") == 0)
+            ReadFloat3(buf+1, "direction %f %f %f\n", &params.dir.x);
+
+        else if (strcmp(key, "ambient") == 0)
+            ReadColor(buf, params.ambient);
+
+        else if (strcmp(key, "diffuse") == 0)
+            ReadColor(buf, params.diffuse);
+
+        else if (strcmp(key, "specular") == 0)
+            ReadColor(buf, params.specular);
+
+        else if (strcmp(key, "is_active") == 0)
+            ReadInt(buf+1, "is_active %d", &params.bActive);
+
+        else if (strcmp(key, "att") == 0)
+            ReadFloat3(buf+1, "att %f %f %f", &params.attenuation.x);
+
+        else if (strcmp(key, "range") == 0)
+            ReadFloat(buf+1, "range %f", &params.range);
+
+        else if (strcmp(key, "spot_fallof") == 0)
+            ReadFloat(buf+1, "spot_fallof %f", &params.spotFallof);
+
+        else if (strcmp(key, "parent") == 0)
+            ReadStr(buf+1, "parent %s", params.parentEnttName);
+
+        // ERROR
+        else
+            LogErr(LOG, "invalid light prop key: %s (from buffer: %s)", key, buf);
+    }
+}
+
+//---------------------------------------------------------
+// Desc:  create and setup a new directed light entity
+//---------------------------------------------------------
+void CreateDirectedLightEntt(ECS::EntityMgr& mgr, LightInitParams& params)
+{
+    printf("\tcreate directed light: %s\n", params.enttName);
 
     ECS::DirLight light;
 
-    // read in params from file
-    ReadFileFloat4(pFile, "ambient",   &light.ambient.x);
-    ReadFileFloat4(pFile, "diffuse",   &light.diffuse.x);
-    ReadFileFloat4(pFile, "specular",  &light.specular.x);
-    ReadFileFloat3(pFile, "direction", &params.dir.x);
-    ReadFileInt   (pFile, "active",    &params.isActive);
-    ReadFileStr   (pFile, "archetype",  params.archetype);
-
-    if (strcmp(params.archetype, "light") != 0)
-    {
-        LogErr(LOG, "entt archetype isn't \"light\": (name: %s, archetype: %s)", params.enttName, params.archetype);
-        return;
-    }
+    light.ambient = params.ambient;
+    light.diffuse = params.diffuse;
+    light.specular = params.specular;
 
     // create entity and add components
     const EntityID enttId  = mgr.CreateEntity(params.enttName);
@@ -145,51 +254,39 @@ void InitDirectedLightEntt(ECS::EntityMgr& mgr, FILE* pFile, LightSrcInitParams&
 
     mgr.AddTransformComponent(enttId, params.pos, dirQuat);
     mgr.AddLightComponent(enttId, light);
-    mgr.lightSys_.SetLightIsActive(enttId, params.isActive);
+    mgr.lightSys_.SetLightIsActive(enttId, params.bActive);
 }
 
 //---------------------------------------------------------
-// Desc:  read params from file, create and setup a new point light entity
+// Desc:  create and setup a new point light entity
 //---------------------------------------------------------
-void InitPointLightEntt(ECS::EntityMgr& mgr, FILE* pFile, LightSrcInitParams& params)
+void CreatePointLightEntt(ECS::EntityMgr& mgr, LightInitParams& params)
 {
-    assert(pFile);
-    printf("\tinit point light: %s\n", params.enttName);
+    printf("\tcreate point light: %s\n", params.enttName);
 
     ECS::PointLight light;
 
-    // read in params from file
-    ReadFileFloat3(pFile, "pos",       &params.pos.x);
-    ReadFileFloat4(pFile, "ambient",   &light.ambient.x);
-    ReadFileFloat4(pFile, "diffuse",   &light.diffuse.x);
-    ReadFileFloat4(pFile, "specular",  &light.specular.x);
-    ReadFileFloat3(pFile, "att",       &light.att.x);      // attenuation
-    ReadFileFloat (pFile, "range",     &light.range);
-    ReadFileInt   (pFile, "active",    &params.isActive);
-    ReadFileStr   (pFile, "parent",    params.parentEnttName);
-    ReadFileStr   (pFile, "archetype", params.archetype);
-
-    if (strcmp(params.archetype, "light") != 0)
-    {
-        LogErr(LOG, "entt archetype isn't \"light\": (name: %s, archetype: %s)", params.enttName, params.archetype);
-        return;
-    }
+    light.ambient = params.ambient;
+    light.diffuse = params.diffuse;
+    light.specular = params.specular;
+    light.att = params.attenuation;
+    light.range = params.range;
 
     // create entity and add components
     const EntityID enttId = mgr.CreateEntity(params.enttName);
 
+    mgr.AddTransformComponent(enttId, params.pos);
+    mgr.AddLightComponent(enttId, light);
+    mgr.lightSys_.SetLightIsActive(enttId, params.bActive);
+
     // setup boundings
     const DirectX::BoundingSphere localSphere({ 0,0,0 }, light.range);
     const DirectX::BoundingSphere worldSphere(params.pos, light.range);
-
-    mgr.AddTransformComponent(enttId, params.pos);
     mgr.AddBoundingComponent(enttId, localSphere, worldSphere);
-    mgr.AddLightComponent(enttId, light);
-    mgr.lightSys_.SetLightIsActive(enttId, params.isActive);
 
-    // set parent for this point light if we have any
+    // set a parent for this point light if we have any
     // (so it will move together with its parent)
-    if (params.parentEnttName[0] != '0')
+    if (params.parentEnttName[0] != '\0')
     {
         const EntityID parentId = mgr.nameSys_.GetIdByName(params.parentEnttName);
         mgr.hierarchySys_.AddChild(parentId, enttId);
@@ -201,44 +298,31 @@ void InitPointLightEntt(ECS::EntityMgr& mgr, FILE* pFile, LightSrcInitParams& pa
 }
 
 //---------------------------------------------------------
-// Desc:  read params from file, create and setup a new spotlight entity
+// Desc:  create and setup a new spotlight entity
 //---------------------------------------------------------
-void InitSpotlightEntt(ECS::EntityMgr& mgr, FILE* pFile, LightSrcInitParams& params)
+void CreateSpotlightEntt(ECS::EntityMgr& mgr, LightInitParams& params)
 {
-    assert(pFile);
-    printf("\tinit spotlight: %s\n", params.enttName);
+    printf("\tcreate spotlight: %s\n", params.enttName);
 
     ECS::SpotLight light;
 
-    // read in params from file
-    ReadFileFloat3(pFile, "pos",         &params.pos.x);
-    ReadFileFloat4(pFile, "dir_quat",    &params.dirQuat.x);
-    ReadFileFloat4(pFile, "ambient",     &light.ambient.x);
-    ReadFileFloat4(pFile, "diffuse",     &light.diffuse.x);
-    ReadFileFloat4(pFile, "specular",    &light.specular.x);
-    ReadFileFloat3(pFile, "att",         &light.att.x);       // attenuation
-    ReadFileFloat (pFile, "range",       &light.range);       // distance
-    ReadFileFloat (pFile, "spot_fallof", &light.spot);        // light intensity fallof (for control the spotlight cone)
-    ReadFileInt   (pFile, "active",      &params.isActive);
-    ReadFileStr   (pFile, "parent",       params.parentEnttName);
-    ReadFileStr   (pFile, "archetype",    params.archetype);
-
-    if (strcmp(params.archetype, "light") != 0)
-    {
-        LogErr(LOG, "entt archetype isn't \"light\": (name: %s, archetype: %s)", params.enttName, params.archetype);
-        return;
-    }
+    light.ambient  = params.ambient;
+    light.diffuse  = params.diffuse;
+    light.specular = params.specular;
+    light.att      = params.attenuation;
+    light.range    = params.range;
+    light.spot     = params.spotFallof;
 
     // create entity and add components
     const EntityID enttId = mgr.CreateEntity(params.enttName);
 
-    mgr.AddTransformComponent(enttId, params.pos, XMLoadFloat4(&params.dirQuat), 1.0f);
+    mgr.AddTransformComponent(enttId, params.pos, XMLoadFloat4(&params.rotQuat), 1.0f);
     mgr.AddLightComponent(enttId, light);
-    mgr.lightSys_.SetLightIsActive(enttId, params.isActive);
+    mgr.lightSys_.SetLightIsActive(enttId, params.bActive);
 
     // set parent for this point light if we have any
     // (so it will move together with its parent)
-    if (params.parentEnttName[0] != '0')
+    if (params.parentEnttName[0] != '\0')
     {
         const EntityID parentId = mgr.nameSys_.GetIdByName(params.parentEnttName);
         mgr.hierarchySys_.AddChild(parentId, enttId);

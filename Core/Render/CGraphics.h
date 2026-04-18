@@ -52,13 +52,6 @@ public:
     // internal structures + enums
     //
 
-    enum eTextureSlots
-    {
-        TEX_SLOT_DEPTH       = 10,     // resolved (non-MSAA) texture with depth values
-        TEX_SLOT_DEPTH_MSAA  = 11,     // 4xMSAA texture with depth values
-        TEX_SLOT_POST_FX_SRC = 12,     // source texture for our post process pass
-    };
-
     //-----------------------------------------------------
     // geometry types of instances (entities);
     // this enum is used for frame stat gathering
@@ -175,8 +168,12 @@ public:
     //---------------------------------
     // collision:  ray/entities tests
     //---------------------------------
-    bool GetRayIntersectionData(const int sx, const int sy, IntersectionData& outData);
-    int  TestEnttSelection     (const int sx, const int sy);
+    bool TestRayIntersectEntts(
+        const DirectX::XMVECTOR& rayOrigin,
+        const DirectX::XMVECTOR& rayDir,
+        IntersectionData& outData) const;
+
+    int  TestEnttSelection (const int sx, const int sy);
 
 
     //---------------------------------
@@ -191,6 +188,10 @@ public:
     void Render3D();
     void RenderDecals();
 
+    void LockFrustumCulling(const bool onOff);
+    bool IsLockedFrustumCulling(void) const;
+
+
     //---------------------------------
     // material binding
     //---------------------------------
@@ -204,12 +205,6 @@ public:
         const DssID dssId,
         const TexID* texIds);
 
-    void BindMaterial(
-        const bool alphaClip,
-        const RsID rsId,
-        const BsID bsId,
-        const DssID dssId,
-        ID3D11ShaderResourceView* const* texViews);
 
     //---------------------------------
     // rendering into frame buffers
@@ -254,7 +249,9 @@ public:
     inline const ePostFxType* GetPostFxsQueue()               const { return postFxsQueue_; }       // return a ptr to queue of currently used post effects
     inline uint8 GetNumUsedPostFxs()                          const { return numPostFxsInQueue_; }  // return a number of currenly used post effects
 
+    bool IsPostFxEnabled(const ePostFxType type) const;
     void PushPostFx  (const ePostFxType type);
+    void RemovePostFx(const ePostFxType type);
     void RemovePostFx(const uint8 orderNum);
 
 
@@ -318,6 +315,7 @@ private:
     //---------------------------------
     void RenderSkinnedModel(const EntityID enttId);
     void RenderGrass();
+    void RenderGrassField(const index fieldIdx);
 
     void RenderInstanceGroups(
         const cvector<Render::InstanceBatch>& instanceBatches,
@@ -331,9 +329,6 @@ private:
     void RenderTerrain();
     void RenderPlayerWeapon();
     void RenderDebugShapes();
-    void VisualizeDepthBuffer();
-    void RenderPostFxOnePass();
-    void RenderPostFxMultiplePass();
 
     //---------------------------------
     // collision helpers:  ray/entities tests
@@ -345,14 +340,14 @@ private:
         float& tmin,
         IntersectionData& outData,
         DirectX::XMVECTOR& outRayOrigL,
-        DirectX::XMVECTOR& outRayDirL);
+        DirectX::XMVECTOR& outRayDirL) const;
 
     bool RayModelTest(
         const Model* pModel,
         const DirectX::XMVECTOR& rayOrigin,
         const DirectX::XMVECTOR& rayDir,
         float& tmin,
-        uint& intersectedTriangleIdx);
+        uint& intersectedTriangleIdx) const;
 
     void GatherIntersectionData(
         const DirectX::XMVECTOR rayOrigL,
@@ -360,7 +355,7 @@ private:
         const DirectX::XMVECTOR rayOrigW,
         const DirectX::XMVECTOR rayDirW,
         const float t,
-        IntersectionData& outData);
+        IntersectionData& outData) const;
 
 public:
     RenderStat rndStat_;
@@ -391,6 +386,7 @@ private:
     bool visualizeDepth_      = false;
     bool enablePostFXs_       = false;
     bool bUseQuadTree_        = false;
+    bool bLockFrustumCull_    = false;
 
     float gameTime_ = 0;
 
@@ -462,6 +458,20 @@ inline void CGraphics::SwitchQuadTree()
         printf("switch to: QUAD TREE\n");
     else
         printf("switch to: BASIC CULL\n");
+}
+
+//---------------------------------------------------------
+// 1. turn on/off locking of the frustum culling for the scene camera
+// 2. is frustum culling is locked?
+//---------------------------------------------------------
+inline void CGraphics::LockFrustumCulling(const bool onOff)
+{
+    bLockFrustumCull_ = onOff;
+}
+
+inline bool CGraphics::IsLockedFrustumCulling(void) const
+{
+    return bLockFrustumCull_;
 }
 
 } // namespace Core

@@ -53,7 +53,7 @@
     <ClInclude Include="math\matrix.h" />
     <ClInclude Include="math\random.h" />
     <ClInclude Include="math\vec3.h" />
-    <ClInclude Include="Image.h" />
+    <ClInclude Include="image.h" />
     <ClInclude Include="log.h" />
     <ClInclude Include="math\dx_math_helpers.h" />
     <ClInclude Include="math\vec4.h" />
@@ -74,7 +74,7 @@
     <ClCompile Include="engine_exception.cpp" />
     <ClCompile Include="file_system.cpp" />
     <ClCompile Include="geometry\frustum.cpp" />
-    <ClCompile Include="Image.cpp" />
+    <ClCompile Include="image.cpp" />
     <ClCompile Include="log.cpp" />
     <ClCompile Include="math\dx_math_helpers.cpp" />
     <ClCompile Include="math\math_helpers.cpp" />

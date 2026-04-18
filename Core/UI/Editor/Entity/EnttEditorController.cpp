@@ -440,7 +440,7 @@ void EnttEditorController::UndoCmd(const ICommand* pCmd, const EntityID enttId)
         LogErr(LOG, "command ptr == NULL");
         return;
     }
-    if (enttId == INVALID_ENTITY_ID)
+    if (enttId == INVALID_ENTT_ID)
     {
         LogErr(LOG, "you try to modify invalid entity (id: 0, cmd type: %d)", pCmd->type_);
         return;

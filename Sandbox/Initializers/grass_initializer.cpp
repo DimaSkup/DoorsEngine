@@ -11,13 +11,12 @@
     Filename: grass_initializer.cpp
     Desc:     implementation of the GrassInitializer class
 
-    Created:  25.01.2025  by DimaSkup
+    Created:  25.01.2026  by DimaSkup
 \**********************************************************************************/
 #include "../Common/pch.h"
 #include "grass_initializer.h"
 #include <Model/grass_mgr.h>
 #include <Model/model_mgr.h>
-#include <Timers/game_timer.h>
 #pragma warning (disable : 4996)
 
 
@@ -39,7 +38,7 @@ struct GrassCommonParams
 //---------------------------------------------------------
 void ReadCommonParams    (FILE* pFile, GrassCommonParams& outParams);
 void ReadGrassFieldParams(FILE* pFile, Core::GrassFieldInitParams& outData, const char* buf);
-void CreateGrassField    (const Core::GrassField& data);
+
 
 //---------------------------------------------------------
 // Desc:  read in configs from file and initialize all the grass fields
@@ -53,10 +52,6 @@ bool GrassInitializer::Init(const char* filepath, ECS::EntityMgr& enttMgr)
         return false;
     }
 
-    SetConsoleColor(YELLOW);
-    LogMsg("---------------------------------------------------------");
-    LogMsg("            INITIALIZATION: GRASS                        ");
-    LogMsg("---------------------------------------------------------");
     LogMsg(LOG, "initialize grass from file: %s", filepath);
 
 
@@ -65,7 +60,7 @@ bool GrassInitializer::Init(const char* filepath, ECS::EntityMgr& enttMgr)
     char buf[128]{'\0'};
     int count = 0;
     bool bInitCommonParams = false;
-    const TimePoint start = Core::GameTimer::GetTimePoint();
+    
 
     // open config file
     pFile = fopen(filepath, "r");
@@ -94,7 +89,8 @@ bool GrassInitializer::Init(const char* filepath, ECS::EntityMgr& enttMgr)
             assert(params.grassDistFullSize >= 0);
             assert(params.grassDistVisible >= params.grassDistFullSize);
 
-            Core::g_GrassMgr.SetGrassVisibilityRange((float)params.grassDistVisible);
+            grassMgr.SetGrassVisibilityRange((float)params.grassDistVisible);
+            grassMgr.SetGrassDistFullSize((float)params.grassDistFullSize);
         }
         else if (strncmp(buf, "grass_field", 11) == 0)
         {
@@ -111,16 +107,6 @@ bool GrassInitializer::Init(const char* filepath, ECS::EntityMgr& enttMgr)
     // do some additional check
     assert(bInitCommonParams && "did you forget to init grass common params?");
 
-
-    const TimeDurationMs dur = Core::GameTimer::GetTimePoint() - start;
-
-    LogMsg(LOG, "all the GRASS instances are initialized");
-    SetConsoleColor(MAGENTA);
-    LogMsg("--------------------------------------");
-    LogMsg("Init of grass took: %.3f ms", dur.count());
-    LogMsg("--------------------------------------\n");
-    SetConsoleColor(RESET);
-
     fclose(pFile);
     return true;
 }
@@ -131,16 +117,16 @@ void ReadCommonParams(FILE* pFile, GrassCommonParams& outParams)
 {
     assert(pFile);
 
-    char paramType[64];
+    char key[64];
     int count = 0;
 
-    count = fscanf(pFile, "%s %d\n", paramType, &outParams.grassDistFullSize);
+    count = fscanf(pFile, "%s %d\n", key, &outParams.grassDistFullSize);
     assert(count == 2);
-    assert(strcmp(paramType, "grass_dist_full_size") == 0);
+    assert(strcmp(key, "grass_dist_full_size") == 0);
 
-    count = fscanf(pFile, "%s %d\n", paramType, &outParams.grassDistVisible);
+    count = fscanf(pFile, "%s %d\n", key, &outParams.grassDistVisible);
     assert(count == 2);
-    assert(strcmp(paramType, "grass_dist_visible") == 0);
+    assert(strcmp(key, "grass_dist_visible") == 0);
 
     printf("\n");
     LogMsg("Read grass common params:");
@@ -157,8 +143,8 @@ void ReadStrParam(const char* buf, char* outValue)
     assert(buf && buf[0] != '\0');
     assert(outValue);
 
-    char paramType[64];
-    int count = sscanf(buf, "%s %s", paramType, outValue);
+    char key[64];
+    int count = sscanf(buf, "%s %s", key, outValue);
 
     assert(count == 2);                         // did we read proper data?
     assert(outValue && outValue[0] != '\0');    // did we read a non-empty value?
@@ -168,11 +154,10 @@ void ReadStrParam(const char* buf, char* outValue)
 //---------------------------------------------------------
 void ReadIntParam(const char* buf, int& outInt)
 {
-    // check input args
     assert(buf && buf[0] != '\0');
 
-    char paramType[64];
-    int count = sscanf(buf, "%s %d", paramType, &outInt);
+    char key[64];
+    int count = sscanf(buf, "%s %d", key, &outInt);
 
     assert(count == 2);                         // did we read proper data?
 }
@@ -181,13 +166,25 @@ void ReadIntParam(const char* buf, int& outInt)
 //---------------------------------------------------------
 void ReadFloatParam(const char* buf, float& outFloat)
 {
-    // check input args
     assert(buf && buf[0] != '\0');
 
-    char paramType[64];
-    int count = sscanf(buf, "%s %f", paramType, &outFloat);
+    char key[64];
+    int count = sscanf(buf, "%s %f", key, &outFloat);
 
     assert(count == 2);                         // did we read proper data?
+}
+
+//---------------------------------------------------------
+// read in two float params after key from the input buffer
+//---------------------------------------------------------
+void ReadTwoFloatParam(const char* buf, float& f1, float& f2)
+{
+    assert(buf && buf[0] != '\0');
+
+    char key[64];
+    int count = sscanf(buf, "%s %f %f", key, &f1, &f2);
+
+    assert(count == 3);                         // did we read proper data?
 }
 
 //---------------------------------------------------------
@@ -252,6 +249,21 @@ void ReadGrassFieldParams(
         else if (strcmp(key, "channel_3_probability") == 0)
             ReadFloatParam(buf, outData.channelProbability[3]);
 
+
+        // read in grass height ranges per channel
+        else if (strcmp(key, "channel_0_grass_scale_range") == 0)
+            ReadTwoFloatParam(buf, outData.channelGrassScaleMin[0], outData.channelGrassScaleMax[0]);
+
+        else if (strcmp(key, "channel_1_grass_scale_range") == 0)
+            ReadTwoFloatParam(buf, outData.channelGrassScaleMin[1], outData.channelGrassScaleMax[1]);
+
+        else if (strcmp(key, "channel_2_grass_scale_range") == 0)
+            ReadTwoFloatParam(buf, outData.channelGrassScaleMin[2], outData.channelGrassScaleMax[2]);
+
+        else if (strcmp(key, "channel_3_grass_scale_range") == 0)
+            ReadTwoFloatParam(buf, outData.channelGrassScaleMin[3], outData.channelGrassScaleMax[3]);
+
+
         // read in params of the whole field
         else if (strcmp(key, "material") == 0)
             ReadStrParam(buf, outData.materialName);
@@ -283,31 +295,51 @@ void ReadGrassFieldParams(
         else if (strcmp(key, "grass_count") == 0)
             ReadIntParam(buf, outData.grassCount);
 
-        else if (strcmp(key, "density_mask") == 0)
-            ReadStrParam(buf, outData.densityMask);
+        else if (strcmp(key, "density_mask_rgb") == 0)
+            ReadStrParam(buf, outData.densityMaskRGB);
 
-        else if (strcmp(key, "grass_min_height") == 0)
-            ReadFloatParam(buf, outData.grassMinHeight);
-
-        else if (strcmp(key, "grass_max_height") == 0)
-            ReadFloatParam(buf, outData.grassMaxHeight);
+        else if (strcmp(key, "density_mask_alpha") == 0)
+            ReadStrParam(buf, outData.densityMaskAlpha);
 
         else
-            LogErr(LOG, "wtf? there is a wrong key: %s", key);
+            LogFatal(LOG, "wtf? there is a wrong key: %s", key);
     }
 
     LogMsg("Read grass field params:");
-    LogMsg("\tname:          %s", outData.name);
-    LogMsg("\tcenter X:      %d", outData.centerX);
-    LogMsg("\tcenter Z:      %d", outData.centerZ);
-    LogMsg("\tsize X:        %d", outData.sizeX);
-    LogMsg("\tsize Z:        %d", outData.sizeZ);
-    LogMsg("\tcells by X:    %d", outData.cellsByX);
-    LogMsg("\tcells by Z:    %d", outData.cellsByZ);
-    LogMsg("\ttex slots:     %d", outData.texSlots);
-    LogMsg("\ttex rows:      %d", outData.texRows);
-    LogMsg("\tgrass count:   %d", outData.grassCount);
-    LogMsg("\tdensity mask:  %s", outData.densityMask);
+
+    LogMsg("\tfield name:                    %s", outData.name);
+
+    LogMsg("\tchannel_0_model:               %s", outData.modelNames[0]);
+    LogMsg("\tchannel_1_model:               %s", outData.modelNames[1]);
+    LogMsg("\tchannel_2_model:               %s", outData.modelNames[2]);
+    LogMsg("\tchannel_3_model:               %s", outData.modelNames[3]);
+
+    LogMsg("\tchannel_0_probability:         %.2f", outData.channelProbability[0]);
+    LogMsg("\tchannel_1_probability:         %.2f", outData.channelProbability[1]);
+    LogMsg("\tchannel_2_probability:         %.2f", outData.channelProbability[2]);
+    LogMsg("\tchannel_3_probability:         %.2f", outData.channelProbability[3]);
+
+    for (int i = 0; i < 4; ++i)
+    {
+        const float minScale = outData.channelGrassScaleMin[i];
+        const float maxScale = outData.channelGrassScaleMax[i];
+
+        LogMsg("\tchannel_%d_grass_scale_range:  %.2f %.2f", i, minScale, maxScale);
+    }
+
+    LogMsg("\tmaterial:                      %s", outData.materialName);
+
+    LogMsg("\tcenter X:                      %d", outData.centerX);
+    LogMsg("\tcenter Z:                      %d", outData.centerZ);
+    LogMsg("\tsize X:                        %d", outData.sizeX);
+    LogMsg("\tsize Z:                        %d", outData.sizeZ);
+    LogMsg("\tcells by X:                    %d", outData.cellsByX);
+    LogMsg("\tcells by Z:                    %d", outData.cellsByZ);
+    LogMsg("\ttex slots:                     %d", outData.texSlots);
+    LogMsg("\ttex rows:                      %d", outData.texRows);
+    LogMsg("\tgrass count:                   %d", outData.grassCount);
+    LogMsg("\tdensity mask RGB:              %s", outData.densityMaskRGB);
+    LogMsg("\tdensity mask Alpha:            %s", outData.densityMaskAlpha);
 }
 
 } // namespace

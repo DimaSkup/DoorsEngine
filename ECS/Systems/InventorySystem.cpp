@@ -100,7 +100,7 @@ EntityID InventorySystem::GetItemByIdx(const EntityID ownerId, const index itemI
     if (comp.ownersIds[ownerIdx] != ownerId)
     {
         LogErr(LOG, "there is no inventory related to entity: %" PRIu32, ownerId);
-        return INVALID_ENTITY_ID;
+        return INVALID_ENTT_ID;
     }
 
     InventoryData& inventory = comp.inventories[ownerIdx];
@@ -113,7 +113,7 @@ EntityID InventorySystem::GetItemByIdx(const EntityID ownerId, const index itemI
     }
 
     LogErr(LOG, "there is no item by idx (%d) in inventory of entity: %" PRIu32, (int)itemIdx, ownerId);
-    return INVALID_ENTITY_ID;
+    return INVALID_ENTT_ID;
 }
 
 }

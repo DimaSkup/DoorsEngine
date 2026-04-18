@@ -368,6 +368,11 @@ bool TransformSystem::SetPosition(const EntityID id, const XMFLOAT3& pos)
     return SetPosition(id, pos.x, pos.y, pos.z);
 }
 
+bool TransformSystem::SetPosition(const EntityID id, const Vec3& pos)
+{
+    return SetPosition(id, pos.x, pos.y, pos.z);
+}
+
 //---------------------------------------------------------
 // Desc:  adjust position of each input entity by the same offset
 //---------------------------------------------------------

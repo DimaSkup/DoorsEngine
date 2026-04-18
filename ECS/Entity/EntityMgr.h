@@ -33,6 +33,7 @@
 #include "../Components/ParticleEmitter.h"
 #include "../Components/animation.h"
 #include "../Components/Sprite.h"
+#include "../Components/Weapon.h"
 
 // systems (ECS)
 #include "../Systems/TransformSystem.h"
@@ -50,6 +51,7 @@
 #include "../Systems/ParticleSystem.h"
 #include "../Systems/AnimationSystem.h"
 #include "../Systems/SpriteSystem.h"
+#include "../Systems/WeaponSystem.h"
 
 // events (ECS)
 #include "../Events/IEvent.h"
@@ -115,29 +117,29 @@ public:
     // add TRANSFORM component
     void AddTransformComponent(
         const EntityID& enttID,
-        const XMFLOAT3& position = { 0,0,0 },
-        const XMVECTOR& direction = { 0,0,1,1 },
+        const DirectX::XMFLOAT3& position = { 0,0,0 },
+        const DirectX::XMVECTOR& direction = { 0,0,1,1 },
         const float scale = 1.0f);
 
     void AddTransformComponent(
         const EntityID* ids,
         const size numEntts,
-        const XMFLOAT3* positions,
-        const XMVECTOR* directions,
+        const DirectX::XMFLOAT3* positions,
+        const DirectX::XMVECTOR* directions,
         const float* uniformScales);
 
 
     // add MOVEMENT component
     void AddMoveComponent(
         const EntityID& enttID,
-        const XMFLOAT3& translation,
-        const XMVECTOR& rotationQuat,
+        const DirectX::XMFLOAT3& translation,
+        const DirectX::XMVECTOR& rotationQuat,
         const float uniformScaleFactor);
 
     void AddMoveComponent(
         const EntityID* ids,
-        const XMFLOAT3* translations,
-        const XMVECTOR* rotationQuats,
+        const DirectX::XMFLOAT3* translations,
+        const DirectX::XMVECTOR* rotationQuats,
         const float* uniformScaleFactors,
         const size numEntts);
 
@@ -215,6 +217,9 @@ public:
         const uint16 width,
         const uint16 height);
 
+    // add WEAPON component
+    void AddWeaponComponent(const EntityID id, const Weapon& wpnData);
+
 
     // =============================================================================
     // public API: QUERY
@@ -268,6 +273,7 @@ public:
     InventorySystem         inventorySys_;
     AnimationSystem         animationSys_;
     SpriteSystem            spriteSys_;
+    WeaponSystem            weaponSys_;
     
     // "ID" of an entity is just a numeral index
     cvector<EntityID> ids_;
@@ -301,6 +307,7 @@ private:
     ParticleEmitter particleEmitter_;
     Animations      animations_;
     Sprite          sprites_;
+    WeaponComp      weapons_;
 };
 
 

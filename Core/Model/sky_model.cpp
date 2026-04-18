@@ -26,7 +26,7 @@ SkyModel::~SkyModel()
 //---------------------------------------------------------
 void SkyModel::Shutdown()
 {
-    materialId_ = INVALID_MATERIAL_ID;
+    materialId_ = INVALID_MAT_ID;
 
     vb_.Shutdown();
     ib_.Shutdown();
@@ -87,7 +87,7 @@ void SkyModel::SetName(const char* newName)
 //---------------------------------------------------------
 void SkyModel::SetMaterialId(const MaterialID id)
 {
-    if (id == INVALID_MATERIAL_ID)
+    if (id == INVALID_MAT_ID)
     {
         LogErr(LOG, "input material id is invalid");
         return;

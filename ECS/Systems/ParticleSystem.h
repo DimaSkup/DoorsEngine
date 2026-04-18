@@ -44,7 +44,7 @@ public:
     const EmitterData&        GetEmitterData(const EntityID id) const;
     EmitterData&              GetEmitterData(const EntityID id);
 
-    const XMFLOAT3            GetEmitterPos      (const EntityID id) const;
+    const DirectX::XMFLOAT3   GetEmitterPos      (const EntityID id) const;
     Rect3d                    GetEmitterLocalAABB(const EntityID id) const;
     Rect3d                    GetEmitterWorldAABB(const EntityID id) const;
 

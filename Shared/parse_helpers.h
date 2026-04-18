@@ -90,6 +90,7 @@ inline void ReadFileStr(FILE* pFile, const char* key, char* outStr)
     assert(pFile && key && outStr);
 
     char buf[64]{ '\0' };
+
     if (fscanf(pFile, "%s", buf) != 1)
         LogErr(LOG, "can't read a key from file (you expect: %s)", key);
 
@@ -107,6 +108,7 @@ inline void ReadFileInt(FILE* pFile, const char* key, int* outInt)
     assert(pFile && key && outInt);
 
     char buf[64]{ '\0' };
+
     if (fscanf(pFile, "%s", buf) != 1)
         LogErr(LOG, "can't read a key from file (you expect: %s)", key);
 
@@ -124,6 +126,7 @@ inline void ReadFileFloat(FILE* pFile, const char* key, float* outFlt)
     assert(pFile && key && outFlt);
 
     char buf[64]{ '\0' };
+
     if (fscanf(pFile, "%s", buf) != 1)
         LogErr(LOG, "can't read a key from file (you expect: %s)", key);
 
@@ -141,6 +144,7 @@ inline void ReadFileFloat2(FILE* pFile, const char* key, float* arr)
     assert(pFile && key && arr);
 
     char buf[64]{ '\0' };
+
     if (fscanf(pFile, "%s", buf) != 1)
         LogErr(LOG, "can't read a key from file (you expect: %s)", key);
 
@@ -158,6 +162,7 @@ inline void ReadFileFloat3(FILE* pFile, const char* key, float* arr)
     assert(pFile && key && arr);
 
     char buf[64]{ '\0' };
+
     if (fscanf(pFile, "%s", buf) != 1)
         LogErr(LOG, "can't read a key from file (you expect: %s)", key);
 
@@ -175,6 +180,7 @@ inline void ReadFileFloat4(FILE* pFile, const char* key, float* arr)
     assert(pFile && key && arr);
 
     char buf[64]{ '\0' };
+
     if (fscanf(pFile, "%s", buf) != 1)
         LogErr(LOG, "can't read a key from file (you expect: %s)", key);
 

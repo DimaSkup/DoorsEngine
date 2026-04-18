@@ -1,7 +1,7 @@
 newmtl tree_spruce_mat
 shader FoliageShader
 rs rs_trees
-Ka 1.00 1.00 1.00 1.00
+Ka 0.70 0.70 0.70 1.00
 Kd 1.00 1.00 1.00 1.00
 Ks 0.00 0.00 0.00
 Kg 10.00

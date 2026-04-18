@@ -56,21 +56,21 @@ void MoveSystem::UpdateAllMoves(
 // ================================================================================
 void MoveSystem::AddRecords(
     const EntityID* ids,
-    const XMFLOAT3* translations,
-    const XMVECTOR* rotationQuats,
+    const DirectX::XMFLOAT3* translations,
+    const DirectX::XMVECTOR* rotationQuats,
     const float* uniformScaleFactors,
     const size numEntts)
 {
     Movement& comp = *pMoveComponent_;
-    cvector<XMFLOAT4> packedTrScales(numEntts);
-    cvector<XMVECTOR> normRotQuats(numEntts);
-    const XMFLOAT3* tr = translations;
+    cvector<DirectX::XMFLOAT4> packedTrScales(numEntts);
+    cvector<DirectX::XMVECTOR> normRotQuats(numEntts);
+    const DirectX::XMFLOAT3* tr = translations;
 
 
     // pack translation and uniformScale into a single XMFLOAT4
     for (index i = 0; i < numEntts; ++i)
     {
-        const XMFLOAT3& t = translations[i];
+        const DirectX::XMFLOAT3& t = translations[i];
         packedTrScales[i] = { t.x, t.y, t.z, 1.0f };
     }
 

@@ -6,9 +6,9 @@
 // *********************************************************************************
 #pragma once
 
-#include <Types.h>
+#include <types.h>
 #include <cvector.h>
-
+#include <DirectXMath.h>
 
 namespace ECS
 {

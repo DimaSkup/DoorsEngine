@@ -19,7 +19,7 @@ public:
     CameraSystem(Camera* pCameraComponent, TransformSystem* pTransformSys);
     ~CameraSystem();
 
-    const XMMATRIX& UpdateView(const EntityID id);
+    const DirectX::XMMATRIX& UpdateView(const EntityID id);
 
     void AddRecord   (const EntityID id, const CameraData& data);
     void RemoveRecord(const EntityID id);
@@ -40,21 +40,21 @@ public:
 
     inline const CameraData& GetCameraData  (const EntityID id) const { return pCameraComponent_->data[id]; }
 
-    inline const XMMATRIX& GetBaseView      (const EntityID id) const { return (HasEntity(id)) ? GetData(id).baseView : GetCameraData(0).baseView; }
-    inline const XMMATRIX& GetView          (const EntityID id) const { return (HasEntity(id)) ? GetData(id).view     : GetCameraData(0).view; }
-    inline const XMMATRIX& GetInverseView   (const EntityID id) const { return (HasEntity(id)) ? GetData(id).invView  : GetCameraData(0).invView; }
-    inline const XMMATRIX& GetProj          (const EntityID id) const { return (HasEntity(id)) ? GetData(id).proj     : GetCameraData(0).proj; }
-    inline const XMMATRIX& GetOrtho         (const EntityID id) const { return (HasEntity(id)) ? GetData(id).ortho    : GetCameraData(0).ortho; }
+    inline const DirectX::XMMATRIX& GetBaseView      (const EntityID id) const { return (HasEntity(id)) ? GetData(id).baseView : GetCameraData(0).baseView; }
+    inline const DirectX::XMMATRIX& GetView          (const EntityID id) const { return (HasEntity(id)) ? GetData(id).view     : GetCameraData(0).view; }
+    inline const DirectX::XMMATRIX& GetInverseView   (const EntityID id) const { return (HasEntity(id)) ? GetData(id).invView  : GetCameraData(0).invView; }
+    inline const DirectX::XMMATRIX& GetProj          (const EntityID id) const { return (HasEntity(id)) ? GetData(id).proj     : GetCameraData(0).proj; }
+    inline const DirectX::XMMATRIX& GetOrtho         (const EntityID id) const { return (HasEntity(id)) ? GetData(id).ortho    : GetCameraData(0).ortho; }
 
-    inline const XMMATRIX  GetViewProj      (const EntityID id) const { return (HasEntity(id)) ? GetData(id).view * GetData(id).proj : DirectX::XMMatrixIdentity(); }
+    inline const DirectX::XMMATRIX  GetViewProj      (const EntityID id) const { return (HasEntity(id)) ? GetData(id).view * GetData(id).proj : DirectX::XMMatrixIdentity(); }
 
     // get camera basis vectors
-    inline const XMVECTOR& GetPosVec        (const EntityID id) const { return pTransformSys_->GetPositionVec(id); }
-    inline const XMVECTOR& GetLookVec       (const EntityID id) const { return pTransformSys_->GetDirectionVec(id); }
-    inline const XMVECTOR& GetRightVec      (const EntityID id) const { return (HasEntity(id)) ? GetCameraData(id).right : GetCameraData(0).right; }
+    inline const DirectX::XMVECTOR& GetPosVec        (const EntityID id) const { return pTransformSys_->GetPositionVec(id); }
+    inline const DirectX::XMVECTOR& GetLookVec       (const EntityID id) const { return pTransformSys_->GetDirectionVec(id); }
+    inline const DirectX::XMVECTOR& GetRightVec      (const EntityID id) const { return (HasEntity(id)) ? GetCameraData(id).right : GetCameraData(0).right; }
 
-    inline XMFLOAT3 GetPos                  (const EntityID id) const { return pTransformSys_->GetPosition(id); }
-    XMFLOAT3        GetLook                 (const EntityID id) const;
+    inline DirectX::XMFLOAT3 GetPos                  (const EntityID id) const { return pTransformSys_->GetPosition(id); }
+    DirectX::XMFLOAT3        GetLook                 (const EntityID id) const;
 
     // get frustum properties
     inline float GetNearZ                   (const EntityID id) const { return (HasEntity(id)) ? GetCameraData(id).nearZ : -1.0f; }
@@ -81,7 +81,7 @@ public:
     // setters
     //----------------------------------------------------
     void SetAspectRatio   (const EntityID id, const float aspect);
-    void SetBaseViewMatrix(const EntityID id, const XMMATRIX& baseView);
+    void SetBaseViewMatrix(const EntityID id, const DirectX::XMMATRIX& baseView);
 
     void SetupProjection(
         const EntityID id,
@@ -97,7 +97,7 @@ public:
         const float nearZ,
         const float farZ);
   
-    bool SetRightVec           (const EntityID id, const XMVECTOR& right);
+    bool SetRightVec           (const EntityID id, const DirectX::XMVECTOR& right);
     void PitchAroundFixedLook  (const EntityID id, const float angle);
     void RotateYAroundFixedLook(const EntityID id, const float angle);
 

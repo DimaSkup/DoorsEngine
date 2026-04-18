@@ -18,7 +18,7 @@ struct Name
     Name()
     {
         // add invalid data; this data is returned when we ask for wrong entity
-        ids_.push_back(INVALID_ENTITY_ID);
+        ids_.push_back(INVALID_ENTT_ID);
         names_.push_back("invalid");
     }
 

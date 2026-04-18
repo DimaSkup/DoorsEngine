@@ -17,7 +17,7 @@ enum eEventType
     EVENT_PLAYER_RUN           = (1 << 5),        // set the player is running or not
     EVENT_PLAYER_JUMP          = (1 << 6),
     EVENT_PLAYER_MOVE_FORWARD  = (1 << 7),
-    EVENT_PLAYER_MOVE_BACK     = (1 << 8),
+    EVENT_PLAYER_MOVE_BACKWARD = (1 << 8),
     EVENT_PLAYER_MOVE_RIGHT    = (1 << 9),
     EVENT_PLAYER_MOVE_LEFT     = (1 << 10),
     EVENT_PLAYER_MOVE_UP       = (1 << 11),       // when free fly camera mode
@@ -68,7 +68,7 @@ struct EventPlayerMove : public Event
         constexpr uint32 moveFlags =
             EVENT_PLAYER_JUMP |
             EVENT_PLAYER_MOVE_FORWARD |
-            EVENT_PLAYER_MOVE_BACK |
+            EVENT_PLAYER_MOVE_BACKWARD |
             EVENT_PLAYER_MOVE_RIGHT |
             EVENT_PLAYER_MOVE_LEFT |
             EVENT_PLAYER_MOVE_UP |

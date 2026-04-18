@@ -104,6 +104,11 @@ public:
 
     bool IsPatchInsideViewFrustum(const int patchIdx, const Frustum& frustum);
 
+    bool TestRayIntersection(
+        const Vec3& rayOrig,
+        const Vec3& rayDir,
+        IntersectionData& outData) const;
+
     void ComputeBoundings();
 
 
@@ -123,7 +128,7 @@ public:
     inline int                    GetNumIndices()        const { return numIndices_; }
     inline uint                   GetVertexStride()      const { return vb_.GetStride(); }
 
-    inline const Vertex3dTerrain* GetVertices()          const { return vertices_; }
+    inline const Vertex3dTerrain* GetVertices()          const { return vertices_.data(); }
 
     inline ID3D11Buffer*          GetVB()                const { return vb_.Get(); }
     inline ID3D11Buffer* const*   GetVbAddr()            const { return vb_.GetAddrOf(); }
@@ -143,7 +148,7 @@ public:
     inline void GetLodInfoByPatch(
         const TerrainLodMgr::PatchLod& plod,
         UINT& outBaseIndex,
-        UINT& outIndexCount)
+        UINT& outIndexCount) const
     {
         const int c = plod.core;
         const int l = plod.left;
@@ -217,10 +222,10 @@ public:
     Rect3d              aabb_;              // axis-aligned bounding box for the whole terrain
 
     // keep CPU copy of the vertices/indices data to read from
-    Vertex3dTerrain*    vertices_           = nullptr;
-    UINT*               indices_            = nullptr;
+    cvector<Vertex3dTerrain> vertices_;
+    cvector<UINT>            indices_;
 
-    uint32              vertexStride_       = sizeof(Vertex3dTerrain);
+    uint32 vertexStride_ = sizeof(Vertex3dTerrain);
 
 private:
     #define LEFT   2

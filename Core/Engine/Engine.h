@@ -62,6 +62,9 @@ public:
     void BindUI(UI::UserInterface* pUI);
     bool BindBindlessTextures(const char* configPath);
 
+    inline ECS::EntityMgr*  GetECS()    { return pEnttMgr_; }
+    inline Render::CRender* GetRender() { return pRender_; }
+
     // update the state of the engine/game for the current frame
     void Update(const float deltaTime, const float gameTime);
 
@@ -86,7 +89,7 @@ public:
     // inline getters
     inline HWND                 GetHWND()          const { return hwnd_; }
     inline HINSTANCE            GetInstance()      const { return hInstance_; }
-    inline CGraphics&           GetGraphicsClass()       { return graphics_; }
+    inline CGraphics&           GetGraphics()            { return graphics_; }
     inline Render::D3DClass&    GetD3D()                 { return pRender_->GetD3D(); }
 
     inline GameTimer&           GetTimer()               { return timer_; }
@@ -94,6 +97,12 @@ public:
     inline Keyboard&            GetKeyboard()            { return keyboard_; }
     inline Mouse&               GetMouse()               { return mouse_; }
 
+
+    void SetFullscreenInGameMode(const bool state);
+    bool IsFullscreenInGameMode(void) const;
+
+    void LockFrustumCulling(const bool onOff);
+    bool IsLockedFrustumCulling(void) const;
 
     // event listener methods implementation
     virtual void EventActivate            (const APP_STATE state) override;
@@ -121,15 +130,15 @@ private:
     HWND      hwnd_         = NULL;             // main window handle
     HINSTANCE hInstance_    = NULL;             // application instance handle
 
-    uint32    isFullscreen_     : 1 = false;
-    uint32    isPaused_         : 1 = false;    // defines if the engine/game is currently paused
-    uint32    isExit_           : 1 = false;    // are we going to exit?
-    uint32    isMinimized_      : 1 = false;    // is the window minimized?
-    uint32    isMaximized_      : 1 = true;     // is the window maximized?
-    uint32    isResizing_       : 1 = false;    // are we resizing the window?
-    uint32    switchEngineMode_ : 1 = false;    // a flag to define if we want to switch btw game/editor mode
+    uint32    isFullscreenInGameMode_ : 1 = true;
+    uint32    isPaused_               : 1 = false;    // defines if the engine/game is currently paused
+    uint32    isExit_                 : 1 = false;    // are we going to exit?
+    uint32    isMinimized_            : 1 = false;    // is the window minimized?
+    uint32    isMaximized_            : 1 = true;     // is the window maximized?
+    uint32    isResizing_             : 1 = false;    // are we resizing the window?
+    uint32    switchEngineMode_       : 1 = false;    // a flag to define if we want to switch btw game/editor mode
 
-    float     deltaTime_        = 0.0f;         // the time since the previous frame
+    float deltaTime_ = 0.0f;         // the time since the previous frame
 
     std::string windowTitle_{ "" };             // window title/caption
 
@@ -157,5 +166,29 @@ private:
     UINT clientWidth_   = 0;
     UINT clientHeight_ = 0;
 };
+
+
+//==================================================================================
+// INLINE FUNCTIONS
+//==================================================================================
+inline void Engine::SetFullscreenInGameMode(const bool state)
+{
+    isFullscreenInGameMode_ = state;
+}
+
+inline bool Engine::IsFullscreenInGameMode() const
+{
+    return isFullscreenInGameMode_;
+}
+
+inline void Engine::LockFrustumCulling(const bool onOff)
+{
+    graphics_.LockFrustumCulling(onOff);
+}
+
+inline bool Engine::IsLockedFrustumCulling(void) const
+{
+    return graphics_.IsLockedFrustumCulling();
+}
 
 } // namespace Core

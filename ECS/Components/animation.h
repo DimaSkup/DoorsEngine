@@ -50,7 +50,7 @@ struct Animations
         data.reserve(64);
 
         // push an "invalid" record which will be used when we try to get wrong data
-        ids.push_back(INVALID_ENTITY_ID);
+        ids.push_back(INVALID_ENTT_ID);
         data.push_back(AnimData());
     }
 

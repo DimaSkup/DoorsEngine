@@ -16,7 +16,6 @@ namespace ECS
 // =================================================================================
 // HELPER DATA TYPES
 // =================================================================================
-
 struct BoundData
 {
     BoundData()
@@ -42,16 +41,15 @@ struct BoundData
     DirectX::BoundingSphere worldSphere;
 }; 
 
-
 // =================================================================================
-// COMPONENT
+// ECS COMPONENT
 // =================================================================================
 struct Bounding
 {
     Bounding()
     {
         // add "invalid" bounding shape
-        ids.push_back(INVALID_ENTITY_ID);
+        ids.push_back(INVALID_ENTT_ID);
         data.push_back(BoundData());
     }
 

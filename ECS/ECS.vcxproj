@@ -46,6 +46,8 @@
     <ClInclude Include="Components\Sprite.h" />
     <ClInclude Include="Components\TextureTransform.h" />
     <ClInclude Include="Components\Transform.h" />
+    <ClInclude Include="Components\Trigger.h" />
+    <ClInclude Include="Components\Weapon.h" />
     <ClInclude Include="Entity\EntityMgr.h" />
     <ClInclude Include="Events\IEvent.h" />
     <ClInclude Include="QuadTree\quad_tree.h" />
@@ -66,6 +68,8 @@
     <ClInclude Include="Systems\RenderSystem.h" />
     <ClInclude Include="Systems\SpriteSystem.h" />
     <ClInclude Include="Systems\TransformSystem.h" />
+    <ClInclude Include="Systems\TriggerSystem.h" />
+    <ClInclude Include="Systems\WeaponSystem.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\pch.cpp">
@@ -98,6 +102,8 @@
     <ClCompile Include="Systems\RenderSystem.cpp" />
     <ClCompile Include="Systems\SpriteSystem.cpp" />
     <ClCompile Include="Systems\TransformSystem.cpp" />
+    <ClCompile Include="Systems\TriggerSystem.cpp" />
+    <ClCompile Include="Systems\WeaponSystem.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

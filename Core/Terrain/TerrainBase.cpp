@@ -26,7 +26,7 @@ void TerrainBase::ClearMemoryFromMaps(void)
     UnloadHeightMap();
     UnloadLightMap();
     UnloadTexture();       // texture tile map (diffuse)
-    UnloadDetailMap();
+    //UnloadDetailMap();
     UnloadAllTiles();
 }
 
@@ -316,22 +316,26 @@ bool TerrainBase::LoadHeightMapFromBMP(const char* filename)
 // --------------------------------------------------------
 bool TerrainBase::LoadHeightMapFromRAW(const char* filename)
 {
-    return heightMap_.LoadData(filename);
+    return heightMap_.LoadRAW(filename);
 }
 
 // --------------------------------------------------------
 // Desc:  load a height map from the file
-// Args:  - filename: path to the file
-//        - size:     dimension of the terrain by X and Z
-//                    (expected to be the same as filename's)
+// Args:  - filename:    path to the file
 // --------------------------------------------------------
-bool TerrainBase::LoadHeightMap(const char* filename, const int size)
+bool TerrainBase::LoadHeightMap(const char* filename)
 {
-    char extension[8]{'\0'};
-    FileSys::GetFileExt(filename, extension);
+    if (StrHelper::IsEmpty(filename))
+    {
+        LogErr(LOG, "empty filename");
+        return false;
+    }
 
-    // load from bmp
-    if (strcmp(extension, ".bmp") == 0)
+    char ext[8]{'\0'};
+    FileSys::GetFileExt(filename, ext);
+
+    // load from .bmp
+    if (strcmp(ext, ".bmp") == 0)
     {
         if (!LoadHeightMapFromBMP(filename))
         {
@@ -339,14 +343,22 @@ bool TerrainBase::LoadHeightMap(const char* filename, const int size)
             return false;
         }
     }
-    // load from raw
-    else if (strcmp(extension, ".raw") == 0)
+
+    // load from .raw
+    else if (strcmp(ext, ".raw") == 0)
     {
         if (!LoadHeightMapFromRAW(filename))
         {
             LogErr(LOG, "can't load height map from the file: %s", filename);
             return false;
         }
+    }
+
+    // check if height map is a square
+    if (heightMap_.GetWidth() != heightMap_.GetHeight())
+    {
+        LogErr(LOG, "wrong height map dimensions (width != height): %s", filename);
+        return false;
     }
 
     return true;
@@ -378,51 +390,12 @@ bool TerrainBase::LoadTextureMap(const char* texName)
     const Texture& tex = g_TextureMgr.GetTexById(texId);
 
     // set params of tile map
-    texture_.SetID(texId);
+    texture_.SetId(texId);
     texture_.SetWidth(tex.GetWidth());
     texture_.SetHeight(tex.GetHeight());
     texture_.SetBPP(32);
 
     return true;
-
-
-#if 0
-    char extension[8]{ '\0' };
-    FileSys::GetFileExt(filename, extension);
-
-    // load from BMP
-    if (strcmp(extension, ".bmp") == 0)
-    {
-        // load in data
-        if (!texture_.LoadData(filename))
-        {
-            LogErr(LOG, "can't load texture map from the file: %s", filename);
-            return false;
-        }
-
-        Image& tileMap = texture_;
-        constexpr bool mipMapped = true;
-
-        // create texture resource
-        const TexID tileMapTexId = g_TextureMgr.CreateTextureFromRawData(
-            "terrain_tile_map",
-            tileMap.GetData(),
-            tileMap.GetWidth(),
-            tileMap.GetHeight(),
-            tileMap.GetBPP(),
-            mipMapped);
-
-        tileMap.SetID(tileMapTexId);
-    }
-
-    // load from DDS
-    if (strcmp(extension, ".dds") != 0)
-    {
-        LogErr(LOG, "can't load terrain texture map from file: %s\n"
-            "REASON: unsupported format: %s", filename, extension);
-        return false;
-    }
-#endif
 }
 
 // --------------------------------------------------------
@@ -440,7 +413,7 @@ bool TerrainBase::SaveHeightMap(const char* filename)
 // --------------------------------------------------------
 void TerrainBase::UnloadHeightMap()
 {
-    heightMap_.Unload();
+    heightMap_.Shutdown();
 }
 
 // --------------------------------------------------------
@@ -477,14 +450,14 @@ bool TerrainBase::GenHeightFaultFormation(
         CAssert::True(numIterations > 0, "input number of iterations must be > 0");
 
         // unload previous height data if we has any
-        heightMap_.Unload();
+        heightMap_.Shutdown();
 
         // need it for truly random generation of heights
         if (trueRandom)
             srand((unsigned int)time(NULL));
 
         // alloc the memory for our height data
-        heightMap_.Create(size, size, 8);
+        heightMap_.CreateEmpty(size, size, 8);
         tempBuf = new float[size * size]{ 0.0f };
 
         for (int currIteration = 0; currIteration < numIterations; ++currIteration)
@@ -551,12 +524,69 @@ bool TerrainBase::GenHeightFaultFormation(
     }
     catch (EngineException& e)
     {
-        heightMap_.Unload();
+        heightMap_.Shutdown();
         SafeDeleteArr(tempBuf);
 
         LogErr(LOG, e.what());
         return false;
     }
+}
+
+// ----------------------------------------------------
+// Desc:   compute scaled height of terrain at given point (x,z)
+//         using bilinear interpolation
+// Args:   x, z:      our position
+// Ret:    float val: actual height at point (x,z)
+// ----------------------------------------------------
+float TerrainBase::GetScaledInterpolatedHeightAtPoint(
+    const float x,
+    const float z) const
+{
+    int posX = (int)(floorf(x));
+    int posZ = (int)(floorf(z));
+
+    float h1 = GetScaledHeightAtPoint(posX,   posZ);     //   3------4
+    float h2 = GetScaledHeightAtPoint(posX+1, posZ);     //   |      |
+    float h3 = GetScaledHeightAtPoint(posX,   posZ+1);   //   |      |
+    float h4 = GetScaledHeightAtPoint(posX+1, posZ+1);   //   1------2
+
+    // interpolation parameters
+    float tx = x - posX;
+    float tz = z - posZ;
+
+    // bilinear interpolation
+    float h12 = h1 + tx * (h2-h1);
+    float h34 = h3 + tx * (h4-h3);
+
+    // return terrain height at point (x,z)
+    return h12 + tz * (h34-h12);
+}
+
+//---------------------------------------------------------
+// Desc:  return an angle in radians between normal vector
+//        of terrain's surface quad and Y-axis
+//---------------------------------------------------------
+float TerrainBase::GetSlopeAngleAtPoint(const float x, const float z) const
+{
+    int posX = (int)(floorf(x));
+    int posZ = (int)(floorf(z));
+
+    float h1 = GetScaledHeightAtPoint(posX,     posZ);      //   3------4
+    float h2 = GetScaledHeightAtPoint(posX + 1, posZ);      //   |      |
+    float h3 = GetScaledHeightAtPoint(posX,     posZ + 1);  //   |      |
+    float h4 = GetScaledHeightAtPoint(posX + 1, posZ + 1);  //   1------2
+
+    // vec from point 1to3 and 1to4
+    const Vec3 e1(0, h3 - h1, 1);
+    const Vec3 e2(1, h4 - h1, 1);
+
+    const Vec3 N = Vec3Normalize(Vec3Cross(e1, e2));
+    const Vec3 Y = { 0,1,0 };
+
+    const float cosAngle = Vec3Dot(N, Y);
+
+    // return slope angle
+    return acosf(cosAngle);
 }
 
 // --------------------------------------------------------
@@ -589,7 +619,7 @@ bool TerrainBase::GenHeightMidpointDisplacement(const int size, float roughness,
         CAssert::True(IS_POW2(size), "input size must be a power of 2");
 
         // unload previous height data if we has any
-        heightMap_.Unload();
+        heightMap_.Shutdown();
 
         if (roughness < 0)
             roughness *= -1;
@@ -602,7 +632,8 @@ bool TerrainBase::GenHeightMidpointDisplacement(const int size, float roughness,
             srand((unsigned int)time(NULL));
 
         // alloc the memory for our height data
-        heightMap_.Create(size, size, 8);
+        const uint bpp = 8;
+        heightMap_.CreateEmpty(size, size, bpp);
         tempBuf = new float[size*size]{0.0f};
 
         // being the displacement process
@@ -745,7 +776,7 @@ bool TerrainBase::GenHeightMidpointDisplacement(const int size, float roughness,
         for (int z = 0; z < size; ++z)
         {
             for (int x = 0; x < size; ++x)
-                SetHeightAtPoint((uint8_t)tempBuf[(z*size) + x], x, z);
+                SetHeightAtPoint((uint8)tempBuf[(z*size) + x], x, z);
         }
 
         // delete temp buffer
@@ -761,7 +792,7 @@ bool TerrainBase::GenHeightMidpointDisplacement(const int size, float roughness,
     }
     catch (EngineException& e)
     {
-        heightMap_.Unload();
+        heightMap_.Shutdown();
         SafeDeleteArr(tempBuf);
         LogErr(LOG, e.what());
         return false;
@@ -836,7 +867,7 @@ bool TerrainBase::GenerateTextureMap(const uint texMapSize)
 
     // create room for a new texture
     constexpr uint bpp = 24;
-    texture_.Create(texMapSize, texMapSize, bpp);
+    texture_.CreateEmpty(texMapSize, texMapSize, bpp);
 
     // get the height map to texture map ratio (since, the most of the time,
     // the texture map will be a higher resolution that the height map, so we
@@ -882,7 +913,7 @@ bool TerrainBase::GenerateTextureMap(const uint texMapSize)
 
                 // get the curr color in the texture at the coordinates that we got in GetTexCoords
                 uint8 red, green, blue;
-                tile.GetColor(texX, texZ, red, green, blue);
+                tile.GetPixelColor(texX, texZ, red, green, blue);
 
                 // if the height is lower than the lowest tile's height, then we want full brightness,
                // if we don't do this, the area will get darkened, and no texture will get shown
@@ -901,7 +932,11 @@ bool TerrainBase::GenerateTextureMap(const uint texMapSize)
             }
 
             // set our terrain's texture color to the one that we previously calculated
-            texture_.SetColor(x, z, (uint8)totalRed, (uint8)totalGreen, (uint8)totalBlue);
+            texture_.SetPixelColor(
+                x, z,
+                (uint8)totalRed,
+                (uint8)totalGreen,
+                (uint8)totalBlue);
 
         } // for by X
     } // for by Z
@@ -925,13 +960,13 @@ bool TerrainBase::SaveTextureMap(const char* filename)
     // check if a texture is loaded, if so, save it
     if (texture_.IsLoaded())
     {
-        return texture_.SaveBMP(filename);
+        return texture_.SaveAsBMP(filename);
     }
     // if we didn't load a texture from bmp/tga/raw we didn't initialize
     // this texture object, but we loaded it from dds and we have the texture data on
     // GPU side (if we really have such data we must have a valid texture ID),
     // so we just get texture by its ID, get data from GPU and store it into a file
-    else if (texture_.GetID() != INVALID_TEX_ID)
+    else if (texture_.GetId() != INVALID_TEX_ID)
     {
         LogErr(LOG, "I don't know how I got here :)");
         return false;
@@ -1299,7 +1334,7 @@ bool TerrainBase::SaveLightMap(const char* filename)
 
     // save to RAW
     if (strcmp(extension, ".raw") == 0)
-        return SaveRAW(filename, data, width*height);
+        return SaveFileRAW(filename, data, width*height);
 
     // save to BMP
     else if (strcmp(extension, ".bmp") == 0)
@@ -1471,10 +1506,11 @@ uint8 TerrainBase::GetNatureDensityAtPoint(const float x, const float z) const
     assert(mapSize == natureDensityMap_.GetHeight());
 
     const float ratio  = (float)mapSize / (float)terrainLength_;
-    const int   texelX = (int)(x * ratio);
-    const int   texelY = (int)(z * ratio);
 
-    return natureDensityMap_.GetPixelGray(texelX, texelY);
+    const uint tx = (uint)(x * ratio);
+    const uint ty = (uint)(mapSize - z * ratio);
+
+    return natureDensityMap_.GetPixelGray(tx, ty);
 }
 
 } // namespace

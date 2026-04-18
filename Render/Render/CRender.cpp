@@ -127,6 +127,9 @@ bool CRender::InitConstBuffers(const InitParams& params)
         hr = cbDebug_.Init(pDevice);
         CAssert::NotFailed(hr, "can't init a const buffer (debug)");
 
+        hr = cbGrass_.Init(pDevice);
+        CAssert::NotFailed(hr, "can't init a const buffer (grass)");
+
 
         // INIT CONST BUFFERS FOR VERTEX SHADERS --------------------
 
@@ -286,6 +289,7 @@ bool CRender::InitConstBuffers(const InitParams& params)
         cbWeather_.ApplyChanges(pCtx);
         cbTime_.ApplyChanges(pCtx);
         cbDebug_.ApplyChanges(pCtx);
+        cbGrass_.ApplyChanges(pCtx);
 
         cbvsWorldAndViewProj_.ApplyChanges(pCtx);
         cbvsWorldViewProj_.ApplyChanges(pCtx);
@@ -317,7 +321,7 @@ bool CRender::InitConstBuffers(const InitParams& params)
             cbvsSkinned_.Get(),                     // slot_4: bones transformations (model skinning)
             cbvsSprite_.Get(),                      // slot_5: 2D sprites
             nullptr,                                // slot_6:
-            nullptr,                                // slot_7:
+            cbGrass_.Get(),                         // slot_7: grass parameters
             cbDebug_.Get(),                         // slot_8: different stuff for debugging
             cbViewProj_.Get(),                      // slot_9: view * proj matrix
             cbTime_.Get(),                          // slot_10: delta time and game time
@@ -525,6 +529,7 @@ bool CRender::InitSamplers()
 
 
     // set basic sampler (is used as default for pixel shaders)
+    pCtx->VSSetSamplers(0, 1, samplerAnisotrop_.GetAddressOf());
     pCtx->PSSetSamplers(0, 1, samplerAnisotrop_.GetAddressOf());
 
     // bind to pixel shader stage
@@ -660,6 +665,135 @@ void CRender::UpdateInstancedBuffer(
 
 
 // =================================================================================
+// =================================================================================
+
+//---------------------------------------------------------
+// bind render targets and depth-stencil view to the output-merger stage
+//---------------------------------------------------------
+void CRender::SetRenderTargets(
+    const UINT numViews,
+    ID3D11RenderTargetView* const* ppRTVs,
+    ID3D11DepthStencilView* pDSV)
+{
+    static ID3D11RenderTargetView* pRTV = nullptr;
+    if (numViews == 1)
+    {
+        // avoid calling GAPI and binding the same render target
+        if (pRTV == ppRTVs[0])
+            return;
+
+        pRTV = ppRTVs[0];
+    }
+
+    GetContext()->OMSetRenderTargets(numViews, ppRTVs, pDSV);
+}
+
+//---------------------------------------------------------
+// clear input render targets
+//---------------------------------------------------------
+void CRender::ClearRenderTargets(const UINT numViews, ID3D11RenderTargetView* const* ppRTVs)
+{
+    assert(ppRTVs);
+
+    ID3D11DeviceContext* pCtx = GetContext();
+    const float clearColor[4] = { 0,0,0,1 };
+
+    for (UINT i = 0; i < numViews; ++i)
+        pCtx->ClearRenderTargetView(ppRTVs[i], clearColor);
+}
+
+//---------------------------------------------------------
+// if we will do any postFX stuff we have to call this func before
+// the color/lights pass to bind the proper render target view
+//---------------------------------------------------------
+void CRender::SetRenderTargetsForPostFX()
+{
+    Render::D3DClass& d3d = GetD3D();
+    ID3D11RenderTargetView* pRTV = nullptr;
+
+    // for MSAA we need to bind sufficient render target view (RTV)
+    if (d3d.IsEnabled4xMSAA())
+        pRTV = d3d.pMSAARTV_;
+
+    // bind non-MSAA render target
+    else
+        pRTV = d3d.postFxsPassRTV_[0];
+
+    assert(pRTV && "for post process: RTV tex == NULL");
+
+    SetRenderTargets(1, &pRTV, d3d.pDepthStencilView_);
+    ClearRenderTargets(1, &pRTV);
+}
+
+//---------------------------------------------------------
+// Desc:  setup rendering states
+// Args:  - rsId:   id of rasterizer state
+//        - bsId:   id of blending state
+//        - dssId:  id of depth-stencil state
+//---------------------------------------------------------
+void CRender::SetRenderStates(
+    const bool alphaClip,
+    const RsID rsId,
+    const BsID bsId,
+    const DssID dssId)
+{
+    static bool  prevAlphaClip = 0;
+    static RsID  prevRsId = 0;
+    static BsID  prevBsId = 0;
+    static DssID prevDssId = 0;
+
+    // switch alpha clipping if need...
+    if (prevAlphaClip != alphaClip)
+    {
+        SwitchAlphaClipping(alphaClip);
+        prevAlphaClip = alphaClip;
+    }
+
+    // switch raster state (fill mode, cull mode, etc.) if need...
+    if (prevRsId != rsId)
+    {
+        GetRenderStates().SetRs(rsId);
+        prevRsId = rsId;
+    }
+
+    // switch blending state if need...
+    if (prevBsId != bsId)
+    {
+        GetRenderStates().SetBs(bsId);
+        prevBsId = bsId;
+    }
+
+    // switch depth-stencil state if need...
+    if (prevDssId != dssId)
+    {
+        GetRenderStates().SetDss(dssId, 0);
+        prevDssId = dssId;
+    }
+}
+
+//---------------------------------------------------------
+// Desc:  bind shader resource views to a texture slots in VERTEX shader
+//---------------------------------------------------------
+void CRender::SetTexturesVS(
+    const UINT startSlot,
+    const UINT numViews,
+    ID3D11ShaderResourceView* const* ppSRVs)
+{
+    GetContext()->VSSetShaderResources(startSlot, numViews, ppSRVs);
+}
+
+//---------------------------------------------------------
+// Desc:  bind shader resource views to a texture slots in PIXEl shader
+//---------------------------------------------------------
+void CRender::SetTexturesPS(
+    const UINT startSlot,
+    const UINT numViews,
+    ID3D11ShaderResourceView* const* ppSRVs)
+{
+    GetContext()->PSSetShaderResources(startSlot, numViews, ppSRVs);
+}
+
+// =================================================================================
 //                               rendering methods
 // =================================================================================
 
@@ -708,30 +842,21 @@ void CRender::RenderInstances(
     const InstanceBatch& instances,
     const UINT startInstanceLocation)
 {
-    try
-    {
-        // bind vertex/index buffers for these instances
-        ID3D11Buffer* const vbs[2] = { instances.pVB, pInstancedBuffer_ };
-        const UINT      strides[2] = { instances.vertexStride, sizeof(ConstBufType::InstancedData) };
-        const UINT      offsets[2] = { 0,0 };
-        ID3D11DeviceContext*  pCtx = GetContext();
+    SetPrimTopology(instances.primTopology);
+    BindShaderById(instances.shaderId);
 
-        SetPrimTopology(instances.primTopology);
-        pCtx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-        pCtx->IASetIndexBuffer(instances.pIB, DXGI_FORMAT_R32_UINT, 0);
-
-        BindShaderById(instances.shaderId);
-        pShaderMgr_->Render(pCtx, instances, startInstanceLocation);
-    }
-    catch (EngineException& e)
-    {
-        LogErr(LOG, e.what());
-        LogErr(LOG, "can't render the mesh instances onto the screen");
-    }
-    catch (...)
-    {
-        LogErr(LOG, "can't render mesh instances for some unknown reason :(");
-    }
+    RenderInstances(
+        instances.pVB,                          // vertex buffer
+        instances.pIB,                          // index buffer
+        pInstancedBuffer_,
+        instances.vertexStride,
+        sizeof(ConstBufType::InstancedData),    // instanceStride
+        DXGI_FORMAT_R32_UINT,                   // index buffer DXGI format
+        instances.subset.indexCount,
+        instances.numInstances,
+        instances.subset.indexStart,
+        instances.subset.vertexStart,
+        startInstanceLocation);
 }
 
 //---------------------------------------------------------
@@ -741,32 +866,8 @@ void CRender::DepthPrepassInstances(
     const InstanceBatch& instances,
     const UINT startInstanceLocation)
 {
-    // bind vertex/index buffers for these instances
-    ID3D11Buffer* const vbs[2] = { instances.pVB, pInstancedBuffer_ };
-    const UINT      strides[2] = { instances.vertexStride, sizeof(ConstBufType::InstancedData) };
-    const UINT      offsets[2] = { 0,0 };
-    ID3D11DeviceContext*  pCtx = GetContext();
-
-    pCtx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-    pCtx->IASetIndexBuffer(instances.pIB, DXGI_FORMAT_R32_UINT, 0);
-    
-    pShaderMgr_->DepthPrePassBindShaderById(pCtx, instances.shaderId);
-    pShaderMgr_->Render(pCtx, instances, startInstanceLocation);
-}
-
-//---------------------------------------------------------
-// Desc:   render sky dome (or sphere/box) onto screen
-//---------------------------------------------------------
-void CRender::RenderSkyDome(const SkyInstance& sky, const XMMATRIX& worldViewProj)
-{
-    // prepare input assembler (IA) and update const buffers
-    BindVB(&sky.pVB, sky.vertexStride, 0);
-    BindIB(sky.pIB, DXGI_FORMAT_R16_UINT);
-    UpdateCbWorldViewProj(worldViewProj);
-
-    // bind shader and render sky
-    BindShaderByName("SkyDomeShader");
-    pShaderMgr_->Render(GetContext(), sky.indexCount);
+    pShaderMgr_->DepthPrePassBindShaderById(GetContext(), instances.shaderId);
+    RenderInstances(instances, startInstanceLocation);
 }
 
 //---------------------------------------------------------
@@ -828,13 +929,11 @@ void CRender::RenderFont(
         BindShaderByName("FontShader");
         BindIB(pIndexBuf, DXGI_FORMAT_R32_UINT);
 
-        ID3D11DeviceContext* pCtx = GetContext();
-
         // render each set of text
         for (index idx = 0; idx < numVertexBuffers; ++idx)
         {
             BindVB(&vertexBuffers[idx], fontVertexStride, 0);
-            pShaderMgr_->Render(pCtx, indexCounts[idx]);
+            DrawIndexed(indexCounts[idx], 0, 0);
         }
     }
     catch (EngineException& e)
@@ -844,6 +943,113 @@ void CRender::RenderFont(
     }
 }
 
+//---------------------------------------------------------
+// Desc:  if we have only one post effect in the post process passes queue we
+//        can render it directly into the swap chain's RTV
+//---------------------------------------------------------
+void CRender::RenderPostFxOnePass(const ePostFxType pfxType)
+{
+    Render::D3DClass&    d3d = GetD3D();
+    ID3D11DeviceContext* pCtx = GetContext();
+
+    // bind dst render target and src shader resource view
+    assert(d3d.pSwapChainRTV_     && "swap chain RTV is wrong");
+    assert(d3d.postFxsPassSRV_[0] && "resolved SRV is wrong");
+
+    pCtx->OMSetRenderTargets(1, &d3d.pSwapChainRTV_, nullptr);
+    pCtx->PSSetShaderResources(TEX_SLOT_POST_FX_SRC, 1, &d3d.postFxsPassSRV_[0]);
+
+    BindPostFxShader(pfxType);
+    pCtx->Draw(3, 0);
+
+    // bind a depth stencil view back
+    pCtx->OMSetRenderTargets(1, &d3d.pSwapChainRTV_, d3d.pDepthStencilView_);
+}
+
+//---------------------------------------------------------
+// Desc:  when we have multiple post process passes we have to flip btw
+//        two render targets each time when render a pass;
+//        for the final pass we do rendering into the swap chain't RTV
+//---------------------------------------------------------
+void CRender::RenderPostFxs(const ePostFxType* pfxTypes, const uint8 numPfxsToRender)
+{
+    assert(pfxTypes);
+    assert(numPfxsToRender > 0);
+
+    const Render::D3DClass& d3d = GetD3D();
+
+    if (numPfxsToRender == 1)
+    {
+        // final pass we render directly into swap chain's RTV
+        BindPostFxShader(pfxTypes[0]);
+        SetRenderTargets(1, &d3d.pSwapChainRTV_, nullptr);
+        SetTexturesPS(TEX_SLOT_POST_FX_SRC, 1, &d3d.postFxsPassSRV_[0]);
+        Draw(3, 0);
+
+        // bind depth stencil back
+        SetRenderTargets(1, &d3d.pSwapChainRTV_, d3d.pDepthStencilView_);
+    }
+
+    // we have multiple post FXs in queue
+    else
+    {
+        SetRenderTargets(1, &d3d.postFxsPassRTV_[1], nullptr);
+        SetTexturesPS(TEX_SLOT_POST_FX_SRC, 1, &d3d.postFxsPassSRV_[0]);
+
+        int i = 0;
+        int lastDstIdx = 0;
+
+
+        for (i = 0; i < numPfxsToRender - 1; ++i)
+        {
+            // by this index we will get a source SRV for the last post process pass
+            lastDstIdx = (i % 2 == 0);
+
+            BindPostFxShader(pfxTypes[i]);
+            Draw(3, 0);
+
+            // flip render targets and shader resource views
+            // (one target becomes a dst, and another becomes a src)
+            const int nextTargetIdx = (i % 2 != 0);
+            const int nextSrcIdx    = (i % 2 == 0);
+
+            SetRenderTargets(1, &d3d.postFxsPassRTV_[nextTargetIdx], nullptr);
+            SetTexturesPS(TEX_SLOT_POST_FX_SRC, 1, &d3d.postFxsPassSRV_[nextSrcIdx]);
+        }
+
+        // final pass we render directly into swap chain's RTV
+        BindPostFxShader(pfxTypes[i]);
+        SetRenderTargets(1, &d3d.pSwapChainRTV_, nullptr);
+        SetTexturesPS(TEX_SLOT_POST_FX_SRC, 1, &d3d.postFxsPassSRV_[lastDstIdx]);
+        Draw(3, 0);
+
+        // bind depth stencil back
+        SetRenderTargets(1, &d3d.pSwapChainRTV_, d3d.pDepthStencilView_);
+    }
+}
+
+//---------------------------------------------------------
+// Desc:  execute Fast Approximate Anti-Aliasing (FXAA)
+//---------------------------------------------------------
+void CRender::RenderFXAA()
+{
+    // reset raster state, blend state, depth-stencil state to default
+    ResetRenderStates();
+
+    Render::D3DClass& d3d = GetD3D();
+    assert(d3d.pSwapChainRTV_ && "swap chain RTV is wrong");
+    assert(d3d.postFxsPassSRV_[0] && "resolved SRV is wrong");
+
+    // bind dst render target (+ unbind depth stencil view) and src shader resource view
+    SetRenderTargets(1, &d3d.pSwapChainRTV_, nullptr);
+    SetTexturesPS(TEX_SLOT_POST_FX_SRC, 1, &d3d.postFxsPassSRV_[0]);
+
+    BindShaderByName("FXAA");
+    Draw(3, 0);
+
+    // bind depth stencil view back
+    SetRenderTargets(1, &d3d.pSwapChainRTV_, d3d.pDepthStencilView_);
+}
 
 // =================================================================================
 //                              effects control
@@ -893,14 +1099,14 @@ void CRender::UpdateCbDirLightsCount(const uint numOfLights)
 //---------------------------------------------------------
 bool CRender::SetGrassDistFullSize(const float dist)
 {
-    if ((dist < 0) || (dist > cbWeather_.data.distGrassVisible))
+    if ((dist < 0) || (dist > cbGrass_.data.distGrassVisible))
     {
-        LogErr(LOG, "can't set distance for full sized grass (input dist == %f; must be <= %f)", dist, cbWeather_.data.distGrassVisible);
+        LogErr(LOG, "can't set distance for full sized grass (input dist == %f; must be <= %f)", dist, cbGrass_.data.distGrassVisible);
         return false;
     }
 
-    cbWeather_.data.distGrassFullSize = dist;
-    cbWeather_.ApplyChanges(GetContext());
+    cbGrass_.data.distGrassFullSize = dist;
+    cbGrass_.ApplyChanges(GetContext());
     return true;
 }
 
@@ -909,17 +1115,38 @@ bool CRender::SetGrassDistFullSize(const float dist)
 //---------------------------------------------------------
 bool CRender::SetGrassDistVisible(const float dist)
 {
-    if ((dist < 0) || (dist < cbWeather_.data.distGrassFullSize))
+    if ((dist < 0) || (dist < cbGrass_.data.distGrassFullSize))
     {
-        LogErr(LOG, "can't set grass visibility distance (input dist == %f; must be >= %f)", dist, cbWeather_.data.distGrassFullSize);
+        LogErr(LOG, "can't set grass visibility distance (input dist == %f; must be >= %f)", dist, cbGrass_.data.distGrassFullSize);
         return false;
     }
 
-    cbWeather_.data.distGrassVisible = dist;
-    cbWeather_.ApplyChanges(GetContext());
+    cbGrass_.data.distGrassVisible = dist;
+    cbGrass_.ApplyChanges(GetContext());
     return true;
 }
 
+//---------------------------------------------------------
+// Desc:  setup a number of grass texture rows and columns on a texture atlas
+//---------------------------------------------------------
+void CRender::SetGrassTexRowsCols(const uint cols, const uint rows)
+{
+    if (rows == 0 || rows > 4 || cols == 0 || rows > 4)
+    {
+        LogErr(LOG, "invalid grass texture atlas params (rows: %u,  columns: %u)", rows, cols);
+        return;
+    }
+
+    // prevent useless updating of the const buffer
+    if ((uint)cbGrass_.data.numTexColumns == cols &&
+        (uint)cbGrass_.data.numTexRows    == rows)
+        return;
+
+    cbGrass_.data.numTexColumns = (float)cols;
+    cbGrass_.data.numTexRows    = (float)rows;
+    cbGrass_.ApplyChanges(GetContext());
+    return;
+}
 
 // =================================================================================
 // Fog control
@@ -928,18 +1155,18 @@ bool CRender::SetGrassDistVisible(const float dist)
 //---------------------------------------------------------
 // Desc:   turn on/off the fog effect
 //---------------------------------------------------------
-void CRender::SetFogEnabled(const bool state)
+void CRender::SetFogEnabled(const bool onOff)
 {
-    cbWeather_.data.fogEnabled = state;
+    cbWeather_.data.fogEnabled = onOff;
     cbWeather_.ApplyChanges(GetContext());
 }
 
 //---------------------------------------------------------
 // Desc:   setup where the for starts
 //---------------------------------------------------------
-void CRender::SetFogStart(const float start)
+void CRender::SetFogStart(const float startDist)
 {
-    cbWeather_.data.fogStart = (start > 0) ? start : 0.0f;
+    cbWeather_.data.fogStart = (startDist > 0) ? startDist : 0.0f;
     cbWeather_.ApplyChanges(GetContext());
 }
 
@@ -1407,12 +1634,17 @@ void CRender::GetArrShadersNames(cvector<ShaderName>& outNames) const
 }
 
 //---------------------------------------------------------
-// Desc:  return shader id by input name
+// Desc:  return shader id/name by input name/id
 //---------------------------------------------------------
 ShaderID CRender::GetShaderIdByName(const char* shaderName) const
 {
     assert(!StrHelper::IsEmpty(shaderName));
     return pShaderMgr_->GetShaderIdByName(shaderName);
+}
+
+const char* CRender::GetShaderNameById(const ShaderID id) const
+{
+    return pShaderMgr_->GetShaderNameById(id);
 }
 
 //---------------------------------------------------------
@@ -1457,6 +1689,100 @@ void CRender::BindShaderByName(const char* shaderName)
 
     currShaderId_ = pShader->GetId();
     strcpy(currShaderName_, shaderName);
+}
+
+
+//---------------------------------------------------------
+// Desc:  bind a shader according to the input post effect's type
+//---------------------------------------------------------
+void CRender::BindPostFxShader(const ePostFxType fxType)
+{
+    switch (fxType)
+    {
+        case POST_FX_VISUALIZE_DEPTH:
+            BindShaderByName("DepthResolveShader");
+            GetContext()->Draw(3, 0);
+            BindShaderByName("VisualizeDepthShader");
+            break;
+
+        case POST_FX_GRAYSCALE:
+        case POST_FX_INVERT_COLORS:
+        case POST_FX_BRIGHT_CONTRAST_ADJ:
+        case POST_FX_SEPIA:
+        case POST_FX_CHROMATIC_ABERRATION:
+        case POST_FX_COLOR_TINT:
+        case POST_FX_VIGNETTE_EFFECT:
+        case POST_FX_BLOOM_BRIGHT_EXTRACT:
+        case POST_FX_EDGE_DETECTION:
+        case POST_FX_POSTERIZATION:
+        case POST_FX_FILM_GRAIN:
+        case POST_FX_CRT_SCANLINES:
+        case POST_FX_PIXELATION:
+        case POST_FX_COLOR_SHIFT:
+        case POST_FX_NEGATIVE_GLOW:
+        case POST_FX_THERMAL_VISION:
+        case POST_FX_NIGHT_VISION:
+        case POST_FX_HEAT_DISTORTION:
+        case POST_FX_SHOCKWAVE_DISTORTION:
+        case POST_FX_FROST_GLASS_BLUR:
+        case POST_FX_OLD_TV_DISTORTION:
+        case POST_FX_COLOR_SPLIT:
+        case POST_FX_RADIAL_BLUR:
+        case POST_FX_SWIRL_DISTORTION:
+        case POST_FX_GLITCH:
+        case POST_FX_DITHERING_ORDERED:
+        {
+            const char* shaderName = g_PostFxShaderName[fxType];
+            BindShaderByName(shaderName);
+            break;
+        }
+
+        // gaussian blur we do in 2 passes
+        case POST_FX_GAUSSIAN_BLUR:
+        {
+            const char* shaderName = g_PostFxShaderName[fxType];
+            BindShaderByName(shaderName);
+            break;
+        }
+
+        //-----------------------------------
+
+        default:
+            LogErr(LOG, "wrong post effect type (maybe you add a new postFx but forgot to add a new case here?): %d", (int)fxType);
+            return;
+    }
+}
+
+//---------------------------------------------------------
+// Desc:   visualize values from the depth buffer (we do it after usual rendering)
+//---------------------------------------------------------
+void CRender::VisualizeDepthBuffer()
+{
+    Render::D3DClass& d3d = GetD3D();
+
+    // unbind depth before depth visualization
+    d3d.UnbindDepthBuffer();
+
+    if (d3d.IsEnabled4xMSAA())
+    {
+        ID3D11ShaderResourceView* pSRV_DepthMSAA = d3d.GetDepthSRV();
+        SetTexturesPS(TEX_SLOT_DEPTH_MSAA, 1, &pSRV_DepthMSAA);
+
+        BindShaderByName("DepthResolveShader");
+        Draw(3, 0);
+    }
+    else
+    {
+        // setup depth SRV
+        ID3D11ShaderResourceView* pDepthSRV = d3d.GetDepthSRV();
+        SetTexturesPS(TEX_SLOT_DEPTH, 1, &pDepthSRV);
+
+        BindShaderByName("VisualizeDepthShader");
+        Draw(3, 0);
+    }
+
+    // after rendering we bind depth buffer again
+    d3d.BindDepthBuffer();
 }
 
 }; // namespace

@@ -158,7 +158,6 @@ void D3DClass::Shutdown()
 //---------------------------------------------------------
 void D3DClass::BeginScene()
 {
-    //const FLOAT bgColor[4]{ 0, 1, 1, 0 };
     const FLOAT bgColor[4]{ 0.53f, 0.81f, 0.92f, 1.0f };  // sky blue
     
     // clear the render target view with particular color

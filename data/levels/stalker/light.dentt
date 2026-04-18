@@ -1,0 +1,178 @@
+;==========================================================
+; declare light entities here
+;==========================================================
+directed "SUN" {
+	ambient       0.60 0.60 0.60 1.0
+	diffuse       0.70 0.70 0.70 1.0
+	specular      0.30 0.30 0.30 1.0
+	direction     0.57 -0.4 0.57
+	is_active     1
+}
+
+spotlight "player_flashlight" {
+	pos           0 0 1
+	rot_quat      0 0 2.61 1
+	ambient       0.01 0.01 0.01 1.0
+	diffuse       0.10 0.10 0.10 1.0
+	specular      0.10 0.10 0.10 1.0
+	att           0.0 2.5 200.0
+	range         130.0
+	spot_fallof   20.0
+	is_active     0
+}
+
+point "pointL_rainbow_0" {
+	pos           0.0 0.0 0.0
+	ambient       0.21 0.43 0.45 1.0
+	diffuse       0.42 0.86 0.90 1.0
+	specular      0.42 0.86 0.90 1.0
+	att           0.005 0.01 0.03
+	range         30.0
+	is_active     0
+}
+
+point "pointL_firecamp" {
+	pos           265.05 66.94 186.88
+	ambient       0.23 0.17 0.05 1.0
+	diffuse       0.47 0.35 0.10 1.0
+	specular      0.47 0.35 0.10 1.0
+	att           0.1 0.1 0.005
+	range         30.0
+	is_active     1
+	parent        flame_firecamp
+}
+
+point "pointL_anomaly_flame_0" {
+	pos           238.0 76.5 260.0
+	ambient       0.23 0.17 0.05 1.0
+	diffuse       0.47 0.35 0.10 1.0
+	specular      0.47 0.35 0.10 1.0
+	att           0.1 0.1 0.005
+	range         30.0
+	is_active     1
+	parent        anomaly_flame_0
+}
+
+point "pointL_anomaly_flame_1" {
+	pos           238.0 76.5 265.0
+	ambient       0.23 0.17 0.05 1.0
+	diffuse       0.47 0.35 0.10 1.0
+	specular      0.47 0.35 0.10 1.0
+	att           0.1 0.1 0.005
+	range         30.0
+	is_active     1
+	parent        anomaly_flame_1
+}
+
+point "pointL_anomaly_flame_2" {
+	pos           241.0 76.5 263.0
+	ambient       0.23 0.17 0.05 1.0
+	diffuse       0.47 0.35 0.10 1.0
+	specular      0.47 0.35 0.10 1.0
+	att           0.1 0.1 0.005
+	range         30.0
+	is_active     1
+	parent        anomaly_flame_2
+}
+
+point "pointL_anomaly_flame_3" {
+	pos           244.0 76.5 263.0
+	ambient       0.23 0.17 0.05 1.0
+	diffuse       0.47 0.35 0.10 1.0
+	specular      0.47 0.35 0.10 1.0
+	att           0.1 0.1 0.005
+	range         30.0
+	is_active     1
+	parent        anomaly_flame_3
+}
+
+point "pointL_anomaly_flame_4" {
+	pos           244.0 76.5 267.0
+	ambient       0.23 0.17 0.05 1.0
+	diffuse       0.47 0.35 0.10 1.0
+	specular      0.47 0.35 0.10 1.0
+	att           0.1 0.1 0.005
+	range         30.0
+	is_active     1
+	parent        anomaly_flame_4
+}
+
+point "pointL_rainbow_1" {
+	pos           0.0 0.0 0.0
+	ambient       0.21 0.43 0.45 1.0
+	diffuse       0.42 0.86 0.90 1.0
+	specular      0.42 0.86 0.90 1.0
+	att           0.133 0.015 0.033
+	range         30.0
+	is_active     0
+}
+
+point "pointL_rainbow_2" {
+	pos           0.0 0.0 0.0
+	ambient       0.21 0.43 0.45 1.0
+	diffuse       0.42 0.86 0.90 1.0
+	specular      0.42 0.86 0.90 1.0
+	att           0.133 0.015 0.033
+	range         30.0
+	is_active     0
+}
+
+point "pointL_rainbow_3" {
+	pos           0.0 0.0 0.0
+	ambient       0.21 0.43 0.45 1.0
+	diffuse       0.42 0.86 0.90 1.0
+	specular      0.42 0.86 0.90 1.0
+	att           0.133 0.015 0.033
+	range         30.0
+	is_active     0
+}
+
+point "pointL_rainbow_4" {
+	pos           0.0 0.0 0.0
+	ambient       0.21 0.43 0.45 1.0
+	diffuse       0.42 0.86 0.90 1.0
+	specular      0.42 0.86 0.90 1.0
+	att           0.133 0.015 0.033
+	range         30.0
+	is_active     0
+}
+
+point "pointL_rainbow_5" {
+	pos           0.0 0.0 0.0
+	ambient       0.21 0.43 0.45 1.0
+	diffuse       0.42 0.86 0.90 1.0
+	specular      0.42 0.86 0.90 1.0
+	att           0.133 0.015 0.033
+	range         30.0
+	is_active     0
+}
+
+point "pointL_rainbow_6" {
+	pos           0.0 0.0 0.0
+	ambient       0.21 0.43 0.45 1.0
+	diffuse       0.42 0.86 0.90 1.0
+	specular      0.42 0.86 0.90 1.0
+	att           0.133 0.015 0.033
+	range         30.0
+	is_active     0
+}
+
+point "pointL_rainbow_7" {
+	pos           0.0 0.0 0.0
+	ambient       0.21 0.43 0.45 1.0
+	diffuse       0.42 0.86 0.90 1.0
+	specular      0.42 0.86 0.90 1.0
+	att           0.133 0.015 0.033
+	range         30.0
+	is_active     0
+}
+
+point "pointL_rainbow_8" {
+	pos           0.0 0.0 0.0
+	ambient       0.21 0.43 0.45 1.0
+	diffuse       0.42 0.86 0.90 1.0
+	specular      0.42 0.86 0.90 1.0
+	att           0.133 0.015 0.033
+	range         30.0
+	is_active     0
+}

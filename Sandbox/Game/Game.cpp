@@ -8,14 +8,21 @@
 
 #include <Engine/Engine.h>
 #include <Model/model_mgr.h>
+#include <Model/grass_mgr.h>
 #include <Render/debug_draw_manager.h>
 #include <Model/animation_mgr.h>
 #include <Input/keyboard.h>
 #include <Sound/sound_mgr.h>
 #include <Sound/sound.h>
+#include <Terrain/terrain.h>
+
+#include <Model/model_importer.h>
+#include <Model/ufbx.h>
 
 #include "../Initializers/game_initializer.h"
 #include "../Initializers/weapons_initializer.h"
+
+#include "event_handlers.h"
 
 using namespace Core;
 
@@ -46,6 +53,54 @@ bool Game::Init(
         LogFatal(LOG, "a ptr to render == NULL");
 
 
+#if 0
+    //ModelImporter importer;
+    //Model kordon;
+    //importer.LoadFromFile(&kordon, "data/models/ext/Kordon model/escape.fbx");
+
+
+    const char* pathToModel = "data/models/ext/Kordon model/escape.fbx";
+
+    ufbx_load_opts opts = {};
+    opts.target_axes = ufbx_axes_left_handed_y_up;
+    opts.target_unit_meters = 1.0f;
+
+    ufbx_error error;
+
+
+    TimePoint startImport = GameTimer::GetTimePoint();
+
+    ufbx_scene* pScene = ufbx_load_file(pathToModel, &opts, &error);
+    if (!pScene)
+    {
+        printf("Failed to load scene: %s\n", error.description.data);
+        return false;
+    }
+
+    TimePoint endImport = GameTimer::GetTimePoint();
+    TimeDurationMs dur = endImport - startImport;
+    printf("\n");
+    printf("dur of import: %.2f sec\n", dur.count() / 1000.0f);
+    printf("\n");
+
+    // print out name of each node
+    for (int i = 0; ufbx_node* node : pScene->nodes)
+    {
+        printf("[%d]:   %s\n", i++, node->name.data);
+
+        node->mesh->instances
+
+        if (i == 10)
+        {
+            ufbx_free_scene(pScene);
+            exit(0);
+        }
+    }
+
+    ufbx_free_scene(pScene);
+    exit(0);
+#endif
+
     pEngine_  = pEngine;
     pEnttMgr_ = pEnttMgr;
     pRender_  = pRender;
@@ -54,17 +109,39 @@ bool Game::Init(
 
     LogMsg(LOG, "game scene initialization: start");
 
-    const TimePoint initStartTime = pEngine->GetTimer().GetTimePoint();
+    const TimePoint initStartTime = GetTimePoint();
 
     GameInitializer gameInit;
-    Core::CGraphics& graphics   = pEngine->GetGraphicsClass();
+    Core::CGraphics& graphics   = pEngine->GetGraphics();
     ECS::NameSystem& nameSys    = pEnttMgr->nameSys_;
     const Render::D3DClass& d3d = pRender->GetD3D();
-    bool result = false;
 
+    GameInitPaths initPaths;
+    gameInit.ReadGameInitPaths(configs.GetString("LOAD_LEVEL"), initPaths);
+
+    // initialize some data/resource managers
+    if (!g_TextureMgr.Init(initPaths.texturesFilepath))
+    {
+        LogFatal(LOG, "can't init a texture manager");
+    }
+
+    if (!g_MaterialMgr.Init())
+    {
+        LogFatal(LOG, "can't init a material manager");
+    }
+
+    if (!g_ModelMgr.Init())
+    {
+        LogFatal(LOG, "can't init a model manager");
+    }
+
+    if (!g_SoundMgr.Init(initPaths.soundsFilepath, pEngine_->GetHWND()))
+    {
+        LogFatal(LOG, "can't init a sound manager");
+    }
 
     // create and init scene elements
-    if (!gameInit.InitEntities(*pEnttMgr, *pRender, configs))
+    if (!gameInit.InitEntities(*pEnttMgr, *pRender, configs, initPaths))
     {
         LogErr(LOG, "can't initialize entities");
     }
@@ -106,43 +183,81 @@ bool Game::Init(
         LogErr(LOG, "can't init a game camera");
     }
 
-
-    // set the current camera
-    if (configs.GetBool("START_IN_GAME_MODE"))
-    {
-        const EntityID cameraId = nameSys.GetIdByName("game_camera");
-        graphics.SetActiveCamera(cameraId);
-    }
-    else
-    {
-        const EntityID cameraId = nameSys.GetIdByName("editor_camera");
-        graphics.SetActiveCamera(cameraId);
-    }
     
     //-----------------------------------------------------
 
-    const char* particlesFilepath = "data/particles/particles.cfg";
-    const char* grassFilepath     = "data/grass.cfg";
-    const char* lightsFilepath    = "data/light.dentt";
+ 
+    gameInit.InitParticles(initPaths.particlesFilepath, *pEnttMgr);
+    gameInit.InitGrass    (initPaths.grassFilepath, *pEnttMgr);
+    gameInit.InitLights   (initPaths.lightsFilepath, *pEnttMgr);
+    gameInit.InitPlayer   (initPaths.playerFilepath, *pEnttMgr);
 
-    gameInit.InitParticles(particlesFilepath, *pEnttMgr);
-    gameInit.InitGrass    (grassFilepath, *pEnttMgr);
-    gameInit.InitLights   (lightsFilepath, *pEnttMgr);
-    gameInit.InitPlayer   (*pEnttMgr, configs);
+    // setup horizon and apex (top) color of the sky
+    //const Core::SkyModel&   sky            = Core::g_ModelMgr.GetSky();
+    const DirectX::XMFLOAT3 skyColorCenter = { 1,0,0 };// sky.GetColorCenter();
+    const DirectX::XMFLOAT3 skyColorApex = { 0,1,0 };// sky.GetColorApex();
+
+    pRender->SetSkyGradient(skyColorCenter, skyColorApex);
+
+    // push grass distances into GPU
+    pRender->SetGrassDistFullSize(Core::g_GrassMgr.GetGrassDistFullSize());
+    pRender->SetGrassDistVisible(Core::g_GrassMgr.GetGrassVisibilityRange());
+
 
 
     // get id of rain entity which is always over the player
     rainEnttId_ = nameSys.GetIdByName("rain_over_player");
-    assert(rainEnttId_ != INVALID_ENTITY_ID);
+    assert(rainEnttId_ != INVALID_ENTT_ID);
 
-    InitWeapons("data/weapon.cfg");
+    // init all the weapons
+    LogMsg(LOG, "initialize weapons:");
+    WeaponsInitializer initializer;
+    initializer.Init(initPaths.weaponsFilepath, pEnttMgr_);
+    
     InitSoundsStuff();
 
-    StartFootstepSequence(100);   // prevent lagging when we move player for the first time
+    // prevent lagging when we move player for the first time
+    PlayerPlayFootstepSound(pEnttMgr->playerSys_.GetData(), 100);
 
 
-    const TimePoint      initEndTime  = pEngine->GetTimer().GetTimePoint();
-    const TimeDurationMs initDuration = initEndTime - initStartTime;
+
+    // set the current camera
+    if (configs.GetBool("START_IN_GAME_MODE"))
+    {
+        const EntityID camId = nameSys.GetIdByName("game_camera");
+        graphics.SetActiveCamera(camId);
+    }
+    else
+    {
+        const EntityID camId = nameSys.GetIdByName("editor_camera");
+        graphics.SetActiveCamera(camId);
+    }
+
+    PlayerPlayAnimWeaponIdle(pEngine, nullptr);
+
+    //
+    // bind event handlers
+    //
+    eventMgr_.Subscribe("toggle_flashlight",    PlayerToggleFlashLight);
+
+    eventMgr_.Subscribe("player_single_shot",   PlayerShot);
+    eventMgr_.Subscribe("player_single_shot",   PlayerPlayShotSound);
+    eventMgr_.Subscribe("player_single_shot",   PlayerPlayAnimWeaponShot);
+
+    eventMgr_.Subscribe("player_switch_weapon", PlayerSwitchWeapon);
+    eventMgr_.Subscribe("player_reload_weapon", PlayerReloadWeapon);
+    eventMgr_.Subscribe("player_move",          PlayerMove);
+
+    eventMgr_.Subscribe("player_shot_single",  PlayerShot);
+
+    eventMgr_.Subscribe("player_shot_multiple", PlayerMultipleShots);
+
+    eventMgr_.Subscribe("radiation_zone",       HandleRadiationZone);
+
+    eventMgr_.Subscribe("radioactive_house",    HandleHouseRadiation);
+    eventMgr_.Subscribe("fire_anomaly",         HandleFireAnomaly);
+
+    const TimeDurationMs initDuration = GetTimePoint() - initStartTime;
 
     LogMsg(LOG, "game scene is initialized");
     SetConsoleColor(MAGENTA);
@@ -152,28 +267,6 @@ bool Game::Init(
     SetConsoleColor(RESET);
 
     return true;
-}
-
-//---------------------------------------------------------
-
-void Game::InitWeapons(const char* cfgFilepath)
-{
-    LogMsg(LOG, "initialize weapons:");
-
-    WeaponsInitializer initializer;
-    initializer.Init(cfgFilepath, pEnttMgr_, weapons_);
-
-    //
-    // setup initial weapon
-    //
-    const Weapon& currWeapon = weapons_[0];
-    currWeaponEnttId_ = currWeapon.enttId;
-    assert(currWeaponEnttId_ != INVALID_ENTITY_ID);
-
-    pSkeleton_  = currWeapon.pSkeleton;
-    currAnimId_ = currWeapon.animIds[WPN_ANIM_TYPE_IDLE];
-
-    pEnttMgr_->playerSys_.SetActiveWeapon(currWeaponEnttId_);
 }
 
 //---------------------------------------------------------
@@ -190,7 +283,16 @@ bool Game::Update(const float dt, const float gameTime)
     if (!pEngine_->IsGameMode())
         return true;
 
+    ECS::PlayerSystem& player = pEnttMgr_->playerSys_;
+    DirectX::XMFLOAT3 playerPos = pEnttMgr_->playerSys_.GetPosition();
+    EventData eventData;
+    eventData.fx = playerPos.x;
+    eventData.fy = playerPos.y;
+    eventData.fz = playerPos.z;
+
     UpdateRainbowAnomaly();
+    eventMgr_.TriggerEvent("radioactive_house", pEngine_, &eventData);
+    eventMgr_.TriggerEvent("fire_anomaly",      pEngine_, &eventData);
 
     static float thunderTimer = 0;
     static int thunderSoundIdx = 0;
@@ -208,13 +310,13 @@ bool Game::Update(const float dt, const float gameTime)
         thunderSoundIdx &= 3;   // idx % 4
     }
 
-    currActTime_ += dt;
+    float currActTime = player.GetCurrActTime();
+    currActTime += dt;
 
-    if (currActTime_ >= endActTime_)
+    // if "act" is finished (we reloaded weapon, shoot, ect.) we switch to "idle" animation
+    if (currActTime >= player.GetEndActTime())
     {
-        ECS::PlayerSystem& player = pEnttMgr_->playerSys_;
-
-        currActTime_ = 0;
+        player.SetCurrActTime(0);
 
         if (player.IsReloading())
             player.SetIsReloading(false);
@@ -229,19 +331,22 @@ bool Game::Update(const float dt, const float gameTime)
             player.SetIsDrawWeapon(false);
         }
 
-        currAnimId_ = weapons_[currWeaponIdx_].animIds[WPN_ANIM_TYPE_IDLE];
-        StartAnimWeaponIdle();
+        // switch to idle
+        PlayerPlayAnimWeaponIdle(pEngine_, nullptr);
+    }
+    else
+    {
+        player.SetCurrActTime(currActTime);
     }
 
-    gameEventsList_.Reset();
-
-    UpdateFootstepsSound(dt);
-    UpdateShootSound(dt);
+    //gameEventsList_.Reset();
 
     HandleGameEventKeyboard();
     HandleGameEventMouse(dt);
     HandleGameEvents();
 
+    UpdatePlayerFootstepsSound(dt);
+    UpdateShootSound(dt);
     UpdateRainPos();
 
     if (!rainSoundIsPlaying_)
@@ -279,14 +384,6 @@ void Game::HandleGameEventKeyboard()
                 pEngine_->DoExit();
                 break;
             }
-            case KEY_N:
-            {
-                if (!keyboard.WasPressedBefore(KEY_N))
-                {
-                    //pEngine_->GetGraphicsClass().IncreaseCurrAnimIdx();
-                }
-                break;
-            }
             case KEY_F1:
             {
                 // switch from game to the editor mode
@@ -296,7 +393,6 @@ void Game::HandleGameEventKeyboard()
                     rainSoundIsPlaying_ = false;
                     g_SoundMgr.GetSound(rainSoundId_)->StopTrack();
                 }
-
                 break;
             }
             case KEY_F2:
@@ -378,6 +474,9 @@ void Game::HandlePlayerActions(const eKeyCodes code)
 
     ECS::PlayerSystem& player = pEnttMgr_->playerSys_;
     Keyboard& keyboard = pEngine_->GetKeyboard();
+    EventData eventData;
+
+    eventData.deltaTime = deltaTime_;
     
     switch (code)
     {
@@ -392,13 +491,14 @@ void Game::HandlePlayerActions(const eKeyCodes code)
         case KEY_8:
         case KEY_9:
         {
-            if (pEngine_->GetKeyboard().WasPressedBefore(code))
+            if (keyboard.WasPressedBefore(code))
                 break;
 
-            // weapon index
-            const int weaponIdx = code - KEY_1;
+            // define a weapon index (slot)
+            eventData.ix = code - KEY_1;
 
-            gameEventsList_.PushEvent(GameEvent(PLAYER_SWITCH_WEAPON, (float)weaponIdx));
+            // exec switch
+            eventMgr_.TriggerEvent("player_switch_weapon", pEngine_, &eventData);
             break;
         }
 
@@ -409,96 +509,70 @@ void Game::HandlePlayerActions(const eKeyCodes code)
         }
         case KEY_A:
         {
-            pEnttMgr_->PushEvent(EventPlayerMove(EVENT_PLAYER_MOVE_LEFT));
-            StartFootstepSequence(0);
-            UpdateRainPos();
+            eventData.ix = EVENT_PLAYER_MOVE_LEFT;
+            eventMgr_.TriggerEvent("player_move", pEngine_, &eventData);
             break;
         }
         case KEY_D:
         {
-            pEnttMgr_->PushEvent(EventPlayerMove(EVENT_PLAYER_MOVE_RIGHT));
-            StartFootstepSequence(0);
-            UpdateRainPos();
+            eventData.ix = EVENT_PLAYER_MOVE_RIGHT;
+            eventMgr_.TriggerEvent("player_move", pEngine_, &eventData);
             break;
         }
         case KEY_L:
         {
             // switch the flashlight
-            if (!pEngine_->GetKeyboard().WasPressedBefore(KEY_L))
-                gameEventsList_.PushEvent(GameEvent(PLAYER_SWITCH_FLASHLIGHT));
+            if (!keyboard.WasPressedBefore(KEY_L))
+                eventMgr_.TriggerEvent("toggle_flashlight", pEngine_, nullptr);
             break;
         }
         case KEY_S:
         {
-            pEnttMgr_->PushEvent(EventPlayerMove(EVENT_PLAYER_MOVE_BACK));
-            StartFootstepSequence(deltaTime_);
-            UpdateRainPos();
+            eventData.ix = EVENT_PLAYER_MOVE_BACKWARD;
+            eventMgr_.TriggerEvent("player_move", pEngine_, &eventData);
             break;
         }
         case KEY_R:
         {
-            gameEventsList_.PushEvent(GameEvent(PLAYER_RELOAD_WEAPON));
+            if (!keyboard.WasPressedBefore(KEY_R))
+                eventMgr_.TriggerEvent("player_reload_weapon", pEngine_, nullptr);
             break;
         }
         case KEY_W:
         {
-            pEnttMgr_->PushEvent(EventPlayerMove(EVENT_PLAYER_MOVE_FORWARD));
-
-            StartFootstepSequence(deltaTime_);
-            UpdateRainPos();
-            player.SetIsMoving(true);
-
-            // don't switch animation to "walking/running" if we already shooting or reloading
-            if (player.IsReloading() || player.IsShooting())
-                break;
-
-            if (player.IsRunning())
-            {
-                const Weapon&        wpn    = GetCurrentWeapon();
-                const AnimationID    animId = wpn.animIds[WPN_ANIM_TYPE_RUN];
-                const AnimationClip& anim   = pSkeleton_->GetAnimation(animId);
-
-                endActTime_       = anim.GetEndTime();
-                
-            }
-            else
-            {
-                player.SetIsWalking();
-            }
-
+            eventData.ix = EVENT_PLAYER_MOVE_FORWARD;
+            eventMgr_.TriggerEvent("player_move", pEngine_, &eventData);
             break;
         }
         case KEY_Z:
         {
             if (pEnttMgr_->playerSys_.IsFreeFlyMode())
-                pEnttMgr_->PushEvent(EventPlayerMove(EVENT_PLAYER_MOVE_DOWN));
+            {
+                eventData.ix = EVENT_PLAYER_MOVE_DOWN;
+                eventMgr_.TriggerEvent("player_move", pEngine_, &eventData);
+            }
             break;
         }
         case KEY_SPACE:
         {
             if (pEnttMgr_->playerSys_.IsFreeFlyMode())
-                pEnttMgr_->PushEvent(EventPlayerMove(EVENT_PLAYER_MOVE_UP));
+                eventData.ix = EVENT_PLAYER_MOVE_UP;
             else
-                pEnttMgr_->PushEvent(EventPlayerMove(EVENT_PLAYER_JUMP));
+                eventData.ix = EVENT_PLAYER_JUMP;
 
+            eventMgr_.TriggerEvent("player_move", pEngine_, &eventData);
             break;
         }
     } // switch
-   
-    UpdateMovementRelatedStuff();
 }
 
 //---------------------------------------------------------
 // Desc:   hangle mouse input events
+// Args:   dt - delta time
 //---------------------------------------------------------
-void Game::HandleGameEventMouse(const float deltaTime)
+void Game::HandleGameEventMouse(const float dt)
 {
     Mouse& mouse = pEngine_->GetMouse();
-    ECS::PlayerSystem& player = pEnttMgr_->playerSys_;
-    Weapon& wpn = weapons_[currWeaponIdx_];
-
-  
-
   
     while (!mouse.EventBufferIsEmpty())
     {
@@ -521,8 +595,9 @@ void Game::HandleGameEventMouse(const float deltaTime)
             // the position of the camera to the location for this frame
             case MouseEvent::EventType::RAW_MOVE:
             {
-                const float rotY  = mouseEvent.GetPosX() * deltaTime;
-                const float pitch = mouseEvent.GetPosY() * deltaTime;
+                ECS::PlayerSystem& player = pEnttMgr_->playerSys_;
+                const float rotY  = mouseEvent.GetPosX() * dt;
+                const float pitch = mouseEvent.GetPosY() * dt;
 
                 player.RotateY(rotY);
                 player.Pitch(pitch);
@@ -547,84 +622,42 @@ void Game::HandleGameEventMouse(const float deltaTime)
     if (current && !last)
     {
         // execute a single shot
-        gameEventsList_.PushEvent(GameEvent(PLAYER_SINGLE_SHOT));
+        eventMgr_.TriggerEvent("player_shot_single", pEngine_, nullptr);
     }
     else if (current)
     {
         // execute multiple shots (possible only for machine guns)
-        gameEventsList_.PushEvent(GameEvent(PLAYER_MULTIPLE_SHOTS));
+        eventMgr_.TriggerEvent("player_shot_multiple", pEngine_, nullptr);
     }
 
     last = current;
 }
 
 //---------------------------------------------------------
-// Desc:  call it each time when player's position is changed
-//---------------------------------------------------------
-void Game::UpdateMovementRelatedStuff()
-{
-    UpdateRainPos();
-}
-
-//---------------------------------------------------------
-// Desc:  call it when player's position is changed:
-//        start playing footsteps sound
-//---------------------------------------------------------
-void Game::StartFootstepSequence(const float dt)
-{
-    if (!soundStepL_Playing)
-    {
-        stepTimer_ += dt;
-
-        if (stepTimer_ <= currStepInterval_)
-            return;
-
-        g_SoundMgr.GetSound(actorStepL_)->PlayTrack();
-
-        soundStepL_Playing = true;
-        soundStepR_Played  = false;
-        stepTimer_         = 0;
-    }
-}
-
-//---------------------------------------------------------
 // Desc:  call it each frame
 //        update player's footsteps to step right goes properly after step left
 //---------------------------------------------------------
-void Game::UpdateFootstepsSound(const float dt)
+void Game::UpdatePlayerFootstepsSound(const float dt)
 {
+    ECS::PlayerData& player = pEngine_->GetECS()->playerSys_.GetData();
+
     // which stepL sound is playing...
-    if (soundStepL_Playing && !soundStepR_Played)
+    if (player.soundStepL_Playing && !player.soundStepR_Played)
     {
-        stepTimer_ += dt;
+        player.stepTimer += dt;
         
-        if (stepTimer_ <= currStepInterval_)
+        if (player.stepTimer <= player.currStepInterval)
             return;
 
         // check if stepL finished playing
-        if (WaitForSingleObject(eventStepLDone, 0) == WAIT_OBJECT_0)
-        {
-            // play second sound
-            g_SoundMgr.GetSound(actorStepR_)->PlayTrack();
-            soundStepR_Played  = true;
-            soundStepL_Playing = false;
-            stepTimer_         = 0;
-        }
-    }
-}
+        if (WaitForSingleObject(eventStepLDone, 0) != WAIT_OBJECT_0)
+            return;
 
-//---------------------------------------------------------
-// Desc:  start playing shooting sound after we pressed LMB
-//---------------------------------------------------------
-void Game::StartPlayShootSound()
-{
-    const Weapon&    wpn = GetCurrentWeapon();
-    const bool ableShoot = wpn.type == WPN_TYPE_PISTOL;
-
-    if (!soundShootIsPlaying_ || ableShoot)
-    {
-        g_SoundMgr.GetSound(wpn.soundIds[WPN_SOUND_TYPE_SHOOT])->PlayTrack();
-        soundShootIsPlaying_ = true;
+        // play another step sound
+        g_SoundMgr.GetSound(player.soundStepR)->PlayTrack();
+        player.soundStepR_Played  = true;
+        player.soundStepL_Playing = false;
+        player.stepTimer          = 0;
     }
 }
 
@@ -634,15 +667,18 @@ void Game::StartPlayShootSound()
 //---------------------------------------------------------
 void Game::UpdateShootSound(const float dt)
 {
-    shootTimer_ += dt;
+    ECS::PlayerSystem&   player = pEngine_->GetECS()->playerSys_;
+    ECS::PlayerData& playerData = player.GetData();
 
-    if (soundShootIsPlaying_)
+    playerData.shotTimer += dt;
+
+    if (playerData.soundShotPlaying)
     {
-        if (shootTimer_ < shootInterval_)
+        if (playerData.shotTimer < player.GetActiveWeapon().shotInterval)
             return;
 
-        soundShootIsPlaying_ = false;
-        shootTimer_ = 0;
+        playerData.soundShotPlaying = false;
+        playerData.shotTimer = 0;
     }
 }
 
@@ -670,7 +706,7 @@ void Game::UpdateRainbowAnomaly()
 
     constexpr size numPointL = 8;
     DirectX::XMFLOAT3 newPositions [numPointL];
-    EntityID          pointLightIds[numPointL]{ INVALID_ENTITY_ID };
+    EntityID          pointLightIds[numPointL]{ INVALID_ENTT_ID };
 
     // we have 8 point lights for rainbows...
     const char* pointLightsNames[numPointL] =
@@ -715,19 +751,15 @@ void Game::UpdateRainPos()
 {
     const DirectX::XMFLOAT3 p = pEnttMgr_->playerSys_.GetPosition();
     pEnttMgr_->PushEvent(ECS::EventTranslate(rainEnttId_, p.x, p.y, p.z));
-
-    const DirectX::XMFLOAT3 pos = pEnttMgr_->transformSys_.GetPosition(rainEnttId_);
-
-    //printf("rain pos: %.2f %.2f %.2f\n", pos.x, pos.y, pos.z);
 }
 
 //---------------------------------------------------------
-// Desc:  init sounds related stuff
+// Desc:  init sounds related stuff for the scene
 //---------------------------------------------------------
 void Game::InitSoundsStuff()
 {
     //
-    // gather sounds ids (so we don't need to get it by names)
+    // gather sounds ids (so we don't need to get it by names each time)
     //
 
     // get ids of thunder sounds
@@ -740,14 +772,15 @@ void Game::InitSoundsStuff()
     rainSoundId_ = g_SoundMgr.GetSoundIdByName("ambient_rain");
 
     // get ids of actor's steps
-    actorStepL_ = g_SoundMgr.GetSoundIdByName("actor_stepL");
-    actorStepR_ = g_SoundMgr.GetSoundIdByName("actor_stepR");
+    ECS::PlayerData& player = pEngine_->GetECS()->playerSys_.GetData();
+    player.soundStepL = g_SoundMgr.GetSoundIdByName("actor_stepL");
+    player.soundStepR = g_SoundMgr.GetSoundIdByName("actor_stepR");
 
     //
     // create event handler for some sounds so we will be able to know when
     // sound is over, or it is currently playing
     //
-    Core::Sound* pSound = g_SoundMgr.GetSound(actorStepL_);
+    Core::Sound* pSound = g_SoundMgr.GetSound(player.soundStepL);
     IDirectSoundBuffer8* pSoundBufStepL = pSound->GetBuffer();
 
     // create notification event
@@ -775,479 +808,7 @@ void Game::InitSoundsStuff()
 //---------------------------------------------------------
 void Game::HandleGameEvents()
 {
-    for (int i = 0; i < gameEventsList_.numEvents; ++i)
-    {
-        const GameEvent& e = gameEventsList_.events[i];
 
-        switch (e.type)
-        {
-            case PLAYER_SWITCH_WEAPON:
-            {
-                const int weaponIdx = (int)e.x;
-
-                if (weaponIdx >= weapons_.size())
-                    break;
-
-                if (currWeaponIdx_ == weaponIdx)
-                    break;
-
-                HandleEventWeaponSwitch(weaponIdx);
-                break;
-            }
-
-            case PLAYER_RELOAD_WEAPON:
-                HandleEventWeaponReload();
-                break;
-
-            case PLAYER_SINGLE_SHOT:
-                HandleEventWeaponSingleShot();
-                break;
-
-            case PLAYER_MULTIPLE_SHOTS:
-                HandleEventWeaponMultipleShots();
-                break;
-
-            case PLAYER_RUN:
-                break;
-
-            case PLAYER_SWITCH_FLASHLIGHT:
-                SwitchFlashLight(*pEnttMgr_, *pRender_);
-                break;
-        }
-    }
 }
-
-//---------------------------------------------------------
-// Desc:  player decided to switch its weapon so handle this event:
-//        1. bind another weapon as a current
-//        2. play weapon's "switching/drawing" sound
-//        3. play weapon's "switching/drawing" animation
-//---------------------------------------------------------
-void Game::HandleEventWeaponSwitch(const int newWeaponIdx)
-{
-     // stop all sounds for the current weapon
-    for (int i = 0; i < (int)NUM_WPN_SOUND_TYPES; ++i)
-    {
-        const SoundID id = weapons_[currWeaponIdx_].soundIds[i];
-        g_SoundMgr.GetSound(id)->StopTrack();
-    }
-
-    const Weapon& wpn             = weapons_[newWeaponIdx];
-
-    currWeaponEnttId_             = wpn.enttId;
-    pSkeleton_                    = wpn.pSkeleton;
-
-    const AnimationID animIdDraw  = wpn.animIds[WPN_ANIM_TYPE_DRAW];
-    const AnimationID animIdShoot = wpn.animIds[WPN_ANIM_TYPE_SHOOT];
-
-    const float animDrawEndTime   = pSkeleton_->GetAnimation(animIdDraw).GetEndTime();
-    const float animShootEndTime  = pSkeleton_->GetAnimation(animIdShoot).GetEndTime();
-
-    shootInterval_                = animShootEndTime / 2.5f;
-    currAnimId_                   = animIdDraw;
-    currWeaponIdx_                = newWeaponIdx;
-    currActTime_                  = 0;
-    endActTime_                   = animDrawEndTime;
-
-    pEnttMgr_->playerSys_.SetActiveWeapon(currWeaponEnttId_);
-    pEnttMgr_->playerSys_.SetIsDrawWeapon(true);
-
-    g_SoundMgr.GetSound(wpn.soundIds[WPN_SOUND_TYPE_DRAW])->PlayTrack();
-    StartAnimWeaponDraw();
-}
-
-//---------------------------------------------------------
-// Desc:  reload our current weapon
-//---------------------------------------------------------
-void Game::HandleEventWeaponReload()
-{
-    Weapon& wpn = GetCurrentWeapon();
-    const AnimationID animIdReload = wpn.animIds[WPN_ANIM_TYPE_RELOAD];
-    const AnimationID animIdDraw   = wpn.animIds[WPN_ANIM_TYPE_DRAW];
-
-    if (currAnimId_ == animIdReload || currAnimId_ == animIdDraw)
-        return;
-
-    const AnimationClip& anim = pSkeleton_->GetAnimation(animIdReload);
-    pEnttMgr_->playerSys_.SetIsReloading(true);
-
-    // start animation immediately
-    currActTime_ = anim.GetEndTime();
-    endActTime_ = anim.GetEndTime();
-
-    g_SoundMgr.GetSound(wpn.soundIds[WPN_SOUND_TYPE_RELOAD])->PlayTrack();
-    StartAnimWeaponReload();
-}
-
-//---------------------------------------------------------
-//---------------------------------------------------------
-void Game::HandleBulletHit(const IntersectionData& data)
-{
-    const EntityID           wpnId = pEnttMgr_->playerSys_.GetActiveWeapon();
-    const DirectX::XMFLOAT3 relPos = pEnttMgr_->hierarchySys_.GetRelativePos(wpnId);
-
-    const Vec3 rayOrig   = { data.rayOrigX, data.rayOrigY, data.rayOrigZ };
-    const Vec3 fromPos   = { rayOrig.x + relPos.x, rayOrig.y + relPos.y, rayOrig.z + relPos.z };
-    const Vec3 intersect = { data.px, data.py, data.pz };
-    const Vec3 magenta   = { 1, 0, 1 };
-
-    if (g_DebugDrawMgr.IsRenderable())
-        g_DebugDrawMgr.AddLine(fromPos, intersect, magenta);
-
-    SetConsoleColor(YELLOW);
-
-#if 0
-    const char* enttName = pEnttMgr_->nameSys_.GetNameById(data.enttId);
-
-    printf("hitEntt (id: %d  '%s'   rayO: %.2f %.2f %.2f   rayI: %.2f %.2f %.2f   N: %.2f %.2f %.2f)\n",
-        (int)data.enttId,
-        enttName,
-        rayOrig.x, rayOrig.y, rayOrig.z,
-        intersect.x, intersect.y, intersect.z,
-        data.nx, data.ny, data.nz);
-#endif
-
-    //
-    // generate some particles as a response of bullet hit
-    //
-    ECS::NameSystem&      nameSys     = pEnttMgr_->nameSys_;
-    ECS::TransformSystem& transSys    = pEnttMgr_->transformSys_;
-    ECS::ParticleSystem&  particleSys = pEnttMgr_->particleSys_;
-    ECS::BoundingSystem&  boundSys    = pEnttMgr_->boundingSys_;
-
-
-    const EntityID emitShotSplash0Id = nameSys.GetIdByName("shot_splash_0");
-    const EntityID emitShotSplash1Id = nameSys.GetIdByName("shot_splash_1");
-    const EntityID emitShotSplash2Id = nameSys.GetIdByName("shot_splash_2");
-    const EntityID emitSplashSmokeId = nameSys.GetIdByName("shot_splash_smoke");
-
-    // relocate particle emitters
-    const DirectX::XMFLOAT3 p = { intersect.x, intersect.y, intersect.z };
-
-#if 0
-    pEnttMgr_->PushEvent(ECS::EventTranslate(emitShotSplash0Id, p.x, p.y, p.z));
-    pEnttMgr_->PushEvent(ECS::EventTranslate(emitShotSplash1Id, p.x, p.y, p.z));
-    pEnttMgr_->PushEvent(ECS::EventTranslate(emitShotSplash2Id, p.x, p.y, p.z));
-    pEnttMgr_->PushEvent(ECS::EventTranslate(emitSplashSmokeId, p.x, p.y, p.z));
-
-#else
-    transSys.SetPosition(emitShotSplash0Id, p);
-    transSys.SetPosition(emitShotSplash1Id, p);
-    transSys.SetPosition(emitShotSplash2Id, p);
-    transSys.SetPosition(emitSplashSmokeId, p);
-
-    boundSys.TranslateWorldBoundings(emitShotSplash0Id);
-    boundSys.TranslateWorldBoundings(emitShotSplash1Id);
-    boundSys.TranslateWorldBoundings(emitShotSplash2Id);
-    boundSys.TranslateWorldBoundings(emitSplashSmokeId);
-
-    pEnttMgr_->UpdateQuadTreeMembership(emitShotSplash0Id);
-    pEnttMgr_->UpdateQuadTreeMembership(emitShotSplash1Id);
-    pEnttMgr_->UpdateQuadTreeMembership(emitShotSplash2Id);
-    pEnttMgr_->UpdateQuadTreeMembership(emitSplashSmokeId);
-#endif
-
-    // generate new particles 
-    const ECS::EmitterData& emitter0 = particleSys.GetEmitterData(emitShotSplash0Id);
-    const ECS::EmitterData& emitter1 = particleSys.GetEmitterData(emitShotSplash1Id);
-    const ECS::EmitterData& emitter2 = particleSys.GetEmitterData(emitShotSplash2Id);
-    const ECS::EmitterData& emitter3 = particleSys.GetEmitterData(emitSplashSmokeId);
-    
-    particleSys.PushNewParticles(emitShotSplash0Id, emitter0.spawnRate);
-    particleSys.PushNewParticles(emitShotSplash1Id, emitter1.spawnRate);
-    particleSys.PushNewParticles(emitShotSplash2Id, emitter2.spawnRate);
-    particleSys.PushNewParticles(emitSplashSmokeId, emitter3.spawnRate);
-
-    // particles go along the normal vector of the surface (where bullet hit)
-    const Vec3 decalNormal    = { data.nx, data.ny, data.nz };
-    const Vec3 smokeExtForces = (decalNormal * 0.0001f);
-    particleSys.SetExternForces(emitSplashSmokeId, smokeExtForces.x, smokeExtForces.y, smokeExtForces.z);
-
-    // calc decal direction
-    const Vec3 v0 = { data.vx1, data.vy1, data.vz1 };
-    const Vec3 decalTangent = v0 - intersect;
-
-    //printf("decal dir: %.2f %.2f %.2f\n", decalTangent.x, decalTangent.y, decalTangent.z);
-
-    const float decalWidth       = 0.1f;
-    const float decalHeight      = 0.1f;
-    const float decalLifeTimeSec = 30.0f;
-
-    g_ModelMgr.AddDecal3D(
-        intersect,          // center of decal
-        decalTangent,
-        decalNormal,
-        decalWidth,
-        decalHeight,
-        decalLifeTimeSec);
-
-    SetConsoleColor(RESET);
-}
-
-//---------------------------------------------------------
-// Desc:  execute a single shot (act of attack) by the player
-//---------------------------------------------------------
-void Game::HandleEventWeaponSingleShot()
-{
-    const Weapon& wpn = GetCurrentWeapon();
-    const AnimationID animIdReload = wpn.animIds[WPN_ANIM_TYPE_RELOAD];
-    const AnimationID animIdDraw   = wpn.animIds[WPN_ANIM_TYPE_DRAW];
-
-    // aren't able to shoot while reloading or drawing (appearing) weapon
-    if (currAnimId_ == animIdReload || currAnimId_ == animIdDraw)
-        return;
-
-    StartPlayShootSound();
-    StartAnimWeaponShoot();
-
-    Mouse& mouse = pEngine_->GetMouse();
-
-    // handle shooting with shotgun separately
-    if (wpn.type == WPN_TYPE_SHOTGUN)
-    {
-        int mouseX = mouse.GetPosX();
-        int mouseY = mouse.GetPosY();
-        int numBullets = 10;
-
-        // generate random angle for each shotgun's bullet and test collision
-        for (int i = 0; i < numBullets; ++i)
-        {
-            IntersectionData data;
-
-            int offsetX = (rand() & 63 - 32);
-            int offsetY = (rand() & 63 - 32);
-
-            bool hasIntersection = pEngine_->GetGraphicsClass().GetRayIntersectionData(
-                mouseX + offsetX,
-                mouseY + offsetY,
-                data);
-
-            if (!hasIntersection)
-                continue;
-
-            HandleBulletHit(data);
-        }
-        return;
-    }
-
-    
-    IntersectionData data;
-
-    bool hasIntersection = pEngine_->GetGraphicsClass().GetRayIntersectionData(
-        mouse.GetPosX(),
-        mouse.GetPosY(),
-        data);
-
-    if (!hasIntersection)
-        return;
-
-    HandleBulletHit(data);
-}
-
-//---------------------------------------------------------
-// Desc:  handle the case when LMB is down for several frames
-//        so we do multiple shots (if our weapon is able to do so)
-//---------------------------------------------------------
-void Game::HandleEventWeaponMultipleShots()
-{
-    const Weapon& wpn = weapons_[currWeaponIdx_];
-   
-    // if current weapon can't do multiple shots...
-    if (wpn.type == WPN_TYPE_PISTOL || wpn.type == WPN_TYPE_SHOTGUN)
-        return;
-
-    // we aren't able to shoot while reloading or drawing (appearing) weapon
-    const AnimationID animIdReload = wpn.animIds[WPN_ANIM_TYPE_RELOAD];
-    const AnimationID animIdDraw   = wpn.animIds[WPN_ANIM_TYPE_DRAW];
-
-    if (currAnimId_ == animIdReload || currAnimId_ == animIdDraw)
-        return;
-
-    // if not each time spent since the previous shot...
-    if (currActTime_ < shootInterval_)
-        return;
-
-    // restart shooting sound, animation, etc.
-    StartPlayShootSound();
-    StartAnimWeaponShoot();
-
-    IntersectionData data;
-    Mouse& mouse = pEngine_->GetMouse();
-
-    bool hasIntersection = pEngine_->GetGraphicsClass().GetRayIntersectionData(
-        mouse.GetPosX(),
-        mouse.GetPosY(),
-        data);
-
-    if (!hasIntersection)
-        return;
-
-    HandleBulletHit(data);
-}
-
-//---------------------------------------------------------
-// Desc:   switch on/off the player's flashlight
-//---------------------------------------------------------
-void Game::SwitchFlashLight(ECS::EntityMgr& mgr, Render::CRender& render)
-{
-    ECS::PlayerSystem& player = mgr.playerSys_;
-    const bool isActive = !player.IsFlashLightActive();;
-    player.SwitchFlashLight(isActive);
-
-    // update the state of the flashlight entity
-    const EntityID flashlightId = mgr.nameSys_.GetIdByName("player_flashlight");
-
-    mgr.lightSys_.SetLightIsActive(flashlightId, isActive);
-    render.SwitchFlashLight(isActive);
-
-    // if we just turned on the flashlight we update its position and direction
-    if (isActive)
-    {
-        mgr.transformSys_.SetPosition(flashlightId, player.GetPosition());
-        mgr.transformSys_.SetDirection(flashlightId, player.GetDirVec());
-    }
-}
-
-
-//**********************************************************************************
-//                        PLAYER ANIMATIONS SWITCHERS
-//**********************************************************************************
-
-//---------------------------------------------------------
-// Desc:  play weapon "appearing" animation
-//---------------------------------------------------------
-void Game::StartAnimWeaponDraw()
-{
-    const Weapon&        wpn = weapons_[currWeaponIdx_];
-    const AnimationID animId = wpn.animIds[WPN_ANIM_TYPE_DRAW];
-    const float  animEndTime = pSkeleton_->GetAnimation(animId).GetEndTime();
-
-    currActTime_            = 0;
-    currAnimId_             = animId;
-    endActTime_             = animEndTime;
-
-    pEnttMgr_->animationSys_.SetAnimation(
-        currWeaponEnttId_,
-        animId,
-        animEndTime,
-        ECS::ANIM_PLAY_ONCE);
-
-    pEnttMgr_->animationSys_.RestartAnimation(currWeaponEnttId_);
-}
-
-//---------------------------------------------------------
-// switch to "reloading" animation
-//---------------------------------------------------------
-void Game::StartAnimWeaponReload()
-{
-    const Weapon&        wpn = weapons_[currWeaponIdx_];
-    const AnimationID animId = wpn.animIds[WPN_ANIM_TYPE_RELOAD];
-    const float  animEndTime = pSkeleton_->GetAnimation(animId).GetEndTime();
-
-    currActTime_ = 0;
-    currAnimId_ = animId;
-
-    pEnttMgr_->animationSys_.SetAnimation(
-        currWeaponEnttId_,
-        animId,
-        animEndTime,
-        ECS::ANIM_PLAY_ONCE);
-}
-
-//---------------------------------------------------------
-// switch to "shooting" animation
-//---------------------------------------------------------
-void Game::StartAnimWeaponShoot()
-{
-    const Weapon&        wpn = weapons_[currWeaponIdx_];
-    const AnimationID animId = wpn.animIds[WPN_ANIM_TYPE_SHOOT];
-    const float  animEndTime = pSkeleton_->GetAnimation(animId).GetEndTime();
-
-    currActTime_ = 0;
-    endActTime_ = animEndTime;
-    currAnimId_ = animId;
-
-    pEnttMgr_->animationSys_.SetAnimation(
-        currWeaponEnttId_,
-        animId,
-        animEndTime,
-        ECS::ANIM_PLAY_ONCE);
-
-    pEnttMgr_->animationSys_.RestartAnimation(currWeaponEnttId_);
-}
-
-//---------------------------------------------------------
-// switch to "run/sprint" animation
-//---------------------------------------------------------
-void Game::StartAnimWeaponRun()
-{
-    const Weapon&        wpn = weapons_[currWeaponIdx_];
-    const AnimationID animId = wpn.animIds[WPN_ANIM_TYPE_RUN];
-    const float  animEndTime = pSkeleton_->GetAnimation(animId).GetEndTime();
-
-    currActTime_ = 0;
-    endActTime_ = animEndTime;
-    currAnimId_ = animId;
-
-    pEnttMgr_->animationSys_.SetAnimation(
-        currWeaponEnttId_,
-        animId,
-        animEndTime,
-        ECS::ANIM_PLAY_ONCE);
-}
-
-//---------------------------------------------------------
-// switch to "idle" animation
-//---------------------------------------------------------
-void Game::StartAnimWeaponIdle()
-{
-    const Weapon&        wpn = weapons_[currWeaponIdx_];
-    const AnimationID animId = wpn.animIds[WPN_ANIM_TYPE_IDLE];
-    const float  animEndTime = pSkeleton_->GetAnimation(animId).GetEndTime();
-
-    currAnimId_ = animId;
-
-    pEnttMgr_->animationSys_.SetAnimation(
-        currWeaponEnttId_,
-        animId,
-        animEndTime,
-        ECS::ANIM_PLAY_LOOP);
-}
-
-#if 0
-void LightSystem::UpdateDirLights(
-    const float deltaTime,
-    const float totalGameTime)
-{
-    // circle sun light over the land surface
-
-    DirLights& dirLights = GetDirLights();
-
-    DirectX::XMFLOAT3 dir;
-    dir.x = 30.0f * cosf(0.2f * totalGameTime);
-    dir.y = -0.57735f;
-    dir.z = 30.0f * sinf(0.2f * totalGameTime);
-
-    for (index idx = 0; idx < GetNumDirLights(); ++idx)
-    {
-        SetDirLightProp(dirLights.ids[idx], ECS::LightProp::DIRECTION, dir);
-    }
-}
-
-///////////////////////////////////////////////////////////
-
-void LightSystem::UpdatePointLights(const float deltaTime, const float totalGameTime)
-{
-    // update point light props (position, color, etc.)
-
-    PointLights& pointLights = GetPointLights();
-
-    float x = 30.0f * cosf(0.2f * totalGameTime);
-    float y = 3;
-    float z = 30.0f * sinf(0.2f * totalGameTime);
-
-    SetPointLightProp(pointLights.ids[0], LightProp::POSITION, { x, y, z, 1.0f });
-}
-#endif
 
 } // namespace

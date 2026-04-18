@@ -5,7 +5,7 @@
 // *********************************************************************************
 #pragma once
 
-#include <Log.h>
+#include <log.h>
 #include <d3d11.h>
 
 
@@ -69,8 +69,10 @@ HRESULT ConstantBuffer<T>::Init(ID3D11Device* pDevice)
 // Desc:  update the constant buffer data (transfer data to GPU)
 //---------------------------------------------------------
 template<class T>
-void ConstantBuffer<T>::ApplyChanges(ID3D11DeviceContext* pContext)
+void ConstantBuffer<T>::ApplyChanges(ID3D11DeviceContext* pCtx)
 {
+    assert(pCtx);
+
     if (!pBuffer_)
     {
         LogErr(LOG, "ptr to buffer == nullptr");
@@ -79,7 +81,7 @@ void ConstantBuffer<T>::ApplyChanges(ID3D11DeviceContext* pContext)
 
     D3D11_MAPPED_SUBRESOURCE mappedResource;
 
-    HRESULT hr = pContext->Map(pBuffer_, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+    HRESULT hr = pCtx->Map(pBuffer_, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
     if (FAILED(hr))
     {
         LogErr(LOG, "failed to Map the constant buffer");
@@ -87,7 +89,7 @@ void ConstantBuffer<T>::ApplyChanges(ID3D11DeviceContext* pContext)
     }
     
     CopyMemory(mappedResource.pData, &data, sizeof(T));
-    pContext->Unmap(pBuffer_, 0);
+    pCtx->Unmap(pBuffer_, 0);
 }
 
 

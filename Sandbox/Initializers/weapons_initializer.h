@@ -14,9 +14,7 @@
     Created:  05.01.2025  by DimaSkup
 \**********************************************************************************/
 #pragma once
-#include "../Types/weapon_types.h"
 #include <Entity/EntityMgr.h>
-#include <cvector.h>
 
 namespace Game
 {
@@ -24,10 +22,7 @@ namespace Game
 class WeaponsInitializer
 {
 public:
-    void Init(
-        const char* weaponsCfgFile,
-        ECS::EntityMgr* pEnttMgr,
-        cvector<Weapon>& playerWeapons);
+    void Init(const char* weaponsCfgFilepath, ECS::EntityMgr* pEnttMgr);
 };
 
 } // namespace Game

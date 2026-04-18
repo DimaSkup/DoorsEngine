@@ -40,17 +40,17 @@ public:
     //
     // get/set light properties
     //
-    XMFLOAT4 GetDirLightProp  (const EntityID id, const LightProp prop);
-    XMFLOAT4 GetPointLightProp(const EntityID id, const LightProp prop);
-    XMFLOAT4 GetSpotLightProp (const EntityID id, const LightProp prop);
+    DirectX::XMFLOAT4 GetDirLightProp  (const EntityID id, const LightProp prop);
+    DirectX::XMFLOAT4 GetPointLightProp(const EntityID id, const LightProp prop);
+    DirectX::XMFLOAT4 GetSpotLightProp (const EntityID id, const LightProp prop);
 
-    bool SetDirLightProp      (const EntityID id, const LightProp prop, const XMFLOAT4& val);
-    bool SetDirLightProp      (const EntityID id, const LightProp prop, const XMFLOAT3& val);
+    bool SetDirLightProp      (const EntityID id, const LightProp prop, const DirectX::XMFLOAT4& val);
+    bool SetDirLightProp      (const EntityID id, const LightProp prop, const DirectX::XMFLOAT3& val);
 
-    bool SetPointLightProp    (const EntityID id, const LightProp prop, const XMFLOAT4& val);
+    bool SetPointLightProp    (const EntityID id, const LightProp prop, const DirectX::XMFLOAT4& val);
     bool SetPointLightProp    (const EntityID id, const LightProp prop, const float val);
 
-    bool SetSpotLightProp     (const EntityID id, const LightProp prop, const XMFLOAT4& val);
+    bool SetSpotLightProp     (const EntityID id, const LightProp prop, const DirectX::XMFLOAT4& val);
     bool SetSpotLightProp     (const EntityID id, const LightProp prop, const float val);
 
 
@@ -77,14 +77,14 @@ public:
         const EntityID* ids,
         const size numEntts,
         cvector<ECS::PointLight>& outData,
-        cvector<XMFLOAT3>& outPositions) const;
+        cvector<DirectX::XMFLOAT3>& outPositions) const;
 
     void GetSpotLightsData(
         const EntityID* ids,
         const size numEntts,
         cvector<ECS::SpotLight>& outData,
-        cvector<XMFLOAT3>& outPositions,
-        cvector<XMFLOAT3>& outDirections) const;
+        cvector<DirectX::XMFLOAT3>& outPositions,
+        cvector<DirectX::XMFLOAT3>& outDirections) const;
 
     // get data for a single entity
     bool GetDirectedLightData(const EntityID id, ECS::DirLight&   outData)  const;
@@ -94,7 +94,7 @@ public:
     bool GetPointLightsPositionAndRange(
         const EntityID* ids,
         const size numEntts,
-        cvector<XMFLOAT3>& outPositions,
+        cvector<DirectX::XMFLOAT3>& outPositions,
         cvector<float>& outRanges) const;
 
     size GetNumDirLights()   const;

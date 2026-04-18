@@ -234,6 +234,13 @@ public:
     virtual void        EnableDepthPrepass      (const bool state)                                    override;
     virtual bool        IsEnabledDepthPrepass   (void)                                          const override;
 
+    virtual void        SetFullscreenInGameMode (const bool state)                                    override;
+    virtual bool        IsFullscreenInGameMode  (void)                                          const override;
+
+    virtual void        LockFrustumCulling      (const bool onOff)                                    override;
+    virtual bool        IsLockedFrustumCulling  (void)                                          const override;
+
+
     virtual void        EnableDepthVisualize    (const bool state)                                    override;
     virtual bool        IsEnabledDepthVisualize (void)                                          const override;
 

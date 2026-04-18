@@ -1,6 +1,6 @@
 // =================================================================================
 // Filename:      SkyModel.h
-// Description:   a class for the sky model (because it is a specific model)
+// Description:   skybox (because it is a specific model)
 // 
 // Created:       23.12.24
 // =================================================================================
@@ -9,15 +9,33 @@
 #include "../Mesh/vertex.h"
 #include "../Mesh/vertex_buffer.h"
 #include "../Mesh/index_buffer.h"
-
-#include <d3d11.h>
-
+#include "../Texture/enum_texture_types.h"
 
 namespace Core
 {
 
 class SkyModel
 {
+public:
+
+    // initialization data:
+    // - texName:        path to cubemap texture
+    // - materialName:   a name of sky material
+    // - size:           size of skybox side
+    // - bLoadCubeMap:   (true) load prepared cubemap texture or (false) create it manually
+    // - offsetY:        offset of the skybox along Y-axis
+    // - cubeMapParams:  params for manual creation of the cubemap
+    struct SkyBoxParams
+    {
+        char     texName[MAX_LEN_TEX_NAME]{ '\0' };
+        char     materialName[MAX_LEN_MAT_NAME]{ '\0' };
+        float    size = 0;
+        int      bLoadCubeMap = 0;
+        float    offsetY = 0;
+        CubeMapInitParams cubeMapParams;
+    };
+
+
 public:
     SkyModel();
     ~SkyModel();
@@ -53,9 +71,6 @@ public:
     inline const char*   GetName()                    const { return name_; }
     inline MaterialID    GetMaterialId()              const { return materialId_; }
 
-    inline const DirectX::XMFLOAT3& GetColorCenter()  const { return colorCenter_; }
-    inline const DirectX::XMFLOAT3& GetColorApex()    const { return colorApex_; }
-
 
     //
     // Setters
@@ -63,20 +78,12 @@ public:
     void SetMaterialId(const MaterialID id);
     void SetName(const char* name);
 
-    inline void SetColorCenter(const DirectX::XMFLOAT3& c) { colorCenter_ = c; }
-    inline void SetColorApex  (const DirectX::XMFLOAT3& c) { colorApex_ = c; }
-
-
 private:
-    MaterialID                materialId_ = INVALID_MATERIAL_ID;
-    char                      name_[MAX_LEN_SKY_MODEL_NAME] = "sky_model";
+    MaterialID                materialId_ = INVALID_MAT_ID;
+    char                      name_[MAX_LEN_SKY_MODEL_NAME] = "skybox";
 
     VertexBuffer<Vertex3DPos> vb_;
     IndexBuffer<USHORT>       ib_;
-
-    // gradient params
-    DirectX::XMFLOAT3 colorCenter_{1,1,1};   // sky horizon color
-    DirectX::XMFLOAT3 colorApex_{1,1,1};     // sky top color
 };
 
 } // namespace Core

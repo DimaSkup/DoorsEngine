@@ -129,10 +129,10 @@ struct PointLight
     }
 
     PointLight(
-        const XMFLOAT4& ambient,
-        const XMFLOAT4& diffuse,
-        const XMFLOAT4& specular,
-        const XMFLOAT3& attenuation,
+        const DirectX::XMFLOAT4& ambient,
+        const DirectX::XMFLOAT4& diffuse,
+        const DirectX::XMFLOAT4& specular,
+        const DirectX::XMFLOAT3& attenuation,
         const float range)
         :
         ambient(ambient),
@@ -170,12 +170,12 @@ struct SpotLight
 
 
     SpotLight(
-        const XMFLOAT4& ambient,
-        const XMFLOAT4& diffuse,
-        const XMFLOAT4& specular,
+        const DirectX::XMFLOAT4& ambient,
+        const DirectX::XMFLOAT4& diffuse,
+        const DirectX::XMFLOAT4& specular,
         const float range,
         const float spot,
-        const XMFLOAT3& attenuation)
+        const DirectX::XMFLOAT3& attenuation)
         :
         ambient(ambient),
         diffuse(diffuse),

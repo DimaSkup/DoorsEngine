@@ -41,12 +41,11 @@
 			"name": "GrassInstance",
 			"per_vertex": [
 				[ "POSITION",            "f3" ],
-				[ "TEXCOORD",            "f2" ],
-				[ "NORMAL",              "f3" ],
-				[ "TANGENT",             "f4" ]
+				[ "TEXCOORD",            "f2" ]
 			],
 			"per_instance": [
 				[ "WORLD_POS",    "f3" ],
+				[ "SCALE",        "f1" ],
 				[ "TEX_COLUMN",  "r32"],
 				[ "TEX_ROW",     "r32"]
 			]
@@ -200,8 +199,7 @@
 		{
 			"name": "TreeLod",
 			"per_vertex": [
-				[ "POSITION",            "f3" ],
-				[ "TEXCOORD",            "f2" ]
+				[ "POSITION",            "f3" ]
 			],
 			"per_instance": [
 				[ "WORLD",               "f16" ],

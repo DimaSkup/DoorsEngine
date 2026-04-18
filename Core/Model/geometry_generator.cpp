@@ -139,10 +139,10 @@ bool GeometryGenerator::GenerateGrass(
     const XMFLOAT3 p2 = { +hw, +hh, 0 };      // top right
     const XMFLOAT3 p3 = { +hw, -hh, 0 };      // bottom right
 
-    // slightly incline
+    // incline planes
     const XMFLOAT3 pos0 = p0;
-    const XMFLOAT3 pos1 = RotateVec3AroundX(p1, DEG_TO_RAD(-30));
-    const XMFLOAT3 pos2 = RotateVec3AroundX(p2, DEG_TO_RAD(-30));
+    const XMFLOAT3 pos1 = RotateVec3AroundX(p1, DEG_TO_RAD(-60));
+    const XMFLOAT3 pos2 = RotateVec3AroundX(p2, DEG_TO_RAD(-60));
     const XMFLOAT3 pos3 = p3;
 
     // setup vertices for all the planes

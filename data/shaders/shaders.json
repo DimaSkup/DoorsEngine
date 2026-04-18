@@ -1,7 +1,7 @@
 {
 	"params": {
 	    "runtime_compilation":       false,
-		"shader_model":              "4_1",
+		"shader_model":              "5_0",
 		"dir_path_to_precompiled":   "data/shaders/cso/",
 		"dir_path_to_hlsl":          "data/shaders/hlsl/"
 	},
@@ -104,9 +104,9 @@
 		},
 		{
 			"id":             13,
-			"name":           "WoodShader",
-			"vs":             "woodVS",
-			"ps":             "woodPS",
+			"name":           "WoodTreeShader",
+			"vs":             "wood_branch_VS",
+			"ps":             "wood_PS",
 			"input_layout":   "Basic"
 		},
 		{
@@ -358,7 +358,7 @@
 			"id":             49,
 			"name":           "TreeLod1Shader",
 			"vs":             "tree_lod1_VS",
-			"gs":             "tree_lod_GS",
+			"gs":             "tree_lod1_GS",
 			"ps":             "tree_lod1_PS",
 			"input_layout":   "TreeLod"
 		},
@@ -427,6 +427,20 @@
 			"vs":            "grass_instance_VS",
 			"ps":            "grass_instance_PS",
 			"input_layout":  "GrassInstance"
+		},
+		{
+			"id":            59,
+			"name":          "PlayerWeaponShader",
+			"vs":            "player_weapon_VS",
+			"ps":            "player_weapon_PS",
+			"input_layout":  "SkinnedMesh"
+		},
+		{
+			"id":             60,
+			"name":           "WoodShader",
+			"vs":             "wood_VS",
+			"ps":             "wood_PS",
+			"input_layout":   "Basic"
 		}
 	]
 }

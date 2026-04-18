@@ -7,7 +7,7 @@
 #pragma once
 
 #include <math/vec4.h>
-#include <Types.h>
+#include <types.h>
 #include "../Texture/enum_texture_types.h"
 #include <string.h>
 
@@ -24,7 +24,7 @@ struct Material
     Vec4       specular = { 0,0,0,1 };                                // w-component is a glossiness (specPower, specular power)
     Vec4       reflect  = { 0,0,0,0 };
 
-    MaterialID id = INVALID_MATERIAL_ID;
+    MaterialID id = INVALID_MAT_ID;
     ShaderID   shaderId = INVALID_SHADER_ID;                          // default "Invalid" shader with id == 0
     char       name[MAX_LEN_MAT_NAME] = { "invalid" };
     
@@ -32,9 +32,9 @@ struct Material
 
     // render states
     RsID       rsId = 0;
-    BsID        bsId = 0;
-    DssID dssId = 0;
-    bool                alphaClip = false;
+    BsID       bsId = 0;
+    DssID      dssId = 0;
+    bool       alphaClip = false;
 
     //-----------------------------------------------------
 
@@ -55,11 +55,8 @@ struct Material
 
     void SetName(const char* inName)
     {
-        if ((inName == nullptr) || (inName[0] == '\0'))
-        {
-            //LogErr("can't set name for material: input name is empty!");
+        if (!inName || inName[0] == '\0')
             return;
-        }
 
         size_t len = strlen(inName);
 

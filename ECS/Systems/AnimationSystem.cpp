@@ -28,8 +28,7 @@ AnimationSystem::AnimationSystem(Animations* pAnimComponent) :
 {
     if (pAnimComponent == nullptr)
     {
-        LogErr(LOG, "input ptr to animation component == nullptr");
-        exit(0);
+        LogFatal(LOG, "input ptr to animation component == NULL");
     }
 }
 
@@ -100,7 +99,7 @@ bool AnimationSystem::AddRecord(
     Animations& comp = *pAnimComponent_;
     const index idx  = comp.ids.get_insert_idx(enttId);
 
-    if (comp.ids[idx] == enttId)
+    if (idx < comp.ids.size() && comp.ids[idx] == enttId)
     {
         LogErr(LOG, "there is already a record by id: %" PRIu32, enttId);
         return false;

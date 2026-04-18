@@ -22,6 +22,7 @@
 #include <geometry/rect3d.h>
 
 #define NUM_GRASS_CHANNELS 4
+#define MAX_LEN_DENSITY_MASK_PATH 64
 
 // forward declarations for global scope (pointer use only)
 class Frustum;
@@ -46,7 +47,9 @@ struct GrassFieldInitParams
 
     char materialName[MAX_LEN_MAT_NAME];      // material for the whole grass field
 
-    char densityMask[64];                     // grass density mask for the whole grass field
+    // density mask for RGB+A channels of grass for the whole grass field
+    char densityMaskRGB[MAX_LEN_DENSITY_MASK_PATH];                  
+    char densityMaskAlpha[MAX_LEN_DENSITY_MASK_PATH];
 
     int centerX;                // center of the grass field in world
     int centerZ;
@@ -61,10 +64,10 @@ struct GrassFieldInitParams
     int numChannels;            // the same as number of texture slots
     int grassCount;             // how many grass instances we have on this field
 
-    float grassMinHeight;
-    float grassMaxHeight;
-
     float channelProbability[NUM_GRASS_CHANNELS];
+
+    float channelGrassScaleMin[NUM_GRASS_CHANNELS];
+    float channelGrassScaleMax[NUM_GRASS_CHANNELS];
 };
 
 //---------------------------------------------------------
@@ -73,6 +76,7 @@ struct GrassFieldInitParams
 struct GrassInstance
 {
     Vec3 pos;
+    float scale;
     int texColumn;
     int texRow;
 };
@@ -94,8 +98,13 @@ struct GrassCell
 //---------------------------------------------------------
 struct GrassField
 {
-    char        name[MAX_LEN_MODEL_NAME];
-    char        densityMask[64];            // path to a texture with density mask
+    // name of this grass field
+    char name[MAX_LEN_MODEL_NAME];
+
+    // density mask for RGB+A channels of grass for the whole grass field
+    char densityMaskRGB[MAX_LEN_DENSITY_MASK_PATH];
+    char densityMaskAlpha[MAX_LEN_DENSITY_MASK_PATH];
+
     MaterialID  matId;
     uint32      grassCount;                 // number of ALL grass instances of this field
 
@@ -105,10 +114,6 @@ struct GrassField
     cvector<GrassCell> cells;               // grass sectors
     cvector<Rect3d>    cellsWorldBoxes;     // world AABB of each cell
     ModelID            grassModelId[NUM_GRASS_CHANNELS];
-
-    
-    float              grassMinHeight;
-    float              grassMaxHeight;
 
     uint8              cellsByX;            // number of cells by X-axis
     uint8              cellsByZ;            // number of cells by Z-axis
@@ -121,7 +126,10 @@ struct GrassField
     uint32             numInstPerChannel[NUM_GRASS_CHANNELS];
     bool               bGeneratedModel[NUM_GRASS_CHANNELS];  // is model for channel (by index 0-3) generated?
 
-    float              channelProbability[NUM_GRASS_CHANNELS];
+    float              channelProbability[NUM_GRASS_CHANNELS];     // chance of grass instance appearing for this channel
+
+    float              channelGrassScaleMin[NUM_GRASS_CHANNELS];  // minimal scale of grass instances for this channel
+    float              channelGrassScaleMax[NUM_GRASS_CHANNELS];  // maximal scale of grass instances for this channel
 
 
     ID3D11Buffer* pInstancedBuf = nullptr;          // GPU-side buffer for all the visible grass instances
@@ -129,12 +137,14 @@ struct GrassField
 };
 
 //---------------------------------------------------------
-// data about visible grass cells (index of its field and index of cell by itself)
+// visibility data:
+// - grass field index
+// - its currently visible cells
 //---------------------------------------------------------
-struct VisibleGrassCell
+struct VisibleGrassField
 {
-    uint16 fieldIdx = 0;
-    uint16 cellIdx  = 0;
+    index          fieldIdx;
+    cvector<index> cellsIdxs;
 };
 
 //---------------------------------------------------------
@@ -149,20 +159,32 @@ public:
 
     bool AddGrassField(const GrassFieldInitParams& params);
 
+    void SetGrassDistFullSize(const float dist);
     void SetGrassVisibilityRange(const float range);
 
-    const GrassField&                GetGrassField(const uint index) const;
-    const cvector<VisibleGrassCell>& GetVisibleCells()               const;
+    float GetGrassDistFullSize() const;
+    float GetGrassVisibilityRange() const;
+
+    const GrassField&                 GetGrassField(const index index) const;
+    const cvector<VisibleGrassField>& GetVisibleFields()               const;
+
+    vsize GetNumGrassFields() const;
 
 private:
     void CalcVisibleGrass(const Vec3 camPos, const Frustum* pWorldFrustum);
     void UpdateGrassInstancedBuf();
 
 private:
+    // registered grass fields
     cvector<GrassField> grassFields_;
 
-    cvector<VisibleGrassCell> visCells_;
+    // data about each currently visible field
+    cvector<VisibleGrassField> visFields_;
 
+    // radius around camera where grass has full size
+    float grassDistFullSize_ = 0;
+
+    // grass visibility range
     float grassVisRange_ = 0;
 };
 
@@ -174,19 +196,34 @@ extern GrassMgr g_GrassMgr;
 //---------------------------------------------------------
 // return a grass field by index
 //---------------------------------------------------------
-inline const GrassField& GrassMgr::GetGrassField(const uint index) const
+inline const GrassField& GrassMgr::GetGrassField(const index index) const
 {
-    assert(index < grassFields_.size());
+    assert(index >= 0 && index < grassFields_.size());
     return grassFields_[index];
 }
 
 //---------------------------------------------------------
-// return an array of data about currently visible grass cells
+// return an array of data about currently visible grass fields
 //---------------------------------------------------------
-inline const cvector<VisibleGrassCell>& GrassMgr::GetVisibleCells() const
+inline const cvector<VisibleGrassField>& GrassMgr::GetVisibleFields() const
 {
-    return visCells_;
+    return visFields_;
 }
 
+//---------------------------------------------------------
+// return current number of all the grass fields
+//---------------------------------------------------------
+inline vsize GrassMgr::GetNumGrassFields() const
+{
+    return grassFields_.size();
+}
+
+//---------------------------------------------------------
+// return radius around camera:
+// 1. where grass has its full size
+// 2. where we see grass
+//---------------------------------------------------------
+inline float GrassMgr::GetGrassDistFullSize()    const { return grassDistFullSize_; }
+inline float GrassMgr::GetGrassVisibilityRange() const { return grassVisRange_; }
 
 } // namespace

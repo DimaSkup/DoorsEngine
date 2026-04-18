@@ -16,10 +16,11 @@
 #include <CoreCommon/pch.h>
 #include "sky_plane.h"
 #include "geometry_generator.h"
-#include <Render/d3dclass.h>         // from Render module
 #include <Texture/texture_mgr.h>
 #include <Mesh/material_mgr.h>
+
 #pragma warning(disable : 4996)
+
 
 namespace Core
 {
@@ -35,137 +36,37 @@ SkyPlane::~SkyPlane()
     Shutdown();
 }
 
-//---------------------------------------------------------
-// Desc:  read in sky plane params from the config file
-// Args:  - skyPlaneResolution: how many quads we have along X and Z axis
-//        - texRepeat:          how many times to repeat a texture over the sky plane
-//        - skyPlaneWidth:      length of the plane
-//        - skyPlaneTop:        1 upper central point of the plane
-//        - skyPlaneBottom:     4 bottom corner points of the plane
-//        - brightness:         cloud brightness, lower values give clouds more faded look.
-//        - translationSpeed:   arr of 4 values, how fast we translate the cloud textures over the sky plane
-//        - tex0Name,tex1Name:  a name to cloud texture
-//---------------------------------------------------------
-void ReadParams(
-    FILE* pFile,
-    int& skyPlaneResolution,
-    int& texRepeat,
-    float& skyPlaneWidth,
-    float& skyPlaneTop,
-    float& skyPlaneBottom,
-    float& brightness,
-    float* translationSpeed,
-    char* tex0Name,
-    char* tex1Name)
-{
-    assert(pFile != nullptr);
-    assert(translationSpeed != nullptr);
-    assert(tex0Name != nullptr);
-    assert(tex1Name != nullptr);
-
-
-    int count = 0;
-
-    count = fscanf(pFile, "sky_pl_resolution %d\n", &skyPlaneResolution);
-    assert(count == 1);
-
-    count = fscanf(pFile, "sky_pl_width %f\n", &skyPlaneWidth);
-    assert(count == 1);
-
-    count = fscanf(pFile, "sky_pl_top %f\n", &skyPlaneTop);
-    assert(count == 1);
-
-    count = fscanf(pFile, "sky_pl_bottom %f\n", &skyPlaneBottom);
-    assert(count == 1);
-
-    count = fscanf(pFile, "tex_repeat %d\n", &texRepeat);
-    assert(count == 1);
-
-
-    count = fscanf(pFile, "brightness %f\n", &brightness);
-    assert(count == 1);
-    assert(brightness >= 0 && brightness <= 1 && "brightness is out of range [0;1]");
-
-
-    count = fscanf(pFile, "tex0_speed_x %f\n", &translationSpeed[0]);
-    assert(count == 1);
-
-    count = fscanf(pFile, "tex0_speed_z %f\n", &translationSpeed[1]);
-    assert(count == 1);
-
-    count = fscanf(pFile, "tex1_speed_x %f\n", &translationSpeed[2]);
-    assert(count == 1);
-
-    count = fscanf(pFile, "tex1_speed_z %f\n", &translationSpeed[3]);
-    assert(count == 1);
-
-
-    count = fscanf(pFile, "tex0_name %s\n", tex0Name);
-    assert(count == 1);
-
-    count = fscanf(pFile, "tex1_name %s\n", tex1Name);
-    assert(count == 1);
-}
 
 //---------------------------------------------------------
 // Desc:   initialize the sky plane: read its params from config file,
 //         generate geometry, load textures and create a material
 //---------------------------------------------------------
-bool SkyPlane::Init(const char* cfgFilename)
+bool SkyPlane::Init(const SkyPlaneParams& params)
 {
-    if (StrHelper::IsEmpty(cfgFilename))
-    {
-        LogErr(LOG, "can't init sky plane: input filename is empty");
-        return false;
-    }
-
-
-    FILE* pFile = fopen(cfgFilename, "r");
-    if (!pFile)
-    {
-        LogErr(LOG, "can't open sky plane config file: %s", cfgFilename);
-        return false;
-    }
-
-
-    // read in config params
-    int   count              = 0;
-    int   skyPlaneResolution = 0;
-    int   texRepeat          = 0;
-    float skyPlaneWidth      = 0;
-    float skyPlaneTop        = 0;
-    float skyPlaneBottom     = 0;
-    char  tex0Name[MAX_LEN_TEX_NAME]{'\0'};
-    char  tex1Name[MAX_LEN_TEX_NAME]{'\0'};
-
-    ReadParams(
-        pFile,
-        skyPlaneResolution,
-        texRepeat,
-        skyPlaneWidth,
-        skyPlaneTop,
-        skyPlaneBottom,
-        brightness_,
-        translationSpeed_,
-        tex0Name,
-        tex1Name);
-   
-
-    // setup the current translation for the two textures and pass it to shader when render
+    // setup the current translation for the two textures
+    // (we will pass it to shader when render)
     textureTranslation_[0] = 0.0f;
     textureTranslation_[1] = 0.0f;
     textureTranslation_[2] = 0.0f;
     textureTranslation_[3] = 0.0f;
 
+    // setup brigtness and textures translation
+    brightness_          = params.brightness;
+    translationSpeed_[0] = params.translationSpeed[0];
+    translationSpeed_[1] = params.translationSpeed[1];
+    translationSpeed_[2] = params.translationSpeed[2];
+    translationSpeed_[3] = params.translationSpeed[3];
+
+
     // generate sky plane's geometry
     GeometryGenerator geoGen;
 
     if (!geoGen.GenSkyPlane(
-            skyPlaneResolution,
-            skyPlaneWidth,
-            skyPlaneTop,
-            skyPlaneBottom,
-            texRepeat,
+            params.skyPlaneResolution,
+            params.skyPlaneLength,
+            params.skyPlaneTop,
+            params.skyPlaneBottom,
+            params.texRepeat,
             &vertices_,
             &indices_,
             numVertices_,
@@ -179,7 +80,7 @@ bool SkyPlane::Init(const char* cfgFilename)
 
     if (!InitBuffers())
     {
-        LogErr(LOG, "can't init vertex/index buffer for sky plane");
+        LogErr(LOG, "can't init VB/IB for sky plane");
         Shutdown();
         return false;
     }
@@ -187,32 +88,20 @@ bool SkyPlane::Init(const char* cfgFilename)
     // after initialization of buffers we release transient arrays
     SafeDeleteArr(vertices_);
     SafeDeleteArr(indices_);
-    
 
-    // get textures and create a material
-    const TexID tex0Id = g_TextureMgr.GetTexIdByName(tex0Name);
-    const TexID tex1Id = g_TextureMgr.GetTexIdByName(tex1Name);
+    // set material for the sky plane
+    matId_ = g_MaterialMgr.GetMatIdByName(params.materialName);
 
-    if (tex0Id == INVALID_TEX_ID)
+    if (matId_ == INVALID_MAT_ID)
     {
-        LogErr(LOG, "no texture by name: %s", tex0Name);
-    }
-    if (tex1Id == INVALID_TEX_ID)
-    {
-        LogErr(LOG, "no texture by name: %s", tex1Name);
+        LogErr(LOG, "no material by name: %s", params.materialName);
+        Shutdown();
+        return false;
     }
 
-    Material& mat = g_MaterialMgr.AddMaterial("sky_plane_clouds");
-    mat.texIds[1] = tex0Id;
-    mat.texIds[2] = tex1Id;
-
-    //mat.SetBlending(MAT_PROP_BS_ENABLE);
-    //mat.SetDepthStencil(MAT_PROP_DSS_SKY_DOME);
-
-    matId_ = mat.id;
+    assert(brightness_ > 0);
 
     // great success!
-    fclose(pFile);
     return true;
 }
 

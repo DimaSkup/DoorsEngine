@@ -143,7 +143,7 @@ void CameraSystem::GetAllCamerasIds(cvector<EntityID>& outIds) const
 
     for (int i = 0; const auto & it : comp.data)
     {
-        if (it.first != INVALID_ENTITY_ID)
+        if (it.first != INVALID_ENTT_ID)
             outIds[i++] = it.first;
     }
 }

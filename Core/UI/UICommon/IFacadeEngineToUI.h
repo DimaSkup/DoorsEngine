@@ -92,7 +92,7 @@ public:
 
 
     virtual const cvector<EntityID>* GetAllEnttsIDs (void)                                                                          const { NOTIFY;  return nullptr; }
-    virtual EntityID                 GetEnttIdByName(const char* name)                                                              const { NOTIFY;  return INVALID_ENTITY_ID; }
+    virtual EntityID                 GetEnttIdByName(const char* name)                                                              const { NOTIFY;  return INVALID_ENTT_ID; }
     virtual const char*              GetEnttNameById(const EntityID id)                                                             const { NOTIFY;  return s_DummyStr; }
 
 
@@ -271,6 +271,12 @@ public:
     virtual void        EnableDepthPrepass      (const bool state)                                { NOTIFY; return; }
     virtual bool        IsEnabledDepthPrepass   (void)                                      const { NOTIFY; return false; }
 
+    virtual void        SetFullscreenInGameMode (const bool state)                                { NOTIFY; return; }
+    virtual bool        IsFullscreenInGameMode  (void)                                      const { NOTIFY; return false; }
+
+    virtual void        LockFrustumCulling      (const bool onOff)                                { NOTIFY; return; }
+    virtual bool        IsLockedFrustumCulling  (void)                                      const { NOTIFY; return false; }
+
     virtual void        EnableDepthVisualize    (const bool state)                                { NOTIFY; return; }
     virtual bool        IsEnabledDepthVisualize (void)                                      const { NOTIFY; return false;}
 
@@ -300,7 +306,7 @@ public:
 
     virtual bool        GetModelsNamesList      (cvector<std::string>& names)               const { NOTIFY;  return false; }
     virtual TexID       GetTextureIdByIdx       (const index idx)                           const { NOTIFY;  return INVALID_TEX_ID; }
-    virtual MaterialID  GetMaterialIdByIdx      (const index idx)                           const { NOTIFY;  return INVALID_MATERIAL_ID; }
+    virtual MaterialID  GetMaterialIdByIdx      (const index idx)                           const { NOTIFY;  return INVALID_MAT_ID; }
     virtual const char* GetMaterialNameById     (const MaterialID id)                       const { NOTIFY;  return s_DummyStr; }
     virtual bool        GetMaterialTexIds       (const MaterialID id, TexID* outTexIds)     const { NOTIFY;  return false; }
     virtual const char* GetTextureNameById      (const TexID id)                            const { NOTIFY;  return s_DummyStr; }

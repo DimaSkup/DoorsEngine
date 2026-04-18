@@ -244,11 +244,13 @@ void DrawControlPostFx_Vignette(IFacadeEngineToUI* pFacade)
 //---------------------------------------------------------
 // Desc:  render info about currenly used post effects
 //---------------------------------------------------------
-void DrawPostFxsQueueInfo(
-    IFacadeEngineToUI* pFacade,
-    const ePostFxType* fxsQueue,
-    const int numPostFxsInQueue)
+void DrawPostFxsQueueInfo(IFacadeEngineToUI* pFacade, const ePostFxType* fxsQueue)
 {
+    assert(pFacade);
+    assert(fxsQueue);
+
+    int numPostFxsInQueue = (int)pFacade->GetNumUsedPostFxs();
+
     ImGui::Text("POST FX QUEUE (%d / %d):", numPostFxsInQueue, MAX_NUM_POST_EFFECTS);
 
     for (int i = 0; i < numPostFxsInQueue; ++i)
@@ -258,7 +260,10 @@ void DrawPostFxsQueueInfo(
         // remove this post fx from rendering queue
         ImGui::PushID(i);
         if (ImGui::Button("Remove"))
+        {
             pFacade->RemovePostFx(i);
+            numPostFxsInQueue--;
+        }
 
         ImGui::SameLine();
 
@@ -286,24 +291,26 @@ void DrawPostFxsQueueInfo(
 //---------------------------------------------------------
 // Desc:  render a list of available post effects to push into the render queue
 //---------------------------------------------------------
-void DrawListOfAvailablePostFxs(
-    IFacadeEngineToUI* pFacade,
-    const ePostFxType* fxsQueue,
-    const int numPostFxsInQueue)
+void DrawListOfAvailablePostFxs(IFacadeEngineToUI* pFacade, const ePostFxType* fxsQueue)
 {
+    assert(pFacade);
+    assert(fxsQueue);
+
+    const int numPostFxsInQueue = (int)pFacade->GetNumUsedPostFxs();
+
     int availablePostFxsIdxs[NUM_POST_EFFECTS];
 
     for (int i = 0; i < (int)NUM_POST_EFFECTS; ++i)
         availablePostFxsIdxs[i] = i;
 
-    // remove used post fxs from the list of available ones
+    // remove currently used post fxs from the list of available ones
     for (int i = 0; i < numPostFxsInQueue; ++i)
     {
         ePostFxType type = fxsQueue[i];
         availablePostFxsIdxs[type] = -1;
     }
 
-    // render list
+    // render list of available post fxs
     for (int i = 0; i < NUM_POST_EFFECTS; ++i)
     {
         if (availablePostFxsIdxs[i] == -1)
@@ -376,17 +383,17 @@ void UI_PostFxControl::Draw(IFacadeEngineToUI* pFacade)
     }
     // show a list of enabled post effects from the rendering queue
     const ePostFxType* fxsQueue = nullptr;
-    const int numUsedPostFxs = (int)pFacade->GetNumUsedPostFxs();
+  
 
     pFacade->GetPostFxsQueue((const void**)&fxsQueue);
     ImGui::Separator();
 
-    DrawPostFxsQueueInfo(pFacade, fxsQueue, numUsedPostFxs);
+    DrawPostFxsQueueInfo(pFacade, fxsQueue);
     ImGui::Separator();
 
     if (ImGui::TreeNode("Available PostFx:"))
     {
-        DrawListOfAvailablePostFxs(pFacade, fxsQueue, numUsedPostFxs);
+        DrawListOfAvailablePostFxs(pFacade, fxsQueue);
         ImGui::TreePop();
     }
 }

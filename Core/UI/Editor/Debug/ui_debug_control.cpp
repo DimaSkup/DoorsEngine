@@ -27,36 +27,57 @@ namespace UI
 //---------------------------------------------------------
 void DebugControl::Draw(IFacadeEngineToUI* pFacade)
 {
-    if (pFacade == nullptr)
+    if (!pFacade)
     {
         LogErr(LOG, "ptr to the facade interface == nullptr");
         return;
     }
 
+    //---------------------------------
+    // enable/disable locking of frustum culling
+    // (so in editor we see culling result from the editor's camera)
+    ImGui::Separator();
 
-    bool enableDepthPrepass = pFacade->IsEnabledDepthPrepass();
+    bool bLockFrustumCulling = pFacade->IsLockedFrustumCulling();
 
-    if (ImGui::Checkbox("Enable depth prepass", &enableDepthPrepass))
-    {
-        pFacade->EnableDepthPrepass(enableDepthPrepass);
-    }
+    if (ImGui::Checkbox("Lock frustum culling", &bLockFrustumCulling))
+        pFacade->LockFrustumCulling(bLockFrustumCulling);
+
+    //---------------------------------
+    // enable/disable depth prepass
+    ImGui::Separator();
+
+    bool bEnableDepthPrepass = pFacade->IsEnabledDepthPrepass();
+
+    if (ImGui::Checkbox("Enable depth prepass", &bEnableDepthPrepass))
+        pFacade->EnableDepthPrepass(bEnableDepthPrepass);
+
+    //---------------------------------
+    // turn on/off fullscreen for the game mode
+    ImGui::Separator();
+
+    bool bFullscreenInGameMode = pFacade->IsFullscreenInGameMode();
+
+    if (ImGui::Checkbox("Fullscreen in game mode", &bFullscreenInGameMode))
+        pFacade->SetFullscreenInGameMode(bFullscreenInGameMode);
+
+    //---------------------------------
 
     ImGui::Separator();
 
     ImGui::Text("Anti aliasing:");
 
     const uint8 currAA = pFacade->GetAntiAliasingType();
-    const char* names[3] = { "NO AA", "FXAA", "MSAA" };
-    bool enabled[3]{ false };
-    enabled[currAA] = true;
+    bool enabledAA[3]{ false };
+    enabledAA[currAA] = true;
 
-    if (ImGui::Checkbox("NO AA", &enabled[0]))
+    if (ImGui::Checkbox("NO AA", &enabledAA[0]))
         pFacade->SetAntiAliasingType(0);
 
-    if (ImGui::Checkbox("FXAA", &enabled[1]))
+    if (ImGui::Checkbox("FXAA", &enabledAA[1]))
         pFacade->SetAntiAliasingType(1);
 
-    if (ImGui::Checkbox("MSAA", &enabled[2]))
+    if (ImGui::Checkbox("MSAA", &enabledAA[2]))
         pFacade->SetAntiAliasingType(2);
 
     ImGui::Separator();

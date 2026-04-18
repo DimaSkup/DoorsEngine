@@ -33,8 +33,8 @@ constexpr int TERRAIN_SMOOTHING_LEVEL = 2;
 //---------------------------------------------------------
 void Terrain::ReleaseBuffers()
 {
-    SafeDeleteArr(vertices_);
-    SafeDeleteArr(indices_);
+    vertices_.purge();
+    indices_.purge();
 
     // release memory from the vertex buffer and index buffer
     vb_.Shutdown();
@@ -46,7 +46,9 @@ void Terrain::ReleaseBuffers()
 //---------------------------------------------------------
 void Terrain::Shutdown()
 {
-    SafeDeleteArr(vertices_);
+    vertices_.purge();
+    indices_.purge();
+
     ReleaseBuffers();
     ClearMemoryFromMaps();
 }
@@ -181,18 +183,16 @@ bool Terrain::InitBuffers(
 {
     constexpr bool isDynamicBuf = false;
 
-    // initialize the vertex buffer
     if (!vb_.Init(vertices, numVertices, isDynamicBuf))
     {
-        LogErr(LOG, "can't init a VB for terrain");
+        LogErr(LOG, "can't init a vertex buffer for terrain");
         Shutdown();
         return false;
     }
 
-    // initialize the index buffer
     if (!ib_.Init(indices, numIndices, isDynamicBuf))
     {
-        LogErr(LOG, "can't init an IB for terrain");
+        LogErr(LOG, "can't init an index buffer for terrain");
         Shutdown();
         return false;
     }
@@ -211,12 +211,6 @@ void Terrain::InitVertices(Vertex3dTerrain* vertices, const int numVertices)
     const int   terrainLen    = GetTerrainLength();
     const float invTerrainLen = 1.0f / (float)terrainLen;
 
-    float yUp    = 0;
-    float yRight = 0;
-    float yDown  = 0;
-    float yLeft  = 0;
-
-
     // no smoothing computations
     if constexpr (TERRAIN_SMOOTHING_LEVEL == 0)
     {
@@ -227,12 +221,16 @@ void Terrain::InitVertices(Vertex3dTerrain* vertices, const int numVertices)
                 assert(idx < numVertices);
 
                 const float fX = (float)x;
-                const float fY = GetScaledHeightAtPoint(x, z);
                 const float fZ = (float)z;
-                const float texU = fX * invTerrainLen;
-                const float texV = fZ * invTerrainLen;
+                
+                vertices[idx] = {
+                    fX,                                 // posX
+                    GetScaledHeightAtPoint(x, z),       // posY
+                    fZ,                                 // posZ
+                    fX * invTerrainLen,                 // texU
+                    fZ * invTerrainLen                  // texV
+                };
 
-                vertices[idx] = { fX, fY, fZ, texU, texV };
                 idx++;
             }
         }
@@ -456,6 +454,187 @@ void Terrain::CalcNormals(
 bool Terrain::IsPatchInsideViewFrustum(const int patchIdx, const Frustum& frustum)
 {
     return frustum.TestSphere(patchesBoundSpheres_[patchIdx]);
+}
+
+//---------------------------------------------------------
+// Desc:  calculate a normal vector by 3 input positions
+//---------------------------------------------------------
+Vec3 CompNormalVec(const XMFLOAT3& p0, const XMFLOAT3& p1, const XMFLOAT3& p2)
+{
+    XMVECTOR pos0 = XMLoadFloat3(&p0);
+    XMVECTOR pos1 = XMLoadFloat3(&p1);
+    XMVECTOR pos2 = XMLoadFloat3(&p2);
+
+    XMVECTOR e0 = pos1 - pos0;
+    XMVECTOR e1 = pos2 - pos0;
+
+    XMVECTOR n = XMVector3Normalize(XMVector3Cross(e1, e0));
+
+    DirectX::XMFLOAT3 v;
+    DirectX::XMStoreFloat3(&v, n);
+
+    return Vec3(v.x, v.y, v.z);
+}
+
+//---------------------------------------------------------
+// Desc:  execute ray/terrain intersection test
+// Args:  - rayOrig:  origin of the ray
+//        - rayDir:   direction of the ray
+// 
+// Out:   - outData:  data about intersection (if we have any)
+// Ret:   true if we have any intersection
+//---------------------------------------------------------
+bool Terrain::TestRayIntersection(
+    const Vec3& rayOrig,
+    const Vec3& rayDir,
+    IntersectionData& outData) const
+{
+    // ray direction must be normalized
+    assert(FloatEqual(Vec3Length(rayDir), 1.0f) == true);
+
+    //
+    // ray/bounding_spheres tests (broad phase)
+    //
+    cvector<int> patchesToTest;
+    patchesToTest.reserve(16);
+
+    float dist = 0;
+
+    // test only visible terrain patches (sectors)
+    for (const int i : GetAllVisiblePatches())
+    {
+        if (!IntersectRaySphere(patchesBoundSpheres_[i], rayOrig, rayDir, dist))
+            continue;
+
+        // ray intersects this sphere
+        patchesToTest.push_back(i);
+    }
+
+
+    // ray/AABB test
+    //if (patchesAABBs_)
+
+
+    //
+    // ray/triangle tests for each terrain patch (narrow phase)
+    //
+    const int   terrainLen           = GetTerrainLength();
+    const int   numPatchesPerSide    = GetNumPatchesPerSide();
+    const float invNumPatchesPerSide = 1.0f / numPatchesPerSide;
+    const int   patchSize            = lodMgr_.GetPatchSize();
+
+    const XMVECTOR rayOrigW = { rayOrig.x, rayOrig.y, rayOrig.z };
+    const XMVECTOR rayDirW  = { rayDir.x, rayDir.y, rayDir.z };
+
+    float tmin = FLT_MAX;
+    int triangleIdx = 0;
+    bool bIntersect = false;
+    int intersectedPatchIdx = -1;
+    XMVECTOR p0, p1, p2;         // intersected triangle
+
+    for (const int patchIdx : patchesToTest)
+    {
+        // set maximal lod (detalization for the geometry)
+        TerrainLodMgr::PatchLod plod = {0,0,0,0,0};
+
+        UINT baseIndex = 0;
+        UINT indexCount = 0;
+        GetLodInfoByPatch(plod, baseIndex, indexCount);
+
+        const int patchZ = (int)(patchIdx * invNumPatchesPerSide);  // const int patchZ = idx / numPatchesPerSide;
+        const int patchX = patchIdx & (numPatchesPerSide - 1);      // const int patchX = idx % numPatchesPerSide;
+        const int z      = patchZ * (patchSize - 1);
+        const int x      = patchX * (patchSize - 1);
+
+        const UINT baseVertex = (UINT)(z * terrainLen + x);
+
+        const Vertex3dTerrain* verts = &vertices_[baseVertex];
+        const UINT*          indices = &indices_[baseIndex];
+
+        // exec ray/triangle tests for this patch (its mesh)
+        for (int i = 0; i < (int)indexCount / 3; ++i)
+        {
+            // indices for this triangle
+            const UINT i0 = indices[i*3 + 0];
+            const UINT i1 = indices[i*3 + 1];
+            const UINT i2 = indices[i*3 + 2];
+
+            // vertices of this triangle
+            const XMVECTOR v0 = XMLoadFloat3(&verts[i0].position);
+            const XMVECTOR v1 = XMLoadFloat3(&verts[i1].position);
+            const XMVECTOR v2 = XMLoadFloat3(&verts[i2].position);
+
+            float t = 0;
+
+            if (!DirectX::TriangleTests::Intersects(rayOrigW, rayDirW, v0, v1, v2, t))
+                continue;
+
+            if (t > tmin)
+                continue;
+
+            // this is a new nearest intersected triangle
+            tmin = t;
+            triangleIdx = i;
+            p0 = v0;
+            p1 = v1;
+            p2 = v2;
+            intersectedPatchIdx = patchIdx;
+            bIntersect = true;
+        }
+    }
+
+    if (!bIntersect)
+        return false;
+
+    // store endpoints of the intersected triangle
+    XMFLOAT3 pos0, pos1, pos2;
+
+    XMStoreFloat3(&pos0, p0);
+    XMStoreFloat3(&pos1, p1);
+    XMStoreFloat3(&pos2, p2);
+
+    outData.vx0 = pos0.x;
+    outData.vy0 = pos0.y;
+    outData.vz0 = pos0.z;
+
+    outData.vx1 = pos1.x;
+    outData.vy1 = pos1.y;
+    outData.vz1 = pos1.z;
+
+    outData.vx2 = pos2.x;
+    outData.vy2 = pos2.y;
+    outData.vz2 = pos2.z;
+
+
+    // store ray origin
+    outData.rayOrigX = rayOrig.x;
+    outData.rayOrigY = rayOrig.y;
+    outData.rayOrigZ = rayOrig.z;
+
+    // store intersection point
+    const XMVECTOR vIntersect = rayOrigW + rayDirW * tmin;
+    XMFLOAT3 intersectP;
+    XMStoreFloat3(&intersectP, vIntersect);
+
+    outData.px = intersectP.x;
+    outData.py = intersectP.y;
+    outData.pz = intersectP.z;
+
+    // store a distance to the intersection point
+    outData.distToIntersect = tmin;
+
+    // store normal vec of intersected triangle
+    Vec3 normal = CompNormalVec(pos0, pos1, pos2);
+
+    if (Vec3Dot(normal, rayDir) > 0)
+        normal = -normal;
+
+    outData.nx = normal.x;
+    outData.ny = normal.y;
+    outData.nz = normal.z;
+
+
+    return true;
 }
 
 //---------------------------------------------------------
@@ -870,24 +1049,21 @@ void Terrain::PopulateBuffers()
 {
     // compute vertices
     numVertices_ = SQR(terrainLength_);
-    cvector<Vertex3dTerrain> vertices(numVertices_);
-
     LogMsg(LOG, "preparing size for %d vertices", numVertices_);
-    InitVertices(vertices.data(), numVertices_);
+    vertices_.resize(numVertices_);
+    InitVertices(vertices_.data(), numVertices_);
 
     // compute indices
     numIndices_ = CalcNumIndices();
-    cvector<UINT> indices(numIndices_);
-    
-    numIndices_ = InitIndices(indices);
+    indices_.resize(numIndices_);
+    numIndices_ = InitIndices(indices_);
     LogMsg(LOG, "final number of indices %d", numIndices_);
 
-
     // compute normal vector of each terrain's vertex
-    CalcNormals(vertices.data(), indices.data(), numVertices_, numIndices_);
+    CalcNormals(vertices_.data(), indices_.data(), numVertices_, numIndices_);
 
     // create GPU-side vertex and index buffers
-    InitBuffers(vertices.data(), indices.data(), numVertices_, numIndices_);
+    InitBuffers(vertices_.data(), indices_.data(), numVertices_, numIndices_);
 }
 
 } // namespace

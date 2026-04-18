@@ -9,11 +9,15 @@
 #include "model_exporter.h"
 #include <Render/d3dclass.h>
 
-namespace fs = std::filesystem;
-
 
 namespace Core
 {
+
+// some constants
+#define NUM_BILLBOARDS         5000       // size of billboards/particles VB
+#define NUM_VERTS_DBG_LINES_VB 30000
+#define NUM_INDEX_DBG_LINES_IB 256
+
 
 // static arrays for internal purposes
 static cvector<index>         s_Idxs;
@@ -66,7 +70,7 @@ bool ModelMgr::Init()
     Model& invalidModel = g_ModelMgr.GetModelById(cubeId);
     
     g_ModelMgr.SetModelName(invalidModel.GetId(), "invalid_model");
-    invalidModel.SetMaterialForSubset(0, INVALID_MATERIAL_ID);
+    invalidModel.SetMaterialForSubset(0, INVALID_MAT_ID);
 
     //---------------------------------
 
@@ -115,12 +119,10 @@ void ModelMgr::Shutdown()
 //---------------------------------------------------------
 bool ModelMgr::InitBillboardsVB()
 {
-    constexpr int  maxNumBillboards = 3000;
-    constexpr bool isDynamic = true;
+    constexpr bool bIsDynamicVB = true;
+    cvector<BillboardSprite> vertices(NUM_BILLBOARDS);
 
-    cvector<BillboardSprite> vertices(maxNumBillboards);
-
-    if (!billboardsVB_.Init(vertices.data(), maxNumBillboards, isDynamic))
+    if (!billboardsVB_.Init(vertices.data(), NUM_BILLBOARDS, bIsDynamicVB))
     {
         LogErr(LOG, "can't create a VB for billboard sprites");
         return false;
@@ -134,22 +136,20 @@ bool ModelMgr::InitBillboardsVB()
 //---------------------------------------------------------
 bool ModelMgr::InitDebugLinesBuffers()
 {
+    constexpr bool bDynamicBuf = true;
+
     // TODO: I hate todo but fix it to prevent eating so much memory
-    constexpr int  maxNumVertices = 30000;
-    constexpr int  maxNumIndices  = 256;
-    constexpr bool isDynamicVB    = true;
+    cvector<VertexPosColor> vertices(NUM_VERTS_DBG_LINES_VB);
+    cvector<uint16>         indices(NUM_INDEX_DBG_LINES_IB, 0);
 
-    cvector<VertexPosColor> vertices(maxNumVertices);
-    cvector<uint16>         indices(maxNumIndices, 0);
-
-    if (!debugLinesVB_.Init(vertices.data(), maxNumVertices, isDynamicVB))
+    if (!debugLinesVB_.Init(vertices.data(), NUM_VERTS_DBG_LINES_VB, bDynamicBuf))
     {
         ShutdownDebugLinesBuffers();
         LogErr(LOG, "can't create a VB for debug lines");
         return false;
     }
 
-    if (!debugLinesIB_.Init(indices.data(), maxNumIndices, isDynamicVB))
+    if (!debugLinesIB_.Init(indices.data(), NUM_INDEX_DBG_LINES_IB, bDynamicBuf))
     {
         ShutdownDebugLinesBuffers();
         LogErr(LOG, "can't create an IB for debug lines");
@@ -269,9 +269,14 @@ void ModelMgr::GetModelsByIds(
     const size numModels,
     cvector<const Model*>& outModels)
 {
-    if (ids == nullptr || numModels == 0)
+    if (!ids)
     {
-        LogErr(LOG, "input args are invalid (ids arr == null OR num of models == 0)");
+        LogErr(LOG, "ptr to IDs input arr == NULL");
+        return;
+    }
+    if (numModels <= 0)
+    {
+        LogErr(LOG, "invalid num of models: %d", (int)numModels);
         return;
     }
 
@@ -388,14 +393,14 @@ void ModelMgr::SetModelName(const ModelID id, const char* name)
 {
     if (StrHelper::IsEmpty(name))
     {
-        LogErr(LOG, "input name is empty");
+        LogErr(LOG, "empty name");
         return;
     }
 
     const index idx = ids_.get_idx(id);
     if (!ids_.is_valid_index(idx))
     {
-        LogErr(LOG, "there is no model by id: %" PRIu32, id);
+        LogErr(LOG, "no model by id: %" PRIu32, id);
         return;
     }
 
@@ -492,10 +497,12 @@ void ModelMgr::AddDecal3D(
 }
 
 //---------------------------------------------------------
-// update dynamic decals (its transparency)
-// for instance: bullet wallmarks, or decals after explosions 
+// Desc:  update dynamic decals (its transparency)
+//        for instance: bullet wallmarks, or decals after explosions
+//
+// Args:  - dt:  delta time - time passed since the previous frame
 //---------------------------------------------------------
-void ModelMgr::UpdateDynamicDecals(const float deltaTime)
+void ModelMgr::UpdateDynamicDecals(const float dt)
 {
     if (numDecals_ == 0)
         return;
@@ -556,14 +563,14 @@ void ModelMgr::UpdateDynamicDecals(const float deltaTime)
     // update decals lifetime
     for (uint32 i = 0; i < numDecals_; i++)
     {
-        Decal3D& d = decalsRendList_[i];
-        d.age -= deltaTime;
+        Decal3D& decal = decalsRendList_[i];
+        decal.age -= dt;
 
         // remove dead decal
-        if (d.lifeTimeSec > 0.0f && d.age < 0)
+        if (decal.lifeTimeSec > 0.0f && decal.age < 0)
         {
             // swap n pop
-            d = decalsRendList_[numDecals_ - 1];
+            decal = decalsRendList_[numDecals_ - 1];
             --numDecals_;
         }
     }

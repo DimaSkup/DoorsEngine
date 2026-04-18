@@ -1,15 +1,5 @@
-newmtl act_act_arm_perchatka
-shader LightShader
-Ka 0.40 0.40 0.40 1.00
-Kd 0.80 0.80 0.80 1.00
-Ks 0.20 0.20 0.20
-Kg 25.00
-Kr 0.00 0.00 0.00 0.00
-tex_diff act/arm_1
-tex_opac act/arm_1
-
-newmtl wpn_wpn_ak74
-shader LightShader
+newmtl wpn_ak74_hud
+shader PlayerWeaponShader
 Ka 0.50 0.50 0.50 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.20 0.20 0.20
@@ -17,20 +7,18 @@ Kg 25.00
 Kr 0.00 0.00 0.00 0.00
 tex_diff wpn/ak74
 tex_norm blankNRM
-tex_opac wpn/ak74
 
-newmtl wpn_wpn_upgrade
-shader LightShader
+newmtl wpn_upgrade_hud
+shader PlayerWeaponShader
 Ka 0.40 0.40 0.40 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.20 0.20 0.20
 Kg 25.00
 Kr 0.00 0.00 0.00 0.00
 tex_diff wpn/ak74
-tex_opac wpn/ak74
 
-newmtl wpn_wpn_vog
-shader LightShader
+newmtl wpn_vog_hud
+shader PlayerWeaponShader
 Ka 0.50 0.50 0.50 1.00
 Kd 0.80 0.80 0.80 1.00
 Ks 0.20 0.20 0.20
@@ -38,5 +26,4 @@ Kg 25.00
 Kr 0.00 0.00 0.00 0.00
 tex_diff wpn/vog
 tex_norm blankNRM
-tex_opac wpn/vog
 

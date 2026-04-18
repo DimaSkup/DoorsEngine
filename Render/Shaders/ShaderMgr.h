@@ -54,15 +54,6 @@ public:
     void DepthPrePassBindShaderByName(ID3D11DeviceContext* pContext, const char* shaderName);
     void DepthPrePassBindShader      (ID3D11DeviceContext* pContext, Shader* pShader);
 
-    // rendering methods
-    void Render(ID3D11DeviceContext* pContext, const UINT indexCount);
-
-    void Render(
-        ID3D11DeviceContext* pContext,
-        const InstanceBatch& instances,
-        const UINT startInstanceLocation);
-
-
     // getters
     Shader*     GetShaderById    (const ShaderID id) const;
     Shader*     GetShaderByName  (const char* name) const;

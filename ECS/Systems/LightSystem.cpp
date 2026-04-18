@@ -73,7 +73,7 @@ inline XMFLOAT4 GetLightPropInvalidData()
 //---------------------------------------------------------
 void LightSystem::AddDirLight(const EntityID id, const DirLight& initData)
 {
-    if (id == INVALID_ENTITY_ID)
+    if (id == INVALID_ENTT_ID)
     {
         LogErr(LOG, "input entity ID == 0");
         return;
@@ -102,7 +102,7 @@ void LightSystem::AddDirLight(const EntityID id, const DirLight& initData)
 //---------------------------------------------------------
 void LightSystem::AddPointLight(const EntityID id, const PointLight& initData)
 {
-    if (id == INVALID_ENTITY_ID)
+    if (id == INVALID_ENTT_ID)
     {
         LogErr(LOG, "input entity ID == 0");
         return;
@@ -131,7 +131,7 @@ void LightSystem::AddPointLight(const EntityID id, const PointLight& initData)
 //---------------------------------------------------------
 void LightSystem::AddSpotLight(const EntityID id, const SpotLight& initData)
 {
-    if (id == INVALID_ENTITY_ID)
+    if (id == INVALID_ENTT_ID)
     {
         LogErr(LOG, "input entity ID == 0");
         return;
@@ -617,7 +617,7 @@ bool LightSystem::SetSpotLightProp(
         case LightProp::POSITION:
         {
             // store light position into the Transform component
-            pTransformSys_->SetPosition(id, { val.x, val.y, val.z });
+            pTransformSys_->SetPosition(id, val.x, val.y, val.z);
             break;
         }
         case LightProp::DIRECTION:

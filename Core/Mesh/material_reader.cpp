@@ -42,11 +42,18 @@ bool MaterialReader::Read(const char* filePath)
     // check input args
     if (!filePath || (filePath[0] == '\0'))
     {
-        LogErr(LOG, "input filepath is empty");
+        LogErr(LOG, "empty filepath");
         return false;
     }
 
 
+    char buf[128]{ '\0' };
+    char targetDir[256]{ '\0' };
+    Material* pMat = nullptr;
+    FileSys::GetParentPath(filePath, targetDir);
+
+
+    // open file for reading
     FILE* pFile = fopen(filePath, "r");
     if (!pFile)
     {
@@ -54,14 +61,8 @@ bool MaterialReader::Read(const char* filePath)
         return false;
     }
 
-
-    constexpr int bufSize = 128;
-    char buf[bufSize]{ '\0' };
-    char targetDir[256]{ '\0' };
-    Material* pMat = nullptr;
-    FileSys::GetParentPath(filePath, targetDir);
-
-    while (fgets(buf, bufSize, pFile))
+    // read in line by line all the materials declarations
+    while (fgets(buf, sizeof(buf), pFile))
     {
         switch (buf[0])
         {
@@ -70,8 +71,8 @@ bool MaterialReader::Read(const char* filePath)
                 if (pMat)
                 {
                     int alphaClip = 0;
-                    int count = sscanf(buf, "alpha_clip %d\n", &alphaClip);
-                    assert(count = 1);
+                    int count = sscanf(buf, "alpha_clip %d", &alphaClip);
+                    assert(count == 1);
 
                     pMat->SetAlphaClip((bool)alphaClip);
                 }
@@ -306,7 +307,6 @@ void ReadBlendState(const char* buf, Material* pMat)
     assert(pMat);
 
     char bsName[32]{'\0'};
-
     int count = sscanf(buf, "bs %s\n", bsName);
     assert(count == 1);
 

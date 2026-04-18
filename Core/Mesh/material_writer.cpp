@@ -21,7 +21,6 @@
 #include <Render/CRender.h>
 
 
-
 namespace Core
 {
 //---------------------------------------------------------
@@ -41,14 +40,18 @@ bool MaterialWriter::Write(
     const char* filePath)
 {
     // check input args
-    if (!materials || (numMaterials <= 0))
+    if (!materials)
     {
-        LogErr(LOG, "input materials are invalid");
+        LogErr(LOG, "ptr to arr of materials == NULL");
+    }
+    if (numMaterials <= 0)
+    {
+        LogErr(LOG, "invalid number of materials (%d), must be > 0", numMaterials);
         return false;
     }
     if (!filePath || filePath[0] == '\0')
     {
-        LogErr(LOG, "input filepath is empty!");
+        LogErr(LOG, "empty filepath");
         return false;
     }
 
@@ -82,18 +85,25 @@ void WriteCommon(FILE* pFile, const Material& mat)
 {
     assert(pFile != nullptr);
 
-    ShaderID shaderId = mat.shaderId;
+    char shaderName[MAX_LEN_SHADER_NAME];
+    memset(shaderName, 0, sizeof(shaderName));
 
-    // if we don't have any shader for this material use this as default 
     if (mat.shaderId == INVALID_SHADER_ID)
-        shaderId = g_MaterialMgr.GetMatIdByName("LightShader");
-
+    {
+        // if we don't have any shader for this material use the default
+        strcpy(shaderName, "LightShader");
+    }
+    else
+    {
+        // get shader name by id
+        strcpy(shaderName, Render::g_Render.GetShaderNameById(mat.shaderId));
+    }
+        
 
     const Render::RenderStates& rndStates = Render::g_Render.GetRenderStates();
 
     fprintf(pFile, "newmtl %s\n",    mat.name);
-    fprintf(pFile, "mat_id %d\n",    (int)mat.id);
-    fprintf(pFile, "shader_id %d\n", (int)shaderId);
+    fprintf(pFile, "shader %s\n",    shaderName);
     fprintf(pFile, "rs %s\n",        rndStates.GetRsName(mat.rsId));
     fprintf(pFile, "bs %s\n",        rndStates.GetBsName(mat.bsId));
     fprintf(pFile, "dss %s\n",       rndStates.GetDssName(mat.dssId));
@@ -104,7 +114,7 @@ void WriteCommon(FILE* pFile, const Material& mat)
 //---------------------------------------------------------
 void WriteColors(FILE* pFile, const Material& mat)
 {
-    assert(pFile != nullptr);
+    assert(pFile);
 
     // a - ambient, d - diffuse, s - specular, g - glossiness, r - reflect
     fprintf(pFile, "Ka %.2f %.2f %.2f %.2f\n", mat.ambient.r, mat.ambient.g, mat.ambient.b, mat.ambient.a);
@@ -119,6 +129,8 @@ void WriteColors(FILE* pFile, const Material& mat)
 //---------------------------------------------------------
 void WriteTextures(FILE* pFile, const Material& mat)
 {
+    assert(pFile);
+
     for (int i = 0; i < NUM_TEXTURE_TYPES; ++i)
     {
         if (mat.texIds[i] == INVALID_TEX_ID)
@@ -154,7 +166,7 @@ void WriteTextures(FILE* pFile, const Material& mat)
             }
         }
 
-        Texture& tex = g_TextureMgr.GetTexById(mat.texIds[i]);
+        const Texture& tex = g_TextureMgr.GetTexById(mat.texIds[i]);
         fprintf(pFile, "%s.dds\n", tex.GetName().c_str());
     }
 }

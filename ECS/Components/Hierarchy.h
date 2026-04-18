@@ -10,6 +10,7 @@
 #include <Types.h>
 #include <map>
 #include <set>
+#include <DirectXMath.h>
 
 namespace ECS
 {
@@ -22,7 +23,7 @@ struct HierarchyNode
     std::set<EntityID> children{};
 
     // position of entity relatively to its parent (offset from parent to child)
-    XMFLOAT3 relativePos{0,0,0};       
+    DirectX::XMFLOAT3 relativePos{0,0,0};
 };
 
 ///////////////////////////////////////////////////////////

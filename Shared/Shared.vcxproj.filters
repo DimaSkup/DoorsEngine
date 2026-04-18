@@ -57,7 +57,7 @@
     <ClInclude Include="math\math_helpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Image.h">
+    <ClInclude Include="image.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ShellHelpers.h">
@@ -152,7 +152,7 @@
     <ClCompile Include="math\dx_math_helpers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Image.cpp">
+    <ClCompile Include="image.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="geometry\frustum.cpp">

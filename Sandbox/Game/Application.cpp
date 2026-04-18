@@ -27,7 +27,7 @@ App::~App()
 void App::Init()
 {
     // compute duration of importing process
-    auto initStartTime = Core::GameTimer::GetTimePoint();
+    const TimePoint initStartTime = GetTimePoint();
 
     // explicitly init Windows Runtime and COM
     HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
@@ -49,14 +49,15 @@ void App::Init()
     InitRender(engineConfigs_);
     InitEngine();
 
-    Core::CGraphics&     graphics = engine_.GetGraphicsClass();
+
+
+    Core::CGraphics&     graphics = engine_.GetGraphics();
     Render::D3DClass&    d3d      = pRender->GetD3D();
     ID3D11Device*        pDevice  = d3d.GetDevice();
 
     // after initialization of entine's modules we init the game related stuff
     // (model entities, light source, particle emitters, etc.)
     game_.Init(&engine_, &entityMgr_, pRender, engineConfigs_);
-
 
     // create a facade btw the UI and the engine parts
     pFacadeEngineToUI_ = new UI::FacadeEngineToUI(
@@ -71,12 +72,11 @@ void App::Init()
  
 
     // create a str with duration time about the engine initialization process
-    const TimePoint      initEndTime = Core::GameTimer::GetTimePoint();
-    const TimeDurationMs initDur     = initEndTime - initStartTime;
-    const POINT          drawAt      = { 10, 820 };
+    const TimeDurationMs initDur = GetTimePoint() - initStartTime;
+    const POINT          drawAt  = { 10, 820 };
 
     char initTime[32]{'\0'};
-    snprintf(initTime, sizeof(initTime), "Init time: %d ms", (int)initDur.count());
+    snprintf(initTime, sizeof(initTime), "Engine init time: %.2f sec", initDur.count() * 0.001f);
 
     userInterface_.AddConstStr(initTime, drawAt);
 
@@ -86,8 +86,9 @@ void App::Init()
 
     // print into console and log file info about duration of the initialization 
     SetConsoleColor(GREEN);
+    LogMsg(" ");
     LogMsg("---------------------------------------------");
-    LogMsg(g_String);
+    LogMsg(initTime);
     LogMsg("---------------------------------------------");
     SetConsoleColor(RESET);
 }
@@ -157,11 +158,6 @@ bool App::InitRender(const Core::EngineConfigs& cfgs)
     renderParams.fogStart       = cfgs.GetFloat("FOG_START");
     renderParams.fogRange       = cfgs.GetFloat("FOG_RANGE");
 
-    // setup horizon and apex (top) color of the sky
-    const Core::SkyModel&   sky            = Core::g_ModelMgr.GetSky();
-    const DirectX::XMFLOAT3 skyColorCenter = sky.GetColorCenter();
-    const DirectX::XMFLOAT3 skyColorApex   = sky.GetColorApex();
-
     renderParams.vsyncEnabled   = cfgs.GetBool("VSYNC_ENABLED");
     renderParams.fullscreen     = cfgs.GetBool("FULL_SCREEN");
     renderParams.enable4xMSAA   = cfgs.GetBool("ENABLE_4X_MSAA");
@@ -170,17 +166,11 @@ bool App::InitRender(const Core::EngineConfigs& cfgs)
 
 
     // init the "Render" module
-    bool result = pRender->Init(mainHWND_, renderParams);
-    if (!result)
+    if (!pRender->Init(mainHWND_, renderParams))
     {
         LogErr(LOG, "can't init the render module");
         return false;
     }
-
-    // do some setup after initialization
-    pRender->SetSkyGradient(skyColorCenter, skyColorApex);
-    pRender->SetGrassDistFullSize(cfgs.GetFloat("GRASS_DIST_FULL_SIZE"));
-    pRender->SetGrassDistVisible (cfgs.GetFloat("GRASS_DIST_VISIBLE"));
 
     return true;
 }
@@ -275,20 +265,20 @@ void App::Run()
 // Desc:  update the game and then update the engine;
 //        aslo calculate duration of updating process
 //---------------------------------------------------------
-void App::Update(const float deltaTime, const float gameTime)
+void App::Update(const float dt, const float gameTime)
 {
     // calc duration of updating process
     static int   numFramesHalfSec = 0;
     static float sumTime          = 0;
     static float sumUpdateTime    = 0;
 
-    const auto startTimestamp = Core::GameTimer::GetTimePoint();
+    const auto startTimestamp = GetTimePoint();
 
-    game_.Update(deltaTime, gameTime);
-    const auto gameUpdatedTimestamp = Core::GameTimer::GetTimePoint();
+    game_.Update(dt, gameTime);
+    const auto gameUpdatedTimestamp = GetTimePoint();
 
-    engine_.Update(deltaTime, gameTime);
-    const auto endTimestamp = Core::GameTimer::GetTimePoint();
+    engine_.Update(dt, gameTime);
+    const auto endTimestamp = GetTimePoint();
 
 
     // calc the duration of the whole update process and its stages
@@ -303,7 +293,7 @@ void App::Update(const float deltaTime, const float gameTime)
 
     sumUpdateTime += sysState.updateTime;
     numFramesHalfSec++;
-    sumTime += deltaTime;
+    sumTime += dt;
 
     // if time > 500 ms...
     if (sumTime > 0.5f)

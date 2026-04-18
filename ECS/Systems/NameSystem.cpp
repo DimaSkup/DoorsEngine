@@ -171,7 +171,7 @@ EntityID NameSystem::GetIdByName(const char* name) const
     if (StrHelper::IsEmpty(name))
     {
         LogErr(LOG, "empty name");
-        return INVALID_ENTITY_ID;
+        return INVALID_ENTT_ID;
     }
 
     const Name& comp = *pNameComponent_;
@@ -180,8 +180,8 @@ EntityID NameSystem::GetIdByName(const char* name) const
     if (comp.ids_.is_valid_index(idx))
         return comp.ids_[idx];
 
-    LogErr(LOG, "no entity by name: %s", name);
-    return INVALID_ENTITY_ID;
+    LogErr(LOG, "no entity by name (%s), did you forget to create it?", name);
+    return INVALID_ENTT_ID;
 }
 
 //---------------------------------------------------------

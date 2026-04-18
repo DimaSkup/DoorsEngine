@@ -18,7 +18,7 @@ __declspec(align(16)) struct Transform
     Transform()
     {
         // add invalid data; this data is returned when we ask for wrong entity
-        ids.push_back(INVALID_ENTITY_ID);
+        ids.push_back(INVALID_ENTT_ID);
         posAndScale.push_back(DirectX::XMFLOAT4{ NAN, NAN, NAN, NAN });
         directions.push_back(DirectX::XMVECTOR{ NAN, NAN, NAN, NAN });
 

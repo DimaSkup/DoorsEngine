@@ -348,6 +348,9 @@
     <ClCompile Include="Render\r_debug_draw.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Model\ufbx.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Input\mouse.h">
@@ -771,6 +774,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\UICommon\ui_common_types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Model\ufbx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

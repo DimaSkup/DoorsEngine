@@ -14,7 +14,6 @@
 #include "../Common/pch.h"
 #include "game_initializer.h"
 
-#include <parse_helpers.h>              // helpers for parsing string buffers, or reading data from file
 #include <Render/d3dclass.h>
 #include <Timers/game_timer.h>
 
@@ -30,6 +29,9 @@
 #include "particles_initializer.h"
 #include "light_initializer.h"
 #include "grass_initializer.h"
+#include "sky_initializer.h"
+#include "sprite2d_initializer.h"
+#include "player_initializer.h"
 
 #include <geometry/rect3d_functions.h>
 
@@ -43,6 +45,148 @@ using namespace DirectX;
 
 namespace Game
 {
+
+//---------------------------------------------------------
+// Desc:  read in a game level declaration
+//---------------------------------------------------------
+void GameInitializer::ReadGameInitPaths(const char* level, GameInitPaths& initPaths)
+{
+    if (!level || level[0] == '\0')
+    {
+        LogFatal(LOG, "empty name of level");
+    }
+
+    char buf[128];
+    const char* path = "data/levels.cfg";
+    bool bFoundLevelDecl = false;
+
+    FILE* pFile = fopen(path, "r");
+    if (!pFile)
+    {
+        LogFatal(LOG, "can't open file: %s", path);
+    }
+
+    // reset all the output paths
+    memset(&initPaths, 0, sizeof(initPaths));
+
+    // read in line by line a file and find a declaration of the searched level
+    while (fgets(buf, sizeof(buf), pFile))
+    {
+        // search for beginning of level declaration
+        if (strncmp(buf, "level", 5) != 0)
+            continue;
+
+
+        char levelName[64];
+        memset(levelName, 0, sizeof(levelName));
+
+        // get name of level
+        int count = sscanf(buf, "level \"%s\"", levelName);
+        assert(count == 1);
+
+        // remove the last quote (") symbol from the name
+        levelName[strlen(levelName) - 1] = '\0';
+
+        // check if it is a searched level
+        if (strcmp(levelName, level) == 0)
+        {
+            strcpy(initPaths.levelName, levelName);
+            ReadLevelInitPaths(pFile, initPaths);
+            bFoundLevelDecl = true;
+        }
+    }
+
+    if (!bFoundLevelDecl)
+        LogFatal(LOG, "can't find a declaration of level: %s", level);
+
+    fclose(pFile);
+}
+
+//---------------------------------------------------------
+// Desc:  read in all the main paths to config files which
+//        are used for the game initialization
+//---------------------------------------------------------
+void GameInitializer::ReadLevelInitPaths(FILE* pFile, GameInitPaths& initPaths)
+{
+    assert(pFile);
+
+    char buf[128];
+    char key[64];
+    char path[64];
+    int  count = 0;
+
+    memset(buf,  0, sizeof(buf));
+    memset(key,  0, sizeof(key));
+    memset(path, 0, sizeof(path));
+
+
+    while (fgets(buf, sizeof(buf), pFile))
+    {
+        // if we finished reading params 
+        if (buf[0] == '}')
+            break;
+
+        count = sscanf(buf, "%s %s", key, path);
+        if (count != 2)
+        {
+            LogFatal(LOG, "can't read params for level (%s):  (key: %s, path: %s)", initPaths.levelName, key, path);
+        }
+
+
+        if (strcmp(key, "materials") == 0)
+            strcpy(initPaths.materialsFilepath, path);
+
+        else if (strcmp(key, "terrain") == 0)
+            strcpy(initPaths.terrainFilepath, path);
+
+        else if (strcmp(key, "sky") == 0)
+            strcpy(initPaths.skyFilepath, path);
+
+        else if (strcmp(key, "sky_plane") == 0)
+            strcpy(initPaths.skyPlaneFilepath, path);
+
+        else if (strcmp(key, "models") == 0)
+            strcpy(initPaths.modelsFilepath, path);
+
+        else if (strcmp(key, "animations") == 0)
+            strcpy(initPaths.animationsFilepath, path);
+
+        else if (strcmp(key, "entities") == 0)
+            strcpy(initPaths.entitiesFilepath, path);
+
+        else if (strcmp(key, "nature_gen") == 0)
+            strcpy(initPaths.natureGenFilepath, path);
+
+        else if (strcmp(key, "particles") == 0)
+            strcpy(initPaths.particlesFilepath, path);
+
+        else if (strcmp(key, "grass") == 0)
+            strcpy(initPaths.grassFilepath, path);
+
+        else if (strcmp(key, "lights") == 0)
+            strcpy(initPaths.lightsFilepath, path);
+
+        else if (strcmp(key, "weapons") == 0)
+            strcpy(initPaths.weaponsFilepath, path);
+
+        else if (strcmp(key, "sprites2d") == 0)
+            strcpy(initPaths.sprites2dFilepath, path);
+
+        else if (strcmp(key, "player") == 0)
+            strcpy(initPaths.playerFilepath, path);
+
+        else if (strcmp(key, "textures") == 0)
+            strcpy(initPaths.texturesFilepath, path);
+
+        else if (strcmp(key, "sounds") == 0)
+            strcpy(initPaths.soundsFilepath, path);
+
+        else
+            LogFatal(LOG, "unknown key (%s) for level initialization (%s)", key, initPaths.levelName);
+
+    }
+}
+
 
 //---------------------------------------------------------
 // some convertation helpers
@@ -78,13 +222,13 @@ void InitMaterials(const char* materialsFilepath)
 {
     assert(!StrHelper::IsEmpty(materialsFilepath));
 
-    const auto start = GameTimer::GetTimePoint();
+    const auto start = GetTimePoint();
 
     MaterialReader matReader;
     matReader.Read(materialsFilepath);
 
     // calc the duration of the whole process of materials loading
-    const TimeDurationMs elapsed = GameTimer::GetTimePoint() - start;
+    const TimeDurationMs elapsed = GetTimePoint() - start;
 
     SetConsoleColor(MAGENTA);
     LogMsg("Material loading duration: %f ms", elapsed.count());
@@ -97,12 +241,28 @@ void InitMaterials(const char* materialsFilepath)
 //---------------------------------------------------------
 void GameInitializer::InitParticles(const char* filepath, ECS::EntityMgr& mgr)
 {
-    ParticlesInitializer initializer;
+    const TimePoint start = GetTimePoint();
 
+    SetConsoleColor(YELLOW);
+    LogMsg("---------------------------------------------------------");
+    LogMsg("            INITIALIZATION: PARTICLE EMITTERS            ");
+    LogMsg("---------------------------------------------------------");
+    
+
+    ParticlesInitializer initializer;
     if (!initializer.Init(filepath, mgr))
     {
         LogFatal(LOG, "can't init particle emitters");
     }
+
+    const TimeDurationMs dur = GetTimePoint() - start;
+
+    LogMsg(LOG, "all the PARTICLE emitters are initialized");
+    SetConsoleColor(MAGENTA);
+    LogMsg("--------------------------------------");
+    LogMsg("Init of particles took: %.3f ms", dur.count());
+    LogMsg("--------------------------------------\n");
+    SetConsoleColor(RESET);
 }
 
 //---------------------------------------------------------
@@ -112,12 +272,26 @@ void GameInitializer::InitParticles(const char* filepath, ECS::EntityMgr& mgr)
 //---------------------------------------------------------
 void GameInitializer::InitGrass(const char* filepath, ECS::EntityMgr& mgr)
 {
-    GrassInitializer initializer;
+    SetConsoleColor(YELLOW);
+    LogMsg("---------------------------------------------------------");
+    LogMsg("            INITIALIZATION: GRASS                        ");
+    LogMsg("---------------------------------------------------------");
+    const TimePoint start = GetTimePoint();
 
+
+    GrassInitializer initializer;
     if (!initializer.Init(filepath, mgr))
     {
         LogFatal(LOG, "can't init grass");
     }
+
+    const TimeDurationMs dur = GetTimePoint() - start;
+    LogMsg(LOG, "all the GRASS instances are initialized");
+    SetConsoleColor(MAGENTA);
+    LogMsg("--------------------------------------");
+    LogMsg("Init of grass took: %.3f ms", dur.count());
+    LogMsg("--------------------------------------\n");
+    SetConsoleColor(RESET);
 }
 
 //---------------------------------------------------------
@@ -138,94 +312,13 @@ void GameInitializer::InitLights(const char* filepath, ECS::EntityMgr& mgr)
 // Desc:   init all the stuff related to the main player
 //---------------------------------------------------------
 void GameInitializer::InitPlayer(
-    ECS::EntityMgr& enttMgr,
-    const Core::EngineConfigs& cfgs)
+    const char* cfgFilepath,
+    ECS::EntityMgr& enttMgr)
 {
-    const EntityID playerId = enttMgr.CreateEntity("player");
-
-    // create and set a model for the player entity
-    const MeshSphereParams sphereParams(1, 20, 20);
-    ModelsCreator creator;
-    const ModelID sphereId    = creator.CreateSphere(sphereParams);
-    Model&   sphereModel = g_ModelMgr.GetModelById(sphereId);
-
-   
-    // setup material (light properties + textures) for the player entity
-    MaterialID catMatID = g_MaterialMgr.GetMatIdByName("cat");
-
-    // setup child entities of the player
-    ECS::NameSystem&      nameSys      = enttMgr.nameSys_;
-    ECS::HierarchySystem& hierarchySys = enttMgr.hierarchySys_;
-    ECS::InventorySystem& inventorySys = enttMgr.inventorySys_;
-
-    const EntityID gameCameraId  = nameSys.GetIdByName("game_camera");
-    const EntityID flashlightId  = nameSys.GetIdByName("player_flashlight");
-    const EntityID pmHudEnttId   = nameSys.GetIdByName("wpn_pm_hud");
-    const EntityID ak74hudEnttId = nameSys.GetIdByName("wpn_ak74_hud");
-    const EntityID bm16hudEnttId = nameSys.GetIdByName("wpn_bm16_hud");
-
-    // ------------------------------------------
-
-    const XMFLOAT3 pos = { 0,0,0 };
-    const XMVECTOR dir = { 0,0,1,0 };
-
-    enttMgr.AddTransformComponent (playerId, pos, dir);
-    enttMgr.AddModelComponent     (playerId, sphereModel.GetId());
-    enttMgr.AddMaterialComponent  (playerId, catMatID);
-
-    // add inventory for a player and push some stuff into it
-    enttMgr.AddInventoryComponent(playerId);
-
-    inventorySys.AddItem(playerId, pmHudEnttId);
-    inventorySys.AddItem(playerId, ak74hudEnttId);
-    inventorySys.AddItem(playerId, bm16hudEnttId);
-
-    // we will render only selected weapon in a separate way
-    enttMgr.RemoveComponent(pmHudEnttId,   ECS::RenderedComponent);
-    enttMgr.RemoveComponent(ak74hudEnttId, ECS::RenderedComponent);
-    enttMgr.RemoveComponent(bm16hudEnttId, ECS::RenderedComponent);
-
-    // BIND some entities to the player
-    hierarchySys.AddChild(playerId, gameCameraId);
-    hierarchySys.AddChild(playerId, flashlightId);
-    hierarchySys.AddChild(playerId, pmHudEnttId);
-    hierarchySys.AddChild(playerId, ak74hudEnttId);
-    hierarchySys.AddChild(playerId, bm16hudEnttId);
-
-    enttMgr.AddPlayerComponent(playerId);
-
-   
-
-    // setup player's params
-    ECS::PlayerSystem& player = enttMgr.playerSys_;
-
-    player.SetSpeedWalk         (cfgs.GetFloat("PLAYER_SPEED_WALK"));
-    player.SetSpeedRun          (cfgs.GetFloat("PLAYER_SPEED_RUN"));
-    player.SetSpeedCrawl        (cfgs.GetFloat("PLAYER_SPEED_CRAWL"));
-    player.SetSpeedFreeFly      (cfgs.GetFloat("PLAYER_SPEED_FREE_FLY"));
-    player.SetCurrentSpeed      (cfgs.GetFloat("PLAYER_SPEED_WALK"));
-
-    player.SetOffsetOverTerrain (cfgs.GetFloat("PLAYER_OFFSET_Y"));
-    player.SetJumpMaxHeight     (cfgs.GetFloat("PLAYER_JUMP_MAX_HEIGHT"));
-
-    player.SetFreeFlyMode(cfgs.GetBool("PLAYER_START_IN_FREE_FLY"));
-    player.SetActiveWeapon(pmHudEnttId);
-
-    // HACK setup (move the player at its inital position)
-    const float posX = cfgs.GetFloat("PLAYER_POS_X_AFTER_INIT");
-    const float posY = cfgs.GetFloat("PLAYER_POS_Y_AFTER_INIT");
-    const float posZ = cfgs.GetFloat("PLAYER_POS_Z_AFTER_INIT");
-
-    enttMgr.PushEvent(ECS::EventTranslate(playerId, posX, posY, posZ));
-
-    // setup bounding for the player
-    BoundingSphere localSphere = sphereModel.GetModelBoundSphere();
-    BoundingSphere worldSphere = localSphere;
-    worldSphere.Center.x += posX;
-    worldSphere.Center.y += posY;
-    worldSphere.Center.z += posZ;
-
-    enttMgr.AddBoundingComponent(playerId, localSphere, worldSphere);
+    if (!PlayerInitializer::Init(cfgFilepath, enttMgr))
+    {
+        LogFatal(LOG, "can't initializer the player");
+    }
 }
 
 //---------------------------------------------------------
@@ -381,91 +474,6 @@ void CreateSpheres(ECS::EntityMgr& mgr, const Model& model)
 }
 
 //---------------------------------------------------------
-// Desc:    load a sky params from config file,
-//          create sky model, and create sky entity
-// Args:    - filepath:  a path to file with sky configuration
-//---------------------------------------------------------
-void CreateSkyBox(const char* filepath, ECS::EntityMgr& mgr)
-{
-    LogDbg(LOG, "create a sky box entity");
-
-    if (StrHelper::IsEmpty(filepath))
-    {
-        LogErr(LOG, "empty filepath");
-        return;
-    }
-
-    // open config file
-    FILE* pFile = fopen(filepath, "r");
-    if (!pFile)
-    {
-        LogFatal(LOG, "can't open sky config file");
-    }
-
-    // read in sky params
-    char     skyTexName[MAX_LEN_TEX_NAME]{'\0'};
-    char     skyMaterialName[MAX_LEN_MAT_NAME]{'\0'};
-    int      skyBoxSize = 0;
-    int      loadCubeMapTexture = 0;
-    int      count = 0;
-    float    skyOffsetY = 0;
-    XMFLOAT3 colorCenter;
-    XMFLOAT3 colorApex;
-    CubeMapInitParams cubeMapParams;
-    
-
-    // do we want to load cubemap or we will create it manually?
-    ReadFileInt   (pFile, "load_cubemap_texture:", &loadCubeMapTexture);
-    ReadFileStr   (pFile, "material_name:",        skyMaterialName);
-    ReadFileStr   (pFile, "cubemap_texture:",      skyTexName);
-    ReadFileStr   (pFile, "cubemap_dir",           cubeMapParams.directory);
-
-    ReadFileStr   (pFile, "sky_pos_x",             cubeMapParams.texNames[0]);
-    ReadFileStr   (pFile, "sky_neg_x",             cubeMapParams.texNames[1]);
-    ReadFileStr   (pFile, "sky_pos_y",             cubeMapParams.texNames[2]);
-    ReadFileStr   (pFile, "sky_neg_y",             cubeMapParams.texNames[3]);
-    ReadFileStr   (pFile, "sky_pos_z",             cubeMapParams.texNames[4]);
-    ReadFileStr   (pFile, "sky_neg_z",             cubeMapParams.texNames[5]);
-
-    ReadFileFloat3(pFile, "color_center",          &colorCenter.x);
-    ReadFileFloat3(pFile, "color_apex",            &colorApex.x);
-    ReadFileInt   (pFile, "sky_box_size",          &skyBoxSize);
-    ReadFileFloat (pFile, "sky_box_offset_y",      &skyOffsetY);
-
-
-    // load a texture for the sky
-    TexID skyMapId = INVALID_TEX_ID;
-
-    if (loadCubeMapTexture)
-        skyMapId = g_TextureMgr.GetTexIdByName(skyTexName);
-
-    else
-        skyMapId = g_TextureMgr.CreateCubeMap("sky_cube_map_0", cubeMapParams);
-
-
-    // setup a material
-    Material& mat = g_MaterialMgr.GetMatByName(skyMaterialName);
-    mat.SetTexture(TEX_TYPE_DIFFUSE, skyMapId);
-
-    // create a sky model
-    Core::ModelsCreator creator;
-    creator.CreateSkyCube((float)skyBoxSize);
-    SkyModel& skyModel = g_ModelMgr.GetSky();
-
-    // setup sky model
-    skyModel.SetMaterialId(mat.id);
-    skyModel.SetColorCenter(colorCenter);
-    skyModel.SetColorApex(colorApex);
-
-    // create and setup a sky entity
-    const EntityID enttId = mgr.CreateEntity("sky");
-    mgr.AddTransformComponent(enttId, { 0, skyOffsetY,0 });
-    mgr.AddMaterialComponent(enttId, mat.id);
-
-    fclose(pFile);
-}
-
-//---------------------------------------------------------
 // Desc:  create and setup cylinder entities
 //---------------------------------------------------------
 void CreateCylinders(ECS::EntityMgr& mgr, const Model& model)
@@ -541,7 +549,7 @@ void CreateTreesEntities(
     Render::CRender& render,
     const char* modelName,
     const uint numEntts,
-    const float uniformScale,
+    const float scale,
     const XMVECTOR rotQuat)
 {
     using namespace DirectX;
@@ -586,35 +594,51 @@ void CreateTreesEntities(
 
     // set heights according to the terrain's landscape
     Terrain& terrain = g_ModelMgr.GetTerrain();
-    const float maxHeight  = 150;                                   // max height where tree can appear
-    const float range      = (float)terrain.heightMap_.GetWidth();
 
+    const float     maxPosHeight        = 150;      // max height where tree can appear
+    const float     range               = (float)terrain.heightMap_.GetWidth();
+    constexpr float gndSlopeMaxAngle    = DEG_TO_RAD(45);
+    constexpr float offsetUnderGnd      = 0.25f;
+    constexpr uint8 minNatureDensity    = 1;
+
+    //
     // generate RANDOM position for each tree
+    //
     for (uint i = 0; i < numEntts; ++i)
     {
-        XMFLOAT3& pos = positions[i];
+        XMFLOAT3& pos    = positions[i];
+        float slopeAngle = 0;
+        uint8 density    = 0;
+        bool bSharpSlope = true;
+        bool bLowDensity = true;
 
         do
         {
-            pos.x = RandF(0, range-5);
-            pos.z = RandF(0, range-5);
-            pos.y = terrain.GetScaledInterpolatedHeightAtPoint(pos.x, pos.z);
-
-            // regenerate position/height if we got at area with no/low nature density
-            while (terrain.GetNatureDensityAtPoint(pos.x, pos.z) < 1)
+            // regenerate position each time when we got at area with no/low
+            // nature density or angle of ground surface is too sharp
+            do
             {
-                pos.x = RandF(0, range - 5);
-                pos.z = RandF(0, range - 5);
-                pos.y = terrain.GetScaledInterpolatedHeightAtPoint(pos.x, pos.z);
-            }
+                pos.x = RandF(0, range-5);
+                pos.z = RandF(0, range-5);
 
-        } while (maxHeight < pos.y);   // limit height for trees
+                slopeAngle = terrain.GetSlopeAngleAtPoint(pos.x, pos.z);
+                density    = terrain.GetNatureDensityAtPoint(pos.x, pos.z);
+
+                bSharpSlope = (slopeAngle > gndSlopeMaxAngle);
+                bLowDensity = (density < minNatureDensity);
+
+            } while (bSharpSlope || bLowDensity);
+
+            // now we have proper x,z coords so find height at this point
+            pos.y = terrain.GetScaledInterpolatedHeightAtPoint(pos.x, pos.z) - offsetUnderGnd;
+
+        } while (pos.y > maxPosHeight);   // limit height for trees
     }
 
     // calc quaternions for rotation around Y-axis
     for (uint i = 0; i < numEntts; ++i)
     {
-        const float angle = DEG_TO_RAD(RandF(0, 3600) * 0.1f);
+        const float angle = DEG_TO_RAD(RandUint(0, 360));
         yRotationQuats[i] = DirectX::XMQuaternionRotationAxis({ 0,1,0 }, angle);
     }
         
@@ -630,7 +654,7 @@ void CreateTreesEntities(
 
     // generate uniform scales
     for (uint i = 0; i < numEntts; ++i)
-        scales[i] = uniformScale;
+        scales[i] = scale;
 
 
     // prepare data for material component
@@ -793,7 +817,7 @@ EntityID CreateBuildingEntt(
     const int numSubsets = model.GetNumSubsets();
     if (numSubsets > 1)
     {
-        cvector<MaterialID> materialsIds(numSubsets, INVALID_MATERIAL_ID);
+        cvector<MaterialID> materialsIds(numSubsets, INVALID_MAT_ID);
 
         for (index i = 0; i < numSubsets; ++i)
             materialsIds[i] = subsets[i].materialId;
@@ -858,7 +882,7 @@ EntityID CreateVehicleEntt(
 
     if (numSubsets > 1)
     {
-        MaterialID matsIds[32]{ INVALID_MATERIAL_ID };
+        MaterialID matsIds[32]{ INVALID_MAT_ID };
         assert(numSubsets <= 32 && "can't create a vehicle entt");
 
         for (index i = 0; i < numSubsets; ++i)
@@ -928,7 +952,7 @@ EntityID CreateWeaponEntt(
 
     if (numSubsets > 1)
     {
-        MaterialID matsIds[32]{ INVALID_MATERIAL_ID };
+        MaterialID matsIds[32]{ INVALID_MAT_ID };
         assert(numSubsets < 32 && "can't create a weapon entt");
 
         for (index i = 0; i < numSubsets; ++i)
@@ -1006,10 +1030,10 @@ void LoadModelAssets(const char* filepath, Render::CRender& render)
     assert(filepath && filepath[0] != '\0');
 
     // calc the duration of the whole process of loading
-    const TimePoint start = GameTimer::GetTimePoint();
+    const TimePoint start = GetTimePoint();
 
     char buf[256]{ '\0' };
-    char modelPath[256]{ '\0' };
+    char modelPath[128]{ '\0' };
     char modelName[MAX_LEN_MODEL_NAME]{ '\0' };
     ModelID modelId = 0;
     ModelLoader loader;
@@ -1024,14 +1048,15 @@ void LoadModelAssets(const char* filepath, Render::CRender& render)
     // read and init each model
     while (fgets(buf, sizeof(buf), pFile))
     {
-        // skip a comment line
-        if (buf[0] == '/')
+        // skip new lines and comments
+        if (buf[0] == '\n' || buf[0] == ';')
             continue;
+
 
         int count = sscanf(buf, "%s", modelPath);
         if (count != 1)
         {
-            LogErr(LOG, "can't properly path to model from a buffer: %s", buf);
+            LogErr(LOG, "can't get a model path from str buffer: %s", buf);
             continue;
         }
 
@@ -1059,7 +1084,7 @@ void LoadModelAssets(const char* filepath, Render::CRender& render)
     }
 
 
-    const TimeDurationMs elapsed = GameTimer::GetTimePoint() - start;
+    const TimeDurationMs elapsed = GetTimePoint() - start;
 
     SetConsoleColor(MAGENTA);
     LogMsg("-------------------------------------");
@@ -1084,12 +1109,17 @@ void LoadEntities(const char* filePath, ECS::EntityMgr& enttMgr)
         LogFatal(LOG, "can't open file for entities creation: %s", filePath);
     }
 
-
+    int count = 0;
+    char key[32];
     char buf[128]{'\0'};
     char enttName[MAX_LEN_ENTT_NAME]{'\0'};
+    char matName[MAX_LEN_MAT_NAME]{'\0'};
     char archetype[32]{'\0'};
 
-    EntityID enttId  = INVALID_ENTITY_ID;
+    char animSkeletonName[MAX_LEN_SKELETON_NAME]{'\0'};
+    char animName[MAX_LEN_ANIMATION_NAME]{'\0'};
+
+    EntityID enttId  = INVALID_ENTT_ID;
     XMFLOAT3 pos     = { 0,0,0 };
     XMFLOAT3 dir     = { 0,0,0 };
     
@@ -1098,25 +1128,42 @@ void LoadEntities(const char* filePath, ECS::EntityMgr& enttMgr)
     float    scale   = 1.0;
     Model*   pModel  = nullptr;
 
-    cvector<MaterialID> materialIds(8, INVALID_MATERIAL_ID);
+    bool bHasAnimSkeleton = false;
+    bool bHasAnimName = false;
+    int  bEnttVisible = true;
+
+    cvector<MaterialID> materialIds(8, INVALID_MAT_ID);
     cvector<SubsetID>   subsetIds(8, 0);
 
 
     while (fgets(buf, sizeof(buf), pFile))
     {
+        // skip new lines and comments
+        if (buf[0] == '\n' || buf[0] == ';')
+            continue;
+
+
+        count = sscanf(buf, "%s", key);
+        assert(count == 1);
+
         // create a new entity
-        if (strncmp(buf, "newentt", 7) == 0)
+        if (strcmp(key, "newentt") == 0)
         {
             ReadStr(buf, "newentt %s", enttName);
 
+            // reset params
             pModel = nullptr;
             materialIds.clear();
             subsetIds.clear();
             rotQuat = { 0,0,0,1 };
+
+            bHasAnimSkeleton = false;
+            bHasAnimName = false;
+            bEnttVisible = true;
         }
 
         // read in a model name
-        else if (strncmp(buf, "model", 5) == 0)
+        else if (strcmp(key, "model") == 0)
         {
             char modelName[MAX_LEN_MODEL_NAME]{'\0'};
             ReadStr(buf, "model %s\n", modelName);
@@ -1126,81 +1173,103 @@ void LoadEntities(const char* filePath, ECS::EntityMgr& enttMgr)
         }
 
         // read in material (subsetId => materialId)
-        else if (strncmp(buf, "material", 8) == 0)
+        else if (strcmp(key, "material") == 0)
         {
-            int subsetId = -1;
-            char matName[MAX_LEN_MAT_NAME]{ '\0' };
-            int count = sscanf(buf, "material %d %s\n", &subsetId, matName);
+            int meshId = -1;
+            count = sscanf(buf, "material %d %s\n", &meshId, matName);
             assert(count == 2);
 
-            MaterialID matId = g_MaterialMgr.GetMatIdByName(matName);
+            const MaterialID matId = g_MaterialMgr.GetMatIdByName(matName);
 
             if (matId == INVALID_MODEL_ID)
             {
-                LogErr(LOG, "there is no material by name: %s", matName);
+                LogErr(LOG, "no material by name: %s", matName);
                 continue;
             }
 
             materialIds.push_back(matId);
-            subsetIds.push_back((SubsetID)subsetId);
+            subsetIds.push_back((SubsetID)meshId);
         }
 
         // read in position in world
-        else if (strncmp(buf, "pos", 3) == 0)
+        else if (strcmp(key, "pos") == 0)
         {
             ReadFloat3(buf, "pos %f %f %f\n", &pos.x);
         }
 
-        else if (strncmp(buf, "dir", 3) == 0)
+        else if (strcmp(key, "dir") == 0)
         {
             ReadFloat3(buf, "dir %f %f %f\n", &dir.x);
             vDir = { dir.x, dir.y, dir.z };
         }
 
-        else if (strncmp(buf, "rot_axis_x", 10) == 0)
+        else if (strcmp(key, "rot_axis_x") == 0)
         {
             float angle = 1.0f;
             ReadFloat(buf, "rot_axis_x %f\n", &angle);
-            XMVECTOR q = QuatRotAxis({ 1,0,0 }, angle);
+
+            const XMVECTOR q = QuatRotAxis({ 1,0,0 }, angle);
             rotQuat = QuatMul(rotQuat, q);
         }
 
-        else if (strncmp(buf, "rot_axis_y", 10) == 0)
+        else if (strcmp(key, "rot_axis_y") == 0)
         {
             float angle = 1.0f;
             ReadFloat(buf, "rot_axis_y %f\n", &angle);
-            XMVECTOR q = QuatRotAxis({ 0,1,0 }, angle);
+
+            const XMVECTOR q = QuatRotAxis({ 0,1,0 }, angle);
             rotQuat = QuatMul(rotQuat, q);
         }
 
-        else if (strncmp(buf, "rot_axis_z", 10) == 0)
+        else if (strcmp(key, "rot_axis_z") == 0)
         {
             float angle = 1.0f;
             ReadFloat(buf, "rot_axis_z %f\n", &angle);
-            XMVECTOR q = QuatRotAxis({ 0,0,1 }, angle);
+
+            const XMVECTOR q = QuatRotAxis({ 0,0,1 }, angle);
             rotQuat = QuatMul(rotQuat, q);
         }
 
-        else if (strncmp(buf, "rot_axis", 8) == 0)
+        else if (strcmp(key, "rot_axis") == 0)
         {
             Vec4 rotAxis = { 0,0,0,0 };
             ReadFloat4(buf, "rot_axis %f %f %f %f\n", &rotAxis.x);
-            rotQuat = QuatRotAxis({ rotAxis.x, rotAxis.y, rotAxis.z }, rotAxis.w);
+
+            const XMVECTOR axis = { rotAxis.x, rotAxis.y, rotAxis.z };
+            rotQuat = QuatRotAxis(axis, rotAxis.w);
         }
 
-        else if (strncmp(buf, "rot_quat", 8) == 0)
+        else if (strcmp(key, "rot_quat") == 0)
         {
             Vec4 q = { 0,0,0,1 };
             ReadFloat4(buf, "rot_quat %f %f %f %f\n", &q.x);
             rotQuat = { q.x, q.y, q.z, q.w };
         }
 
-        else if (strncmp(buf, "uni_scale", 9) == 0)
+        else if (strcmp(key, "scale") == 0)
         {
-            ReadFloat(buf, "uni_scale %f\n", &scale);
+            ReadFloat(buf, "scale %f\n", &scale);
+     
         }
 
-        else if (strncmp(buf, "archetype", 9) == 0)
+        else if (strcmp(key, "anim_skeleton") == 0)
+        {
+            ReadStr(buf, "anim_skeleton %s\n", animSkeletonName);
+            bHasAnimSkeleton = true;
+        }
+
+        else if (strcmp(key, "anim_name") == 0)
+        {
+            ReadStr(buf, "anim_name %s\n", animName);
+            bHasAnimName = true;
+        }
+
+        else if (strcmp(key, "is_visible") == 0)
+        {
+            ReadInt(buf, "is_visible %d", &bEnttVisible);
+        }
+
+        else if (strcmp(key, "archetype") == 0)
         {
             ReadStr(buf, "archetype %s", archetype);
 
@@ -1234,6 +1303,23 @@ void LoadEntities(const char* filePath, ECS::EntityMgr& enttMgr)
             {
                 LogErr(LOG, "can't create entity (%s): unknown archetype (%s)", enttName, archetype);
             }
+
+
+            // setup animation for this entity (if we have any)
+            if (bHasAnimSkeleton && bHasAnimName)
+            {
+                AnimSkeleton&        skeleton = g_AnimationMgr.GetSkeleton(animSkeletonName);
+                const AnimationID      animId = skeleton.GetAnimationIdx(animName);
+                const AnimationClip& animClip = skeleton.GetAnimation(animId);
+
+                enttMgr.AddAnimationComponent(enttId, skeleton.id_, animId, animClip.GetEndTime());
+            }
+
+
+            // setup visibility for this entity
+            if (!bEnttVisible)
+                enttMgr.RemoveComponent(enttId, ECS::RenderedComponent);
+
 
             // setup material for subset 0
             for (index i = 0; i < materialIds.size(); ++i)
@@ -1279,7 +1365,7 @@ void ReadTreesParams(const char* buf, NatureParams& params)
 void CreateNature(const char* filename, ECS::EntityMgr& enttMgr, Render::CRender& render)
 {
     assert(filename && filename[0] != '\0');
-    LogDbg(LOG, "initialize nature");
+    LogDbg(LOG, "generate nature: trees, bushes, etc.");
 
     char buf[128]{ '\0' };
     NatureParams params;
@@ -1288,7 +1374,7 @@ void CreateNature(const char* filename, ECS::EntityMgr& enttMgr, Render::CRender
     FILE* pFile = fopen(filename, "r");
     if (!pFile)
     {
-        LogFatal(LOG, "can't open config file for nature initialization: %s", filename);
+        LogFatal(LOG, "can't open a config file for nature generation: %s", filename);
     }
 
     while (fgets(buf, sizeof(buf), pFile))
@@ -1333,63 +1419,8 @@ void CreateNature(const char* filename, ECS::EntityMgr& enttMgr, Render::CRender
     if (pFile)
         fclose(pFile);
 
-    LogDbg(LOG, "nature initialization is finished");
+    LogDbg(LOG, "nature initialization is finished\n");
 }
-
-#if 0
-//---------------------------------------------------------
-
-void SaveImportedModel(const char* modelName)
-{
-    assert(modelName && modelName[0] != '\0');
-
-    Model& model = g_ModelMgr.GetModelByName(modelName);
-    assert(model.GetId() != INVALID_MODEL_ID);
-
-    char dirPath[256];
-    memset(dirPath, 0, 256);
-    snprintf(dirPath, 256, "%s/", model.GetName());
-
-    ModelExporter exporter;
-    exporter.ExportIntoDE3D(&model, dirPath, model.GetName());
-}
-
-//---------------------------------------------------------
-
-void ImportModels()
-{
-    TimePoint start = GetTimePoint();
-
-    ModelsCreator creator;
-
-    creator.ImportFromFile("data/models/ext/boblampclean/boblampclean.md5mesh");
-    //creator.ImportFromFile("data/models/stalker_freedom_1/stalker_freedom_1.fbx");
-    creator.ImportFromFile("data/models/ext/bm_hud/wpn_bm-16_hud.fbx");
-    creator.ImportFromFile("data/models/ext/pm/wpn_pm_hud.fbx");
-    creator.ImportFromFile("data/models/ext/ak_74_hud/ak_74_hud.fbx");
-
-    const TimeDurationMs dur = GetTimePoint() - start;
-
-    SetConsoleColor(MAGENTA);
-    LogMsg("------------------------------------------------");
-    LogMsg("import of models with animations took:  %f ms", dur.count());
-    LogMsg("------------------------------------------------\n");
-}
-
-//---------------------------------------------------------
-
-void SaveSkeletonAnimations(const char* skeletonName, const char* filename)
-{
-    assert(skeletonName && skeletonName[0] != '\0');
-    assert(filename     && filename[0] != '\0');
-
-    const AnimSkeleton& skeleton = g_AnimationMgr.GetSkeleton(skeletonName);
-    assert(skeleton.id_ != 0);
-
-    AnimationSaver animSaver;
-    animSaver.Save(&skeleton, filename);
-}
-#endif
 
 //---------------------------------------------------------
 // Desc:  1. read in path to file with skeleton and animations
@@ -1406,7 +1437,7 @@ void LoadAnimations(const char* filepath)
         return;
     }
 
-    const TimePoint start = GameTimer::GetTimePoint();
+    const TimePoint start = GetTimePoint();
     AnimationLoader animLoader;
     char buf[512];
     int count = 0;
@@ -1435,59 +1466,10 @@ void LoadAnimations(const char* filepath)
     }
 
 
-    const TimeDurationMs dur = GameTimer::GetTimePoint() - start;
-
+    const TimeDurationMs dur = GetTimePoint() - start;
     LogMsg("------------------------------------------------");
     LogMsg("loading of animations took:  %f sec", dur.count() * 0.001f);
     LogMsg("------------------------------------------------\n");
-}
-
-//---------------------------------------------------------
-// Desc:  manually bind skeletons and animations to some entities
-//---------------------------------------------------------
-void BindAnimationsToEntts(ECS::EntityMgr& enttMgr)
-{
-    const EntityID boblampId             = enttMgr.nameSys_.GetIdByName("boblampclean");
-    const EntityID ak74hudId             = enttMgr.nameSys_.GetIdByName("wpn_ak74_hud");
-    const EntityID bm16hudId             = enttMgr.nameSys_.GetIdByName("wpn_bm16_hud");
-    const EntityID pmHudId               = enttMgr.nameSys_.GetIdByName("wpn_pm_hud");
-    const EntityID bm16hudTestId         = enttMgr.nameSys_.GetIdByName("bm_16_hud_test");
-    const EntityID ak74hudTestId         = enttMgr.nameSys_.GetIdByName("ak_74_hud_test");
-    const EntityID pmHudTestId           = enttMgr.nameSys_.GetIdByName("pm_hud_test");
-
-    // add animation component to ak74
-    AnimSkeleton&        ak74hudSkeleton = g_AnimationMgr.GetSkeleton("wpn_ak74_hud");
-    const AnimationID    ak74AnimId      = ak74hudSkeleton.GetAnimationIdx("wpn_ak74_hud_ogf_idle");
-    const AnimationClip& ak74Anim        = ak74hudSkeleton.GetAnimation(ak74AnimId);
-
-    enttMgr.AddAnimationComponent(ak74hudId,     ak74hudSkeleton.id_, ak74AnimId, ak74Anim.GetEndTime());
-    ak74hudSkeleton.DumpAnimations();
-
-
-    // add animation component to boblampclean
-    AnimSkeleton&        bobSkeleton     = g_AnimationMgr.GetSkeleton("boblampclean");
-    const AnimationID    bobAnimId       = bobSkeleton.GetAnimationIdx("boblampclean_0");
-    const AnimationClip& bobAnim         = bobSkeleton.GetAnimation(bobAnimId);
-
-    enttMgr.AddAnimationComponent(boblampId, bobSkeleton.id_, bobAnimId, bobAnim.GetEndTime());
-
-
-    // add animation component to bm16
-    AnimSkeleton& bm16hudSkeleton        = g_AnimationMgr.GetSkeleton("wpn_bm-16_hud");
-    const AnimationID bm16AnimId         = bm16hudSkeleton.GetAnimationIdx("wpn_bm_16_hud_ogf_idle");
-    const AnimationClip& bm16Anim        = bm16hudSkeleton.GetAnimation(bm16AnimId);
-
-    enttMgr.AddAnimationComponent(bm16hudId,     bm16hudSkeleton.id_, bm16AnimId, bm16Anim.GetEndTime());
-    enttMgr.AddAnimationComponent(bm16hudTestId, bm16hudSkeleton.id_, bm16AnimId, bm16Anim.GetEndTime());
-
-
-    // add animation component to pm
-    AnimSkeleton& pmSkeleton    = g_AnimationMgr.GetSkeleton("wpn_pm_hud");
-    const AnimationID pmAnimId  = pmSkeleton.GetAnimationIdx("wpn_pm_hud_ogf_idle");
-    const AnimationClip& pmAnim = pmSkeleton.GetAnimation(pmAnimId);
-
-    enttMgr.AddAnimationComponent(pmHudId,     pmSkeleton.id_, pmAnimId, pmAnim.GetEndTime());
-    enttMgr.AddAnimationComponent(pmHudTestId, pmSkeleton.id_, pmAnimId, pmAnim.GetEndTime());
 }
 
 //---------------------------------------------------------
@@ -1540,7 +1522,6 @@ void LoadModelsAndEntities(
     
     LoadAnimations(animationsFilepath);
     LoadEntities(entitiesFilepath, enttMgr);
-    BindAnimationsToEntts(enttMgr);
 
 #if 1
     //---------------------------------
@@ -1682,7 +1663,7 @@ void CreateTerrain(
 
     // bind maps to texture types
     // (so later we bind them to texture slots in shader)
-    mat.SetTexture(eTexType(1), terrain.texture_.GetID());
+    mat.SetTexture(eTexType(1), terrain.texture_.GetId());
     mat.SetTexture(eTexType(2), texIdMap1);
     mat.SetTexture(eTexType(3), texIdMap2);
     mat.SetTexture(eTexType(4), texIdMap3);
@@ -1699,7 +1680,7 @@ void CreateTerrain(
 
     mat.SetTexture(eTexType(13), texIdAlphaMap);
 
-    mat.SetTexture(TEX_TYPE_DIFFUSE_ROUGHNESS, terrain.detailMap_.GetID());
+    mat.SetTexture(TEX_TYPE_DIFFUSE_ROUGHNESS, terrain.detailMap_.GetId());
     //mat.SetTexture(TEX_TYPE_LIGHTMAP,          terrain.lightmap_.id);
 
     terrain.materialID_ = mat.id;
@@ -1770,63 +1751,32 @@ void GenerateEntities(ECS::EntityMgr& mgr, Render::CRender& render)
     // create and setup entities with models  
     CreateSpheres(mgr, sphere);
     //CreateCylinders(mgr, cylinder);
+}
 
+//---------------------------------------------------------
+// Desc:  create some 2D sprites
+//---------------------------------------------------------
+void GameInitializer::Create2dSprites(
+    const char* cfgFilepath,
+    ECS::EntityMgr& mgr,
+    const Render::CRender& render)
+{
+    Sprite2dInitializer initializer;
 
-    // create 2D sprites
-    const TexID    crossTexId       = g_TextureMgr.GetTexIdByName("wpn/crosshair");
-    const TexID    radiationTexId   = g_TextureMgr.GetTexIdByName("ui/mn_radiations_hard");
-    const TexID    starvTexId       = g_TextureMgr.GetTexIdByName("ui/mn_starvation_hard");
-    const TexID    woundTexId       = g_TextureMgr.GetTexIdByName("ui/mn_wounds_hard");
+    initializer.Init(
+        cfgFilepath,
+        mgr,
+        render.GetD3D().GetWindowWidth(),
+        render.GetD3D().GetWindowHeight());
+}
 
-    const EntityID crossId          = mgr.CreateEntity();
-    const EntityID radiationIconId  = mgr.CreateEntity();
-    const EntityID starvationIconId = mgr.CreateEntity();
-    const EntityID woundsIconId     = mgr.CreateEntity();
-
-
-    const uint16 screenW = (uint16)render.GetD3D().GetWindowWidth();
-    const uint16 screenH = (uint16)render.GetD3D().GetWindowHeight();
-
-    const uint16 screenCX = screenW / 2;
-    const uint16 screenCY = screenH / 2;
-
-    const uint16 crossW = 48;
-    const uint16 crossH = 48;
-
-    const uint16 iconW = 64;
-    const uint16 iconH = 64;
-
-    const uint16 paddingW = 0;
-    const uint16 paddingH = 10;
-
-    uint16 left = 0; 
-    uint16 top  = 0; 
-
-
-    // init a "cross" sprite
-    left = screenCX - crossW / 2;
-    top  = screenCY - crossH / 2;
-
-    mgr.AddNameComponent(crossId, "cross_sprite");
-    mgr.AddSpriteComponent(crossId, crossTexId, left, top, crossW, crossH);
-
-
-    // init a "radiation icon" sprite
-    left = screenW - paddingW - iconW;
-    top  = screenH - paddingH - iconH - 30;
-
-    mgr.AddNameComponent(radiationIconId, "radiation_sprite");
-    mgr.AddSpriteComponent(radiationIconId, radiationTexId, left, top, iconW, iconH);
-
-    // init a "starvation icon" sprite
-    top -= (paddingH + iconH);
-    mgr.AddNameComponent(starvationIconId, "starvation_sprite");
-    mgr.AddSpriteComponent(starvationIconId, starvTexId, left, top, iconW, iconH);
-
-    // init a "wounds icon" sprite
-    top -= (paddingH + iconH);
-    mgr.AddNameComponent(woundsIconId, "wounds_sprite");
-    mgr.AddSpriteComponent(woundsIconId, woundTexId, left + 7, top, iconW, iconH);
+//---------------------------------------------------------
+// initialize skybox, skyplane, skydome
+//---------------------------------------------------------
+void CreateSkyStuff(const char* cfgFilepath, ECS::EntityMgr& enttMgr)
+{
+    SkyInitializer skyInit;
+    skyInit.Init(cfgFilepath, enttMgr);
 }
 
 //---------------------------------------------------------
@@ -1835,7 +1785,8 @@ void GenerateEntities(ECS::EntityMgr& mgr, Render::CRender& render)
 bool GameInitializer::InitEntities(
     ECS::EntityMgr& mgr,
     Render::CRender& render,
-    const Core::EngineConfigs& cfgs)
+    const Core::EngineConfigs& cfgs,
+    const GameInitPaths& initPaths)
 {
     SetConsoleColor(YELLOW);
     LogMsg("\n");
@@ -1846,19 +1797,9 @@ bool GameInitializer::InitEntities(
 
     try
     {
-        const char* materialsFilepath   = "data/materials.demat";
-        const char* terrainCfgFilepath  = "data/terrain/terrain.cfg";
-        const char* skyCfgFilepath      = "data/sky_plane.cfg";
-        const char* modelsFilepath      = "data/models.demdl";
-        const char* animationsFilepath  = "data/animations.cfg";
-        const char* entitiesFilepath    = "data/entities.dentt";
-        const char* natureFilepath      = "data/nature.cfg";
-        const char* skyFilepath         = "data/sky.cfg";
+        InitMaterials(initPaths.materialsFilepath);
 
-
-        InitMaterials(materialsFilepath);
-
-        CreateTerrain(mgr, render, terrainCfgFilepath);
+        CreateTerrain(mgr, render, initPaths.terrainFilepath);
 
         Terrain& terrain = g_ModelMgr.GetTerrain();
         Rect3d worldBox = terrain.GetAABB();
@@ -1869,19 +1810,21 @@ bool GameInitializer::InitEntities(
         worldBox.y1 = Max(worldBox.y1, maxWorldHeight);
         mgr.quadTree_.Init(worldBox, quadTreeDepth);
 
+        // generate some entities based on geometric primitives
         GenerateEntities(mgr, render);
-        CreateSkyBox(skyFilepath, mgr);
+
+        Create2dSprites(initPaths.sprites2dFilepath, mgr, render);
 
         LoadModelsAndEntities(
-            modelsFilepath,
-            animationsFilepath,
-            entitiesFilepath,
-            natureFilepath,
+            initPaths.modelsFilepath,
+            initPaths.animationsFilepath,
+            initPaths.entitiesFilepath,
+            initPaths.natureGenFilepath,
             mgr,
             render,
             cfgs);
 
-        g_ModelMgr.GetSkyPlane().Init(skyCfgFilepath);
+        CreateSkyStuff(initPaths.skyFilepath, mgr);
     }
     catch (const std::out_of_range& e)
     {

@@ -10,6 +10,8 @@
 namespace ECS
 {
 
+
+
 //---------------------------------------------------------
 // Desc:  default constructor
 //---------------------------------------------------------
@@ -38,7 +40,7 @@ ParticleSystem::ParticleSystem(
 //---------------------------------------------------------
 void ParticleSystem::AddEmitter(const EntityID id)
 {
-    if (id == INVALID_ENTITY_ID)
+    if (id == INVALID_ENTT_ID)
     {
         LogErr(LOG, "input entity id is invalid");
         return;
@@ -78,7 +80,7 @@ void UpdateParticleEmitter(EmitterData& emitter, const float dt, const Rect3d& a
         }
     }
 
-    // if all dead...
+    // if all are dead...
     if (emitter.particles.empty())
         return;
 
@@ -193,7 +195,7 @@ void UpdateParticleEmitter(EmitterData& emitter, const float dt, const Rect3d& a
         const int  numFramesY = emitter.numTexFramesByY;
 
         const int   numFrames = numFramesX * numFramesY;
-        const float frameTimeMs = 1000.0f / (float)numFrames;
+        const float frameTimeSec = emitter.texAnimDurationSec / (float)numFrames;
 
         const float dtu = 1.0f / (float)numFramesX;
         const float dtv = 1.0f / (float)numFramesY;
@@ -201,7 +203,9 @@ void UpdateParticleEmitter(EmitterData& emitter, const float dt, const Rect3d& a
 
         for (int i = 0; Particle& particle : emitter.particles)
         {
-            int currFrame = (int)floorf(frameTimeMs * particle.ageMs);
+            const float lifespan = emitter.life - particle.ageMs;
+            int currFrame = (int)floorf(lifespan / frameTimeSec);
+
             currFrame += particle.frameRandOffset;
             currFrame %= numFrames;
 
@@ -307,10 +311,10 @@ ParticlesRenderData& ParticleSystem::GetParticlesToRender()
 //-----------------------------------------------------
 // Desc:  get a position of emitter by input ID
 //-----------------------------------------------------
-const XMFLOAT3 ParticleSystem::GetEmitterPos(const EntityID id) const
+const DirectX::XMFLOAT3 ParticleSystem::GetEmitterPos(const EntityID id) const
 {
-    XMFLOAT3 pos;
-    XMStoreFloat3(&pos, GetEmitterData(id).position);
+    DirectX::XMFLOAT3 pos;
+    DirectX::XMStoreFloat3(&pos, GetEmitterData(id).position);
     return pos;
 }
 
@@ -518,7 +522,7 @@ void ParticleSystem::SetupNewParticles(
     {
         if (initData.srcType == EMITTER_SRC_TYPE_POINT)
         {
-            const XMFLOAT3 dir = initData.velInitDir;
+            const DirectX::XMFLOAT3 dir = initData.velInitDir;
 
             for (index i = 0; i < numParticles; ++i)
             {

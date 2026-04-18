@@ -23,3 +23,5 @@
 #include <math/dx_math_helpers.h>
 #include <math/vec_functions.h>
 #include <math/math_constants.h>
+
+#include <parse_helpers.h>              // helpers for parsing string buffers, or reading data from file

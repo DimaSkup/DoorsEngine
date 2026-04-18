@@ -50,7 +50,10 @@ public:
 
     Rect3d(const Rect3d& src);
     Rect3d(const Vec3* points, const int numPoints);
-    Rect3d(Vec3&& c, Vec3&& e);                                       // c - center, e - extents
+
+    Rect3d(const Vec3& center, const Vec3& extents);
+    Rect3d(Vec3&& center, Vec3&& extents);
+
     Rect3d(const float xSize, const float ySize, const float zSize);
     Rect3d(const Vec3& size);
     ~Rect3d() {};

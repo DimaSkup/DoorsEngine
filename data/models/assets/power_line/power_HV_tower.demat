@@ -1,0 +1,13 @@
+newmtl power_HV_tower_mat
+shader LightShader
+rs default
+bs default
+dss default
+Ka 0.70 0.70 0.70 1.00
+Kd 0.70 0.70 0.70 1.00
+Ks 1.00 1.00 1.00
+Kg 32.00
+Kr 0.00 0.00 0.00 0.00
+tex_diff power_line/diff
+tex_norm power_line/norm
+

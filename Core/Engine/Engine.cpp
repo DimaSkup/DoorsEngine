@@ -123,31 +123,6 @@ void Engine::Init(
     // init ImGui stuff
     imGuiLayer_.Init(hwnd_, Render::GetD3dDevice(), Render::GetD3dContext());
 
-    // initialize some data/resource managers
-    if (!g_TextureMgr.Init("data/textures/textures.cfg"))
-    {
-        LogErr(LOG, "can't init a texture manager");
-        exit(0);
-    }
-
-    if (!g_MaterialMgr.Init())
-    {
-        LogErr(LOG, "can't init a material manager");
-        exit(0);
-    }
-
-    if (!g_ModelMgr.Init())
-    {
-        LogErr(LOG, "can't init a model manager");
-        exit(0);
-    }
-
-    if (!g_SoundMgr.Init("data/sounds/sounds.cfg", GetHWND()))
-    {
-        LogErr(LOG, "can't init a sounds manager");
-        exit(0);
-    }
-
     LogMsg(LOG, "is initialized!");
 }
 
@@ -170,70 +145,60 @@ bool Engine::BindBindlessTextures(const char* cfgPath)
         return false;
     }
 
-    ID3D11DeviceContext* pCtx = pRender_->GetContext();
-    assert(pCtx != nullptr);
-
     int count = 0;
-    int startSlot = 0;
-    constexpr int bufSize = 128;
-    char buf[bufSize]{ '\0' };
-    char semanticName[bufSize]{ '\0' };
+    int texSlot = 0;
+    char buf[128]{ '\0' };
+    char texName[128]{ '\0' };
 
-    while (fgets(buf, bufSize, pFile))
+    while (fgets(buf, sizeof(buf), pFile))
     {
-        // skip comments
-        if (buf[0] == '/' && buf[1] == '/')
+        // skip comments and new lines
+        if (buf[0] == ';' || buf[0] == '\n')
             continue;
 
-        count = sscanf(buf, "%d %s\n", &startSlot, semanticName);
+        count = sscanf(buf, "%d %s\n", &texSlot, texName);
         assert(count == 2);
 
-
+        //
         // check some semantic names to handle it separately or
         // just search for texture by its name
-        if (strcmp(semanticName, "depth_tex") == 0)
+        //
+        if (strcmp(texName, "depth_tex") == 0)
         {
-            // bind depth tex (shader resource view)
+            // bind a depth tex (shader resource view)
             ID3D11ShaderResourceView* pDepthSRV = nullptr;
 
             if (GetD3D().IsEnabled4xMSAA())
                 pDepthSRV = GetD3D().GetResolvedDepthSRV();
-
             else
                 pDepthSRV = GetD3D().GetDepthSRV();
 
-            pCtx->PSSetShaderResources((UINT)startSlot, 1U, &pDepthSRV);
+            pRender_->SetTexturesPS((UINT)texSlot, 1U, &pDepthSRV);
         }
 
-        else if (strcmp(semanticName, "depth_tex_4x_msaa") == 0)
+        else if (strcmp(texName, "depth_tex_4x_msaa") == 0)
         {
-            // bind depth tex (shader resource view) in case when we use 4xMSAA
+            // bind a depth tex (shader resource view) in case when we use 4xMSAA
             ID3D11ShaderResourceView* pDepthSrv4xMSAA = GetD3D().GetDepthSRV();
-            pCtx->PSSetShaderResources((UINT)startSlot, 1U, &pDepthSrv4xMSAA);
-        }
-
-        else if (strcmp(semanticName, "screen_tex") == 0)
-        {
-            // bind screen tex (render target view)
+            pRender_->SetTexturesPS((UINT)texSlot, 1U, &pDepthSrv4xMSAA);
         }
 
         else
         {
-            // get a texture by its name (we expect a texture to be already loaded)
-            TexID texId = g_TextureMgr.GetTexIdByName(semanticName);
+            // get a texture by its name (texture must be alrady loaded)
+            TexID texId = g_TextureMgr.GetTexIdByName(texName);
 
             if (texId == INVALID_TEX_ID)
             {
-                LogErr(LOG, "can't find a texture to bind as bindless: %s", semanticName);
+                LogErr(LOG, "can't find a texture to bind as bindless: %s", texName);
                 continue;
             }
 
-            // bind a texture by slot
-            Texture& tex = g_TextureMgr.GetTexById(texId);
-            pCtx->VSSetShaderResources((UINT)startSlot, 1U, tex.GetResourceViewAddr());
-            pCtx->PSSetShaderResources((UINT)startSlot, 1U, tex.GetResourceViewAddr());
+            // bind a texture to particular slot for vertex and pixel shader 
+            const Texture& tex = g_TextureMgr.GetTexById(texId);
+            pRender_->SetTexturesVS((UINT)texSlot, 1U, tex.GetResourceViewAddr());
+            pRender_->SetTexturesPS((UINT)texSlot, 1U, tex.GetResourceViewAddr());
         }
-
     }
 
     // great success!
@@ -244,7 +209,7 @@ bool Engine::BindBindlessTextures(const char* cfgPath)
 //---------------------------------------------------------
 // Desc:   update the engine state
 //---------------------------------------------------------
-void Engine::Update(const float deltaTime, const float gameTime)
+void Engine::Update(const float dt, const float gameTime)
 {
     
 #if 0
@@ -257,10 +222,10 @@ void Engine::Update(const float deltaTime, const float gameTime)
 #endif
 
     // get the time which passed since the previous frame
-    deltaTime_ = deltaTime;
+    deltaTime_ = dt;
 
-    systemState_.deltaTime = deltaTime;
-    systemState_.frameTime = deltaTime * 1000.0f;
+    systemState_.deltaTime = dt;
+    systemState_.frameTime = dt * 1000.0f;
 
     // compute fps and frame time (ms)
     CalculateFrameStats();
@@ -272,13 +237,13 @@ void Engine::Update(const float deltaTime, const float gameTime)
     }
 
     // update the entities and related data
-    pEnttMgr_->Update(timer_.GetGameTime(), deltaTime);
+    pEnttMgr_->Update(timer_.GetGameTime(), dt);
 
     pUserInterface_->Update(systemState_);
     keyboard_.Update();
-    graphics_.Update(deltaTime, gameTime);
+    graphics_.Update(dt, gameTime);
 
-    g_ModelMgr.Update(deltaTime);
+    g_ModelMgr.Update(dt);
 
     // if we want to switch btw game/editor mode
     if (switchEngineMode_)
@@ -379,10 +344,9 @@ void Engine::CalculateFrameStats()
         ++timeElapsed;
 
         // if fullscreen we don't see window caption so no need to do further calculations 
-        if (isFullscreen_)
+        if (isFullscreenInGameMode_)
             return;
 
-#if 1
         // print FPS, frame_time, used RAM as the window caption
         PROCESS_MEMORY_COUNTERS pmc;
         DWORD processID;
@@ -404,7 +368,6 @@ void Engine::CalculateFrameStats()
             usageRAM);
 
         SetWindowTextA(hwnd_, buf);		
-#endif
     }
 }
 
@@ -415,10 +378,8 @@ void Engine::RenderFrame()
 {
     try
     {
-        const bool collectGpuMetrics = systemState_.collectGpuMetrics;
-
         // begin disjoint query, and timestamp the beginning of the frame
-        if (collectGpuMetrics)
+        if (systemState_.collectGpuMetrics)
             g_GpuProfiler.BeginFrame();
        
         if (systemState_.isEditorMode)
@@ -426,7 +387,7 @@ void Engine::RenderFrame()
         else  
             RenderInGameMode();
 
-        if (collectGpuMetrics)
+        if (systemState_.collectGpuMetrics)
             UpdateRenderTimingStat(systemState_);
 
         pRender_->Update();
@@ -434,7 +395,7 @@ void Engine::RenderFrame()
         // display frame on-screen and finish up queries
         GetD3D().EndScene();
 
-        if (collectGpuMetrics)
+        if (systemState_.collectGpuMetrics)
             g_GpuProfiler.EndFrame();
 
         // before next frame
@@ -477,6 +438,8 @@ void Engine::RenderInEditorMode()
 void Engine::RenderInGameMode()
 {
     // Clear all the buffers before frame rendering and render our 3D scene
+    GetD3D().ResetBackBufferRenderTarget();
+    GetD3D().ResetViewport();
     GetD3D().BeginScene();
     g_GpuProfiler.Timestamp(GTS_ClearFrame);
 
@@ -1058,8 +1021,7 @@ void Engine::TurnOnEditorMode()
 {
     const EntityID editorCamId = pEnttMgr_->nameSys_.GetIdByName("editor_camera");
 
-    isFullscreen_ = false;
-    GetD3D().ToggleFullscreen(hwnd_, isFullscreen_);
+    GetD3D().ToggleFullscreen(hwnd_, false);
     graphics_.SetActiveCamera(editorCamId);
 
     systemState_.isGameMode   = false;
@@ -1105,8 +1067,7 @@ void Engine::TurnOnGameMode()
 {
     const EntityID gameCamId = pEnttMgr_->nameSys_.GetIdByName("game_camera");
 
-    isFullscreen_ = true;
-    GetD3D().ToggleFullscreen(hwnd_, isFullscreen_);
+    GetD3D().ToggleFullscreen(hwnd_, isFullscreenInGameMode_);
     graphics_.SetActiveCamera(gameCamId);
 
     ShowCursor(FALSE);
